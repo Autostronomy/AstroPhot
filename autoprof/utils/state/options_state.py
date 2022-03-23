@@ -6,7 +6,7 @@ class Options(SubState):
         super().__init__(**kwargs)
         self.options = kwargs
 
-    def __get__(self, key):
+    def __getitem__(self, key):
         return self.options[key]
 
     def __contains__(self, key):
