@@ -8,7 +8,7 @@ class State(object):
     def __new__(cls, *args, **kwargs):
 
         if any(isinstance(v, list) for v in kwargs.values()):
-            return (State(**sub_kwargs) for sub_kwargs in self._kwargs_iterator(**kwargs))
+            return (State(**sub_kwargs) for sub_kwargs in cls._kwargs_iterator(**kwargs))
         else:
             return super().__new__(cls)
         
@@ -22,7 +22,7 @@ class State(object):
             **kwargs
         )
 
-    def _kwargs_iterator(self, **kwargs):
+    def _kwargs_iterator(**kwargs):
 
         for v in kwargs.values():
             if isinstance(v,list):

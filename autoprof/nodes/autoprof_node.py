@@ -27,23 +27,33 @@ class AP_Chart(Chart, AP_Node):
         super().__init__(name, *args, **kwargs)
 
 
-def make_AP_Process(name):
+def make_AP_Process(new_name):
     def inner(func):
         class New_Process(AP_Process):
-            name = name
-            def __init__(self, **kwargs):
-                super().__init__(kwargs['name'] if 'name' in kwargs else name, *args, **kwargs)
+            name = new_name
+            def __init__(self, *args, **kwargs):
+                if 'name' in kwargs:
+                    node_name = kwargs['name']
+                    del kwargs['name']
+                else:
+                    node_name = new_name
+                super().__init__(*args, name = node_name, **kwargs)
                 self.update_run(func)
             #new_node = AP_Process(name = name, func = func)
         return New_Process
     return inner
 
-def make_AP_Decision(name):
+def make_AP_Decision(new_name):
     def inner(func):
         class New_Decision(AP_Decision):
-            name = name
-            def __init__(self, **kwargs):
-                super().__init__(kwargs['name'] if 'name' in kwargs else name, *args, **kwargs)
+            name = new_name
+            def __init__(self, *args, **kwargs):
+                if 'name' in kwargs:
+                    node_name = kwargs['name']
+                    del kwargs['name']
+                else:
+                    node_name = new_name
+                super().__init__(*args, name = node_name, **kwargs)
                 self.update_run(func)
             #new_node = AP_Decision(name = name, func = func)
         return New_Decision

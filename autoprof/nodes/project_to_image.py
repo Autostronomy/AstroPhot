@@ -1,4 +1,4 @@
-from ..autoprof_node import make_AP_Process
+from .autoprof_node import make_AP_Process
 
 @make_AP_Process("project to image")
 def project_to_image(state):

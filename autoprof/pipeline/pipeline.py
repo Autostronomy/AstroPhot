@@ -6,9 +6,9 @@ from functools import partial
 
 class Pipeline(object):
 
-    default_fitting_pipeline = {'main': ['load image', 'gaussian psf', "create models", 'initialize models', 'fit loop', 'quality checks', 'write models'],
+    default_fitting_pipeline = {'main': ['load image', 'gaussian psf', "create models", 'initialize models', 'fit loop', 'quality checks', 'save models'],
                                 'fit loop': ['sample models', 'project to image', 'select models', 'compute loss', 'update parameters', 'stop iteration']}
-    default_forced_pipeline = {'main': ['load image', 'gaussian psf', 'load_models', 'fit loop', 'quality checks', 'write models'],
+    default_forced_pipeline = {'main': ['load image', 'gaussian psf', 'load_models', 'fit loop', 'quality checks', 'save models'],
                                'fit loop': ['sample models', 'project to image', 'select models', 'compute loss', 'update parameters', 'stop iteration']}
     def __init__(self):
         self.start_name = 'main'

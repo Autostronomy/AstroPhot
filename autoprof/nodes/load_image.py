@@ -1,4 +1,4 @@
-from ..autoprof_node import make_AP_Process
+from .autoprof_node import make_AP_Process
 
 @make_AP_Process("load image")
 def load_image(state):

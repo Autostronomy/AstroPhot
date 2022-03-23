@@ -1,4 +1,4 @@
-from ..autoprof_node import make_AP_Process
+from .autoprof_node import make_AP_Process
 
 @make_AP_Process("psf image")
 def psf_image(state):

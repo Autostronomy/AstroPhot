@@ -1,4 +1,4 @@
-from ..autoprof_node import make_AP_Decision
+from .autoprof_node import make_AP_Decision
 
 @make_AP_Decision("stop iteration")
 def stop_iteration(state):
