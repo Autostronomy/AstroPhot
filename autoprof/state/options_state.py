@@ -1,6 +1,6 @@
 from .substate_object import SubState
 
-class Options(SubState):
+class Options_State(SubState):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

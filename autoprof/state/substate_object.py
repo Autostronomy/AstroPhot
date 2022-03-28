@@ -2,5 +2,6 @@
 class SubState(object):
 
     def __init__(self, **kwargs):
-        pass
+        self.state = kwargs['state']
+        del kwargs['state']
     

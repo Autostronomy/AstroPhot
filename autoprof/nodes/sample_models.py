@@ -5,4 +5,7 @@ def sample_models(state):
     """
     Create a model image based on the current set of model parameters.
     """
+
+    state.models.sample_models()
+    
     return state

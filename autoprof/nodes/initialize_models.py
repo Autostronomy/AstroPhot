@@ -5,4 +5,7 @@ def initialize_models(state):
     """
     Initialize the model parameters using basic fitting to the image.
     """
+
+    state.models.initialize()
+    
     return state

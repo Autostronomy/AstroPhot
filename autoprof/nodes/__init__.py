@@ -14,5 +14,5 @@ from .save_models import save_models
 from .segmentation_map_mask import segmentation_map_mask
 from .select_models import select_models
 from .stop_iteration import stop_iteration
-from .update_parameters import update_parameters
+from .random_update_parameters import random_update_parameters
 

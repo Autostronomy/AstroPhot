@@ -8,5 +8,9 @@ def select_models(state):
 
     For models which overlap it is important to update both even if one has converged given their covariance.
     """
+
+    losses = state.models.get_losses()
+    lock = losses < np.median(losses)
+    state.models.lock_models(lock)
     
     return state

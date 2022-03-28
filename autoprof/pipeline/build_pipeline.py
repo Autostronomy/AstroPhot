@@ -1,13 +1,10 @@
 from autoprof.nodes import *
-from autoprof.models.model_object import Model
+from autoprof.models import Model
 from .class_discovery import all_subclasses
 from functools import partial
+from .default_pipelines import default_fitting_pipeline, default_forced_pipeline
 
-default_fitting_pipeline = {'main': ['load image', 'gaussian psf', "create models", 'initialize models', 'fit loop', 'quality checks', 'save models'],
-                            'fit loop': ['sample models', 'project to image', 'select models', 'compute loss', 'update parameters', 'stop iteration']}
-default_forced_pipeline = {'main': ['load image', 'gaussian psf', 'load models', 'fit loop', 'quality checks', 'save models'],
-                           'fit loop': ['sample models', 'project to image', 'select models', 'compute loss', 'update parameters', 'stop iteration']}
-    
+
 def build_pipeline(**options):
     charts = {}
     if 'ap_mode' in options:
@@ -21,13 +18,13 @@ def build_pipeline(**options):
     else:
         raise ValueError(f'Unrecognized mode: {Model.mode}')
             
-    # Discover all nodes that have been imported
-    NODES = all_subclasses(AP_Node)
     # Loop through the keys of the pipeline dictionary, these represent flow.Charts and subcharts
     for chart_name in ap_pipeline:
         # Create the chart
         charts[chart_name] = AP_Chart(chart_name)
             
+    # Discover all nodes that have been imported
+    NODES = all_subclasses(AP_Node)
     # Loop through the keys of the pipeline dictionary, these represent flow.Charts and subcharts
     for chart_name in ap_pipeline:
         # Initiate linear mode, this simply means that each node will be added one at a time to the flow.Chart
