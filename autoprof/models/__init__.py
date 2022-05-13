@@ -1,4 +1,5 @@
 from .model_object import Model
+from .parameter_object import Parameter
 from .cirrus_model import Cirrus
 from .constrained_model import Constrained_Model
 from .ellipse_model import Ellipse

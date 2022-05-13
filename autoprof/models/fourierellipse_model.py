@@ -1,9 +1,9 @@
-from .nonparametric_model_object import NonParametric_Model
+from .ellipse_model import Ellipse
 
 
-class FourierEllipse(NonParametric_Model):
+class FourierEllipse(Ellipse):
 
-    name = "nonparametric fourier ellipse"
+    model_type = "fourier " + Ellipse.model_type
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -4,15 +4,14 @@ from autoprof.utils.calculations.agregate_pixel import _average, _scatter
 
 class FlatSky(Sky_Model):
 
-    name = "flat sky"
-    parameter_names = Sky_Model.parameter_names + ("sky", "noise")
-
+    model_type = "flat " + Sky_Model.model_type
+    parameter_specs = {**Sky_Model.parameter_specs, **{
+        "sky": {"units": "flux"},
+        "noise": {"units": "flux", "limits": (0,None)},
+    }}
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        if self.fixed != "locked":
-            if not "center" in self.fixed:
-                self.fixed.update("center")
 
     def initialize(self):
         super().initialize()

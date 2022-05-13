@@ -17,6 +17,7 @@ class State(object):
         self.data = Data_State(state = self)
         self.results = Results_State(state = self)
         self.models = Models_State(state = self)
+        #self.functions = Functions_State(state = self)
         self.options = Options_State(
             state = self,
             **kwargs

@@ -1,9 +1,9 @@
-from .nonparametric_model_object import NonParametric_Model
+from .ellipse_model import Ellipse
 
 
-class SuperEllipse(NonParametric_Model):
+class SuperEllipse(Ellipse):
 
-    name = "nonparametric superellipse"
+    model_type = "superellipse " + Ellipse.model_type
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

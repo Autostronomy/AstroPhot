@@ -4,7 +4,7 @@ from .create_models import create_models
 from .create_models_segmentation_map import create_models_segmentation_map
 from .gaussian_psf import gaussian_psf
 from .initialize_models import initialize_models
-from .load_image import load_image
+from .load_images import load_images
 from .project_to_image import project_to_image
 from .psf_image import psf_image
 from .quality_checks import quality_checks
