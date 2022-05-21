@@ -111,7 +111,7 @@ def _iso_extract(
         N = max(minN, N)
     # points along ellipse to evaluate
     theta = np.linspace(0, 2 * np.pi * (1.0 - 1.0 / N), N)
-    theta = np.arctan((1.0 - PARAMS["ellip"]) * np.tan(theta)) + np.pi * (
+    theta = np.arctan(PARAMS["q"] * np.tan(theta)) + np.pi * (
         np.cos(theta) < 0
     )
     Fmode_Rscale = (
@@ -122,7 +122,7 @@ def _iso_extract(
     R = sma * Fmode_Rscale
     # Define ellipse
     X, Y = parametric_SuperEllipse(
-        theta, PARAMS["ellip"], 2 if PARAMS["C"] is None else PARAMS["C"]
+        theta, 1. - PARAMS["q"], 2 if PARAMS["C"] is None else PARAMS["C"]
     )
     X, Y = R * X, R * Y
     # rotate ellipse by PA
@@ -181,8 +181,8 @@ def _iso_extract(
     countmasked = 0
     if not CHOOSE is None and np.sum(CHOOSE) <= 0:
         logging.warning(
-            "Entire Isophote is Masked! R: %.3f, PA: %.3f, ellip: %.3f"
-            % (sma, PARAMS["pa"] * 180 / np.pi, PARAMS["ellip"])
+            "Entire Isophote is Masked! R: %.3f, PA: %.3f, q: %.3f"
+            % (sma, PARAMS["pa"] * 180 / np.pi, PARAMS["q"])
         )
         # Interpolate clipped flux values if requested
     elif not CHOOSE is None and interp_mask:

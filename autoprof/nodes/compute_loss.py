@@ -1,14 +1,10 @@
-from .autoprof_node import make_AP_Process
+from flow import Process
 
-@make_AP_Process("compute loss")
-def compute_loss(state):
+class Compute_Loss(Process):
     """
-    For the relevant models, have them compute an updated loss metric for their latest set of parameters.
+    Call each model to compute it's loss based on the loss image
     """
 
-    for model in state.models:
-        if model.locked:
-            continue
-        model.compute_loss()
-    
-    return state
+    def action(self, state):
+        state.models.compute_loss(state.data.loss_image)
+        return state

@@ -1,11 +1,11 @@
-from .autoprof_node import make_AP_Process
+from flow import Process
 
-@make_AP_Process("sample models")
-def sample_models(state):
+class Sample_Models(Process):
     """
     Create a model image based on the current set of model parameters.
     """
 
-    state.models.sample_models()
-    
-    return state
+    def action(self, state):
+        state.models.sample_models()
+        return state
+

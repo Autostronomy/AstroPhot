@@ -1,6 +1,5 @@
 from .data_state import Data_State
 from .options_state import Options_State
-from .results_state import Results_State
 from .models_state import Models_State
 
 class State(object):
@@ -15,9 +14,7 @@ class State(object):
     def __init__(self, **kwargs):
 
         self.data = Data_State(state = self)
-        self.results = Results_State(state = self)
         self.models = Models_State(state = self)
-        #self.functions = Functions_State(state = self)
         self.options = Options_State(
             state = self,
             **kwargs

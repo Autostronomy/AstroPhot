@@ -23,3 +23,6 @@ def inv_boundaries(val, limits):
 
 def cyclic_boundaries(val, limits):
     return limits[0] + ((val - limits[0]) % (limits[1] - limits[0]))
+
+def cyclic_difference(val1, val2, period):
+    return np.arcsin(np.sin((val1 - val2) * np.pi / period)) * period / np.pi

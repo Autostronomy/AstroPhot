@@ -1,8 +1,11 @@
 
 
-default_fitting_pipeline = {'main': ['load images', 'gaussian psf', "create models", 'initialize models', 'fit loop', 'quality checks', 'save models'],
-                            'fit loop': ['sample models', 'project to image', 'select models', 'compute loss', 'random update parameters', 'stop iteration']}
-
-default_forced_pipeline = {'main': ['load images', 'gaussian psf', 'load models', 'fit loop', 'quality checks', 'save models'],
-                           'fit loop': ['sample models', 'project to image', 'select models', 'compute loss', 'random update parameters', 'stop iteration']}
+default_fitting_pipeline = {
+    "structure": ["Load_Images", "Create_Models_Spec", "Initialize_Models", "fit loop", "Save_Models"],
+    "node_kwargs": {
+        "fit loop": {
+            "structure": ["Sample_Models", "Loss_Image", "Compute_Loss", ("Stop_Iteration", ("Update_Parameters_Random_Grad", "End")), "Update_Parameters_Random_Grad"]
+        }
+    }
+}
     

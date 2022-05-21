@@ -1,11 +1,10 @@
-from .autoprof_node import make_AP_Process
+from flow import Process
 
-@make_AP_Process("initialize models")
-def initialize_models(state):
+class Initialize_Models(Process):
     """
     Initialize the model parameters using basic fitting to the image.
     """
 
-    state.models.initialize()
-    
-    return state
+    def action(self, state):
+        state.models.initialize()
+        return state

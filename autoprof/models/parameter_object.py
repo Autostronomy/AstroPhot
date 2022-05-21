@@ -1,5 +1,5 @@
 import numpy as np
-from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries
+from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries, cyclic_difference
 
 class Parameter(object):
 
@@ -17,9 +17,17 @@ class Parameter(object):
             self.value = None
             self.representation = None
         self.units = kwargs["units"] if "units" in kwargs else "none"
+        self.uncertainty = kwargs["uncertainty"] if "uncertainty" in kwargs else None
 
     def update_fixed(self, fixed):
         self.fixed = fixed or self.user_fixed
+
+    def set_uncertainty(self, uncertainty, override_fixed = False):
+        if self.fixed and not override_fixed:
+            return
+        if uncertainty < 0:
+            raise ValueError(f"{name} Uncertainty should be a positive real value, not {uncertainty}")
+        self.uncertainty = uncertainty
         
     def set_value(self, value, override_fixed = False):
         if self.fixed and not override_fixed:
@@ -46,4 +54,10 @@ class Parameter(object):
             self.set_value(representation, override_fixed)
         else:
             self.set_value(inv_boundaries(representation, self.limits), override_fixed)
-            
+
+    def __sub__(self, other):
+
+        if self.cyclic:
+            return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0])
+
+        return self.representation - other.representation

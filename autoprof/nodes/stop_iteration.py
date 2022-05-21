@@ -1,10 +1,24 @@
-from .autoprof_node import make_AP_Decision
+from flow import Decision, FlowExitChart
 
-@make_AP_Decision("stop iteration")
-def stop_iteration(state):
+class Stop_Iteration(Decision):
     """
-    When certain conditions are met, stop the iteration proceedure and return the fitted (hopefully converged) models.
+    Determine if the fit loop should end or return for another cycle.
     """
-    if False:
-        return 'start'
-    return 'end'
+
+    def action(self, state):
+
+        for model in state.models:
+            # not enough iterations
+            if model.iteration < 100 or model.user_locked:
+                continue
+            # Too many iterations
+            if model.iteration > 1000:
+                return self.forward[1]
+            # not yet converged
+            if np.all(np.abs(model.loss[:99] - model.loss[0])/model.loss[0]) > 1e-2:
+                break
+        else:
+            # all checks passed, all models must have converged
+            return self.forward[1]
+
+        return self.forward[0]
