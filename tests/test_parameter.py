@@ -1,5 +1,6 @@
 import unittest
 from autoprof.models import Parameter
+import numpy as np
 
 class TestParameter(unittest.TestCase):
     def test_parameter_setting(self):
@@ -80,6 +81,23 @@ class TestParameter(unittest.TestCase):
             delta=0.1,
             msg="cyclic variable should loop in range (lower)",
         )
+
+    def test_parameter_operations(self):
+
+        base_param1 = Parameter('base param1', value = 2)
+        base_param2 = Parameter('base param2', value = 1)
+
+        self.assertEqual(base_param1 - base_param2, 1,msg= "parameter difference not evaluated properly")
+
+        cyclic_param1 = Parameter('cyclic param1', value = -0.9, limits = (-1, 1), cyclic = True)
+        cyclic_param2 = Parameter('cyclic param2', value = 0.9, limits = (-1, 1), cyclic = True)
+
+        self.assertAlmostEqual(cyclic_param1 - cyclic_param2, -0.2, msg= "cyclic parameter difference should wrap") # fixme check positive/negative
+
+        param_array1 = np.array(list(Parameter(f'base param{i}', value = float(3 + i)) for i in range(5)), dtype = Parameter)
+        param_array2 = np.array(list(Parameter(f'base param{i}', value = float(i)) for i in range(5)), dtype = Parameter)
+
+        self.assertTrue(np.all((param_array1 - param_array2) == 3), msg = "parameter array difference not as expected")
         
 if __name__ == "__main__":
     unittest.main()

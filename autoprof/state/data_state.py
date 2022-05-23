@@ -11,7 +11,7 @@ class Data_State(SubState):
         self.sigma = None
         self.mask = None
         self.psf = None
-
+        self.loss_image = None
     
     def load(self, filename, pixelscale, **kwargs):
         if filename.endswith('.fits'):

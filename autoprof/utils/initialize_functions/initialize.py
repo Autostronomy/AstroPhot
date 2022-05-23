@@ -23,8 +23,9 @@ def isophote_initialize(image, center, threshold = None, pa = None, q = None, R 
             isovals = _iso_extract(
                 image,
                 ellipse_radii[-1],
-                {"q": q, "pa": pa},
-                center,
+                {"q": q if isinstance(q, float) else np.max(q),
+                 "pa": pa if isinstance(pa, float) else np.min(pa)},
+                {"x": center[0], "y": center[1]},
                 more=False,
                 sigmaclip=True,
                 sclip_nsigma=3,
@@ -49,13 +50,13 @@ def isophote_initialize(image, center, threshold = None, pa = None, q = None, R 
     # Sample the requested isophotes and record desired info
     iso_info = []
     for i, r in enumerate(isophote_radii):
-        iso_info.append({"R": ir})
+        iso_info.append({"R": r})
         isovals = _iso_extract(
             image,
             r,
             {"q": q if isinstance(q, float) else q[i],
              "pa": pa if isinstance(pa, float) else pa[i]},
-            center,
+            {"x": center[0], "y": center[1]},
             more=False,
             sigmaclip=True,
             sclip_nsigma=3,

@@ -1,4 +1,29 @@
 import numpy as np
+from .ellipse_functions import parametric_SuperEllipse, Rscale_SuperEllipse
+from autoprof.utils.conversions.coordinates import Rotate_Cartesian
+from autoprof.utils.image_operations.interpolate import interpolate_Lanczos
+from scipy.stats import iqr
+
+def Sigma_Clip_Upper(v, iterations=10, nsigma=5):
+    """
+    Perform sigma clipping on the "v" array. Each iteration involves
+    computing the median and 16-84 range, these are used to clip beyond
+    "nsigma" number of sigma above the median. This is repeated for
+    "iterations" number of iterations, or until convergence if None.
+    """
+
+    v2 = np.sort(v)
+    i = 0
+    old_lim = 0
+    lim = np.inf
+    while i < iterations and old_lim != lim:
+        med = np.median(v2[v2 < lim])
+        rng = iqr(v2[v2 < lim], rng=[16, 84]) / 2
+        old_lim = lim
+        lim = med + rng * nsigma
+        i += 1
+    return lim
+
 
 def _iso_between(
     IMG,

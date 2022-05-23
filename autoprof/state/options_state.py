@@ -7,7 +7,10 @@ class Options_State(SubState):
         self.options = kwargs
 
     def __getitem__(self, key):
-        return self.options[key]
+        try:
+            return self.options[key]
+        except KeyError:
+            return None
 
     def __contains__(self, key):
         return key in self.options

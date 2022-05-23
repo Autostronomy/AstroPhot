@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from astropy.visualization.mpl_normalize import ImageNormalize
+from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
+
 
 def LSBImage(dat, noise):
     plt.figure(figsize=(6, 6))

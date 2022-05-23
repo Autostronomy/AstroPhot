@@ -2,6 +2,8 @@
 
 import shutil
 import sys
+import os
+import importlib
 from autoprof.pipeline import build_pipeline
 from autoprof.state import State
 from flow import Pipe
@@ -25,7 +27,6 @@ if __name__ == "__main__":
     py3 = shutil.which("python3").strip()
     with open(__file__, "r") as f:
         raw = f.readlines()
-    print(py3)
     if py3 != raw[0][2:].strip():
         with open(__file__, "w") as f:
             raw[0] = "#!" + py3 + "\n"

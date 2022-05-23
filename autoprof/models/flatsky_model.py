@@ -1,6 +1,7 @@
 from .sky_model_object import Sky_Model
 from autoprof.utils.calculations.agregate_pixel import _average, _scatter
-
+import numpy as np
+from scipy.stats import iqr
 
 class FlatSky(Sky_Model):
 
@@ -15,17 +16,17 @@ class FlatSky(Sky_Model):
         
         if self["sky"].value is None:
             self["sky"].set_value(
-                self.average(self.image),
+                float(np.median(self.image)),
                 override_fixed=True,
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                self.scatter(self.image) / np.sqrt(self.image.shape[0] * self.image.shape[1]),
+                (iqr(self.image, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0) / np.sqrt(self.image.shape[0] * self.image.shape[1]),
                 override_fixed=True,
             )
         if self["noise"].value is None:
             self["noise"].set_value(
-                self.scatter(self.image),
+                iqr(self.image, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0,
                 override_fixed=True,
             )
         if self["noise"].uncertainty is None:

@@ -6,5 +6,5 @@ class Save_Models(Process):
     """
 
     def action(self, state):
-        state.models.save_models()
+        state.models.save_models(state.options["ap_saveto"])
         return state

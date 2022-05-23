@@ -7,9 +7,9 @@ class Load_Images(Process):
 
     def action(self, state):
         for input_image in ['target', 'psf', 'mask', 'sigma']:
-            if f'ap_{input_image}_image' in state.options:
+            if f'ap_{input_image}_file' in state.options:
                 img_kwargs = {
-                    'filename': state.options[f'ap_{input_image}_file'],
+                    'img': state.options[f'ap_{input_image}_file'],
                 }
                 if f'ap_{input_image}_pixelscale' in state.options:
                     img_kwargs['pixelscale'] = state.options[f'ap_{input_image}_pixelscale']

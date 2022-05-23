@@ -8,6 +8,6 @@ class Loss_Image(Process):
     def action(self, state):
 
         # fixme image type
-        state.loss_image = (state.image - state.model_image)**2
+        state.data.loss_image = (state.data.image - state.models.model_image)**2
 
         return state

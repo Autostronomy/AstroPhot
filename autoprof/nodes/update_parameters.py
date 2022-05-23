@@ -1,5 +1,6 @@
 from flow import Process
 from autoprof.utils.calculations.optimization import stocastic_k_delta_step
+import numpy as np
 
 class Update_Parameters_Random_Grad(Process):
     """
@@ -13,7 +14,6 @@ class Update_Parameters_Random_Grad(Process):
     def action(self, state):
 
         state.models.step_iteration()
-        
         # Loop through each model
         for model in state.models:
             # Skip locked models
@@ -32,7 +32,7 @@ class Update_Parameters_Random_Grad(Process):
 
                 # Apply the update to each parameter
                 for i, P in enumerate(params[0]):
-                    P.set_representation(P.representation + update[i])
+                    P.set_representation(P.representation - update[i])
                 
         
         return state

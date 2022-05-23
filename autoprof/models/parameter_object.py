@@ -20,7 +20,7 @@ class Parameter(object):
         self.uncertainty = kwargs["uncertainty"] if "uncertainty" in kwargs else None
 
     def update_fixed(self, fixed):
-        self.fixed = fixed or self.user_fixed
+        self.fixed = fixed or bool(self.user_fixed)
 
     def set_uncertainty(self, uncertainty, override_fixed = False):
         if self.fixed and not override_fixed:
@@ -55,9 +55,12 @@ class Parameter(object):
         else:
             self.set_value(inv_boundaries(representation, self.limits), override_fixed)
 
+    def __str__(self):
+        return f"{self.name}: {self.value} +- {self.uncertainty} [{self.units}{'' if self.fixed is False else ', fixed'}{'' if self.limits is None else (', ' + str(self.limits))}{'' if self.cyclic is False else ', cyclic'}]"
+
     def __sub__(self, other):
 
         if self.cyclic:
-            return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0])
+            return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0]).astype(np.float64)
 
-        return self.representation - other.representation
+        return (self.representation - other.representation).astype(np.float64)

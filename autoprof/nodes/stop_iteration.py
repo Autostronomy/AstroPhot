@@ -1,4 +1,5 @@
 from flow import Decision, FlowExitChart
+import numpy as np
 
 class Stop_Iteration(Decision):
     """
@@ -9,16 +10,18 @@ class Stop_Iteration(Decision):
 
         for model in state.models:
             # not enough iterations
-            if model.iteration < 100 or model.user_locked:
-                continue
+            if model.iteration < 100:
+                if model.user_locked:
+                    continue
+                else:
+                    break
             # Too many iterations
-            if model.iteration > 1000:
-                return self.forward[1]
+            if model.iteration > 100:
+                return "End"
             # not yet converged
-            if np.all(np.abs(model.loss[:99] - model.loss[0])/model.loss[0]) > 1e-2:
+            if np.any(np.abs(np.array(model.loss_history[:99]) - model.loss)/model.loss) > 1e-2:
                 break
         else:
             # all checks passed, all models must have converged
-            return self.forward[1]
-
-        return self.forward[0]
+            return "End"
+        return "Start"

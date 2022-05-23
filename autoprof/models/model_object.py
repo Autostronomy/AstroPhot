@@ -3,25 +3,23 @@ try:
 except:
     import pickle
 from autoprof.image import Model_Image
+from autoprof.utils.initialize_functions import center_of_mass
 from .parameter_object import Parameter
 import numpy as np
-from scipy.stats import iqr
 from copy import deepcopy
 
 class Model(object):
 
     model_type = "model"
     parameter_specs = {
-        "center_x": {"units": "pix", "uncertainty": 0.2},
-        "center_y": {"units": "pix", "uncertainty": 0.2}
+        "center_x": {"units": "pix", "uncertainty": 0.1},
+        "center_y": {"units": "pix", "uncertainty": 0.1}
     }
 
     # Hierarchy variables
     PSF_mode = "none" # FFT, superresolve
     sample_mode = "direct" # integrate
     learning_rate = 0.01
-    average = np.median
-    scatter = lambda v: iqr(v, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0
     interpolate = "lanczos"
     
     def __init__(self, name, state, image, window = None, locked = None, **kwargs):
@@ -54,7 +52,7 @@ class Model(object):
                     del self.parameter_specs[p]
                 else: # if the user supplied parameter specifications, update the defaults
                     self.parameter_specs[p].update(kwargs["parameters"][p])
-        self.parameters.update(dict((p, Parameter(p,self.parameter_specs[p])) for p in self.parameter_specs))
+        self.parameters.update(dict((p, Parameter(p, **self.parameter_specs[p])) for p in self.parameter_specs))
 
     # Initialization functions
     ######################################################################
@@ -62,11 +60,17 @@ class Model(object):
         self.image = image
 
     def set_window(self, window):
-        self.window = window
+        if window is None:
+            self.window = [
+                [0, self.image.shape[0]],
+                [0, self.image.shape[1]],
+            ]
+        else:
+            self.window = window
         self.model_image = Model_Image(
-            np.zeros((window[1][1] - window[1][0], window[0][1] - window[0][0])),
+            np.zeros((self.window[1][1] - self.window[1][0], self.window[0][1] - self.window[0][0])),
             pixelscale=self.image.pixelscale,
-            origin = [window[1][0], window[0][0]],
+            origin = [self.window[1][0], self.window[0][0]],
         )
         self.model_image.clear_image()
 
@@ -102,11 +106,14 @@ class Model(object):
     ######################################################################
     def step_iteration(self):
         # Add a new set of parameters to the history that defaults to the most recent values
-        self.parameter_history.insert(0, deepcopy(self.parameters))
-        self.loss_history.insert(0, deepcopy(self.loss))
-        self.loss = None
+        if not self.loss is None:
+            self.parameter_history.insert(0, deepcopy(self.parameters))
+            self.loss_history.insert(0, deepcopy(self.loss))
+            self.loss = None
         self.iteration += 1
+        print("now on iteration: ", self.iteration)
 
+        
     def sample_model(self):
         # Don't bother resampling the model if nothing has been updated
         if self.iteration == self.sampling_iteration:
@@ -120,14 +127,14 @@ class Model(object):
         if self.PSF_mode == "none":
             return
 
-    def update_loss(self, loss_image):
+    def compute_loss(self, loss_image):
         # Basic loss is the mean Chi^2 error in the window
-        self.loss = np.mean(
+        self.loss = float(np.mean(
             loss_image[
                 self.window[1][0] : self.window[1][1],
                 self.window[0][0] : self.window[0][1],
             ]
-        )
+        ))
         
     # Interface Functions
     ######################################################################
@@ -138,9 +145,9 @@ class Model(object):
     def get_loss_history(self, limit = np.inf):
         param_order = self.get_parameters(exclude_fixed = True).keys()
         params = []
-        for i in range(min(limit, len(self.loss_history))):
-            params_i = self.get_parameters(index = i, exclude_fixed = True)
-            params.append(np.array([params_i[P] for P in param_order], dtype = Parameter))
+        for i in range(min(limit, max(1,len(self.loss_history)))):
+            params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True)
+            params.append(np.array([params_i[P] for P in param_order]))
         yield self.loss_history, params
 
     def get_parameters(self, index=None, exclude_fixed = False):
@@ -162,9 +169,16 @@ class Model(object):
             return_parameters[p] = use_params[p]
         return return_parameters
 
-    def __get__(self, key, index=None):
+    def save_model(self, fileobject):
+        fileobject.write("\n" + "\n" + "*"*70 + "\n")
+        fileobject.write(self.name + "\n")
+        fileobject.write("*"*70 + "\n")
+        for p in self.parameters:
+            fileobject.write(f"{str(self.parameters[p])}\n")
+    
+    def __getitem__(self, key, index=None):
         # Get the parameter for an optionally specified iteration
         if index is None:
             return self.parameters[key]
         else:
-            return self.parameter_history[index][key]
+            return self.parameter_history[index][key]            

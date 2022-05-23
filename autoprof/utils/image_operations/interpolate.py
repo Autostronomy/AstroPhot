@@ -24,14 +24,14 @@ def interpolate_Lanczos(img, X, Y, scale):
         box = [
             [
                 max(0, int(round(np.floor(X[i]) - scale + 1))),
-                min(dat.shape[1], int(round(np.floor(X[i]) + scale + 1))),
+                min(img.shape[1], int(round(np.floor(X[i]) + scale + 1))),
             ],
             [
                 max(0, int(round(np.floor(Y[i]) - scale + 1))),
-                min(dat.shape[0], int(round(np.floor(Y[i]) + scale + 1))),
+                min(img.shape[0], int(round(np.floor(Y[i]) + scale + 1))),
             ],
         ]
-        chunk = dat[box[1][0] : box[1][1], box[0][0] : box[0][1]]
+        chunk = img[box[1][0] : box[1][1], box[0][0] : box[0][1]]
         XX = np.ones(chunk.shape)
         Lx = (
             np.sinc(np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i]))
