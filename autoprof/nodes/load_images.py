@@ -6,7 +6,7 @@ class Load_Images(Process):
     """
 
     def action(self, state):
-        for input_image in ['target', 'psf', 'mask', 'sigma']:
+        for input_image in ['target', 'psf', 'mask', 'variance']:
             if f'ap_{input_image}_file' in state.options:
                 img_kwargs = {
                     'img': state.options[f'ap_{input_image}_file'],
@@ -20,11 +20,11 @@ class Load_Images(Process):
                 if f'ap_{input_image}_zeropoint' in state.options:
                     img_kwargs['zeropoint'] = state.options[f'ap_{input_image}_zeropoint']
                 if input_image == 'target':
-                    state.data.update_image(**img_kwargs)
+                    state.data.update_target(**img_kwargs)
                 elif input_image == 'psf':
                     state.data.update_psf(**img_kwargs)
-                elif input_image == 'sigma':
-                    state.data.update_sigma(**img_kwargs)
+                elif input_image == 'variance':
+                    state.data.update_variance(**img_kwargs)
                 elif input_image == 'mask':
                     state.data.update_mask(**img_kwargs)
         

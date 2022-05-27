@@ -1,4 +1,4 @@
-from .model_object import Model
+from .model_object import BaseModel
 from .parameter_object import Parameter
 from .parametric_model_object import Parametric_Model
 from .sersic_model import Sersic

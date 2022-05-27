@@ -32,7 +32,6 @@ class Parameter(object):
     def set_value(self, value, override_fixed = False):
         if self.fixed and not override_fixed:
             return
-        
         if self.cyclic:
             self.value = cyclic_boundaries(value, self.limits)
             self.representation = self.value
@@ -49,7 +48,6 @@ class Parameter(object):
     def set_representation(self, representation, override_fixed = False):
         if self.fixed and not override_fixed:
             return
-
         if self.limits is None or self.cyclic:
             self.set_value(representation, override_fixed)
         else:

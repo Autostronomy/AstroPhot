@@ -1,40 +1,71 @@
-from autoprof.utils.image_operations.load_image import load_fits
 import numpy as np
 from copy import deepcopy
 
-class AP_Image(np.ndarray):
 
-    def __new__(cls, input_image, pixelscale = None, zeropoint = None, rotation = None, note = None, origin = None, **unused_kwargs):
+class AP_Image(object):
 
-        obj = np.asarray(input_image).view(cls)
+    def __init__(self, data, pixelscale = None, zeropoint = None, rotation = None, note = None, origin = None, **kwargs):
+
+        self.data = data
+        self.pixelscale = pixelscale
+        self.zeropoint = zeropoint
+        self.rotation = rotation
+        self.note = note
+        self.origin = np.zeros(2,dtype=int) if origin is None else np.array(origin)
+        self.shape = data.shape
         
-        obj.pixelscale = pixelscale
-        obj.zeropoint = zeropoint
-        obj.rotation = rotation
-        obj.origin = np.zeros(2, dtype = int) if origin is None else np.array(origin, dtype = int)
-        obj.note = note
-
-        return obj
-    
-    def __array_finalize__(self, obj):
-
-        if obj is None: return
-        
-        self.pixelscale = getattr(obj, 'pixelscale', None)
-        self.zeropoint = getattr(obj, 'zeropoint', None)
-        self.rotation = getattr(obj, 'rotation', None)
-        self.origin = getattr(obj, 'origin', np.zeros(2, dtype = int))
-        self.note = getattr(obj, 'note', None)
-
     def clear_image(self):
-        self.fill(0)
+        self.data.fill(0)
 
-    def subimage(self, start1 = 0, stop1 = None, start2 = 0, stop2 = None):
-        ret = self[start1:stop1,start2:stop2]
-        ret.origin = self.origin + np.array([start1, start2])
-        return ret
+    def subimage(self, low_x = 0, high_x = None, low_y = 0, high_y = None):
+        return AP_Image(self.data[low_x:high_x, low_y:high_y], pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = self.origin + np.array([low_x,low_y]))
 
-    def add_image(self, other):
-        base = other.origin - self.origin
-        end = base + other.shape
-        self[base[0]:end[0],base[1]:end[1]] += other
+    def get_area(self, origin, shape):
+        return AP_Image(self.data[origin[0] - self.origin[0]:origin[0] + shape[0] - self.origin[0],
+                                  origin[1] - self.origin[1]:origin[1] + shape[1] - self.origin[1]],
+                        pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = origin)
+    
+    def get_image_area(self, image):
+        return self.get_area(image.origin, image.shape)
+    
+    def __iadd__(self, other):
+        if isinstance(other, AP_Image):
+            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+                return self
+            self_base = np.clip(other.origin - self.origin, a_min = 0, a_max = None)
+            self_end = other.origin - self.origin + np.array(other.data.shape)
+            self_end[0] = min(self_end[0],self.data.shape[0])
+            self_end[1] = min(self_end[1],self.data.shape[1])
+            other_base = np.clip(self.origin - other.origin, a_min = 0, a_max = None)
+            other_end = self.origin - other.origin + np.array(self.data.shape)
+            other_end[0] = min(other_end[0],other.data.shape[0])
+            other_end[1] = min(other_end[1],other.data.shape[1])
+            self.data[self_base[0]:self_end[0],self_base[1]:self_end[1]] += other.data[other_base[0]:other_end[0],other_base[1]:other_end[1]]
+        else:
+            self.data += other
+        return self
+
+    def __isub__(self, other):
+        if isinstance(other, AP_Image):
+            base = other.origin - self.origin
+            end = base + other.data.shape
+            self.data[base[0]:end[0],base[1]:end[1]] -= other.data
+        else:
+            self.data -= other
+        return self
+
+    def __sub__(self, other):
+        if isinstance(other, AP_Image):
+            base = other.origin - self.origin
+            end = base + other.data.shape
+            return AP_Image(self.data[base[0]:end[0],base[1]:end[1]] - other.data, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = other.origin)
+        else:
+            return AP_Image(self.data - other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = self.origin)
+        
+    def __add__(self, other):
+        if isinstance(other, AP_Image):
+            base = other.origin - self.origin
+            end = base + other.data.shape
+            return AP_Image(self.data[base[0]:end[0],base[1]:end[1]] + other.data, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = other.origin)
+        else:
+            return AP_Image(self.data + other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = self.origin)

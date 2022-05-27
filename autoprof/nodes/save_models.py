@@ -1,4 +1,6 @@
 from flow import Process
+from astropy.io import fits
+import os
 
 class Save_Models(Process):
     """
@@ -6,5 +8,13 @@ class Save_Models(Process):
     """
 
     def action(self, state):
-        state.models.save_models(state.options["ap_saveto"])
+        print("saving models")
+        state.models.save_models()
+        header = fits.Header()
+        hdul = fits.HDUList([fits.PrimaryHDU(header=header), fits.ImageHDU(state.data.model_image.data)])
+        hdul.writeto(
+            os.path.join(state.options.save_path, state.options.name + '_model.fits'),
+            overwrite=True,
+        )
+        
         return state

@@ -7,6 +7,8 @@ from .compute_loss import Compute_Loss
 from .update_parameters import Update_Parameters_Random_Grad
 from .stop_iteration import Stop_Iteration
 from .save_models import Save_Models
+from .diagnostic_plots import Plot_Model, Plot_Loss_History
+from .psf_model import Gaussian_PSF
 # from .gaussian_psf import gaussian_psf
 # from .project_to_image import project_to_image
 # from .psf_image import psf_image

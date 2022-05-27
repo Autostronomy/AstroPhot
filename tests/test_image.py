@@ -35,22 +35,22 @@ class TestImage(unittest.TestCase):
         sliced_image = base_image.subimage(0,5,0,5)
         sliced_image += 1
         
-        self.assertEqual(base_image[1][1], 1, "slice should update base image")
-        self.assertEqual(base_image[5][5], 0, "slice should only update its region")
+        self.assertEqual(base_image.data[1][1], 1, "slice should update base image")
+        self.assertEqual(base_image.data[5][5], 0, "slice should only update its region")
 
         second_image = image.AP_Image(np.ones((5,5)), pixelscale = 1.0, zeropoint = 1.0, rotation = 0.0, origin = [3,3], note = 'second image')
-        base_image.add_image(second_image)
+        base_image += second_image
         
-        self.assertEqual(base_image[1][1], 1, "image addition should only update its region")
-        self.assertEqual(base_image[3][3], 2, "image addition should update its region")
-        self.assertEqual(base_image[5][5], 1, "image addition should update its region")
-        self.assertEqual(base_image[8][8], 0, "image addition should only update its region")
+        self.assertEqual(base_image.data[1][1], 1, "image addition should only update its region")
+        self.assertEqual(base_image.data[3][3], 2, "image addition should update its region")
+        self.assertEqual(base_image.data[5][5], 1, "image addition should update its region")
+        self.assertEqual(base_image.data[8][8], 0, "image addition should only update its region")
 
-        base_image[6:,6:] += np.ones((4,4))
+        base_image.data[6:,6:] += np.ones((4,4))
         
-        self.assertEqual(base_image[1][1], 1, "array addition should only update its region")
-        self.assertEqual(base_image[6][6], 2, "array addition should update its region")
-        self.assertEqual(base_image[8][8], 1, "array addition should update its region")
+        self.assertEqual(base_image.data[1][1], 1, "array addition should only update its region")
+        self.assertEqual(base_image.data[6][6], 2, "array addition should update its region")
+        self.assertEqual(base_image.data[8][8], 1, "array addition should update its region")
 
         
 if __name__ == "__main__":

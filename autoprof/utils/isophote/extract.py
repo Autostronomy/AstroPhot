@@ -1,8 +1,9 @@
 import numpy as np
-from .ellipse_functions import parametric_SuperEllipse, Rscale_SuperEllipse
+from .ellipse import parametric_SuperEllipse, Rscale_SuperEllipse
 from autoprof.utils.conversions.coordinates import Rotate_Cartesian
-from autoprof.utils.image_operations.interpolate import interpolate_Lanczos
+from autoprof.utils.interpolate import interpolate_Lanczos
 from scipy.stats import iqr
+import logging
 
 def Sigma_Clip_Upper(v, iterations=10, nsigma=5):
     """

@@ -1,7 +1,6 @@
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
-
 cmaplist = ["#000000", "#720026", "#A0213F", "#ce4257", "#E76154", "#ff9b54", "#ffd1b1"]
 cdict = {"red": [], "green": [], "blue": []}
 cpoints = np.linspace(0, 1, len(cmaplist))
@@ -22,4 +21,3 @@ autocolours = {
     "blue2": "#6F8AB7",
     "redrange": ["#720026", "#A0213F", "#ce4257", "#E76154", "#ff9b54", "#ffd1b1"],
 }  # '#D95D39'
-

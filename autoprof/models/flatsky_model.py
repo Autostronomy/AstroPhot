@@ -1,5 +1,4 @@
 from .sky_model_object import Sky_Model
-from autoprof.utils.calculations.agregate_pixel import _average, _scatter
 import numpy as np
 from scipy.stats import iqr
 
@@ -11,27 +10,29 @@ class FlatSky(Sky_Model):
         "noise": {"units": "flux", "limits": (0,None)},
     }
     
-    def initialize(self):        
-        super().initialize()
-        
+    def initialize(self, target = None):        
+        super().initialize(target)
+
+        if target is None:
+            target = self.target
         if self["sky"].value is None:
             self["sky"].set_value(
-                float(np.median(self.image)),
+                np.median(target.get_area(self.model_image.origin, self.window_shape).data),
                 override_fixed=True,
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                (iqr(self.image, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0) / np.sqrt(self.image.shape[0] * self.image.shape[1]),
+                (iqr(target.get_area(self.model_image.origin, self.window_shape).data, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0) / np.sqrt(self.window_shape[0] * self.window_shape[1]),
                 override_fixed=True,
             )
         if self["noise"].value is None:
             self["noise"].set_value(
-                iqr(self.image, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0,
+                iqr(target.get_area(self.model_image.origin, self.window_shape).data, rng=(31.731 / 2, 100 - 31.731 / 2)) / 2.0,
                 override_fixed=True,
             )
         if self["noise"].uncertainty is None:
             self["noise"].set_uncertainty(
-                self["noise"].value / np.sqrt(2 * self.image.shape[0] * self.image.shape[1] - 2),
+                self["noise"].value / np.sqrt(2 * self.window_shape[0] * self.window_shape[1] - 2),
                 override_fixed=True,
             )
 

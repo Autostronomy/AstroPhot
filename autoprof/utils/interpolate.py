@@ -13,9 +13,16 @@ def interpolate_bicubic(img, X, Y):
     return f_interp(Y, X, grid=False)
 
 
+def interpolate_Lanczos_grid(img, X, Y, scale):
+    """
+    Perform Lanczos interpolation at a grid of points.
+    https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html
+    """
+    pass
+    
 def interpolate_Lanczos(img, X, Y, scale):
     """
-    Perform Lanczos interpolation on an image.
+    Perform Lanczos interpolation on an image at a series of specified points.
     https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html
     """
     flux = []

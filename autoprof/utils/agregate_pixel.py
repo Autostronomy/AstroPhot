@@ -2,27 +2,6 @@ import numpy as np
 from scipy.stats import iqr
 
 
-def Sigma_Clip_Upper(v, iterations=10, nsigma=5):
-    """
-    Perform sigma clipping on the "v" array. Each iteration involves
-    computing the median and 16-84 range, these are used to clip beyond
-    "nsigma" number of sigma above the median. This is repeated for
-    "iterations" number of iterations, or until convergence if None.
-    """
-
-    v2 = np.sort(v)
-    i = 0
-    old_lim = 0
-    lim = np.inf
-    while i < iterations and old_lim != lim:
-        med = np.median(v2[v2 < lim])
-        rng = iqr(v2[v2 < lim], rng=[16, 84]) / 2
-        old_lim = lim
-        lim = med + rng * nsigma
-        i += 1
-    return lim
-
-
 def Smooth_Mode(v):
     # set the starting point for the optimization at the median
     start = np.median(v)
@@ -37,7 +16,7 @@ def Smooth_Mode(v):
     return res.x[0]
 
 
-def _average(v, method="median"):
+def average(v, method="median"):
     if method == "mean":
         return np.mean(v)
     elif method == "mode":
@@ -48,7 +27,7 @@ def _average(v, method="median"):
         raise ValueError("Unrecognized average method: %s" % method)
 
 
-def _scatter(v, method="median"):
+def scatter(v, method="median"):
     if method == "mean":
         return np.std(v)
     elif method == "mode":
@@ -58,3 +37,22 @@ def _scatter(v, method="median"):
     else:
         raise ValueError("Unrecognized average method: %s" % method)
 
+def Sigma_Clip_Upper(v, iterations=10, nsigma=5, method = "median"):
+    """
+    Perform sigma clipping on the "v" array. Each iteration involves
+    computing the median and 16-84 range, these are used to clip beyond
+    "nsigma" number of sigma above the median. This is repeated for
+    "iterations" number of iterations, or until convergence if None.
+    """
+
+    v2 = np.sort(v)
+    i = 0
+    old_lim = 0
+    lim = np.inf
+    while i < iterations and old_lim != lim:
+        med = average(v2[v2 < lim], method)
+        rng = scatter(v2[v2 < lim], method)
+        old_lim = lim
+        lim = med + rng * nsigma
+        i += 1
+    return lim

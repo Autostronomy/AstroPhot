@@ -62,7 +62,9 @@ if __name__ == "__main__":
     AP_State = State(**use_options)
     AP_Chart = build_pipeline(**use_options)
     if hasattr(AP_State, "__next__"):
+        print("parallel pipeline")
         AP_Pipe = Pipe(AP_Chart, return_success = True)
         AP_Pipe(AP_State)
     else:
+        print("single pipeline")
         AP_Chart(AP_State)

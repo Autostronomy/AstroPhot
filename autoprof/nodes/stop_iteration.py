@@ -16,10 +16,10 @@ class Stop_Iteration(Decision):
                 else:
                     break
             # Too many iterations
-            if model.iteration > 100:
+            if model.iteration > 1000:
                 return "End"
             # not yet converged
-            if np.any(np.abs(np.array(model.loss_history[:99]) - model.loss)/model.loss) > 1e-2:
+            if np.any(np.abs(np.array(model.loss_history[:9]) - model.loss)/model.loss) > 1e-2:
                 break
         else:
             # all checks passed, all models must have converged

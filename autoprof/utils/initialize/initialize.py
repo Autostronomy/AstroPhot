@@ -1,9 +1,9 @@
-from autoprof.utils.isophote_operations import _iso_extract
+from autoprof.utils.isophote.extract import _iso_extract
 import numpy as np
 from scipy.stats import iqr
 from scipy.fftpack import fft
 
-def isophote_initialize(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3):
+def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3):
 
     # Determine basic threshold if none given
     if threshold is None:
@@ -30,9 +30,11 @@ def isophote_initialize(image, center, threshold = None, pa = None, q = None, R 
                 sigmaclip=True,
                 sclip_nsigma=3,
             )
+            if len(isovals) < 3:
+                continue
             # Stop when at 3 time background noise
             if (
-                    np.quantile(isovals[0], 0.8) < threshold
+                    np.quantile(isovals, 0.8) < threshold
             ):
                 break
         R = ellipse_radii[-1]

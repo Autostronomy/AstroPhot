@@ -1,11 +1,9 @@
 from .substate_object import SubState
-from autoprof.models import Model
+from autoprof.models import BaseModel
 from autoprof.pipeline.class_discovery import all_subclasses
-from autoprof.image import Model_Image
 import numpy as np
 import matplotlib.pyplot as plt
-from autoprof.diagnostic_plots.shared_elements import LSBImage
-
+import os
 
 class Models_State(SubState):
 
@@ -14,17 +12,17 @@ class Models_State(SubState):
 
         self.models = {}
         self.model_list = []
-        self.model_image = None
+        self.iteration = -1
         
     def add_model(self, name, model, **kwargs):
-        MODELS = all_subclasses(Model)
+        MODELS = all_subclasses(BaseModel)
         if isinstance(model, str):
             for m in MODELS:
                 if m.model_type == model:
-                    self.models[name] = m(name, self.state, self.state.data.image, **kwargs)
+                    self.models[name] = m(name, self.state, self.state.data.target, **kwargs)
                     break
-        elif isinstance(model, Model):
-            self.models[name] = model(name, self.state, self.state.data.image, **kwargs)
+        elif isinstance(model, BaseModel):
+            self.models[name] = model(name, self.state, self.state.data.target, **kwargs)
         else:
             raise ValueError('model should be a string or AutoProf Model object, not: {type(model)}')
 
@@ -32,7 +30,7 @@ class Models_State(SubState):
         self.organize_model_list()
         
     def organize_model_list(self):
-        model_sizes = list(-(self.models[m].model_image.shape[0] * self.models[m].model_image.shape[1]) for m in self.model_list)
+        model_sizes = list(-(self.models[m].window_shape[0] * self.models[m].window_shape[1]) for m in self.model_list)
         N = np.argsort(model_sizes)
         new_list = []
         for n in N:
@@ -40,38 +38,29 @@ class Models_State(SubState):
         self.model_list = new_list
             
     def initialize(self):
-        
         for m in self.model_list:
             self.models[m].initialize()
 
-    def compute_loss(self, loss_image):
-        
+    def compute_loss(self, loss_image):        
         for m in self.model_list:
             self.models[m].compute_loss(loss_image)
 
-    def sample_models(self):
-        self.model_image = Model_Image(
-            np.zeros(self.state.data.image.shape),
-            pixelscale=self.state.data.image.pixelscale,
-            origin=self.state.data.image.origin,
-        )
-        
+    def sample_models(self):        
         for m in self.model_list:
             self.models[m].sample_model()
-            self.model_image.add_image(self.models[m].model_image)
+
+    def convolve_psf(self):
+        for m in self.model_list:
+            self.models[m].convolve_psf()
 
     def step_iteration(self):
+        self.iteration += 1
+        print('Now on iteration: ', self.iteration)
         for m in self.model_list:
             self.models[m].step_iteration()
 
-    def save_models(self, filename):
-        lims = (np.min(self.model_image), np.max(self.model_image))
-        plt.imshow(np.log10(self.model_image - lims[0] + 0.01*(lims[1]-lims[0])), origin = 'lower')
-        plt.axis("off")
-        plt.tight_layout()
-        plt.savefig(filename[:filename.find('.')+1] + 'jpg', dpi = 400)
-        plt.close()
-        with open(filename, "w") as f:
+    def save_models(self):
+        with open(os.path.join(self.state.options.save_path, self.state.options.name + '.txt'), "w") as f:
             for m in self.model_list:
                 self.models[m].save_model(f)
             

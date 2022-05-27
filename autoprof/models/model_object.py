@@ -3,12 +3,14 @@ try:
 except:
     import pickle
 from autoprof.image import Model_Image
-from autoprof.utils.initialize_functions import center_of_mass
+from autoprof.utils.initialize import center_of_mass
+from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
+from autoprof.utils.convolution import direct_convolve, fft_convolve
 from .parameter_object import Parameter
 import numpy as np
 from copy import deepcopy
 
-class Model(object):
+class BaseModel(object):
 
     model_type = "model"
     parameter_specs = {
@@ -17,16 +19,17 @@ class Model(object):
     }
 
     # Hierarchy variables
-    PSF_mode = "none" # FFT, superresolve
+    psf_mode = "direct" # direct, FFT, superresolve
+    psf_window_size = 100
     sample_mode = "direct" # integrate
-    learning_rate = 0.01
+    learning_rate = 0.1
     interpolate = "lanczos"
     
-    def __init__(self, name, state, image, window = None, locked = None, **kwargs):
+    def __init__(self, name, state, target, window = None, locked = None, **kwargs):
 
         self.name = name
         self.state = state
-        self.set_image(image)
+        self.set_target(target)
         self.set_window(window)
         self.parameters = {}
         self.parameter_history = []
@@ -35,14 +38,13 @@ class Model(object):
         self.user_locked = locked
         self.update_locked(False)
         self.iteration = -1
-        self.sampling_iteration = -2
+        self.is_sampled = False
+        self.is_convolved = False
         self.sample_points = None # used for integrating below pixel resolution
 
-        if "psf window" in kwargs:
-            self.psf_window = kwargs["psf window"]
-        else:
-            self.psf_window = None
-
+        if "psf_window_size" in kwargs:
+            self.psf_window_size = kwargs["psf_window_size"]
+            
         self.parameter_specs = self.build_parameter_specs()
         if "parameters" in kwargs:
             for p in kwargs["parameters"]:
@@ -56,21 +58,24 @@ class Model(object):
 
     # Initialization functions
     ######################################################################
-    def set_image(self, image):
-        self.image = image
+    def set_target(self, target):
+        self.target = target
 
     def set_window(self, window):
         if window is None:
-            self.window = [
-                [0, self.image.shape[0]],
-                [0, self.image.shape[1]],
+            window = [
+                [0, self.target.shape[0]],
+                [0, self.target.shape[1]],
             ]
-        else:
+        if isinstance(window, tuple) and isinstance(window[0], slice) and isinstance(window[1], slice):
             self.window = window
+        else:
+            self.window = (slice(window[1][0], window[1][1]), slice(window[0][0], window[0][1]))
+        self.window_shape = (self.window[0].stop - self.window[0].start, self.window[1].stop - self.window[1].start)
         self.model_image = Model_Image(
-            np.zeros((self.window[1][1] - self.window[1][0], self.window[0][1] - self.window[0][0])),
-            pixelscale=self.image.pixelscale,
-            origin = [self.window[1][0], self.window[0][0]],
+            np.zeros(self.window_shape),
+            pixelscale=self.target.pixelscale,
+            origin = [self.window[0].start, self.window[1].start],#fixme handle target origin
         )
         self.model_image.clear_image()
 
@@ -91,16 +96,27 @@ class Model(object):
         parameter_specs.update(cls.parameter_specs)
         return parameter_specs
 
-    def initialize(self):
+    def initialize(self, target = None):
         # Use center of window if a center hasn't been set yet
+        window_center = index_to_coord((self.window_shape[0] - 1) / 2, (self.window_shape[1] - 1) / 2, self.model_image)
         if self["center_x"].value is None:
-            self["center_x"].set_value(self.window[1][0] + (self.model_image.shape[1] - 1) / 2, override_fixed = True)
+            self["center_x"].set_value(window_center[0], override_fixed = True)
         if self["center_y"].value is None:
-            self["center_y"].set_value(self.window[0][0] + (self.model_image.shape[0] - 1) / 2, override_fixed = True)
+            self["center_y"].set_value(window_center[1], override_fixed = True)
 
-        COM = center_of_mass((self["center_x"].value,self["center_y"].value), self.image)
-        self["center_x"].set_value(COM[0])
-        self["center_y"].set_value(COM[1])
+        if self["center_x"].fixed and self["center_y"].fixed:
+            return
+        # Get the sub-image area corresponding to the model image
+        target_area = target.get_image_area(self.model_image)
+        # Convert center coordinates to target area array indices
+        init_icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
+        # Compute center of mass in window
+        COM = center_of_mass((init_icenter[1], init_icenter[0]), target_area.data)
+        # Convert center of mass indices to coordinates
+        COM_center = index_to_coord(COM[1], COM[0], target_area)
+        # Set the new coordinates as the model center
+        self["center_x"].set_value(COM_center[0])
+        self["center_y"].set_value(COM_center[1])
         
     # Fit loop functions
     ######################################################################
@@ -111,44 +127,59 @@ class Model(object):
             self.loss_history.insert(0, deepcopy(self.loss))
             self.loss = None
         self.iteration += 1
-        print("now on iteration: ", self.iteration)
-
+        self.is_sampled = False
+        self.is_convolved = False
         
     def sample_model(self):
         # Don't bother resampling the model if nothing has been updated
-        if self.iteration == self.sampling_iteration:
+        if self.is_sampled:
             return
         self.sampling_iteration = self.iteration
         # Reset the model image before filling it with updated parameters
         self.model_image.clear_image()
+        self.is_sampled = True
 
     def convolve_psf(self):
+        if self.is_convolved:
+            return
         # Skip PSF convolution if not required for this model
-        if self.PSF_mode == "none":
+        if self.psf_mode == "none":
             return
 
+        icenter = coord_to_index(self["center_x"].value, self["center_y"].value, self.model_image)
+        psf_window = (
+            slice(max(0, int(icenter[0] - self.psf_window_size/2)), min(self.model_image.shape[0], int(icenter[0] + self.psf_window_size/2))),
+            slice(max(0, int(icenter[1] - self.psf_window_size/2)), min(self.model_image.shape[1], int(icenter[1] + self.psf_window_size/2))),
+        )
+        
+        if self.psf_mode == "direct":
+            self.model_image.data[psf_window] = direct_convolve(self.model_image.data[psf_window], self.state.data.psf.data)    
+        elif self.psf_mode == "fft":
+            self.model_image.data[psf_window] = fft_convolve(self.model_image.data[psf_window], self.state.data.psf.data)
+        self.is_convolved = True
+        
     def compute_loss(self, loss_image):
         # Basic loss is the mean Chi^2 error in the window
-        self.loss = float(np.mean(
-            loss_image[
-                self.window[1][0] : self.window[1][1],
-                self.window[0][0] : self.window[0][1],
-            ]
-        ))
+        self.loss = np.mean(loss_image.get_image_area(self.model_image).data)
         
     # Interface Functions
     ######################################################################
     def get_loss(self, index=0):
         # Return the loss for the requested iteration
-        return self.loss[index]
+        if index is None:
+            return self.loss
+        else:
+            return self.loss_history[index]
 
     def get_loss_history(self, limit = np.inf):
         param_order = self.get_parameters(exclude_fixed = True).keys()
         params = []
+        loss_history = []
         for i in range(min(limit, max(1,len(self.loss_history)))):
             params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True)
             params.append(np.array([params_i[P] for P in param_order]))
-        yield self.loss_history, params
+            loss_history.append(self.loss_history[i] if len(self.loss_history) > 0 else self.loss)
+        yield loss_history, params
 
     def get_parameters(self, index=None, exclude_fixed = False):
         # Pick if using current parameters, or parameter history
