@@ -87,7 +87,7 @@ class TestParameter(unittest.TestCase):
         base_param1 = Parameter('base param1', value = 2)
         base_param2 = Parameter('base param2', value = 1)
 
-        self.assertEqual(base_param1 - base_param2, 1,msg= "parameter difference not evaluated properly")
+        self.assertEqual(base_param1 - base_param2, 1, msg= "parameter difference not evaluated properly")
 
         cyclic_param1 = Parameter('cyclic param1', value = -0.9, limits = (-1, 1), cyclic = True)
         cyclic_param2 = Parameter('cyclic param2', value = 0.9, limits = (-1, 1), cyclic = True)

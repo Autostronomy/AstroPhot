@@ -30,7 +30,7 @@ class Models_State(SubState):
         self.organize_model_list()
         
     def organize_model_list(self):
-        model_sizes = list(-(self.models[m].window_shape[0] * self.models[m].window_shape[1]) for m in self.model_list)
+        model_sizes = list(-np.prod(self.models[m].window.shape) for m in self.model_list)
         N = np.argsort(model_sizes)
         new_list = []
         for n in N:
@@ -47,17 +47,37 @@ class Models_State(SubState):
 
     def sample_models(self):        
         for m in self.model_list:
+            # Don't bother resampling the model if nothing has been updated
+            if self.models[m].is_sampled:
+                continue
             self.models[m].sample_model()
+
+    def integrate_models(self):
+        for m in self.model_list:
+            if self.models[m].is_integrated:
+                continue
+            self.models[m].integrate_model()
 
     def convolve_psf(self):
         for m in self.model_list:
+            # Don't bother convolving the model if nothing has been updated
+            if self.models[m].is_convolved:
+                continue
             self.models[m].convolve_psf()
+
+    def add_integrated_models(self):
+        for m in self.model_list:
+            self.models[m].add_integrated_model()
 
     def step_iteration(self):
         self.iteration += 1
         print('Now on iteration: ', self.iteration)
         for m in self.model_list:
             self.models[m].step_iteration()
+
+    def unlock_models(self):
+        for m in self.model_list:
+            self.models[m].update_locked(False)
 
     def save_models(self):
         with open(os.path.join(self.state.options.save_path, self.state.options.name + '.txt'), "w") as f:

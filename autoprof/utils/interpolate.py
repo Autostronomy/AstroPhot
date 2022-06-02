@@ -18,8 +18,40 @@ def interpolate_Lanczos_grid(img, X, Y, scale):
     Perform Lanczos interpolation at a grid of points.
     https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html
     """
-    pass
     
+    sinc_X = list(
+        np.sinc(np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i]))
+        * np.sinc(
+            (np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i])) / scale
+        )
+        for i in range(len(X))
+    )
+    sinc_Y = list(
+        np.sinc(np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i]))
+        * np.sinc(
+            (np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i])) / scale
+        )
+        for i in range(len(Y))
+    )
+
+    # Extract an image which has the required dimensions
+    use_img = np.take(
+        np.take(img, np.arange(int(np.floor(Y[0]) - step + 1), int(np.floor(Y[-1]) + step + 1)), 0, mode = "clip"),
+        np.arange(int(np.floor(X[0]) - step + 1), int(np.floor(X[-1]) + step + 1)), 1, mode = "clip"
+    )
+
+    # Create a sliding window view of the image with the dimensions of the lanczos scale grid
+    #window = np.lib.stride_tricks.sliding_window_view(use_img, (2*scale, 2*scale))
+
+    # fixme going to need some broadcasting magic
+    XX = np.ones((2*scale,2*scale))
+    res = np.zeros((len(Y), len(X)))
+    for x, lowx, highx in zip(range(len(X)), np.floor(X) - step + 1, np.floor(X) + step + 1):
+        for y, lowy, highy in zip(range(len(Y)), np.floor(Y) - step + 1, np.floor(Y) + step + 1):
+            L = XX * sinc_X[x] * sinc_Y[y].reshape((sinc_Y[y].size, -1))
+            res[y,x] = np.sum(use_img[lowy:highy,lowx:highx] * L) / np.sum(L)
+    return res
+            
 def interpolate_Lanczos(img, X, Y, scale):
     """
     Perform Lanczos interpolation on an image at a series of specified points.

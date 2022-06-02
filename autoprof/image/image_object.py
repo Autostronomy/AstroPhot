@@ -1,71 +1,89 @@
 import numpy as np
 from copy import deepcopy
-
+from .window_object import AP_Window
 
 class AP_Image(object):
 
-    def __init__(self, data, pixelscale = None, zeropoint = None, rotation = None, note = None, origin = None, **kwargs):
+    def __init__(self, data, pixelscale, zeropoint = None, rotation = None, note = None, origin = None, window = None, **kwargs):
 
         self.data = data
         self.pixelscale = pixelscale
         self.zeropoint = zeropoint
         self.rotation = rotation
         self.note = note
-        self.origin = np.zeros(2,dtype=int) if origin is None else np.array(origin)
-        self.shape = data.shape
-        
+        if window is None:
+            self.origin = np.zeros(2) if origin is None else np.array(origin)
+            self.shape = np.array(data.shape) * self.pixelscale
+            self.window = AP_Window(origin = self.origin, shape = self.shape)
+        else:
+            self.window = window
+            self.origin = self.window.origin
+            self.shape = self.window.shape
+            
     def clear_image(self):
         self.data.fill(0)
+        
+    def get_window(self, window):
+        return AP_Image(
+            self.data[window.get_indices(self)],
+            pixelscale = self.pixelscale,
+            zeropoint = self.zeropoint,
+            rotation = self.rotation,
+            note = self.note,
+            origin = (max(self.origin[0], window.origin[0]),
+                      max(self.origin[1], window.origin[1]))
+        )
 
-    def subimage(self, low_x = 0, high_x = None, low_y = 0, high_y = None):
-        return AP_Image(self.data[low_x:high_x, low_y:high_y], pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = self.origin + np.array([low_x,low_y]))
-
-    def get_area(self, origin, shape):
-        return AP_Image(self.data[origin[0] - self.origin[0]:origin[0] + shape[0] - self.origin[0],
-                                  origin[1] - self.origin[1]:origin[1] + shape[1] - self.origin[1]],
-                        pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = origin)
-    
-    def get_image_area(self, image):
-        return self.get_area(image.origin, image.shape)
+    def get_coordinate_meshgrid(self, x = 0., y = 0.):
+        return self.window.get_coordinate_meshgrid(self.pixelscale, x, y)
     
     def __iadd__(self, other):
         if isinstance(other, AP_Image):
+            if self.pixelscale != other.pixelscale:
+                raise IndexError("Cannot add images with different pixelscale!")
             if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
                 return self
-            self_base = np.clip(other.origin - self.origin, a_min = 0, a_max = None)
-            self_end = other.origin - self.origin + np.array(other.data.shape)
-            self_end[0] = min(self_end[0],self.data.shape[0])
-            self_end[1] = min(self_end[1],self.data.shape[1])
-            other_base = np.clip(self.origin - other.origin, a_min = 0, a_max = None)
-            other_end = self.origin - other.origin + np.array(self.data.shape)
-            other_end[0] = min(other_end[0],other.data.shape[0])
-            other_end[1] = min(other_end[1],other.data.shape[1])
-            self.data[self_base[0]:self_end[0],self_base[1]:self_end[1]] += other.data[other_base[0]:other_end[0],other_base[1]:other_end[1]]
+            self.data[other.window.get_indices(self)] += other.data[self.window.get_indices(other)]
         else:
             self.data += other
         return self
 
     def __isub__(self, other):
         if isinstance(other, AP_Image):
-            base = other.origin - self.origin
-            end = base + other.data.shape
-            self.data[base[0]:end[0],base[1]:end[1]] -= other.data
+            if self.pixelscale != other.pixelscale:
+                raise IndexError("Cannot subtract images with different pixelscale!")
+            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+                return self
+            self.data[other.window.get_indices(self)] -= other.data[self.window.get_indices(other)]
         else:
             self.data -= other
         return self
 
     def __sub__(self, other):
         if isinstance(other, AP_Image):
-            base = other.origin - self.origin
-            end = base + other.data.shape
-            return AP_Image(self.data[base[0]:end[0],base[1]:end[1]] - other.data, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = other.origin)
+            if self.pixelscale != other.pixelscale:
+                raise IndexError("Cannot subtract images with different pixelscale!")
+            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+                raise IndexError("images have no overlap, cannot subtract!")
+            return AP_Image(self.data[other.window.get_indices(self)] - other.data[self.window.get_indices(other)],
+                            pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = (max(self.origin[0], other.origin[0]), max(self.origin[1], other.origin[1])))
         else:
             return AP_Image(self.data - other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = self.origin)
         
-    def __add__(self, other):
+    def __add__(self, other): # fixme
         if isinstance(other, AP_Image):
-            base = other.origin - self.origin
-            end = base + other.data.shape
-            return AP_Image(self.data[base[0]:end[0],base[1]:end[1]] + other.data, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = other.origin)
+            if self.pixelscale != other.pixelscale:
+                raise IndexError("Cannot add images with different pixelscale!")
+            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+                raise IndexError("images have no overlap, cannot add!")
+            return AP_Image(self.data[other.window.get_indices(self)] + other.data[self.window.get_indices(other)],
+                            pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = (max(self.origin[0], other.origin[0]), max(self.origin[1], other.origin[1])))
         else:
             return AP_Image(self.data + other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = self.origin)
+
+    def __getitem__(self, *args):
+        if len(args) == 1 and isinstance(args[0], AP_Window):
+            return self.get_window(args[0])
+        if len(args) == 1 and isinstance(args[0], AP_Image):
+            return self.get_window(args[0].window)
+        raise ValueError("Unrecognized AP_Image getitem request!")

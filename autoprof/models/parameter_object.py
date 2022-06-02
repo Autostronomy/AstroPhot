@@ -59,6 +59,6 @@ class Parameter(object):
     def __sub__(self, other):
 
         if self.cyclic:
-            return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0]).astype(np.float64)
+            return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0])
 
-        return (self.representation - other.representation).astype(np.float64)
+        return self.representation - other.representation

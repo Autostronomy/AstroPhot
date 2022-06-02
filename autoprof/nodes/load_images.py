@@ -14,7 +14,7 @@ class Load_Images(Process):
                 if f'ap_{input_image}_pixelscale' in state.options:
                     img_kwargs['pixelscale'] = state.options[f'ap_{input_image}_pixelscale']
                 else:
-                    img_kwargs['pixelscale'] = state.data.image.pixelscale
+                    img_kwargs['pixelscale'] = state.data.target.pixelscale
                 if f'ap_{input_image}_index' in state.options:
                     img_kwargs['index'] = state.options[f'ap_{input_image}_index']
                 if f'ap_{input_image}_zeropoint' in state.options:

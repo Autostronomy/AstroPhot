@@ -1,4 +1,6 @@
 from .substate_object import SubState
+from autoprof.models import BaseModel
+from autoprof.pipeline.class_discovery import all_subclasses
 import os
 
 class Options_State(SubState):
@@ -26,11 +28,32 @@ class Options_State(SubState):
         else:
             self.name = "AutoProfModel"
 
+        self.max_iterations = kwargs.get("ap_max_iterations", 3000)
+
+        if "ap_model_atributes" in self.options:
+            print("setting attributes")
+            # Get all model subclasses
+            MODELS = all_subclasses(BaseModel)
+            # Loop through models specified by users
+            for identifier in self.options["ap_model_atributes"]:
+                # Match with model subclasses
+                for model in MODELS:
+                    if model.model_type == identifier:
+                        # Apply updates to parameters as specified by user
+                        for attr in self.options["ap_model_atributes"][identifier]:
+                            # Skip attributes that cannot be updated
+                            if attr in ['model_type']:
+                                continue
+                            setattr(model, attr, self.options["ap_model_atributes"][identifier][attr])
+
     def __getitem__(self, key):
         try:
             return self.options[key]
         except KeyError:
-            return None
+            try:
+                return self.options[key[0]]
+            except KeyError:
+                return key[1]
 
     def __contains__(self, key):
         return key in self.options

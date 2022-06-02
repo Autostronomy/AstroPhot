@@ -8,20 +8,28 @@ class Stop_Iteration(Decision):
 
     def action(self, state):
 
-        for model in state.models:
-            # not enough iterations
-            if model.iteration < 100:
-                if model.user_locked:
-                    continue
-                else:
-                    break
-            # Too many iterations
-            if model.iteration > 1000:
-                return "End"
-            # not yet converged
-            if np.any(np.abs(np.array(model.loss_history[:9]) - model.loss)/model.loss) > 1e-2:
-                break
-        else:
-            # all checks passed, all models must have converged
+        # All models locked
+        if all(model.locked for model in state.models):
+            state.models.unlock_models()
+            return "End"          
+        
+        # Too many iterations
+        if state.models.iteration > state.options.max_iterations:
+            state.models.unlock_models()
             return "End"
+        
+        # for model in state.models:
+        #     # not enough iterations
+        #     if model.iteration < 100:
+        #         if model.user_locked:
+        #             continue
+        #         else:
+        #             break
+        #     # not yet converged
+        #     if np.any(np.abs(np.array(model.loss_history[:9]) - model.loss)/model.loss) > 1e-2:
+        #         break
+        # else:
+        #     # all checks passed, all models must have converged
+        #     state.models.unlock_models()
+        #     return "End"
         return "Start"

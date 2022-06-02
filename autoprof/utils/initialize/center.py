@@ -13,6 +13,7 @@ def center_of_mass(center, image, window = 10):
 
         # Avoid edge of image
         if ranges[0][0] < 0 or ranges[1][0] < 0 or ranges[0][1] >= image.shape[1] or ranges[1][1] >= image.shape[0]:
+            print('Image edge!')
             break
 
         # Compute COM

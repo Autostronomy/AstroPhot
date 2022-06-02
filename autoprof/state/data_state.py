@@ -2,6 +2,7 @@ from .substate_object import SubState
 from autoprof.image import AP_Image, PSF_Image, Model_Image
 from astropy.io import fits
 import numpy as np
+from copy import deepcopy
 
 class Data_State(SubState):
 
@@ -22,7 +23,7 @@ class Data_State(SubState):
             image_type = AP_Image
             
         if filename.endswith('.fits'):
-            hdulelement = kwargs['index'] if 'index' in kwargs else 0
+            hdulelement = kwargs.get('index', 0)
             hdul = fits.open(filename)
             img = image_type(hdul[hdulelement].data, pixelscale = pixelscale, **kwargs)
         elif filename.endswith('.npy'):
@@ -67,29 +68,28 @@ class Data_State(SubState):
         elif isinstance(img, np.ndarray):
             self.psf = PSF_Image(img, **kwargs)
 
-    def initialize_model_image(self):
-        window_origin = None
-        window_shape = None
+    def initialize_model_image(self, full_target = False, include_locked = False):
+
+        if full_target:
+            self.model_image = Model_Image(
+                np.zeros(np.round(self.target.shape / self.target.pixelscale).astype(int)),
+                pixelscale = self.target.pixelscale,
+                window = self.target.window,
+            )
+            return
+        new_window = None
         for model in self.state.models:
-            if model.locked:
+            if model.locked and not include_locked:
                 continue
-            if window_origin is None:
-                window_origin = list(model.model_image.origin)
-                window_shape = list(model.window)
-                continue
-            window_origin[0] = min(window_origin[0], model.model_image.origin[0])
-            window_origin[1] = min(window_origin[1], model.model_image.origin[1])
-            window_shape = [
-                slice(min(window_shape[0].start, model.window[0].start),
-                      max(window_shape[0].stop, model.window[0].stop)),
-                slice(min(window_shape[1].start, model.window[1].start),
-                      max(window_shape[1].stop, model.window[1].stop)),
-            ]
+            if new_window is None:
+                new_window = deepcopy(model.window)
+            else:
+                new_window += model.window
+                
         self.model_image = Model_Image(
-            np.zeros((window_shape[0].stop - window_shape[0].start,
-                      window_shape[1].stop - window_shape[1].start)),
+            np.zeros(np.round(np.array(new_window.shape) / self.target.pixelscale).astype(int)),
             pixelscale=self.target.pixelscale,
-            origin=np.array(window_origin),
+            origin=new_window.origin,
         )
         
         

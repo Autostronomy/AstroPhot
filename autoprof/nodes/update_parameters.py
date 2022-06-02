@@ -37,7 +37,7 @@ class Update_Parameters_Random_Grad(Process):
 
                 # Apply the update to each parameter
                 for i, P in enumerate(params[0]):
-                    P.set_representation(params[best][i].representation + update[i] * (1 + model.iteration * (model.learning_rate - 1)/1000))
+                    P.set_representation(params[best][i].representation + update[i] * (1 + (model.learning_rate - 1) * np.sqrt(model.iteration/state.options.max_iterations)))
         
         return state
 

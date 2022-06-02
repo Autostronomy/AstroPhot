@@ -25,9 +25,9 @@ class Plot_Model(Process):
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
-                f"modelimage_{state.options.name}_{state.models.iteration:04d}.jpg",
+                f"{self.name}_{state.options.name}_{state.models.iteration:04d}.jpg",
             ),
-            dpi=state.options["ap_plotdpi"] if "ap_plotdpi" in state.options else 300,
+            dpi=state.options["ap_plotdpi", 300],
         )
         plt.close()
 
@@ -42,9 +42,9 @@ class Plot_Model(Process):
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
-                f"modelresidualimage_{state.options.name}_{state.models.iteration:04d}.jpg",
+                f"{self.name}_Residual_{state.options.name}_{state.models.iteration:04d}.jpg",
             ),
-            dpi=state.options["ap_plotdpi"] if "ap_plotdpi" in state.options else 300,
+            dpi=state.options["ap_plotdpi", 300],
         )
         plt.close()
 
@@ -60,14 +60,16 @@ class Plot_Loss_History(Process):
     def action(self, state):
 
         for model in state.models:
+            if len(model.loss_history) == 0:
+                continue
             plt.plot(list(reversed(range(len(model.loss_history)))), np.log10(model.loss_history / model.loss_history[-1]), label = model.name)
         plt.legend()
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
-                f"losshistory_{state.options.name}.jpg",
+                f"{self.name}_{state.options.name}.jpg",
             ),
-            dpi=state.options["ap_plotdpi"] if "ap_plotdpi" in state.options else 300,
+            dpi=state.options["ap_plotdpi", 300],
         )
         plt.close()
         

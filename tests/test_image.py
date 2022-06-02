@@ -13,8 +13,9 @@ class TestImage(unittest.TestCase):
         self.assertEqual(base_image.origin[0], 0, 'image should track origin')
         self.assertEqual(base_image.origin[1], 0, 'image should track origin')
         self.assertEqual(base_image.note, 'test image', 'image should track note')
-        
-        sliced_image = base_image.subimage(3, 7, 2, 7)
+
+        slicer = image.AP_Window((3,2), (4,5))
+        sliced_image = base_image[slicer]
         self.assertEqual(sliced_image.origin[0], 3, 'image should track origin')
         self.assertEqual(sliced_image.origin[1], 2, 'image should track origin')
         self.assertEqual(base_image.origin[0], 0, 'subimage should not change image origin')
@@ -32,7 +33,8 @@ class TestImage(unittest.TestCase):
 
         arr = np.zeros((10,10))
         base_image = image.AP_Image(arr, pixelscale = 1.0, zeropoint = 1.0, rotation = 0.0, origin = np.ones(2, dtype = int), note = 'test image')
-        sliced_image = base_image.subimage(0,5,0,5)
+        slicer = image.AP_Window((0,0), (5,5))
+        sliced_image = base_image[slicer]
         sliced_image += 1
         
         self.assertEqual(base_image.data[1][1], 1, "slice should update base image")
