@@ -197,7 +197,7 @@ def _iso_extract(
             mask[np.rint(Y).astype(np.int32), np.rint(X).astype(np.int32)]
         )
     # Perform sigma clipping if requested
-    if sigmaclip:
+    if sigmaclip and len(flux) > 30:
         sclim = Sigma_Clip_Upper(flux, sclip_iterations, sclip_nsigma)
         if CHOOSE is None:
             CHOOSE = flux < sclim

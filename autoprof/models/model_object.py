@@ -9,6 +9,7 @@ from autoprof.utils.convolution import direct_convolve, fft_convolve
 from .parameter_object import Parameter
 import numpy as np
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 class BaseModel(object):
 
@@ -37,16 +38,8 @@ class BaseModel(object):
         self.user_locked = locked
         self.update_locked(False)
             
-        self.parameter_specs = self.build_parameter_specs()
-        if "parameters" in kwargs:
-            for p in kwargs["parameters"]:
-                # If the user supplied a parameter object subclass, simply use that as is
-                if isinstance(kwargs["parameters"][p], Parameter):
-                    self.parameters[p] = kwargs["parameters"][p]
-                    del self.parameter_specs[p]
-                else: # if the user supplied parameter specifications, update the defaults
-                    self.parameter_specs[p].update(kwargs["parameters"][p])
-        self.parameters.update(dict((p, Parameter(p, **self.parameter_specs[p])) for p in self.parameter_specs))
+        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
+        self.build_parameters()
         self._init_convert_input_units()
         
         # Set any user defined attributes for the model
@@ -57,7 +50,7 @@ class BaseModel(object):
             # Set the model parameter
             print("setting: ", kwarg)
             setattr(self, kwarg, kwargs[kwarg])
-
+            
     def _init_convert_input_units(self):
         if self["center_x"].value is not None:
             physcenter = index_to_coord(np.nan, self["center_x"].value, self.target)
@@ -69,8 +62,13 @@ class BaseModel(object):
     # Initialization functions
     ######################################################################    
     def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        # Get the sub-image area corresponding to the model image
+        target_area = target[self.model_image]
+        
         # Use center of window if a center hasn't been set yet
-        window_center = index_to_coord(self.window.shape[0] / 2, self.window.shape[1] / 2, self.model_image)
+        window_center = index_to_coord(self.model_image.data.shape[0] / 2, self.model_image.data.shape[1] / 2, self.model_image)
         if self["center_x"].value is None:
             self["center_x"].set_value(window_center[0], override_fixed = True)
         if self["center_y"].value is None:
@@ -79,15 +77,13 @@ class BaseModel(object):
         if self["center_x"].fixed and self["center_y"].fixed:
             return
 
-        if target is None:
-            target = self.target
-
-        # Get the sub-image area corresponding to the model image
-        target_area = target[self.model_image]
         # Convert center coordinates to target area array indices
         init_icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
         # Compute center of mass in window
         COM = center_of_mass((init_icenter[1], init_icenter[0]), target_area.data)
+        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
+            print("center of mass failed, using center of window")
+            return
         # Convert center of mass indices to coordinates
         COM_center = index_to_coord(COM[1], COM[0], target_area)
         # Set the new coordinates as the model center
@@ -185,6 +181,7 @@ class BaseModel(object):
     from ._model_methods import scale_window
     from ._model_methods import update_locked
     from ._model_methods import build_parameter_specs
+    from ._model_methods import build_parameters
     from ._model_methods import get_loss
     from ._model_methods import get_loss_history
     from ._model_methods import get_parameters

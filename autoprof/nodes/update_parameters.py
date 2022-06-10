@@ -13,6 +13,7 @@ class Update_Parameters_Random_Grad(Process):
 
     def action(self, state):
 
+        N_lim = 5
         state.models.step_iteration()
         # Loop through each model
         for model in state.models:
@@ -20,19 +21,19 @@ class Update_Parameters_Random_Grad(Process):
             if model.locked:
                 continue
             # Loop through each loss/parameters pairing
-            for loss, params in model.get_loss_history(limit = 5):
+            for loss, params in model.get_loss_history(limit = N_lim):
                 # Determine the perturbation scale
                 param_scale = np.array(list(par.uncertainty for par in params[0]))
 
                 # sample the random step
                 update = np.random.normal(scale = param_scale)
-                if len(loss) >= 5:
+                if len(loss) >= N_lim:
                     best = np.argmin(loss)
                 else:
                     best = max(0, len(loss)-1)
                 # Compute the gradient step
-                if len(loss) >= 4:
-                    grad_step = np.require(k_delta_step(loss, params, k = 3, reference = best),dtype=float)
+                if len(loss) >= N_lim:
+                    grad_step = np.require(k_delta_step(loss, params, k = N_lim - 1, reference = best),dtype=float)
                     update -= grad_step * model.learning_rate * np.linalg.norm(param_scale) / np.linalg.norm(grad_step)
 
                 # Apply the update to each parameter

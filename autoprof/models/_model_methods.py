@@ -1,4 +1,5 @@
 import numpy as np
+from .parameter_object import Parameter, Parameter_Array
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
 from autoprof.image import Model_Image, AP_Window
 from copy import deepcopy
@@ -69,7 +70,7 @@ def update_locked(self, locked):
         raise ValueError(f"Unrecognized lock type: {type(locked)}")
 
 @classmethod
-def build_parameter_specs(cls):
+def build_parameter_specs(cls, user_specs = None):
     parameter_specs = {}
     for base in cls.__bases__:
         try:
@@ -77,7 +78,23 @@ def build_parameter_specs(cls):
         except AttributeError:
             pass
     parameter_specs.update(cls.parameter_specs)
+    if user_specs is not None:
+        for p in user_specs:
+            # If the user supplied a parameter object subclass, simply use that as is
+            if isinstance(user_specs[p], Parameter):
+                parameter_specs[p] = user_specs[p]
+            else: # if the user supplied parameter specifications, update the defaults
+                parameter_specs[p].update(user_specs[p])        
     return parameter_specs
+
+def build_parameters(self):
+    for p in self.parameter_specs:
+        if isinstance(self.parameter_specs[p], dict):
+            self.parameters[p] = Parameter(p, **self.parameter_specs[p])
+        elif isinstance(self.parameter_specs[p], Parameter):
+            self.parameters[p] = self.parameter_specs[p]
+        else:
+            raise ValueError(f"unrecognized parameter specification for {p}")
 
 def step_iteration(self):
     if self.locked:
@@ -87,6 +104,8 @@ def step_iteration(self):
     # Add a new set of parameters to the history that defaults to the most recent values
     if not self.loss is None:
         self.parameter_history.insert(0, deepcopy(self.parameters))
+        for P in self.parameter_history[0]:
+            self.parameter_history[0][P].update_fixed(True)
         self.loss_history.insert(0, deepcopy(self.loss))
         self.loss = None
     self.iteration += 1
@@ -107,7 +126,16 @@ def get_loss_history(self, limit = np.inf):
     loss_history = []
     for i in range(min(limit, max(1,len(self.loss_history)))):
         params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True)
-        params.append(np.array([params_i[P] for P in param_order]))
+        sub_params = []
+        for P in param_order:
+            if isinstance(params_i[P], Parameter_Array):
+                for ip in range(len(params_i[P])):
+                    if self.parameters[P][ip].fixed:
+                        continue
+                    sub_params.append(params_i[P][ip])
+            elif isinstance(params_i[P], Parameter):
+                sub_params.append(params_i[P])
+        params.append(np.array(sub_params))
         loss_history.append(self.loss_history[i] if len(self.loss_history) > 0 else self.loss)
     yield loss_history, params
 

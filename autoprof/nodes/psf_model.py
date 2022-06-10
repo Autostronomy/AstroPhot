@@ -17,10 +17,10 @@ class Gaussian_PSF(Process):
         sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
 
         # User specified psf size
-        size = state.options["ap_gaussian_psf_size", 15]
+        size = state.options["ap_gaussian_psf_size", 25]
 
         # User specified integration oversampling factor
-        integrate_factor = state.options["ap_psf_integrate_factor", 1]
+        integrate_factor = state.options["ap_psf_integrate_factor", 5]
 
             
         # Create the cooridnate grid

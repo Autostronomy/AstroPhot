@@ -100,7 +100,8 @@ def interpolate_Lanczos(img, X, Y, scale):
     return np.array(flux)
 
 def nearest_neighbor(img, X, Y):
-    return img[np.clip(np.asarray(np.rint(Y),dtype=int), a_min = 0, a_max = img.shape[0]),
-               np.clip(np.asarray(np.rint(X),dtype=int), a_min = 0, a_max = img.shape[1])
+    return img[
+        np.clip(np.round(Y).astype(int), a_min = 0, a_max = img.shape[0] - 1),
+        np.clip(np.round(X).astype(int), a_min = 0, a_max = img.shape[1] - 1),
     ]
 

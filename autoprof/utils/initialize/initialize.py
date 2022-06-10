@@ -3,11 +3,11 @@ import numpy as np
 from scipy.stats import iqr
 from scipy.fftpack import fft
 
-def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3):
+def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3, more = False):
 
     # Determine basic threshold if none given
     if threshold is None:
-        threshold = np.median(image) + 3*iqr(image, (16,84))/2
+        threshold = np.median(image) + 3*iqr(image, rng = (16,84))/2
 
     if pa is None:
         pa = 0.
@@ -33,9 +33,7 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
             if len(isovals) < 3:
                 continue
             # Stop when at 3 time background noise
-            if (
-                    np.quantile(isovals, 0.8) < threshold
-            ):
+            if (np.quantile(isovals, 0.8) < threshold) and len(ellipse_radii) > 4:
                 break
         R = ellipse_radii[-1]
 
@@ -70,5 +68,9 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         iso_info[-1]["amplitude1"] = np.abs(coefs[1])
         iso_info[-1]["amplitude2"] = np.abs(coefs[2])
         iso_info[-1]["flux"] = np.median(isovals)
+        iso_info[-1]["noise"] = iqr(isovals, rng = (16,84))/2
+        iso_info[-1]["N"] = len(isovals)        
+        if more:
+            iso_info[-1]["isovals"] = isovals
         
     return iso_info

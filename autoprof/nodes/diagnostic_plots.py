@@ -13,7 +13,7 @@ class Plot_Model(Process):
 
     def action(self, state):
         autocmap.set_under("k", alpha=0)
-
+        plt.figure(figsize = (7, 7*state.data.model_image.shape[1]/state.data.model_image.shape[0]))
         plt.imshow(
             state.data.model_image.data,
             origin="lower",
@@ -21,30 +21,37 @@ class Plot_Model(Process):
             norm=ImageNormalize(stretch=LogStretch(), clip=False),
         )
         plt.axis("off")
+        plt.margins(0,0)
         plt.tight_layout()
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
                 f"{self.name}_{state.options.name}_{state.models.iteration:04d}.jpg",
             ),
-            dpi=state.options["ap_plotdpi", 300],
+            dpi=state.options["ap_plotdpi", 800],
+            bbox_inches = 'tight',
+            pad_inches = 0
         )
         plt.close()
 
         residual = (state.data.target - state.data.model_image).data
+        plt.figure(figsize = (7, 7*state.data.model_image.shape[1]/state.data.model_image.shape[0]))
         plt.imshow(
             residual,
             origin="lower",
             norm=ImageNormalize(stretch=HistEqStretch(residual), clip = False),
         )
         plt.axis("off")
+        plt.margins(0,0)
         plt.tight_layout()
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
                 f"{self.name}_Residual_{state.options.name}_{state.models.iteration:04d}.jpg",
             ),
-            dpi=state.options["ap_plotdpi", 300],
+            dpi=state.options["ap_plotdpi", 800],
+            bbox_inches = 'tight',
+            pad_inches = 0
         )
         plt.close()
 
@@ -69,7 +76,7 @@ class Plot_Loss_History(Process):
                 state.options.plot_path,
                 f"{self.name}_{state.options.name}.jpg",
             ),
-            dpi=state.options["ap_plotdpi", 300],
+            dpi=state.options["ap_plotdpi", 500],
         )
         plt.close()
         

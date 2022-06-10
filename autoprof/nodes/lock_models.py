@@ -12,10 +12,10 @@ class Lock_Models(Process):
             if len(model.loss_history) < 200:
                 continue
 
-            if not model.locked and model.iteration == state.models.iteration and np.std(model.loss_history[:100]) < (np.min(model.loss_history[:100])/1e3):
-                print("locking: ", model.name)
-                model.update_locked(200)
-                continue
+            # if not model.locked and model.iteration == state.models.iteration and np.std(model.loss_history[:100]) < (np.min(model.loss_history[:100])/1e3):
+            #     print("locking: ", model.name)
+            #     model.update_locked(200)
+            #     continue
             
             # If a new best loss hasnt been found for 50 iterations then assume it has converged
             # min_so_far = np.min(model.loss_history[100:200])

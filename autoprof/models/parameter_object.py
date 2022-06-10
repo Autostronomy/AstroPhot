@@ -7,17 +7,16 @@ class Parameter(object):
 
         self.name = name
         
-        self.limits = kwargs["limits"] if "limits" in kwargs else None
-        self.cyclic = kwargs["cyclic"] if "cyclic" in kwargs else False
-        self.user_fixed = kwargs["fixed"] if "fixed" in kwargs else None
+        self.limits = kwargs.get("limits", None)
+        self.cyclic = kwargs.get("cyclic", False)
+        self.user_fixed = kwargs.get("fixed", None)
         self.update_fixed(False)
+        self.value = None
+        self.representation = None
         if "value" in kwargs:
             self.set_value(kwargs["value"], override_fixed = True)
-        else:
-            self.value = None
-            self.representation = None
-        self.units = kwargs["units"] if "units" in kwargs else "none"
-        self.uncertainty = kwargs["uncertainty"] if "uncertainty" in kwargs else None
+        self.units = kwargs.get("units", "none")
+        self.uncertainty = kwargs.get("uncertainty", None)
 
     def update_fixed(self, fixed):
         self.fixed = fixed or bool(self.user_fixed)
@@ -25,7 +24,7 @@ class Parameter(object):
     def set_uncertainty(self, uncertainty, override_fixed = False):
         if self.fixed and not override_fixed:
             return
-        if uncertainty < 0:
+        if np.any(uncertainty < 0):
             raise ValueError(f"{name} Uncertainty should be a positive real value, not {uncertainty}")
         self.uncertainty = uncertainty
         
@@ -36,7 +35,6 @@ class Parameter(object):
             self.value = cyclic_boundaries(value, self.limits)
             self.representation = self.value
             return
-        
         self.value = value
         if self.limits is None:
             self.representation = self.value
@@ -62,3 +60,61 @@ class Parameter(object):
             return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0])
 
         return self.representation - other.representation
+
+class Parameter_Array(Parameter):
+    
+    def set_value(self, value, override_fixed = False, index = None):
+        if self.value is None:
+            self.value = []
+            for i, val in enumerate(value):
+                self.value.append(Parameter(
+                    name = f"{self.name}:{i}",
+                    limits = self.limits,
+                    cyclic = self.cyclic,
+                    fixed = self.user_fixed,
+                    value = val,
+                    units = self.units,
+                    uncertainty = self.uncertainty
+                ))
+        if index is None:
+            for i in range(len(self.value)):
+                self.value[i].set_value(value[i], override_fixed)
+        else:
+            self.value[index].set_value(value, override_fixed)
+
+    def get_values(self):
+        return np.array(list(V.value for V in self.value))
+        
+    def set_representation(self, representation, override_fixed = False, index = None):
+        
+        if index is None:
+            for i in range(len(self.value)):
+                self.value[i].set_representation(representation[i], override_fixed)
+        else:
+            self.value[index].set_representation(representation, override_fixed)
+
+    def set_uncertainty(self, uncertainty, override_fixed = False, index = None):
+        if index is None:
+            for i in range(len(self.value)):
+                self.value[i].set_uncertainty(uncertainty[i], override_fixed)
+        else:
+            self.value[index].set_uncertainty(uncertainty, override_fixed)
+        
+        
+    def __sub__(self, other):
+        res = np.zeros(len(self.value))
+        for i in range(len(self.value)):
+            if isinstance(other, Parameter_Array):
+                res[i] = self.value[i] - other.value[i]
+            elif isinstance(other, Parameter):
+                res[i] = self.value[i] - other
+            else:
+                raise ValueError(f"unrecognized parameter type: {type(other)}")
+            
+        return res
+
+    def __getitem__(self, S):
+        return self.value[S]
+
+    def __len__(self):
+        return len(self.value)
