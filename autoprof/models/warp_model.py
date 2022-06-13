@@ -15,8 +15,12 @@ class Warp_Galaxy(Galaxy_Model):
 
     model_type = " ".join(("warp", Galaxy_Model.model_type))
     parameter_specs = {
-        "q(R)": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
-        "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
+        "q(R)": {"units": "b/a", "limits": (0,1), "uncertainty": 0.04},
+        "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.1},
+    }
+    parameter_qualities = {
+        "q(R)": {"loss": "local radial"},
+        "PA(R)": {"loss": "local radial"},
     }
 
     def __init__(self, *args, **kwargs):
@@ -55,8 +59,9 @@ class Warp_Galaxy(Galaxy_Model):
         icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
         # Transform the target image area to remove global PA and ellipticity
         XX, YY = target_area.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-        XX, YY = Rotate_Cartesian(self["PA"].value, XX, YY)
+        XX, YY = Rotate_Cartesian(-self["PA"].value, XX, YY)
         YY /= self["q"].value
+        XX, YY = Rotate_Cartesian(self["PA"].value, XX, YY)
         Y, X = coord_to_index(XX + self["center_x"].value, YY + self["center_y"].value, target_area)
         target_transformed = nearest_neighbor(target_area.data, X, Y)
         # Initialize the PA(R) values
@@ -66,39 +71,27 @@ class Warp_Galaxy(Galaxy_Model):
                 (icenter[1], icenter[0]),
                 pa = 0., q = 1., R = self.profR[1:],
             )
-            self["PA(R)"].set_value([1e-7] + list((-io['phase2']/2) % np.pi for io in iso_info), override_fixed = True)
+            self["PA(R)"].set_value([1e-7] + list(self["PA"].value for io in iso_info), override_fixed = True) # (-io['phase2']/2) % np.pi
             # First point fixed PA since no orientation meaningful at R = 0
             self["PA(R)"].value[0].user_fixed = True
             self["PA(R)"].value[0].update_fixed(True)
-        plt.imshow(
-            np.log10(target_transformed),
-            origin="lower",
-            # norm=ImageNormalize(stretch=HistEqStretch(target_transformed), clip = False),
-        )
-        plt.plot((self.profR*np.cos(self["PA(R)"].get_values()) + self["center_x"].value - target_area.origin[1])/0.262, (self.profR*np.sin(self["PA(R)"].get_values()) + self["center_y"].value - target_area.origin[0])/0.262, color = 'r')
-        plt.axis("off")
-        plt.tight_layout()
-        plt.savefig("stretched_target.jpg")
-        plt.close()
             
         # Initialize the q(R) values
         if self["q(R)"].value is None:
             q_R = [1. - 1e-7]
-            q_samples = np.linspace(0.3,0.7,10)
-            for r in self.profR[1:-1]:
+            q_samples = np.linspace(0.3,0.9,10)
+            for r in self.profR[1:]:
                 iso_info = isophotes(
                     target_transformed,
                     (icenter[1], icenter[0]),
                     pa = 0., q = q_samples, R = r,
                 )
-                q_R.append(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))])
-            q_R.append(1. - 1e-7)
+                q_R.append(0.8)
+                #q_R.append(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))])
             self["q(R)"].set_value(q_R, override_fixed = True)
-            # First and last points required to be circular for integration with global PA/q
+            # First point required to be circular since no shape at R = 0
             self["q(R)"].value[0].user_fixed = True
             self["q(R)"].value[0].update_fixed(True)
-            self["q(R)"].value[-1].user_fixed = True        
-            self["q(R)"].value[-1].update_fixed(True)
             
     def set_window(self, *args, **kwargs):
         super().set_window(*args, **kwargs)
@@ -110,21 +103,55 @@ class Warp_Galaxy(Galaxy_Model):
             self.profR.pop()
             self.profR = np.array(self.profR)
     
-    def sample_model(self, sample_image = None, X = None, Y = None, R = None):
+    def sample_model(self, sample_image = None, X = None, Y = None):
         if sample_image is None:
             sample_image = self.model_image
 
         if X is None or Y is None:
             X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-        if R is None:
-            R = np.sqrt(X**2 + Y**2)
-            
-        X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
-        Y /= self["q"].value
-        PA = UnivariateSpline(self.profR, self["PA(R)"].get_values(), ext = "const", s = 0)
+
+        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
+
+        R = self.radius_metric(X, Y)
+        PA = UnivariateSpline(self.profR, np.unwrap(self["PA(R)"].get_values()*2)/2, ext = "const", s = 0)
         q = UnivariateSpline(self.profR, self["q(R)"].get_values(), ext = "const", s = 0)
         X, Y = Rotate_Cartesian(-PA(R), X, Y)
         Y /= q(R)
+
+        return sample_image, X, Y
+                        
+    def compute_loss(self, loss_image):
+        # If the image is locked, no need to compute the loss
+        if self.locked:
+            return
+
+        super().compute_loss(loss_image)
+
+        loss_image, X, Y = super().sample_model(loss_image)
+
+        R = self.radius_metric(X, Y)
+        temp_loss = [np.mean(loss_image.data[R <= self.profR[1]])]
+        for i in range(1, len(self.profR)-1):
+            temp_loss.append(np.mean(loss_image.data[np.logical_and(R >= self.profR[i-1], R <= self.profR[i+1])]))
+        temp_loss.append(np.mean(loss_image.data[R >= self.profR[-2]]))
+        self.loss["local radial"] = np.array(temp_loss)
+
+    def get_loss_history(self, limit = np.inf):
         
-        super().sample_model(sample_image, X = X, Y = Y, R = np.sqrt(X**2 + Y**2))
-                
+        super().get_loss_history(limit)
+        param_order = self.get_parameters(exclude_fixed = True, quality = ["loss", "local radial"]).keys()
+        for ir in range(len(self.profR)):
+            params = []
+            loss_history = []
+            for i in range(min(limit, len(self.loss_history))):
+                params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True, quality = ["loss", "local radial"])
+                sub_params = []
+                for P in param_order:
+                    if isinstance(params_i[P], Parameter_Array):
+                        sub_params.append(params_i[P][ir])
+                    elif isinstance(params_i[P], Parameter):
+                        sub_params.append(params_i[P])
+                params.append(np.array(sub_params))
+                loss_history.append(self.get_loss(i, loss_quality = "local radial")[ir])
+            yield loss_history, params
+        

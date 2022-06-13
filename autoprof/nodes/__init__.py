@@ -11,6 +11,7 @@ from .diagnostic_plots import Plot_Model, Plot_Loss_History
 from .psf_model import Gaussian_PSF
 from .lock_models import Lock_Models
 from .psf_apply import Global_PSF
+from .variance_image import Variance_Image
 # from .gaussian_psf import gaussian_psf
 # from .project_to_image import project_to_image
 # from .psf_image import psf_image

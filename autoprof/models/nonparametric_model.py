@@ -15,6 +15,9 @@ class NonParametric_Galaxy(Galaxy_Model):
     parameter_specs = {
         "I(R)": {"units": "flux/arcsec^2"},
     }
+    parameter_qualities = {
+        "I(R)": {"loss": "local radial"},
+    }
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -69,9 +72,23 @@ class NonParametric_Galaxy(Galaxy_Model):
         self["I(R)"].set_value(I, override_fixed = True)
         self["I(R)"].set_uncertainty(np.clip(S, a_min = np.abs(I) * 1e-4, a_max = np.abs(I)), override_fixed = True)
         
-    def radial_model(self, R, sample_image):
+    def radial_model(self, R, sample_image = None):
+        if sample_image is None:
+            sample_image = self.model_image        
         I = UnivariateSpline(self.profR, self["I(R)"].get_values() * sample_image.pixelscale**2, ext = "const", s = 0)
         return I(R)
+
+    def sample_model(self, sample_image = None, X = None, Y = None):
+
+        if sample_image is None:
+            sample_image = self.model_image
+
+        if X is None or Y is None:
+            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
+
+        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
+        
+        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)
 
 
 class NonParametric_Warp(Warp_Galaxy):
@@ -79,6 +96,9 @@ class NonParametric_Warp(Warp_Galaxy):
     model_type = " ".join(("nonparametric", Warp_Galaxy.model_type))
     parameter_specs = {
         "I(R)": {"units": "flux/arcsec^2"},
+    }
+    parameter_qualities = {
+        "I(R)": {"loss": "local radial"},
     }
 
     def _init_convert_input_units(self):
@@ -108,6 +128,20 @@ class NonParametric_Warp(Warp_Galaxy):
         self["I(R)"].set_value(I, override_fixed = True)
         self["I(R)"].set_uncertainty(np.clip(S, a_min = np.abs(I) * 1e-4, a_max = np.abs(I)), override_fixed = True)
         
-    def radial_model(self, R, sample_image):
+    def radial_model(self, R, sample_image = None):
+        if sample_image is None:
+            sample_image = self.model_image        
         I = UnivariateSpline(self.profR, self["I(R)"].get_values() * sample_image.pixelscale**2, ext = "const", s = 0)
         return I(R)
+
+    def sample_model(self, sample_image = None, X = None, Y = None):
+
+        if sample_image is None:
+            sample_image = self.model_image
+
+        if X is None or Y is None:
+            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
+
+        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
+        
+        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)

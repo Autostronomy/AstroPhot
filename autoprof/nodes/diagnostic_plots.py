@@ -69,7 +69,9 @@ class Plot_Loss_History(Process):
         for model in state.models:
             if len(model.loss_history) == 0:
                 continue
-            plt.plot(list(reversed(range(len(model.loss_history)))), np.log10(model.loss_history / model.loss_history[-1]), label = model.name)
+            for loss_quality in model.loss_history[0]:
+                if isinstance(model.loss_history[0][loss_quality],float):
+                    plt.plot(list(reversed(range(len(model.loss_history)))), np.log10(np.array(list(ml[loss_quality] for ml in model.loss_history)) / model.loss_history[-1][loss_quality]), label = f"{model.name}:{loss_quality}")
         plt.legend()
         plt.savefig(
             os.path.join(

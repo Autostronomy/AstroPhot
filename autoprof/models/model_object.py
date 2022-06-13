@@ -2,7 +2,7 @@ try:
     import cPickle as pickle
 except:
     import pickle
-from autoprof.image import Model_Image
+from autoprof.image import Model_Image, AP_Window
 from autoprof.utils.initialize import center_of_mass
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
 from autoprof.utils.convolution import direct_convolve, fft_convolve
@@ -17,6 +17,10 @@ class BaseModel(object):
     parameter_specs = {
         "center_x": {"units": "arcsec", "uncertainty": 0.1},
         "center_y": {"units": "arcsec", "uncertainty": 0.1}
+    }
+    parameter_qualities = {
+        "center_x": {"loss": "global"},
+        "center_y": {"loss": "global"},
     }
 
     # modes: direct, direct+PSF, integrate, integrate+PSF, integrate+superPSF
@@ -39,6 +43,7 @@ class BaseModel(object):
         self.update_locked(False)
             
         self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
+        self.parameter_qualities = self.build_parameter_qualities()
         self.build_parameters()
         self._init_convert_input_units()
         
@@ -170,7 +175,7 @@ class BaseModel(object):
         if self.locked:
             return
         # Basic loss is the mean Chi^2 error in the window
-        self.loss = np.mean(loss_image[self.model_image].data)
+        self.loss = {"global": np.mean(loss_image[self.window].data)}
 
         
     ######################################################################
@@ -181,6 +186,7 @@ class BaseModel(object):
     from ._model_methods import scale_window
     from ._model_methods import update_locked
     from ._model_methods import build_parameter_specs
+    from ._model_methods import build_parameter_qualities
     from ._model_methods import build_parameters
     from ._model_methods import get_loss
     from ._model_methods import get_loss_history

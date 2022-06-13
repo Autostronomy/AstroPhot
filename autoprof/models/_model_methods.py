@@ -87,6 +87,17 @@ def build_parameter_specs(cls, user_specs = None):
                 parameter_specs[p].update(user_specs[p])        
     return parameter_specs
 
+@classmethod
+def build_parameter_qualities(cls):
+    parameter_qualities = {}
+    for base in cls.__bases__:
+        try:
+            parameter_qualities.update(base.build_parameter_qualities())
+        except AttributeError:
+            pass
+    parameter_qualities.update(cls.parameter_qualities)
+    return parameter_qualities
+
 def build_parameters(self):
     for p in self.parameter_specs:
         if isinstance(self.parameter_specs[p], dict):
@@ -113,19 +124,30 @@ def step_iteration(self):
     self.is_convolved = False
     self.is_integrated = False
 
-def get_loss(self, index=0):
+def get_loss(self, index=0, parameter = None, loss_quality = "global"):
+    """
+    Return a loss value for this model.
+    index: index of the loss history where 0 is most recent and -1 is first
+    parameter: return the loss associated with this parameter, defaults to "global"
+    loss_quality: directly request a specific loss calculation, defaults to "global"
+    """
     # Return the loss for the requested iteration
     if index is None:
-        return self.loss
+        loss_dict = self.loss
     else:
-        return self.loss_history[index]
+        loss_dict = self.loss_history[index]
+
+    if parameter is not None:
+        return loss_dict[parameter_qualities.get(parameter,{}).get("loss", "global")]
+    return loss_dict[loss_quality]
 
 def get_loss_history(self, limit = np.inf):
-    param_order = self.get_parameters(exclude_fixed = True).keys()
+    # All global parameters
+    param_order = self.get_parameters(exclude_fixed = True, quality = ["loss", "global", "global"]).keys()
     params = []
     loss_history = []
-    for i in range(min(limit, max(1,len(self.loss_history)))):
-        params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True)
+    for i in range(min(limit, len(self.loss_history))):
+        params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True, quality = ["loss", "global", "global"])
         sub_params = []
         for P in param_order:
             if isinstance(params_i[P], Parameter_Array):
@@ -136,10 +158,15 @@ def get_loss_history(self, limit = np.inf):
             elif isinstance(params_i[P], Parameter):
                 sub_params.append(params_i[P])
         params.append(np.array(sub_params))
-        loss_history.append(self.loss_history[i] if len(self.loss_history) > 0 else self.loss)
+        loss_history.append(self.get_loss(index = i, loss_quality = "global"))
     yield loss_history, params
 
-def get_parameters(self, index=None, exclude_fixed = False):
+def get_parameters(self, index=None, exclude_fixed = False, quality = None):
+    """
+    index: index of the parameter history where 0 is most recent and -1 is first
+    exclude_fixed: ignore parameters currently set to fixed
+    quality: select for a parameter quality, should be a tuple of length 2 or 3. first element is the quality name, second is the desired value, third is the assumed value if not present in the model (default: "none").
+    """
     # Pick if using current parameters, or parameter history
     if index is None:
         use_params = self.parameters
@@ -147,12 +174,12 @@ def get_parameters(self, index=None, exclude_fixed = False):
         use_params = self.parameter_history[index]
         
     # Return all parameters for a given iteration
-    if not exclude_fixed:
+    if not exclude_fixed and quality is None:
         return use_params
     return_parameters = {}
     for p in use_params:
         # Skip currently fixed parameters since they cannot be updated anyway
-        if self.parameters[p].fixed:
+        if (exclude_fixed and self.parameters[p].fixed) or (quality is not None and self.parameter_qualities.get(p,{}).get(quality[0], "none" if len(quality) == 2 else quality[2]) != quality[1]):
             continue
         # Return representation which is valid in [-inf, inf] range
         return_parameters[p] = use_params[p]

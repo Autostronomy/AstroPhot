@@ -116,5 +116,8 @@ class Parameter_Array(Parameter):
     def __getitem__(self, S):
         return self.value[S]
 
+    def __str__(self):
+        return "\n".join([f"{self.name}:"] + list(str(val) for val in self.value))
+        
     def __len__(self):
         return len(self.value)

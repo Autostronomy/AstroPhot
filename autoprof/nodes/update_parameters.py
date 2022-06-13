@@ -18,15 +18,19 @@ class Update_Parameters_Random_Grad(Process):
         # Loop through each model
         for model in state.models:
             # Skip locked models
-            if model.locked:
+            if model.locked or model.iteration == 0:
                 continue
             # Loop through each loss/parameters pairing
             for loss, params in model.get_loss_history(limit = N_lim):
+                # If all params are fixed, skip this optimization step
+                if len(params) == 0 or loss is None:
+                    continue
+                
                 # Determine the perturbation scale
                 param_scale = np.array(list(par.uncertainty for par in params[0]))
 
                 # sample the random step
-                update = np.random.normal(scale = param_scale)
+                update = np.random.normal(scale = param_scale) * np.random.randint(0,2,len(param_scale))
                 if len(loss) >= N_lim:
                     best = np.argmin(loss)
                 else:

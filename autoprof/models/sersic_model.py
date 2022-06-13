@@ -16,6 +16,11 @@ class Sersic_Galaxy(Galaxy_Model):
         "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
         "Rs": {"units": "arcsec", "limits": (0,None)},
     }
+    parameter_qualities = {
+        "I0": {"loss": "global"},
+        "n": {"loss": "global"},
+        "Rs": {"loss": "global"},
+    }
 
     def _init_convert_input_units(self):
         super()._init_convert_input_units()
@@ -48,19 +53,39 @@ class Sersic_Galaxy(Galaxy_Model):
                 flux -= np.min(flux)
             x0 = [
                 3. if self["n"].value is None else self["n"].value,
-                R[1] if self["Rs"].value is None else self["Rs"].value,
+                R[5] if self["Rs"].value is None else self["Rs"].value,
                 flux[0] if self["I0"].value is None else self["I0"].value,
             ]
             res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic(R, x[0], x[1], x[2])))**2), x0 = x0, method = 'Nelder-Mead')
+            plt.scatter(R,flux)
+            plt.plot(R, sersic(R, x0[0], x0[1], x0[2]))
+            plt.plot(R, sersic(R, res.x[0], res.x[1], res.x[2]))
+            plt.savefig(f"deleteme_sersic_{self.name}.jpg")
+            plt.close()
             for i, param in enumerate(["n", "Rs", "I0"]):
-                self[param].set_value(res.x[i], override_fixed = (self[param].value is None))
+                self[param].set_value(res.x[i] if res.success else x0[i], override_fixed = (self[param].value is None))
         if self["Rs"].uncertainty is None:
             self["Rs"].set_uncertainty(0.02 * self["Rs"].value, override_fixed = True)
         if self["I0"].uncertainty is None:
             self["I0"].set_uncertainty(0.02 * np.abs(self["I0"].value), override_fixed = True)
 
-    def radial_model(self, R, sample_image):
+    def radial_model(self, R, sample_image = None):
+        
+        if sample_image is None:
+            sample_image = self.model_image        
         return sersic(R, self["n"].value, self["Rs"].value, self["I0"].value * sample_image.pixelscale**2)
+
+    def sample_model(self, sample_image = None, X = None, Y = None):
+
+        if sample_image is None:
+            sample_image = self.model_image
+
+        if X is None or Y is None:
+            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
+
+        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
+        
+        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)
 
     
 class Sersic_Warp(Warp_Galaxy):
@@ -70,6 +95,11 @@ class Sersic_Warp(Warp_Galaxy):
         "I0": {"units": "flux/arcsec^2"},
         "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
         "Rs": {"units": "arcsec", "limits": (0,None)},
+    }
+    parameter_qualities = {
+        "I0": {"loss": "global"},
+        "n": {"loss": "global"},
+        "Rs": {"loss": "global"},
     }
 
     def _init_convert_input_units(self):
@@ -95,23 +125,18 @@ class Sersic_Warp(Warp_Galaxy):
                 (icenter[1], icenter[0]),
                 threshold = 3*edge_scatter,
                 pa = self["PA"].value, q = self["q"].value,
-                n_isophotes = 6
+                n_isophotes = 15
             )
             R = np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale
             flux = np.array(list(iso["flux"] for iso in iso_info)) / target.pixelscale**2
             if np.sum(flux < 0) > 1:
                 flux -= np.min(flux)
             x0 = [
-                1. if self["n"].value is None else self["n"].value,
-                R[1] if self["Rs"].value is None else self["Rs"].value,
+                2. if self["n"].value is None else self["n"].value,
+                R[5] if self["Rs"].value is None else self["Rs"].value,
                 flux[0] if self["I0"].value is None else self["I0"].value,
             ]
             res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic(R, x[0], x[1], x[2])))**2), x0 = x0, method = 'Nelder-Mead')
-            plt.scatter(R, flux)
-            plt.plot(R, sersic(R, x0[0], x0[1], x0[2]))
-            plt.plot(R, sersic(R, res.x[0], res.x[1], res.x[2]))
-            plt.savefig(f"deleteme_sersic_{self.name}.jpg")
-            plt.close()
             for i, param in enumerate(["n", "Rs", "I0"]):
                 self[param].set_value(res.x[i], override_fixed = (self[param].value is None))
         if self["Rs"].uncertainty is None:
@@ -119,7 +144,20 @@ class Sersic_Warp(Warp_Galaxy):
         if self["I0"].uncertainty is None:
             self["I0"].set_uncertainty(0.02 * np.abs(self["I0"].value), override_fixed = True)
 
-    def radial_model(self, R, sample_image):
+    def radial_model(self, R, sample_image = None):
+        
+        if sample_image is None:
+            sample_image = self.model_image        
         return sersic(R, self["n"].value, self["Rs"].value, self["I0"].value * sample_image.pixelscale**2)
 
-    
+    def sample_model(self, sample_image = None, X = None, Y = None):
+
+        if sample_image is None:
+            sample_image = self.model_image
+
+        if X is None or Y is None:
+            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
+
+        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
+        
+        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)

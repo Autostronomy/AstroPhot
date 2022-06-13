@@ -12,6 +12,10 @@ class Galaxy_Model(BaseModel):
         "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
+    parameter_qualities = {
+        "q": {"loss": "global"},
+        "PA": {"loss": "global"},
+    }
 
     def _init_convert_input_units(self):
         super()._init_convert_input_units()
@@ -37,9 +41,9 @@ class Galaxy_Model(BaseModel):
                 target_area.data - edge_average,
                 (icenter[1], icenter[0]),
                 threshold = 3*edge_scatter,
-                pa = 0., q = 1., n_isophotes = 3
+                pa = 0., q = 1., n_isophotes = 15
             )
-            self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info))/2) % np.pi, override_fixed = True)
+            self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info[-int(len(iso_info)/3):]))/2) % np.pi, override_fixed = True)
         if self["q"].value is None:
             q_samples = np.linspace(0.1,0.9,15)
             iso_info = isophotes(
@@ -49,23 +53,23 @@ class Galaxy_Model(BaseModel):
                 pa = self["PA"].value, q = q_samples,
             ) 
             self["q"].set_value(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))], override_fixed = True)
+
+    def radius_metric(self, X, Y):
+        return np.sqrt(X**2 + Y**2)
     
-    def sample_model(self, sample_image = None, X = None, Y = None, R = None):
+    def sample_model(self, sample_image = None, X = None, Y = None):
         
         if sample_image is None:
             sample_image = self.model_image
 
         super().sample_model(sample_image)
 
-        if R is not None:
-            pass
-        elif X is not None and Y is not None:
-            X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
-            R = np.sqrt(X**2 + (Y / self["q"].value)**2)
-        else:
+        if X is None or Y is None:
             X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-            X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
-            R = np.sqrt(X**2 + (Y / self["q"].value)**2)
             
-        sample_image += self.radial_model(R, sample_image)
+        X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
+        Y /= self["q"].value
+        X, Y = Rotate_Cartesian(self["PA"].value, X, Y)
+        
+        return sample_image, X, Y
         

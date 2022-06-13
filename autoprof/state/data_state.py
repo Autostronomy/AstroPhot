@@ -10,9 +10,9 @@ class Data_State(SubState):
         super().__init__(**kwargs)
 
         self.target = None
-        self.variance = None
         self.mask = None
         self.psf = None
+        self.variance_image = None
         self.loss_image = None
         self.model_image = None
     
@@ -40,9 +40,11 @@ class Data_State(SubState):
             
     def update_variance(self, img, **kwargs):
         if isinstance(img, AP_Image):
-            self.variance = img
+            self.variance_image = img
         elif isinstance(img, str):
-            self.variance = self.load(img, **kwargs)
+            self.variance_image = self.load(img, **kwargs)
+        elif isinstance(img, np.ndarray):
+            self.variance_image = AP_Image(img, **kwargs)
             
     def update_mask(self, img, mode = 'or', **kwargs):
         if isinstance(img, AP_Image):
