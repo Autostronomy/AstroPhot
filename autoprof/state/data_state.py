@@ -14,6 +14,7 @@ class Data_State(SubState):
         self.psf = None
         self.variance_image = None
         self.loss_image = None
+        self.residual_image = None
         self.model_image = None
     
     def load(self, filename, pixelscale, **kwargs):

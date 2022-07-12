@@ -16,7 +16,7 @@ class NonParametric_Galaxy(Galaxy_Model):
         "I(R)": {"units": "flux/arcsec^2"},
     }
     parameter_qualities = {
-        "I(R)": {"loss": "local radial"},
+        "I(R)": {"form": "array", "loss": "radial loss", "regularize": "self", "regularize scale": 1},
     }
 
     def __init__(self, *args, **kwargs):
@@ -36,20 +36,13 @@ class NonParametric_Galaxy(Galaxy_Model):
             else:
                 raise ValueError(f"unrecognized parameter specification for {p}")
             
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["I(R)"].value is not None:
-            for i in range(len(self["I(R)"].value)):
-                self["I(R)"].set_value(self["I(R)"][i].value / self.target.pixelscale**2, override_fixed = True, index = i)
-
     def set_window(self, *args, **kwargs):
         super().set_window(*args, **kwargs)
 
         if self.profR is None:
             self.profR = [0,1]
             while self.profR[-1] < np.sqrt(np.sum((self.window.shape/2)**2)):
-                self.profR.append(self.profR[-1]*1.2)
+                self.profR.append(max(1,self.profR[-1]*1.2))
             self.profR.pop()                
             self.profR = np.array(self.profR)
         
@@ -60,7 +53,7 @@ class NonParametric_Galaxy(Galaxy_Model):
         if self["I(R)"].value is not None:
             return
         target_area = target[self.window]
-        icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
+        icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
         iso_info = isophotes(
             target_area.data,
             (icenter[1], icenter[0]),
@@ -71,24 +64,33 @@ class NonParametric_Galaxy(Galaxy_Model):
         S = np.array(list(iso["noise"]/np.sqrt(iso["N"]) for iso in iso_info)) / target.pixelscale**2
         self["I(R)"].set_value(I, override_fixed = True)
         self["I(R)"].set_uncertainty(np.clip(S, a_min = np.abs(I) * 1e-4, a_max = np.abs(I)), override_fixed = True)
+
+    def compute_loss(self, data):
+        # If the image is locked, no need to compute the loss
+        if self.locked:
+            return
+
+        super().compute_loss(data)
+
+        X, Y = data.loss_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+        if self.loss_speed_factor != 1:
+            X = X[::self.loss_speed_factor,::self.loss_speed_factor]
+            Y = Y[::self.loss_speed_factor,::self.loss_speed_factor]        
+        X, Y = self.transform_coordinates(X, Y)
+        R = self.radius_metric(X, Y)
+        reg = self._regularize_loss()
+        rad_bins = [self.profR[0]] + list((self.profR[:-1] + self.profR[1:])/2) + [self.profR[-1]*100]
+            
+        temp_loss = binned_statistic(R.ravel(), data.loss_image.data.ravel(), statistic = 'mean', bins = rad_bins)[0]
+                            
+        self.loss["radial loss"] = np.array(temp_loss)
+
         
     def radial_model(self, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image        
         I = UnivariateSpline(self.profR, self["I(R)"].get_values() * sample_image.pixelscale**2, ext = "const", s = 0)
         return I(R)
-
-    def sample_model(self, sample_image = None, X = None, Y = None):
-
-        if sample_image is None:
-            sample_image = self.model_image
-
-        if X is None or Y is None:
-            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-
-        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
-        
-        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)
 
 
 class NonParametric_Warp(Warp_Galaxy):
@@ -98,16 +100,9 @@ class NonParametric_Warp(Warp_Galaxy):
         "I(R)": {"units": "flux/arcsec^2"},
     }
     parameter_qualities = {
-        "I(R)": {"loss": "local radial"},
+        "I(R)": {"form": "array", "loss": "radial loss", "regularize": "self", "regularize scale": 1},
     }
 
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["I(R)"].value is not None:
-            for i in range(len(self["I(R)"].value)):
-                self["I(R)"].set_value(self["I(R)"][i].value / self.target.pixelscale**2, override_fixed = True, index = i)
-        
     def initialize(self, target = None):
         if target is None:
             target = self.target
@@ -116,7 +111,7 @@ class NonParametric_Warp(Warp_Galaxy):
             return
             
         target_area = target[self.window]
-        icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
+        icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
         iso_info = isophotes(
             target_area.data,
             (icenter[1], icenter[0]),
@@ -134,14 +129,22 @@ class NonParametric_Warp(Warp_Galaxy):
         I = UnivariateSpline(self.profR, self["I(R)"].get_values() * sample_image.pixelscale**2, ext = "const", s = 0)
         return I(R)
 
-    def sample_model(self, sample_image = None, X = None, Y = None):
+    def compute_loss(self, data):
+        # If the image is locked, no need to compute the loss
+        if self.locked:
+            return
 
-        if sample_image is None:
-            sample_image = self.model_image
+        super().compute_loss(data)
 
-        if X is None or Y is None:
-            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-
-        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
-        
-        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)
+        X, Y = data.loss_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+        if self.loss_speed_factor != 1:
+            X = X[::self.loss_speed_factor,::self.loss_speed_factor]
+            Y = Y[::self.loss_speed_factor,::self.loss_speed_factor]
+        X, Y = self.transform_coordinates(X, Y)
+        R = self.radius_metric(X, Y)
+        reg = self._regularize_loss()
+        rad_bins = [self.profR[0]] + list((self.profR[:-1] + self.profR[1:])/2) + [self.profR[-1]*100]
+            
+        temp_loss = binned_statistic(R.ravel(), data.loss_image.data.ravel(), statistic = 'mean', bins = rad_bins)[0]
+                            
+        self.loss["radial loss"] = np.array(temp_loss)

@@ -1,5 +1,6 @@
 import numpy as np
 from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries, cyclic_difference
+from copy import deepcopy
 
 class Parameter(object):
 
@@ -113,11 +114,132 @@ class Parameter_Array(Parameter):
             
         return res
 
+    def __iter__(self):
+        self.i = -1
+        return self
+    def __next__(self):
+        self.i += 1
+        if self.i < len(self.value):
+            return self[self.i]
+        else:
+            raise StopIteration
+    
     def __getitem__(self, S):
-        return self.value[S]
+        try:
+            return self.value[S]
+        except KeyError:
+            for v in self.value:
+                if S == v.name:
+                    return v
+            raise KeyError(f"{S} not in {self.name}. {str(self)}")
 
     def __str__(self):
         return "\n".join([f"{self.name}:"] + list(str(val) for val in self.value))
         
     def __len__(self):
         return len(self.value)
+
+
+class Optimize_History(object):
+
+    def __init__(self, model):
+        self.name = model.name
+        self.parameter_history = []
+        self.loss_history = []
+        self.map_loss_quality = {"global": set()}
+        for param in model.parameters:
+            if "loss" in model.parameter_qualities[param]:
+                if model.parameter_qualities[param]["loss"] in self.map_loss_quality:
+                    self.map_loss_quality[model.parameter_qualities[param]["loss"]].add(param)
+                else:
+                    self.map_loss_quality[model.parameter_qualities[param]["loss"]] = set([param])
+            else:
+                self.map_loss_quality["global"].add(param)
+
+    def add_step(self, params, loss):
+        self.parameter_history.insert(0, deepcopy(params))
+        self.loss_history.insert(0, deepcopy(loss))
+
+    def get_parameters(self, index=0, exclude_fixed = False, quality = None):
+        """
+        index: index of the parameter history where 0 is most recent and -1 is first
+        exclude_fixed: ignore parameters currently set to fixed
+        quality: select for a parameter quality, should be a tuple of length 2. first element is the quality name, second is the desired value.
+        """
+        use_params = self.parameter_history[index]
+        
+        # Return all parameters for a given iteration
+        if not exclude_fixed and quality is None:
+            return self.parameter_history[index]
+        return_parameters = {}
+        for p in self.parameter_history[index]:
+            # Skip currently fixed parameters since they cannot be updated anyway
+            if (exclude_fixed and self.parameter_history[index][p].fixed) or (quality is not None and p not in self.map_loss_quality[quality]):
+                continue
+            # Return representation which is valid in [-inf, inf] range
+            return_parameters[p] = self.parameter_history[index][p]
+        return return_parameters
+
+    def get_loss(self, index=0, parameter = None, loss_quality = "global"):
+        """
+        Return a loss value for this model.
+        index: index of the loss history where 0 is most recent and -1 is first
+        parameter: return the loss associated with this parameter, defaults to "global"
+        loss_quality: directly request a specific loss calculation, defaults to "global"
+        """
+        loss_dict = self.loss_history[index]
+        
+        if parameter is not None:
+            for mlq in self.map_loss_quality:
+                if parameter in self.map_loss_quality[mlq]:
+                    return loss_dict[mlq]
+            else:
+                return loss_dict["global"]
+        return loss_dict[loss_quality]
+    
+    def get_loss_history(self, limit = np.inf):
+        loss_history = {}
+        for loss_quality in self.map_loss_quality.keys():
+            # All global parameters
+            param_order = self.get_parameters(exclude_fixed = True, quality = ["loss", loss_quality]).keys()
+            
+            # handle loss vector instances
+            if not isinstance(self.get_loss(loss_quality = loss_quality), float):
+                for il in range(len(self.get_loss(loss_quality = loss_quality))):
+                    params = []
+                    loss = []
+                    for i in range(min(limit, len(self.loss_history))):
+                        params_i = self.get_parameters(index = i, exclude_fixed = True, quality = ["loss", loss_quality])
+                        sub_params = []
+                        for P in param_order:
+                            if isinstance(params_i[P], Parameter_Array):
+                                if self.parameters[P][il].fixed:
+                                    continue
+                                sub_params.append(params_i[P][il])
+                            elif isinstance(params_i[P], Parameter):
+                                sub_params.append(params_i[P])
+                        params.append(np.array(sub_params))
+                        loss.append(self.get_loss(index = i, loss_quality = loss_quality)[il])
+                    loss_history[f"{loss_quality}:{il}"] = (loss, params)
+                continue
+
+            # handle regular loss values
+            params = []
+            loss = []
+            for i in range(min(limit, len(self.loss_history))):
+                params_i = self.get_parameters(index = i, exclude_fixed = True, quality = ["loss", loss_quality])
+                sub_params = []
+                for P in param_order:
+                    if isinstance(params_i[P], Parameter_Array):
+                        for ip in range(len(params_i[P])):
+                            if self.parameters[P][ip].fixed:
+                                continue
+                            sub_params.append(params_i[P][ip])
+                    elif isinstance(params_i[P], Parameter):
+                        sub_params.append(params_i[P])
+                params.append(np.array(sub_params))
+                loss.append(self.get_loss(index = i, loss_quality = loss_quality))
+            loss_history[loss_quality] = (loss, params)
+        return loss_history
+        
+        

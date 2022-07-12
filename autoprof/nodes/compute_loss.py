@@ -6,5 +6,5 @@ class Compute_Loss(Process):
     """
 
     def action(self, state):
-        state.models.compute_loss(state.data.loss_image)
+        state.models.compute_loss()
         return state

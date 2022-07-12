@@ -6,6 +6,5 @@ class Sky_Model(BaseModel):
     psf_mode = 'none'
     sample_mode = "direct"
     parameter_specs = {
-        "center_x": {"units": "arcsec", "fixed": True, "uncertainty": 0.0},
-        "center_y": {"units": "arcsec", "fixed": True, "uncertainty": 0.0},
+        "center": {"units": "arcsec", "fixed": True, "uncertainty": 0.0},
     }

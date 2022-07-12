@@ -10,8 +10,8 @@ class FlatSky(Sky_Model):
         "noise": {"units": "flux/arcsec^2", "limits": (0,None)},
     }
     parameter_qualities = {
-        "sky": {"loss": "global"},
-        "noise": {"loss": "global"},
+        "sky": {"form": "value", "loss": "global"},
+        "noise": {"form": "value", "loss": "global"},
     }
 
     def _init_convert_input_units(self):
@@ -28,12 +28,12 @@ class FlatSky(Sky_Model):
         if target is None:
             target = self.target
         if self["sky"].value is None:
-            self["sky"].set_value(
+            self["sky"].set_representation(
                 np.median(target[self.model_image].data) / target.pixelscale**2,
                 override_fixed=True,
             )
         if self["noise"].value is None:
-            self["noise"].set_value(
+            self["noise"].set_representation(
                 iqr(target[self.model_image].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale**2),
                 override_fixed=True,
             )

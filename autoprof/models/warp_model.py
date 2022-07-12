@@ -5,8 +5,9 @@ from scipy.interpolate import UnivariateSpline
 from autoprof.utils.initialize import isophotes
 from autoprof.utils.interpolate import nearest_neighbor
 from autoprof.utils.angle_operations import Angle_Average
-from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
-from scipy.stats import iqr
+from autoprof.utils.conversions.coordinates import Rotate_Cartesian, Axis_Ratio_Cartesian, coord_to_index, index_to_coord
+from scipy.fftpack import fft, ifft
+from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 import matplotlib.pyplot as plt
 from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
 from astropy.visualization.mpl_normalize import ImageNormalize
@@ -16,12 +17,14 @@ class Warp_Galaxy(Galaxy_Model):
     model_type = " ".join(("warp", Galaxy_Model.model_type))
     parameter_specs = {
         "q(R)": {"units": "b/a", "limits": (0,1), "uncertainty": 0.04},
-        "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.1},
+        "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
     parameter_qualities = {
-        "q(R)": {"loss": "local radial"},
-        "PA(R)": {"loss": "local radial"},
+        "q(R)": {"form": "array", "loss": "radial fft2", "regularize": "self", "regularize scale": 1.},
+        "PA(R)": {"form": "array", "loss": "radial fft2", "regularize": "const", "regularize scale": 0.6},
     }
+
+    fft_start = 10
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -44,8 +47,7 @@ class Warp_Galaxy(Galaxy_Model):
         super()._init_convert_input_units()
         
         if self["PA(R)"].value is not None:
-            for i in range(len(self["PA(R)"])):
-                self["PA(R)"].set_value(self["PA(R)"][i].value * np.pi / 180, override_fixed = True, index = i)
+            self["PA(R)"].set_value(self["PA(R)"].get_values() * np.pi / 180, override_fixed = True)
 
     def initialize(self, target = None):
         if target is None:
@@ -54,44 +56,35 @@ class Warp_Galaxy(Galaxy_Model):
         if not (self["PA(R)"].value is None or self["q(R)"].value is None):
             return
 
-        # Get the subsection of the full image
-        target_area = target[self.window]
-        icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
-        # Transform the target image area to remove global PA and ellipticity
-        XX, YY = target_area.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-        XX, YY = Rotate_Cartesian(-self["PA"].value, XX, YY)
-        YY /= self["q"].value
-        XX, YY = Rotate_Cartesian(self["PA"].value, XX, YY)
-        Y, X = coord_to_index(XX + self["center_x"].value, YY + self["center_y"].value, target_area)
-        target_transformed = nearest_neighbor(target_area.data, X, Y)
+        # # Get the subsection of the full image
+        # target_area = target[self.window]
+        # icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
+        # # Transform the target image area to remove global PA and ellipticity
+        # XX, YY = target_area.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+        # XX, YY = super().transform_coordinates(XX, YY)
+        # Y, X = coord_to_index(XX + self["center"][0].value, YY + self["center"][1].value, target_area)
+        # target_transformed = nearest_neighbor(target_area.data, X, Y)
         # Initialize the PA(R) values
         if self["PA(R)"].value is None:
-            iso_info = isophotes(
-                target_transformed,
-                (icenter[1], icenter[0]),
-                pa = 0., q = 1., R = self.profR[1:],
-            )
-            self["PA(R)"].set_value([1e-7] + list(self["PA"].value for io in iso_info), override_fixed = True) # (-io['phase2']/2) % np.pi
-            # First point fixed PA since no orientation meaningful at R = 0
-            self["PA(R)"].value[0].user_fixed = True
-            self["PA(R)"].value[0].update_fixed(True)
+            # iso_info = isophotes(
+            #     target_transformed,
+            #     (icenter[1], icenter[0]),
+            #     pa = 0., q = 1., R = self.profR[1:],
+            # )
+            self["PA(R)"].set_value([self["PA"].value] + list(self["PA"].value for io in iso_info), override_fixed = True) # (-io['phase2']/2) % np.pi
             
         # Initialize the q(R) values
         if self["q(R)"].value is None:
-            q_R = [1. - 1e-7]
-            q_samples = np.linspace(0.3,0.9,10)
-            for r in self.profR[1:]:
-                iso_info = isophotes(
-                    target_transformed,
-                    (icenter[1], icenter[0]),
-                    pa = 0., q = q_samples, R = r,
-                )
-                q_R.append(0.8)
-                #q_R.append(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))])
-            self["q(R)"].set_value(q_R, override_fixed = True)
-            # First point required to be circular since no shape at R = 0
-            self["q(R)"].value[0].user_fixed = True
-            self["q(R)"].value[0].update_fixed(True)
+            # q_R = [1. - 1e-7]
+            # q_samples = np.linspace(0.3,0.9,10)
+            # for r in self.profR[1:]:
+            #     iso_info = isophotes(
+            #         target_transformed,
+            #         (icenter[1], icenter[0]),
+            #         pa = 0., q = q_samples, R = r,
+            #     )
+            #     q_R.append(0.9)
+            self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_fixed = True)
             
     def set_window(self, *args, **kwargs):
         super().set_window(*args, **kwargs)
@@ -99,59 +92,79 @@ class Warp_Galaxy(Galaxy_Model):
         if self.profR is None:
             self.profR = [0,1]
             while self.profR[-1] < np.sqrt(np.sum((self.window.shape/2)**2)):
-                self.profR.append(self.profR[-1]*1.2)
+                self.profR.append(max(1,self.profR[-1]*1.2))
             self.profR.pop()
             self.profR = np.array(self.profR)
-    
-    def sample_model(self, sample_image = None, X = None, Y = None):
-        if sample_image is None:
-            sample_image = self.model_image
 
-        if X is None or Y is None:
-            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
+    def transform_coordinates(self, X, Y, R = None, transmit = True):
+        if transmit:
+            X, Y = super().transform_coordinates(X, Y)
 
-        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
-
-        R = self.radius_metric(X, Y)
+        if R is None:
+            R = self.radius_metric(X, Y)
         PA = UnivariateSpline(self.profR, np.unwrap(self["PA(R)"].get_values()*2)/2, ext = "const", s = 0)
         q = UnivariateSpline(self.profR, self["q(R)"].get_values(), ext = "const", s = 0)
-        X, Y = Rotate_Cartesian(-PA(R), X, Y)
-        Y /= q(R)
+        
+        return Axis_Ratio_Cartesian(q(R), X, Y, PA(R))
 
-        return sample_image, X, Y
-                        
-    def compute_loss(self, loss_image):
+    def _regularize_loss(self):
+
+        params = self.get_parameters(quality = ["regularize", "const"])
+        params.update(self.get_parameters(quality = ["regularize", "self"]))
+        regularization = np.ones(len(self.profR))
+        for P in params:
+            if not isinstance(params[P], Parameter_Array):
+                continue
+            vals = params[P].get_values()
+            if params[P].cyclic:
+                period_factor = 2*np.pi / (params[P].limits[1] - params[P].limits[0])
+                vals = np.unwrap(vals * period_factor) / period_factor
+            if self.parameter_qualities[P]["regularize"] == "const":
+                reg_scale = np.ones(len(self.profR))
+            elif self.parameter_qualities[P]["regularize"] == "self":
+                reg_scale = vals
+            reg_scale *= self.parameter_qualities[P]["regularize scale"]
+            reg = [2*np.abs(vals[1] - vals[0]) / reg_scale[0]]
+            for i in range(1, len(vals) - 1):
+                reg.append((np.abs(vals[i] - vals[i-1]) + np.abs(vals[i] - vals[i+1])) / reg_scale[i])
+            reg.append(2*np.abs(vals[-2] - vals[-1]) / reg_scale[-1])
+            regularization += 0.1*np.array(reg)
+
+        return regularization
+        
+    def compute_loss(self, data):
         # If the image is locked, no need to compute the loss
         if self.locked:
             return
 
-        super().compute_loss(loss_image)
-
-        loss_image, X, Y = super().sample_model(loss_image)
-
-        R = self.radius_metric(X, Y)
-        temp_loss = [np.mean(loss_image.data[R <= self.profR[1]])]
-        for i in range(1, len(self.profR)-1):
-            temp_loss.append(np.mean(loss_image.data[np.logical_and(R >= self.profR[i-1], R <= self.profR[i+1])]))
-        temp_loss.append(np.mean(loss_image.data[R >= self.profR[-2]]))
-        self.loss["local radial"] = np.array(temp_loss)
-
-    def get_loss_history(self, limit = np.inf):
+        super().compute_loss(data)
         
-        super().get_loss_history(limit)
-        param_order = self.get_parameters(exclude_fixed = True, quality = ["loss", "local radial"]).keys()
-        for ir in range(len(self.profR)):
-            params = []
-            loss_history = []
-            for i in range(min(limit, len(self.loss_history))):
-                params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True, quality = ["loss", "local radial"])
-                sub_params = []
-                for P in param_order:
-                    if isinstance(params_i[P], Parameter_Array):
-                        sub_params.append(params_i[P][ir])
-                    elif isinstance(params_i[P], Parameter):
-                        sub_params.append(params_i[P])
-                params.append(np.array(sub_params))
-                loss_history.append(self.get_loss(i, loss_quality = "local radial")[ir])
-            yield loss_history, params
-        
+        if not any(m in self.loss_mode for m in ["default", "radial"]):
+            return
+
+        X, Y = data.loss_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+        if self.loss_speed_factor != 1:
+            X = X[::self.loss_speed_factor,::self.loss_speed_factor]
+            Y = Y[::self.loss_speed_factor,::self.loss_speed_factor]
+        X, Y = super().transform_coordinates(X, Y)
+        preR = self.radius_metric(X, Y)
+        preTheta = np.arctan2(Y, X)
+        reg = self._regularize_loss()
+        rad_bins = [self.profR[0]] + list((self.profR[:-1] + self.profR[1:])/2) + [self.profR[-1]*100]
+            
+        temp_fft2 = []
+        theta_bins = np.linspace(-np.pi, np.pi, 17)
+        segment_stats = binned_statistic_2d(preR.ravel(), preTheta.ravel(), data.loss_image.data.ravel(), statistic = 'median', bins = [rad_bins, theta_bins])[0]
+        cbins = (theta_bins[:-1] + theta_bins[1:]) / 2 + np.pi
+        for i in range(len(self.profR)):
+            if self.profR[i] < self.fft_start:
+                temp_fft2.append(temp_loss[i])
+            else:
+                smooth = segment_stats[i]
+                N = np.isfinite(smooth)
+                if not np.all(N):
+                    smooth[np.logical_not(N)] = np.interp(cbins[np.logical_not(N)], cbins[N], smooth[N], period = 2*np.pi)
+                coefs = fft(smooth)
+                temp_fft2.append(np.abs(coefs[2]) * reg[i])
+                
+        self.loss["radial fft2"] = np.array(temp_fft2)

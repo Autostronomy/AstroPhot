@@ -28,7 +28,7 @@ class Options_State(SubState):
         else:
             self.name = "AutoProfModel"
 
-        self.max_iterations = kwargs.get("ap_max_iterations", 3000)
+        self.max_iterations = kwargs.get("ap_max_iterations", 1000)
 
         if "ap_model_atributes" in self.options:
             print("setting attributes")

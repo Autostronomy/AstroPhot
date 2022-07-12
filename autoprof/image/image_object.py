@@ -22,6 +22,16 @@ class AP_Image(object):
             
     def clear_image(self):
         self.data.fill(0)
+
+    def blank_copy(self):
+        return AP_Image(
+            np.zeros(self.data.shape),
+            pixelscale = self.pixelscale,
+            zeropoint = self.zeropoint,
+            rotation = self.rotation,
+            note = self.note,
+            origin = self.origin,
+        )
         
     def get_window(self, window):
         return AP_Image(

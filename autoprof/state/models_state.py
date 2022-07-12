@@ -16,13 +16,15 @@ class Models_State(SubState):
         
     def add_model(self, name, model, **kwargs):
         MODELS = all_subclasses(BaseModel)
+        if not "window" in kwargs:
+            kwargs["window"] = self.state.data.target.window
         if isinstance(model, str):
             for m in MODELS:
                 if m.model_type == model:
-                    self.models[name] = m(name, self.state, self.state.data.target, **kwargs)
+                    self.models[name] = m(name, target = self.state.data.target, **kwargs)
                     break
         elif isinstance(model, BaseModel):
-            self.models[name] = model(name, self.state, self.state.data.target, **kwargs)
+            self.models[name] = model(name, target = self.state.data.target, **kwargs)
         else:
             raise ValueError('model should be a string or AutoProf Model object, not: {type(model)}')
 
@@ -37,15 +39,15 @@ class Models_State(SubState):
             new_list.append(self.model_list[n])
         self.model_list = new_list
             
-    def initialize(self):
+    def initialize(self, target):
         for m in self.model_list:
-            self.models[m].initialize()
+            self.models[m].initialize(target)
 
-    def compute_loss(self, loss_image):        
+    def compute_loss(self):        
         for m in self.model_list:
-            self.models[m].compute_loss(loss_image)
+            self.models[m].compute_loss(self.state.data)
 
-    def sample_models(self):        
+    def sample_models(self):
         for m in self.model_list:
             # Don't bother resampling the model if nothing has been updated
             if self.models[m].is_sampled:

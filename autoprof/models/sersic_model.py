@@ -17,17 +17,11 @@ class Sersic_Galaxy(Galaxy_Model):
         "Rs": {"units": "arcsec", "limits": (0,None)},
     }
     parameter_qualities = {
-        "I0": {"loss": "global"},
-        "n": {"loss": "global"},
-        "Rs": {"loss": "global"},
+        "I0": {"form": "value", "loss": "global"},
+        "n": {"form": "value", "loss": "global"},
+        "Rs": {"form": "value", "loss": "global"},
     }
 
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["I0"].value is not None:
-            self["I0"].set_value(self["I0"].value / self.target.pixelscale**2, override_fixed = True)
-        
     def initialize(self, target = None):
         if target is None:
             target = self.target
@@ -39,7 +33,7 @@ class Sersic_Galaxy(Galaxy_Model):
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2
             # Convert center coordinates to target area array indices
-            icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
+            icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
             iso_info = isophotes(
                 target_area.data - edge_average,
                 (icenter[1], icenter[0]),
@@ -75,18 +69,6 @@ class Sersic_Galaxy(Galaxy_Model):
             sample_image = self.model_image        
         return sersic(R, self["n"].value, self["Rs"].value, self["I0"].value * sample_image.pixelscale**2)
 
-    def sample_model(self, sample_image = None, X = None, Y = None):
-
-        if sample_image is None:
-            sample_image = self.model_image
-
-        if X is None or Y is None:
-            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-
-        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
-        
-        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)
-
     
 class Sersic_Warp(Warp_Galaxy):
 
@@ -97,17 +79,11 @@ class Sersic_Warp(Warp_Galaxy):
         "Rs": {"units": "arcsec", "limits": (0,None)},
     }
     parameter_qualities = {
-        "I0": {"loss": "global"},
-        "n": {"loss": "global"},
-        "Rs": {"loss": "global"},
+        "I0": {"form": "value", "loss": "global"},
+        "n": {"form": "value", "loss": "global"},
+        "Rs": {"form": "value", "loss": "global"},
     }
 
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["I0"].value is not None:
-            self["I0"].set_value(self["I0"].value / self.target.pixelscale**2, override_fixed = True)
-        
     def initialize(self, target = None):
         if target is None:
             target = self.target
@@ -119,7 +95,7 @@ class Sersic_Warp(Warp_Galaxy):
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2
             # Convert center coordinates to target area array indices
-            icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
+            icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
             iso_info = isophotes(
                 target_area.data - edge_average,
                 (icenter[1], icenter[0]),
@@ -150,14 +126,3 @@ class Sersic_Warp(Warp_Galaxy):
             sample_image = self.model_image        
         return sersic(R, self["n"].value, self["Rs"].value, self["I0"].value * sample_image.pixelscale**2)
 
-    def sample_model(self, sample_image = None, X = None, Y = None):
-
-        if sample_image is None:
-            sample_image = self.model_image
-
-        if X is None or Y is None:
-            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-
-        sample_image, X, Y = super().sample_model(sample_image, X = X, Y = Y)
-        
-        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)

@@ -2,7 +2,7 @@ from .model_object import BaseModel
 import numpy as np
 from autoprof.utils.initialize import isophotes
 from autoprof.utils.angle_operations import Angle_Average
-from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
+from autoprof.utils.conversions.coordinates import Rotate_Cartesian, Axis_Ratio_Cartesian, coord_to_index, index_to_coord
 from scipy.stats import iqr
 
 class Galaxy_Model(BaseModel):
@@ -13,8 +13,8 @@ class Galaxy_Model(BaseModel):
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
     parameter_qualities = {
-        "q": {"loss": "global"},
-        "PA": {"loss": "global"},
+        "q": {"form": "value", "loss": "global"},
+        "PA": {"form": "value", "loss": "global"},
     }
 
     def _init_convert_input_units(self):
@@ -35,7 +35,7 @@ class Galaxy_Model(BaseModel):
         edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng = (16,84))/2
-        icenter = coord_to_index(self["center_x"].value, self["center_y"].value, target_area)
+        icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
         if self["PA"].value is None:
             iso_info = isophotes(
                 target_area.data - edge_average,
@@ -56,20 +56,19 @@ class Galaxy_Model(BaseModel):
 
     def radius_metric(self, X, Y):
         return np.sqrt(X**2 + Y**2)
-    
-    def sample_model(self, sample_image = None, X = None, Y = None):
+
+    def transform_coordinates(self, X, Y):
+        return Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value)
         
+    def sample_model(self, sample_image = None):
+
         if sample_image is None:
             sample_image = self.model_image
 
         super().sample_model(sample_image)
+        
+        X, Y = sample_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
 
-        if X is None or Y is None:
-            X, Y = sample_image.get_coordinate_meshgrid(self["center_x"].value, self["center_y"].value)
-            
-        X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
-        Y /= self["q"].value
-        X, Y = Rotate_Cartesian(self["PA"].value, X, Y)
+        X, Y = self.transform_coordinates(X, Y)
         
-        return sample_image, X, Y
-        
+        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)

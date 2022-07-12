@@ -7,9 +7,7 @@ from copy import deepcopy
 def _set_default_parameters(self):
     self._base_window = None
     self.parameters = {}
-    self.parameter_history = []
     self.loss = None
-    self.loss_history = []
     self.iteration = -1
     self.is_sampled = False
     self.is_convolved = False
@@ -32,7 +30,7 @@ def set_window(self, window = None, index_units = True):
     # If the window is given in proper format, simply use as-is
     if isinstance(window, AP_Window):
         self.window = window
-    elif index_units:# If window is given is list-of-list format
+    elif index_units:# If window is given as list-of-list format
         self.window = AP_Window(
             self.target.origin + np.array((window[1][0],window[0][0]))*self.target.pixelscale,
             np.array((window[1][1] - window[1][0], window[0][1] - window[0][0]))*self.target.pixelscale,
@@ -114,76 +112,12 @@ def step_iteration(self):
         return
     # Add a new set of parameters to the history that defaults to the most recent values
     if not self.loss is None:
-        self.parameter_history.insert(0, deepcopy(self.parameters))
-        for P in self.parameter_history[0]:
-            self.parameter_history[0][P].update_fixed(True)
-        self.loss_history.insert(0, deepcopy(self.loss))
+        self.history.add_step(self.parameters, self.loss)
         self.loss = None
     self.iteration += 1
     self.is_sampled = False
     self.is_convolved = False
     self.is_integrated = False
-
-def get_loss(self, index=0, parameter = None, loss_quality = "global"):
-    """
-    Return a loss value for this model.
-    index: index of the loss history where 0 is most recent and -1 is first
-    parameter: return the loss associated with this parameter, defaults to "global"
-    loss_quality: directly request a specific loss calculation, defaults to "global"
-    """
-    # Return the loss for the requested iteration
-    if index is None:
-        loss_dict = self.loss
-    else:
-        loss_dict = self.loss_history[index]
-
-    if parameter is not None:
-        return loss_dict[parameter_qualities.get(parameter,{}).get("loss", "global")]
-    return loss_dict[loss_quality]
-
-def get_loss_history(self, limit = np.inf):
-    # All global parameters
-    param_order = self.get_parameters(exclude_fixed = True, quality = ["loss", "global", "global"]).keys()
-    params = []
-    loss_history = []
-    for i in range(min(limit, len(self.loss_history))):
-        params_i = self.get_parameters(index = i if i > 0 else None, exclude_fixed = True, quality = ["loss", "global", "global"])
-        sub_params = []
-        for P in param_order:
-            if isinstance(params_i[P], Parameter_Array):
-                for ip in range(len(params_i[P])):
-                    if self.parameters[P][ip].fixed:
-                        continue
-                    sub_params.append(params_i[P][ip])
-            elif isinstance(params_i[P], Parameter):
-                sub_params.append(params_i[P])
-        params.append(np.array(sub_params))
-        loss_history.append(self.get_loss(index = i, loss_quality = "global"))
-    yield loss_history, params
-
-def get_parameters(self, index=None, exclude_fixed = False, quality = None):
-    """
-    index: index of the parameter history where 0 is most recent and -1 is first
-    exclude_fixed: ignore parameters currently set to fixed
-    quality: select for a parameter quality, should be a tuple of length 2 or 3. first element is the quality name, second is the desired value, third is the assumed value if not present in the model (default: "none").
-    """
-    # Pick if using current parameters, or parameter history
-    if index is None:
-        use_params = self.parameters
-    else:
-        use_params = self.parameter_history[index]
-        
-    # Return all parameters for a given iteration
-    if not exclude_fixed and quality is None:
-        return use_params
-    return_parameters = {}
-    for p in use_params:
-        # Skip currently fixed parameters since they cannot be updated anyway
-        if (exclude_fixed and self.parameters[p].fixed) or (quality is not None and self.parameter_qualities.get(p,{}).get(quality[0], "none" if len(quality) == 2 else quality[2]) != quality[1]):
-            continue
-        # Return representation which is valid in [-inf, inf] range
-        return_parameters[p] = use_params[p]
-    return return_parameters
 
 def save_model(self, fileobject):
     fileobject.write("\n" + "\n" + "*"*70 + "\n")
@@ -191,10 +125,20 @@ def save_model(self, fileobject):
     fileobject.write("*"*70 + "\n")
     for p in self.parameters:
         fileobject.write(f"{str(self.parameters[p])}\n")
-    
-def __getitem__(self, key, index=None):
-    # Get the parameter for an optionally specified iteration
-    if index is None:
-        return self.parameters[key]
-    else:
-        return self.parameter_history[index][key]            
+
+def __getitem__(self, key):
+
+    # Try to access the parameter by name
+    if key in self.parameters:
+        return P[key]
+
+    # Check any parameter arrays for the key
+    for subpar in self.parameters.values():
+        if not isinstance(subpar, Parameter_Array):
+            continue
+        try:
+            return subpar[key]
+        except KeyError:
+            pass
+        
+    raise KeyError(f"{key} not in {self.name}. {str(self)}")
