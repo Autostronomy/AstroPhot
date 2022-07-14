@@ -17,8 +17,9 @@ class Update_Parameters_Random_Grad(Process):
     
     def action(self, state):
 
-        N_uncertainty = 16
-        N_lim = 4
+        N_uncertainty = 32
+        N_lim = 8
+        N_check = 128
         state.models.step_iteration()
         # Loop through each model
         for model in state.models:
@@ -26,13 +27,24 @@ class Update_Parameters_Random_Grad(Process):
             if model.locked or model.iteration == 0:
                 continue
             print(model.name)
+
+            if model.iteration >= N_check and model.iteration % N_check == 0:
+                loss_history = model.history.get_loss_history(N_check, quality = "global")
+                best = np.argmin(loss_history)
+                if best > N_check/2:
+                    print("!!!!older is better!!!!")
+                    old_params = model.history.get_parameters(best)
+                    for P in old_params:
+                        model[P].set_representation(old_params[P].get_representation())
+                    continue
+            
             # Loop through each loss/parameters pairing
             if model.iteration >= N_uncertainty and model.iteration % N_uncertainty == 0:
                 uncertainty_update = True
             else:
                 uncertainty_update = False
 
-            loss_history = model.history.get_loss_history(limit = N_uncertainty if uncertainty_update else min(N_lim, 1 + model.iteration % N_uncertainty))
+            loss_history = model.history.get_history(limit = N_uncertainty if uncertainty_update else min(N_lim, 1 + model.iteration % N_uncertainty))
 
             # Pick which loss keys are going to be optimized
             if len(loss_history) == 0:
@@ -46,12 +58,12 @@ class Update_Parameters_Random_Grad(Process):
                         loss_type_base = loss_type.split(" ")[0]
                         if not loss_type_base in self.loss_scheduler[model.name]:
                             self.loss_scheduler[model.name].append(loss_type_base)
-                run_loss = self.loss_scheduler[model.name][(model.iteration // N_uncertainty) % len(self.loss_scheduler[model.name])]
+                run_loss = self.loss_scheduler[model.name][(max(0,model.iteration-1) // N_uncertainty) % len(self.loss_scheduler[model.name])]
             run_losses = []
             for key in loss_history.keys():
                 if key.split(" ")[0] == run_loss:
                     run_losses.append(key)
-                
+                    
             for loss, params in list(loss_history[key] for key in run_losses):
                 # If all params are fixed, skip this optimization step
                 if len(params) == 0 or loss is None:
@@ -61,14 +73,12 @@ class Update_Parameters_Random_Grad(Process):
                     for par in range(len(params[0])):
                         reps = list(P[par].representation for P in params)
                         if np.abs(np.mean(reps[:N_uncertainty//2]) - np.mean(reps[N_uncertainty//2:])) > (np.std(reps[:N_uncertainty//2])/np.sqrt(N_uncertainty//2)):
-                            print(f"uncertainty increase: {params[0][par].name}, {params[0][par].uncertainty}")
-                            params[0][par].uncertainty *= 1.1
+                            model[params[0][par].name].uncertainty *= 1.1
                         else:
-                            print(f"uncertainty decrease: {params[0][par].name}, {params[0][par].uncertainty}")
-                            params[0][par].uncertainty *= 0.7
+                            model[params[0][par].name].uncertainty *= 0.7
                         
                 # Determine the perturbation scale
-                param_scale = np.array(list(par.uncertainty for par in params[0]))
+                param_scale = np.array(list(model[par.name].uncertainty for par in params[0]))
 
                 # sample the random step
                 update = np.random.normal(scale = param_scale)
@@ -103,7 +113,7 @@ class Update_Parameters_Random(Process):
             if model.locked:
                 continue
             # Loop through each loss/parameters pairing
-            for loss, params in model.get_loss_history(limit = 5):
+            for loss, params in model.get_history(limit = 5):
                 # Determine the perturbation scale
                 param_scale = np.array(list(par.uncertainty for par in params[0]))
                 # sample the random step

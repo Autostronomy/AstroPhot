@@ -91,7 +91,7 @@ class BaseModel(object):
         
     # Fit loop functions
     ######################################################################        
-    def sample_model(self, target = None):
+    def sample_model(self, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image
 
@@ -184,6 +184,7 @@ class BaseModel(object):
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameter_qualities
     from ._model_methods import build_parameters
+    from ._model_methods import get_parameters
     from ._model_methods import save_model
     from ._model_methods import __getitem__
 

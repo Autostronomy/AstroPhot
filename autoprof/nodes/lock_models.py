@@ -8,10 +8,16 @@ class Lock_Models(Process):
 
     def action(self, state):
 
+        N_check = 128
         for model in state.models:
-            if len(model.loss_history) < 200:
+            if model.locked or model.iteration == 0:
                 continue
-
+            
+            if model.iteration >= N_check and model.iteration % (2*N_check) == 0:
+                loss_history = model.history.get_loss_history(2*N_check, quality = "global")
+                best = np.argmin(loss_history)
+                if best > N_check:
+                    model.update_locked(2*N_check+1)
             # if not model.locked and model.iteration == state.models.iteration and np.std(model.loss_history[:100]) < (np.min(model.loss_history[:100])/1e3):
             #     print("locking: ", model.name)
             #     model.update_locked(200)

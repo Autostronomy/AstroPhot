@@ -98,18 +98,42 @@ def build_parameter_qualities(cls):
 
 def build_parameters(self):
     for p in self.parameter_specs:
-        if isinstance(self.parameter_specs[p], dict):
-            self.parameters[p] = Parameter(p, **self.parameter_specs[p])
-        elif isinstance(self.parameter_specs[p], Parameter):
+        if isinstance(self.parameter_specs[p], Parameter):
             self.parameters[p] = self.parameter_specs[p]
+        elif isinstance(self.parameter_specs[p], dict):
+            if self.parameter_qualities[p]["form"] == "value":
+                self.parameters[p] = Parameter(p, **self.parameter_specs[p])
+            elif self.parameter_qualities[p]["form"] == "array":
+                self.parameters[p] = Parameter_Array(p, **self.parameter_specs[p])                
+            else:
+                raise ValueError(f"unrecognized parameter form for {p}")
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
 
+def get_parameters(self, exclude_fixed = False, quality = None):
+    # Return all parameters if no specifications
+    if not exclude_fixed and quality is None:
+        return self.parameters
+
+    return_parameters = {}
+    for p in self.parameters:
+        # Skip currently fixed parameters
+        if exclude_fixed and self.parameters[p].fixed:
+            continue
+        # Skip parameters that don't have the right qualities
+        if quality is not None and self.parameter_qualities.get(quality[0], "none") != quality[1]:
+            continue
+        # Return parameter selected
+        return_parameters[p] = self.parameters[p]
+    return return_parameters
+    
+        
 def step_iteration(self):
     if self.locked:
         if isinstance(self.locked, int):
             self.update_locked(self.locked - 1)
-        return
+        if self.locked:
+            return
     # Add a new set of parameters to the history that defaults to the most recent values
     if not self.loss is None:
         self.history.add_step(self.parameters, self.loss)
@@ -130,7 +154,7 @@ def __getitem__(self, key):
 
     # Try to access the parameter by name
     if key in self.parameters:
-        return P[key]
+        return self.parameters[key]
 
     # Check any parameter arrays for the key
     for subpar in self.parameters.values():

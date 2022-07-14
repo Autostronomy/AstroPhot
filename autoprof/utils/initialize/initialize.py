@@ -39,7 +39,10 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
 
     # Determine which radii to sample based on input R, pa, and q
     if isinstance(pa, float) and isinstance(q, float) and isinstance(R, float):
-        isophote_radii = np.linspace(0,R, n_isophotes + 1)[1:]
+        if n_isophotes == 1:
+            isophote_radii = [R]
+        else:
+            isophote_radii = np.linspace(0,R, n_isophotes + 1)[1:]
     elif hasattr(R, "__len__"):
         isophote_radii = R
     elif hasattr(pa, "__len__"):

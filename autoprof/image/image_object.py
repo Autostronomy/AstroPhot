@@ -51,7 +51,7 @@ class AP_Image(object):
         if isinstance(other, AP_Image):
             if self.pixelscale != other.pixelscale:
                 raise IndexError("Cannot add images with different pixelscale!")
-            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
                 return self
             self.data[other.window.get_indices(self)] += other.data[self.window.get_indices(other)]
         else:
@@ -62,7 +62,7 @@ class AP_Image(object):
         if isinstance(other, AP_Image):
             if self.pixelscale != other.pixelscale:
                 raise IndexError("Cannot subtract images with different pixelscale!")
-            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
                 return self
             self.data[other.window.get_indices(self)] -= other.data[self.window.get_indices(other)]
         else:
@@ -73,7 +73,7 @@ class AP_Image(object):
         if isinstance(other, AP_Image):
             if self.pixelscale != other.pixelscale:
                 raise IndexError("Cannot subtract images with different pixelscale!")
-            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
+            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
                 raise IndexError("images have no overlap, cannot subtract!")
             return AP_Image(self.data[other.window.get_indices(self)] - other.data[self.window.get_indices(other)],
                             pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = (max(self.origin[0], other.origin[0]), max(self.origin[1], other.origin[1])))
@@ -84,8 +84,8 @@ class AP_Image(object):
         if isinstance(other, AP_Image):
             if self.pixelscale != other.pixelscale:
                 raise IndexError("Cannot add images with different pixelscale!")
-            if np.any(self.origin + self.data.shape < other.origin) or np.any(other.origin + other.data.shape < self.origin):
-                raise IndexError("images have no overlap, cannot add!")
+            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
+                return self
             return AP_Image(self.data[other.window.get_indices(self)] + other.data[self.window.get_indices(other)],
                             pixelscale = self.pixelscale, zeropoint = self.zeropoint, rotation = self.rotation, note = self.note, origin = (max(self.origin[0], other.origin[0]), max(self.origin[1], other.origin[1])))
         else:

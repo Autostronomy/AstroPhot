@@ -44,20 +44,20 @@ class Sersic_Galaxy(Galaxy_Model):
             R = np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale
             flux = np.array(list(iso["flux"] for iso in iso_info)) / target.pixelscale**2
             if np.sum(flux < 0) > 1:
-                flux -= np.min(flux)
+                flux -= np.min(flux)*1.01
             x0 = [
                 3. if self["n"].value is None else self["n"].value,
                 R[5] if self["Rs"].value is None else self["Rs"].value,
                 flux[0] if self["I0"].value is None else self["I0"].value,
             ]
-            res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic(R, x[0], x[1], x[2])))**2), x0 = x0, method = 'Nelder-Mead')
+            res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic(R, np.abs(x[0]), np.abs(x[1]), np.abs(x[2]))))**2), x0 = x0, method = 'Nelder-Mead')
             plt.scatter(R,flux)
             plt.plot(R, sersic(R, x0[0], x0[1], x0[2]))
             plt.plot(R, sersic(R, res.x[0], res.x[1], res.x[2]))
             plt.savefig(f"deleteme_sersic_{self.name}.jpg")
             plt.close()
             for i, param in enumerate(["n", "Rs", "I0"]):
-                self[param].set_value(res.x[i] if res.success else x0[i], override_fixed = (self[param].value is None))
+                self[param].set_value(np.abs(res.x[i]) if res.success else x0[i], override_fixed = (self[param].value is None))
         if self["Rs"].uncertainty is None:
             self["Rs"].set_uncertainty(0.02 * self["Rs"].value, override_fixed = True)
         if self["I0"].uncertainty is None:

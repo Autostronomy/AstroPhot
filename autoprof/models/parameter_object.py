@@ -14,10 +14,10 @@ class Parameter(object):
         self.update_fixed(False)
         self.value = None
         self.representation = None
-        if "value" in kwargs:
-            self.set_value(kwargs["value"], override_fixed = True)
         self.units = kwargs.get("units", "none")
         self.uncertainty = kwargs.get("uncertainty", None)
+        if "value" in kwargs:
+            self.set_value(kwargs["value"], override_fixed = True)
 
     def update_fixed(self, fixed):
         self.fixed = fixed or bool(self.user_fixed)
@@ -52,6 +52,11 @@ class Parameter(object):
         else:
             self.set_value(inv_boundaries(representation, self.limits), override_fixed)
 
+    def get_value(self):
+        return self.value
+    def get_representation(self):
+        return self.representation
+    
     def __str__(self):
         return f"{self.name}: {self.value} +- {self.uncertainty} [{self.units}{'' if self.fixed is False else ', fixed'}{'' if self.limits is None else (', ' + str(self.limits))}{'' if self.cyclic is False else ', cyclic'}]"
 
@@ -83,8 +88,10 @@ class Parameter_Array(Parameter):
         else:
             self.value[index].set_value(value, override_fixed)
 
-    def get_values(self):
+    def get_value(self):
         return np.array(list(V.value for V in self.value))
+    def get_representation(self):
+        return np.array(list(V.representation for V in self.value))
         
     def set_representation(self, representation, override_fixed = False, index = None):
         
@@ -125,13 +132,14 @@ class Parameter_Array(Parameter):
             raise StopIteration
     
     def __getitem__(self, S):
-        try:
+        if isinstance(S, int):
             return self.value[S]
-        except KeyError:
+        else:
             for v in self.value:
                 if S == v.name:
                     return v
-            raise KeyError(f"{S} not in {self.name}. {str(self)}")
+            else:
+                raise KeyError(f"{S} not in {self.name}. {str(self)}")
 
     def __str__(self):
         return "\n".join([f"{self.name}:"] + list(str(val) for val in self.value))
@@ -166,6 +174,8 @@ class Optimize_History(object):
         exclude_fixed: ignore parameters currently set to fixed
         quality: select for a parameter quality, should be a tuple of length 2. first element is the quality name, second is the desired value.
         """
+        if len(self.parameter_history) == 0:
+            return {}
         use_params = self.parameter_history[index]
         
         # Return all parameters for a given iteration
@@ -196,12 +206,40 @@ class Optimize_History(object):
             else:
                 return loss_dict["global"]
         return loss_dict[loss_quality]
-    
-    def get_loss_history(self, limit = np.inf):
+
+    def get_loss_history(self, limit = np.inf, quality = None):
+        loss_history = []
+        for i in range(min(limit, len(self.loss_history))):
+            if quality is None:
+                loss_history.append(self.loss_history[i])
+            else:
+                loss_history.append(self.loss_history[i][quality])
+        return loss_history
+
+    def get_parameter_history(self, limit = np.inf, parameter = None):
+
+        parameter_history = []
+        for i in range(min(limit, len(self.loss_history))):
+            if parameter is None:
+                parameter_history.append(self.parameter_history[i])
+            elif parameter in self.parameter_history[i]:
+                parameter_history.append(self.parameter_history[i][parameter])
+            else:
+                for P in self.parameter_history[i]:
+                    try:
+                        parameter_history.append(self.parameter_history[i][P][parameter])
+                    except KeyError:
+                        pass
+                else:
+                     raise KeyError(f"{parameter} not in {self.name}.")
+        return parameter_history
+                
+                
+    def get_history(self, limit = np.inf):
         loss_history = {}
         for loss_quality in self.map_loss_quality.keys():
             # All global parameters
-            param_order = self.get_parameters(exclude_fixed = True, quality = ["loss", loss_quality]).keys()
+            param_order = self.get_parameters(exclude_fixed = True, quality = loss_quality).keys()
             
             # handle loss vector instances
             if not isinstance(self.get_loss(loss_quality = loss_quality), float):
@@ -209,12 +247,10 @@ class Optimize_History(object):
                     params = []
                     loss = []
                     for i in range(min(limit, len(self.loss_history))):
-                        params_i = self.get_parameters(index = i, exclude_fixed = True, quality = ["loss", loss_quality])
+                        params_i = self.get_parameters(index = i, exclude_fixed = True, quality = loss_quality)
                         sub_params = []
                         for P in param_order:
                             if isinstance(params_i[P], Parameter_Array):
-                                if self.parameters[P][il].fixed:
-                                    continue
                                 sub_params.append(params_i[P][il])
                             elif isinstance(params_i[P], Parameter):
                                 sub_params.append(params_i[P])
@@ -227,13 +263,11 @@ class Optimize_History(object):
             params = []
             loss = []
             for i in range(min(limit, len(self.loss_history))):
-                params_i = self.get_parameters(index = i, exclude_fixed = True, quality = ["loss", loss_quality])
+                params_i = self.get_parameters(index = i, exclude_fixed = True, quality = loss_quality)
                 sub_params = []
                 for P in param_order:
                     if isinstance(params_i[P], Parameter_Array):
                         for ip in range(len(params_i[P])):
-                            if self.parameters[P][ip].fixed:
-                                continue
                             sub_params.append(params_i[P][ip])
                     elif isinstance(params_i[P], Parameter):
                         sub_params.append(params_i[P])
@@ -243,3 +277,5 @@ class Optimize_History(object):
         return loss_history
         
         
+    def __len__(self):
+        return len(self.loss_history)
