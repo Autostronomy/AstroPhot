@@ -74,6 +74,7 @@ class Plot_Loss_History(Process):
                 if isinstance(model.history.loss_history[0][loss_quality],float):
                     plt.plot(list(reversed(range(len(model.history.loss_history)))), np.log10(np.array(list(ml[loss_quality] for ml in model.history.loss_history)) / model.history.loss_history[-1][loss_quality]), label = f"{model.name}:{loss_quality}")
         plt.legend()
+        plt.ylim([None, min(0.5, plt.gca().get_ylim()[1])])
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
@@ -91,7 +92,7 @@ class Plot_Galaxy_Profiles(Process):
         for model in state.models:
             if not isinstance(model, Galaxy_Model):
                 continue
-            R = np.linspace(0, max(model.window.shape)/np.sqrt(2), 1000)
+            R = np.linspace(0, max(model._base_window.shape)/2, 1000)
             I = model.radial_model(R)
             plt.plot(R, np.log10(I))
             plt.xlabel("Semi-major axis [arcsec]")

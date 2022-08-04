@@ -5,10 +5,6 @@ from scipy.fftpack import fft
 
 def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3, more = False):
 
-    # Determine basic threshold if none given
-    if threshold is None:
-        threshold = np.median(image) + 3*iqr(image, rng = (16,84))/2
-
     if pa is None:
         pa = 0.
 
@@ -16,6 +12,10 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         q = 1.
 
     if R is None:
+        # Determine basic threshold if none given
+        if threshold is None:
+            threshold = np.median(image) + 3*iqr(image, rng = (16,84))/2
+
         # Sample growing isophotes until threshold is reached
         ellipse_radii = [1.0]
         while ellipse_radii[-1] < (len(image) / 2):
@@ -68,10 +68,10 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         coefs = fft(isovals)
         iso_info[-1]["phase1"] = np.angle(coefs[1])
         iso_info[-1]["phase2"] = np.angle(coefs[2])
-        iso_info[-1]["amplitude1"] = np.abs(coefs[1])
-        iso_info[-1]["amplitude2"] = np.abs(coefs[2])
         iso_info[-1]["flux"] = np.median(isovals)
         iso_info[-1]["noise"] = iqr(isovals, rng = (16,84))/2
+        iso_info[-1]["amplitude1"] = np.abs(coefs[1]) / (len(isovals) * (max(0,iso_info[-1]["flux"]) + iso_info[-1]["noise"]))
+        iso_info[-1]["amplitude2"] = np.abs(coefs[2]) / (len(isovals) * (max(0,iso_info[-1]["flux"]) + iso_info[-1]["noise"]))
         iso_info[-1]["N"] = len(isovals)        
         if more:
             iso_info[-1]["isovals"] = isovals

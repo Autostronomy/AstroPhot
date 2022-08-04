@@ -58,7 +58,7 @@ class Galaxy_Model(BaseModel):
         return np.sqrt(X**2 + Y**2)
 
     def transform_coordinates(self, X, Y):
-        return Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value)
+        return Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value, inv_scale = True)
         
     def sample_model(self, sample_image = None):
 

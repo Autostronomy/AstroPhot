@@ -49,9 +49,9 @@ class FlatSky(Sky_Model):
             )
 
     def sample_model(self, sample_image = None):
-        super().sample_model(sample_image)
-
         if sample_image is None:
             sample_image = self.model_image
         
+        super().sample_model(sample_image)
+
         sample_image += self["sky"].value * sample_image.pixelscale**2

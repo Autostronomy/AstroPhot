@@ -88,6 +88,9 @@ class BaseModel(object):
         COM_center = index_to_coord(COM[1], COM[0], target_area)
         # Set the new coordinates as the model center
         self["center"].set_value(COM_center)
+
+    def finalize(self):
+        pass
         
     # Fit loop functions
     ######################################################################        

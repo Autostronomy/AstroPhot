@@ -1,5 +1,5 @@
 from flow import Process
-from autoprof.utils.optimization import k_delta_step
+from autoprof.utils.optimization import k_delta_step, local_derivative
 import numpy as np
 
 class Update_Parameters_Random_Grad(Process):
@@ -17,9 +17,7 @@ class Update_Parameters_Random_Grad(Process):
     
     def action(self, state):
 
-        N_uncertainty = 32
-        N_lim = 8
-        N_check = 128
+        N_best = 32
         state.models.step_iteration()
         # Loop through each model
         for model in state.models:
@@ -28,23 +26,7 @@ class Update_Parameters_Random_Grad(Process):
                 continue
             print(model.name)
 
-            if model.iteration >= N_check and model.iteration % N_check == 0:
-                loss_history = model.history.get_loss_history(N_check, quality = "global")
-                best = np.argmin(loss_history)
-                if best > N_check/2:
-                    print("!!!!older is better!!!!")
-                    old_params = model.history.get_parameters(best)
-                    for P in old_params:
-                        model[P].set_representation(old_params[P].get_representation())
-                    continue
-            
-            # Loop through each loss/parameters pairing
-            if model.iteration >= N_uncertainty and model.iteration % N_uncertainty == 0:
-                uncertainty_update = True
-            else:
-                uncertainty_update = False
-
-            loss_history = model.history.get_history(limit = N_uncertainty if uncertainty_update else min(N_lim, 1 + model.iteration % N_uncertainty))
+            loss_history = model.history.get_history(limit = N_best)
 
             # Pick which loss keys are going to be optimized
             if len(loss_history) == 0:
@@ -58,7 +40,7 @@ class Update_Parameters_Random_Grad(Process):
                         loss_type_base = loss_type.split(" ")[0]
                         if not loss_type_base in self.loss_scheduler[model.name]:
                             self.loss_scheduler[model.name].append(loss_type_base)
-                run_loss = self.loss_scheduler[model.name][(max(0,model.iteration-1) // N_uncertainty) % len(self.loss_scheduler[model.name])]
+                run_loss = self.loss_scheduler[model.name][(max(0,model.iteration-1) // N_best) % len(self.loss_scheduler[model.name])]
             run_losses = []
             for key in loss_history.keys():
                 if key.split(" ")[0] == run_loss:
@@ -69,27 +51,30 @@ class Update_Parameters_Random_Grad(Process):
                 if len(params) == 0 or loss is None:
                     continue
 
-                if uncertainty_update:
+                best = np.argmin(loss[:N_best])
+                if len(loss) >= 2:
+                    if best == 0:
+                        print("BETTER!")
+                    else:
+                        print("WORSE!!")
                     for par in range(len(params[0])):
-                        reps = list(P[par].representation for P in params)
-                        if np.abs(np.mean(reps[:N_uncertainty//2]) - np.mean(reps[N_uncertainty//2:])) > (np.std(reps[:N_uncertainty//2])/np.sqrt(N_uncertainty//2)):
-                            model[params[0][par].name].uncertainty *= 1.1
+                        if best == 0:
+                            model[params[0][par].name].uncertainty *= 1.11
                         else:
-                            model[params[0][par].name].uncertainty *= 0.7
-                        
+                            model[params[0][par].name].uncertainty *= 0.98
+                print(loss[0])
                 # Determine the perturbation scale
                 param_scale = np.array(list(model[par.name].uncertainty for par in params[0]))
 
                 # sample the random step
-                update = np.random.normal(scale = param_scale)
-                best = np.argmin(loss[:N_lim])
+                update = np.random.normal(scale = param_scale)                            
                 
                 # Compute the gradient step
-                if len(loss) >= N_lim:
-                    grad_step = np.require(k_delta_step(loss[:N_lim], params[:N_lim], k = N_lim - 1, reference = best),dtype=float)
+                if len(loss) >= (len(params[0])+1):
+                    grad_step = np.require(local_derivative(params[:(len(params[0])+1)], loss[:(len(params[0])+1)]),dtype=float)
                     grad_norm = np.linalg.norm(grad_step)
                     if grad_norm > 1e-5:
-                        update -= grad_step * model.learning_rate * np.linalg.norm(param_scale) / grad_norm
+                        update -= grad_step * np.linalg.norm(param_scale) / grad_norm
 
                 # Apply the update to each parameter
                 for i, P in enumerate(params[0]):
