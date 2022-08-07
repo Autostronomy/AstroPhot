@@ -1,6 +1,7 @@
 from flow import Process
 from astropy.io import fits
 import os
+import numpy as np
 
 class Save_Models(Process):
     """

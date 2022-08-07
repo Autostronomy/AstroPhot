@@ -10,8 +10,8 @@ class FlatSky(Sky_Model):
         "noise": {"units": "flux/arcsec^2", "limits": (0,None)},
     }
     parameter_qualities = {
-        "sky": {"form": "value", "loss": "global"},
-        "noise": {"form": "value", "loss": "global"},
+        "sky": {"form": "value"},
+        "noise": {"form": "value"},
     }
 
     def _init_convert_input_units(self):

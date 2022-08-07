@@ -12,14 +12,14 @@ class Sersic_Galaxy(Galaxy_Model):
 
     model_type = " ".join(("sersic", Galaxy_Model.model_type))
     parameter_specs = {
-        "I0": {"units": "flux/arcsec^2"},
+        "I0": {"units": "flux/arcsec^2", "limits": (0,None)},
         "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
         "Rs": {"units": "arcsec", "limits": (0,None)},
     }
     parameter_qualities = {
-        "I0": {"form": "value", "loss": "global"},
-        "n": {"form": "value", "loss": "global"},
-        "Rs": {"form": "value", "loss": "global"},
+        "I0": {"form": "value"},
+        "n": {"form": "value"},
+        "Rs": {"form": "value"},
     }
 
     def initialize(self, target = None):
@@ -35,7 +35,7 @@ class Sersic_Galaxy(Galaxy_Model):
             # Convert center coordinates to target area array indices
             icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
             iso_info = isophotes(
-                target_area.data - edge_average,
+                target_area.data,
                 (icenter[1], icenter[0]),
                 threshold = 3*edge_scatter,
                 pa = self["PA"].value, q = self["q"].value,
@@ -43,21 +43,24 @@ class Sersic_Galaxy(Galaxy_Model):
             )
             R = np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale
             flux = np.array(list(iso["flux"] for iso in iso_info)) / target.pixelscale**2
-            if np.sum(flux < 0) > 1:
+            if np.sum(flux < 0) > 5:
                 flux -= np.min(flux)*1.01
+            CHOOSE = flux > 0
+            R = R[CHOOSE]
+            flux = flux[CHOOSE]
             x0 = [
-                3. if self["n"].value is None else self["n"].value,
-                R[5] if self["Rs"].value is None else self["Rs"].value,
+                2. if self["n"].value is None else self["n"].value,
+                R[4] if self["Rs"].value is None else self["Rs"].value,
                 flux[0] if self["I0"].value is None else self["I0"].value,
             ]
             res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic(R, np.abs(x[0]), np.abs(x[1]), np.abs(x[2]))))**2), x0 = x0, method = 'Nelder-Mead')
-            plt.scatter(R,flux)
-            plt.plot(R, sersic(R, x0[0], x0[1], x0[2]))
-            plt.plot(R, sersic(R, res.x[0], res.x[1], res.x[2]))
-            plt.savefig(f"deleteme_sersic_{self.name}.jpg")
-            plt.close()
+            # plt.scatter(R,flux)
+            # plt.plot(R, sersic(R, x0[0], x0[1], x0[2]))
+            # plt.plot(R, sersic(R, res.x[0], res.x[1], res.x[2]))
+            # plt.savefig(f"deleteme_sersic_{self.name}.jpg")
+            # plt.close()
             for i, param in enumerate(["n", "Rs", "I0"]):
-                self[param].set_value(np.abs(res.x[i]) if res.success else x0[i], override_fixed = (self[param].value is None))
+                self[param].set_value(np.abs(res.x[i]), override_fixed = (self[param].value is None))
         if self["Rs"].uncertainty is None:
             self["Rs"].set_uncertainty(0.02 * self["Rs"].value, override_fixed = True)
         if self["I0"].uncertainty is None:
@@ -79,9 +82,9 @@ class Sersic_Warp(Warp_Galaxy):
         "Rs": {"units": "arcsec", "limits": (0,None)},
     }
     parameter_qualities = {
-        "I0": {"form": "value", "loss": "global"},
-        "n": {"form": "value", "loss": "global"},
-        "Rs": {"form": "value", "loss": "global"},
+        "I0": {"form": "value"},
+        "n": {"form": "value"},
+        "Rs": {"form": "value"},
     }
 
     def initialize(self, target = None):

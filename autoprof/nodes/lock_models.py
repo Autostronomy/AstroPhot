@@ -14,7 +14,7 @@ class Lock_Models(Process):
                 continue
             
             if model.iteration >= N_check and model.iteration % (2*N_check) == 0:
-                loss_history = model.history.get_loss_history(2*N_check, quality = "global")
+                loss_history = model.history.get_loss_history(2*N_check)
                 best = np.argmin(loss_history)
                 if best > N_check:
                     model.update_locked(2*N_check+1)

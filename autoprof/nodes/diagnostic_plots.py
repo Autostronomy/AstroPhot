@@ -14,22 +14,24 @@ class Plot_Model(Process):
 
     def action(self, state):
         autocmap.set_under("k", alpha=0)
-        plt.figure(figsize = (7, 7*state.data.model_image.shape[1]/state.data.model_image.shape[0]))
-        plt.imshow(
-            state.data.model_image.data,
-            origin="lower",
-            cmap=autocmap,
-            norm=ImageNormalize(stretch=LogStretch(), clip=False),
-        )
+        plt.figure(figsize = (7, 7*state.data.model_image.shape[1]/state.data.model_image.shape[0]), facecolor = 'k')
+        plt.contourf(np.log10(state.data.model_image.data), levels = 20, cmap = "Greens_r")
+        plt.gca().set_facecolor("k")
+        # plt.imshow(
+        #     state.data.model_image.data,
+        #     origin="lower",
+        #     cmap=autocmap,
+        #     norm=ImageNormalize(stretch=LogStretch(), clip=False),
+        # )
         plt.axis("off")
         plt.margins(0,0)
         plt.tight_layout()
         plt.savefig(
             os.path.join(
                 state.options.plot_path,
-                f"{self.name}_{state.options.name}_{state.models.iteration:04d}.jpg",
+                f"{self.name}_{state.options.name}_{state.models.iteration:04d}.pdf",
             ),
-            dpi=state.options["ap_plotdpi", 600],
+            # dpi=state.options["ap_plotdpi", 600],
             bbox_inches = 'tight',
             pad_inches = 0
         )
@@ -70,9 +72,7 @@ class Plot_Loss_History(Process):
         for model in state.models:
             if len(model.history) == 0:
                 continue
-            for loss_quality in model.history.loss_history[0]:
-                if isinstance(model.history.loss_history[0][loss_quality],float):
-                    plt.plot(list(reversed(range(len(model.history.loss_history)))), np.log10(np.array(list(ml[loss_quality] for ml in model.history.loss_history)) / model.history.loss_history[-1][loss_quality]), label = f"{model.name}:{loss_quality}")
+            plt.plot(list(reversed(range(len(model.history.loss_history)))), np.log10(np.array(model.history.loss_history) / model.history.loss_history[-1]), label = f"{model.name}")
         plt.legend()
         plt.ylim([None, min(0.5, plt.gca().get_ylim()[1])])
         plt.savefig(

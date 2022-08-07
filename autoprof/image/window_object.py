@@ -90,3 +90,12 @@ class AP_Window(object):
     def __eq__(self, other):
 
         return all((np.all(self.origin == other.origin), np.all(self.shape == other.shape)))
+
+    def __or__(self, other):
+
+        overlap = self * other
+        overlap_area = np.prod(overlap.shape)
+        
+        full_area = np.prod(self.shape) + np.prod(other.shape) - overlap_area
+        
+        return overlap_area / full_area

@@ -6,7 +6,7 @@ from autoprof.image import Model_Image, AP_Window
 from autoprof.utils.initialize import center_of_mass
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
 from autoprof.utils.convolution import direct_convolve, fft_convolve
-from .parameter_object import Parameter, Optimize_History
+from .parameter_object import Parameter
 import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -25,7 +25,6 @@ class BaseModel(object):
     # Hierarchy variables
     sample_mode = "direct" # direct, integrate
     psf_mode = "none" # none, direct, FFT
-    loss_mode = "default" # global only,
     loss_speed_factor = 1
     psf_window_size = 100
     integrate_window_size = 10
@@ -45,7 +44,6 @@ class BaseModel(object):
         self.parameter_qualities = self.build_parameter_qualities()
         self.build_parameters()
         self._init_convert_input_units()
-        self.history = Optimize_History(self)
         
         # Set any user defined attributes for the model
         for kwarg in kwargs:
@@ -173,9 +171,9 @@ class BaseModel(object):
             return
         # Basic loss is the mean Chi^2 error in the window
         if self.loss_speed_factor == 1:
-            self.loss = {"global": np.mean(data.loss_image[self.window].data)}
+            self.loss = np.mean(data.loss_image[self.window].data)
         else:
-            self.loss = {"global": np.mean(data.loss_image[self.window].data[::self.loss_speed_factor,::self.loss_speed_factor])}
+            self.loss = np.mean(data.loss_image[self.window].data[::self.loss_speed_factor,::self.loss_speed_factor])
         
     ######################################################################
     from ._model_methods import _set_default_parameters
@@ -188,8 +186,13 @@ class BaseModel(object):
     from ._model_methods import build_parameter_qualities
     from ._model_methods import build_parameters
     from ._model_methods import get_parameters
+    from ._model_methods import get_loss
+    from ._model_methods import get_parameter_history
+    from ._model_methods import get_loss_history
+    from ._model_methods import get_history
     from ._model_methods import save_model
     from ._model_methods import __getitem__
+    from ._model_methods import __str__
 
 
     

@@ -3,7 +3,30 @@ from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, 
 from copy import deepcopy
 
 class Parameter(object):
+    """Object for storing model parameters that are to be optimized in
+    the fitting procedure. A value and it's uncertainty are stored as
+    well as meta information about the parameter. The meta information
+    indicates if the parameter has any boundary values (upper or lower
+    limits) and if the parameter has cyclic boundary conditions. The
+    units for the parameter are generally also specified. The
+    parameter tracks if it is "fixed" meaning that it should not
+    change during normal fitting conditions.
 
+    For the purpose of optimization, the parameter object also stores
+    a representation of it's value which is valid in the -inf to +inf
+    range. This makes the parameter better behaved with most
+    optimizers as they are free to explore the full real number
+    line. Any time the value, or representation are updated, both
+    numbers get updated automatically so they are always in sync.
+
+    For cyclic parameters, special care must be taken when performing
+    a difference operation. The numerical difference between two
+    cyclic parameters is defined as the minimum difference modulo the
+    cycle length. Thus parameter objects should be allowed to handle
+    differences internally. Simply take the difference between two
+    parameter objects and the result will be returned properly.
+    """
+    
     def __init__(self, name, **kwargs):
 
         self.name = name
@@ -11,6 +34,8 @@ class Parameter(object):
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
         self.user_fixed = kwargs.get("fixed", None)
+        if self.user_fixed is None:
+            self.user_fixed = kwargs.get("user_fixed", None)
         self.update_fixed(False)
         self.value = None
         self.representation = None
@@ -68,7 +93,9 @@ class Parameter(object):
         return self.representation - other.representation
 
 class Parameter_Array(Parameter):
-    
+    """Generalizes the behavior of the parameter object to the case of
+    multiple values.
+    """
     def set_value(self, value, override_fixed = False, index = None):
         if self.value is None:
             self.value = []
@@ -90,6 +117,7 @@ class Parameter_Array(Parameter):
 
     def get_value(self):
         return np.array(list(V.value for V in self.value))
+    
     def get_representation(self):
         return np.array(list(V.representation for V in self.value))
         
@@ -147,135 +175,64 @@ class Parameter_Array(Parameter):
     def __len__(self):
         return len(self.value)
 
+class Pointing_Parameter(Parameter):
+    """Parameter class which simply points to another parameter
+    object. This is intended for cases where a model must take
+    ownership of another model, and therefore also its parameter
+    objects.
+    """
+    
+    def __init__(self, name, parameter):
+        super().__init__(name, **vars(parameter))
+        self.parameter = parameter
 
-class Optimize_History(object):
+    def update_fixed(self, fixed):
+        super().update_fixed(fixed)
+        self.parameter.update_fixed(fixed)
 
-    def __init__(self, model):
-        self.name = model.name
-        self.parameter_history = []
-        self.loss_history = []
-        self.map_loss_quality = {"global": set()}
-        for param in model.parameters:
-            if "loss" in model.parameter_qualities[param]:
-                if model.parameter_qualities[param]["loss"] in self.map_loss_quality:
-                    self.map_loss_quality[model.parameter_qualities[param]["loss"]].add(param)
-                else:
-                    self.map_loss_quality[model.parameter_qualities[param]["loss"]] = set([param])
-            else:
-                self.map_loss_quality["global"].add(param)
-
-    def add_step(self, params, loss):
-        self.parameter_history.insert(0, deepcopy(params))
-        self.loss_history.insert(0, deepcopy(loss))
-
-    def get_parameters(self, index=0, exclude_fixed = False, quality = None):
-        """
-        index: index of the parameter history where 0 is most recent and -1 is first
-        exclude_fixed: ignore parameters currently set to fixed
-        quality: select for a parameter quality, should be a tuple of length 2. first element is the quality name, second is the desired value.
-        """
-        if len(self.parameter_history) == 0:
-            return {}
-        use_params = self.parameter_history[index]
+    def set_uncertainty(self, uncertainty, override_fixed = False):
+        super().set_uncertainty(uncertainty, override_fixed)
+        self.parameter.set_uncertainty(uncertainty, override_fixed)
         
-        # Return all parameters for a given iteration
-        if not exclude_fixed and quality is None:
-            return self.parameter_history[index]
-        return_parameters = {}
-        for p in self.parameter_history[index]:
-            # Skip currently fixed parameters since they cannot be updated anyway
-            if (exclude_fixed and self.parameter_history[index][p].fixed) or (quality is not None and p not in self.map_loss_quality[quality]):
-                continue
-            # Return representation which is valid in [-inf, inf] range
-            return_parameters[p] = self.parameter_history[index][p]
-        return return_parameters
+    def set_value(self, value, override_fixed = False):
+        super().set_value(value, override_fixed)
+        self.parameter.set_value(value, override_fixed)
 
-    def get_loss(self, index=0, parameter = None, loss_quality = "global"):
-        """
-        Return a loss value for this model.
-        index: index of the loss history where 0 is most recent and -1 is first
-        parameter: return the loss associated with this parameter, defaults to "global"
-        loss_quality: directly request a specific loss calculation, defaults to "global"
-        """
-        loss_dict = self.loss_history[index]
+    def set_representation(self, representation, override_fixed = False):
+        super().set_representation(representation, override_fixed)
+        self.parameter.set_representation(representation, override_fixed)
+
+class Pointing_Parameter_Array(Parameter_Array):
+    """Parameter Array class which simply points to another parameter
+    array object. This is intended for cases where a model must take
+    ownership of another model, and therefore also its parameter
+    objects.
+    """
+    
+    def __init__(self, name, parameter):
+        super().__init__(name, **vars(parameter))
+        self.parameter = parameter
+
+    def update_fixed(self, fixed):
+        super().update_fixed(fixed)
+        self.parameter.update_fixed(fixed)
+
+    def set_value(self, value, override_fixed = False, index = None):
+        self.parameter.set_value(value, override_fixed, index)
+        if self.value is None:
+            self.value = []
+            for i, val in enumerate(value):
+                self.value.append(Pointing_Parameter(
+                    name = f"{self.name}:{i}",
+                    parameter = self.parameter.value[i]
+                ))
+        else:
+            super().set_value(value, override_fixed, index)
+
+    def set_uncertainty(self, uncertainty, override_fixed = False, index = None):
+        super().set_uncertainty(uncertainty, override_fixed, index)
+        self.parameter.set_uncertainty(uncertainty, override_fixed, index)
         
-        if parameter is not None:
-            for mlq in self.map_loss_quality:
-                if parameter in self.map_loss_quality[mlq]:
-                    return loss_dict[mlq]
-            else:
-                return loss_dict["global"]
-        return loss_dict[loss_quality]
-
-    def get_loss_history(self, limit = np.inf, quality = None):
-        loss_history = []
-        for i in range(min(limit, len(self.loss_history))):
-            if quality is None:
-                loss_history.append(self.loss_history[i])
-            else:
-                loss_history.append(self.loss_history[i][quality])
-        return loss_history
-
-    def get_parameter_history(self, limit = np.inf, parameter = None):
-
-        parameter_history = []
-        for i in range(min(limit, len(self.loss_history))):
-            if parameter is None:
-                parameter_history.append(self.parameter_history[i])
-            elif parameter in self.parameter_history[i]:
-                parameter_history.append(self.parameter_history[i][parameter])
-            else:
-                for P in self.parameter_history[i]:
-                    try:
-                        parameter_history.append(self.parameter_history[i][P][parameter])
-                    except KeyError:
-                        pass
-                else:
-                     raise KeyError(f"{parameter} not in {self.name}.")
-        return parameter_history
-                
-                
-    def get_history(self, limit = np.inf):
-        loss_history = {}
-        for loss_quality in self.map_loss_quality.keys():
-            # All global parameters
-            param_order = self.get_parameters(exclude_fixed = True, quality = loss_quality).keys()
-            
-            # handle loss vector instances
-            if not isinstance(self.get_loss(loss_quality = loss_quality), float):
-                for il in range(len(self.get_loss(loss_quality = loss_quality))):
-                    params = []
-                    loss = []
-                    for i in range(min(limit, len(self.loss_history))):
-                        params_i = self.get_parameters(index = i, exclude_fixed = True, quality = loss_quality)
-                        sub_params = []
-                        for P in param_order:
-                            if isinstance(params_i[P], Parameter_Array):
-                                sub_params.append(params_i[P][il])
-                            elif isinstance(params_i[P], Parameter):
-                                sub_params.append(params_i[P])
-                        params.append(np.array(sub_params))
-                        loss.append(self.get_loss(index = i, loss_quality = loss_quality)[il])
-                    loss_history[f"{loss_quality}:{il}"] = (loss, params)
-                continue
-
-            # handle regular loss values
-            params = []
-            loss = []
-            for i in range(min(limit, len(self.loss_history))):
-                params_i = self.get_parameters(index = i, exclude_fixed = True, quality = loss_quality)
-                sub_params = []
-                for P in param_order:
-                    if isinstance(params_i[P], Parameter_Array):
-                        for ip in range(len(params_i[P])):
-                            sub_params.append(params_i[P][ip])
-                    elif isinstance(params_i[P], Parameter):
-                        sub_params.append(params_i[P])
-                params.append(np.array(sub_params))
-                loss.append(self.get_loss(index = i, loss_quality = loss_quality))
-            loss_history[loss_quality] = (loss, params)
-        return loss_history
-        
-        
-    def __len__(self):
-        return len(self.loss_history)
+    def set_representation(self, representation, override_fixed = False, index = None):
+        super().set_representation(representation, override_fixed, index)
+        self.parameter.set_representation(representation, override_fixed, index)

@@ -17,7 +17,7 @@ class NonParametric_Galaxy(Galaxy_Model):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     parameter_qualities = {
-        "I(R)": {"form": "array", "loss": "global"},
+        "I(R)": {"form": "array"},
     }
 
     def initialize(self, target = None):
@@ -56,10 +56,8 @@ class NonParametric_Warp(Warp_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     parameter_qualities = {
-        "I(R)": {"form": "array", "loss": "global"},
+        "I(R)": {"form": "array"},
     }
-
-    loss_speed_factor = 2
 
     def initialize(self, target = None):
         if target is None:
@@ -90,33 +88,6 @@ class NonParametric_Warp(Warp_Galaxy):
         I = UnivariateSpline(self.profR, self["I(R)"].get_value(), ext = "const", s = 0)
         return 10**(I(R)) * sample_image.pixelscale**2
 
-    # def compute_loss(self, data):
-    #     # If the image is locked, no need to compute the loss
-    #     if self.locked:
-    #         return
-
-    #     super().compute_loss(data)
-
-    #     X, Y = data.loss_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-    #     if self.loss_speed_factor != 1:
-    #         X = X[::self.loss_speed_factor,::self.loss_speed_factor]
-    #         Y = Y[::self.loss_speed_factor,::self.loss_speed_factor]
-    #         dat = data.loss_image.data[::self.loss_speed_factor,::self.loss_speed_factor]
-    #     else:
-    #         dat = data.loss_image.data
-    #     X, Y = self.transform_coordinates(X, Y)
-    #     R = self.radius_metric(X, Y)
-    #     reg = self.regularize_loss()
-    #     rad_bins = [self.profR[0]] + list((self.profR[:-1] + self.profR[1:])/2) + [self.profR[-1]*100]
-            
-    #     temp_loss = binned_statistic(R.ravel(), dat.ravel(), statistic = 'mean', bins = rad_bins)[0]
-    #     N = np.isfinite(temp_loss)
-    #     if not np.all(N):
-    #         temp_loss[np.logical_not(N)] = np.interp(self.profR[np.logical_not(N)], self.profR[N], temp_loss[N])
-                            
-    #     self.loss["radial loss"] = np.array(temp_loss)
-
-
 class NonParametric_Isophote(Isophote_Galaxy):
 
     model_type = " ".join(("nonparametric", Isophote_Galaxy.model_type))
@@ -124,7 +95,7 @@ class NonParametric_Isophote(Isophote_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     parameter_qualities = {
-        "I(R)": {"form": "array", "loss": "global"},
+        "I(R)": {"form": "array"},
     }
 
     def initialize(self, target = None):
@@ -152,7 +123,8 @@ class NonParametric_Isophote(Isophote_Galaxy):
         
     def radial_model(self, R, sample_image = None):
         if sample_image is None:
-            sample_image = self.model_image        
+            sample_image = self.model_image
+
         I = UnivariateSpline(self.profR, self["I(R)"].get_value(), ext = "const", s = 0)
         return 10**(I(R)) * sample_image.pixelscale**2
         

@@ -20,8 +20,8 @@ class Warp_Galaxy(Galaxy_Model):
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
     parameter_qualities = {
-        "q(R)": {"form": "array", "loss": "global", "regularize": "self", "regularize scale": 1.},
-        "PA(R)": {"form": "array", "loss": "global", "regularize": "const", "regularize scale": 0.2},
+        "q(R)": {"form": "array", "regularize": "self", "regularize scale": 1.},
+        "PA(R)": {"form": "array", "regularize": "const", "regularize scale": 0.2},
     }
 
     fft_start = 10
@@ -44,34 +44,10 @@ class Warp_Galaxy(Galaxy_Model):
         if not (self["PA(R)"].value is None or self["q(R)"].value is None):
             return
 
-        # # Get the subsection of the full image
-        # target_area = target[self.window]
-        # icenter = coord_to_index(self["center"][0].value, self["center"][1].value, target_area)
-        # # Transform the target image area to remove global PA and ellipticity
-        # XX, YY = target_area.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-        # XX, YY = super().transform_coordinates(XX, YY)
-        # Y, X = coord_to_index(XX + self["center"][0].value, YY + self["center"][1].value, target_area)
-        # target_transformed = nearest_neighbor(target_area.data, X, Y)
-        # Initialize the PA(R) values
         if self["PA(R)"].value is None:
-            # iso_info = isophotes(
-            #     target_transformed,
-            #     (icenter[1], icenter[0]),
-            #     pa = 0., q = 1., R = self.profR[1:],
-            # )
-            self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value, override_fixed = True) #  + list(self["PA"].value for io in iso_info) # (-io['phase2']/2) % np.pi
+            self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value, override_fixed = True)
             
-        # Initialize the q(R) values
         if self["q(R)"].value is None:
-            # q_R = [1. - 1e-7]
-            # q_samples = np.linspace(0.3,0.9,10)
-            # for r in self.profR[1:]:
-            #     iso_info = isophotes(
-            #         target_transformed,
-            #         (icenter[1], icenter[0]),
-            #         pa = 0., q = q_samples, R = r,
-            #     )
-            #     q_R.append(0.9)
             self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_fixed = True)
             
     def set_window(self, *args, **kwargs):
@@ -118,60 +94,3 @@ class Warp_Galaxy(Galaxy_Model):
             regularization += 0.01*np.array(reg)
 
         return regularization
-        
-    # def compute_loss(self, data):
-    #     # If the image is locked, no need to compute the loss
-    #     if self.locked:
-    #         return
-
-    #     super().compute_loss(data)
-        
-    #     if not any(m in self.loss_mode for m in ["default", "radial"]):
-    #         return
-
-    #     icenter = coord_to_index(self["center"][0].value, self["center"][1].value, data.loss_image)
-    #     X, Y = data.loss_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-    #     if self.loss_speed_factor != 1:
-    #         X = X[::self.loss_speed_factor,::self.loss_speed_factor]
-    #         Y = Y[::self.loss_speed_factor,::self.loss_speed_factor]
-    #         dat = data.residual_image.data[::self.loss_speed_factor,::self.loss_speed_factor]
-    #     else:
-    #         dat = data.residual_image.data
-            
-    #     X, Y = super().transform_coordinates(X, Y)
-    #     preR = self.radius_metric(X, Y)
-    #     preTheta = np.arctan2(Y, X)
-    #     reg = self.regularize_loss()
-    #     rad_bins = [self.profR[0]] + list((self.profR[:-1] + self.profR[1:])/2) + [self.profR[-1]*100]
-            
-    #     temp_fft2 = []
-    #     theta_bins = np.linspace(-np.pi, np.pi, 17)
-    #     segment_stats = binned_statistic_2d(preR.ravel(), preTheta.ravel(), dat.ravel(), statistic = 'median', bins = [rad_bins, theta_bins])[0]
-    #     cbins = (theta_bins[:-1] + theta_bins[1:]) / 2 + np.pi
-    #     for i in range(len(self.profR)):
-    #         if self.profR[i] < self.fft_start*data.residual_image.pixelscale:
-    #             temp_fft2.append(isophotes(
-    #                 data.loss_image.data,
-    #                 (icenter[1], icenter[0]),
-    #                 pa = self["PA(R)"][i].value,
-    #                 q = self["q(R)"][i].value,
-    #                 R = self.profR[i],
-    #                 n_isophotes = 1,
-    #             )[0]["amplitude2"] * reg[i])
-    #         else:
-    #             smooth = segment_stats[i]
-    #             N = np.isfinite(smooth)
-    #             if not np.all(N):
-    #                 smooth[np.logical_not(N)] = np.interp(cbins[np.logical_not(N)], cbins[N], smooth[N], period = 2*np.pi)
-    #             coefs = fft(smooth)
-    #             if self.iteration % 100 == 0:
-    #                 plt.scatter(cbins, smooth)
-    #                 plt.title(str(np.abs(coefs[2])))
-    #                 plt.xlabel("angle")
-    #                 plt.ylabel("flux")
-    #                 plt.tight_layout()
-    #                 plt.savefig(f"deleteme_ffttest_{self.iteration}_{i}.jpg")
-    #                 plt.close()
-    #             temp_fft2.append(np.abs(coefs[2]) * reg[i] / (len(smooth) * (max(0,np.median(smooth)) + iqr(smooth,rng = (16,84))/2)))
-                
-    #     self.loss["band fft2"] = np.array(temp_fft2)

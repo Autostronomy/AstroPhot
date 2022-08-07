@@ -14,6 +14,8 @@ def _set_default_parameters(self):
     self.is_integrated = False
     self.model_integrate = None
     self.integrate_window = None
+    self.parameter_history = []
+    self.loss_history = []
 
 def set_target(self, target):
     self.target = target
@@ -126,7 +128,44 @@ def get_parameters(self, exclude_fixed = False, quality = None):
         # Return parameter selected
         return_parameters[p] = self.parameters[p]
     return return_parameters
-    
+
+def get_loss(self):
+    return self.loss
+
+def get_parameter_history(self, limit = np.inf, exclude_fixed = True, quality = None, parameter = None, expand_arrays = True):
+    if parameter is None:
+        param_order = self.get_parameters(exclude_fixed = exclude_fixed, quality = quality).keys()
+
+    parameter_history = []
+    for i in range(min(limit, len(self.parameter_history))):
+        sub_params = []
+        if not parameter is None:
+            P = self.parameter_history[i][parameter]
+            if isinstance(P, Parameter_Array) and expand_arrays:
+                for ip in range(len(P)):
+                    sub_params.append(P[ip])
+                parameter_history.append(np.array(sub_params))
+            else:
+                parameter_history.append(self.parameter_history[i][parameter])
+            continue
+        for param in param_order:
+            P = self.parameter_history[i][param]
+            if isinstance(P, Parameter_Array) and expand_arrays:
+                for ip in range(len(P)):
+                    sub_params.append(P[ip])
+            else:
+                sub_params.append(P)
+        parameter_history.append(np.array(sub_params))
+    return parameter_history                
+
+
+def get_loss_history(self, limit = np.inf):
+
+    return self.loss_history[:min(limit, len(self.loss_history))]
+
+def get_history(self, limit = np.inf, exclude_fixed = True, quality = None):
+
+    return self.get_loss_history(limit), self.get_parameter_history(limit = limit, exclude_fixed = exclude_fixed, quality = quality)
         
 def step_iteration(self):
     if self.locked:
@@ -136,7 +175,8 @@ def step_iteration(self):
             return
     # Add a new set of parameters to the history that defaults to the most recent values
     if not self.loss is None:
-        self.history.add_step(self.parameters, self.loss)
+        self.parameter_history.insert(0, deepcopy(self.parameters))
+        self.loss_history.insert(0, deepcopy(self.loss))
         self.loss = None
     self.iteration += 1
     self.is_sampled = False
@@ -149,6 +189,9 @@ def save_model(self, fileobject):
     fileobject.write("*"*70 + "\n")
     for p in self.parameters:
         fileobject.write(f"{str(self.parameters[p])}\n")
+
+def __str__(self):
+    return self.name
 
 def __getitem__(self, key):
 

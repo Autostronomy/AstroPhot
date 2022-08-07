@@ -25,8 +25,8 @@ class Isophote_Galaxy(Galaxy_Model):
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
     parameter_qualities = {
-        "q(R)": {"form": "array", "loss": "global", "regularize": "const", "regularize scale": 1.},
-        "PA(R)": {"form": "array", "loss": "global", "regularize": "const", "regularize scale": 1.},
+        "q(R)": {"form": "array", "regularize": "const", "regularize scale": 1.},
+        "PA(R)": {"form": "array", "regularize": "const", "regularize scale": 1.},
     }
 
     def __init__(self, *args, **kwargs):
@@ -39,7 +39,6 @@ class Isophote_Galaxy(Galaxy_Model):
                 self.profR.append(self.profR[-1] + max(1,self.profR[-1]*0.2))
             self.profR.pop()
             self.profR = np.array(self.profR)
-            print(self.profR, self.window.shape)
             
     def _init_convert_input_units(self):
         super()._init_convert_input_units()
@@ -51,6 +50,8 @@ class Isophote_Galaxy(Galaxy_Model):
         if target is None:
             target = self.target
         super().initialize(target)
+        self["PA"].update_fixed(True)
+        self["q"].update_fixed(True)
         if not (self["PA(R)"].value is None or self["q(R)"].value is None):
             return
 
@@ -58,7 +59,7 @@ class Isophote_Galaxy(Galaxy_Model):
             self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value, override_fixed = True)
             
         if self["q(R)"].value is None:
-            self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_fixed = True)
+            self["q(R)"].set_value(np.ones(len(self.profR))*self["q"].value, override_fixed = True)
             
     def sample_model(self, sample_image = None):
         if sample_image is None:
@@ -70,7 +71,7 @@ class Isophote_Galaxy(Galaxy_Model):
             
         X, Y = sample_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
 
-        X, Y = self.transform_coordinates(X, Y)
+        #X, Y = self.transform_coordinates(X, Y)
         
         R = self.radius_metric(X, Y)
         
@@ -85,6 +86,7 @@ class Isophote_Galaxy(Galaxy_Model):
         nearest_neighbor = distance_transform_edt(M, return_distances=False, return_indices=True)
 
         Z[M] = Z[nearest_neighbor[0][M], nearest_neighbor[1][M]]
+        Z[self.radius_metric(X, Y) >= self.profR[-1]] = 0
 
         sample_image += Z
         
@@ -114,18 +116,6 @@ class Isophote_Galaxy(Galaxy_Model):
             n_reg += len(reg)
         return 1 + regularization/n_reg
 
-    # def compute_loss(self, data):
-
-    #     super().compute_loss(data)
-        
-    #     # reg = self.regularize_loss()
-    #     coefs = np.fft.fftshift(np.fft.fft2(data.loss_image.data))
-    #     coefs[int(len(coefs[0])/2),int(len(coefs[1])/2)] = 0
-    #     N = 2
-    #     reg = np.sum(np.abs(coefs[int(len(coefs[0])/2)-N:int(len(coefs[0])/2)+N+1,int(len(coefs[1])/2)-N:int(len(coefs[0])/2)+N+1]))
-        
-    #     self.loss["global"] *= 1 + reg #reg #reduce(lambda a, b: a*b, reg)
-    
     def finalize(self):
         dat = self.target[self.window]
         dat.data -= np.median(dat.data)

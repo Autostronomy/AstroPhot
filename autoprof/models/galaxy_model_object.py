@@ -13,8 +13,8 @@ class Galaxy_Model(BaseModel):
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
     parameter_qualities = {
-        "q": {"form": "value", "loss": "global"},
-        "PA": {"form": "value", "loss": "global"},
+        "q": {"form": "value"},
+        "PA": {"form": "value"},
     }
 
     def _init_convert_input_units(self):
