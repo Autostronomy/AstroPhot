@@ -186,6 +186,11 @@ class Pointing_Parameter(Parameter):
         super().__init__(name, **vars(parameter))
         self.parameter = parameter
 
+    def sync(self):
+        self.update_fixed(self.parameter.fixed)
+        self.set_value(self.parameter.get_value())
+        self.set_uncertainty(self.parameter.uncertainty)
+        
     def update_fixed(self, fixed):
         super().update_fixed(fixed)
         self.parameter.update_fixed(fixed)
@@ -202,21 +207,13 @@ class Pointing_Parameter(Parameter):
         super().set_representation(representation, override_fixed)
         self.parameter.set_representation(representation, override_fixed)
 
-class Pointing_Parameter_Array(Parameter_Array):
+class Pointing_Parameter_Array(Pointing_Parameter, Parameter_Array):
     """Parameter Array class which simply points to another parameter
     array object. This is intended for cases where a model must take
     ownership of another model, and therefore also its parameter
     objects.
     """
     
-    def __init__(self, name, parameter):
-        super().__init__(name, **vars(parameter))
-        self.parameter = parameter
-
-    def update_fixed(self, fixed):
-        super().update_fixed(fixed)
-        self.parameter.update_fixed(fixed)
-
     def set_value(self, value, override_fixed = False, index = None):
         self.parameter.set_value(value, override_fixed, index)
         if self.value is None:

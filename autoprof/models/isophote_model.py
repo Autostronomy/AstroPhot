@@ -61,17 +61,8 @@ class Isophote_Galaxy(Galaxy_Model):
         if self["q(R)"].value is None:
             self["q(R)"].set_value(np.ones(len(self.profR))*self["q"].value, override_fixed = True)
             
-    def sample_model(self, sample_image = None):
-        if sample_image is None:
-            sample_image = self.model_image
-        if sample_image is self.model_image:
-            self.is_sampled = True
-            # Reset the model image before filling it with updated values
-            self.model_image.clear_image()
-            
-        X, Y = sample_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-
-        #X, Y = self.transform_coordinates(X, Y)
+    def evaluate_model(self, X, Y, image):
+        X, Y = self.transform_coordinates(X, Y)
         
         R = self.radius_metric(X, Y)
         
@@ -80,7 +71,7 @@ class Isophote_Galaxy(Galaxy_Model):
         
         X, Y = Axis_Ratio_Cartesian(q(R), X, Y, PA(R), inv_scale = False)
 
-        Z = binned_statistic_2d(X.ravel(), Y.ravel(), self.radial_model(R, sample_image).ravel(), statistic = "mean", bins = R.shape)[0]
+        Z = binned_statistic_2d(X.ravel(), Y.ravel(), self.radial_model(R, image).ravel(), statistic = "mean", bins = R.shape)[0]
 
         M = np.logical_not(np.isfinite(Z))
         nearest_neighbor = distance_transform_edt(M, return_distances=False, return_indices=True)
@@ -88,7 +79,7 @@ class Isophote_Galaxy(Galaxy_Model):
         Z[M] = Z[nearest_neighbor[0][M], nearest_neighbor[1][M]]
         Z[self.radius_metric(X, Y) >= self.profR[-1]] = 0
 
-        sample_image += Z
+        return Z
         
     def regularize_loss(self):
 

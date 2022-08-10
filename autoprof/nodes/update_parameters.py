@@ -25,7 +25,7 @@ class Update_Parameters_Random_Grad(Process):
             if model.locked or model.iteration == 0:
                 continue
 
-            loss_history, param_history = model.history.get_history(limit = max(N_best, len(model.get_parameters(exclude_fixed = True))+1))
+            loss_history, param_history = model.get_history(limit = max(N_best, len(model.get_parameters(exclude_fixed = True))+1))
 
             # Pick which loss keys are going to be optimized
             if len(loss_history) == 0:
@@ -85,26 +85,30 @@ class Update_Parameters_Random(Process):
 
     def action(self, state):
 
+        N_best = 32
         state.models.step_iteration()
         # Loop through each model
         for model in state.models:
             # Skip locked models
-            if model.locked:
+            if model.locked or model.iteration == 0:
                 continue
-            # Loop through each loss/parameters pairing
-            for loss, params in model.get_history(limit = 5):
-                # Determine the perturbation scale
-                param_scale = np.array(list(par.uncertainty for par in params[0]))
-                # sample the random step
-                update = np.random.normal(scale = param_scale)
-                # Identify the best sample of the last 5
-                if len(loss) >= 5:
-                    best = np.argmin(loss)
-                else:
-                    best = max(0, len(loss)-1)
-                # Apply the update to each parameter
-                for i, P in enumerate(params[0]):
-                    P.set_representation(params[best][i].representation + update[i] * (1 + model.iteration * (model.learning_rate - 1)/1000))
-                
+            loss_history, param_history = model.get_history(limit = max(N_best, len(model.get_parameters(exclude_fixed = True))+1))
+            best = np.argmin(loss_history[:N_best])
+            # Determine the perturbation scale
+            param_scale = np.array(list(model[par.name].uncertainty for par in param_history[0]))
+            if len(loss_history) >= 2:
+                for par in range(len(param_history[0])):
+                    if best == 0:
+                        model[param_history[0][par].name].uncertainty *= 1.11
+                    else:
+                        model[param_history[0][par].name].uncertainty *= 0.98
+
+            update = np.zeros(len(param_scale))
+            
+            # sample the random step
+            update += np.random.normal(scale = param_scale)
+            # Apply the update to each parameter
+            for i, P in enumerate(param_history[0]):
+                model[P.name].set_representation(param_history[best][i].representation + update[i])
         
         return state

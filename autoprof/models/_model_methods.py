@@ -10,10 +10,6 @@ def _set_default_parameters(self):
     self.loss = None
     self.iteration = -1
     self.is_sampled = False
-    self.is_convolved = False
-    self.is_integrated = False
-    self.model_integrate = None
-    self.integrate_window = None
     self.parameter_history = []
     self.loss_history = []
 
@@ -51,6 +47,7 @@ def set_window(self, window = None, index_units = True):
         pixelscale = self.target.pixelscale,
         origin = self.window.origin,
     )
+    self.is_sampled = False
  
 def scale_window(self, scale):
     self.set_window(self._base_window.scaled_window(scale, limit_window = self.target.window))
@@ -100,6 +97,10 @@ def build_parameter_qualities(cls):
 
 def build_parameters(self):
     for p in self.parameter_specs:
+        # skip special parameters, these must be handled by the model child
+        if "|" in p:
+            continue
+        # If a parameter object is provided, simply use as-is
         if isinstance(self.parameter_specs[p], Parameter):
             self.parameters[p] = self.parameter_specs[p]
         elif isinstance(self.parameter_specs[p], dict):

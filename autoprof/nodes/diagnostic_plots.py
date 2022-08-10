@@ -70,9 +70,9 @@ class Plot_Loss_History(Process):
     def action(self, state):
 
         for model in state.models:
-            if len(model.history) == 0:
+            if len(model.loss_history) == 0:
                 continue
-            plt.plot(list(reversed(range(len(model.history.loss_history)))), np.log10(np.array(model.history.loss_history) / model.history.loss_history[-1]), label = f"{model.name}")
+            plt.plot(list(reversed(range(len(model.loss_history)))), np.log10(np.array(model.loss_history) / model.loss_history[-1]), label = f"{model.name}")
         plt.legend()
         plt.ylim([None, min(0.5, plt.gca().get_ylim()[1])])
         plt.savefig(

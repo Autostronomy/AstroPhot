@@ -99,3 +99,6 @@ class AP_Window(object):
         full_area = np.prod(self.shape) + np.prod(other.shape) - overlap_area
         
         return overlap_area / full_area
+
+    def __str__(self):
+        return f"window origin: {list(self.origin)}, shape: {list(self.shape)}, center: {list(self.center)}"

@@ -46,6 +46,18 @@ class AP_Image(object):
 
     def get_coordinate_meshgrid(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid(self.pixelscale, x, y)
+
+    def replace(self, other, data = None):
+        if isinstance(other, AP_Image):
+            if self.pixelscale != other.pixelscale:
+                raise IndexError("Cannot add images with different pixelscale!")
+            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
+                return
+            self.data[other.window.get_indices(self)] = other.data[self.window.get_indices(other)]
+        elif isinstance(other, AP_Window):
+            self.data[other.get_indices(self)] = data
+        else:
+            self.data = other
     
     def __iadd__(self, other):
         if isinstance(other, AP_Image):
@@ -97,3 +109,6 @@ class AP_Image(object):
         if len(args) == 1 and isinstance(args[0], AP_Image):
             return self.get_window(args[0].window)
         raise ValueError("Unrecognized AP_Image getitem request!")
+
+    def __str__(self):
+        return f"image pixelscale: {self.pixelscale} data: {self.data}"

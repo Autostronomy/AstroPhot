@@ -6,6 +6,7 @@ from autoprof.image import Model_Image, AP_Window
 from autoprof.utils.initialize import center_of_mass
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
 from autoprof.utils.convolution import direct_convolve, fft_convolve
+from autoprof.utils.image_operations import blockwise_sum
 from .parameter_object import Parameter
 import numpy as np
 from copy import deepcopy
@@ -24,9 +25,10 @@ class BaseModel(object):
     # modes: direct, direct+PSF, integrate, integrate+PSF, integrate+superPSF
     # Hierarchy variables
     sample_mode = "direct" # direct, integrate
-    psf_mode = "none" # none, direct, FFT
+    psf_mode = "none" # none, window/full, direct/fft, border
     loss_speed_factor = 1
     psf_window_size = 100
+    integrate_mode = "none" # none, window, full, psf_window, psf_full
     integrate_window_size = 10
     integrate_factor = 5
     learning_rate = 0.1
@@ -91,89 +93,135 @@ class BaseModel(object):
         pass
         
     # Fit loop functions
-    ######################################################################        
-    def sample_model(self, sample_image = None):
+    ######################################################################
+    def evaluate_model(self, X, Y, image):
+        return 0
+    
+    def sample_model(self, sample_image = None, psf = None):
         if sample_image is None:
             sample_image = self.model_image
 
+        # no need to resample image if already done
+        if self.is_sampled and sample_image is self.model_image:
+            return
+        
         if sample_image is self.model_image:
-            self.is_sampled = True
             # Reset the model image before filling it with updated values
             self.model_image.clear_image()
+            
+        working_image = sample_image.blank_copy()
+            
+        X, Y = working_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+        M = self.evaluate_model(X, Y, working_image)
+        working_image += M
 
-    def integrate_model(self):
-        if self.is_integrated:
-            return
-        if "integrate" not in self.sample_mode:
-            return
+        if self.integrate_mode in ["psf_window", "psf_full", "full"]:
+            raise NotImplementedError("This mode is not yet ready")
+        
+        if self.integrate_mode in ["window", "full"]:
+            self.integrate_model(working_image)
+        if self.psf_mode not in ["none"] and psf is not None and self.integrate_mode not in ["psf_full"]:
+            self.convolve_psf(working_image, psf)
+        if self.integrate_mode in ["psf_window", "psf_full"] and psf is not None:
+            self.integrate_model(working_image, psf)
+
+        sample_image += working_image
+        if sample_image is self.model_image:
+            self.is_sampled = True
+            
+    def integrate_model(self, working_image, psf = None): # fixme, move out of model to utils
         # Determine the on-sky window in which to integrate
-        self.integrate_window = AP_Window(
-            origin = (self["center"][1].value - self.integrate_window_size*self.model_image.pixelscale/2, self["center"][0].value - self.integrate_window_size*self.model_image.pixelscale/2),
-            shape = (self.integrate_window_size*self.model_image.pixelscale, self.integrate_window_size*self.model_image.pixelscale)
+        integrate_window = AP_Window(
+            origin = (self["center"][1].value - self.integrate_window_size*working_image.pixelscale/2, self["center"][0].value - self.integrate_window_size*working_image.pixelscale/2),
+            shape = (self.integrate_window_size*working_image.pixelscale, self.integrate_window_size*working_image.pixelscale)
         )
 
+        # Only need to evaluate integration within working image
+        integrate_window *= working_image.window
+        
         # Determine the upsampled pixelscale 
-        integrate_pixelscale = self.model_image.pixelscale / self.integrate_factor
+        integrate_pixelscale = working_image.pixelscale / self.integrate_factor
 
-        # Create a model image to store the high resolution samples
-        self.model_integrate = Model_Image(
-            np.zeros(integrate_window.shape // integrate_pixelscale),
-            pixelscale = integrate_pixelscale,
-            window = integrate_window,
-        )
-
+        # Build an image to hold the integration data
+        integrate_image = Model_Image(np.zeros(np.array(working_image[integrate_window].data.shape) * self.integrate_factor), integrate_pixelscale, window = integrate_window)
+        
         # Evaluate the model at the fine sampling points
-        self.sample_model(self.model_integrate)
-        
-        self.is_integrated = True
-        
-    def convolve_psf(self, psf = None):
-        # If already convolved, skip this step
-        if self.is_convolved:
-            return
-        # Skip PSF convolution if not required for this model
-        if "none" in self.psf_mode or psf is None:
-            return
+        X, Y = integrate_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+        integrate_image.data = self.evaluate_model(X, Y, integrate_image)
 
+        if "psf" in self.integrate_mode:
+            super_res_psf = psf.get_resolution(self.integrate_factor)
+            self.convolve_psf(integrate_image, super_res_psf)
+        # Replace the image data where the integration has been done
+        working_image.replace(integrate_window, blockwise_sum(integrate_image.data, (self.integrate_factor, self.integrate_factor)))
+        
+        
+    def convolve_psf(self, working_image, psf = None):# fixme move out of model to utils
+        if psf is None:
+            raise ValueError("A PSF is needed to convolve!")
+        
         # Convert the model center to image coordinates
-        psf_window = AP_Window(origin = (self["center"][1].value - self.psf_window_size*self.model_image.pixelscale/2, self["center"][0].value - self.psf_window_size*self.model_image.pixelscale/2),
-                               shape = (self.psf_window_size*self.model_image.pixelscale, self.psf_window_size*self.model_image.pixelscale))
+        psf_origin = (
+            self["center"][1].value - self.psf_window_size*working_image.pixelscale/2,
+            self["center"][0].value - self.psf_window_size*working_image.pixelscale/2
+        )
+        psf_shape = (
+            self.psf_window_size*self.model_image.pixelscale,
+            self.psf_window_size*self.model_image.pixelscale
+        )
+        # If requested, add a 1/2PSF border around the convolution window to get rid of edge effects
+        if "border" in self.psf_mode:
+            psf_border_int = (
+                int(psf.window.shape[0]/(2*working_image.pixelscale)+1),
+                int(psf.window.shape[1]/(2*working_image.pixelscale)+1),
+            )
+            psf_border = (
+                psf_border_int[0]*working_image.pixelscale,
+                psf_border_int[1]*working_image.pixelscale,
+            )
+            psf_origin = (psf_origin[0] - psf_border[0], psf_origin[1] - psf_border[1])
+            psf_shape = (psf_shape[0] + 2*psf_border[0], psf_shape[1] + 2*psf_border[1])
+        psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
 
-        # Perform the PSF convolution using the specified method
-        psf_window_area = self.model_image[psf_window]
+        # Perform the convolution according to the requested method
         if "direct" in self.psf_mode:
-            psf_window_area.data = direct_convolve(psf_window_area.data, psf.data)    
+            convolution = direct_convolve(working_image[psf_window].data, psf.data)
         elif "fft" in self.psf_mode:
-            psf_window_area.data = fft_convolve(psf_window_area.data, psf.data)
+            convolution = fft_convolve(working_image[psf_window].data, psf.data)
         else:
             raise ValueError(f"unrecognized psf_mode: {self.psf_mode}")
 
-        if "integrate" in self.sample_mode:
-            upsample_psf = psf.get_resolution(self.integrate_factor)
-            if "direct" in self.psf_mode:
-                self.model_integrate.data = direct_convolve(self.model_integrate.data, upsample_psf.data)
-            elif 'fft' in self.psf_mode:
-                self.model_integrate.data = fft_convolve(self.model_integrate.data, upsample_psf.data)                
-                
-        # Keep record that the image has been convolved
-        self.is_convolved = True
-        
-    def add_integrated_model(self):
-        if not self.is_integrated:
-            return
-        
-        condensed = self.model_integrate.data.reshape(-1, integrate_factor, self.model_integrate.data.shape[0]//self.integrate_factor, self.integrate_factor).sum((-1,-3))
-        self.model_image[self.integrate_window].data = condensed
-        
+        # Cut the 1/2PSF border from the data
+        if "border" in self.psf_mode:
+            convolution = convolution[psf_border_int[0]:-psf_border_int[0],psf_border_int[1]:-psf_border_int[1]]
+            psf_origin = (
+                self["center"][1].value - self.psf_window_size*working_image.pixelscale/2,
+                self["center"][0].value - self.psf_window_size*working_image.pixelscale/2
+            )
+            psf_shape = (
+                self.psf_window_size*self.model_image.pixelscale,
+                self.psf_window_size*self.model_image.pixelscale
+            )
+            psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
+
+        # Replace the corresponding pixels with the convolved image
+        working_image.replace(psf_window, convolution)    
+
+    def evaluate_loss(self, residual_image, variance_image):
+        return np.mean(residual_image[self.window].data[::self.loss_speed_factor,::self.loss_speed_factor]**2 / variance_image[self.window].data)
+    
     def compute_loss(self, data):
         # If the image is locked, no need to compute the loss
         if self.locked:
             return
         # Basic loss is the mean Chi^2 error in the window
-        if self.loss_speed_factor == 1:
-            self.loss = np.mean(data.loss_image[self.window].data)
-        else:
-            self.loss = np.mean(data.loss_image[self.window].data[::self.loss_speed_factor,::self.loss_speed_factor])
+        self.loss = self.evaluate_loss(data.residual_image, data.variance_image)
+
+    def compute_loss_derivative(self, data):
+        # If the image is locked, no need to compute the loss
+        if self.locked:
+            return
+        # fixme add basic numerical derivative
         
     ######################################################################
     from ._model_methods import _set_default_parameters

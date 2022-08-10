@@ -60,15 +60,8 @@ class Galaxy_Model(BaseModel):
     def transform_coordinates(self, X, Y):
         return Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value, inv_scale = True)
         
-    def sample_model(self, sample_image = None):
-
-        if sample_image is None:
-            sample_image = self.model_image
-
-        super().sample_model(sample_image)
+    def evaluate_model(self, X, Y, image):
         
-        X, Y = sample_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-
         X, Y = self.transform_coordinates(X, Y)
         
-        sample_image += self.radial_model(self.radius_metric(X, Y), sample_image)
+        return self.radial_model(self.radius_metric(X, Y), image)

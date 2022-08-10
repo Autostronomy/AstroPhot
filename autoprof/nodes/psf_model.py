@@ -38,5 +38,5 @@ class Gaussian_PSF(Process):
             PSF = PSF.reshape(-1, integrate_factor, PSF.shape[0]//integrate_factor, integrate_factor).sum((-1,-3)) / (integrate_factor**2)
         # Add the PSF to the state
         state.data.update_psf(PSF, pixelscale = state.data.target.pixelscale, fwhm = fwhm)
-
+        
         return state

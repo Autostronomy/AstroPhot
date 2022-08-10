@@ -8,9 +8,6 @@ class Sample_Models(Process):
     def action(self, state):
         state.data.initialize_model_image()
         state.models.sample_models()
-        state.models.integrate_models()
-        state.models.convolve_psf()
-        state.models.add_integrated_models()
 
         for model in state.models:
             state.data.model_image += model.model_image
@@ -28,10 +25,7 @@ class Sample_Expanded_Models(Process):
         scale_factor = state.options["ap_sample_expanded_models_scale", 3]
         for model in state.models:
             model.scale_window(scale_factor)
-            model.sample_model()
-            model.integrate_model()
-            model.convolve_psf()
-            model.add_integrated_model()
+        state.models.sample_models()
 
         full_target = state.options["ap_sample_expanded_models_fulltarget", False]
         include_locked = state.options["ap_sample_expanded_models_includelocked", False]

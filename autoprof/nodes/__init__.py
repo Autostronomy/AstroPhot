@@ -2,7 +2,7 @@ from .load_images import Load_Images
 from .create_models import Create_Models_Spec
 from .initialize_models import Initialize_Models
 from .sample_models import Sample_Models
-from .loss_image import Loss_Image
+from .residual_image import Residual_Image
 from .compute_loss import Compute_Loss
 from .update_parameters import Update_Parameters_Random_Grad
 from .stop_iteration import Stop_Iteration

@@ -48,10 +48,6 @@ class FlatSky(Sky_Model):
                 override_fixed=True,
             )
 
-    def sample_model(self, sample_image = None):
-        if sample_image is None:
-            sample_image = self.model_image
+    def evaluate_model(self, X, Y, image):
         
-        super().sample_model(sample_image)
-
-        sample_image += self["sky"].value * sample_image.pixelscale**2
+        return self["sky"].value * image.pixelscale**2

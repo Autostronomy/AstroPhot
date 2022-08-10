@@ -52,24 +52,7 @@ class Models_State(SubState):
             # Don't bother resampling the model if nothing has been updated
             if self.models[m].is_sampled:
                 continue
-            self.models[m].sample_model()
-
-    def integrate_models(self):
-        for m in self.model_list:
-            if self.models[m].is_integrated:
-                continue
-            self.models[m].integrate_model()
-
-    def convolve_psf(self):
-        for m in self.model_list:
-            # Don't bother convolving the model if nothing has been updated
-            if self.models[m].is_convolved:
-                continue
-            self.models[m].convolve_psf()
-
-    def add_integrated_models(self):
-        for m in self.model_list:
-            self.models[m].add_integrated_model()
+            self.models[m].sample_model(psf = self.state.data.psf)
 
     def step_iteration(self):
         self.iteration += 1
