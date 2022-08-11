@@ -129,13 +129,19 @@ class BaseModel(object):
         if sample_image is self.model_image:
             self.is_sampled = True
             
-    def integrate_model(self, working_image, psf = None): # fixme, move out of model to utils
+    def integrate_model(self, working_image, psf = None): # fixme, move out of model to utils?
         # Determine the on-sky window in which to integrate
+        int_origin = (self["center"][1].value - self.integrate_window_size*self.model_image.pixelscale/2, self["center"][0].value - self.integrate_window_size*self.model_image.pixelscale/2),
+        int_shape = (self.integrate_window_size*self.model_image.pixelscale, self.integrate_window_size*self.model_image.pixelscale)
+        if "border" in self.psf_mode and "border" in self.integrate_mode:# fixme need smarter logic here # fixme need to cut border after integration
+            pass
         integrate_window = AP_Window(
-            origin = (self["center"][1].value - self.integrate_window_size*working_image.pixelscale/2, self["center"][0].value - self.integrate_window_size*working_image.pixelscale/2),
-            shape = (self.integrate_window_size*working_image.pixelscale, self.integrate_window_size*working_image.pixelscale)
+            origin = int_origin,
+            shape = int_shape,
         )
 
+        if (integrate_window or working_image.window) == 0:
+            return
         # Only need to evaluate integration within working image
         integrate_window *= working_image.window
         
@@ -150,20 +156,20 @@ class BaseModel(object):
         integrate_image.data = self.evaluate_model(X, Y, integrate_image)
 
         if "psf" in self.integrate_mode:
-            super_res_psf = psf.get_resolution(self.integrate_factor)
-            self.convolve_psf(integrate_image, super_res_psf)
+            self.convolve_psf(integrate_image, psf)
         # Replace the image data where the integration has been done
         working_image.replace(integrate_window, blockwise_sum(integrate_image.data, (self.integrate_factor, self.integrate_factor)))
         
         
-    def convolve_psf(self, working_image, psf = None):# fixme move out of model to utils
+    def convolve_psf(self, working_image, psf = None):# fixme move out of model to utils?
         if psf is None:
             raise ValueError("A PSF is needed to convolve!")
         
+        psf_image = psf.get_resolution(working_image.pixelscale)
         # Convert the model center to image coordinates
         psf_origin = (
-            self["center"][1].value - self.psf_window_size*working_image.pixelscale/2,
-            self["center"][0].value - self.psf_window_size*working_image.pixelscale/2
+            self["center"][1].value - self.psf_window_size*self.model_image.pixelscale/2,
+            self["center"][0].value - self.psf_window_size*self.model_image.pixelscale/2
         )
         psf_shape = (
             self.psf_window_size*self.model_image.pixelscale,
@@ -172,8 +178,8 @@ class BaseModel(object):
         # If requested, add a 1/2PSF border around the convolution window to get rid of edge effects
         if "border" in self.psf_mode:
             psf_border_int = (
-                int(psf.window.shape[0]/(2*working_image.pixelscale)+1),
-                int(psf.window.shape[1]/(2*working_image.pixelscale)+1),
+                int(psf_image.window.shape[0]/(2*working_image.pixelscale)+1),
+                int(psf_image.window.shape[1]/(2*working_image.pixelscale)+1),
             )
             psf_border = (
                 psf_border_int[0]*working_image.pixelscale,
@@ -182,27 +188,26 @@ class BaseModel(object):
             psf_origin = (psf_origin[0] - psf_border[0], psf_origin[1] - psf_border[1])
             psf_shape = (psf_shape[0] + 2*psf_border[0], psf_shape[1] + 2*psf_border[1])
         psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
+        psf_window *= working_image.window
 
+        if (psf_window or working_image.window) == 0:
+            return
+        
         # Perform the convolution according to the requested method
         if "direct" in self.psf_mode:
-            convolution = direct_convolve(working_image[psf_window].data, psf.data)
+            convolution = direct_convolve(working_image[psf_window].data, psf_image.data)
         elif "fft" in self.psf_mode:
-            convolution = fft_convolve(working_image[psf_window].data, psf.data)
+            convolution = fft_convolve(working_image[psf_window].data, psf_image.data)
         else:
             raise ValueError(f"unrecognized psf_mode: {self.psf_mode}")
 
         # Cut the 1/2PSF border from the data
         if "border" in self.psf_mode:
             convolution = convolution[psf_border_int[0]:-psf_border_int[0],psf_border_int[1]:-psf_border_int[1]]
-            psf_origin = (
-                self["center"][1].value - self.psf_window_size*working_image.pixelscale/2,
-                self["center"][0].value - self.psf_window_size*working_image.pixelscale/2
+            psf_window = AP_Window(
+                origin = (psf_origin[0]+psf_border[0], psf_origin[1]+psf_border[1]),
+                shape = (psf_shape[0] - 2*psf_border[0], psf_shape[1] - 2*psf_border[1]),
             )
-            psf_shape = (
-                self.psf_window_size*self.model_image.pixelscale,
-                self.psf_window_size*self.model_image.pixelscale
-            )
-            psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
 
         # Replace the corresponding pixels with the convolved image
         working_image.replace(psf_window, convolution)    

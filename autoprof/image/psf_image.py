@@ -12,6 +12,7 @@ class PSF_Image(AP_Image):
 
         self.data /= np.sum(self.data)
         self.resolutions = kwargs["resolutions"] if "resolutions" in kwargs else {}
+        self.resolutions[f"{self.pixelscale:.7e}"] = self
         if "fwhm" in kwargs:
             self.fwhm = kwargs['fwhm']
         else:
@@ -37,25 +38,29 @@ class PSF_Image(AP_Image):
             self.fwhm = np.interp(central_flux / 2, list(reversed(flux)), list(reversed(R))) * 2
         
     def get_resolution(self, resolution):
-
-        if str(resolution) in self.resolutions:
-            return self.resolutions[str(resolution)]
+        if isinstance(resolution, float):
+            res_str = f"{resolution:.7e}"
+        elif isinstance(resolution, str):
+            res_str = resolution
+            
+        if res_str in self.resolutions:
+            return self.resolutions[res_str]
 
         if isinstance(resolution, str):
-            use_res = eval(resolution)
+            res_flt = eval(resolution)
         else:
-            use_res = resolution
-        resx = np.linspace(-0.5 + 1/use_res, self.shape[1]/self.pixelscale - 0.5 - 1/use_res, int(self.shape[1]*use_res/self.pixelscale))
-        resy = np.linspace(-0.5 + 1/use_res, self.shape[0]/self.pixelscale - 0.5 - 1/use_res, int(self.shape[0]*use_res/self.pixelscale))
+            res_flt = resolution
+        resx = np.linspace(-0.5 + 1/res_flt, self.shape[1]/self.pixelscale - 0.5 - 1/res_flt, int(self.shape[1] / res_flt))
+        resy = np.linspace(-0.5 + 1/res_flt, self.shape[0]/self.pixelscale - 0.5 - 1/res_flt, int(self.shape[0] / res_flt))
         new_psf = interpolate_Lanczos_grid(self.data, resx, resy, scale = 5)
 
-        self.resolutions[str(resolution)] = PSF_Image(
+        self.resolutions[res_str] = PSF_Image(
             new_psf,
-            pixelscale = self.pixelscale / use_res,
+            pixelscale = res_flt,
             zeropoint = self.zeropoint,
             rotation = self.rotation,
             note = self.note,
-            origin = (-0.5 + 1/use_res + self.origin[0], -0.5 + 1/use_res + self.origin[1]),
-            resolutions = {str(1/use_res): self},
+            origin = (-0.5 + 1/res_flt + self.origin[0], -0.5 + 1/res_flt + self.origin[1]),
+            resolutions = {f"{self.pixelscale:.7e}": self},
         )
-        return self.resolutions[str(resolution)]
+        return self.resolutions[res_str]
