@@ -1,4 +1,5 @@
 import numpy as np
+from astropy.convolution import convolve, convolve_fft
 
 def window_function(img, X, Y, func, window):
     pass
@@ -12,6 +13,64 @@ def interpolate_bicubic(img, X, Y):
     )
     return f_interp(Y, X, grid=False)
 
+def Lanczos_kernel(dx, dy, scale):
+    xx = np.arange(int(-scale+1), int(scale+1)) + dx
+    yy = np.arange(int(-scale+1), int(scale+1)) + dy
+    Lx = np.sinc(xx) * np.sinc(xx / scale)
+    Ly = np.sinc(yy) * np.sinc(yy / scale)
+    LXX, LYY = np.meshgrid(Lx, Ly)
+    LL = LXX * LYY
+    w = np.sum(LL)
+    LL /= w
+    return LL
+    
+def point_Lanczos(I, X, Y, scale):
+    """
+    Apply Lanczos interpolation to evaluate a single point
+    """
+    ranges = [
+        [int(np.floor(X)-scale), int(np.floor(X)+scale)],
+        [int(np.floor(Y)-scale), int(np.floor(Y)+scale)],
+    ]
+    LL = Lanczos_kernel(np.foor(X) - X, np.floor(Y) - Y, scale)
+    LL = LL[
+        max(0,-ranges[1][0]):min(LL.shape[0],I.shape[0] - ranges[1][1]),
+        max(0,-ranges[0][0]):min(LL.shape[1],I.shape[1] - ranges[0][1]),
+    ]
+    F = I[
+        max(0,ranges[1][0]):min(I.shape[0],ranges[1][1]),
+        max(0,ranges[0][0]):min(I.shape[1],ranges[0][1]),
+    ]
+    return np.sum(F * LL)
+
+def arbitrary_Lanczos(I, X, Y, scale):
+    """
+    Apply Lanczos interpolation for a list of coordinates with unspecified structure.
+    """
+    F = []
+    for x, y in zip(X, Y):
+        F.append(point_Lanczos(I, x, y, scale))
+    return np.array(F)
+
+def _shift_Lanczos_kernel(dx, dy, scale):
+    xx = np.arange(int(-scale), int(scale+1)) + dx
+    yy = np.arange(int(-scale), int(scale+1)) + dy
+    Lx = np.sinc(xx) * np.sinc(xx / scale)
+    Ly = np.sinc(yy) * np.sinc(yy / scale)
+    LXX, LYY = np.meshgrid(Lx, Ly)
+    LL = LXX * LYY
+    w = np.sum(LL)
+    LL /= w
+    return LL
+
+def shift_Lanczos(I, dx, dy, scale):
+    """
+    Apply Lanczos interpolation to shift by less than a pixel in x and y
+    """
+    LL = _shift_Lanczos_kernel(dx,dy, scale)
+    if scale < 10 and max(I.shape) < 50:
+        return convolve(I, LL, boundary = "extend")
+    return convolve_fft(I, LL, boundary = "wrap")    
 
 def interpolate_Lanczos_grid(img, X, Y, scale):
     """
