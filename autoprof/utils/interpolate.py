@@ -32,10 +32,10 @@ def point_Lanczos(I, X, Y, scale):
         [int(np.floor(X)-scale), int(np.floor(X)+scale)],
         [int(np.floor(Y)-scale), int(np.floor(Y)+scale)],
     ]
-    LL = Lanczos_kernel(np.foor(X) - X, np.floor(Y) - Y, scale)
+    LL = Lanczos_kernel(np.floor(X) - X, np.floor(Y) - Y, scale)
     LL = LL[
-        max(0,-ranges[1][0]):min(LL.shape[0],I.shape[0] - ranges[1][1]),
-        max(0,-ranges[0][0]):min(LL.shape[1],I.shape[1] - ranges[0][1]),
+        max(0,-ranges[1][0]):LL.shape[0] + min(0,I.shape[0] - ranges[1][1]),
+        max(0,-ranges[0][0]):LL.shape[1] + min(0,I.shape[1] - ranges[0][1]),
     ]
     F = I[
         max(0,ranges[1][0]):min(I.shape[0],ranges[1][1]),
