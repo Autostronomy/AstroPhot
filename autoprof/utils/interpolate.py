@@ -57,6 +57,8 @@ def _shift_Lanczos_kernel(dx, dy, scale):
     yy = np.arange(int(-scale), int(scale+1)) + dy
     Lx = np.sinc(xx) * np.sinc(xx / scale)
     Ly = np.sinc(yy) * np.sinc(yy / scale)
+    Lx[0] = 0
+    Ly[0] = 0
     LXX, LYY = np.meshgrid(Lx, Ly)
     LL = LXX * LYY
     w = np.sum(LL)
