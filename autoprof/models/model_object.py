@@ -25,7 +25,7 @@ class BaseModel(object):
     # modes: direct, direct+PSF, integrate, integrate+PSF, integrate+superPSF
     # Hierarchy variables
     sample_mode = "direct" # direct, integrate
-    psf_mode = "none" # none, window/full, direct/fft, border
+    psf_mode = "none" # none, window/full, direct/fft, border, centered?
     loss_speed_factor = 1
     psf_window_size = 100
     integrate_mode = "none" # none, window, full, psf_window, psf_full
@@ -73,6 +73,8 @@ class BaseModel(object):
         window_center = index_to_coord(self.model_image.data.shape[0] / 2, self.model_image.data.shape[1] / 2, self.model_image)
         if self["center"].value is None:
             self["center"].set_value(window_center, override_fixed = True)
+            self.update_integrate_window()
+            self.update_psf_window()
 
         if self["center"].fixed:
             return
@@ -88,6 +90,8 @@ class BaseModel(object):
         COM_center = index_to_coord(COM[1], COM[0], target_area)
         # Set the new coordinates as the model center
         self["center"].set_value(COM_center)
+        self.update_integrate_window()
+        self.update_psf_window()
 
     def finalize(self):
         pass
@@ -105,20 +109,21 @@ class BaseModel(object):
         if self.is_sampled and sample_image is self.model_image:
             return
         
+        if self.integrate_mode in ["psf_window", "psf_full", "full"]:
+            raise NotImplementedError("This mode is not yet ready")
+        
         if sample_image is self.model_image:
             # Reset the model image before filling it with updated values
             self.model_image.clear_image()
             
         working_image = sample_image.blank_copy()
-            
-        X, Y = working_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-        M = self.evaluate_model(X, Y, working_image)
-        working_image += M
 
-        if self.integrate_mode in ["psf_window", "psf_full", "full"]:
-            raise NotImplementedError("This mode is not yet ready")
+        if not "full" in self.integrate_mode:
+            X, Y = working_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
+            M = self.evaluate_model(X, Y, working_image)
+            working_image += M
         
-        if self.integrate_mode in ["window", "full"]:
+        if "window" in self.integrate_mode and "psf" not in self.integrate_mode:
             self.integrate_model(working_image)
         if self.psf_mode not in ["none"] and psf is not None and self.integrate_mode not in ["psf_full"]:
             self.convolve_psf(working_image, psf)
@@ -128,22 +133,16 @@ class BaseModel(object):
         sample_image += working_image
         if sample_image is self.model_image:
             self.is_sampled = True
-            
-    def integrate_model(self, working_image, psf = None): # fixme, move out of model to utils?
-        # Determine the on-sky window in which to integrate
-        int_origin = (self["center"][1].value - self.integrate_window_size*self.model_image.pixelscale/2, self["center"][0].value - self.integrate_window_size*self.model_image.pixelscale/2),
-        int_shape = (self.integrate_window_size*self.model_image.pixelscale, self.integrate_window_size*self.model_image.pixelscale)
-        if "border" in self.psf_mode and "border" in self.integrate_mode:# fixme need smarter logic here # fixme need to cut border after integration
-            pass
-        integrate_window = AP_Window(
-            origin = int_origin,
-            shape = int_shape,
-        )
 
-        if (integrate_window or working_image.window) == 0:
+    def integrate_model(self, working_image, psf = None): # fixme, move out of model to utils?
+        self.update_integrate_window()
+        # Determine the on-sky window in which to integrate
+        if "border" in self.psf_mode and "psf" in self.integrate_mode and (self.psf_window < self.integrate_window):# fixme need smarter logic here # fixme need to cut border after integration
+            pass
+        if self.integrate_window.overlap_frac(working_image.window) == 0:
             return
         # Only need to evaluate integration within working image
-        integrate_window *= working_image.window
+        integrate_window = self.integrate_window & working_image.window
         
         # Determine the upsampled pixelscale 
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
@@ -162,19 +161,17 @@ class BaseModel(object):
         
         
     def convolve_psf(self, working_image, psf = None):# fixme move out of model to utils?
+        self.update_psf_window()
         if psf is None:
             raise ValueError("A PSF is needed to convolve!")
         
+        if self.psf_window.overlap_frac(working_image.window) == 0:
+            return
+        
         psf_image = psf.get_resolution(working_image.pixelscale)
         # Convert the model center to image coordinates
-        psf_origin = (
-            self["center"][1].value - self.psf_window_size*self.model_image.pixelscale/2,
-            self["center"][0].value - self.psf_window_size*self.model_image.pixelscale/2
-        )
-        psf_shape = (
-            self.psf_window_size*self.model_image.pixelscale,
-            self.psf_window_size*self.model_image.pixelscale
-        )
+        psf_window = self.psf_window & working_image.window
+        
         # If requested, add a 1/2PSF border around the convolution window to get rid of edge effects
         if "border" in self.psf_mode:
             psf_border_int = (
@@ -185,14 +182,8 @@ class BaseModel(object):
                 psf_border_int[0]*working_image.pixelscale,
                 psf_border_int[1]*working_image.pixelscale,
             )
-            psf_origin = (psf_origin[0] - psf_border[0], psf_origin[1] - psf_border[1])
-            psf_shape = (psf_shape[0] + 2*psf_border[0], psf_shape[1] + 2*psf_border[1])
-        psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
-        psf_window *= working_image.window
-
-        if (psf_window or working_image.window) == 0:
-            return
-        
+            psf_window += psf_border
+            
         # Perform the convolution according to the requested method
         if "direct" in self.psf_mode:
             convolution = direct_convolve(working_image[psf_window].data, psf_image.data)
@@ -204,10 +195,7 @@ class BaseModel(object):
         # Cut the 1/2PSF border from the data
         if "border" in self.psf_mode:
             convolution = convolution[psf_border_int[0]:-psf_border_int[0],psf_border_int[1]:-psf_border_int[1]]
-            psf_window = AP_Window(
-                origin = (psf_origin[0]+psf_border[0], psf_origin[1]+psf_border[1]),
-                shape = (psf_shape[0] - 2*psf_border[0], psf_shape[1] - 2*psf_border[1]),
-            )
+            psf_window -= psf_border 
 
         # Replace the corresponding pixels with the convolved image
         working_image.replace(psf_window, convolution)    
@@ -234,6 +222,8 @@ class BaseModel(object):
     from ._model_methods import set_target
     from ._model_methods import set_window
     from ._model_methods import scale_window
+    from ._model_methods import update_integrate_window
+    from ._model_methods import update_psf_window
     from ._model_methods import update_locked
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameter_qualities

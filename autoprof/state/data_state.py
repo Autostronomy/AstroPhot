@@ -87,12 +87,12 @@ class Data_State(SubState):
             if new_window is None:
                 new_window = deepcopy(model.window)
             else:
-                new_window += model.window
+                new_window |= model.window
                 
         self.model_image = Model_Image(
             np.zeros(np.round(np.array(new_window.shape) / self.target.pixelscale).astype(int)),
             pixelscale=self.target.pixelscale,
-            origin=new_window.origin,
+            window=new_window,
         )
         
         

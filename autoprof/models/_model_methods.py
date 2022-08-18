@@ -12,6 +12,8 @@ def _set_default_parameters(self):
     self.is_sampled = False
     self.parameter_history = []
     self.loss_history = []
+    self.integrate_window = None
+    self.psf_window = None
 
 def set_target(self, target):
     self.target = target
@@ -39,19 +41,43 @@ def set_window(self, window = None, index_units = True):
             np.array((window[1][1] - window[1][0], window[0][1] - window[0][0])),
         )
     if self._base_window is None:
-        self._base_window = self.window
+        self._base_window = deepcopy(self.window)
         
     # Create the model image for this model
     self.model_image = Model_Image(
         np.zeros(np.round(self.window.shape / self.target.pixelscale).astype(int)),
         pixelscale = self.target.pixelscale,
-        origin = self.window.origin,
+        window = self.window,
     )
     self.is_sampled = False
  
 def scale_window(self, scale):
-    self.set_window(self._base_window.scaled_window(scale, limit_window = self.target.window))
+    self.window = self._base_window * scale
+    self.window &= self.target.window
+    self.set_window(self.window)
 
+def update_integrate_window(self):
+    int_origin = (
+        self["center"][1].value - self.integrate_window_size*self.model_image.pixelscale/2,
+        self["center"][0].value - self.integrate_window_size*self.model_image.pixelscale/2,
+    )
+    int_shape = (
+        self.integrate_window_size*self.model_image.pixelscale,
+        self.integrate_window_size*self.model_image.pixelscale,
+    )
+    self.integrate_window = AP_Window(origin = int_origin, shape = int_shape)
+    
+def update_psf_window(self):
+    psf_origin = (
+        self["center"][1].value - self.psf_window_size*self.model_image.pixelscale/2,
+        self["center"][0].value - self.psf_window_size*self.model_image.pixelscale/2,
+    )
+    psf_shape = (
+        self.psf_window_size*self.model_image.pixelscale,
+        self.psf_window_size*self.model_image.pixelscale,
+    )        
+    self.psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
+        
 def update_locked(self, locked):
     if isinstance(locked, bool):
         self.locked = bool(self.user_locked) or locked

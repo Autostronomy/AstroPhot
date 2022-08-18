@@ -24,7 +24,7 @@ class SuperModel(BaseModel):
             if new_window is None:
                 new_window = deepcopy(model.window)
             else:
-                new_window += model.window
+                new_window |= model.window
         self.window = new_window
 
     def initialize(self, target = None):
