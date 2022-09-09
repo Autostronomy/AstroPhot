@@ -1,11 +1,21 @@
 from flow import Process
 from autoprof.utils.visuals import autocmap
+from autoprof.utils.conversions.coordinates import coord_to_index
 from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
 from astropy.visualization.mpl_normalize import ImageNormalize
 from autoprof.models import Galaxy_Model
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+import matplotlib as mpl
+mpl.use("pgf")
+pgf_with_pdflatex = {
+    "pgf.texsystem": "pdflatex",
+    "pgf.preamble": [
+        r"\usepackage[author={Connor Stone}]{pdfcomment}",
+    ]
+}
+mpl.rcParams.update(pgf_with_pdflatex)
 
 class Plot_Model(Process):
     """
@@ -15,7 +25,10 @@ class Plot_Model(Process):
     def action(self, state):
         autocmap.set_under("k", alpha=0)
         plt.figure(figsize = (7, 7*state.data.model_image.shape[1]/state.data.model_image.shape[0]), facecolor = 'k')
-        plt.contourf(np.log10(state.data.model_image.data), levels = 20, cmap = "Greens_r")
+        for model in state.models:
+            icenter = coord_to_index(model["center"][0].value, model["center"][1].value, state.data.model_image)
+            plt.text(icenter[1],icenter[0],r"\pdftooltip{\rule{0.3cm}{0.3cm}}{{%s}}" % model.name, zorder = 0, horizontalalignment = "center", verticalalignment = "center")
+        plt.contourf(np.log10(state.data.model_image.data), levels = 20, cmap = "Greens_r", zorder = 1000)
         plt.gca().set_facecolor("k")
         # plt.imshow(
         #     state.data.model_image.data,

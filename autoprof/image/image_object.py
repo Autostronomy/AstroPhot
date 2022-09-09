@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 from .window_object import AP_Window
 
-class AP_Image(object):
+class AP_Image(object):# refactor to put pixelscale first, then allow pixelscale plus window as initialization
 
     def __init__(self, data, pixelscale, zeropoint = None, rotation = None, note = None, origin = None, window = None, **kwargs):
 
@@ -23,6 +23,13 @@ class AP_Image(object):
     def clear_image(self):
         self.data.fill(0)
 
+    def shift_origin(self, shift):
+        self.window.shift_origin(shift)
+        self.origin += shift
+        if np.any(np.abs(shift) > 1):
+            raise NotImplementedError("Shifts larger than 1 are currently not handled")
+        self.data = shift_Lanczos(self.data, shift[0], shift[1], min(min(self.data.shape), 10))
+        
     def blank_copy(self):
         return AP_Image(
             np.zeros(self.data.shape),

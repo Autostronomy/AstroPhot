@@ -22,13 +22,12 @@ class BaseModel(object):
         "center": {"form": "array", "loss": "global"},
     }
 
-    # modes: direct, direct+PSF, integrate, integrate+PSF, integrate+superPSF
     # Hierarchy variables
-    sample_mode = "direct" # direct, integrate
-    psf_mode = "none" # none, window/full, direct/fft, border, centered?
+    sample_mode = "direct" 
+    psf_mode = "none" # none, window/full, direct/fft
     loss_speed_factor = 1
     psf_window_size = 100
-    integrate_mode = "none" # none, window, full, psf_window, psf_full
+    integrate_mode = "none" # none, window, full
     integrate_window_size = 10
     integrate_factor = 5
     learning_rate = 0.1
@@ -73,8 +72,6 @@ class BaseModel(object):
         window_center = index_to_coord(self.model_image.data.shape[0] / 2, self.model_image.data.shape[1] / 2, self.model_image)
         if self["center"].value is None:
             self["center"].set_value(window_center, override_fixed = True)
-            self.update_integrate_window()
-            self.update_psf_window()
 
         if self["center"].fixed:
             return
@@ -90,8 +87,6 @@ class BaseModel(object):
         COM_center = index_to_coord(COM[1], COM[0], target_area)
         # Set the new coordinates as the model center
         self["center"].set_value(COM_center)
-        self.update_integrate_window()
-        self.update_psf_window()
 
     def finalize(self):
         pass
@@ -109,59 +104,66 @@ class BaseModel(object):
         if self.is_sampled and sample_image is self.model_image:
             return
         
-        if self.integrate_mode in ["psf_window", "psf_full", "full"]:
-            raise NotImplementedError("This mode is not yet ready")
-        
         if sample_image is self.model_image:
             # Reset the model image before filling it with updated values
             self.model_image.clear_image()
             
-        working_image = sample_image.blank_copy()
+        working_window = deepcopy(sample_image.window)
 
+        if "none" not in self.psf_mode and psf is not None:# fixme could make shifting smarter for psf window
+            self.center_shift = self["center"].get_value() % 1.
+            working_window.shift_origin(self.center_shift)
+
+            if "full" in self.psf_mode or not (self.psf_window + psf.get_resolution(sample_image.pixelscale).border) <= working_window:
+                working_window += psf.get_resolution(sample_image.pixelscale).border
+
+        working_image = Model_Image(data = np.zeros(working_window.get_shape(sample_image.pixelscale)), pixelscale = sample_image.pixelscale, window = working_window)
+            
         if not "full" in self.integrate_mode:
             X, Y = working_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
             M = self.evaluate_model(X, Y, working_image)
             working_image += M
-        
-        if "window" in self.integrate_mode and "psf" not in self.integrate_mode:
+            
+        if "none" not in self.integrate_mode:
             self.integrate_model(working_image)
-        if self.psf_mode not in ["none"] and psf is not None and self.integrate_mode not in ["psf_full"]:
+            
+        if "none" not in self.psf_mode and psf is not None:
             self.convolve_psf(working_image, psf)
-        if self.integrate_mode in ["psf_window", "psf_full"] and psf is not None:
-            self.integrate_model(working_image, psf)
-
+            working_image.shift_origin(-self.center_shift) # fixme get sign right
+            self.center_shift = np.zeros(self["center"].get_value().shape)
         sample_image += working_image
         if sample_image is self.model_image:
             self.is_sampled = True
 
-    def integrate_model(self, working_image, psf = None): # fixme, move out of model to utils?
-        self.update_integrate_window()
+            
+    def integrate_model(self, working_image):        
         # Determine the on-sky window in which to integrate
-        if "border" in self.psf_mode and "psf" in self.integrate_mode and (self.psf_window < self.integrate_window):# fixme need smarter logic here # fixme need to cut border after integration
-            pass
         if self.integrate_window.overlap_frac(working_image.window) == 0:
             return
-        # Only need to evaluate integration within working image
-        integrate_window = self.integrate_window & working_image.window
         
+        # Only need to evaluate integration within working image
+        if "window" in self.integrate_mode:
+            working_window = self.integrate_window & working_image.window
+        elif "full" in self.integrate_mode:
+            working_window = working_image.window
+        else:
+            raise ValueError(f"Unrecognized integration mode: {self.integrate_mode}, must include 'window' or 'full', or be 'none'.")    
+            
         # Determine the upsampled pixelscale 
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
 
         # Build an image to hold the integration data
-        integrate_image = Model_Image(np.zeros(np.array(working_image[integrate_window].data.shape) * self.integrate_factor), integrate_pixelscale, window = integrate_window)
+        integrate_image = Model_Image(np.zeros(np.array(working_image[working_window].data.shape) * self.integrate_factor), integrate_pixelscale, window = working_window)
         
         # Evaluate the model at the fine sampling points
         X, Y = integrate_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
         integrate_image.data = self.evaluate_model(X, Y, integrate_image)
-
-        if "psf" in self.integrate_mode:
-            self.convolve_psf(integrate_image, psf)
+        
         # Replace the image data where the integration has been done
-        working_image.replace(integrate_window, blockwise_sum(integrate_image.data, (self.integrate_factor, self.integrate_factor)))
+        working_image.replace(working_window, blockwise_sum(integrate_image.data, (self.integrate_factor, self.integrate_factor)))
         
         
     def convolve_psf(self, working_image, psf = None):# fixme move out of model to utils?
-        self.update_psf_window()
         if psf is None:
             raise ValueError("A PSF is needed to convolve!")
         
@@ -169,36 +171,30 @@ class BaseModel(object):
             return
         
         psf_image = psf.get_resolution(working_image.pixelscale)
-        # Convert the model center to image coordinates
-        psf_window = self.psf_window & working_image.window
-        
-        # If requested, add a 1/2PSF border around the convolution window to get rid of edge effects
-        if "border" in self.psf_mode:
-            psf_border_int = (
-                int(psf_image.window.shape[0]/(2*working_image.pixelscale)+1),
-                int(psf_image.window.shape[1]/(2*working_image.pixelscale)+1),
-            )
-            psf_border = (
-                psf_border_int[0]*working_image.pixelscale,
-                psf_border_int[1]*working_image.pixelscale,
-            )
-            psf_window += psf_border
-            
+
+        if "full" in self.psf_mode:
+            working_window = working_image.window
+        elif "window" in self.psf_mode:
+            # Convert the model center to image coordinates
+            working_window = (self.psf_window + psf_image.border) & working_image.window
+        print(self.center_shift, working_window)
         # Perform the convolution according to the requested method
         if "direct" in self.psf_mode:
-            convolution = direct_convolve(working_image[psf_window].data, psf_image.data)
+            convolution = direct_convolve(working_image[working_window].data, psf_image.data)
         elif "fft" in self.psf_mode:
-            convolution = fft_convolve(working_image[psf_window].data, psf_image.data)
+            convolution = fft_convolve(working_image[working_window].data, psf_image.data)
+        elif max(psf_image.data.shape) < 20 or max(working_image[working_window].data.shape) < 100:
+            convolution = direct_convolve(working_image[working_window].data, psf_image.data)
         else:
-            raise ValueError(f"unrecognized psf_mode: {self.psf_mode}")
-
+            convolution = fft_convolve(working_image[working_window].data, psf_image.data)
+            
         # Cut the 1/2PSF border from the data
-        if "border" in self.psf_mode:
-            convolution = convolution[psf_border_int[0]:-psf_border_int[0],psf_border_int[1]:-psf_border_int[1]]
-            psf_window -= psf_border 
+        if "window" in self.psf_mode:
+            convolution = convolution[psf_image.border_int[0]:-psf_image.border_int[0],psf_image.border_int[1]:-psf_image.border_int[1]]
+            working_window -= psf_image.border 
 
         # Replace the corresponding pixels with the convolved image
-        working_image.replace(psf_window, convolution)    
+        working_image.replace(working_window, convolution)    
 
     def evaluate_loss(self, residual_image, variance_image):
         return np.mean(residual_image[self.window].data[::self.loss_speed_factor,::self.loss_speed_factor]**2 / variance_image[self.window].data)
@@ -222,8 +218,8 @@ class BaseModel(object):
     from ._model_methods import set_target
     from ._model_methods import set_window
     from ._model_methods import scale_window
-    from ._model_methods import update_integrate_window
-    from ._model_methods import update_psf_window
+    from ._model_methods import integrate_window
+    from ._model_methods import psf_window
     from ._model_methods import update_locked
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameter_qualities

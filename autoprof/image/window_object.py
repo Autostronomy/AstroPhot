@@ -8,10 +8,17 @@ class AP_Window(object):
         self.origin = np.array(origin)
         self.center = self.origin + self.shape/2
 
+    def get_shape(self, pixelscale):
+        return np.array(list(int(round(S / pixelscale)) for S in self.shape))
+        
     def get_indices(self, obj):
         """
         Return an index slicing tuple for obj corresponding to this window
         """
+        alignment = ((self.origin + self.shape - obj.origin) / obj.pixelscale)
+        if not np.allclose(alignment/np.round(alignment), 1.):
+            print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)# fixme
+            raise ValueError("Cannot determine indices for misaligned windows")
         return (
             slice(max(0,int(round((self.origin[0] - obj.window.origin[0])/obj.pixelscale))),
                   min(int(round(obj.window.shape[0]/obj.pixelscale)), int(round((self.origin[0] + self.shape[0] - obj.window.origin[0])/obj.pixelscale)))),
@@ -34,6 +41,10 @@ class AP_Window(object):
         full_area = np.prod(self.shape) + np.prod(other.shape) - overlap_area
         return overlap_area / full_area
 
+    def shift_origin(self, shift):
+        self.origin += shift
+        self.center += shift
+        
     # Window adjustment operators
     def __add__(self, other):
         if isinstance(other, float) or isinstance(other, int):
@@ -119,15 +130,15 @@ class AP_Window(object):
     # Window Comparison operators
     def __eq__(self, other):
         return all((np.all(self.origin == other.origin), np.all(self.shape == other.shape)))
-    def __neq__(self, other):
+    def __ne__(self, other):
         return not self == other
     def __gt__(self, other):
         return np.all(self.origin < other.origin) and np.all((self.origin + self.shape) > (other.origin + other.shape))
-    def __gtq__(self, other):
+    def __ge__(self, other):
         return np.all(self.origin <= other.origin) and np.all((self.origin + self.shape) >= (other.origin + other.shape))
     def __lt__(self, other):
         return np.all(self.origin > other.origin) and np.all((self.origin + self.shape) < (other.origin + other.shape))
-    def __ltq__(self, other):
+    def __le__(self, other):
         return np.all(self.origin >= other.origin) and np.all((self.origin + self.shape) <= (other.origin + other.shape))
 
     # Window interaction operators

@@ -36,7 +36,14 @@ class PSF_Image(AP_Image):
             self.fwhm = (np.max(self.shape) / 2)
         else:
             self.fwhm = np.interp(central_flux / 2, list(reversed(flux)), list(reversed(R))) * 2
-        
+
+    @property
+    def border(self):
+        return self.pixelscale * (1 + np.array(self.data.shape)) / 2
+    @property
+    def border_int(self):
+        return ((1 + np.array(self.data.shape)) / 2).astype(int)
+    
     def get_resolution(self, resolution):
         if isinstance(resolution, float):
             res_str = f"{resolution:.7e}"

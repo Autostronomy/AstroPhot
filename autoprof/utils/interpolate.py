@@ -70,7 +70,7 @@ def shift_Lanczos(I, dx, dy, scale):
     Apply Lanczos interpolation to shift by less than a pixel in x and y
     """
     LL = _shift_Lanczos_kernel(dx,dy, scale)
-    if scale < 10 and max(I.shape) < 50:
+    if scale < 8 and max(I.shape) < 100:
         return convolve(I, LL, boundary = "extend")
     return convolve_fft(I, LL, boundary = "wrap")    
 

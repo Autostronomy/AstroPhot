@@ -12,9 +12,8 @@ def _set_default_parameters(self):
     self.is_sampled = False
     self.parameter_history = []
     self.loss_history = []
-    self.integrate_window = None
-    self.psf_window = None
-
+    self.center_shift = 0
+    
 def set_target(self, target):
     self.target = target
 
@@ -56,27 +55,31 @@ def scale_window(self, scale):
     self.window &= self.target.window
     self.set_window(self.window)
 
-def update_integrate_window(self):
+@property
+def integrate_window(self):
+    use_center = self.center_shift + np.round(self["center"].get_value()/self.model_image.pixelscale)
     int_origin = (
-        self["center"][1].value - self.integrate_window_size*self.model_image.pixelscale/2,
-        self["center"][0].value - self.integrate_window_size*self.model_image.pixelscale/2,
+        (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
+        (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
     )
     int_shape = (
-        self.integrate_window_size*self.model_image.pixelscale,
-        self.integrate_window_size*self.model_image.pixelscale,
+        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
+        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
     )
-    self.integrate_window = AP_Window(origin = int_origin, shape = int_shape)
+    return AP_Window(origin = int_origin, shape = int_shape)
     
-def update_psf_window(self):
+@property
+def psf_window(self):
+    use_center = self.center_shift + np.round(self["center"].get_value()/self.model_image.pixelscale)
     psf_origin = (
-        self["center"][1].value - self.psf_window_size*self.model_image.pixelscale/2,
-        self["center"][0].value - self.psf_window_size*self.model_image.pixelscale/2,
+        (use_center[1] - (self.psf_window_size - (self.psf_window_size % 2))/2)*self.model_image.pixelscale,
+        (use_center[0] - (self.psf_window_size - (self.psf_window_size % 2))/2)*self.model_image.pixelscale,
     )
     psf_shape = (
-        self.psf_window_size*self.model_image.pixelscale,
-        self.psf_window_size*self.model_image.pixelscale,
-    )        
-    self.psf_window = AP_Window(origin = psf_origin, shape = psf_shape)
+        (self.psf_window_size + 1 - (self.psf_window_size % 2))*self.model_image.pixelscale,
+        (self.psf_window_size + 1 - (self.psf_window_size % 2))*self.model_image.pixelscale,
+    )
+    return AP_Window(origin = psf_origin, shape = psf_shape)
         
 def update_locked(self, locked):
     if isinstance(locked, bool):

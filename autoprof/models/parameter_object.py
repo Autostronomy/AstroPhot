@@ -2,7 +2,7 @@ import numpy as np
 from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries, cyclic_difference
 from copy import deepcopy
 
-class Parameter(object):
+class Parameter(object):# fixme refactor to make value a parameter stored at _value
     """Object for storing model parameters that are to be optimized in
     the fitting procedure. A value and it's uncertainty are stored as
     well as meta information about the parameter. The meta information
