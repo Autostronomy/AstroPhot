@@ -46,7 +46,7 @@ class NonParametric_Galaxy(Galaxy_Model):
     def radial_model(self, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image        
-        I = UnivariateSpline(self.profR, self["I(R)"].get_value(), ext = "const", s = 0)
+        I = UnivariateSpline(self.profR, self["I(R)"].value, ext = "const", s = 0)
         return 10**(I(R)) * sample_image.pixelscale**2
             
 class NonParametric_Warp(Warp_Galaxy):
@@ -85,7 +85,7 @@ class NonParametric_Warp(Warp_Galaxy):
     def radial_model(self, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image        
-        I = UnivariateSpline(self.profR, self["I(R)"].get_value(), ext = "const", s = 0)
+        I = UnivariateSpline(self.profR, self["I(R)"].value, ext = "const", s = 0)
         return 10**(I(R)) * sample_image.pixelscale**2
 
 class NonParametric_Isophote(Isophote_Galaxy):
@@ -125,6 +125,6 @@ class NonParametric_Isophote(Isophote_Galaxy):
         if sample_image is None:
             sample_image = self.model_image
 
-        I = UnivariateSpline(self.profR, self["I(R)"].get_value(), ext = "const", s = 0)
+        I = UnivariateSpline(self.profR, self["I(R)"].value, ext = "const", s = 0)
         return 10**(I(R)) * sample_image.pixelscale**2
         

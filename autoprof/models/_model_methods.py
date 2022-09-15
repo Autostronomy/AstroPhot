@@ -57,7 +57,7 @@ def scale_window(self, scale):
 
 @property
 def integrate_window(self):
-    use_center = self.center_shift + np.round(self["center"].get_value()/self.model_image.pixelscale)
+    use_center = self.center_shift + np.round(self["center"].value/self.model_image.pixelscale)
     int_origin = (
         (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
         (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
@@ -70,7 +70,7 @@ def integrate_window(self):
     
 @property
 def psf_window(self):
-    use_center = self.center_shift + np.round(self["center"].get_value()/self.model_image.pixelscale)
+    use_center = self.center_shift + np.round(self["center"].value/self.model_image.pixelscale)
     psf_origin = (
         (use_center[1] - (self.psf_window_size - (self.psf_window_size % 2))/2)*self.model_image.pixelscale,
         (use_center[0] - (self.psf_window_size - (self.psf_window_size % 2))/2)*self.model_image.pixelscale,

@@ -37,13 +37,32 @@ class Parameter(object):# fixme refactor to make value a parameter stored at _va
         if self.user_fixed is None:
             self.user_fixed = kwargs.get("user_fixed", None)
         self.update_fixed(False)
-        self.value = None
-        self.representation = None
+        self._value = None
+        self._representation = None
         self.units = kwargs.get("units", "none")
-        self.uncertainty = kwargs.get("uncertainty", None)
+        self._uncertainty = kwargs.get("uncertainty", None)
         if "value" in kwargs:
             self.set_value(kwargs["value"], override_fixed = True)
 
+    @property
+    def value(self):
+        return self._value
+    @value.setter
+    def value(self, val):
+        self.set_value(val)
+    @property
+    def representation(self):
+        return self._representation
+    @representation.setter
+    def representation(self, rep):
+        self.set_representation(rep)
+    @property
+    def uncertainty(self):
+        return self._uncertainty
+    @uncertainty.setter
+    def uncertainty(self, unc):
+        self.set_uncertainty(unc)
+        
     def update_fixed(self, fixed):
         self.fixed = fixed or bool(self.user_fixed)
 
@@ -52,35 +71,30 @@ class Parameter(object):# fixme refactor to make value a parameter stored at _va
             return
         if np.any(uncertainty < 0):
             raise ValueError(f"{name} Uncertainty should be a positive real value, not {uncertainty}")
-        self.uncertainty = uncertainty
+        self._uncertainty = uncertainty
         
-    def set_value(self, value, override_fixed = False):
+    def set_value(self, val, override_fixed = False):
         if self.fixed and not override_fixed:
             return
         if self.cyclic:
-            self.value = cyclic_boundaries(value, self.limits)
-            self.representation = self.value
+            self._value = cyclic_boundaries(val, self.limits)
+            self._representation = self._value
             return
-        self.value = value
+        self._value = val
         if self.limits is None:
-            self.representation = self.value
+            self._representation = self._value
         else:
-            assert self.limits[0] is None or value > self.limits[0]
-            assert self.limits[1] is None or value < self.limits[1]
-            self.representation = boundaries(self.value, self.limits)
+            assert self.limits[0] is None or val > self.limits[0]
+            assert self.limits[1] is None or val < self.limits[1]
+            self._representation = boundaries(self._value, self.limits)
         
-    def set_representation(self, representation, override_fixed = False):
+    def set_representation(self, rep, override_fixed = False):
         if self.fixed and not override_fixed:
             return
         if self.limits is None or self.cyclic:
-            self.set_value(representation, override_fixed)
+            self.set_value(rep, override_fixed)
         else:
-            self.set_value(inv_boundaries(representation, self.limits), override_fixed)
-
-    def get_value(self):
-        return self.value
-    def get_representation(self):
-        return self.representation
+            self.set_value(inv_boundaries(rep, self.limits), override_fixed)
     
     def __str__(self):
         return f"{self.name}: {self.value} +- {self.uncertainty} [{self.units}{'' if self.fixed is False else ', fixed'}{'' if self.limits is None else (', ' + str(self.limits))}{'' if self.cyclic is False else ', cyclic'}]"
@@ -97,10 +111,10 @@ class Parameter_Array(Parameter):
     multiple values.
     """
     def set_value(self, value, override_fixed = False, index = None):
-        if self.value is None:
-            self.value = []
+        if self._value is None:
+            self._value = []
             for i, val in enumerate(value):
-                self.value.append(Parameter(
+                self._value.append(Parameter(
                     name = f"{self.name}:{i}",
                     limits = self.limits,
                     cyclic = self.cyclic,
@@ -109,41 +123,45 @@ class Parameter_Array(Parameter):
                     units = self.units,
                     uncertainty = self.uncertainty
                 ))
-        if index is None:
+        elif index is None:
             for i in range(len(self.value)):
                 self.value[i].set_value(value[i], override_fixed)
         else:
             self.value[index].set_value(value, override_fixed)
 
-    def get_value(self):
-        return np.array(list(V.value for V in self.value))
-    
-    def get_representation(self):
-        return np.array(list(V.representation for V in self.value))
+    @property
+    def value(self):
+        return np.array(list(V.value for V in self._value))
+    @property
+    def representation(self):
+        return np.array(list(V.representation for V in self._value))
+    @property
+    def uncertainty(self):
+        return np.array(list(V.uncertainty for V in self._value))
         
     def set_representation(self, representation, override_fixed = False, index = None):
         
         if index is None:
             for i in range(len(self.value)):
-                self.value[i].set_representation(representation[i], override_fixed)
+                self._value[i].set_representation(representation[i], override_fixed)
         else:
-            self.value[index].set_representation(representation, override_fixed)
+            self._value[index].set_representation(representation, override_fixed)
 
     def set_uncertainty(self, uncertainty, override_fixed = False, index = None):
         if index is None:
             for i in range(len(self.value)):
-                self.value[i].set_uncertainty(uncertainty[i], override_fixed)
+                self._value[i].set_uncertainty(uncertainty[i], override_fixed)
         else:
-            self.value[index].set_uncertainty(uncertainty, override_fixed)
+            self._value[index].set_uncertainty(uncertainty, override_fixed)
         
         
     def __sub__(self, other):
         res = np.zeros(len(self.value))
         for i in range(len(self.value)):
             if isinstance(other, Parameter_Array):
-                res[i] = self.value[i] - other.value[i]
+                res[i] = self._value[i] - other._value[i]
             elif isinstance(other, Parameter):
-                res[i] = self.value[i] - other
+                res[i] = self._value[i] - other
             else:
                 raise ValueError(f"unrecognized parameter type: {type(other)}")
             
@@ -161,16 +179,16 @@ class Parameter_Array(Parameter):
     
     def __getitem__(self, S):
         if isinstance(S, int):
-            return self.value[S]
+            return self._value[S]
         else:
-            for v in self.value:
+            for v in self._value:
                 if S == v.name:
                     return v
             else:
                 raise KeyError(f"{S} not in {self.name}. {str(self)}")
 
     def __str__(self):
-        return "\n".join([f"{self.name}:"] + list(str(val) for val in self.value))
+        return "\n".join([f"{self.name}:"] + list(str(val) for val in self._value))
         
     def __len__(self):
         return len(self.value)
@@ -188,7 +206,7 @@ class Pointing_Parameter(Parameter):
 
     def sync(self):
         self.update_fixed(self.parameter.fixed)
-        self.set_value(self.parameter.get_value())
+        self.set_value(self.parameter.value)
         self.set_uncertainty(self.parameter.uncertainty)
         
     def update_fixed(self, fixed):
@@ -216,12 +234,12 @@ class Pointing_Parameter_Array(Pointing_Parameter, Parameter_Array):
     
     def set_value(self, value, override_fixed = False, index = None):
         self.parameter.set_value(value, override_fixed, index)
-        if self.value is None:
-            self.value = []
+        if self._value is None:
+            self._value = []
             for i, val in enumerate(value):
-                self.value.append(Pointing_Parameter(
+                self._value.append(Pointing_Parameter(
                     name = f"{self.name}:{i}",
-                    parameter = self.parameter.value[i]
+                    parameter = self.parameter._value[i]
                 ))
         else:
             super().set_value(value, override_fixed, index)

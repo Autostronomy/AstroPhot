@@ -35,7 +35,7 @@ class Warp_Galaxy(Galaxy_Model):
         super()._init_convert_input_units()
         
         if self["PA(R)"].value is not None:
-            self["PA(R)"].set_value(self["PA(R)"].get_value() * np.pi / 180, override_fixed = True)
+            self["PA(R)"].set_value(self["PA(R)"].value * np.pi / 180, override_fixed = True)
 
     def initialize(self, target = None):
         if target is None:
@@ -66,8 +66,8 @@ class Warp_Galaxy(Galaxy_Model):
 
         if R is None:
             R = self.radius_metric(X, Y)
-        PA = UnivariateSpline(self.profR, np.unwrap(self["PA(R)"].get_value()*2)/2, ext = "const", s = 0)
-        q = UnivariateSpline(self.profR, self["q(R)"].get_value(), ext = "const", s = 0)
+        PA = UnivariateSpline(self.profR, np.unwrap(self["PA(R)"].value*2)/2, ext = "const", s = 0)
+        q = UnivariateSpline(self.profR, self["q(R)"].value, ext = "const", s = 0)
         
         return Axis_Ratio_Cartesian(q(R), X, Y, PA(R), inv_scale = True)
 
@@ -78,7 +78,7 @@ class Warp_Galaxy(Galaxy_Model):
         for P in params:
             if not isinstance(params[P], Parameter_Array):
                 continue
-            vals = params[P].get_value()
+            vals = params[P].value
             if params[P].cyclic:
                 period_factor = 2*np.pi / (params[P].limits[1] - params[P].limits[0])
                 vals = np.unwrap(vals * period_factor) / period_factor

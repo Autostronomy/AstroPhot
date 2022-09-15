@@ -25,29 +25,13 @@ class Update_Parameters_Random_Grad(Process):
             if model.locked or model.iteration == 0:
                 continue
 
-            loss_history, param_history = model.get_history(limit = max(N_best, len(model.get_parameters(exclude_fixed = True))+1))
+            loss_history, param_history = model.get_history(limit = max(N_best, len(model.get_parameters(exclude_fixed = True))+1)+1)
 
-            # Pick which loss keys are going to be optimized
             if len(loss_history) == 0:
                 print("skipping")
                 continue
-            # elif len(loss_history) == 1:
-            #     run_loss = list(loss_history.keys())[0]
-            # else:
-            #     if model.name not in self.loss_scheduler:
-            #         self.loss_scheduler[model.name] = []
-            #         for loss_type in loss_history:
-            #             loss_type_base = loss_type.split(" ")[0]
-            #             if not loss_type_base in self.loss_scheduler[model.name]:
-            #                 self.loss_scheduler[model.name].append(loss_type_base)
-            #     run_loss = self.loss_scheduler[model.name][(max(0,model.iteration-1) // N_best) % len(self.loss_scheduler[model.name])]
-            # run_losses = []
-            # for key in loss_history.keys():
-            #     if key.split(" ")[0] == run_loss:
-            #         run_losses.append(key)
-                    
-            # for loss, params in list(loss_history[key] for key in run_losses):
-            # If all params are fixed, skip this optimization step
+
+            oldbest = np.argmin(loss_history[1:N_best+1])
             best = np.argmin(loss_history[:N_best])
             if len(loss_history) >= 2:
                 for par in range(len(param_history[0])):
@@ -72,7 +56,7 @@ class Update_Parameters_Random_Grad(Process):
                         
             # Apply the update to each parameter
             for i, P in enumerate(param_history[0]):
-                model[P.name].set_representation(param_history[best][i].representation + update[i])
+                model[P.name].representation = param_history[best][i].representation + update[i]
             
         return state
 
@@ -92,7 +76,7 @@ class Update_Parameters_Random(Process):
             # Skip locked models
             if model.locked or model.iteration == 0:
                 continue
-            loss_history, param_history = model.get_history(limit = max(N_best, len(model.get_parameters(exclude_fixed = True))+1))
+            loss_history, param_history = model.get_history(limit = N_best)
             best = np.argmin(loss_history[:N_best])
             # Determine the perturbation scale
             param_scale = np.array(list(model[par.name].uncertainty for par in param_history[0]))
@@ -109,6 +93,31 @@ class Update_Parameters_Random(Process):
             update += np.random.normal(scale = param_scale)
             # Apply the update to each parameter
             for i, P in enumerate(param_history[0]):
-                model[P.name].set_representation(param_history[best][i].representation + update[i])
+                model[P.name].representation = param_history[best][i].representation + update[i]
         
         return state
+
+class Update_Parameters_Grad(Process):
+    """
+    Standard gradient descent algorithm for updating parameters using gradients computed by each model on itself.
+    """
+
+    def action(self, state):
+
+        state.models.step_iteration()
+        for model in state.models:
+            
+            # Skip locked models
+            if model.locked or model.iteration == 0:
+                continue
+
+            
+            params = model.get_parameters(exclude_fixed = True).values()
+            
+            param_scale = np.array(list(par.uncertainty for par in params))
+
+            update = np.zeros(len(param_scale))
+
+            for P in params:
+                P.representation = P.representation - model.learning_rate * model.gradient[P.name]
+            

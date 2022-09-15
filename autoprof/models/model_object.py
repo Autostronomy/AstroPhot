@@ -86,7 +86,7 @@ class BaseModel(object):
         # Convert center of mass indices to coordinates
         COM_center = index_to_coord(COM[1], COM[0], target_area)
         # Set the new coordinates as the model center
-        self["center"].set_value(COM_center)
+        self["center"].value = COM_center
 
     def finalize(self):
         pass
@@ -111,7 +111,7 @@ class BaseModel(object):
         working_window = deepcopy(sample_image.window)
 
         if "none" not in self.psf_mode and psf is not None:# fixme could make shifting smarter for psf window
-            self.center_shift = self["center"].get_value() % 1.
+            self.center_shift = self["center"].value % 1.
             working_window.shift_origin(self.center_shift)
 
             if "full" in self.psf_mode or not (self.psf_window + psf.get_resolution(sample_image.pixelscale).border) <= working_window:
@@ -130,7 +130,7 @@ class BaseModel(object):
         if "none" not in self.psf_mode and psf is not None:
             self.convolve_psf(working_image, psf)
             working_image.shift_origin(-self.center_shift) # fixme get sign right
-            self.center_shift = np.zeros(self["center"].get_value().shape)
+            self.center_shift = np.zeros(self["center"].value.shape)
         sample_image += working_image
         if sample_image is self.model_image:
             self.is_sampled = True
@@ -211,6 +211,7 @@ class BaseModel(object):
         if self.locked:
             return
         # fixme add basic numerical derivative
+        
         
     ######################################################################
     from ._model_methods import _set_default_parameters

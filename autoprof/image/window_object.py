@@ -3,7 +3,6 @@ import numpy as np
 class AP_Window(object):
 
     def __init__(self, origin, shape):
-
         self.shape = np.array(shape)
         self.origin = np.array(origin)
         self.center = self.origin + self.shape/2
