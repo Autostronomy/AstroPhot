@@ -1,5 +1,4 @@
-from .image_object import AP_Image
-from .psf_image import PSF_Image
+from .image_object import BaseImage
+from .target_image import Target_Image
 from .model_image import Model_Image
-from .loss_image import Loss_Image
 from .window_object import AP_Window

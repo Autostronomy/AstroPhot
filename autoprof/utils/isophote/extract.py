@@ -1,6 +1,6 @@
 import numpy as np
 from .ellipse import parametric_SuperEllipse, Rscale_SuperEllipse
-from autoprof.utils.conversions.coordinates import Rotate_Cartesian
+from autoprof.utils.conversions.coordinates import Rotate_Cartesian_np
 from autoprof.utils.interpolate import interpolate_Lanczos
 from scipy.stats import iqr
 import logging
@@ -152,7 +152,7 @@ def _iso_extract(
     )
     X, Y = R * X, R * Y
     # rotate ellipse by PA
-    X, Y = Rotate_Cartesian(PARAMS["pa"], X, Y)
+    X, Y = Rotate_Cartesian_np(PARAMS["pa"], X, Y)
     theta = (theta + PARAMS["pa"]) % (2 * np.pi)
     # shift center
     X, Y = X + c["x"], Y + c["y"]

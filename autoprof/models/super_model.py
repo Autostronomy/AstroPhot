@@ -1,154 +1,88 @@
-import numpy as np
-from model_object import BaseModel
+from .core_model import AutoProf_Model
+from autoprof.image import Target_Image, Model_Image
+from copy import deepcopy
+import torch
 
-class SuperModel(BaseModel):
+class Super_Model(AutoProf_Model):
 
-    model_type = "supermodel"
-    parameter_specs = {
-        "center": {"units": "arcsec", "fixed": True, "uncertainty": 0.0}
-    }
-    parameter_qualities = {}
-    global_loss = False
-    global_psf = False
-    
-    def __init__(self, name, target, locked, models, **kwargs):
-        self.models = models
-        self.update_window()
-        super().__init__(name, target, self.window, locked, **kwargs)
+    def __init__(self, name, model_list, target = None, locked = False, **kwargs):
+        super().__init__(name, model_list, target, **kwargs)
+        self.model_list = model_list
+        self.target = self.model_list[0].target if target is None else target
+        self._user_locked = locked
+        self._locked = self._user_locked
+        self.loss = None
+        self.update_fit_window()
 
-    def update_window(self, include_locked = False):
-        new_window = None
-        for model in self.models:
-            if model.locked and not include_locked:
+    def add_model(self, model):
+        self.model_list.append(model)
+        self.update_fit_window()
+        
+    def update_fit_window(self):
+        self.fit_window = None
+        for model in self.model_list:
+            if model.locked:
                 continue
-            if new_window is None:
-                new_window = deepcopy(model.window)
+            if self.fit_window is None:
+                self.fit_window = deepcopy(model.fit_window)
             else:
-                new_window |= model.window
-        self.window = new_window
-
-    def initialize(self, target = None):
-        for model in self.models:
-            model.initialize(target)
+                self.fit_window |= model.fit_window
+        self.model_image = Model_Image(
+            pixelscale = self.target.pixelscale,
+            window = self.fit_window,
+        )
+        
+    def initialize(self):
+        for model in self.model_list:
+            model.initialize()
 
     def finalize(self):
-        for model in self.models:
+        for model in self.model_list:
             model.finalize()
-        # In case parameters were adjusted internally, sync up the pointer values
-        for P in self.parameters:
-            if isinstance(self.parameters[P], Pointing_Parameter):
-                self.parameters[P].sync()
-
-    def sample_model(self, sample_image = None):
-        for model in self.models:
-            model.sample_image(sample_image)
-        if sample_image is None:
-            sample_image = self.model_image
-        super().sample_model(sample_image)
-        if sample_image is self.model_image:
-            for model in self.models:
-                sample_image += model.model_image
-                
-    def convolve_psf(self, working_image, psf = None):
-        if self.global_psf:
-            super().convolve_psf(psf)
-            return
-        for model in self.models:
-            model.convolve_psf(psf)
-
-    def integrate_model(self, working_image, psf = None):
-        if self.global_integrate:
-            super().integrate_model()
-            return
-        for model in self.models:
-            model.integrate_model()
-
-    def add_integrated_model(self):
-        for model in self.models:
-            model.add_integrated_model()
-
-    def compute_loss(self, data):
-        if self.global_loss:
-            super().compute_loss(data)
-            return
-        # If the image is locked, no need to compute the loss
-        if self.locked:
-            return
         
-        for model in self.models:
-            model.compute_loss(data)
-            self.loss += model.loss
-
-    def step_iteration(self):
-        super().step_iteration()
-        for model in self.models:
-            model.step_iteration()
-        # In case parameters were adjusted internally, sync up the pointer values
-        for P in self.parameters:
-            self.parameters[P].sync()
-
-    def set_target(self, target):
-        super().set_target(target)
-        for model in self.models:
-            model.set_target(target)
-
-    def set_window(self, window = None, index_units = True):
-        for model in self.models:
-            model.set_window(window, index_units)
-        self.update_window()
-        super().set_window(self.window)
+    def sample(self):
+        self.model_image.clear_image()
+        self.loss = None
         
-    def scale_window(self, scale):    
-        for model in self.models:
-            model.scale_window(scale)
-        self.update_window()
+        for model in self.model_list:
+            model.sample()
+            self.model_image += model.model_image
+        
+    def compute_loss(self):
+        self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
+        return self.loss
 
-    def update_locked(self, locked):
-        super().update_locked(locked)
-        for model in self.models:
-            model.update_locked(locked)
+    def get_parameters_representation(self, exclude_locked = True):
+        all_parameters = []
+        for model in self.model_list:
+            all_parameters += model.get_parameters_representation(exclude_locked)
+        return all_parameters
+    
+    def get_parameters_value(self, exclude_locked = True):
+        all_parameters = {}
+        for model in self.model_list:
+            values = model.get_parameters_value(exclude_locked)
+            for p in values:
+                all_parameters[f"{model.name}|{p}"] = values[p] 
+        return all_parameters
+    
+    def __getitem__(self, key):
+        if isinstance(key, tuple):
+            return self.model_list[key[0]][key[1]]
 
-    @classmethod
-    def build_parameter_specs(cls, user_specs = None):
-        parameter_specs = super().build_parameter_specs(user_specs)
-        for model in self.models:
-            for P in model.parameter_specs:
-                parameter_specs[f"{model.name}|{P}"] = model.parameter_specs[P]
-        return parameter_specs
-                
-    @classmethod
-    def build_parameter_qualities(cls):
-        parameter_qualities = super().build_parameter_qualities()
-        for model in self.models:
-            for P in model.parameter_qualities:
-                parameter_qualities[f"{model.name}|{P}"] = model.parameter_qualities[P]
-        return parameter_qualities
-                
-    def build_parameters(self):
-        super().build_parameters()
-        for model in self.models:
-            for P in model.parameters:
-                name = f"{model.name}|{P}"
-                if isinstance(model.parameters[P], Parameter_Array):
-                    self.parameters[name] = Pointing_Parameter_Array(name, model.parameters[P])
-                else:
-                    self.parameters[name] = Pointing_Parameter(name, model.parameters[P])
+        if isinstance(key, str) and "|" in key:
+            return self.model_list[int(key[:key.find("|")])][key[key.find("|")+1:]]
+        
+        raise KeyError(f"{key} not in {self.name}. {str(self)}")
+
+    @property
+    def target(self):
+        return self._target
+    @target.setter
+    def target(self, tar):
+        assert isinstance(tar, Target_Image)
+        self._target = tar
+        for model in self.model_list:
+            model.target = tar
             
-    def save_model(self, fileobject):
-        for model in self.models:
-            model.save_model(fileobject)
-
-        
-        
-        
-        
-        
-        
-        
-        
-    
-    
-        
-        
-        
-        
+    from ._model_methods import locked

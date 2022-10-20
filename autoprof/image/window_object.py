@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 class AP_Window(object):
 
@@ -7,6 +8,9 @@ class AP_Window(object):
         self.origin = np.array(origin)
         self.center = self.origin + self.shape/2
 
+    def make_copy(self):
+        return AP_Window(origin = self.origin, shape = self.shape)
+    
     def get_shape(self, pixelscale):
         return np.array(list(int(round(S / pixelscale)) for S in self.shape))
         
@@ -15,9 +19,9 @@ class AP_Window(object):
         Return an index slicing tuple for obj corresponding to this window
         """
         alignment = ((self.origin + self.shape - obj.origin) / obj.pixelscale)
-        if not np.allclose(alignment/np.round(alignment), 1.):
-            print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)# fixme
-            raise ValueError("Cannot determine indices for misaligned windows")
+        # if not np.allclose(alignment/np.round(alignment), 1.):
+        #     print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)# fixme
+        #     raise ValueError("Cannot determine indices for misaligned windows")
         return (
             slice(max(0,int(round((self.origin[0] - obj.window.origin[0])/obj.pixelscale))),
                   min(int(round(obj.window.shape[0]/obj.pixelscale)), int(round((self.origin[0] + self.shape[0] - obj.window.origin[0])/obj.pixelscale)))),
@@ -25,14 +29,17 @@ class AP_Window(object):
                   min(int(round(obj.window.shape[1]/obj.pixelscale)), int(round((self.origin[1] + self.shape[1] - obj.window.origin[1])/obj.pixelscale))))
         )
 
-    def get_coordinate_meshgrid(self, pixelscale, x = 0., y = 0.):
+    def get_coordinate_meshgrid(self, pixelscale):
         return np.meshgrid(
-            np.linspace(self.origin[1] + pixelscale/2 - x, self.origin[1] + self.shape[1] - pixelscale/2 - x, int(round(self.shape[1]/pixelscale)), dtype=float),
-            np.linspace(self.origin[0] + pixelscale/2 - y, self.origin[0] + self.shape[0] - pixelscale/2 - y, int(round(self.shape[0]/pixelscale)), dtype=float),
+            np.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale)))),
+            np.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale)))),
         )
-        
-    def get_data(self, image):
-        return image.data[self.get_indices(image)]
+    def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
+        return torch.meshgrid(
+            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale)))) - x,
+            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale)))) - y,
+            indexing = 'xy',
+        )
         
     def overlap_frac(self, other):
         overlap = self & other
@@ -43,14 +50,14 @@ class AP_Window(object):
     def shift_origin(self, shift):
         self.origin += shift
         self.center += shift
-        
+
     # Window adjustment operators
     def __add__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             new_origin = self.origin - other
             new_shape = self.shape + 2*other
             return AP_Window(new_origin, new_shape)
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             new_origin = self.origin - np.array(other)
             new_shape = self.shape + 2*np.array(other)
             return AP_Window(new_origin, new_shape)
@@ -60,7 +67,7 @@ class AP_Window(object):
             self.origin -= other
             self.shape += 2*other
             return self
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             self.origin -= np.array(other)
             self.shape += 2*np.array(other)
             return self
@@ -70,7 +77,7 @@ class AP_Window(object):
             new_origin = self.origin - other
             new_shape = self.shape + 2*other
             return AP_Window(new_origin, new_shape)
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             new_origin = self.origin - np.array(other)
             new_shape = self.shape + 2*np.array(other)
             return AP_Window(new_origin, new_shape)
@@ -80,7 +87,7 @@ class AP_Window(object):
             self.origin += other
             self.shape -= 2*other
             return self
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             self.origin += np.array(other)
             self.shape -= 2*np.array(other)
             return self
@@ -90,7 +97,7 @@ class AP_Window(object):
             new_shape = self.shape * other
             new_origin = self.center - new_shape / 2
             return AP_Window(new_origin, new_shape)
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             new_shape = self.shape * np.array(other)
             new_origin = self.center - new_shape / 2
             return AP_Window(new_origin, new_shape)
@@ -100,7 +107,7 @@ class AP_Window(object):
             self.shape *= other
             self.origin = self.center - new_window_shape / 2
             return self
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             self.shape *= np.array(other)
             self.origin = self.center - new_window_shape / 2
             return self
@@ -110,7 +117,7 @@ class AP_Window(object):
             new_shape = self.shape / other
             new_origin = self.center - new_shape / 2
             return AP_Window(new_origin, new_shape)
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             new_shape = self.shape / np.array(other)
             new_origin = self.center - new_shape / 2
             return AP_Window(new_origin, new_shape)
@@ -120,7 +127,7 @@ class AP_Window(object):
             self.shape /= other
             self.origin = self.center - new_window_shape / 2
             return self
-        elif (isinstance(other, tuple) or isinstance(other, np.ndarray)) and len(other) == len(self.origin):
+        elif isinstance(other, tuple) and len(other) == len(self.origin):
             self.shape /= np.array(other)
             self.origin = self.center - new_window_shape / 2
             return self

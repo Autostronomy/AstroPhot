@@ -1,17 +1,14 @@
 from .sky_model_object import Sky_Model
 import numpy as np
 from scipy.stats import iqr
+import torch
 
 class FlatSky(Sky_Model):
 
-    model_type = " ".join(("flat", Sky_Model.model_type))
+    model_type = f"flat {Sky_Model.model_type}"
     parameter_specs = {
         "sky": {"units": "flux/arcsec^2"},
         "noise": {"units": "flux/arcsec^2", "limits": (0,None)},
-    }
-    parameter_qualities = {
-        "sky": {"form": "value"},
-        "noise": {"form": "value"},
     }
 
     def _init_convert_input_units(self):
@@ -22,32 +19,30 @@ class FlatSky(Sky_Model):
         if self["noise"].value is not None:
             self["noise"].set_value(self["noise"].value / self.target.pixelscale**2, override_fixed = True)    
     
-    def initialize(self, target = None):        
-        super().initialize(target)
+    def initialize(self):        
+        super().initialize()
 
-        if target is None:
-            target = self.target
         if self["sky"].value is None:
             self["sky"].set_representation(
-                np.median(target[self.model_image].data) / target.pixelscale**2,
+                np.median(self.target[self.model_image].data) / self.target.pixelscale**2,
                 override_fixed=True,
             )
         if self["noise"].value is None:
             self["noise"].set_representation(
-                iqr(target[self.model_image].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale**2),
+                iqr(self.target[self.model_image].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * self.target.pixelscale**2),
                 override_fixed=True,
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                self["noise"].value / np.sqrt(np.prod(self.window.shape)),
+                self["noise"].value / np.sqrt(np.prod(self.fit_window.shape)),
                 override_fixed=True,
             )
         if self["noise"].uncertainty is None:
             self["noise"].set_uncertainty(
-                self["noise"].value / np.sqrt(2 * np.prod(self.window.shape) - 2),
+                self["noise"].value / np.sqrt(2 * np.prod(self.fit_window.shape) - 2),
                 override_fixed=True,
             )
 
-    def evaluate_model(self, X, Y, image):
+    def evaluate_model(self, image):
         
-        return self["sky"].value * image.pixelscale**2
+        return torch.ones(image.data.shape) * (self["sky"].value * image.pixelscale**2)
