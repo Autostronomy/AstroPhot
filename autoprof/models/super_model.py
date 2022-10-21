@@ -2,9 +2,14 @@ from .core_model import AutoProf_Model
 from autoprof.image import Target_Image, Model_Image
 from copy import deepcopy
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 
 class Super_Model(AutoProf_Model):
-
+    learning_rate = 0.2
+    iterations = 500
+    stop_rtol = 1e-6
+    
     def __init__(self, name, model_list, target = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
         self.model_list = model_list
@@ -40,18 +45,55 @@ class Super_Model(AutoProf_Model):
         for model in self.model_list:
             model.finalize()
         
-    def sample(self):
-        self.model_image.clear_image()
+    def sample(self, sample_image = None):
+        if self.locked:
+            return
+        if sample_image is None or sample_image is self.model_image:
+            self.model_image.clear_image()
         self.loss = None
         
         for model in self.model_list:
-            model.sample()
-            self.model_image += model.model_image
+            model.sample(sample_image)
+            if sample_image is None:
+                self.model_image += model.model_image
         
     def compute_loss(self):
         self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
         return self.loss
 
+    def fit(self):
+        optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
+        for epoch in range(self.iterations):
+            if (epoch % int(self.iterations/10)) == 0:
+                print(f"{epoch}/{self.iterations}")
+            optimizer.zero_grad()
+            self.sample()
+            
+            self.compute_loss()
+            self.loss.backward()
+            
+            start_params = []
+            for p in self.get_parameters_representation():
+                pv = p.detach().numpy()
+                try:
+                    float(pv)
+                    start_params.append(pv)
+                except:
+                    start_params += list(pv)
+            optimizer.step()
+            step_params = []
+            for p in self.get_parameters_representation():
+                pv = p.detach().numpy()
+                try:
+                    float(pv)
+                    step_params.append(pv)
+                except:
+                    step_params += list(pv)
+            optimizer.zero_grad()
+            if np.all(np.abs((np.array(start_params) / np.array(step_params)) - 1) < self.stop_rtol):
+                print(epoch)
+                break
+                        
     def get_parameters_representation(self, exclude_locked = True):
         all_parameters = []
         for model in self.model_list:

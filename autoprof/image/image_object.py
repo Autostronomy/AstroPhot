@@ -8,7 +8,7 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
     def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, **kwargs):
 
         assert not (pixelscale is None and window is None)
-        self.data = data if isinstance(data, torch.Tensor) else torch.tensor(data)
+        self.data = data if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float32)
         self.zeropoint = zeropoint
         self.note = note
         if window is None:
@@ -19,7 +19,7 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
         else:
             self.window = window
             self.pixelscale = self.window.shape[0] / self.data.shape[0]
-
+            
     @property
     def origin(self):
         return self.window.origin
@@ -32,7 +32,7 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
             
     def blank_copy(self):
         return self.__class__(
-            data = torch.zeros(self.data.shape),
+            data = torch.zeros(self.data.shape, dtype = torch.float32),
             zeropoint = self.zeropoint,
             note = self.note,
             window = self.window,
@@ -48,9 +48,9 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
                       max(self.origin[1], window.origin[1]))
         )
 
-    def crop(self, pixels):
-        self.data = self.data[pixels:-pixels,pixels:-pixels]
-        self.window -= pixels * self.pixelscale
+    def crop(self, *pixels):
+        self.data = self.data[pixels[0]:-pixels[0],pixels[1]:-pixels[1]]
+        self.window -= tuple(np.array(pixels) * self.pixelscale)
 
     def get_coordinate_meshgrid(self):
         return self.window.get_coordinate_meshgrid(self.pixelscale)
@@ -59,7 +59,7 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
 
     def __sub__(self, other):
         if isinstance(other, BaseImage):
-            if self.pixelscale != other.pixelscale:
+            if not np.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot subtract images with different pixelscale!")
             if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
                 raise IndexError("images have no overlap, cannot subtract!")
@@ -70,7 +70,7 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
         
     def __add__(self, other): # fixme
         if isinstance(other, BaseImage):
-            if self.pixelscale != other.pixelscale:
+            if not np.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
             if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
                 return self

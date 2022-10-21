@@ -6,6 +6,7 @@ import torch
 from torch.nn.functional import conv2d
 from copy import deepcopy
 from .core_model import AutoProf_Model
+import matplotlib.pyplot as plt
 
 class BaseModel(AutoProf_Model):
 
@@ -20,7 +21,8 @@ class BaseModel(AutoProf_Model):
     integrate_mode = "none" # none, window, full
     integrate_window_size = 10
     integrate_factor = 5
-    learning_rate = 0.1
+    learning_rate = 0.2
+    iterations = 100
 
     # settings
     special_kwargs = ["parameters"]
@@ -70,12 +72,12 @@ class BaseModel(AutoProf_Model):
             # Convert center coordinates to target area array indices
             init_icenter = coord_to_index(self["center"].value[0].detach().item(), self["center"].value[1].detach().item(), target_area)
             # Compute center of mass in window
-            COM = center_of_mass((init_icenter[1], init_icenter[0]), target_area.data.detach().numpy(), window = 5)
+            COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().numpy())
             if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
                 print("center of mass failed, using center of window")
                 return
             # Convert center of mass indices to coordinates
-            COM_center = index_to_coord(COM[1], COM[0], target_area)
+            COM_center = index_to_coord(COM[0], COM[1], target_area)
             # Set the new coordinates as the model center
             self["center"].value = COM_center
 
@@ -108,7 +110,7 @@ class BaseModel(AutoProf_Model):
         working_window = deepcopy(sample_image.window)
         if "full" in self.psf_mode:
             working_window += self.target.psf_border 
-            self.center_shift = self["center"].value % 1. # fixme only move window
+            self.center_shift = self["center"].value.detach().numpy() % 1. # fixme only move window
             working_window.shift_origin(self.center_shift)
             
         working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
@@ -123,20 +125,20 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = working_window & self.psf_window
             sub_window += self.target.psf_border
-            self.center_shift = self["center"].value % 1.
+            self.center_shift = self["center"].value.detach().numpy() % 1.
             sub_window.shift_origin(self.center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
             sub_image.data = self.evaluate_model(sub_image)
             self.integrate_model(sub_image)
-            sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")
-            self.center_shift = torch.zeros(2)
+            sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
             sub_image.shift_origin(-self.center_shift)
-            sub_image.crop(self.target.psf_border_int)
+            self.center_shift = torch.zeros(2)
+            sub_image.crop(*self.target.psf_border_int)
             working_image.replace(sub_image)
         else:
             self.integrate_model(working_image)
 
-        sample_image.replace(working_image)
+        sample_image += working_image
             
     def integrate_model(self, working_image):        
         # Determine the on-sky window in which to integrate
@@ -158,8 +160,8 @@ class BaseModel(AutoProf_Model):
         integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window)
         
         # Evaluate the model at the fine sampling points
-        X, Y = integrate_image.get_coordinate_meshgrid(self["center"][0].value, self["center"][1].value)
-        integrate_image.data = self.evaluate_model(X, Y, integrate_image)
+        X, Y = integrate_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+        integrate_image.data = self.evaluate_model(integrate_image)
         
         # Replace the image data where the integration has been done
         working_image.replace(working_window,
@@ -175,6 +177,24 @@ class BaseModel(AutoProf_Model):
         self.loss = None
         self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
         return self.loss
+
+    def fit(self):
+        optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
+        for epoch in range(self.iterations):
+            if (epoch % int(self.iterations/10)) == 0:
+                print(f"{epoch}/{self.iterations}")
+            optimizer.zero_grad()
+            
+            self.sample()
+            
+            self.compute_loss()
+            
+            self.loss.backward()
+            
+            optimizer.step()
+            
+            optimizer.zero_grad()
+
         
     ######################################################################
     from ._model_methods import _set_default_parameters

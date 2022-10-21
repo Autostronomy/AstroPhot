@@ -45,7 +45,9 @@ def set_fit_window(self, window):
     else:
         self._fit_window = AP_Window(
             origin = self.target.origin + np.array((window[1][0],window[0][0]))*self.target.pixelscale,
-            shape = np.array((window[0][1] - window[0][0], window[1][1] - window[1][0]))*self.target.pixelscale,
+            shape = np.array((window[1][1] - window[1][0], window[0][1] - window[0][0]))*self.target.pixelscale,
+            # origin = self.target.origin + np.array((window[1][0],window[0][0]))*self.target.pixelscale,
+            # shape = np.array((window[0][1] - window[0][0], window[1][1] - window[1][0]))*self.target.pixelscale,
         )
     if self._base_window is None:
         self._base_window = deepcopy(self._fit_window)

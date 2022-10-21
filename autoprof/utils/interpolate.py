@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.convolution import convolve, convolve_fft
 import torch
+from torch.nn.functional import conv2d
 
 def window_function(img, X, Y, func, window):
     pass
@@ -74,15 +75,15 @@ def arbitrary_Lanczos(I, X, Y, scale):
     return np.array(F)
 
 def _shift_Lanczos_kernel(dx, dy, scale):
-    xx = np.arange(int(-scale), int(scale+1)) + dx
-    yy = np.arange(int(-scale), int(scale+1)) + dy
-    Lx = np.sinc(xx) * np.sinc(xx / scale)
-    Ly = np.sinc(yy) * np.sinc(yy / scale)
+    xx = torch.arange(int(-scale), int(scale+1)) + dx
+    yy = torch.arange(int(-scale), int(scale+1)) + dy
+    Lx = torch.sinc(xx) * torch.sinc(xx / scale)
+    Ly = torch.sinc(yy) * torch.sinc(yy / scale)
     Lx[0] = 0
     Ly[0] = 0
-    LXX, LYY = np.meshgrid(Lx, Ly)
+    LXX, LYY = torch.meshgrid(Lx, Ly, indexing = 'xy')
     LL = LXX * LYY
-    w = np.sum(LL)
+    w = torch.sum(LL)
     LL /= w
     return LL
 
@@ -90,10 +91,8 @@ def shift_Lanczos(I, dx, dy, scale):
     """
     Apply Lanczos interpolation to shift by less than a pixel in x and y
     """
-    LL = _shift_Lanczos_kernel(dx,dy, scale)
-    if scale < 8 and max(I.shape) < 100:
-        return convolve(I, LL, boundary = "extend")
-    return convolve_fft(I, LL, boundary = "wrap")    
+    LL = _shift_Lanczos_kernel(-dx,-dy, scale)
+    return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
 
 def interpolate_Lanczos_grid(img, X, Y, scale):
     """

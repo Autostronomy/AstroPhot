@@ -101,7 +101,7 @@ class Parameter(object):
         if rep is None:
             self._representation = None
         elif index is None:
-            self._representation = rep if isinstance(rep, torch.Tensor) else torch.tensor(rep, dtype = torch.float32)
+            self._representation = rep if isinstance(rep, torch.Tensor) else torch.tensor(rep, dtype = torch.float64)
         else:
             self._representation[index] = rep
         if self._representation is not None:
