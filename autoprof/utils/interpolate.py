@@ -6,11 +6,8 @@ from torch.nn.functional import conv2d
 def window_function(img, X, Y, func, window):
     pass
 
-
-import torch
-
 def _h_poly(t):
-    tt = t[None, :]**torch.arange(4, device=t.device)[:, None]
+    tt = t[None, :]**(torch.arange(4, device=t.device)[:, None])
     A = torch.tensor([
         [1, 0, -3, 2],
         [0, 1, -2, 1],
@@ -18,13 +15,16 @@ def _h_poly(t):
         [0, 0, -1, 1]
     ], dtype=t.dtype, device=t.device)
     return A @ tt
+
 def cubic_spline_torch(x, y, xs):
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
     m = torch.cat([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
-    idxs = torch.searchsorted(x[1:], xs)
+    idxs = torch.searchsorted(x[:-1], xs) - 1
     dx = (x[idxs + 1] - x[idxs])
     hh = _h_poly((xs - x[idxs]) / dx)
-    return hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
+    ret = hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
+    ret[xs > x[-1]] = y[-1]
+    return ret
 
 
 def interpolate_bicubic(img, X, Y):
@@ -75,8 +75,8 @@ def arbitrary_Lanczos(I, X, Y, scale):
     return np.array(F)
 
 def _shift_Lanczos_kernel(dx, dy, scale):
-    xx = torch.arange(int(-scale), int(scale+1)) + dx
-    yy = torch.arange(int(-scale), int(scale+1)) + dy
+    xx = torch.flip(torch.arange(int(-scale), int(scale+1)) + dx, (0,))
+    yy = torch.flip(torch.arange(int(-scale), int(scale+1)) + dy, (0,))
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
     Lx[0] = 0
@@ -91,7 +91,7 @@ def shift_Lanczos(I, dx, dy, scale):
     """
     Apply Lanczos interpolation to shift by less than a pixel in x and y
     """
-    LL = _shift_Lanczos_kernel(-dx,-dy, scale)
+    LL = _shift_Lanczos_kernel(dx, dy, scale)
     return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
 
 def interpolate_Lanczos_grid(img, X, Y, scale):

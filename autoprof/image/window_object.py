@@ -29,10 +29,10 @@ class AP_Window(object):
                   min(int(round(obj.window.shape[1]/obj.pixelscale)), int(round((self.origin[1] + self.shape[1] - obj.window.origin[1])/obj.pixelscale))))
         )
 
-    def get_coordinate_meshgrid(self, pixelscale):
+    def get_coordinate_meshgrid_np(self, pixelscale, x = 0., y = 0.):
         return np.meshgrid(
-            np.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale)))),
-            np.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale)))),
+            np.linspace(self.origin[1] + pixelscale/2 - x, self.origin[1] + self.shape[1] - pixelscale/2 - x, int(round((self.shape[1]/pixelscale)))),
+            np.linspace(self.origin[0] + pixelscale/2 - y, self.origin[0] + self.shape[0] - pixelscale/2 - y, int(round((self.shape[0]/pixelscale)))),
         )
     def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
         return torch.meshgrid(

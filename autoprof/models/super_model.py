@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 class Super_Model(AutoProf_Model):
     learning_rate = 0.2
-    iterations = 500
-    stop_rtol = 1e-6
+    max_iterations = 256
+    stop_rtol = 1e-5
     
     def __init__(self, name, model_list, target = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
@@ -40,6 +40,34 @@ class Super_Model(AutoProf_Model):
     def initialize(self):
         for model in self.model_list:
             model.initialize()
+    def initialize(self):
+        for model in self.model_list:
+            model.locked = True
+        self.sample()
+        plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
+        plt.axis("off")
+        plt.tight_layout()
+        plt.savefig(f"frames/init_frame_{0:04d}.jpg", dpi = 400)
+        plt.close()
+        plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
+        plt.axis("off")
+        plt.tight_layout()
+        plt.savefig(f"frames/init_residual_frame_{0:04d}.jpg", dpi = 400)
+        plt.close()
+        for mi, model in enumerate(self.model_list):
+            model.locked = False
+            model.initialize()
+            self.sample()
+            plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
+            plt.axis("off")
+            plt.tight_layout()
+            plt.savefig(f"frames/init_frame_{mi+1:04d}.jpg", dpi = 400)
+            plt.close()
+            plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
+            plt.axis("off")
+            plt.tight_layout()
+            plt.savefig(f"frames/init_residual_frame_{mi+1:04d}.jpg", dpi = 400)
+            plt.close()
 
     def finalize(self):
         for model in self.model_list:
@@ -53,6 +81,8 @@ class Super_Model(AutoProf_Model):
         self.loss = None
         
         for model in self.model_list:
+            if model.locked:
+                continue
             model.sample(sample_image)
             if sample_image is None:
                 self.model_image += model.model_image
@@ -63,12 +93,22 @@ class Super_Model(AutoProf_Model):
 
     def fit(self):
         optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
-        for epoch in range(self.iterations):
-            if (epoch % int(self.iterations/10)) == 0:
-                print(f"{epoch}/{self.iterations}")
+        for epoch in range(self.max_iterations):
+            if (epoch % int(self.max_iterations/10)) == 0:
+                print(f"{epoch}/{self.max_iterations}")
             optimizer.zero_grad()
             self.sample()
             
+            plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
+            plt.axis("off")
+            plt.tight_layout()
+            plt.savefig(f"frames/sample_frame_{epoch:04d}.jpg", dpi = 400)
+            plt.close()
+            plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
+            plt.axis("off")
+            plt.tight_layout()
+            plt.savefig(f"frames/sample_residual_frame_{epoch:04d}.jpg", dpi = 400)
+            plt.close()
             self.compute_loss()
             self.loss.backward()
             

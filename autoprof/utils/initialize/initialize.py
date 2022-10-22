@@ -42,7 +42,7 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         if n_isophotes == 1:
             isophote_radii = [R]
         else:
-            isophote_radii = np.linspace(0,R, n_isophotes + 1)[1:]
+            isophote_radii = np.linspace(0,R, n_isophotes)
     elif hasattr(R, "__len__"):
         isophote_radii = R
     elif hasattr(pa, "__len__"):

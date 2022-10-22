@@ -22,7 +22,7 @@ class BaseModel(AutoProf_Model):
     integrate_window_size = 10
     integrate_factor = 5
     learning_rate = 0.2
-    iterations = 100
+    max_iterations = 256
 
     # settings
     special_kwargs = ["parameters"]
@@ -125,7 +125,7 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = working_window & self.psf_window
             sub_window += self.target.psf_border
-            self.center_shift = self["center"].value.detach().numpy() % 1.
+            self.center_shift = ((self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
             sub_window.shift_origin(self.center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
             sub_image.data = self.evaluate_model(sub_image)
@@ -180,9 +180,9 @@ class BaseModel(AutoProf_Model):
 
     def fit(self):
         optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
-        for epoch in range(self.iterations):
-            if (epoch % int(self.iterations/10)) == 0:
-                print(f"{epoch}/{self.iterations}")
+        for epoch in range(self.max_iterations):
+            if (epoch % int(self.max_iterations/10)) == 0:
+                print(f"{epoch}/{self.max_iterations}")
             optimizer.zero_grad()
             
             self.sample()

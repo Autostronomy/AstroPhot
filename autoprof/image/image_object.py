@@ -52,8 +52,8 @@ class BaseImage(object):# refactor to put pixelscale first, then allow pixelscal
         self.data = self.data[pixels[0]:-pixels[0],pixels[1]:-pixels[1]]
         self.window -= tuple(np.array(pixels) * self.pixelscale)
 
-    def get_coordinate_meshgrid(self):
-        return self.window.get_coordinate_meshgrid(self.pixelscale)
+    def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
+        return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
 

@@ -22,7 +22,7 @@ class Warp_Galaxy(Galaxy_Model):
         super()._init_convert_input_units()
         
         if self["PA(R)"].value is not None:
-            self["PA(R)"].set_value(self["PA(R)"].value * np.pi / 180, override_fixed = True)
+            self["PA(R)"].set_value(self["PA(R)"].value * np.pi / 180, override_locked = True)
 
     def initialize(self):
         super().initialize()
@@ -30,10 +30,10 @@ class Warp_Galaxy(Galaxy_Model):
             return
 
         if self["PA(R)"].value is None:
-            self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value, override_fixed = True)
+            self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value.detach().item(), override_locked = True)
             
         if self["q(R)"].value is None:
-            self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_fixed = True)
+            self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_locked = True)
             
     def set_fit_window(self, window):
         super().set_fit_window(window)
@@ -48,6 +48,6 @@ class Warp_Galaxy(Galaxy_Model):
     def transform_coordinates(self, X, Y):
         X, Y = super().transform_coordinates(X, Y)
         R = self.radius_metric(X, Y)
-        PA = cubic_spline_torch(self.profR, self["PA(R)"].value, R)
-        q = cubic_spline_torch(self.profR, self["q(R)"].value, R)
+        PA = cubic_spline_torch(self.profR, self["PA(R)"].value, R.view(-1)).view(*R.shape)
+        q = cubic_spline_torch(self.profR, self["q(R)"].value, R.view(-1)).view(*R.shape)
         return Axis_Ratio_Cartesian(q, X, Y, PA, inv_scale = True) # fixme check inv_scale
