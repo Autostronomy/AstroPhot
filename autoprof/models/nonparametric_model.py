@@ -24,7 +24,7 @@ class NonParametric_Galaxy(Galaxy_Model):
 
         if self.profR is None:
             self.profR = [0,1]
-            while self.profR[-1] < np.sqrt(np.sum((self.fit_window.shape/2)**2)):
+            while self.profR[-1] < min(self.fit_window.shape/2):
                 self.profR.append(self.profR[-1] + max(1,self.profR[-1]*0.2))
             self.profR.pop()
             self.profR = torch.tensor(self.profR)

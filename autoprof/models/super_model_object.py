@@ -89,10 +89,6 @@ class Super_Model(AutoProf_Model):
             if sample_image is None:
                 self.model_image += model.model_image
         
-    def compute_loss(self):
-        self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
-        return self.loss
-                        
     def get_parameters_representation(self, exclude_locked = True):
         all_parameters = []
         for model in self.model_list:

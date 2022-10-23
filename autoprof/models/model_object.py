@@ -152,7 +152,7 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = working_window & self.psf_window
             sub_window += self.target.psf_border
-            self.center_shift = ((self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
+            self.center_shift = ((0.5 + self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
             sub_window.shift_origin(self.center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
             sub_image.data = self.evaluate_model(sub_image)
@@ -206,15 +206,6 @@ class BaseModel(AutoProf_Model):
                               ), dim = (1,3))
         )
 
-    def compute_loss(self):
-        """Compute a standard Chi^2 loss given the target image, model, and
-        variance image. Typically if overloaded this will also be
-        called with super() and higher methods will multiply or add to
-        the loss.
-
-        """
-        self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
-        return self.loss
 
     # Extra background methods for the basemodel
     ######################################################################

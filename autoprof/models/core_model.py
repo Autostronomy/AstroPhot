@@ -16,11 +16,20 @@ class AutoProf_Model(object):
 
     def __init__(self, name, *args, **kwargs):
         self.name = name
+        self.epoch = None
     
     def initialize(self):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
+
+        """
+        pass
+
+    def startup(self):
+        """Run immediately before fitting begins. Typically this is not
+        needed, though it is available for models which require
+        specific configuration for fitting, see also "finalize"
 
         """
         pass
@@ -40,11 +49,19 @@ class AutoProf_Model(object):
         pass
 
     def compute_loss(self):
-        """Determine a realnumbered value to be minimized while optimizing
-        model parameters.
+        """Compute a standard Chi^2 loss given the target image, model, and
+        variance image. Typically if overloaded this will also be
+        called with super() and higher methods will multiply or add to
+        the loss.
 
         """
-        pass
+        if self.target.masked:
+            mask = np.logical_not(self.target[self.fit_window].mask)
+            self.loss = torch.sum(torch.pow((self.target[self.fit_window].data[mask] - self.model_image.data[mask]), 2) / self.target[self.fit_window].variance[mask])
+        else:
+            self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
+            
+        return self.loss
 
     def get_parameters_representation(self):
         """Get the optimizer friently representations of all the non-locked
@@ -60,9 +77,10 @@ class AutoProf_Model(object):
         pass
     
     def fit(self):
-        """fit the model to data.
+        """iteratively fit the model to data.
 
         """
+        self.startup()
         optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
         for epoch in range(self.max_iterations):
             self.epoch = epoch
@@ -102,7 +120,7 @@ class AutoProf_Model(object):
                 except:
                     step_params += list(pv)
             optimizer.zero_grad()
-            if np.all(np.abs((np.array(start_params) / np.array(step_params)) - 1) < self.stop_rtol):
+            if np.allclose(start_params, step_params, rtol = self.stop_rtol, atol = 0.):
                 print(epoch)
                 break
         self.finalize()
