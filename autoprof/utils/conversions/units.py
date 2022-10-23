@@ -1,10 +1,17 @@
 import numpy as np
 
 def flux_to_sb(flux, pixscale, zeropoint):
+    """Conversion from flux units to logarithmic surface brightness
+    units.
+
+    """
     return -2.5 * np.log10(flux) + zeropoint + 5 * np.log10(pixscale)
 
 
 def flux_to_mag(flux, zeropoint, fluxe=None):
+    """Converts a flux total into logarithmic magnitude units.
+
+    """
     if fluxe is None:
         return -2.5 * np.log10(flux) + zeropoint
     else:
@@ -12,10 +19,16 @@ def flux_to_mag(flux, zeropoint, fluxe=None):
 
 
 def sb_to_flux(sb, pixscale, zeropoint):
+    """Converts logarithmic surface brightness units into flux units.
+
+    """
     return (pixscale ** 2) * 10 ** (-(sb - zeropoint) / 2.5)
 
 
 def mag_to_flux(mag, zeropoint, mage=None):
+    """converts logarithmic magnitude units into a flux total.
+
+    """
     if mage is None:
         return 10 ** (-(mag - zeropoint) / 2.5)
     else:

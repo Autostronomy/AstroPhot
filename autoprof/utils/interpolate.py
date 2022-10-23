@@ -15,8 +15,10 @@ def _h_poly(t):
         [0, 0, -1, 1]
     ], dtype=t.dtype, device=t.device)
     return A @ tt
-
 def cubic_spline_torch(x, y, xs):
+    """
+    1d Cubic spline function implimented for pytorch
+    """
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
     m = torch.cat([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
     idxs = torch.searchsorted(x[:-1], xs) - 1
@@ -28,6 +30,9 @@ def cubic_spline_torch(x, y, xs):
 
 
 def interpolate_bicubic(img, X, Y):
+    """
+    wrapper for scipy bivariate spline interpolation
+    """
     f_interp = RectBivariateSpline(
         np.arange(dat.shape[0], dtype=np.float32),
         np.arange(dat.shape[1], dtype=np.float32),
@@ -36,6 +41,10 @@ def interpolate_bicubic(img, X, Y):
     return f_interp(Y, X, grid=False)
 
 def Lanczos_kernel(dx, dy, scale):
+    """Kernel function for Lanczos interpolation, defines the
+    interpolation behavior between pixels.
+
+    """
     xx = np.arange(int(-scale+1), int(scale+1)) + dx
     yy = np.arange(int(-scale+1), int(scale+1)) + dy
     Lx = np.sinc(xx) * np.sinc(xx / scale)
@@ -48,7 +57,7 @@ def Lanczos_kernel(dx, dy, scale):
     
 def point_Lanczos(I, X, Y, scale):
     """
-    Apply Lanczos interpolation to evaluate a single point
+    Apply Lanczos interpolation to evaluate a single point.
     """
     ranges = [
         [int(np.floor(X)-scale), int(np.floor(X)+scale)],
@@ -66,8 +75,9 @@ def point_Lanczos(I, X, Y, scale):
     return np.sum(F * LL)
 
 def arbitrary_Lanczos(I, X, Y, scale):
-    """
-    Apply Lanczos interpolation for a list of coordinates with unspecified structure.
+    """Apply Lanczos interpolation for a list of coordinates with
+    unspecified structure.
+
     """
     F = []
     for x, y in zip(X, Y):
@@ -75,6 +85,10 @@ def arbitrary_Lanczos(I, X, Y, scale):
     return np.array(F)
 
 def _shift_Lanczos_kernel(dx, dy, scale):
+    """convolution kernel for shifting all pixels in a grid by some
+    sub-pixel length.
+
+    """
     xx = torch.flip(torch.arange(int(-scale), int(scale+1)) + dx, (0,))
     yy = torch.flip(torch.arange(int(-scale), int(scale+1)) + dy, (0,))
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
@@ -88,8 +102,9 @@ def _shift_Lanczos_kernel(dx, dy, scale):
     return LL
 
 def shift_Lanczos(I, dx, dy, scale):
-    """
-    Apply Lanczos interpolation to shift by less than a pixel in x and y
+    """Apply Lanczos interpolation to shift by less than a pixel in x and
+    y.
+
     """
     LL = _shift_Lanczos_kernel(dx, dy, scale)
     return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
@@ -181,6 +196,9 @@ def interpolate_Lanczos(img, X, Y, scale):
     return np.array(flux)
 
 def nearest_neighbor(img, X, Y):
+    """Interpolation using the nearest pixel value.
+
+    """
     return img[
         np.clip(np.round(Y).astype(int), a_min = 0, a_max = img.shape[0] - 1),
         np.clip(np.round(X).astype(int), a_min = 0, a_max = img.shape[1] - 1),

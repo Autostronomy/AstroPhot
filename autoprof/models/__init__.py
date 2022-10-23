@@ -1,5 +1,5 @@
 from .model_object import BaseModel
-from .parameter_object import Parameter, Pointing_Parameter
+from .parameter_object import Parameter
 from .galaxy_model_object import Galaxy_Model
 from .sersic_model import Sersic_Galaxy, Sersic_Warp
 from .super_model_object import Super_Model

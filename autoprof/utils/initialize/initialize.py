@@ -4,6 +4,10 @@ from scipy.stats import iqr
 from scipy.fftpack import fft
 
 def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3, more = False):
+    """Method for quickly extracting a small number of elliptical
+    isophotes for the sake of initializing other models.
+
+    """
 
     if pa is None:
         pa = 0.

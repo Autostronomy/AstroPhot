@@ -1,5 +1,5 @@
 from autoprof.utils.initialize import isophotes
-from autoprof.utils.parametric_profiles import sersic, sersic_np, gaussian_torch, gaussian_np
+from autoprof.utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
 from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 import numpy as np
 import matplotlib.pyplot as plt
@@ -58,7 +58,7 @@ def sersic_initialize(self):
 def sersic_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.model_image
-    return sersic(R, self["n"].value, self["Rs"].value, self["I0"].value * sample_image.pixelscale**2)
+    return sersic_torch(R, self["n"].value, self["Rs"].value, self["I0"].value * sample_image.pixelscale**2)
 
 # Gaussian
 ######################################################################

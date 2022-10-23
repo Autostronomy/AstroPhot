@@ -3,6 +3,13 @@ import torch
 import matplotlib.pyplot as plt
 
 def center_of_mass(center, image, window = None):
+    """Iterative light weighted center of mass optimization. Each step
+    determines the light weighted center of mass within a small
+    window. The new center is used to create a new window. This
+    continues until the center no longer updates or an image boundary
+    is reached.
+
+    """
     if window is None:
         window = max(min(int(min(image.shape)/10), 20), 6)
     init_center = center

@@ -18,7 +18,7 @@ class Constrained_Model(Super_Model):
     constraint_delay = 10
     constraint_strength = 1e-1
     def __init__(self, *args, **kwargs):
-        super().__init__(*args,**kwargs):
+        super().__init__(*args,**kwargs)
         self.constraints = kwargs.get("constraints", None)
         
     def compute_loss(self):

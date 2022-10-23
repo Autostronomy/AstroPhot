@@ -2,12 +2,19 @@ import numpy as np
 import torch
 
 class AP_Window(object):
+    """class to define a window on the sky in coordinate space. These
+    windows can undergo arithmetic an preserve logical behavior. Image
+    objects can also be indexed using windows and will return an
+    appropriate subsection of their data.
 
+    """
     def __init__(self, origin, shape):
         self.shape = np.array(shape)
         self.origin = np.array(origin)
-        self.center = self.origin + self.shape/2
 
+    @property
+    def center(self):
+        return self.origin + self.shape/2
     def make_copy(self):
         return AP_Window(origin = self.origin, shape = self.shape)
     
@@ -49,7 +56,6 @@ class AP_Window(object):
 
     def shift_origin(self, shift):
         self.origin += shift
-        self.center += shift
 
     # Window adjustment operators
     def __add__(self, other):
@@ -157,7 +163,6 @@ class AP_Window(object):
         new_end = np.maximum(self.origin + self.shape, other.origin + other.shape)
         self.origin = new_origin
         self.shape = new_end - new_origin
-        self.center = self.origin + self.shape/2
         return self
     def __and__(self, other):
         new_origin = np.maximum(self.origin, other.origin)
@@ -168,7 +173,6 @@ class AP_Window(object):
         new_end = np.minimum(self.origin + self.shape, other.origin + other.shape)
         self.origin = new_origin
         self.shape = new_end - new_origin
-        self.center = self.origin + self.shape/2
         return self
         
     def __str__(self):

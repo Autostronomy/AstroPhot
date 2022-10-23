@@ -5,7 +5,13 @@ import torch
 import numpy as np
 
 class Model_Image(BaseImage):
+    """Image object which represents the sampling of a model at the given
+    coordinates of the image. Extra arithmetic operations are
+    available which can update model values in the image. The whole
+    model can be shifted by less than a pixel to account for sub-pixel
+    accuracy.
 
+    """
     def __init__(self, pixelscale = None, data = None, window = None, **kwargs):
         assert not (data is None and window is None)
         if data is None:

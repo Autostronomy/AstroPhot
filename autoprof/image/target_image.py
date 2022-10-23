@@ -3,7 +3,10 @@ import torch
 import numpy as np
 
 class Target_Image(BaseImage):
+    """Image object which represents the data to be fit by a model. It
+    can include a variance image and PSF.
 
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_variance(kwargs.get("variance", None))

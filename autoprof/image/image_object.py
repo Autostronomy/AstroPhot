@@ -3,7 +3,15 @@ import numpy as np
 from copy import deepcopy
 from .window_object import AP_Window
 
-class BaseImage(object):# refactor to put pixelscale first, then allow pixelscale plus window as initialization
+class BaseImage(object):
+    """Core class to represent images. Any image is represented by a data
+    matrix, pixelscale, and window in cooridnate space. With this
+    information, an image object can undergo arithmatic with other
+    image objects while preserving logical image boundaries. The image
+    object can also determine coordinate locations for all of its
+    pixels (get_coordinate_meshgrid).
+
+    """
 
     def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, **kwargs):
 
