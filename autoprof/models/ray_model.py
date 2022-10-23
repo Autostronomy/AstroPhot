@@ -3,19 +3,10 @@ from autoprof.utils.interpolate import cubic_spline_torch
 import numpy as np
 import torch
 from autoprof.utils.conversions.coordinates import Axis_Ratio_Cartesian
-from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 
-class Warp_Galaxy(Galaxy_Model):
-    """Galaxy model which includes radially varrying PA and q
-    profiles. This works by warping the cooridnates using the same
-    transform for a global PA/q except applied to each pixel
-    individually. In the limit that PA and q are a constant, this
-    recovers a basic galaxy model with global PA/q. However, a linear
-    PA profile will give a spiral appearance, variations of PA/q
-    profiles can create complex galaxy models.
+class Ray_Galaxy(Galaxy_Model):
 
-    """
-    model_type = " ".join(("warp", Galaxy_Model.model_type))
+    model_type = " ".join(("ray", Galaxy_Model.model_type))
     parameter_specs = {
         "q(R)": {"units": "b/a", "limits": (0,1), "uncertainty": 0.04},
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
@@ -25,6 +16,7 @@ class Warp_Galaxy(Galaxy_Model):
         if not hasattr(self, "profR"):
             self.profR = None
         super().__init__(*args, **kwargs)
+        self.rays = int(kwargs.get("rays", 1))
 
     def _init_convert_input_units(self):
         super()._init_convert_input_units()
@@ -53,9 +45,11 @@ class Warp_Galaxy(Galaxy_Model):
             self.profR.pop()
             self.profR = torch.tensor(self.profR)
 
-    def transform_coordinates(self, X, Y):
-        X, Y = super().transform_coordinates(X, Y)
-        R = self.radius_metric(X, Y)
-        PA = cubic_spline_torch(self.profR, self["PA(R)"].value, R.view(-1)).view(*R.shape)
-        q = cubic_spline_torch(self.profR, self["q(R)"].value, R.view(-1)).view(*R.shape)
-        return Axis_Ratio_Cartesian(q, X, Y, PA, inv_scale = True) # fixme check inv_scale
+    def brightness_model(self, R, T, image):
+        # fixme
+            
+    def evaluate_model(self, image):
+        X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+        XX, YY = self.transform_coordinates(X, Y)
+        
+        return self.brightness_model(self.radius_metric(XX, YY), torch.atan2(YY, XX), image)

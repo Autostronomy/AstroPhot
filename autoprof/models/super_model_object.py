@@ -6,10 +6,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Super_Model(AutoProf_Model):
-    learning_rate = 0.2
-    max_iterations = 256
-    stop_rtol = 1e-5
-    
+    """Model object which represents a list of other models. For each
+    general AutoProf model method, this calls all the appropriate
+    models from its list and combines their output into a single
+    summed model.
+
+    """
     def __init__(self, name, model_list, target = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
         self.model_list = model_list
@@ -90,49 +92,6 @@ class Super_Model(AutoProf_Model):
     def compute_loss(self):
         self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
         return self.loss
-
-    def fit(self):
-        optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
-        for epoch in range(self.max_iterations):
-            if (epoch % int(self.max_iterations/10)) == 0:
-                print(f"{epoch}/{self.max_iterations}")
-            optimizer.zero_grad()
-            self.sample()
-            
-            plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
-            plt.axis("off")
-            plt.tight_layout()
-            plt.savefig(f"frames/sample_frame_{epoch:04d}.jpg", dpi = 400)
-            plt.close()
-            plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
-            plt.axis("off")
-            plt.tight_layout()
-            plt.savefig(f"frames/sample_residual_frame_{epoch:04d}.jpg", dpi = 400)
-            plt.close()
-            self.compute_loss()
-            self.loss.backward()
-            
-            start_params = []
-            for p in self.get_parameters_representation():
-                pv = p.detach().numpy()
-                try:
-                    float(pv)
-                    start_params.append(pv)
-                except:
-                    start_params += list(pv)
-            optimizer.step()
-            step_params = []
-            for p in self.get_parameters_representation():
-                pv = p.detach().numpy()
-                try:
-                    float(pv)
-                    step_params.append(pv)
-                except:
-                    step_params += list(pv)
-            optimizer.zero_grad()
-            if np.all(np.abs((np.array(start_params) / np.array(step_params)) - 1) < self.stop_rtol):
-                print(epoch)
-                break
                         
     def get_parameters_representation(self, exclude_locked = True):
         all_parameters = []

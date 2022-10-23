@@ -9,7 +9,13 @@ from .core_model import AutoProf_Model
 import matplotlib.pyplot as plt
 
 class BaseModel(AutoProf_Model):
+    """This is the basis for almost any model which represents a single
+    object, or parametric form.  Subclassing models must define their
+    parameters, initialization, and model evaluation
+    functions. Otherwise, most function operate generally.
 
+    """
+    
     model_type = "model"
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
@@ -21,8 +27,6 @@ class BaseModel(AutoProf_Model):
     integrate_mode = "none" # none, window, full
     integrate_window_size = 10
     integrate_factor = 5
-    learning_rate = 0.2
-    max_iterations = 256
 
     # settings
     special_kwargs = ["parameters"]
@@ -52,11 +56,22 @@ class BaseModel(AutoProf_Model):
     # Initialization functions
     ######################################################################    
     def _init_convert_input_units(self):
+        """Convert the center value from pixel coordinates, which are given
+        as input into physical coordinates which are used in the model
+        internally.
+
+        """
         if self["center"].value is not None:
             physcenter = index_to_coord(self["center"].value[1], self["center"].value[0], self.target)
             self["center"].set_value(physcenter, override_locked = True)
             
     def initialize(self):
+        """Determine initial values for the center coordinates. This is done
+        with a local center of mass search which iterates by finding
+        the center of light in a window, then iteratively updates
+        until the iterations move by less than a pixel.
+
+        """
         with torch.no_grad():
             # Get the sub-image area corresponding to the model image
             target_area = self.target[self.fit_window]
@@ -82,16 +97,28 @@ class BaseModel(AutoProf_Model):
             self["center"].value = COM_center
 
     def finalize(self):
+        """Apply any needed functions after fitting has completed. This
+        function is to be overloaded by subclasses.
+
+        """
         pass
         
     # Fit loop functions
     ######################################################################
     def evaluate_model(self, image):
+        """Evaluate the model on every pixel in the given image. The
+        basemodel object simply returns zeros, this function should be
+        overloaded by subclasses.
+
+        """
         return torch.zeros(image.data.shape)
     
     def sample(self, sample_image = None):
-        """
-        Evaluate the model on the space covered by an image object.
+        """Evaluate the model on the space covered by an image object. This
+        function properly calls integration methods and PSF
+        convolution. This should not be overloaded except in special
+        cases.
+
         """
         
         if self.is_sampled:
@@ -140,7 +167,13 @@ class BaseModel(AutoProf_Model):
 
         sample_image += working_image
             
-    def integrate_model(self, working_image):        
+    def integrate_model(self, working_image):
+        """Sample the model at a higher resolution than the given image, then
+        integrate the super resolution up to the image
+        resolution. This should not be overloaded except in very
+        special circumstances.
+
+        """
         # Determine the on-sky window in which to integrate
         if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) == 0:
             return
@@ -174,28 +207,16 @@ class BaseModel(AutoProf_Model):
         )
 
     def compute_loss(self):
-        self.loss = None
+        """Compute a standard Chi^2 loss given the target image, model, and
+        variance image. Typically if overloaded this will also be
+        called with super() and higher methods will multiply or add to
+        the loss.
+
+        """
         self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
         return self.loss
 
-    def fit(self):
-        optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
-        for epoch in range(self.max_iterations):
-            if (epoch % int(self.max_iterations/10)) == 0:
-                print(f"{epoch}/{self.max_iterations}")
-            optimizer.zero_grad()
-            
-            self.sample()
-            
-            self.compute_loss()
-            
-            self.loss.backward()
-            
-            optimizer.step()
-            
-            optimizer.zero_grad()
-
-        
+    # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import _set_default_parameters
     from ._model_methods import set_fit_window

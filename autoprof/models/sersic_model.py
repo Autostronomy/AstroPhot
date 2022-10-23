@@ -2,7 +2,10 @@ from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 
 class Sersic_Galaxy(Galaxy_Model):
+    """basic galaxy model with a sersic profile for the radial light
+    profile.
 
+    """
     model_type = f"sersic {Galaxy_Model.model_type}"
     parameter_specs = {
         "I0": {"units": "flux/arcsec^2", "limits": (0,None)},
@@ -14,6 +17,10 @@ class Sersic_Galaxy(Galaxy_Model):
     from ._shared_methods import sersic_initialize as initialize
     
 class Sersic_Warp(Warp_Galaxy):
+    """warped coordinate galaxy model with a sersic profile for the
+    radial light model.
+
+    """
     model_type = f"sersic {Warp_Galaxy.model_type}"
     parameter_specs = {
         "I0": {"units": "flux/arcsec^2", "limits": (0,None)},

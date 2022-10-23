@@ -3,9 +3,9 @@ import numpy as np
 from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries, cyclic_difference
 
 class Parameter(object):
-    """Object for storing model parameters that are to be optimized in
-    the fitting procedure. A value and it's uncertainty are stored as
-    well as meta information about the parameter. The meta information
+    """Object for storing model parameters that are to be optimized in the
+    fitting procedure. A value and it's uncertainty are stored as well
+    as meta information about the parameter. The meta information
     indicates if the parameter has any boundary values (upper or lower
     limits) and if the parameter has cyclic boundary conditions. The
     units for the parameter are generally also specified. The
@@ -19,12 +19,6 @@ class Parameter(object):
     line. Any time the value, or representation are updated, both
     numbers get updated automatically so they are always in sync.
 
-    For cyclic parameters, special care must be taken when performing
-    a difference operation. The numerical difference between two
-    cyclic parameters is defined as the minimum difference modulo the
-    cycle length. Thus parameter objects should be allowed to handle
-    differences internally. Simply take the difference between two
-    parameter objects and the result will be returned properly.
     """
     
     def __init__(self, name, value = None, **kwargs):
@@ -41,7 +35,25 @@ class Parameter(object):
         
         
     @property
+    def representation(self):
+        """The representation is the stored number (or array of numbers) for
+        this parameter, it is what the optimizer sees and is defined
+        in the range (-inf,+inf). This makes it well behaved during
+        optimization. This is stored as a pytorch tensor which can
+        track gradients.
+
+        """
+        return self._representation
+    @representation.setter
+    def representation(self, rep):
+        self.set_representation(rep)
+    @property
     def value(self):
+        """The value of the parameter is what should be used in model
+        evaluation or really for any typical purpose except in an
+        optimizer.
+
+        """
         if self._representation is None:
             return None
         if self.cyclic:
@@ -54,6 +66,10 @@ class Parameter(object):
         self.set_value(val)
     @property
     def locked(self):
+        """If locked, the parameter cannot normally be updated and will no
+        longer have "require_grad" in pytorch.
+
+        """
         return self._locked
     @locked.setter
     def locked(self, value):
@@ -61,22 +77,28 @@ class Parameter(object):
         if self._representation is not None:
             self._representation.requires_grad = not self._locked
     @property
-    def representation(self):
-        return self._representation
-    @representation.setter
-    def representation(self, rep):
-        self.set_representation(rep)
-    @property
     def uncertainty(self):
+        """The uncertainty for the parameter is stored here, the uncertainty
+        is for the value, not the representation. # fixme is this best?
+
+        """
         return self._uncertainty
     @uncertainty.setter
     def uncertainty(self, unc):
         self.set_uncertainty(unc)
     @property
     def grad(self):
+        """Returns the gradient for the representation of this parameter, if
+        available.
+
+        """
         return self._representation.grad
         
     def set_uncertainty(self, uncertainty, override_locked = False):
+        """Updates the value for the uncertainty of the value of the
+        parameter. Only updates if the parameter is not locked.
+
+        """
         if self.locked and not override_locked:
             return
         if np.any(uncertainty < 0):
@@ -84,6 +106,11 @@ class Parameter(object):
         self._uncertainty = uncertainty
 
     def set_value(self, val, override_locked = False, index = None):
+        """Set the value of the parameter. In fact this indirectly updates
+        the representation for the parameter if any limits or cyclic
+        boundaries are applied for this parameter.
+
+        """
         if self.locked and not override_locked:
             return
         if val is None:
@@ -96,6 +123,10 @@ class Parameter(object):
             self.set_representation(boundaries(val, self.limits), override_locked = override_locked, index = index)
         
     def set_representation(self, rep, override_locked = False, index = None):
+        """Update the representation for this parameter. Ensures that the
+        representation is a pytorch tensor for optimization purposes.
+
+        """
         if self.locked and not override_locked:
             return
         if rep is None:
@@ -108,91 +139,40 @@ class Parameter(object):
             self._representation.requires_grad = not self.locked
             
     def __str__(self):
+        """
+        String representation of the parameter which indicates it's value along with uncertainty, units, limits, etc.
+        """
         return f"{self.name}: {self.value} +- {self.uncertainty} [{self.units}{'' if self.locked is False else ', locked'}{'' if self.limits is None else (', ' + str(self.limits))}{'' if self.cyclic is False else ', cyclic'}]"
 
-    def __sub__(self, other):
-        if self.cyclic:
-            return cyclic_difference(self.representation, other.representation, self.limits[1] - self.limits[0])
-
-        return self.representation - other.representation
-
     def __iter__(self):
+        """If the parameter has multiple values, it is posible to iterate over
+        the values.
+
+        """
         self.i = -1
         return self
+    
     def __next__(self):
         self.i += 1
         if self.i < len(self.value):
             return self[self.i]
         else:
-            raise StopIteration
+            raise StopIteration()
     
     def __getitem__(self, S):
+        """If the parameter has multiple values, get the value at a given
+        index.
+
+        """
         if isinstance(S, int):
             return self.value[S]
         if isinstance(S, str):
             return self.value[int(S[S.rfind("|")+1:])]
         return self.value
-    def __len__(self):
-        return len(self.value)
-
-class Pointing_Parameter(Parameter):
-    """Parameter class which simply points to another parameter
-    object. This is intended for cases where a model must take
-    ownership of another model, and therefore also its parameter
-    objects.
-    """
-
-    def __init__(self, name, parameter):
-        self.name = name
-        self.parameter = parameter
-
-    @property
-    def value(self):
-        return self.parameter.value
-    @value.setter
-    def value(self, val):
-        self.parameter.set_value(val)
-    @property
-    def representation(self):
-        return self.parameter.representation
-    @representation.setter
-    def representation(self, val):
-        self.parameter.set_representation(val)
-    @property
-    def uncertainty(self):
-        return self.parameter.uncertainty
-    @uncertainty.setter
-    def uncertainty(self, val):
-        self.parameter.set_uncertainty(val)
-
-    @property
-    def cyclic(self):
-        return self.parameter.cyclic
-    @property
-    def limits(self):
-        return self.parameter.limits
-    @property
-    def units(self):
-        return self.parameter.units
-    @property
-    def _value(self):
-        return self.parameter._value
-    @property
-    def _representation(self):
-        return self.parameter._representation
-    @property
-    def _uncertainty(self):
-        return self.parameter._uncertainty
-    @property
-    def locked(self):
-        return self.parameter.locked
-
-    def update_locked(self, locked):
-        self.parameter.update_locked(locked)
-    def set_value(self, value, override_locked = False):
-        self.parameter.set_value(value, override_locked)
-    def set_representation(self, representation, override_locked = False):
-        self.parameter.set_representation(representation, override_locked)
-    def set_uncertainty(self, uncertainty, override_locked = False):
-        self.parameter.set_uncertainty(uncertainty, override_locked)
     
+    def __len__(self):
+        """If the parameter has multiple values, this is the length of the
+        parameter.
+
+        """
+        return len(self.value)    

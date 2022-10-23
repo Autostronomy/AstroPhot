@@ -6,7 +6,9 @@ from scipy.stats import binned_statistic, iqr
 import torch
 
 class NonParametric_Galaxy(Galaxy_Model):
+    """basic galaxy model with a nonparametric radial light profile.
 
+    """
     model_type = f"nonparametric {Galaxy_Model.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -61,7 +63,9 @@ class NonParametric_Galaxy(Galaxy_Model):
 
 
 class NonParametric_Warp(Warp_Galaxy):
+    """warped coordinate galaxy model with a nonparametric light profile.
 
+    """
     model_type = f"nonparametric {Warp_Galaxy.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},

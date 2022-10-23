@@ -7,7 +7,13 @@ import torch
 import numpy as np
 
 class Galaxy_Model(BaseModel):
+    """General galaxy model to be subclassed for any specific
+    representation. Defines a galaxy as an object with a position
+    angle and axis ratio, or effectively a tilted disk. Most
+    subclassing models should simply define a radial model or update
+    to the coordinate transform.
 
+    """
     model_type = " ".join(("galaxy", BaseModel.model_type))
     parameter_specs = {
         "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
