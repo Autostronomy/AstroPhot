@@ -15,6 +15,9 @@ class AP_Window(object):
     @property
     def center(self):
         return self.origin + self.shape/2
+    @property
+    def plt_extent(self):
+        return (self.origin[0], self.origin[0] + self.shape[0], self.origin[1], self.origin[1] + self.shape[1])
     def make_copy(self):
         return AP_Window(origin = self.origin, shape = self.shape)
     
