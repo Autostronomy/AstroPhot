@@ -1,6 +1,7 @@
 from .image_object import BaseImage
 import torch
 import numpy as np
+from torch.nn.functional import avg_pool2d
 
 class Target_Image(BaseImage):
     """Image object which represents the data to be fit by a model. It can
@@ -67,20 +68,35 @@ class Target_Image(BaseImage):
         assert mask.shape == self.data.shape, "mask must have same shape as data"
         self._mask = mask
         
-    def add_mask(self, mask):
+    def or_mask(self, mask):
         self._mask = np.logical_or(self.mask, mask)
+    def and_mask(self, mask):
+        self._mask = np.logical_and(self.mask, mask)
         
-    def get_window(self, window):
-        indices = window.get_indices(self)
+    def blank_copy(self):
         return self.__class__(
-            data = self.data[indices],
-            pixelscale = self.pixelscale,
+            data = torch.zeros(self.data.shape, dtype = torch.float32),
             zeropoint = self.zeropoint,
-            variance = None if self._variance is None else self.variance[indices],
             mask = None if self._mask is None else self._mask[indices],
             psf = None if self._psf is None else self.psf,
             note = self.note,
-            origin = (max(self.origin[0], window.origin[0]),
-                      max(self.origin[1], window.origin[1]))
+            window = self.window,
         )
+    
+    def reduce(self, scale):
+        assert isinstance(scale, int)
+        assert scale > 1
 
+        MS = self.data.shape[0] // scale
+        NS = self.data.shape[1] // scale
+        return self.__class__(
+            data = self.data.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            pixelscale = self.pixelscale * scale,
+            zeropoint = self.zeropoint,
+            variance = None if self._variance is None else self.variance.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            mask = None if self._mask is None else self.mask.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).max(axis=(1, 3)),
+            psf = None if self._psf is None else self.psf.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            note = self.note,
+            origin = self.origin,
+        )
+            

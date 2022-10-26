@@ -49,12 +49,12 @@ class Super_Model(AutoProf_Model):
         plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
         plt.axis("off")
         plt.tight_layout()
-        plt.savefig(f"frames/init_frame_{0:04d}.jpg", dpi = 400)
+        plt.savefig(f"frames_late/init_frame_{0:04d}.jpg", dpi = 400)
         plt.close()
         plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
         plt.axis("off")
         plt.tight_layout()
-        plt.savefig(f"frames/init_residual_frame_{0:04d}.jpg", dpi = 400)
+        plt.savefig(f"frames_late/init_residual_frame_{0:04d}.jpg", dpi = 400)
         plt.close()
         for mi, model in enumerate(self.model_list):
             model.locked = False
@@ -63,12 +63,12 @@ class Super_Model(AutoProf_Model):
             plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
             plt.axis("off")
             plt.tight_layout()
-            plt.savefig(f"frames/init_frame_{mi+1:04d}.jpg", dpi = 400)
+            plt.savefig(f"frames_late/init_frame_{mi+1:04d}.jpg", dpi = 400)
             plt.close()
             plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
             plt.axis("off")
             plt.tight_layout()
-            plt.savefig(f"frames/init_residual_frame_{mi+1:04d}.jpg", dpi = 400)
+            plt.savefig(f"frames_late/init_residual_frame_{mi+1:04d}.jpg", dpi = 400)
             plt.close()
 
     def finalize(self):

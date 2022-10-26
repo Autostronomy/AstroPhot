@@ -65,6 +65,20 @@ class BaseImage(object):
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
 
+    def reduce(self, scale):
+        assert isinstance(scale, int)
+        assert scale > 1
+
+        MS = self.data.shape[0] // scale
+        NS = self.data.shape[1] // scale
+        return self.__class__(
+            data = self.data.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            pixelscale = self.pixelscale * scale,
+            zeropoint = self.zeropoint,
+            note = self.note,
+            origin = self.origin,
+        )
+    
     def __sub__(self, other):
         if isinstance(other, BaseImage):
             if not np.isclose(self.pixelscale, other.pixelscale):

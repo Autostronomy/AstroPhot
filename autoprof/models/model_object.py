@@ -41,8 +41,9 @@ class BaseModel(AutoProf_Model):
         self._locked = self._user_locked
             
         self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
-        self.build_parameters()
-        self._init_convert_input_units()
+        with torch.no_grad():
+            self.build_parameters()
+            self._init_convert_input_units()
         
         # Set any user defined attributes for the model
         for kwarg in kwargs:
@@ -80,6 +81,8 @@ class BaseModel(AutoProf_Model):
             window_center = index_to_coord(self.model_image.data.shape[0] / 2, self.model_image.data.shape[1] / 2, self.model_image)
             if self["center"].value is None:
                 self["center"].set_value(window_center, override_locked = True)
+            else:
+                return
 
             if self["center"].locked:
                 return

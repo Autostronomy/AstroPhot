@@ -64,11 +64,14 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
             {"q": q if isinstance(q, float) else q[i],
              "pa": pa if isinstance(pa, float) else pa[i]},
             {"x": center[0], "y": center[1]},
-            more=False,
+            more=more,
             sigmaclip=True,
             sclip_nsigma=3,
             interp_mask=True,
         )
+        if more:
+            angles = isovals[1]
+            isovals = isovals[0]
         coefs = fft(isovals)
         iso_info[-1]["phase1"] = np.angle(coefs[1])
         iso_info[-1]["phase2"] = np.angle(coefs[2])
@@ -79,5 +82,5 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         iso_info[-1]["N"] = len(isovals)        
         if more:
             iso_info[-1]["isovals"] = isovals
-        
+            iso_info[-1]["angles"] = angles
     return iso_info

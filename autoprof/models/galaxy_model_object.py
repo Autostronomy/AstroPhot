@@ -24,7 +24,7 @@ class Galaxy_Model(BaseModel):
         super()._init_convert_input_units()
         
         if self["PA"].value is not None:
-            self["PA"].set_value(self["PA"].value * np.pi / 180, override_locked = True)
+            self["PA"].set_value(self.parameter_specs["PA"]["value"] * np.pi / 180, override_locked = True)
 
     def initialize(self):
         super().initialize()

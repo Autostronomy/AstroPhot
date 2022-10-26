@@ -13,10 +13,13 @@ class AutoProf_Model(object):
     learning_rate = 0.2
     max_iterations = 256
     stop_rtol = 1e-5
+    constraint_delay = 10
+    constraint_strength = 1e-1
 
     def __init__(self, name, *args, **kwargs):
         self.name = name
         self.epoch = None
+        self.constraints = kwargs.get("constraints", None)
     
     def initialize(self):
         """When this function finishes, all parameters should have numerical
@@ -61,6 +64,10 @@ class AutoProf_Model(object):
         else:
             self.loss = torch.sum(torch.pow((self.target[self.fit_window] - self.model_image).data, 2) / self.target[self.fit_window].variance)
             
+        if self.constraints is not None and self.epoch is not None and self.epoch > self.constraint_delay:
+            for constraint in self.constraints:
+                self.loss *= 1 + self.constraint_strength * (self.epoch - self.constraint_delay) * constraint(self)
+                
         return self.loss
 
     def get_parameters_representation(self):
@@ -77,10 +84,11 @@ class AutoProf_Model(object):
         pass
     
     def fit(self):
-        """iteratively fit the model to data.
+        """Iteratively fit the model to data.
 
         """
         self.startup()
+        print("learning rate: ", self.learning_rate)
         optimizer = torch.optim.Adam(self.get_parameters_representation(), lr = self.learning_rate)
         for epoch in range(self.max_iterations):
             self.epoch = epoch
@@ -92,12 +100,12 @@ class AutoProf_Model(object):
             plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
             plt.axis("off")
             plt.tight_layout()
-            plt.savefig(f"frames/sample_frame_{epoch:04d}.jpg", dpi = 400)
+            plt.savefig(f"frames_late/sample_frame_{epoch:04d}.jpg", dpi = 400)
             plt.close()
             plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
             plt.axis("off")
             plt.tight_layout()
-            plt.savefig(f"frames/sample_residual_frame_{epoch:04d}.jpg", dpi = 400)
+            plt.savefig(f"frames_late/sample_residual_frame_{epoch:04d}.jpg", dpi = 400)
             plt.close()
             self.compute_loss()
             self.loss.backward()
@@ -120,6 +128,7 @@ class AutoProf_Model(object):
                 except:
                     step_params += list(pv)
             optimizer.zero_grad()
+            print("rtol: ", np.max(np.abs(np.abs(np.array(start_params) / np.array(step_params))-1)), (np.array(start_params) / np.array(step_params)))
             if np.allclose(start_params, step_params, rtol = self.stop_rtol, atol = 0.):
                 print(epoch)
                 break
@@ -130,4 +139,4 @@ class AutoProf_Model(object):
         """String representation for the model.
 
         """
-        return "Core Model Instance"
+        return "AutoProf Model Instance"
