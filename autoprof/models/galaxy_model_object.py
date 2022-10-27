@@ -16,7 +16,7 @@ class Galaxy_Model(BaseModel):
     to the coordinate transform.
 
     """
-    model_type = " ".join(("galaxy", BaseModel.model_type))
+    model_type = f"galaxy {BaseModel.model_type}"
     parameter_specs = {
         "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},

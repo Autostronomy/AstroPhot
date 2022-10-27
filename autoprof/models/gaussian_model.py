@@ -1,5 +1,6 @@
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
+from .superellipse_model import SuperEllipse_Galaxy
 from .star_model_object import Star_Model
 import torch
 import numpy as np
@@ -11,6 +12,20 @@ class Gaussian_Galaxy(Galaxy_Model):
 
     """
     model_type = f"gaussian {Galaxy_Model.model_type}"
+    parameter_specs = {
+        "sigma": {"units": "arcsec", "limits": (0,None)},
+        "flux": {"units": "flux", "limits": (0,None)},
+    }
+
+    from ._shared_methods import gaussian_radial_model as radial_model
+    from ._shared_methods import gaussian_initialize as initialize
+
+class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
+    """Super ellipse galaxy model with Gaussian as the radial light
+    profile.
+
+    """
+    model_type = f"gaussian {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
