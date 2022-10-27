@@ -8,9 +8,13 @@ class AP_Window(object):
     appropriate subsection of their data.
 
     """
-    def __init__(self, origin, shape):
-        self.shape = np.array(shape)
-        self.origin = np.array(origin)
+    def __init__(self, origin = None, shape = None, center = None):
+        if center is None:
+            self.shape = np.array(shape)
+            self.origin = np.array(origin)
+        elif origin is None:
+            self.shape = np.array(shape)
+            self.origin = np.array(center) - self.shape/2
 
     @property
     def center(self):

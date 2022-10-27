@@ -13,7 +13,7 @@ class BaseImage(object):
 
     """
 
-    def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, **kwargs):
+    def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, center = None, **kwargs):
 
         assert not (pixelscale is None and window is None)
         self.data = data if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float32)
@@ -21,8 +21,13 @@ class BaseImage(object):
         self.note = note
         if window is None:
             self.pixelscale = pixelscale
-            origin = np.zeros(2) if origin is None else np.array(origin)
             shape = np.array(data.shape) * self.pixelscale
+            if origin is None and center is None:
+                origin = np.zeros(2)
+            elif center is None:
+                origin = np.array(origin)
+            else:
+                origin = np.array(center) - shape/2
             self.window = AP_Window(origin = origin, shape = shape)
         else:
             self.window = window
