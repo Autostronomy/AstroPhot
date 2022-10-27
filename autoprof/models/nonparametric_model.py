@@ -1,9 +1,7 @@
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .superellipse_model import SuperEllipse_Galaxy
-from autoprof.utils.interpolate import cubic_spline_torch
 import numpy as np
-from scipy.stats import binned_statistic, iqr
 import torch
 
 __all__ = ["NonParametric_Galaxy", "NonParametric_Warp", "NonParametric_SuperEllipse"]

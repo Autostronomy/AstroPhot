@@ -1,6 +1,8 @@
 from autoprof.utils.initialize import isophotes
 from autoprof.utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
 from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
+from autoprof.utils.interpolate import cubic_spline_torch
+from scipy.stats import binned_statistic, iqr
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import iqr
