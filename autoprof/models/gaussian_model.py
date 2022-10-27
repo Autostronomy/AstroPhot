@@ -4,6 +4,8 @@ from .star_model_object import Star_Model
 import torch
 import numpy as np
 
+__all__ = ["Gaussian_Galaxy", "Gaussian_Warp", "Gaussian_Star"]
+
 class Gaussian_Galaxy(Galaxy_Model):
     """Basic galaxy model with Gaussian as the radial light profile.
 

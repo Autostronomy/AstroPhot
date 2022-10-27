@@ -1,5 +1,7 @@
 from .star_model_object import Star_Model
 
+__all__ = ["PSF_Star"]
+
 class PSF_Star(Star_Model):
     """Star model which uses an image of the PSF as it's representation
     for stars. Using Lanczos interpolation it will shift the PSF

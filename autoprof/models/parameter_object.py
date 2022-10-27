@@ -2,6 +2,8 @@ import torch
 import numpy as np
 from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries, cyclic_difference
 
+__all__ = ["Parameter"]
+
 class Parameter(object):
     """Object for storing model parameters that are to be optimized in the
     fitting procedure. A value and it's uncertainty are stored as well

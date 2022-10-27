@@ -6,6 +6,8 @@ from scipy.stats import iqr
 import torch
 import numpy as np
 
+__all__ = ["Galaxy_Model"]
+
 class Galaxy_Model(BaseModel):
     """General galaxy model to be subclassed for any specific
     representation. Defines a galaxy as an object with a position

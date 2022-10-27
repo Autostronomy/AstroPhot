@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+__all__ = ["AutoProf_Model"]
 
 class AutoProf_Model(object):
     """Prototype class for all AutoProf models. Every class should

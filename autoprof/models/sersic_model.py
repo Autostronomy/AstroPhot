@@ -10,6 +10,8 @@ from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_in
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
+__all__ = ["Sersic_Galaxy", "Sersic_Warp", "Sersic_Ray"]
+
 class Sersic_Galaxy(Galaxy_Model):
     """basic galaxy model with a sersic profile for the radial light
     profile.

@@ -3,6 +3,8 @@ import numpy as np
 from scipy.stats import iqr
 import torch
 
+__all__ = ["Flat_Sky"]
+
 class Flat_Sky(Sky_Model):
     """Model for the sky background in which all values across the image
     are the same.

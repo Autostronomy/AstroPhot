@@ -5,6 +5,8 @@ import numpy as np
 from scipy.stats import binned_statistic, iqr
 import torch
 
+__all__ = ["NonParametric_Galaxy", "NonParametric_Warp"]
+
 class NonParametric_Galaxy(Galaxy_Model):
     """basic galaxy model with a nonparametric radial light profile.
 

@@ -5,6 +5,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+__all__ = ["Super_Model"]
+
 class Super_Model(AutoProf_Model):
     """Model object which represents a list of other models. For each
     general AutoProf model method, this calls all the appropriate

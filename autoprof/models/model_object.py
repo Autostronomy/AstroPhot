@@ -8,6 +8,8 @@ from copy import deepcopy
 from .core_model import AutoProf_Model
 import matplotlib.pyplot as plt
 
+__all__ = ["BaseModel"]
+
 class BaseModel(AutoProf_Model):
     """This is the basis for almost any model which represents a single
     object, or parametric form.  Subclassing models must define their

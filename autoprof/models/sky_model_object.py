@@ -1,5 +1,7 @@
 from .model_object import BaseModel
 
+__all__ = ["Sky_Model"]
+
 class Sky_Model(BaseModel):
     """prototype class for any sky backgorund model.
 

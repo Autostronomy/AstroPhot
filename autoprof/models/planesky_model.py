@@ -3,6 +3,8 @@ import numpy as np
 from scipy.stats import iqr
 import torch
 
+__all__ = ["Plane_Sky"]
+
 class Plane_Sky(Sky_Model):
     """Sky background model using a tilted plane for the sky flux.
 
