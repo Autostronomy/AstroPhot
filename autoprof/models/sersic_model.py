@@ -105,7 +105,7 @@ class Sersic_Ray(Ray_Galaxy):
                 if self[f"I0_{r}"].uncertainty is None:
                     self[f"I0_{r}"].set_uncertainty(0.02 * np.abs(self[f"I0_{r}"].value.detach().item()), override_locked = True)
     
-    def iradial_model(self, i, R, sample_image):
+    def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image
         return sersic_torch(R, self[f"n_{i}"].value, self[f"Rs_{i}"].value, self[f"I0_{i}"].value * sample_image.pixelscale**2)
