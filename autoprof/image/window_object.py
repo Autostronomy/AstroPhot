@@ -23,7 +23,7 @@ class AP_Window(object):
     def plt_extent(self):
         return (self.origin[0], self.origin[0] + self.shape[0], self.origin[1], self.origin[1] + self.shape[1])
     def make_copy(self):
-        return AP_Window(origin = self.origin, shape = self.shape)
+        return AP_Window(origin = np.copy(self.origin), shape = np.copy(self.shape))
     
     def get_shape(self, pixelscale):
         return np.array(list(int(round(S / pixelscale)) for S in self.shape))
@@ -37,21 +37,21 @@ class AP_Window(object):
         #     print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)# fixme
         #     raise ValueError("Cannot determine indices for misaligned windows")
         return (
+            slice(max(0,int(round((self.origin[1] - obj.window.origin[1])/obj.pixelscale))),
+                  min(int(round(obj.window.shape[1]/obj.pixelscale)), int(round((self.origin[1] + self.shape[1] - obj.window.origin[1])/obj.pixelscale)))),
             slice(max(0,int(round((self.origin[0] - obj.window.origin[0])/obj.pixelscale))),
                   min(int(round(obj.window.shape[0]/obj.pixelscale)), int(round((self.origin[0] + self.shape[0] - obj.window.origin[0])/obj.pixelscale)))),
-            slice(max(0,int(round((self.origin[1] - obj.window.origin[1])/obj.pixelscale))),
-                  min(int(round(obj.window.shape[1]/obj.pixelscale)), int(round((self.origin[1] + self.shape[1] - obj.window.origin[1])/obj.pixelscale))))
         )
 
     def get_coordinate_meshgrid_np(self, pixelscale, x = 0., y = 0.):
         return np.meshgrid(
-            np.linspace(self.origin[1] + pixelscale/2 - x, self.origin[1] + self.shape[1] - pixelscale/2 - x, int(round((self.shape[1]/pixelscale)))),
-            np.linspace(self.origin[0] + pixelscale/2 - y, self.origin[0] + self.shape[0] - pixelscale/2 - y, int(round((self.shape[0]/pixelscale)))),
+            np.linspace(self.origin[0] + pixelscale/2 - x, self.origin[0] + self.shape[0] - pixelscale/2 - x, int(round((self.shape[0]/pixelscale)))),
+            np.linspace(self.origin[1] + pixelscale/2 - y, self.origin[1] + self.shape[1] - pixelscale/2 - y, int(round((self.shape[1]/pixelscale)))),
         )
     def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
         return torch.meshgrid(
-            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale)))) - x,
-            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale)))) - y,
+            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale)))) - x,
+            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale)))) - y,
             indexing = 'xy',
         )
         

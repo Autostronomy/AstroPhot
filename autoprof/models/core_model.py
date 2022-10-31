@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from autoprof.utils.conversions.optimization import cyclic_difference_np
 
 __all__ = ["AutoProf_Model"]
 
@@ -105,8 +106,9 @@ class AutoProf_Model(object):
         """Iteratively fit the model to data."""
         self.startup()
         print("learning rate: ", self.learning_rate)
+        keys, reps = self.get_parameters_representation()
         optimizer = torch.optim.Adam(
-            self.get_parameters_representation(), lr=self.learning_rate
+            reps, lr=self.learning_rate
         )
         for epoch in range(self.max_iterations):
             self.epoch = epoch
@@ -115,59 +117,39 @@ class AutoProf_Model(object):
             optimizer.zero_grad()
             self.sample()
 
-            plt.imshow(
-                np.log10(self.model_image.data.detach().numpy()),
-                vmax=1.1,
-                vmin=-5.9,
-                origin="lower",
-            )
-            plt.axis("off")
-            plt.tight_layout()
-            plt.savefig(f"frames_late/sample_frame_{epoch:04d}.jpg", dpi=400)
-            plt.close()
-            plt.imshow(
-                self.target[self.fit_window].data.detach().numpy()
-                - self.model_image.data.detach().numpy(),
-                cmap="seismic",
-                vmax=2.0,
-                vmin=-2.0,
-                origin="lower",
-            )
-            plt.axis("off")
-            plt.tight_layout()
-            plt.savefig(f"frames_late/sample_residual_frame_{epoch:04d}.jpg", dpi=400)
-            plt.close()
             self.compute_loss()
             self.loss.backward()
 
-            start_params = []
-            for p in self.get_parameters_representation():
-                pv = p.detach().numpy()
-                try:
-                    float(pv)
-                    start_params.append(pv)
-                except:
-                    start_params += list(pv)
+            skeys, sreps = self.get_parameters_representation()
+            srepsnp = []
+            for isr in range(len(sreps)):
+                srepsnp.append(np.copy(sreps[isr].detach().numpy()))
             optimizer.step()
-            step_params = []
-            for p in self.get_parameters_representation():
-                pv = p.detach().numpy()
-                try:
-                    float(pv)
-                    step_params.append(pv)
-                except:
-                    step_params += list(pv)
             optimizer.zero_grad()
-            print(
-                "rtol: ",
-                np.max(
-                    np.abs(np.abs(np.array(start_params) / np.array(step_params)) - 1)
-                ),
-                (np.array(start_params) / np.array(step_params)),
-            )
-            if np.allclose(start_params, step_params, rtol=self.stop_rtol, atol=0.0):
+            fkeys, freps = self.get_parameters_representation()
+            frepsnp = []
+            for ifr in range(len(freps)):
+                frepsnp.append(np.copy(freps[ifr].detach().numpy()))
+
+            allclose = True
+            comparisons = []
+            for ik, k in enumerate(skeys):
+                if self[k].cyclic:
+                    period = self[k].limits[1] - self[k].limits[0]
+                    comparisons.append((k,np.abs(cyclic_difference_np(srepsnp[ik], frepsnp[fkeys.index(k)], period)/period)))
+                    if not np.all(np.abs(cyclic_difference_np(srepsnp[ik], frepsnp[fkeys.index(k)], period)/period) < self.stop_rtol):
+                        allclose = False
+                else:
+                    comparisons.append((k,np.abs(srepsnp[ik] - frepsnp[fkeys.index(k)])))
+                    if not np.allclose(srepsnp[ik], frepsnp[fkeys.index(k)], rtol=self.stop_rtol, atol=0.0):
+                        allclose = False
+            # print(comparisons)
+            if allclose:
                 print(epoch)
                 break
+            # else:
+            #     print(epoch)
+            #     break
         self.finalize()
         self.epoch = None
 

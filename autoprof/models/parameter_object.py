@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries, cyclic_difference
+from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries
 
 __all__ = ["Parameter"]
 

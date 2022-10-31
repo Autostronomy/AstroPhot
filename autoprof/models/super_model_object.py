@@ -47,31 +47,9 @@ class Super_Model(AutoProf_Model):
     def initialize(self):
         for model in self.model_list:
             model.locked = True
-        self.sample()
-        plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
-        plt.axis("off")
-        plt.tight_layout()
-        plt.savefig(f"frames_late/init_frame_{0:04d}.jpg", dpi = 400)
-        plt.close()
-        plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
-        plt.axis("off")
-        plt.tight_layout()
-        plt.savefig(f"frames_late/init_residual_frame_{0:04d}.jpg", dpi = 400)
-        plt.close()
         for mi, model in enumerate(self.model_list):
             model.locked = False
             model.initialize()
-            self.sample()
-            plt.imshow(np.log10(self.model_image.data.detach().numpy()), vmax = 1.1, vmin = -5.9, origin = "lower")
-            plt.axis("off")
-            plt.tight_layout()
-            plt.savefig(f"frames_late/init_frame_{mi+1:04d}.jpg", dpi = 400)
-            plt.close()
-            plt.imshow(self.target[self.fit_window].data.detach().numpy() - self.model_image.data.detach().numpy(), cmap = "seismic", vmax = 2., vmin = -2., origin = "lower")
-            plt.axis("off")
-            plt.tight_layout()
-            plt.savefig(f"frames_late/init_residual_frame_{mi+1:04d}.jpg", dpi = 400)
-            plt.close()
 
     def finalize(self):
         for model in self.model_list:
@@ -93,9 +71,13 @@ class Super_Model(AutoProf_Model):
         
     def get_parameters_representation(self, exclude_locked = True):
         all_parameters = []
+        all_keys = []
         for model in self.model_list:
-            all_parameters += model.get_parameters_representation(exclude_locked)
-        return all_parameters
+            keys, reps = model.get_parameters_representation(exclude_locked)
+            all_parameters += reps
+            for k in keys:
+                all_keys.append(f"{model.name}|{k}")
+        return all_keys, all_parameters
     
     def get_parameters_value(self, exclude_locked = True):
         all_parameters = {}
@@ -110,7 +92,10 @@ class Super_Model(AutoProf_Model):
             return self.model_list[key[0]][key[1]]
 
         if isinstance(key, str) and "|" in key:
-            return self.model_list[int(key[:key.find("|")])][key[key.find("|")+1:]]
+            model_name = key[:key.find("|")]
+            for model in self.model_list:
+                if model.name == model_name:
+                    return model[key[key.find("|")+1:]]
         
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 

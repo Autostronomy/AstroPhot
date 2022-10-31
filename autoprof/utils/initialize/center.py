@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from autoprof.utils.interpolate import point_Lanczos
 
 def center_of_mass(center, image, window = None):
     """Iterative light weighted center of mass optimization. Each step
@@ -11,7 +12,7 @@ def center_of_mass(center, image, window = None):
 
     """
     if window is None:
-        window = max(min(int(min(image.shape)/10), 20), 6)
+        window = max(min(int(min(image.shape)/10), 30), 6)
     init_center = center
     window += window % 2
     xx, yy = np.meshgrid(np.arange(window), np.arange(window))
@@ -40,3 +41,10 @@ def center_of_mass(center, image, window = None):
         center = new_center
         
     return center
+
+def Lanczos_peak(center, image, L_scale = 3):
+
+    res = minimize(lambda x: -point_Lanczos(image, x[0], x[1], scale = L_scale), x0 = center)
+
+    return res.x
+    

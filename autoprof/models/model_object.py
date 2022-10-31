@@ -1,5 +1,6 @@
 from autoprof.image import Model_Image, AP_Window
 from autoprof.utils.initialize import center_of_mass
+from autoprof import plots
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
 import numpy as np
 import torch
@@ -80,9 +81,8 @@ class BaseModel(AutoProf_Model):
             target_area = self.target[self.fit_window]
             
             # Use center of window if a center hasn't been set yet
-            window_center = index_to_coord(self.model_image.data.shape[0] / 2, self.model_image.data.shape[1] / 2, self.model_image)
             if self["center"].value is None:
-                self["center"].set_value(window_center, override_locked = True)
+                self["center"].set_value(self.model_image.center, override_locked = True)
             else:
                 return
 
@@ -147,7 +147,9 @@ class BaseModel(AutoProf_Model):
             
         working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
         if "full" not in self.integrate_mode:
-            working_image.data += self.evaluate_model(working_image)
+            evlte = self.evaluate_model(working_image)
+            #print(working_image.data.shape, working_image.window, evlte.shape)
+            working_image.data += evlte
 
         if "full" in self.psf_mode:
             self.integrate_model(working_image)
@@ -155,18 +157,44 @@ class BaseModel(AutoProf_Model):
             self.center_shift = torch.zeros(2)
             working_image.shift_origin(-self.center_shift)
         elif "window" in self.psf_mode:
-            sub_window = working_window & self.psf_window
+            sub_window = self.psf_window.make_copy()
             sub_window += self.target.psf_border
-            self.center_shift = ((0.5 + self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
-            sub_window.shift_origin(self.center_shift)
+            print(self["center"].value.detach().numpy(), sub_window.center)
+            center_shift = self["center"].value.detach().numpy() - sub_window.center #fixme, make center on a pixel, not necessarily central pixel ((0.5 + self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
+            if center_shift[0] < 0:
+                sub_window.shift_origin((-working_image.pixelscale,0))
+                center_shift[0] += working_image.pixelscale
+            if center_shift[1] < 0:
+                sub_window.shift_origin((0,-working_image.pixelscale))
+                center_shift[1] += working_image.pixelscale
+            print("center shift: ", center_shift)
+            sub_window.shift_origin(center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
             sub_image.data = self.evaluate_model(sub_image)
+            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
+            # plt.title("evaluate model")
+            # plt.show()
             self.integrate_model(sub_image)
+            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
+            # plt.title("integrate model")
+            # plt.show()
             sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
-            sub_image.shift_origin(-self.center_shift)
-            self.center_shift = torch.zeros(2)
+            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
+            # plt.title("convolve")
+            # plt.show()
+            sub_image.shift_origin(-center_shift)
+            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
+            # plt.title("shift")
+            # plt.show()
+            center_shift = torch.zeros(2)
             sub_image.crop(*self.target.psf_border_int)
+            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
+            # plt.title("crop")
+            # plt.show()
             working_image.replace(sub_image)
+            # plt.imshow(working_image.data.detach().numpy(),origin = "lower")
+            # plt.title("working image")
+            # plt.show()
         else:
             self.integrate_model(working_image)
 
@@ -217,6 +245,7 @@ class BaseModel(AutoProf_Model):
     from ._model_methods import _set_default_parameters
     from ._model_methods import set_fit_window
     from ._model_methods import fit_window
+    from ._model_methods import scale_window
     from ._model_methods import target
     from ._model_methods import integrate_window
     from ._model_methods import psf_window

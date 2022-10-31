@@ -15,9 +15,9 @@ class Model_Image(BaseImage):
     def __init__(self, pixelscale = None, data = None, window = None, **kwargs):
         assert not (data is None and window is None)
         if data is None:
-            data = torch.zeros(tuple(int(s) for s in np.round(window.shape/pixelscale)))
-        super().__init__(data, pixelscale, window, **kwargs)
-
+            data = torch.zeros(tuple(int(s) for s in np.flip(np.round(window.shape/pixelscale))))
+        super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
+        
     def clear_image(self):
         self.data = torch.zeros(self.data.shape)
 
@@ -31,7 +31,7 @@ class Model_Image(BaseImage):
         if isinstance(other, BaseImage):
             if not np.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
-            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
+            if np.any((self.origin + self.shape) < other.origin) or np.any((other.origin + other.shape) < self.origin):
                 return
             self.data[other.window.get_indices(self)] = other.data[self.window.get_indices(other)]
         elif isinstance(other, AP_Window):

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from autoprof import models
+from autoprof.utils.conversions.units import flux_to_sb
 import numpy as np
 from .visuals import *
 import torch
@@ -8,34 +9,45 @@ __all__ = ["galaxy_light_profile", "ray_light_profile", "warp_phase_profile"]
 
 
 def galaxy_light_profile(
-    fig,
-    ax,
-    model,
-    rad_unit="arcsec",
-    extend_profile=1.0,
-    resolution=1000,
-    doassert=True,
+        fig,
+        ax,
+        model,
+        rad_unit="arcsec",
+        extend_profile=1.0,
+        R0 = 0.,    
+        resolution=1000,
+        doassert=True,
 ):
 
     if doassert:
         assert isinstance(model, models.Galaxy_Model)
 
     xx = np.linspace(
-        0,
+        R0,
         np.sqrt(np.sum(model.fit_window.shape ** 2)) * extend_profile,
         int(resolution),
     )
+    flux = model.radial_model(torch.tensor(xx)).detach().numpy()
+    if model.target.zeropoint is not None:
+        yy = flux_to_sb(flux, model.target.pixelscale, model.target.zeropoint)
+    else:
+        yy = np.log10(flux)
     with torch.no_grad():
         ax.plot(
             xx,
-            np.log10(model.radial_model(torch.tensor(xx)).detach().numpy()),
+            yy,
             linewidth=2,
             color=main_pallet["primary1"],
             label=f"{model.name} profile",
         )
-    ax.set_ylabel("log$_{10}$(flux)")
-    ax.set_xlabel(f"Radius [{rad_unit}]")
 
+    if model.target.zeropoint is not None:
+        ax.set_ylabel("Surface Brightness")
+        ax.invert_yaxis()
+    else:
+        ax.set_ylabel("log$_{10}$(flux)")
+    ax.set_xlabel(f"Radius [{rad_unit}]")
+    ax.set_xlim([R0,None])
     return fig, ax
 
 def ray_light_profile(

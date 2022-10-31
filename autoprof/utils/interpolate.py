@@ -2,6 +2,7 @@ import numpy as np
 from astropy.convolution import convolve, convolve_fft
 import torch
 from torch.nn.functional import conv2d
+import matplotlib.pyplot as plt
 
 def window_function(img, X, Y, func, window):
     pass
@@ -89,16 +90,19 @@ def _shift_Lanczos_kernel(dx, dy, scale):
     sub-pixel length.
 
     """
-    xx = torch.flip(torch.arange(int(-scale), int(scale+1)) + dx, (0,))
-    yy = torch.flip(torch.arange(int(-scale), int(scale+1)) + dy, (0,))
+    print(dx,dy)
+    xx = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = torch.float64) + dx, (0,))
+    yy = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = torch.float64) + dy, (0,))
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
-    Lx[0] = 0
-    Ly[0] = 0
+    Lx[-1] = 0
+    Ly[-1] = 0
     LXX, LYY = torch.meshgrid(Lx, Ly, indexing = 'xy')
     LL = LXX * LYY
     w = torch.sum(LL)
     LL /= w
+    # plt.imshow(LL.detach().numpy(), origin = "lower")
+    # plt.show()
     return LL
 
 def shift_Lanczos(I, dx, dy, scale):
@@ -106,7 +110,7 @@ def shift_Lanczos(I, dx, dy, scale):
     y.
 
     """
-    LL = _shift_Lanczos_kernel(dx, dy, scale)
+    LL = _shift_Lanczos_kernel(-dx, -dy, scale)
     return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
 
 def interpolate_Lanczos_grid(img, X, Y, scale):
@@ -203,4 +207,10 @@ def nearest_neighbor(img, X, Y):
         np.clip(np.round(Y).astype(int), a_min = 0, a_max = img.shape[0] - 1),
         np.clip(np.round(X).astype(int), a_min = 0, a_max = img.shape[1] - 1),
     ]
+
+def interp1d_torch(x_in, y_in, x_out): 
+    indices = torch.searchsorted(x_in[:-1], x) - 1
+    weights = (y_in[1:] - y_in[:-1]) / (x_in[1:] - x_in[:-1])
+    return torch.lerp(x_in[indices], x_out, weights[indices])
+
 

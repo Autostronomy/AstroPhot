@@ -31,7 +31,7 @@ def cyclic_boundaries(val, limits):
     tval = val if isinstance(val, torch.Tensor) else torch.tensor(val)
     return limits[0] + ((tval - limits[0]) % (limits[1] - limits[0]))
 
-def cyclic_difference(val1, val2, period):
+def cyclic_difference_torch(val1, val2, period):
     """Applies the difference operation between two values with cyclic
     boundary conditions.
 
@@ -39,3 +39,9 @@ def cyclic_difference(val1, val2, period):
     tval1 = val1 if isinstance(val1, torch.Tensor) else torch.tensor(val1)
     tval2 = val2 if isinstance(val2, torch.Tensor) else torch.tensor(val2)
     return torch.arcsin(torch.sin((tval1 - tval2) * np.pi / period)) * period / np.pi
+def cyclic_difference_np(val1, val2, period):
+    """Applies the difference operation between two values with cyclic
+    boundary conditions.
+
+    """
+    return np.arcsin(np.sin((val1 - val2) * np.pi / period)) * period / np.pi

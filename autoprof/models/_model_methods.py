@@ -14,10 +14,10 @@ def _set_default_parameters(self):
     self.is_sampled = False
     self.center_shift = torch.zeros(2)
     
-def scale_window(self, scale):
-    self.window = self._base_window * scale
-    self.window &= self.target.window
-    self.set_window(self.window)
+def scale_window(self, scale = 1., border = 0.):
+    window = (self._base_window * scale) + border
+    window &= self.target.window
+    self.set_window(window)
 
 @property 
 def target(self):
@@ -34,8 +34,8 @@ def set_fit_window(self, window):
     # If no window given, use the whole image
     if window is None:
         window = [
-            [0, self.target.data.shape[0]],
             [0, self.target.data.shape[1]],
+            [0, self.target.data.shape[0]],
         ]
         index_units = False
     
@@ -44,10 +44,8 @@ def set_fit_window(self, window):
         self._fit_window = window
     else:
         self._fit_window = AP_Window(
-            origin = self.target.origin + np.array((window[1][0],window[0][0]))*self.target.pixelscale,
-            shape = np.array((window[1][1] - window[1][0], window[0][1] - window[0][0]))*self.target.pixelscale,
-            # origin = self.target.origin + np.array((window[1][0],window[0][0]))*self.target.pixelscale,
-            # shape = np.array((window[0][1] - window[0][0], window[1][1] - window[1][0]))*self.target.pixelscale,
+            origin = self.target.origin + np.array((window[0][0],window[1][0]))*self.target.pixelscale,
+            shape = np.array((window[0][1] - window[0][0], window[1][1] - window[1][0]))*self.target.pixelscale,
         )
     if self._base_window is None:
         self._base_window = deepcopy(self._fit_window)
@@ -57,16 +55,17 @@ def set_fit_window(self, window):
         pixelscale = self.target.pixelscale,
         window = self._fit_window,
     )
+    
 @fit_window.setter
 def fit_window(self, window):
     self.set_fit_window(window)
     
 @property
 def integrate_window(self):
-    use_center = self.center_shift + np.floor(self["center"].value.detach().numpy()/self.model_image.pixelscale)
+    use_center = np.floor(self["center"].value.detach().numpy()/self.model_image.pixelscale)
     int_origin = (
-        (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
         (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
+        (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
     )
     int_shape = (
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
@@ -76,14 +75,15 @@ def integrate_window(self):
     
 @property
 def psf_window(self):
-    use_center = self.center_shift + np.floor(self["center"].value.detach().numpy()/self.model_image.pixelscale)
+    use_center = np.floor(self["center"].value.detach().numpy()/self.model_image.pixelscale)
+    psf_offset = (self.psf_window_size - (self.psf_window_size % 2))/2
     psf_origin = (
-        (use_center[1] - (self.psf_window_size - (self.psf_window_size % 2))/2)*self.model_image.pixelscale,
-        (use_center[0] - (self.psf_window_size - (self.psf_window_size % 2))/2)*self.model_image.pixelscale,
+        (use_center[0] - psf_offset)*self.model_image.pixelscale,
+        (use_center[1] - psf_offset)*self.model_image.pixelscale,
     )
     psf_shape = (
-        (self.psf_window_size + 1 - (self.psf_window_size % 2))*self.model_image.pixelscale,
-        (self.psf_window_size + 1 - (self.psf_window_size % 2))*self.model_image.pixelscale,
+        (psf_offset*2 + 1)*self.model_image.pixelscale,
+        (psf_offset*2 + 1)*self.model_image.pixelscale,
     )
     return AP_Window(origin = psf_origin, shape = psf_shape)
 
@@ -129,13 +129,15 @@ def build_parameters(self):
 
 def get_parameters_representation(self, exclude_locked = True):
     return_parameters = []
+    return_keys = []
     for p in self.parameters:
         # Skip currently locked parameters
         if exclude_locked and self.parameters[p].locked:
             continue
         # Return parameter selected
+        return_keys.append(p)
         return_parameters.append(self.parameters[p].representation)
-    return return_parameters
+    return return_keys, return_parameters
 
 def get_parameters_value(self, exclude_locked = True):
     return_parameters = {}

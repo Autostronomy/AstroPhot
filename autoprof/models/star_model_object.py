@@ -9,8 +9,5 @@ class Star_Model(BaseModel):
     """
     model_type = f"star {BaseModel.model_type}"
     psf_mode = 'none'
-    parameter_specs = {
-        "flux": {"units": "flux"},
-    }
 
     

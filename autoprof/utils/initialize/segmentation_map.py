@@ -56,3 +56,33 @@ def windows_from_segmentation_map(seg_map, expand_scale = 1.5, expand_border = 0
         ]
         
     return windows
+
+def filter_windows(windows, min_size = None, max_size = None, min_area = None, max_area = None, min_flux = None, max_flux = None, image = None):
+
+    for w in windows.keys():
+        if min_size is not None:
+            if min(windows[w][0][1] - windows[w][0][0], windows[w][1][1] - windows[w][1][0]) < min_size:
+                del windows[w]
+                continue
+        if max_size is not None:
+            if max(windows[w][0][1] - windows[w][0][0], windows[w][1][1] - windows[w][1][0]) > max_size:
+                del windows[w]
+                continue
+        if min_area is not None:
+            if ((windows[w][0][1] - windows[w][0][0])*(windows[w][1][1] - windows[w][1][0])) < min_area:
+                del windows[w]
+                continue
+        if max_area is not None:
+            if ((windows[w][0][1] - windows[w][0][0])*(windows[w][1][1] - windows[w][1][0])) > max_area:
+                del windows[w]
+                continue
+        if min_flux is not None:
+            if np.sum(image[windows[w][1][0]:windows[w][1][1],windows[w][0][0]:windows[w][0][1]]) < min_flux:
+                del windows[w]
+                continue
+        if max_flux is not None:
+            if np.sum(image[windows[w][1][0]:windows[w][1][1],windows[w][0][0]:windows[w][0][1]]) < max_flux:
+                del windows[w]
+                continue
+            
+    return windows

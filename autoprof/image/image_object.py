@@ -14,14 +14,14 @@ class BaseImage(object):
     """
 
     def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, center = None, **kwargs):
-
         assert not (pixelscale is None and window is None)
-        self.data = data if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float32)
+        self._data = None
+        self.data = data #.to(dtype = torch.float64) if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float64)
         self.zeropoint = zeropoint
         self.note = note
         if window is None:
             self.pixelscale = pixelscale
-            shape = np.array(data.shape) * self.pixelscale
+            shape = np.flip(np.array(data.shape)) * self.pixelscale
             if origin is None and center is None:
                 origin = np.zeros(2)
             elif center is None:
@@ -31,7 +31,8 @@ class BaseImage(object):
             self.window = AP_Window(origin = origin, shape = shape)
         else:
             self.window = window
-            self.pixelscale = self.window.shape[0] / self.data.shape[0]
+            self.pixelscale = float(self.window.shape[0]) / float(self.data.shape[1])
+            
             
     @property
     def origin(self):
@@ -42,7 +43,19 @@ class BaseImage(object):
     @property
     def center(self):
         return self.window.center
-            
+
+    @property
+    def data(self):
+        return self._data
+    @data.setter
+    def data(self, data):
+        self.set_data(data)
+        
+    def set_data(self, data, require_shape = True):
+        if self._data is not None and require_shape:
+            assert data.shape == self._data.shape
+        self._data = data.to(dtype = torch.float64) if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float64)
+        
     def blank_copy(self):
         return self.__class__(
             data = torch.zeros(self.data.shape, dtype = torch.float32),
@@ -62,7 +75,7 @@ class BaseImage(object):
         )
 
     def crop(self, *pixels):
-        self.data = self.data[pixels[0]:-pixels[0],pixels[1]:-pixels[1]]
+        self.set_data(self.data[pixels[1]:-pixels[1],pixels[0]:-pixels[0]], require_shape = False)
         self.window -= tuple(np.array(pixels) * self.pixelscale)
 
     def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
