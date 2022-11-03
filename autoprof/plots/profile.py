@@ -24,7 +24,7 @@ def galaxy_light_profile(
 
     xx = np.linspace(
         R0,
-        np.sqrt(np.sum(model.fit_window.shape ** 2)) * extend_profile,
+        np.max(model.fit_window.shape/2) * extend_profile,
         int(resolution),
     )
     flux = model.radial_model(torch.tensor(xx)).detach().numpy()

@@ -1,7 +1,7 @@
 from autoprof.utils.initialize import isophotes
 from autoprof.utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
 from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
-from autoprof.utils.interpolate import cubic_spline_torch
+from autoprof.utils.interpolate import cubic_spline_torch, interp1d_torch
 from autoprof.utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
 from scipy.special import gamma
 from scipy.stats import binned_statistic, iqr
@@ -110,10 +110,10 @@ def nonparametric_set_fit_window(self, window):
     
     if self.profR is None:
         self.profR = [0,self.target.pixelscale]
-        while self.profR[-1] < np.max(self.fit_window.shape/2):
+        while self.profR[-1] < np.min(self.fit_window.shape/2):
             self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
         self.profR.pop()
-        self.profR = torch.tensor(self.profR)
+        self.profR = torch.tensor(self.profR, dtype = torch.float64)
             
 def nonparametric_initialize(self):
     super(self.__class__, self).initialize()
@@ -142,7 +142,7 @@ def nonparametric_initialize(self):
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.model_image
-    I = cubic_spline_torch(self.profR, self["I(R)"].value, R.view(-1)).view(*R.shape)
+    I =  cubic_spline_torch(self.profR, self["I(R)"].value, R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
     res = 10**(I) * sample_image.pixelscale**2
     res[R > self.profR[-1]] = 0
     return res

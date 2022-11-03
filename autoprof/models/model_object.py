@@ -126,10 +126,10 @@ class BaseModel(AutoProf_Model):
 
         """
         
-        if self.is_sampled:
-            return
         if sample_image is None:
             sample_image = self.model_image
+        if self.is_sampled and sample_image is self.model_image:
+            return
         if sample_image is self.model_image:
             sample_image.clear_image()
             #self.is_sampled = True
@@ -142,24 +142,28 @@ class BaseModel(AutoProf_Model):
         working_window = deepcopy(sample_image.window)
         if "full" in self.psf_mode:
             working_window += self.target.psf_border 
-            self.center_shift = self["center"].value.detach().numpy() % 1. # fixme only move window
-            working_window.shift_origin(self.center_shift)
+            center = self["center"].value.detach().numpy()
+            center_shift = center - np.floor(center/sample_image.pixelscale)*sample_image.pixelscale
+            if center_shift[0] < 0:
+                sub_window.shift_origin((-working_image.pixelscale,0))
+                center_shift[0] += working_image.pixelscale
+            if center_shift[1] < 0:
+                sub_window.shift_origin((0,-working_image.pixelscale))
+                center_shift[1] += working_image.pixelscale
+            working_window.shift_origin(center_shift)
             
         working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
         if "full" not in self.integrate_mode:
-            evlte = self.evaluate_model(working_image)
-            #print(working_image.data.shape, working_image.window, evlte.shape)
-            working_image.data += evlte
+            working_image.data += self.evaluate_model(working_image)
 
         if "full" in self.psf_mode:
             self.integrate_model(working_image)
-            working_image.data = conv2d(working_image.data.view(1,1,*working_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")
-            self.center_shift = torch.zeros(2)
-            working_image.shift_origin(-self.center_shift)
+            working_image.data = conv2d(working_image.data.view(1,1,*working_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
+            working_image.shift_origin(-center_shift)
+            working_image.crop(*self.target.psf_border_int)
         elif "window" in self.psf_mode:
             sub_window = self.psf_window.make_copy()
             sub_window += self.target.psf_border
-            print(self["center"].value.detach().numpy(), sub_window.center)
             center_shift = self["center"].value.detach().numpy() - sub_window.center #fixme, make center on a pixel, not necessarily central pixel ((0.5 + self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
             if center_shift[0] < 0:
                 sub_window.shift_origin((-working_image.pixelscale,0))
@@ -167,7 +171,6 @@ class BaseModel(AutoProf_Model):
             if center_shift[1] < 0:
                 sub_window.shift_origin((0,-working_image.pixelscale))
                 center_shift[1] += working_image.pixelscale
-            print("center shift: ", center_shift)
             sub_window.shift_origin(center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
             sub_image.data = self.evaluate_model(sub_image)
@@ -199,6 +202,8 @@ class BaseModel(AutoProf_Model):
             self.integrate_model(working_image)
 
         sample_image += working_image
+        if sample_image is self.model_image:
+            self.is_sampled = True
             
     def integrate_model(self, working_image):
         """Sample the model at a higher resolution than the given image, then

@@ -58,6 +58,8 @@ class Super_Model(AutoProf_Model):
     def sample(self, sample_image = None):
         if self.locked:
             return
+        if self.is_sampled and sample_image is self.model_image:
+            return
         if sample_image is None or sample_image is self.model_image:
             self.model_image.clear_image()
         self.loss = None
@@ -68,7 +70,15 @@ class Super_Model(AutoProf_Model):
             model.sample(sample_image)
             if sample_image is None:
                 self.model_image += model.model_image
-        
+                
+        if sample_image is self.model_image:
+            self.is_sampled = True
+
+    def step(self):
+        super().step()
+        for model in self.model_list:
+            model.step()
+            
     def get_parameters_representation(self, exclude_locked = True):
         all_parameters = []
         all_keys = []

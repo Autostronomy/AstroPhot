@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from autoprof.utils.conversions.optimization import cyclic_difference_np
+from copy import copy
+from time import time
 
 __all__ = ["AutoProf_Model"]
 
@@ -23,6 +25,7 @@ class AutoProf_Model(object):
         self.name = name
         self.epoch = None
         self.constraints = kwargs.get("constraints", None)
+        self.is_sampled = False
 
     def initialize(self):
         """When this function finishes, all parameters should have numerical
@@ -61,6 +64,7 @@ class AutoProf_Model(object):
         the loss.
 
         """
+        pixels = np.prod(self.target[self.fit_window].data.shape)
         if self.target.masked:
             mask = np.logical_not(self.target[self.fit_window].mask)
             self.loss = torch.sum(
@@ -73,12 +77,13 @@ class AutoProf_Model(object):
                 )
                 / self.target[self.fit_window].variance[mask]
             )
+            pixels -= np.sum(mask)
         else:
             self.loss = torch.sum(
                 torch.pow((self.target[self.fit_window] - self.model_image).data, 2)
                 / self.target[self.fit_window].variance
             )
-
+        self.loss /= pixels - len(self.get_parameters_representation()[0])
         if (
             self.constraints is not None
             and self.epoch is not None
@@ -88,9 +93,15 @@ class AutoProf_Model(object):
                 self.loss *= 1 + self.constraint_strength * (
                     self.epoch - self.constraint_delay
                 ) * constraint(self)
-
+        print("loss: ", self.loss)
         return self.loss
 
+    def step(self):
+        """Call after updating any of the model parameters.
+
+        """
+        self.is_sampled = False
+        
     def get_parameters_representation(self):
         """Get the optimizer friently representations of all the non-locked
         parameter values for this model.
@@ -110,48 +121,37 @@ class AutoProf_Model(object):
         optimizer = torch.optim.Adam(
             reps, lr=self.learning_rate
         )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience=5, min_lr = self.learning_rate*1e-2, cooldown = 10)
+        loss_history = []
+        start = time()
         for epoch in range(self.max_iterations):
             self.epoch = epoch
             if (epoch % int(self.max_iterations / 10)) == 0:
-                print(f"{epoch}/{self.max_iterations}")
+                print(f"Epoch: {epoch}/{self.max_iterations}.")
+                if epoch > 0:
+                    print(f"Est time to completion: {(self.max_iterations - epoch)*(time() - start)/(epoch*60)} min")
             optimizer.zero_grad()
             self.sample()
-
             self.compute_loss()
-            self.loss.backward()
-
-            skeys, sreps = self.get_parameters_representation()
-            srepsnp = []
-            for isr in range(len(sreps)):
-                srepsnp.append(np.copy(sreps[isr].detach().numpy()))
-            optimizer.step()
-            optimizer.zero_grad()
-            fkeys, freps = self.get_parameters_representation()
-            frepsnp = []
-            for ifr in range(len(freps)):
-                frepsnp.append(np.copy(freps[ifr].detach().numpy()))
-
-            allclose = True
-            comparisons = []
-            for ik, k in enumerate(skeys):
-                if self[k].cyclic:
-                    period = self[k].limits[1] - self[k].limits[0]
-                    comparisons.append((k,np.abs(cyclic_difference_np(srepsnp[ik], frepsnp[fkeys.index(k)], period)/period)))
-                    if not np.all(np.abs(cyclic_difference_np(srepsnp[ik], frepsnp[fkeys.index(k)], period)/period) < self.stop_rtol):
-                        allclose = False
-                else:
-                    comparisons.append((k,np.abs(srepsnp[ik] - frepsnp[fkeys.index(k)])))
-                    if not np.allclose(srepsnp[ik], frepsnp[fkeys.index(k)], rtol=self.stop_rtol, atol=0.0):
-                        allclose = False
-            # print(comparisons)
-            if allclose:
+            loss_history.append(copy(self.loss.detach().item()))
+            if (len(loss_history) - np.argmin(loss_history)) > 20:
                 print(epoch)
                 break
-            # else:
-            #     print(epoch)
-            #     break
+            
+            self.loss.backward()
+            
+            skeys, sreps = self.get_parameters_representation()
+            for i in range(len(sreps)):
+                if not np.all(np.isfinite(sreps[i].grad.detach().numpy())):
+                    print("WARNING: nan grad being fixed")
+                    sreps[i].grad *= 0
+            optimizer.step()
+            scheduler.step(self.loss)
+            self.step()
         self.finalize()
         self.epoch = None
+        plt.plot(range(len(loss_history)), np.log10(loss_history))
+        plt.show()
 
     def __str__(self):
         """String representation for the model."""

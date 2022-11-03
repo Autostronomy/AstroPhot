@@ -16,7 +16,7 @@ def _h_poly(t):
         [0, 0, -1, 1]
     ], dtype=t.dtype, device=t.device)
     return A @ tt
-def cubic_spline_torch(x, y, xs):
+def cubic_spline_torch(x, y, xs, extend = "const"):
     """
     1d Cubic spline function implimented for pytorch
     """
@@ -26,7 +26,11 @@ def cubic_spline_torch(x, y, xs):
     dx = (x[idxs + 1] - x[idxs])
     hh = _h_poly((xs - x[idxs]) / dx)
     ret = hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
-    ret[xs > x[-1]] = y[-1]
+    if extend == "const":
+        ret[xs > x[-1]] = y[-1]
+    elif extend == "linear":
+        indices = xs > x[-1]
+        ret[indices] = y[-1] + (xs[indices] - x[-1])*(y[-1] - y[-2])/(x[-1] - x[-2])
     return ret
 
 
@@ -41,13 +45,44 @@ def interpolate_bicubic(img, X, Y):
     )
     return f_interp(Y, X, grid=False)
 
+def Lanczos_kernel_np(dx, dy, scale):
+    """convolution kernel for shifting all pixels in a grid by some
+    sub-pixel length.
+
+    """
+    xx = np.arange(-scale, scale+1) - dx
+    if dx < 0:
+        xx *= -1
+    Lx = np.sinc(xx) * np.sinc(xx / scale)
+    if dx > 0:
+        Lx[0] = 0
+    else:
+        Lx[-1] = 0
+
+    yy = np.arange(-scale, scale+1) - dy
+    if dy < 0:
+        yy *= -1
+    Ly = np.sinc(yy) * np.sinc(yy / scale)
+    if dx > 0:
+        Ly[0] = 0
+    else:
+        Ly[-1] = 0        
+        
+    LXX, LYY = np.meshgrid(Lx, Ly, indexing = 'xy')
+    LL = LXX * LYY
+    w = np.sum(LL)
+    LL /= w
+    # plt.imshow(LL.detach().numpy(), origin = "lower")
+    # plt.show()
+    return LL
+
 def Lanczos_kernel(dx, dy, scale):
     """Kernel function for Lanczos interpolation, defines the
     interpolation behavior between pixels.
 
     """
-    xx = np.arange(int(-scale+1), int(scale+1)) + dx
-    yy = np.arange(int(-scale+1), int(scale+1)) + dy
+    xx = np.arange(-scale+1, scale+1) + dx
+    yy = np.arange(-scale+1, scale+1) + dy
     Lx = np.sinc(xx) * np.sinc(xx / scale)
     Ly = np.sinc(yy) * np.sinc(yy / scale)
     LXX, LYY = np.meshgrid(Lx, Ly)
@@ -61,8 +96,8 @@ def point_Lanczos(I, X, Y, scale):
     Apply Lanczos interpolation to evaluate a single point.
     """
     ranges = [
-        [int(np.floor(X)-scale), int(np.floor(X)+scale)],
-        [int(np.floor(Y)-scale), int(np.floor(Y)+scale)],
+        [int(np.floor(X)-scale+1), int(np.floor(X)+scale+1)],
+        [int(np.floor(Y)-scale+1), int(np.floor(Y)+scale+1)],
     ]
     LL = Lanczos_kernel(np.floor(X) - X, np.floor(Y) - Y, scale)
     LL = LL[
@@ -90,7 +125,6 @@ def _shift_Lanczos_kernel(dx, dy, scale):
     sub-pixel length.
 
     """
-    print(dx,dy)
     xx = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = torch.float64) + dx, (0,))
     yy = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = torch.float64) + dy, (0,))
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
@@ -112,6 +146,21 @@ def shift_Lanczos(I, dx, dy, scale):
     """
     LL = _shift_Lanczos_kernel(-dx, -dy, scale)
     return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
+
+
+
+def shift_Lanczos_np(I, dx, dy, scale):
+    """Apply Lanczos interpolation to shift by less than a pixel in x and
+    y.
+
+    I: the image
+    dx: amount by which the grid will be moved in the x-axis (the "data" is fixed and the grid moves). Should be a value from (-0.5,0.5)
+    dy: amount by which the grid will be moved in the y-axis (the "data" is fixed and the grid moves). Should be a value from (-0.5,0.5)
+    scale: dictates size of the Lanczos kernel. Full kernel size is 2*scale+1
+    """
+    LL = Lanczos_kernel_np(dx, dy, scale)
+    return convolve_fft(I, LL, boundary = "fill")
+
 
 def interpolate_Lanczos_grid(img, X, Y, scale):
     """
@@ -208,9 +257,12 @@ def nearest_neighbor(img, X, Y):
         np.clip(np.round(X).astype(int), a_min = 0, a_max = img.shape[1] - 1),
     ]
 
+def mylerp(start, end, weight):
+    return start + weight*(end - start)
+
 def interp1d_torch(x_in, y_in, x_out): 
-    indices = torch.searchsorted(x_in[:-1], x) - 1
+    indices = torch.searchsorted(x_in[:-1], x_out) - 1
     weights = (y_in[1:] - y_in[:-1]) / (x_in[1:] - x_in[:-1])
-    return torch.lerp(x_in[indices], x_out, weights[indices])
+    return y_in[indices] + weights[indices]*(x_out - x_in[indices])
 
 

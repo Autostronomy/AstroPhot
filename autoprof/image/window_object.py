@@ -50,8 +50,8 @@ class AP_Window(object):
         )
     def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
         return torch.meshgrid(
-            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale)))) - x,
-            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale)))) - y,
+            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale))), dtype = torch.float64) - x,
+            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale))), dtype = torch.float64) - y,
             indexing = 'xy',
         )
         
