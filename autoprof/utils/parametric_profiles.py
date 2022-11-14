@@ -1,22 +1,42 @@
 import torch
 import numpy as np
+from autoprof.utils.conversions.functions import sersic_n_to_b
+# def sersic_torch(R, n, Rs, I0):
+#     """Seric 1d profile function, specifically designed for pytorch
+#     operations
 
-def sersic_torch(R, n, Rs, I0):
+#     """
+#     return I0 * torch.exp(-torch.pow((R+1e-6)/Rs, 1/n)) # epsilon added for numerical stability of gradient
+def sersic_torch(R, n, Re, Ie):
     """Seric 1d profile function, specifically designed for pytorch
     operations
 
     """
-    return I0 * torch.exp(-torch.pow((R+1e-6)/Rs, 1/n)) # epsilon added for numerical stability of gradient
-def sersic_np(R, n, Rs, I0):
+    bn = sersic_n_to_b(n)
+    return Ie * torch.exp(-bn*(torch.pow((R+1e-6)/Re, 1/n) - 1)) # epsilon added for numerical stability of gradient
+
+# def sersic_np(R, n, Rs, I0):
+#     """Sersic 1d profile function, works more generally with numpy
+#     operations. In the event that impossible values are passed to the
+#     function it returns large values to guide optimizers away from
+#     such values.
+
+#     """
+#     if np.any(np.array([n, Rs, I0]) <= 0):
+#         return np.ones(len(R))*1e6
+#     return I0*(np.exp(-(R/Rs)**(1/n)) + 1e-6)
+
+def sersic_np(R, n, Re, Ie):
     """Sersic 1d profile function, works more generally with numpy
     operations. In the event that impossible values are passed to the
     function it returns large values to guide optimizers away from
     such values.
 
     """
-    if np.any(np.array([n, Rs, I0]) <= 0):
+    if np.any(np.array([n, Re, Ie]) <= 0):
         return np.ones(len(R))*1e6
-    return I0*(np.exp(-(R/Rs)**(1/n)) + 1e-6)
+    bn = sersic_n_to_b(n)
+    return Ie*np.exp(-bn*((R/Re)**(1/n) - 1))
 
 def gaussian_torch(R, sigma, I0):
     """Gaussian 1d profile function, specifically designed for pytorch

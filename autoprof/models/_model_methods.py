@@ -160,18 +160,10 @@ def step_iteration(self):
     self.is_sampled = False
     self.iteration += 1
 
-def save_model(self, fileobject):
-    fileobject.write("\n" + "\n" + "*"*70 + "\n")
-    fileobject.write(self.name + "\n")
-    fileobject.write("*"*70 + "\n")
-    for p in self.parameters:
-        fileobject.write(f"{str(self.parameters[p])}\n")
-
 def __str__(self):
     return self.name
 
 def __getitem__(self, key):
-
     # Access an element from an array parameter
     if isinstance(key, tuple):
         return self.parameters[key[0]][key[1]]
@@ -185,3 +177,10 @@ def __getitem__(self, key):
         return self.parameters[key[:key.find("|")]][int(key[key.find("|")+1:])]
         
     raise KeyError(f"{key} not in {self.name}. {str(self)}")
+
+def __contains__(self, key):
+    try:
+        self[key]
+        return True
+    except:
+        return False

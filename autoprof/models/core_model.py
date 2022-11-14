@@ -1,7 +1,9 @@
 import torch
 import numpy as np
+from autoprof import plots
 import matplotlib.pyplot as plt
 from autoprof.utils.conversions.optimization import cyclic_difference_np
+from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from copy import copy
 from time import time
 
@@ -15,11 +17,12 @@ class AutoProf_Model(object):
 
     """
 
-    learning_rate = 0.2
+    model_type = ""
+    learning_rate = 0.05
     max_iterations = 256
     stop_rtol = 1e-5
     constraint_delay = 10
-    constraint_strength = 1e-1
+    constraint_strength = 1e-2
 
     def __init__(self, name, *args, **kwargs):
         self.name = name
@@ -116,12 +119,12 @@ class AutoProf_Model(object):
     def fit(self):
         """Iteratively fit the model to data."""
         self.startup()
-        print("learning rate: ", self.learning_rate)
+        self.step()
         keys, reps = self.get_parameters_representation()
         optimizer = torch.optim.Adam(
-            reps, lr=self.learning_rate
+            reps, lr=self.learning_rate, betas = (0.9,0.9),
         )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience=5, min_lr = self.learning_rate*1e-2, cooldown = 10)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience=20, min_lr = self.learning_rate*1e-2, cooldown = 10)
         loss_history = []
         start = time()
         for epoch in range(self.max_iterations):
@@ -130,13 +133,14 @@ class AutoProf_Model(object):
                 print(f"Epoch: {epoch}/{self.max_iterations}.")
                 if epoch > 0:
                     print(f"Est time to completion: {(self.max_iterations - epoch)*(time() - start)/(epoch*60)} min")
+
             optimizer.zero_grad()
             self.sample()
             self.compute_loss()
             loss_history.append(copy(self.loss.detach().item()))
-            if (len(loss_history) - np.argmin(loss_history)) > 20:
-                print(epoch)
-                break
+            # if (len(loss_history) - np.argmin(loss_history)) > 20:
+            #     print(epoch)
+            #     break
             
             self.loss.backward()
             
@@ -149,6 +153,7 @@ class AutoProf_Model(object):
             scheduler.step(self.loss)
             self.step()
         self.finalize()
+        print("runtime: ", time() - start)
         self.epoch = None
         plt.plot(range(len(loss_history)), np.log10(loss_history))
         plt.show()
@@ -156,3 +161,54 @@ class AutoProf_Model(object):
     def __str__(self):
         """String representation for the model."""
         return "AutoProf Model Instance"
+
+    def get_state(self):
+        state = {
+            "name": self.name,
+            "model type": self.model_type,
+        }
+        return state
+
+    def save(self, filename = "AutoProf.yaml"):
+        if filename.endswith(".yaml"):
+            import yaml
+            state = self.get_state()
+            with open(filename, "w") as f:
+                yaml.dump(state, f)            
+        elif filename.endswith(".json"):
+            import json
+            state = self.get_state()
+            with open(filename, "w") as f:
+                json.dump(state, f, indent = 2)
+        elif filename.endswith(".hdf5"):
+            import h5py
+            state = self.get_state()
+            with h5py.File(filename, "w") as F:
+                dict_to_hdf5(F, state)
+        else:
+            if isinstance(filename, str) and '.' in filename:
+                raise ValueError(f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5")
+            else:
+                raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5")
+            
+    def load(self, filename = "AutoProf.yaml"):
+        if filename.endswith(".yaml"):
+            import yaml
+            with open(filename, "r") as f:
+                state = yaml.load(f)            
+        elif filename.endswith(".json"):
+            import json
+            with open(filename, 'r') as f:
+                state = json.load(f)
+        elif filename.endswith(".hdf5"):
+            import h5py
+            with h5py.File(filename, "r") as F:
+                state = hdf5_to_dict(F)
+        elif isinstance(filename, dict):
+            state = filename
+        else:
+            if isinstance(filename, str) and '.' in filename:
+                raise ValueError(f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5")
+            else:
+                raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary.")
+        return state

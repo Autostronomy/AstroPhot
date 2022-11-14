@@ -20,8 +20,8 @@ def center_of_mass(center, image, window = None):
     for iteration in range(100):
         # Determine the image window to calculate COM
         ranges = [
-            [int(round(center[0] - window/2)), int(round(center[0] + window/2))],
-            [int(round(center[1] - window/2)), int(round(center[1] + window/2))]
+            [int(round(center[0]) - window/2), int(round(center[0]) + window/2)],
+            [int(round(center[1]) - window/2), int(round(center[1]) + window/2)]
         ]
         # Avoid edge of image
         if ranges[0][0] < 0 or ranges[1][0] < 0 or ranges[0][1] >= image.shape[0] or ranges[1][1] >= image.shape[1]:

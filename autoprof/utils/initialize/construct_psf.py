@@ -45,8 +45,8 @@ def construct_psf(stars, image, sky_est, size = 51, mask = None, keep_init = Fal
             int(center[0] - border): int(center[0] + border + 1),
         ]
         shift = center - star
-        I = shift_Lanczos_np(I, shift[0], shift[1], scale = Lanczos_scale)
-        I = I[Lanczos_scale:-Lanczos_scale,Lanczos_scale:-Lanczos_scale] - sky_est
+        I = shift_Lanczos_np(I - sky_est, shift[0], shift[1], scale = Lanczos_scale)
+        I = I[Lanczos_scale:-Lanczos_scale,Lanczos_scale:-Lanczos_scale]
         border = (size - 1)/2
         if mask is not None:
             I[mask[int(center[1] - border): int(center[1] + border + 1),int(center[0] - border): int(center[0] + border + 1)]] = np.nan

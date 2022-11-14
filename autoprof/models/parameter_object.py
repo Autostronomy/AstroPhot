@@ -139,6 +139,28 @@ class Parameter(object):
             self._representation[index] = rep
         if self._representation is not None:
             self._representation.requires_grad = not self.locked
+
+    def get_state(self):
+        
+        state = {
+            "name": self.name,
+            "value": self.value.detach().numpy().tolist(),
+            "uncertainty": np.array(self.uncertainty).tolist(),
+            "units": self.units,
+            "locked": self.locked,
+            "limits": self.limits,
+            "cyclic": self.cyclic,
+        }
+        
+        return state
+    
+    def update_state(self, state):
+        self.name = state["name"]
+        self.units = state.get("units", None)
+        self.limits = state.get("limits", None)
+        self.cyclic = state.get("cyclic", None)
+        self.uncertainty = state.get("uncertainty", None)
+        self.value = state.get("value", None)
             
     def __str__(self):
         """

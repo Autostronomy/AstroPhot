@@ -8,6 +8,9 @@ class Star_Model(BaseModel):
 
     """
     model_type = f"star {BaseModel.model_type}"
-    psf_mode = 'none'
-
+    psf_mode = "none"
+    integrate_mode = "none"
+    
+    def radius_metric(self, X, Y):
+        return torch.sqrt((torch.abs(X)+1e-6)**2 + (torch.abs(Y)+1e-6)**2) # epsilon added for numerical stability of gradient
     

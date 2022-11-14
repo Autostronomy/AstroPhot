@@ -16,6 +16,7 @@ def _h_poly(t):
         [0, 0, -1, 1]
     ], dtype=t.dtype, device=t.device)
     return A @ tt
+
 def cubic_spline_torch(x, y, xs, extend = "const"):
     """
     1d Cubic spline function implimented for pytorch
@@ -139,7 +140,7 @@ def _shift_Lanczos_kernel(dx, dy, scale):
     # plt.show()
     return LL
 
-def shift_Lanczos(I, dx, dy, scale):
+def shift_Lanczos(I, dx, dy, scale): # fixme update to take input from -0.5, 0.5 instead of 0,1
     """Apply Lanczos interpolation to shift by less than a pixel in x and
     y.
 

@@ -16,7 +16,7 @@ from scipy.optimize import minimize
 def sersic_initialize(self):
     super(self.__class__, self).initialize()
     with torch.no_grad():
-        if all((self["n"].value is not None, self["flux"].value is not None, self["Rs"].value is not None)):
+        if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
             return
         # Get the sub-image area corresponding to the model image
         target_area = self.target[self.fit_window]
@@ -32,7 +32,8 @@ def sersic_initialize(self):
             target_area.data.detach().numpy() - edge_average,
             (icenter[1], icenter[0]),
             threshold = 3*edge_scatter,
-            pa = self["PA"].value.detach().item(), q = self["q"].value.detach().item(),
+            pa = self["PA"].value.detach().item() if "PA" in self else 0.,
+            q = self["q"].value.detach().item() if "q" in self else 1.,
             n_isophotes = 15
         )
         R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
@@ -41,22 +42,22 @@ def sersic_initialize(self):
             flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
         x0 = [
             2. if self["n"].value is None else self["n"].value.detach().item(),
-            R[1] if self["Rs"].value is None else self["Rs"].value.detach().item(),
-            flux[0],
+            R[4] if self["Re"].value is None else self["Re"].value.detach().item(),
+            flux[4],
         ]
         res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None)))
-        self["n"].set_value(res.x[0], override_locked = (self["n"].value is None))
-        self["Rs"].set_value(res.x[1], override_locked = (self["Rs"].value is None))
-        self["flux"].set_value(np.log10(sersic_I0_to_flux_np(res.x[2], self["n"].value.detach().item(), self["Rs"].value.detach().item(), self["q"].value.detach().item())), override_locked = (self["flux"].value is None))
-        if self["Rs"].uncertainty is None:
-            self["Rs"].set_uncertainty(0.02 * self["Rs"].value.detach().item(), override_locked = True)
-        if self["flux"].uncertainty is None:
-            self["flux"].set_uncertainty(0.02, override_locked = True)
+        self["n"].set_value(res.x[0], override_locked = self["n"].value is None)
+        self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
+        self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))
+        if self["Re"].uncertainty is None:
+            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().item(), override_locked = True)
+        if self["Ie"].uncertainty is None:
+            self["Ie"].set_uncertainty(0.02, override_locked = True)
             
 def sersic_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.model_image
-    return sersic_torch(R, self["n"].value, self["Rs"].value, sersic_flux_to_I0_torch(10**self["flux"].value, self["n"].value, self["Rs"].value, self["q"].value) * sample_image.pixelscale**2)
+    return sersic_torch(R, self["n"].value, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
 
 # Gaussian
 ######################################################################
@@ -113,6 +114,7 @@ def nonparametric_set_fit_window(self, window):
         while self.profR[-1] < np.min(self.fit_window.shape/2):
             self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
         self.profR.pop()
+        self.profR.append(np.sqrt(np.sum((self.fit_window.shape/2)**2)))
         self.profR = torch.tensor(self.profR, dtype = torch.float64)
             
 def nonparametric_initialize(self):

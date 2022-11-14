@@ -27,9 +27,9 @@ class BaseModel(AutoProf_Model):
     # Hierarchy variables
     psf_mode = "none" # none, window/full, direct/fft
     psf_window_size = 50
-    integrate_mode = "none" # none, window, full
+    integrate_mode = "window" # none, window, full
     integrate_window_size = 10
-    integrate_factor = 5
+    integrate_factor = 10
 
     # settings
     special_kwargs = ["parameters"]
@@ -99,7 +99,7 @@ class BaseModel(AutoProf_Model):
             # Convert center of mass indices to coordinates
             COM_center = index_to_coord(COM[0], COM[1], target_area)
             # Set the new coordinates as the model center
-            self["center"].value = COM_center
+            self["center"].value = COM_center + np.random.normal(loc = 0, scale = 0.3*self.target.pixelscale, size = len(COM_center))
 
     def finalize(self):
         """Apply any needed functions after fitting has completed. This
@@ -229,7 +229,6 @@ class BaseModel(AutoProf_Model):
 
         # Build an image to hold the integration data
         integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window)
-        
         # Evaluate the model at the fine sampling points
         X, Y = integrate_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         integrate_image.data = self.evaluate_model(integrate_image)
@@ -237,14 +236,28 @@ class BaseModel(AutoProf_Model):
         # Replace the image data where the integration has been done
         working_image.replace(working_window,
                               torch.sum(integrate_image.data.view(
-                                  working_window.get_shape(working_image.pixelscale)[0],
-                                  self.integrate_factor,
                                   working_window.get_shape(working_image.pixelscale)[1],
+                                  self.integrate_factor,
+                                  working_window.get_shape(working_image.pixelscale)[0],
                                   self.integrate_factor
                               ), dim = (1,3))
         )
 
 
+    def get_state(self):
+        state = super().get_state()
+        if "parameters" not in state:
+            state["parameters"] = {}
+        for P in self.parameters:
+            state["parameters"][P] = self[P].get_state()
+        return state
+    def load(self, filename = "AutoProf.json"):
+        state = super().load(filename)
+        self.name = state["name"]
+        for key in state["parameters"]:
+            self[key].update_state(state["parameters"][key])
+        return state
+    
     # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import _set_default_parameters
@@ -260,8 +273,8 @@ class BaseModel(AutoProf_Model):
     from ._model_methods import build_parameters
     from ._model_methods import get_parameters_representation
     from ._model_methods import get_parameters_value
-    from ._model_methods import save_model
     from ._model_methods import __getitem__
+    from ._model_methods import __contains__
     from ._model_methods import __str__
 
 

@@ -21,9 +21,9 @@ class Sersic_Galaxy(Galaxy_Model):
     """
     model_type = f"sersic {Galaxy_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux)"},
-        "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
-        "Rs": {"units": "arcsec", "limits": (0,None)},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
     }
 
     from ._shared_methods import sersic_radial_model as radial_model
@@ -36,27 +36,16 @@ class Sersic_Star(Star_Model):
     """
     model_type = f"sersic {Galaxy_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux)"},
-        "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
-        "Rs": {"units": "arcsec", "limits": (0,None)},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
     }
 
     from ._shared_methods import sersic_radial_model as radial_model
+    from ._shared_methods import sersic_initialize as initialize
     def evaluate_model(self, image):
         X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
-        return self.radial_model(torch.sqrt(X**2 + Y**2), image)
-    def initialize(self):
-        super().initialize()
-        if self["n"].value is not None and self["flux"].value is not None and self["Rs"].value is not None:
-            return
-        with torch.no_grad():
-            target_area = self.target[self.fit_window]
-            self["flux"].set_value(np.log10(np.sum(target_area.data.detach().numpy())), override_locked = self["flux"].value is None)
-            self["flux"].set_uncertainty(1e-2, override_locked = self["flux"].uncertainty is None)
-            self["n"].set_value(1., override_locked = self["n"].value is None)
-            self["n"].set_uncertainty(1e-2, override_locked = self["n"].uncertainty is None)
-            self["Rs"].set_value(1., override_locked = self["Rs"].value is None)
-            self["Rs"].set_uncertainty(1e-2, override_locked = self["Rs"].uncertainty is None)
+        return self.radial_model(self.radius_metric(X, Y), image)
     
 class Sersic_SuperEllipse(SuperEllipse_Galaxy):
     """super ellipse galaxy model with a sersic profile for the radial
@@ -65,9 +54,9 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
     """
     model_type = f"sersic {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux)"},
-        "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
-        "Rs": {"units": "arcsec", "limits": (0,None)},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
     }
 
     from ._shared_methods import sersic_radial_model as radial_model
@@ -80,9 +69,9 @@ class Sersic_Warp(Warp_Galaxy):
     """
     model_type = f"sersic {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux)"},
-        "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
-        "Rs": {"units": "arcsec", "limits": (0,None)},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
     }
 
     from ._shared_methods import sersic_radial_model as radial_model
@@ -95,15 +84,15 @@ class Sersic_Ray(Ray_Galaxy):
     """
     model_type = f"sersic {Ray_Galaxy.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux)"},
-        "n": {"units": "none", "limits": (0,8), "uncertainty": 0.05},
-        "Rs": {"units": "arcsec", "limits": (0,None)},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    ray_model_parameters = ("I0", "n", "Rs")
+    ray_model_parameters = ("Ie", "n", "Re")
 
     def initialize(self):
         super(self.__class__, self).initialize()
-        if all((self["n_0"].value is not None, self["flux_0"].value is not None, self["Rs_0"].value is not None)):
+        if all((self["n_0"].value is not None, self["Ie_0"].value is not None, self["Re_0"].value is not None)):
             return
         with torch.no_grad():
             # Get the sub-image area corresponding to the model image
@@ -135,20 +124,20 @@ class Sersic_Ray(Ray_Galaxy):
                     flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
                 x0 = [
                     2. if self[f"n_{r}"].value is None else self[f"n_{r}"].value.detach().item(),
-                    R[1] if self[f"Rs_{r}"].value is None else self[f"Rs_{r}"].value.detach().item(),
-                    flux[0],
+                    R[4] if self[f"Re_{r}"].value is None else self[f"Re_{r}"].value.detach().item(),
+                    flux[4],
                 ]
                 res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
                 self[f"n_{r}"].set_value(res.x[0], override_locked = (self[f"n_{r}"].value is None))
-                self[f"Rs_{r}"].set_value(res.x[1], override_locked = (self[f"Rs_{r}"].value is None))
-                self[f"flux_{r}"].set_value(np.log10(sersic_I0_to_flux_np(res.x[2], self[f"n_{r}"].value.detach().item(), self[f"Rs_{r}"].value.detach().item(), self["q"].value.detach().item())), override_locked = (self[f"flux_{r}"].value is None))
-                if self[f"Rs_{r}"].uncertainty is None:
-                    self[f"Rs_{r}"].set_uncertainty(0.02 * self[f"Rs_{r}"].value.detach().item(), override_locked = True)
-                if self[f"flux_{r}"].uncertainty is None:
-                    self[f"flux_{r}"].set_uncertainty(0.02, override_locked = True)
+                self[f"Re_{r}"].set_value(res.x[1], override_locked = (self[f"Re_{r}"].value is None))
+                self[f"Ie_{r}"].set_value(np.log10(res.x[2]), override_locked = (self[f"Ie_{r}"].value is None))
+                if self[f"Re_{r}"].uncertainty is None:
+                    self[f"Re_{r}"].set_uncertainty(0.02 * self[f"Re_{r}"].value.detach().item(), override_locked = True)
+                if self[f"Ie_{r}"].uncertainty is None:
+                    self[f"Ie_{r}"].set_uncertainty(0.02, override_locked = True)
     
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image
-        return sersic_torch(R, self[f"n_{i}"].value, self[f"Rs_{i}"].value, sersic_flux_to_I0_torch(10**self[f"flux_{i}"].value, self[f"n_{i}"].value, self[f"Rs_{i}"].value, self["q"].value) * sample_image.pixelscale**2)
+        return sersic_torch(R, self[f"n_{i}"].value, self[f"Re_{i}"].value, (10**self[f"Ie_{i}"].value) * sample_image.pixelscale**2)
         

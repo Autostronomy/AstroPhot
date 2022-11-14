@@ -25,7 +25,7 @@ def target_image(fig, ax, target, window = None, **kwargs):
     im = ax.imshow(
         dat,
         origin="lower",
-        cmap=cmap_div,
+        cmap="Greys",
         extent = window.plt_extent,
         norm=ImageNormalize(stretch=HistEqStretch(dat[dat <= (sky + 3*noise)]), clip = False, vmax = sky + 3*noise, vmin = np.min(dat)),
     )
@@ -55,15 +55,15 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
-    if isinstance(model, models.Super_Model):
-        for M in model.model_list:
-            if isinstance(M,models.Sky_Model):
-                try:
-                    sky_level = M["sky"].value.detach().item()*(1. + 1e-6)*model.target.pixelscale**2
-                    print("subtracting sky level: ", sky_level)
-                    break
-                except Exception as e:
-                    print(e)
+    # if isinstance(model, models.Super_Model):
+    #     for M in model.model_list:
+    #         if isinstance(M,models.Sky_Model):
+    #             try:
+    #                 sky_level = M["sky"].value.detach().item()*(1. + 1e-6)*model.target.pixelscale**2
+    #                 print("subtracting sky level: ", sky_level)
+    #                 break
+    #             except Exception as e:
+    #                 print(e)
     im = ax.imshow(
         np.log10(image - sky_level),
         **imshow_kwargs,
@@ -86,15 +86,13 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
     )    
     if model.target.masked:
         residuals[model.target[window].mask] = np.nan
-    vlim = np.nanmax(np.abs(residuals))
-    if vlim > (3 * abs(np.nanmin(residuals))):
-        vlim = abs(np.nanmin(residuals))
-
+    residuals = np.arctan(residuals/(iqr(residuals[np.isfinite(residuals)], rng = [10,90])*2))
+    extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
     imshow_kwargs = {
         "extent": window.plt_extent,
         "cmap": cmap_div,
-        "vmin": -vlim,
-        "vmax": vlim,
+        "vmin": -extreme,
+        "vmax": extreme,
         "origin": "lower",
     }
     imshow_kwargs.update(kwargs)
@@ -103,8 +101,9 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
         **imshow_kwargs,
     )
     if showcbar:
-        clb = fig.colorbar(im, ax=ax, label = f"Target - {model.name} [flux]")
-
+        clb = fig.colorbar(im, ax=ax, label = f"Target - {model.name} [arb.]")
+        clb.ax.set_yticks([])
+        clb.ax.set_yticklabels([])
     return fig, ax
 
 def supermodel_boxes(fig, ax, model, **kwargs):

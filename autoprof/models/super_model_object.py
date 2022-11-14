@@ -14,12 +14,16 @@ class Super_Model(AutoProf_Model):
     summed model.
 
     """
+
+    model_type = "supermodel"
+    
     def __init__(self, name, model_list, target = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
         self.model_list = model_list
         self.target = self.model_list[0].target if target is None else target
         self._user_locked = locked
         self._locked = self._user_locked
+        self._psf_mode = None
         self.loss = None
         self.update_fit_window()
 
@@ -118,5 +122,27 @@ class Super_Model(AutoProf_Model):
         self._target = tar
         for model in self.model_list:
             model.target = tar
-            
+    @property
+    def psf_mode(self):
+        return self._psf_mode
+    @psf_mode.setter
+    def psf_mode(self, value):
+        self._psf_mode = value
+        for model in self.model_list:
+            model.psf_mode = value
+    
+    def get_state(self):
+        state = super().get_state()
+        if "models" not in state:
+            state["models"] = {}
+        for model in self.model_list:
+            state["models"][model.name] = model.get_state()
+        return state
+
+    def load(self, filename = "AutoProf.json"):
+        state = super().load(filename)
+        for model in self.model_list:
+            if model.name in state["models"]:
+                model.load(state["models"][model.name])
+                
     from ._model_methods import locked

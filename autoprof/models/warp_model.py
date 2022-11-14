@@ -17,7 +17,7 @@ class Warp_Galaxy(Galaxy_Model):
     """
     model_type = " ".join(("warp", Galaxy_Model.model_type))
     parameter_specs = {
-        "q(R)": {"units": "b/a", "limits": (0,1), "uncertainty": 0.04},
+        "q(R)": {"units": "b/a", "limits": (0.05,1), "uncertainty": 0.04},
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
 
