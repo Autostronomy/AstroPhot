@@ -17,7 +17,7 @@ class Super_Model(AutoProf_Model):
 
     model_type = "supermodel"
     
-    def __init__(self, name, target, model_list = None, locked = False, **kwargs):
+    def __init__(self, name, target = None, model_list = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
         self.model_list = [] if model_list is None else model_list
         self.target = target
@@ -28,7 +28,6 @@ class Super_Model(AutoProf_Model):
         self.update_fit_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
-        print("completed")
 
     def add_model(self, model):
         self.model_list.append(model)
@@ -49,7 +48,14 @@ class Super_Model(AutoProf_Model):
             pixelscale = self.target.pixelscale,
             window = self.fit_window,
         )
-        
+
+    @property
+    def parameter_order(self):
+        param_order = tuple()
+        for model in self.model_list:
+            param_order = param_order + model.parameter_order
+        return param_order
+    
     def initialize(self):
         for model in self.model_list:
             model.initialize()
@@ -105,6 +111,8 @@ class Super_Model(AutoProf_Model):
             for p in values:
                 all_parameters[f"{model.name}|{p}"] = values[p] 
         return all_parameters
+
+    
     
     def __getitem__(self, key):
         if isinstance(key, tuple):
@@ -123,6 +131,8 @@ class Super_Model(AutoProf_Model):
         return self._target
     @target.setter
     def target(self, tar):
+        if tar is None:
+            tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1.)
         assert isinstance(tar, Target_Image)
         self._target = tar
         for model in self.model_list:

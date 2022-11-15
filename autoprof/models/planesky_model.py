@@ -15,12 +15,6 @@ class Plane_Sky(Sky_Model):
         "delta": {"units": "sky/arcsec"},
     }
 
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["sky"].value is not None:
-            self["sky"].set_value(self["sky"].value.detach().item() / self.target.pixelscale**2, override_locked = True)
-    
     def initialize(self):        
         super().initialize()
 

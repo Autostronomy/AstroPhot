@@ -35,15 +35,16 @@ class AutoProf_Model(object):
             for M in MODELS:
                 if M.model_type == state["model_type"]:
                     return super(AutoProf_Model, cls).__new__(M)
+            else:
+                raise ModuleNotFoundError(f"Unknown AutoProf model type: {state['model_type']}")
         return super().__new__(cls)
-    
+
     def __init__(self, name, *args, **kwargs):
         self.name = name
-        print("in init ", name, self.__class__)
         self.epoch = None
         self.constraints = kwargs.get("constraints", None)
         self.is_sampled = False
-
+        
     def initialize(self):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
@@ -58,8 +59,8 @@ class AutoProf_Model(object):
         specific configuration for fitting, see also "finalize"
 
         """
-        pass
-
+        self.parameter_vector_len = list(int(np.prod(self[P].value.shape)) for P in self.parameter_order)
+        
     def finalize(self):
         """This is run after fitting and can be used to undo any fitting
         specific settings or aspects of a model.
@@ -101,23 +102,29 @@ class AutoProf_Model(object):
                 / self.target[self.fit_window].variance
             )
         self.loss /= pixels - len(self.get_parameters_representation()[0])
-        if (
-            self.constraints is not None
-            and self.epoch is not None
-            and self.epoch > self.constraint_delay
-        ):
+        if self.constraints is not None:
             for constraint in self.constraints:
-                self.loss *= 1 + self.constraint_strength * (
-                    self.epoch - self.constraint_delay
-                ) * constraint(self)
+                self.loss *= 1 + self.constraint_strength * constraint(self)
         print("loss: ", self.loss)
         return self.loss
 
-    def step(self):
+    def step(self, parameters = None):
         """Call after updating any of the model parameters.
 
         """
         self.is_sampled = False
+        if parameters is None:
+            return
+        if isinstance(parameters, dict):
+            for P in parameters:
+                isinstance(parameters[P], torch.Tensor)
+                self[P].value = parameters[P]
+            return
+        assert isinstance(parameters, torch.Tensor)
+        start = 0
+        for P, V in zip(self.parameter_order, self.parameter_vector_len):
+            self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
+            start += V
         
     def get_parameters_representation(self):
         """Get the optimizer friently representations of all the non-locked
@@ -152,16 +159,13 @@ class AutoProf_Model(object):
             self.sample()
             self.compute_loss()
             loss_history.append(copy(self.loss.detach().item()))
-            # if (len(loss_history) - np.argmin(loss_history)) > 20:
-            #     print(epoch)
-            #     break
             
             self.loss.backward()
             
             skeys, sreps = self.get_parameters_representation()
             for i in range(len(sreps)):
                 if not np.all(np.isfinite(sreps[i].grad.detach().numpy())):
-                    print("WARNING: nan grad being fixed")
+                    print("WARNING: nan grad being fixed. Might be about to fail.")
                     sreps[i].grad *= 0
             optimizer.step()
             scheduler.step(self.loss)
@@ -171,6 +175,17 @@ class AutoProf_Model(object):
         self.epoch = None
         plt.plot(range(len(loss_history)), np.log10(loss_history))
         plt.show()
+
+    def full_sample(self, parameters = None):
+        self.step(parameters)
+        self.sample()
+        return sample_image.data
+    
+    def full_loss(self, parameters = None):
+        self.step(parameters)
+        self.sample()
+        self.compute_loss()
+        return self.loss
 
     def __str__(self):
         """String representation for the model."""
@@ -188,7 +203,7 @@ class AutoProf_Model(object):
             import yaml
             state = self.get_state()
             with open(filename, "w") as f:
-                yaml.dump(state, f)            
+                yaml.dump(state, f, indent = 2)            
         elif filename.endswith(".json"):
             import json
             state = self.get_state()
@@ -212,7 +227,7 @@ class AutoProf_Model(object):
         elif filename.endswith(".yaml"):
             import yaml
             with open(filename, "r") as f:
-                state = yaml.load(f)            
+                state = yaml.load(f, Loader = yaml.FullLoader)            
         elif filename.endswith(".json"):
             import json
             with open(filename, 'r') as f:

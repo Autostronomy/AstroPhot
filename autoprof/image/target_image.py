@@ -113,4 +113,3 @@ class Target_Image(BaseImage):
             note = self.note,
             origin = self.origin,
         )
-            

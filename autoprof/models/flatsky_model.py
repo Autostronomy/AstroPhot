@@ -15,12 +15,6 @@ class Flat_Sky(Sky_Model):
         "sky": {"units": "flux/arcsec^2"},
     }
 
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["sky"].value is not None:
-            self["sky"].set_value(self["sky"].value / self.target.pixelscale**2, override_locked = True)    
-    
     def initialize(self):        
         super().initialize()
 

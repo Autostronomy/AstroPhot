@@ -25,6 +25,7 @@ class Sersic_Galaxy(Galaxy_Model):
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
+    parameter_order = Galaxy_Model.parameter_order + ("n", "Re", "Ie")
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import sersic_initialize as initialize
@@ -40,6 +41,7 @@ class Sersic_Star(Star_Model):
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
+    parameter_order = Star_Model.parameter_order + ("n", "Re", "Ie")
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import sersic_initialize as initialize
@@ -58,6 +60,7 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
+    parameter_order = SuperEllipse_Galaxy.parameter_order + ("n", "Re", "Ie")
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import sersic_initialize as initialize
@@ -73,6 +76,7 @@ class Sersic_Warp(Warp_Galaxy):
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
+    parameter_order = Warp_Galaxy.parameter_order + ("n", "Re", "Ie")
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import sersic_initialize as initialize
@@ -88,6 +92,7 @@ class Sersic_Ray(Ray_Galaxy):
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
+    parameter_order = Ray_Galaxy.parameter_order + ("n", "Re", "Ie")
     ray_model_parameters = ("Ie", "n", "Re")
 
     def initialize(self):

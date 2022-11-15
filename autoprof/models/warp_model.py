@@ -20,17 +20,12 @@ class Warp_Galaxy(Galaxy_Model):
         "q(R)": {"units": "b/a", "limits": (0.05,1), "uncertainty": 0.04},
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
+    parameter_order = Galaxy_Model.parameter_order + ("q(R)", "PA(R)")
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
             self.profR = None
         super().__init__(*args, **kwargs)
-
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["PA(R)"].value is not None:
-            self["PA(R)"].set_value(self["PA(R)"].value * np.pi / 180, override_locked = True)
 
     def initialize(self):
         super().initialize()

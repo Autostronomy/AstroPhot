@@ -10,11 +10,7 @@ __all__ = ["Ray_Galaxy", "SingleRay_Galaxy"]
 class Ray_Galaxy(Galaxy_Model):
 
     model_type = f"ray {Galaxy_Model.model_type}"
-    parameter_specs = {
-        "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
-        "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
-    }
-
+    # fixme, for ray model parameters just make them matrices instead of multiple vectors
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rays = kwargs.get("rays", 2)

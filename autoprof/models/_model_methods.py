@@ -23,9 +23,11 @@ def scale_window(self, scale = 1., border = 0.):
 def target(self):
     return self._target
 @target.setter
-def target(self, val):
-    assert isinstance(val, Target_Image)
-    self._target = val
+def target(self, tar):
+    if tar is None:
+        tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1.)
+    assert isinstance(tar, Target_Image)
+    self._target = tar
     
 @property
 def fit_window(self):
@@ -105,13 +107,16 @@ def build_parameter_specs(cls, user_specs = None):
             pass
     parameter_specs.update(cls.parameter_specs)
     parameter_specs = deepcopy(parameter_specs)
-    if user_specs is not None:
+    if isinstance(user_specs, dict):
         for p in user_specs:
             # If the user supplied a parameter object subclass, simply use that as is
             if isinstance(user_specs[p], Parameter):
                 parameter_specs[p] = user_specs[p]
-            else: # if the user supplied parameter specifications, update the defaults
-                parameter_specs[p].update(user_specs[p])        
+            elif isinstance(user_specs[p], dict): # if the user supplied parameter specifications, update the defaults
+                parameter_specs[p].update(user_specs[p])
+            else:
+                parameter_specs[p]["value"] = user_specs[p]
+                
     return parameter_specs
 
 def build_parameters(self):

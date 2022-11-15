@@ -23,6 +23,7 @@ class BaseModel(AutoProf_Model):
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
     }
+    parameter_order = ("center",)
 
     # Hierarchy variables
     psf_mode = "none" # none, window/full, direct/fft
@@ -34,7 +35,7 @@ class BaseModel(AutoProf_Model):
     # settings
     special_kwargs = ["parameters", "filename"]
     
-    def __init__(self, name, target, window = None, locked = False, **kwargs):
+    def __init__(self, name, target = None, window = None, locked = False, **kwargs):
         super().__init__(name, target, window, locked, **kwargs)
         
         self._set_default_parameters()
@@ -42,11 +43,7 @@ class BaseModel(AutoProf_Model):
         self.fit_window = window
         self._user_locked = locked
         self._locked = self._user_locked
-            
-        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
-        with torch.no_grad():
-            self.build_parameters()
-            self._init_convert_input_units()
+        self.parameter_vector_len = None
         
         # Set any user defined attributes for the model
         for kwarg in kwargs:
@@ -56,22 +53,18 @@ class BaseModel(AutoProf_Model):
             # Set the model parameter
             print("setting: ", kwarg)
             setattr(self, kwarg, kwargs[kwarg])
-            
+
         if "filename" in kwargs:
             self.load(kwargs["filename"])
             
+        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
+        with torch.no_grad():
+            self.build_parameters()
+            if isinstance(kwargs.get("parameters", None), torch.Tensor):
+                self.step(kwargs["parameters"])
+            
     # Initialization functions
     ######################################################################    
-    def _init_convert_input_units(self):
-        """Convert the center value from pixel coordinates, which are given
-        as input into physical coordinates which are used in the model
-        internally.
-
-        """
-        if self["center"].value is not None:
-            physcenter = index_to_coord(self["center"].value[1], self["center"].value[0], self.target)
-            self["center"].set_value(physcenter, override_locked = True)
-            
     def initialize(self):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
@@ -104,6 +97,8 @@ class BaseModel(AutoProf_Model):
             # Set the new coordinates as the model center
             self["center"].value = COM_center + np.random.normal(loc = 0, scale = 0.3*self.target.pixelscale, size = len(COM_center))
 
+
+            
     def finalize(self):
         """Apply any needed functions after fitting has completed. This
         function is to be overloaded by subclasses.
@@ -135,7 +130,6 @@ class BaseModel(AutoProf_Model):
             return
         if sample_image is self.model_image:
             sample_image.clear_image()
-            #self.is_sampled = True
 
         # Check that psf and integrate modes line up
         if "window" in self.psf_mode:
@@ -177,30 +171,12 @@ class BaseModel(AutoProf_Model):
             sub_window.shift_origin(center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
             sub_image.data = self.evaluate_model(sub_image)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("evaluate model")
-            # plt.show()
             self.integrate_model(sub_image)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("integrate model")
-            # plt.show()
             sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("convolve")
-            # plt.show()
             sub_image.shift_origin(-center_shift)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("shift")
-            # plt.show()
             center_shift = torch.zeros(2)
             sub_image.crop(*self.target.psf_border_int)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("crop")
-            # plt.show()
             working_image.replace(sub_image)
-            # plt.imshow(working_image.data.detach().numpy(),origin = "lower")
-            # plt.title("working image")
-            # plt.show()
         else:
             self.integrate_model(working_image)
 
@@ -245,7 +221,6 @@ class BaseModel(AutoProf_Model):
                                   self.integrate_factor
                               ), dim = (1,3))
         )
-
 
     def get_state(self):
         state = super().get_state()
