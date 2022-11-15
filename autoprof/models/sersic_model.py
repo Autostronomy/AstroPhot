@@ -34,7 +34,7 @@ class Sersic_Star(Star_Model):
     profile.
 
     """
-    model_type = f"sersic {Galaxy_Model.model_type}"
+    model_type = f"sersic {Star_Model.model_type}"
     parameter_specs = {
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},

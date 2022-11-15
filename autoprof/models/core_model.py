@@ -9,6 +9,10 @@ from time import time
 
 __all__ = ["AutoProf_Model"]
 
+def all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
 class AutoProf_Model(object):
     """Prototype class for all AutoProf models. Every class should
     define/overload the methods included here. The fit function is
@@ -24,8 +28,18 @@ class AutoProf_Model(object):
     constraint_delay = 10
     constraint_strength = 1e-2
 
+    def __new__(cls, *args, **kwargs):
+        if "filename" in kwargs:
+            state = AutoProf_Model.load(kwargs["filename"])
+            MODELS = all_subclasses(AutoProf_Model)
+            for M in MODELS:
+                if M.model_type == state["model_type"]:
+                    return super(AutoProf_Model, cls).__new__(M)
+        return super().__new__(cls)
+    
     def __init__(self, name, *args, **kwargs):
         self.name = name
+        print("in init ", name, self.__class__)
         self.epoch = None
         self.constraints = kwargs.get("constraints", None)
         self.is_sampled = False
@@ -165,7 +179,7 @@ class AutoProf_Model(object):
     def get_state(self):
         state = {
             "name": self.name,
-            "model type": self.model_type,
+            "model_type": self.model_type,
         }
         return state
 
@@ -190,9 +204,12 @@ class AutoProf_Model(object):
                 raise ValueError(f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5")
             else:
                 raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5")
-            
-    def load(self, filename = "AutoProf.yaml"):
-        if filename.endswith(".yaml"):
+
+    @classmethod
+    def load(cls, filename = "AutoProf.yaml"):
+        if isinstance(filename, dict):
+            state = filename
+        elif filename.endswith(".yaml"):
             import yaml
             with open(filename, "r") as f:
                 state = yaml.load(f)            
@@ -204,11 +221,10 @@ class AutoProf_Model(object):
             import h5py
             with h5py.File(filename, "r") as F:
                 state = hdf5_to_dict(F)
-        elif isinstance(filename, dict):
-            state = filename
         else:
             if isinstance(filename, str) and '.' in filename:
                 raise ValueError(f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5")
             else:
                 raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary.")
         return state
+        

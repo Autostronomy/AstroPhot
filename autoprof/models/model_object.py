@@ -32,7 +32,7 @@ class BaseModel(AutoProf_Model):
     integrate_factor = 10
 
     # settings
-    special_kwargs = ["parameters"]
+    special_kwargs = ["parameters", "filename"]
     
     def __init__(self, name, target, window = None, locked = False, **kwargs):
         super().__init__(name, target, window, locked, **kwargs)
@@ -56,6 +56,9 @@ class BaseModel(AutoProf_Model):
             # Set the model parameter
             print("setting: ", kwarg)
             setattr(self, kwarg, kwargs[kwarg])
+            
+        if "filename" in kwargs:
+            self.load(kwargs["filename"])
             
     # Initialization functions
     ######################################################################    
@@ -251,8 +254,8 @@ class BaseModel(AutoProf_Model):
         for P in self.parameters:
             state["parameters"][P] = self[P].get_state()
         return state
-    def load(self, filename = "AutoProf.json"):
-        state = super().load(filename)
+    def load(self, filename = "AutoProf.yaml"):
+        state = AutoProf_Model.load(filename)
         self.name = state["name"]
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])

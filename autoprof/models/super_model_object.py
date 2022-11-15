@@ -17,15 +17,18 @@ class Super_Model(AutoProf_Model):
 
     model_type = "supermodel"
     
-    def __init__(self, name, model_list, target = None, locked = False, **kwargs):
+    def __init__(self, name, target, model_list = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
-        self.model_list = model_list
-        self.target = self.model_list[0].target if target is None else target
+        self.model_list = [] if model_list is None else model_list
+        self.target = target
         self._user_locked = locked
         self._locked = self._user_locked
         self._psf_mode = None
         self.loss = None
         self.update_fit_window()
+        if "filename" in kwargs:
+            self.load(kwargs["filename"])
+        print("completed")
 
     def add_model(self, model):
         self.model_list.append(model)
@@ -40,6 +43,8 @@ class Super_Model(AutoProf_Model):
                 self.fit_window = deepcopy(model.fit_window)
             else:
                 self.fit_window |= model.fit_window
+        if self.fit_window is None:
+            self.fit_window = self.target.window
         self.model_image = Model_Image(
             pixelscale = self.target.pixelscale,
             window = self.fit_window,
@@ -139,10 +144,15 @@ class Super_Model(AutoProf_Model):
             state["models"][model.name] = model.get_state()
         return state
 
-    def load(self, filename = "AutoProf.json"):
-        state = super().load(filename)
-        for model in self.model_list:
-            if model.name in state["models"]:
-                model.load(state["models"][model.name])
+    def load(self, filename = "AutoProf.yaml"):
+        state = AutoProf_Model.load(filename)
+        self.name = state["name"]
+        for model in state["models"]:
+            for own_model in self.model_list:
+                if model == own_model.name:
+                    own_model.load(state["models"][model])
+                    break
+            else:
+                self.add_model(AutoProf_Model(name = model, filename = state["models"][model], target = self.target))
                 
     from ._model_methods import locked
