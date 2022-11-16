@@ -64,6 +64,22 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import sersic_initialize as initialize
+
+class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
+    """super ellipse warp galaxy model with a sersic profile for the
+    radial light profile.
+
+    """
+    model_type = f"sersic {SuperEllipse_Warp.model_type}"
+    parameter_specs = {
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
+    }
+    parameter_order = SuperEllipse_Warp.parameter_order + ("n", "Re", "Ie")
+
+    from ._shared_methods import sersic_radial_model as radial_model
+    from ._shared_methods import sersic_initialize as initialize
     
 class Sersic_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a sersic profile for the
@@ -93,11 +109,10 @@ class Sersic_Ray(Ray_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     parameter_order = Ray_Galaxy.parameter_order + ("n", "Re", "Ie")
-    ray_model_parameters = ("Ie", "n", "Re")
 
     def initialize(self):
         super(self.__class__, self).initialize()
-        if all((self["n_0"].value is not None, self["Ie_0"].value is not None, self["Re_0"].value is not None)):
+        if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
             return
         with torch.no_grad():
             # Get the sub-image area corresponding to the model image
@@ -128,21 +143,21 @@ class Sersic_Ray(Ray_Galaxy):
                 if np.sum(flux < 0) >= 1:
                     flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
                 x0 = [
-                    2. if self[f"n_{r}"].value is None else self[f"n_{r}"].value.detach().item(),
-                    R[4] if self[f"Re_{r}"].value is None else self[f"Re_{r}"].value.detach().item(),
+                    2. if self["n"].value is None else self["n"].value.detach().numpy()[r],
+                    R[4] if self["Re"].value is None else self["Re"].value.detach().numpy()[r],
                     flux[4],
                 ]
                 res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
-                self[f"n_{r}"].set_value(res.x[0], override_locked = (self[f"n_{r}"].value is None))
-                self[f"Re_{r}"].set_value(res.x[1], override_locked = (self[f"Re_{r}"].value is None))
-                self[f"Ie_{r}"].set_value(np.log10(res.x[2]), override_locked = (self[f"Ie_{r}"].value is None))
-                if self[f"Re_{r}"].uncertainty is None:
-                    self[f"Re_{r}"].set_uncertainty(0.02 * self[f"Re_{r}"].value.detach().item(), override_locked = True)
-                if self[f"Ie_{r}"].uncertainty is None:
-                    self[f"Ie_{r}"].set_uncertainty(0.02, override_locked = True)
+                self["n"].set_value(res.x[0], override_locked = (self["n"].value is None), index = r)
+                self["Re"].set_value(res.x[1], override_locked = (self["Re"].value is None), index = r)
+                self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None), index = r)
+            if self["Re"].uncertainty is None:
+                self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().numpy(), override_locked = True)
+            if self["Ie"].uncertainty is None:
+                self["Ie"].set_uncertainty(0.02 * len(self["Ie"].value), override_locked = True)
     
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image
-        return sersic_torch(R, self[f"n_{i}"].value, self[f"Re_{i}"].value, (10**self[f"Ie_{i}"].value) * sample_image.pixelscale**2)
+        return sersic_torch(R, self[f"n"].value[i], self[f"Re"].value[i], (10**self[f"Ie"].value[i]) * sample_image.pixelscale**2)
         

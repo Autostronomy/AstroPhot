@@ -11,6 +11,52 @@ from scipy.stats import iqr
 import torch
 from scipy.optimize import minimize
 
+# Exponential
+######################################################################
+def exponential_initialize(self):
+    super(self.__class__, self).initialize()
+    with torch.no_grad():
+        if all((self["Ie"].value is not None, self["Re"].value is not None)):
+            return
+        # Get the sub-image area corresponding to the model image
+        target_area = self.target[self.fit_window]
+        edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+        edge_average = np.median(edge)
+        edge_scatter = iqr(edge, rng = (16,84))/2
+        # Convert center coordinates to target area array indices
+        icenter = coord_to_index(
+            self["center"].value[0].detach().item(),
+            self["center"].value[1].detach().item(), target_area
+        )
+        iso_info = isophotes(
+            target_area.data.detach().numpy() - edge_average,
+            (icenter[1], icenter[0]),
+            threshold = 3*edge_scatter,
+            pa = self["PA"].value.detach().item() if "PA" in self else 0.,
+            q = self["q"].value.detach().item() if "q" in self else 1.,
+            n_isophotes = 15
+        )
+        R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
+        flux = np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale**2
+        if np.sum(flux < 0) >= 1:
+            flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
+        x0 = [
+            R[4] if self["Re"].value is None else self["Re"].value.detach().item(),
+            flux[4],
+        ]
+        res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(exponential_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None)))
+        self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
+        self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))
+        if self["Re"].uncertainty is None:
+            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().item(), override_locked = True)
+        if self["Ie"].uncertainty is None:
+            self["Ie"].set_uncertainty(0.02, override_locked = True)
+            
+def exponential_radial_model(self, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.model_image
+    return exponential_torch(R, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
+
 # Sersic
 ######################################################################
 def sersic_initialize(self):

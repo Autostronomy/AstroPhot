@@ -108,7 +108,7 @@ class AutoProf_Model(object):
         print("loss: ", self.loss)
         return self.loss
 
-    def step(self, parameters = None):
+    def step(self, parameters = None, parameters_as_representation = False):
         """Call after updating any of the model parameters.
 
         """
@@ -123,7 +123,10 @@ class AutoProf_Model(object):
         assert isinstance(parameters, torch.Tensor)
         start = 0
         for P, V in zip(self.parameter_order, self.parameter_vector_len):
-            self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
+            if parameters_as_representation:
+                self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
+            else:
+                self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
             start += V
         
     def get_parameters_representation(self):
