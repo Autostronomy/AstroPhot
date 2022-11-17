@@ -1,4 +1,3 @@
-import h5py
 from typing import Iterable
 
 def to_hdf5_has_None(l):
@@ -27,6 +26,7 @@ def dict_to_hdf5(h, D):
                 h[key] = "None"
 
 def hdf5_to_dict(h):
+    import h5py
     D = {}
     for key in h.keys():
         if isinstance(h[key],h5py.Group):
