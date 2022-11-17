@@ -95,7 +95,7 @@ class BaseImage(object):
     def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
-        return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
+        return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y, dtype = self.dtype, device = self.device)
 
     def reduce(self, scale):
         assert isinstance(scale, int)
