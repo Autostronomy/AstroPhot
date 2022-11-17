@@ -2,7 +2,9 @@ from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
 from .star_model_object import Star_Model
-from .superellipse_model import SuperEllipse_Galaxy
+from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
+from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
+from .ray_model import Ray_Galaxy
 from .edgeon_model import EdgeOn_Model
 import torch
 import numpy as np
@@ -13,7 +15,7 @@ from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_in
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-__all__ = ["Exponential_Galaxy", "Exponential_Star", "Exponential_Warp", "Exponential_Ray"]
+__all__ = ["Exponential_Galaxy", "Exponential_Star", "Exponential_SuperEllipse", "Exponential_SuperEllipse_Warp", "Exponential_Warp", "Exponential_Ray", "Exponential_Exponential_EdgeOn", "Exponential_Sech2_EdgeOn"]
 
 class Exponential_Galaxy(Galaxy_Model):
     """basic galaxy model with a exponential profile for the radial light
@@ -74,6 +76,36 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     parameter_order = SuperEllipse_Warp.parameter_order + ("Re", "Ie")
+
+    from ._shared_methods import exponential_radial_model as radial_model
+    from ._shared_methods import exponential_initialize as initialize
+    
+class Exponential_FourierEllipse(FourierEllipse_Galaxy):
+    """fourier mode perturbations to ellipse galaxy model with an
+    expoential profile for the radial light profile.
+
+    """
+    model_type = f"exponential {FourierEllipse_Galaxy.model_type}"
+    parameter_specs = {
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Re": {"units": "arcsec", "limits": (0,None)},
+    }
+    parameter_order = FourierEllipse_Galaxy.parameter_order + ("Re", "Ie")
+
+    from ._shared_methods import exponential_radial_model as radial_model
+    from ._shared_methods import exponential_initialize as initialize
+
+class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
+    """fourier mode perturbations to ellipse galaxy model with a exponential
+    profile for the radial light profile.
+
+    """
+    model_type = f"exponential {FourierEllipse_Warp.model_type}"
+    parameter_specs = {
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Re": {"units": "arcsec", "limits": (0,None)},
+    }
+    parameter_order = FourierEllipse_Warp.parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -177,7 +209,7 @@ class Exponential_Sech2_EdgeOn(EdgeOn_Model):
     profile and a sech^2 profile for the vertical component.
 
     """
-    model_type = f"expexp {EdgeOn_Model.model_type}"
+    model_type = f"expsech2 {EdgeOn_Model.model_type}"
     parameter_specs = {
         "I0": {"units": "log10(flux/arcsec^2)"},
         "Rr": {"units": "arcsec", "limits": (0,None)},

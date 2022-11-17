@@ -47,6 +47,8 @@ class Super_Model(AutoProf_Model):
         self.model_image = Model_Image(
             pixelscale = self.target.pixelscale,
             window = self.fit_window,
+            dtype = self.dtype,
+            device = self.device,
         )
 
     @property
@@ -132,9 +134,9 @@ class Super_Model(AutoProf_Model):
     @target.setter
     def target(self, tar):
         if tar is None:
-            tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1.)
+            tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
         assert isinstance(tar, Target_Image)
-        self._target = tar
+        self._target = tar.to(dtype = self.dtype, device = self.device)
         for model in self.model_list:
             model.target = tar
     @property

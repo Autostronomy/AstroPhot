@@ -13,5 +13,7 @@ from .nonparametric_model import *
 from .star_model_object import *
 from .psf_model import *
 from .superellipse_model import *
+from .edgeon_model import *
+from .exponential_model import *
 #from .fourierellipse_model import *
 # from .isophote_model import Isophote_Galaxy

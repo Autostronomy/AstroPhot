@@ -13,10 +13,12 @@ class BaseImage(object):
 
     """
 
-    def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, center = None, **kwargs):
+    def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float64, **kwargs):
         assert not (pixelscale is None and window is None)
+        self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
+        self.dtype = dtype
         self._data = None
-        self.data = data #.to(dtype = torch.float64) if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float64)
+        self.data = data
         self.zeropoint = zeropoint
         self.note = note
         if window is None:
@@ -54,11 +56,13 @@ class BaseImage(object):
     def set_data(self, data, require_shape = True):
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
-        self._data = data.to(dtype = torch.float64) if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = torch.float64)
+        self._data = data.to(dtype = self.dtype, device = self.device) if isinstance(data, torch.Tensor) else torch.tensor(data, dtype = self.dtype, device = self.device)
         
     def blank_copy(self):
         return self.__class__(
-            data = torch.zeros(self.data.shape, dtype = torch.float32),
+            data = torch.zeros(self.data.shape, dtype = self.dtype, device = self.device),
+            device = self.device,
+            dtype = self.dtype,
             zeropoint = self.zeropoint,
             note = self.note,
             window = self.window,
@@ -67,12 +71,22 @@ class BaseImage(object):
     def get_window(self, window):
         return self.__class__(
             data = self.data[window.get_indices(self)],
+            device = self.device,
+            dtype = self.dtype,
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
             note = self.note,
             origin = (max(self.origin[0], window.origin[0]),
                       max(self.origin[1], window.origin[1]))
         )
+    def to(self, dtype = None, device = None):
+        if dtype is not None:
+            self.dtype = dtype
+        if device is not None:
+            self.device = device
+        if self._data is not None:
+            self._data = self._data.to(dtype = self.dtype, device = self.device)
+        return self
 
     def crop(self, *pixels):
         self.set_data(self.data[pixels[1]:-pixels[1],pixels[0]:-pixels[0]], require_shape = False)

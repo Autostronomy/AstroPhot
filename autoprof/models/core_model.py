@@ -28,6 +28,9 @@ class AutoProf_Model(object):
     constraint_delay = 10
     constraint_strength = 1e-2
 
+    dtype = torch.float64
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     def __new__(cls, *args, **kwargs):
         if "filename" in kwargs:
             state = AutoProf_Model.load(kwargs["filename"])

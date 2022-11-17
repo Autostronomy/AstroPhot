@@ -19,7 +19,7 @@ class Model_Image(BaseImage):
         super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
         
     def clear_image(self):
-        self.data = torch.zeros(self.data.shape)
+        self.data = torch.zeros(self.data.shape, dtype = self.dtype, device = self.device)
 
     def shift_origin(self, shift):
         self.window.shift_origin(shift)

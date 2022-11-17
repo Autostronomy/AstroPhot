@@ -18,7 +18,7 @@ class Target_Image(BaseImage):
     @property
     def variance(self):
         if self._variance is None:
-            return torch.ones(self.data.shape, dtype = torch.float32)
+            return torch.ones(self.data.shape, dtype = self.dtype, device = self.device)
         return self._variance
     @variance.setter
     def variance(self, variance):
@@ -26,7 +26,7 @@ class Target_Image(BaseImage):
     @property
     def mask(self):
         if self._mask is None:
-            return np.zeros(self.data.shape, dtype = np.bool)
+            return np.zeros(self.data.shape, dtype = np.bool) # fixme make torch?
         return self._mask
     @mask.setter
     def mask(self, mask):
@@ -52,14 +52,14 @@ class Target_Image(BaseImage):
             self._variance = None
             return
         assert variance.shape == self.data.shape, "variance must have same shape as data"
-        self._variance = variance if isinstance(variance, torch.Tensor) else torch.tensor(variance, dtype = torch.float64)
+        self._variance = variance if isinstance(variance, torch.Tensor) else torch.tensor(variance, dtype = self.dtype, device = self.device)
         
     def set_psf(self, psf):
         if psf is None:
             self._psf = None
             return
         assert np.all(list((s % 2) == 1 for s in psf.shape)), "psf must have odd shape"
-        self._psf = psf if isinstance(psf, torch.Tensor) else torch.tensor(psf, dtype = torch.float64)
+        self._psf = psf if isinstance(psf, torch.Tensor) else torch.tensor(psf, dtype = self.dtype, device = self.device)
 
     def set_mask(self, mask):
         if mask is None:
@@ -75,10 +75,12 @@ class Target_Image(BaseImage):
         
     def blank_copy(self):
         return self.__class__(
-            data = torch.zeros(self.data.shape, dtype = torch.float32),
+            data = torch.zeros(self.data.shape, dtype = self.dtype, device = self.device),
+            device = self.device,
+            dtype = self.dtype,
             zeropoint = self.zeropoint,
             mask = None if self._mask is None else self._mask,
-            psf = None if self._psf is None else self.psf,
+            psf = None if self._psf is None else self._psf,
             note = self.note,
             window = self.window,
         )
@@ -87,6 +89,8 @@ class Target_Image(BaseImage):
         indices = window.get_indices(self)
         return self.__class__(
             data = self.data[indices],
+            device = self.device,
+            dtype = self.dtype,
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
             variance = None if self._variance is None else self._variance[indices],
@@ -105,6 +109,8 @@ class Target_Image(BaseImage):
         NS = self.data.shape[1] // scale
         return self.__class__(
             data = self.data.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            device = self.device,
+            dtype = self.dtype,
             pixelscale = self.pixelscale * scale,
             zeropoint = self.zeropoint,
             variance = None if self._variance is None else self.variance.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),

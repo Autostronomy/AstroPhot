@@ -114,7 +114,7 @@ class BaseModel(AutoProf_Model):
         overloaded by subclasses.
 
         """
-        return torch.zeros(image.data.shape)
+        return torch.zeros(image.data.shape, dtype = self.dtype, device = self.device)
     
     def sample(self, sample_image = None):
         """Evaluate the model on the space covered by an image object. This
@@ -149,7 +149,7 @@ class BaseModel(AutoProf_Model):
                 center_shift[1] += working_image.pixelscale
             working_window.shift_origin(center_shift)
             
-        working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
+        working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         if "full" not in self.integrate_mode:
             working_image.data += self.evaluate_model(working_image)
 
@@ -169,12 +169,12 @@ class BaseModel(AutoProf_Model):
                 sub_window.shift_origin((0,-working_image.pixelscale))
                 center_shift[1] += working_image.pixelscale
             sub_window.shift_origin(center_shift)
-            sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
+            sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window, dtype = self.dtype, device = self.device)
             sub_image.data = self.evaluate_model(sub_image)
             self.integrate_model(sub_image)
             sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
             sub_image.shift_origin(-center_shift)
-            center_shift = torch.zeros(2)
+            center_shift = torch.zeros(2, dtype = self.dtype, device = self.device)
             sub_image.crop(*self.target.psf_border_int)
             working_image.replace(sub_image)
         else:
@@ -207,7 +207,7 @@ class BaseModel(AutoProf_Model):
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
 
         # Build an image to hold the integration data
-        integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window)
+        integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         # Evaluate the model at the fine sampling points
         X, Y = integrate_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         integrate_image.data = self.evaluate_model(integrate_image)

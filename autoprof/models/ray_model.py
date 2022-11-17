@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from autoprof.utils.conversions.coordinates import Axis_Ratio_Cartesian
 
-__all__ = ["Ray_Galaxy", "SingleRay_Galaxy"]
+__all__ = ["Ray_Galaxy"]
 
 class Ray_Galaxy(Galaxy_Model):
 

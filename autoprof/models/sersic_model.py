@@ -2,7 +2,9 @@ from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
 from .star_model_object import Star_Model
-from .superellipse_model import SuperEllipse_Galaxy
+from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
+from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
+from .edgeon_model import EdgeOn_Model
 import torch
 import numpy as np
 from scipy.stats import iqr
@@ -12,7 +14,11 @@ from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_in
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-__all__ = ["Sersic_Galaxy", "Sersic_Star", "Sersic_Warp", "Sersic_Ray"]
+__all__ = [
+    "Sersic_Galaxy", "Sersic_Star", "Sersic_Warp",
+    "Sersic_SuperEllipse", "Sersic_FourierEllipse", "Sersic_Ray",
+    "Sersic_SuperEllipse_Warp", "Sersic_FourierEllipse_Warp"
+] # , "Sersic_Sersic_EdgeOn", "Sersic_Sech2_EdgeOn"
 
 class Sersic_Galaxy(Galaxy_Model):
     """basic galaxy model with a sersic profile for the radial light
@@ -80,6 +86,38 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import sersic_initialize as initialize
+
+class Sersic_FourierEllipse(FourierEllipse_Galaxy):
+    """fourier mode perturbations to ellipse galaxy model with a sersic
+    profile for the radial light profile.
+
+    """
+    model_type = f"sersic {FourierEllipse_Galaxy.model_type}"
+    parameter_specs = {
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
+    }
+    parameter_order = FourierEllipse_Galaxy.parameter_order + ("n", "Re", "Ie")
+
+    from ._shared_methods import sersic_radial_model as radial_model
+    from ._shared_methods import sersic_initialize as initialize
+
+class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
+    """fourier mode perturbations to ellipse galaxy model with a sersic
+    profile for the radial light profile.
+
+    """
+    model_type = f"sersic {FourierEllipse_Warp.model_type}"
+    parameter_specs = {
+        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "limits": (0,None)},
+    }
+    parameter_order = FourierEllipse_Warp.parameter_order + ("n", "Re", "Ie")
+
+    from ._shared_methods import sersic_radial_model as radial_model
+    from ._shared_methods import sersic_initialize as initialize
     
 class Sersic_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a sersic profile for the
@@ -113,7 +151,7 @@ class Sersic_Ray(Ray_Galaxy):
     def initialize(self):
         super(self.__class__, self).initialize()
         if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
-            return
+            return# fixme need to initialize n, Ie, Re as tensors
         with torch.no_grad():
             # Get the sub-image area corresponding to the model image
             target_area = self.target[self.fit_window]
@@ -161,3 +199,38 @@ class Sersic_Ray(Ray_Galaxy):
             sample_image = self.model_image
         return sersic_torch(R, self[f"n"].value[i], self[f"Re"].value[i], (10**self[f"Ie"].value[i]) * sample_image.pixelscale**2)
         
+# class Sersic_Sersic_EdgeOn(EdgeOn_Model):
+#     """model for an edge-on galaxy with a exponential profile for the radial light
+#     profile and for the vertical light profile.
+
+#     """
+#     model_type = f"sersicsersic {EdgeOn_Model.model_type}"
+#     parameter_specs = {
+#         "I0": {"units": "log10(flux/arcsec^2)"},
+#         "Rr": {"units": "arcsec", "limits": (0,None)},
+#         "Rz": {"units": "arcsec", "limits": (0,None)},
+#     }
+#     parameter_order = Galaxy_Model.parameter_order + ("R0", "Rr", "Rz")
+
+#     def brightness_model(R, h, image):
+#         if sample_image is None:
+#             sample_image = self.model_image
+#         return self["I0"] * torch.exp(- R / self["Rr"]) * torch.exp(- h / self["Rz"])
+
+# class Sersic_Sech2_EdgeOn(EdgeOn_Model):
+#     """model for an edge-on galaxy with a exponential profile for the radial light
+#     profile and a sech^2 profile for the vertical component.
+
+#     """
+#     model_type = f"sersicsech2 {EdgeOn_Model.model_type}"
+#     parameter_specs = {
+#         "I0": {"units": "log10(flux/arcsec^2)"},
+#         "Rr": {"units": "arcsec", "limits": (0,None)},
+#         "hz": {"units": "arcsec", "limits": (0,None)},
+#     }
+#     parameter_order = Galaxy_Model.parameter_order + ("R0", "Rr", "hz")
+
+#     def brightness_model(R, h, image):
+#         if sample_image is None:
+#             sample_image = self.model_image
+#         return self["I0"] * torch.exp(- R / self["Rr"]) * torch.sech(- h / self["hz"])**2

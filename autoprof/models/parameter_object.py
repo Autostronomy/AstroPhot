@@ -27,6 +27,8 @@ class Parameter(object):
 
         self.name = name
         
+        self.dtype = kwargs.get("dtype", torch.float64)
+        self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
         self._locked = False
@@ -34,7 +36,6 @@ class Parameter(object):
         self.locked = kwargs.get("locked", False)
         self.units = kwargs.get("units", "none")
         self._uncertainty = kwargs.get("uncertainty", None)
-        
         
     @property
     def representation(self):
@@ -95,7 +96,16 @@ class Parameter(object):
 
         """
         return self._representation.grad
-        
+
+    def to(self, dtype = None, device = None):
+        if dtype is not None:
+            self.dtype = dtype
+        if device is not None:
+            self.device = device
+        if self._representation is not None:
+            self._representation = self._representation.to(dtype = self.dtype, device = self.device)
+        return self
+    
     def set_uncertainty(self, uncertainty, override_locked = False):
         """Updates the value for the uncertainty of the value of the
         parameter. Only updates if the parameter is not locked.
@@ -134,7 +144,7 @@ class Parameter(object):
         if rep is None:
             self._representation = None
         elif index is None:
-            self._representation = rep if isinstance(rep, torch.Tensor) else torch.tensor(rep, dtype = torch.float64)
+            self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.tensor(rep, dtype = self.dtype, device = self.device)
         else:
             self._representation[index] = rep
         if self._representation is not None:
@@ -144,23 +154,30 @@ class Parameter(object):
         
         state = {
             "name": self.name,
-            "value": self.value.detach().numpy().tolist(),
-            "uncertainty": np.array(self.uncertainty).tolist(),
-            "units": self.units,
-            "locked": self.locked,
-            "limits": self.limits,
-            "cyclic": self.cyclic,
         }
-        
+        if self.value is not None:
+            state["value"] = self.value.detach().numpy().tolist()
+        if self.units is not None:
+            state["units"] = self.units
+        if self.uncertainty is not None:
+            state["uncertainty"] = np.array(self.uncertainty).tolist()
+        if self.locked:
+            state["locked"] = self.locked
+        if self.limits is not None:
+            state["limits"] = self.limits
+        if self.cyclic:
+            state["cyclic"] = self.cyclic
+            
         return state
     
     def update_state(self, state):
         self.name = state["name"]
         self.units = state.get("units", None)
         self.limits = state.get("limits", None)
-        self.cyclic = state.get("cyclic", None)
+        self.cyclic = state.get("cyclic", False)
         self.uncertainty = state.get("uncertainty", None)
         self.value = state.get("value", None)
+        self.locked = state.get("locked", False)
             
     def __str__(self):
         """

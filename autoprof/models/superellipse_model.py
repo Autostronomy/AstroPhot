@@ -3,7 +3,7 @@ from .warp_model import Warp_Galaxy
 import torch
 import numpy as np
 
-__all__ = ["SuperEllipse_Galaxy"]
+__all__ = ["SuperEllipse_Galaxy", "SuperEllipse_Warp"]
 
 class SuperEllipse_Galaxy(Galaxy_Model):
     """Expanded galaxy model which includes a superellipse transformation
