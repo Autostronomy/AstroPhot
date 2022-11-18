@@ -25,15 +25,15 @@ def exponential_initialize(self):
         edge_scatter = iqr(edge, rng = (16,84))/2
         # Convert center coordinates to target area array indices
         icenter = coord_to_index(
-            self["center"].value[0].detach().item(),
-            self["center"].value[1].detach().item(), target_area
+            self["center"].value[0].detach().cpu().item(),
+            self["center"].value[1].detach().cpu().item(), target_area
         )
         iso_info = isophotes(
-            target_area.data.detach().numpy() - edge_average,
+            target_area.data.detach().cpu().numpy() - edge_average,
             (icenter[1], icenter[0]),
             threshold = 3*edge_scatter,
-            pa = self["PA"].value.detach().item() if "PA" in self else 0.,
-            q = self["q"].value.detach().item() if "q" in self else 1.,
+            pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
+            q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
             n_isophotes = 15
         )
         R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
@@ -41,14 +41,14 @@ def exponential_initialize(self):
         if np.sum(flux < 0) >= 1:
             flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
         x0 = [
-            R[4] if self["Re"].value is None else self["Re"].value.detach().item(),
+            R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().item(),
             flux[4],
         ]
         res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(exponential_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None)))
         self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
         self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))
         if self["Re"].uncertainty is None:
-            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().item(), override_locked = True)
+            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
         if self["Ie"].uncertainty is None:
             self["Ie"].set_uncertainty(0.02, override_locked = True)
             
@@ -71,15 +71,15 @@ def sersic_initialize(self):
         edge_scatter = iqr(edge, rng = (16,84))/2
         # Convert center coordinates to target area array indices
         icenter = coord_to_index(
-            self["center"].value[0].detach().item(),
-            self["center"].value[1].detach().item(), target_area
+            self["center"].value[0].detach().cpu().item(),
+            self["center"].value[1].detach().cpu().item(), target_area
         )
         iso_info = isophotes(
-            target_area.data.detach().numpy() - edge_average,
+            target_area.data.detach().cpu().numpy() - edge_average,
             (icenter[1], icenter[0]),
             threshold = 3*edge_scatter,
-            pa = self["PA"].value.detach().item() if "PA" in self else 0.,
-            q = self["q"].value.detach().item() if "q" in self else 1.,
+            pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
+            q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
             n_isophotes = 15
         )
         R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
@@ -87,8 +87,8 @@ def sersic_initialize(self):
         if np.sum(flux < 0) >= 1:
             flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
         x0 = [
-            2. if self["n"].value is None else self["n"].value.detach().item(),
-            R[4] if self["Re"].value is None else self["Re"].value.detach().item(),
+            2. if self["n"].value is None else self["n"].value.detach().cpu().item(),
+            R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().item(),
             flux[4],
         ]
         res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None)))
@@ -96,7 +96,7 @@ def sersic_initialize(self):
         self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
         self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))
         if self["Re"].uncertainty is None:
-            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().item(), override_locked = True)
+            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
         if self["Ie"].uncertainty is None:
             self["Ie"].set_uncertainty(0.02, override_locked = True)
             
@@ -118,14 +118,14 @@ def gaussian_initialize(self):
             edge_scatter = iqr(edge, rng = (16,84))/2
             # Convert center coordinates to target area array indices
             icenter = coord_to_index(
-                self["center"].value[0].detach().item(),
-                self["center"].value[1].detach().item(), target_area
+                self["center"].value[0].detach().cpu().item(),
+                self["center"].value[1].detach().cpu().item(), target_area
             )
             iso_info = isophotes(
-                target_area.data.detach().numpy() - edge_average,
+                target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1], icenter[0]),
                 threshold = 3*edge_scatter,
-                pa = self["PA"].value.detach().item(), q = self["q"].value.detach().item(),
+                pa = self["PA"].value.detach().cpu().item(), q = self["q"].value.detach().cpu().item(),
                 n_isophotes = 15
             )
             R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
@@ -133,16 +133,16 @@ def gaussian_initialize(self):
             if np.sum(flux < 0) >= 1:
                 flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
             x0 = [
-                R[-1]/5 if self["sigma"].value is None else self["sigma"].value.detach().item(),
-                np.sum(target_area.data.detach().numpy()) if self["flux"].value is None else self["flux"].value.detach().item(),
+                R[-1]/5 if self["sigma"].value is None else self["sigma"].value.detach().cpu().item(),
+                np.sum(target_area.data.detach().cpu().numpy()) if self["flux"].value is None else self["flux"].value.detach().cpu().item(),
             ]
             res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(gaussian_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
             for i, param in enumerate(["sigma", "flux"]):
                 self[param].set_value(res.x[i], override_locked = self[param].value is None)
         if self["sigma"].uncertainty is None:
-            self["sigma"].set_uncertainty(0.02 * self["sigma"].value.detach().item(), override_locked = True)
+            self["sigma"].set_uncertainty(0.02 * self["sigma"].value.detach().cpu().item(), override_locked = True)
         if self["flux"].uncertainty is None:
-            self["flux"].set_uncertainty(0.02 * np.abs(self["flux"].value.detach().item()), override_locked = True)
+            self["flux"].set_uncertainty(0.02 * np.abs(self["flux"].value.detach().cpu().item()), override_locked = True)
 
 def gaussian_radial_model(self, R, sample_image = None):
     if sample_image is None:
@@ -169,13 +169,13 @@ def nonparametric_initialize(self):
         return
     
     with torch.no_grad():
-        profR = self.profR.detach().numpy()
+        profR = self.profR.detach().cpu().numpy()
         target_area = self.target[self.fit_window]
-        X, Y = target_area.get_coordinate_meshgrid_np(self["center"].value[0].detach().item(), self["center"].value[1].detach().item())
+        X, Y = target_area.get_coordinate_meshgrid_np(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item())
         X, Y = self.transform_coordinates(X, Y)
-        R = self.radius_metric(X, Y).detach().numpy()
+        R = self.radius_metric(X, Y).detach().cpu().numpy()
         rad_bins = [profR[0]] + list((profR[:-1] + profR[1:])/2) + [profR[-1]*100]
-        raveldat = target_area.data.detach().numpy().ravel()
+        raveldat = target_area.data.detach().cpu().numpy().ravel()
         I = binned_statistic(R.ravel(), raveldat, statistic = 'median', bins = rad_bins)[0] / target_area.pixelscale**2
         N = np.isfinite(I)
         if not np.all(N):

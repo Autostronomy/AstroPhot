@@ -160,14 +160,14 @@ class Sersic_Ray(Ray_Galaxy):
             edge_scatter = iqr(edge, rng = (16,84))/2
             # Convert center coordinates to target area array indices
             icenter = coord_to_index(
-                self["center"].value[0].detach().item(),
-                self["center"].value[1].detach().item(), target_area
+                self["center"].value[0].detach().cpu().item(),
+                self["center"].value[1].detach().cpu().item(), target_area
             )
             iso_info = isophotes(
-                target_area.data.detach().numpy() - edge_average,
+                target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1], icenter[0]),
                 threshold = 3*edge_scatter,
-                pa = self["PA"].value.detach().item(), q = self["q"].value.detach().item(),
+                pa = self["PA"].value.detach().cpu().item(), q = self["q"].value.detach().cpu().item(),
                 n_isophotes = 15,
                 more = True,
             )
@@ -175,14 +175,14 @@ class Sersic_Ray(Ray_Galaxy):
             for r in range(self.rays):
                 flux = []
                 for iso in iso_info:
-                    modangles = (iso["angles"] - (self["PA"].value.detach().item() + r*np.pi/self.rays)) % np.pi
+                    modangles = (iso["angles"] - (self["PA"].value.detach().cpu().item() + r*np.pi/self.rays)) % np.pi
                     flux.append(np.median(iso["isovals"][np.logical_or(modangles < (0.5*np.pi/self.rays), modangles >= (np.pi*(1 - 0.5/self.rays)))]) / self.target.pixelscale**2)
                 flux = np.array(flux)
                 if np.sum(flux < 0) >= 1:
                     flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
                 x0 = [
-                    2. if self["n"].value is None else self["n"].value.detach().numpy()[r],
-                    R[4] if self["Re"].value is None else self["Re"].value.detach().numpy()[r],
+                    2. if self["n"].value is None else self["n"].value.detach().cpu().numpy()[r],
+                    R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().numpy()[r],
                     flux[4],
                 ]
                 res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
@@ -190,7 +190,7 @@ class Sersic_Ray(Ray_Galaxy):
                 self["Re"].set_value(res.x[1], override_locked = (self["Re"].value is None), index = r)
                 self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None), index = r)
             if self["Re"].uncertainty is None:
-                self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().numpy(), override_locked = True)
+                self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().numpy(), override_locked = True)
             if self["Ie"].uncertainty is None:
                 self["Ie"].set_uncertainty(0.02 * len(self["Ie"].value), override_locked = True)
     

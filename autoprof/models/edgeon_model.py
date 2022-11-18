@@ -34,8 +34,8 @@ class EdgeOn_Model(BaseModel):
             icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
             if self["PA"].value is None:
                 iso_info = isophotes(
-                    target_area.data.detach().numpy() - edge_average,
-                    (icenter[1].detach().item(), icenter[0].detach().item()),
+                    target_area.data.detach().cpu().numpy() - edge_average,
+                    (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
                     threshold = 3*edge_scatter,
                     pa = 0., q = 1., n_isophotes = 15
                 )

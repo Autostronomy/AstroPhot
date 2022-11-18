@@ -86,9 +86,9 @@ class BaseModel(AutoProf_Model):
                 return
 
             # Convert center coordinates to target area array indices
-            init_icenter = coord_to_index(self["center"].value[0].detach().item(), self["center"].value[1].detach().item(), target_area)
+            init_icenter = coord_to_index(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item(), target_area)
             # Compute center of mass in window
-            COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().numpy())
+            COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().cpu().numpy())
             if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
                 print("center of mass failed, using center of window")
                 return
@@ -139,7 +139,7 @@ class BaseModel(AutoProf_Model):
         working_window = deepcopy(sample_image.window)
         if "full" in self.psf_mode:
             working_window += self.target.psf_border 
-            center = self["center"].value.detach().numpy()
+            center = self["center"].value.detach().cpu().numpy()
             center_shift = center - np.floor(center/sample_image.pixelscale)*sample_image.pixelscale
             if center_shift[0] < 0:
                 sub_window.shift_origin((-working_image.pixelscale,0))
@@ -161,7 +161,7 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = self.psf_window.make_copy()
             sub_window += self.target.psf_border
-            center_shift = self["center"].value.detach().numpy() - sub_window.center #fixme, make center on a pixel, not necessarily central pixel ((0.5 + self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
+            center_shift = self["center"].value.detach().cpu().numpy() - sub_window.center #fixme, make center on a pixel, not necessarily central pixel ((0.5 + self["center"].value.detach().cpu().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
             if center_shift[0] < 0:
                 sub_window.shift_origin((-working_image.pixelscale,0))
                 center_shift[0] += working_image.pixelscale

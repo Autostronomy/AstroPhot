@@ -67,8 +67,8 @@ class Gaussian_Star(Star_Model):
             target_area = self.target[self.fit_window]
             self["sigma"].set_value(1, override_locked = self["sigma"].value is None)
             self["sigma"].set_uncertainty(1e-2, override_locked = self["sigma"].uncertainty is None)
-            self["flux"].set_value(np.sum(target_area.data.detach().numpy()), override_locked = self["flux"].value is None)
-            self["flux"].set_uncertainty(self["flux"].value.detach().numpy() * 1e-2, override_locked = self["flux"].uncertainty is None)
+            self["flux"].set_value(np.sum(target_area.data.detach().cpu().numpy()), override_locked = self["flux"].value is None)
+            self["flux"].set_uncertainty(self["flux"].value.detach().cpu().numpy() * 1e-2, override_locked = self["flux"].uncertainty is None)
     from ._shared_methods import gaussian_radial_model as radial_model
 
     def evaluate_model(self, image):

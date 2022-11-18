@@ -156,7 +156,7 @@ class Parameter(object):
             "name": self.name,
         }
         if self.value is not None:
-            state["value"] = self.value.detach().numpy().tolist()
+            state["value"] = self.value.detach().cpu().numpy().tolist()
         if self.units is not None:
             state["units"] = self.units
         if self.uncertainty is not None:

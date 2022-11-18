@@ -35,7 +35,7 @@ class Warp_Galaxy(Galaxy_Model):
             return
 
         if self["PA(R)"].value is None:
-            self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value.detach().item(), override_locked = True)
+            self["PA(R)"].set_value(np.ones(len(self.profR))*self["PA"].value.detach().cpu().item(), override_locked = True)
             
         if self["q(R)"].value is None:
             self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_locked = True)

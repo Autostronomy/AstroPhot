@@ -164,13 +164,13 @@ class AutoProf_Model(object):
             optimizer.zero_grad()
             self.sample()
             self.compute_loss()
-            loss_history.append(copy(self.loss.detach().item()))
+            loss_history.append(copy(self.loss.detach().cpu().item()))
             
             self.loss.backward()
             
             skeys, sreps = self.get_parameters_representation()
             for i in range(len(sreps)):
-                if not np.all(np.isfinite(sreps[i].grad.detach().numpy())):
+                if not torch.all(torch.isfinite(sreps[i].grad)):
                     print("WARNING: nan grad being fixed. Might be about to fail.")
                     sreps[i].grad *= 0
             optimizer.step()
