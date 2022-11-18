@@ -179,8 +179,9 @@ class AutoProf_Model(object):
         self.finalize()
         print("runtime: ", time() - start)
         self.epoch = None
-        plt.plot(range(len(loss_history)), np.log10(loss_history))
-        plt.show()
+        plt.plot(range(len(loss_history))[10:], np.log10(loss_history)[10:])
+        plt.savefig("loss_history.jpg")
+        plt.close()
 
     def full_sample(self, parameters = None):
         self.step(parameters)

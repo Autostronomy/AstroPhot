@@ -27,7 +27,7 @@ def galaxy_light_profile(
         np.max(model.fit_window.shape/2) * extend_profile,
         int(resolution),
     )
-    flux = model.radial_model(torch.tensor(xx)).detach().numpy()
+    flux = model.radial_model(torch.tensor(xx, dtype = model.dtype, device = model.device)).detach().cpu().numpy()
     if model.target.zeropoint is not None:
         yy = flux_to_sb(flux, model.target.pixelscale, model.target.zeropoint)
     else:
@@ -76,7 +76,7 @@ def ray_light_profile(
         with torch.no_grad():
             ax.plot(
                 xx,
-                np.log10(model.iradial_model(r, torch.tensor(xx)).detach().numpy()),
+                np.log10(model.iradial_model(r, torch.tensor(xx,dtype = model.dtype, device = model.device)).detach().cpu().numpy()),
                 linewidth=2,
                 color=col,
                 label=f"{model.name} profile {r}",
@@ -99,14 +99,14 @@ def warp_phase_profile(
 
     ax.plot(
         model.profR,
-        model["q(R)"].value.detach().numpy(),
+        model["q(R)"].value.detach().cpu().numpy(),
         linewidth=2,
         color=main_pallet["primary1"],
         label=f"{model.name} axis ratio",
     )
     ax.plot(
         model.profR,
-        model["PA(R)"].detach().numpy() / np.pi,
+        model["PA(R)"].detach().cpu().numpy() / np.pi,
         linewidth=2,
         color=main_pallet["secondary1"],
         label=f"{model.name} position angle",

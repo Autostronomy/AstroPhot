@@ -48,11 +48,11 @@ class Warp_Galaxy(Galaxy_Model):
             while self.profR[-1] < min(self.fit_window.shape/2):
                 self.profR.append(self.profR[-1] + max(1,self.profR[-1]*0.2))
             self.profR.pop()
-            self.profR = torch.tensor(self.profR)
+            self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
 
     def transform_coordinates(self, X, Y):
         X, Y = super().transform_coordinates(X, Y)
         R = self.radius_metric(X, Y)
         PA = cubic_spline_torch(self.profR, self["PA(R)"].value, R.view(-1)).view(*R.shape)
         q = cubic_spline_torch(self.profR, self["q(R)"].value, R.view(-1)).view(*R.shape)
-        return Axis_Ratio_Cartesian(q, X, Y, PA, inv_scale = True) # fixme check inv_scale
+        return Axis_Ratio_Cartesian(q, X, Y, PA, inv_scale = True)

@@ -104,7 +104,7 @@ class BaseImage(object):
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
         return self.__class__(
-            data = self.data.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            data = self.data.detach().cpu().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
             pixelscale = self.pixelscale * scale,
             zeropoint = self.zeropoint,
             note = self.note,

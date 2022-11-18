@@ -14,9 +14,9 @@ def target_image(fig, ax, target, window = None, **kwargs):
     if window is None:
         window = target.window
     if target.masked:
-        dat = np.ma.masked_array(target[window].data.detach().numpy(), mask = target[window].mask)
+        dat = np.ma.masked_array(target[window].data.detach().cpu().numpy(), mask = target[window].mask)
     else:
-        dat = target[window].data.detach().numpy()
+        dat = target[window].data.detach().cpu().numpy()
         
     sky = np.median(dat)
     noise = iqr(dat)/2
@@ -46,7 +46,7 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     if image is None:
         with torch.no_grad():
             model.sample(model.model_image)
-        image = model.model_image.data.detach().numpy()
+        image = model.model_image.data.detach().cpu().numpy()
 
     imshow_kwargs = {
         "extent": model.model_image.window.plt_extent,
@@ -59,7 +59,7 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     #     for M in model.model_list:
     #         if isinstance(M,models.Sky_Model):
     #             try:
-    #                 sky_level = M["sky"].value.detach().item()*(1. + 1e-6)*model.target.pixelscale**2
+    #                 sky_level = M["sky"].value.detach().cpu().item()*(1. + 1e-6)*model.target.pixelscale**2
     #                 print("subtracting sky level: ", sky_level)
     #                 break
     #             except Exception as e:
@@ -81,8 +81,8 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
     with torch.no_grad():
         model.sample(model.model_image)
     residuals = (
-        model.target[window].data.detach().numpy()
-        - model.model_image[window].data.detach().numpy()
+        model.target[window].data.detach().cpu().numpy()
+        - model.model_image[window].data.detach().cpu().numpy()
     )    
     if model.target.masked:
         residuals[model.target[window].mask] = np.nan

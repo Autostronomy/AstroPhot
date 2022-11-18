@@ -1,6 +1,6 @@
 from .image_object import BaseImage
 from .window_object import AP_Window
-from autoprof.utils.interpolate import shift_Lanczos
+from autoprof.utils.interpolate import shift_Lanczos_torch
 import torch
 import numpy as np
 
@@ -25,7 +25,7 @@ class Model_Image(BaseImage):
         self.window.shift_origin(shift)
         if np.any(np.abs(shift) > 1):
             raise NotImplementedError("Shifts larger than 1 are currently not handled")
-        self.data = shift_Lanczos(self.data, -shift[0]/self.pixelscale, -shift[1]/self.pixelscale, min(min(self.data.shape), 10))
+        self.data = shift_Lanczos_torch(self.data, -shift[0]/self.pixelscale, -shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = self.dtype, device = self.device)
         
     def replace(self, other, data = None):
         if isinstance(other, BaseImage):

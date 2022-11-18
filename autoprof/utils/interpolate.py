@@ -121,13 +121,13 @@ def arbitrary_Lanczos(I, X, Y, scale):
         F.append(point_Lanczos(I, x, y, scale))
     return np.array(F)
 
-def _shift_Lanczos_kernel(dx, dy, scale):
+def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     """convolution kernel for shifting all pixels in a grid by some
     sub-pixel length.
 
     """
-    xx = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = torch.float64) + dx, (0,))
-    yy = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = torch.float64) + dy, (0,))
+    xx = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = dtype, device = device) + dx, (0,))
+    yy = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = dtype, device = device) + dy, (0,))
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
     Lx[-1] = 0
@@ -140,12 +140,12 @@ def _shift_Lanczos_kernel(dx, dy, scale):
     # plt.show()
     return LL
 
-def shift_Lanczos(I, dx, dy, scale): # fixme update to take input from -0.5, 0.5 instead of 0,1
+def shift_Lanczos_torch(I, dx, dy, scale, dtype, device): # fixme update to take input from -0.5, 0.5 instead of 0,1
     """Apply Lanczos interpolation to shift by less than a pixel in x and
     y.
 
     """
-    LL = _shift_Lanczos_kernel(-dx, -dy, scale)
+    LL = _shift_Lanczos_kernel_torch(-dx, -dy, scale, dtype, device)
     return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
 
 

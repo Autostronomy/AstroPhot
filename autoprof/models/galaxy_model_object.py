@@ -29,7 +29,12 @@ class Galaxy_Model(BaseModel):
             return
         with torch.no_grad():
             target_area = self.target[self.fit_window]
-            edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+            edge = np.concatenate((
+                target_area.data.detach().cpu().numpy()[:,0],
+                target_area.data.detach().cpu().numpy()[:,-1],
+                target_area.data.detach().cpu().numpy()[0,:],
+                target_area.data.detach().cpu().numpy()[-1,:]
+            ))
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2
             icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)

@@ -55,7 +55,7 @@ class Super_Model(AutoProf_Model):
     def parameter_order(self):
         param_order = tuple()
         for model in self.model_list:
-            param_order = param_order + model.parameter_order
+            param_order = param_order + tuple(f"{model.name}|{mp}" for mp in model.parameter_order)
         return param_order
     
     def initialize(self):

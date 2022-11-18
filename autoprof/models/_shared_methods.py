@@ -20,7 +20,12 @@ def exponential_initialize(self):
             return
         # Get the sub-image area corresponding to the model image
         target_area = self.target[self.fit_window]
-        edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+        edge = np.concatenate((
+            target_area.data.detach().cpu().numpy()[:,0],
+            target_area.data.detach().cpu().numpy()[:,-1],
+            target_area.data.detach().cpu().numpy()[0,:],
+            target_area.data.detach().cpu().numpy()[-1,:]
+        ))
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng = (16,84))/2
         # Convert center coordinates to target area array indices
@@ -66,7 +71,12 @@ def sersic_initialize(self):
             return
         # Get the sub-image area corresponding to the model image
         target_area = self.target[self.fit_window]
-        edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+        edge = np.concatenate((
+            target_area.data.detach().cpu().numpy()[:,0],
+            target_area.data.detach().cpu().numpy()[:,-1],
+            target_area.data.detach().cpu().numpy()[0,:],
+            target_area.data.detach().cpu().numpy()[-1,:]
+        ))
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng = (16,84))/2
         # Convert center coordinates to target area array indices
@@ -113,7 +123,12 @@ def gaussian_initialize(self):
         if any((self["sigma"].value is None, self["flux"].value is None)):
             # Get the sub-image area corresponding to the model image
             target_area = self.target[self.fit_window]
-            edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+            edge = np.concatenate((
+                target_area.data.detach().cpu().numpy()[:,0],
+                target_area.data.detach().cpu().numpy()[:,-1],
+                target_area.data.detach().cpu().numpy()[0,:],
+                target_area.data.detach().cpu().numpy()[-1,:]
+            ))
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2
             # Convert center coordinates to target area array indices
@@ -161,7 +176,7 @@ def nonparametric_set_fit_window(self, window):
             self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
         self.profR.pop()
         self.profR.append(np.sqrt(np.sum((self.fit_window.shape/2)**2)))
-        self.profR = torch.tensor(self.profR, dtype = torch.float64)
+        self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
             
 def nonparametric_initialize(self):
     super(self.__class__, self).initialize()
@@ -171,7 +186,7 @@ def nonparametric_initialize(self):
     with torch.no_grad():
         profR = self.profR.detach().cpu().numpy()
         target_area = self.target[self.fit_window]
-        X, Y = target_area.get_coordinate_meshgrid_np(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item())
+        X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         X, Y = self.transform_coordinates(X, Y)
         R = self.radius_metric(X, Y).detach().cpu().numpy()
         rad_bins = [profR[0]] + list((profR[:-1] + profR[1:])/2) + [profR[-1]*100]
@@ -180,7 +195,7 @@ def nonparametric_initialize(self):
         N = np.isfinite(I)
         if not np.all(N):
             I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
-        S = binned_statistic(R.ravel(), target_area.data.ravel(), statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
+        S = binned_statistic(R.ravel(), raveldat, statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
         N = np.isfinite(S)
         if not np.all(N):
             S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
