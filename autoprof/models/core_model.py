@@ -40,6 +40,14 @@ class AutoProf_Model(object):
                     return super(AutoProf_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(f"Unknown AutoProf model type: {state['model_type']}")
+        elif "model_type" in kwargs:
+            MODELS = all_subclasses(AutoProf_Model)
+            for M in MODELS:
+                if M.model_type == kwargs["model_type"]:
+                    return super(AutoProf_Model, cls).__new__(M)
+            else:
+                raise ModuleNotFoundError(f"Unknown AutoProf model type: {kwargs['model_type']}")
+            
         return super().__new__(cls)
 
     def __init__(self, name, *args, **kwargs):

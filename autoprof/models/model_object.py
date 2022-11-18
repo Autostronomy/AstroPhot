@@ -33,7 +33,7 @@ class BaseModel(AutoProf_Model):
     integrate_factor = 10
 
     # settings
-    special_kwargs = ["parameters", "filename"]
+    special_kwargs = ["parameters", "filename", "model_type"]
     
     def __init__(self, name, target = None, window = None, locked = False, **kwargs):
         super().__init__(name, target, window, locked, **kwargs)
