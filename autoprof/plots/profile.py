@@ -45,7 +45,7 @@ def galaxy_light_profile(
         ax.set_ylabel("Surface Brightness")
         ax.invert_yaxis()
     else:
-        ax.set_ylabel("log$_{10}$(flux)")
+        ax.set_ylabel("log$_{10}$(flux/arcsec^2)")
     ax.set_xlabel(f"Radius [{rad_unit}]")
     ax.set_xlim([R0,None])
     return fig, ax

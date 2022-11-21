@@ -54,14 +54,14 @@ class BaseModel(AutoProf_Model):
             print("setting: ", kwarg)
             setattr(self, kwarg, kwargs[kwarg])
 
-        if "filename" in kwargs:
-            self.load(kwargs["filename"])
-            
         self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.step(kwargs["parameters"])
+            
+        if "filename" in kwargs:
+            self.load(kwargs["filename"])
             
     # Initialization functions
     ######################################################################    

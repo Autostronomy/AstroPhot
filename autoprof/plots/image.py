@@ -8,7 +8,7 @@ import torch
 from matplotlib.patches import Rectangle
 from autoprof import models
 
-__all__ = ["target_image", "model_image", "residual_image", "supermodel_boxes"]
+__all__ = ["target_image", "model_image", "residual_image", "model_window"]
 
 def target_image(fig, ax, target, window = None, **kwargs):
     if window is None:
@@ -106,11 +106,13 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
         clb.ax.set_yticklabels([])
     return fig, ax
 
-def supermodel_boxes(fig, ax, model, **kwargs):
-    assert isinstance(model, models.Super_Model)
-    target_image(fig, ax, model.target[model.fit_window])
+def model_window(fig, ax, model, **kwargs):
+    target_image(fig, ax, model.target)
 
-    for m in model.model_list:
-        ax.add_patch(Rectangle(xy = (m.fit_window.origin[0], m.fit_window.origin[1]), width = m.fit_window.shape[0], height = m.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+    if isinstance(model, models.Super_Model):
+        for m in model.model_list:
+            ax.add_patch(Rectangle(xy = (m.fit_window.origin[0], m.fit_window.origin[1]), width = m.fit_window.shape[0], height = m.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+    else:
+        ax.add_patch(Rectangle(xy = (model.fit_window.origin[0], model.fit_window.origin[1]), width = model.fit_window.shape[0], height = model.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
 
     return fig, ax

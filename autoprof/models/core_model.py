@@ -116,7 +116,7 @@ class AutoProf_Model(object):
         if self.constraints is not None:
             for constraint in self.constraints:
                 self.loss *= 1 + self.constraint_strength * constraint(self)
-        print("loss: ", self.loss)
+        print("log10(loss): ", np.log10(self.loss.detach().cpu().item()))
         return self.loss
 
     def step(self, parameters = None, parameters_as_representation = False):
@@ -194,7 +194,7 @@ class AutoProf_Model(object):
     def full_sample(self, parameters = None):
         self.step(parameters)
         self.sample()
-        return sample_image.data
+        return self.model_image.data
     
     def full_loss(self, parameters = None):
         self.step(parameters)
@@ -218,7 +218,7 @@ class AutoProf_Model(object):
             import yaml
             state = self.get_state()
             with open(filename, "w") as f:
-                yaml.dump(state, f, indent = 2)            
+                yaml.dump(state, f, indent = 2) 
         elif filename.endswith(".json"):
             import json
             state = self.get_state()

@@ -167,7 +167,11 @@ def step_iteration(self):
     self.iteration += 1
 
 def __str__(self):
-    return self.name
+    state = self.get_state()
+    presentation = ""
+    for key in state:
+        presentation = presentation + f"{key}: {state[key]}\n"
+    return presentation
 
 def __getitem__(self, key):
     # Access an element from an array parameter
