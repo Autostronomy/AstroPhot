@@ -126,12 +126,18 @@ def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     sub-pixel length.
 
     """
-    xx = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = dtype, device = device) + dx, (0,))
-    yy = torch.flip(torch.arange(int(-scale-1), int(scale+1), dtype = dtype, device = device) + dy, (0,))
+    xx = torch.flip(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dx, (0,))
+    if dx < 0:
+        xx *= -1
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
+    Lx[0 if dx > 0  else -1] = 0
+
+    yy = torch.flip(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dy, (0,))
+    if dy < 0:
+        yy *= -1
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
-    Lx[-1] = 0
-    Ly[-1] = 0
+    Ly[0 if dy < 0 else -1] = 0
+    
     LXX, LYY = torch.meshgrid(Lx, Ly, indexing = 'xy')
     LL = LXX * LYY
     w = torch.sum(LL)
@@ -145,10 +151,8 @@ def shift_Lanczos_torch(I, dx, dy, scale, dtype, device): # fixme update to take
     y.
 
     """
-    LL = _shift_Lanczos_kernel_torch(-dx, -dy, scale, dtype, device)
+    LL = _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device)
     return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
-
-
 
 def shift_Lanczos_np(I, dx, dy, scale):
     """Apply Lanczos interpolation to shift by less than a pixel in x and

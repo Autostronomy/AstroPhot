@@ -140,13 +140,7 @@ class BaseModel(AutoProf_Model):
         if "full" in self.psf_mode:
             working_window += self.target.psf_border 
             center = self["center"].value.detach().cpu().numpy()
-            center_shift = center - np.floor(center/sample_image.pixelscale)*sample_image.pixelscale
-            if center_shift[0] < 0:
-                sub_window.shift_origin((-working_image.pixelscale,0))
-                center_shift[0] += working_image.pixelscale
-            if center_shift[1] < 0:
-                sub_window.shift_origin((0,-working_image.pixelscale))
-                center_shift[1] += working_image.pixelscale
+            center_shift = np.round(center/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (center - 0.5*sample_image.pixelscale)
             working_window.shift_origin(center_shift)
             
         working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
@@ -161,20 +155,14 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = self.psf_window.make_copy()
             sub_window += self.target.psf_border
-            center_shift = self["center"].value.detach().cpu().numpy() - sub_window.center #fixme, make center on a pixel, not necessarily central pixel ((0.5 + self["center"].value.detach().cpu().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
-            if center_shift[0] < 0:
-                sub_window.shift_origin((-working_image.pixelscale,0))
-                center_shift[0] += working_image.pixelscale
-            if center_shift[1] < 0:
-                sub_window.shift_origin((0,-working_image.pixelscale))
-                center_shift[1] += working_image.pixelscale
+            center = self["center"].value.detach().cpu().numpy()
+            center_shift = np.round(center/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (center - 0.5*sample_image.pixelscale)
             sub_window.shift_origin(center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window, dtype = self.dtype, device = self.device)
             sub_image.data = self.evaluate_model(sub_image)
             self.integrate_model(sub_image)
             sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
             sub_image.shift_origin(-center_shift)
-            center_shift = torch.zeros(2, dtype = self.dtype, device = self.device)
             sub_image.crop(*self.target.psf_border_int)
             working_image.replace(sub_image)
         else:

@@ -12,7 +12,6 @@ def _set_default_parameters(self):
     self.gradient = None
     self.iteration = -1
     self.is_sampled = False
-    self.center_shift = torch.zeros(2, dtype = self.dtype, device = self.device)
     
 def scale_window(self, scale = 1., border = 0.):
     window = (self._base_window * scale) + border

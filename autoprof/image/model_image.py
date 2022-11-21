@@ -23,9 +23,9 @@ class Model_Image(BaseImage):
 
     def shift_origin(self, shift):
         self.window.shift_origin(shift)
-        if np.any(np.abs(shift) > 1):
+        if np.any(np.abs(shift/self.pixelscale) > 1):
             raise NotImplementedError("Shifts larger than 1 are currently not handled")
-        self.data = shift_Lanczos_torch(self.data, -shift[0]/self.pixelscale, -shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = self.dtype, device = self.device)
+        self.data = shift_Lanczos_torch(self.data, shift[0]/self.pixelscale, shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = self.dtype, device = self.device)
         
     def replace(self, other, data = None):
         if isinstance(other, BaseImage):
