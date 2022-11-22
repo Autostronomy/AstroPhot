@@ -14,6 +14,7 @@ class Plane_Sky(Sky_Model):
         "sky": {"units": "flux/arcsec^2"},
         "delta": {"units": "sky/arcsec"},
     }
+    parameter_order = Sky_Model.parameter_order + ("sky", "delta")
 
     def initialize(self):        
         super().initialize()

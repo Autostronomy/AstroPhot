@@ -1,6 +1,7 @@
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
-from .superellipse_model import SuperEllipse_Galaxy
+from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
+from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .star_model_object import Star_Model
 import torch
 import numpy as np
@@ -16,6 +17,7 @@ class Gaussian_Galaxy(Galaxy_Model):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
+    parameter_order = Galaxy_Model.parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -30,10 +32,56 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
+    parameter_order = SuperEllipse_Galaxy.parameter_order + ("sigma", "flux")
+
+    from ._shared_methods import gaussian_radial_model as radial_model
+    from ._shared_methods import gaussian_initialize as initialize
+
+class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
+    """super ellipse warp galaxy model with a gaussian profile for the
+    radial light profile.
+
+    """
+    model_type = f"gaussian {SuperEllipse_Warp.model_type}"
+    parameter_specs = {
+        "sigma": {"units": "arcsec", "limits": (0,None)},
+        "flux": {"units": "flux", "limits": (0,None)},
+    }
+    parameter_order = SuperEllipse_Warp.parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
     
+class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
+    """fourier mode perturbations to ellipse galaxy model with a gaussian
+    profile for the radial light profile.
+
+    """
+    model_type = f"gaussian {FourierEllipse_Galaxy.model_type}"
+    parameter_specs = {
+        "sigma": {"units": "arcsec", "limits": (0,None)},
+        "flux": {"units": "flux", "limits": (0,None)},
+    }
+    parameter_order = FourierEllipse_Galaxy.parameter_order + ("sigma", "flux")
+
+    from ._shared_methods import gaussian_radial_model as radial_model
+    from ._shared_methods import gaussian_initialize as initialize
+
+class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
+    """fourier mode perturbations to ellipse galaxy model with a gaussian
+    profile for the radial light profile.
+
+    """
+    model_type = f"gaussian {FourierEllipse_Warp.model_type}"
+    parameter_specs = {
+        "sigma": {"units": "arcsec", "limits": (0,None)},
+        "flux": {"units": "flux", "limits": (0,None)},
+    }
+    parameter_order = FourierEllipse_Warp.parameter_order + ("sigma", "flux")
+
+    from ._shared_methods import gaussian_radial_model as radial_model
+    from ._shared_methods import gaussian_initialize as initialize
+
 class Gaussian_Warp(Warp_Galaxy):
     """Coordinate warped galaxy model with Gaussian as the radial light
     profile.
@@ -44,6 +92,7 @@ class Gaussian_Warp(Warp_Galaxy):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
+    parameter_order = Warp_Galaxy.parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -58,6 +107,7 @@ class Gaussian_Star(Star_Model):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
+    parameter_order = Star_Model.parameter_order + ("sigma", "flux")
 
     def initialize(self):
         super().initialize()

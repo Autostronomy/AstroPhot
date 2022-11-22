@@ -14,6 +14,7 @@ class Flat_Sky(Sky_Model):
     parameter_specs = {
         "sky": {"units": "flux/arcsec^2"},
     }
+    parameter_order = Sky_Model.parameter_order + ("sky",)
 
     def initialize(self):        
         super().initialize()

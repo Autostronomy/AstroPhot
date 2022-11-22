@@ -172,6 +172,11 @@ class Sersic_Ray(Ray_Galaxy):
                 more = True,
             )
             R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
+            was_none = [False, False, False]
+            for i, p in enumerate(["n", "Re", "Ie"]):
+                if self[p].value is None:
+                    was_none[i] = True
+                    self[p].set_value(np.zeros(self.rays), override_locked = True)
             for r in range(self.rays):
                 flux = []
                 for iso in iso_info:
@@ -186,9 +191,9 @@ class Sersic_Ray(Ray_Galaxy):
                     flux[4],
                 ]
                 res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
-                self["n"].set_value(res.x[0], override_locked = (self["n"].value is None), index = r)
-                self["Re"].set_value(res.x[1], override_locked = (self["Re"].value is None), index = r)
-                self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None), index = r)
+                self["n"].set_value(res.x[0], override_locked = was_none[r], index = r)
+                self["Re"].set_value(res.x[1], override_locked = was_none[r], index = r)
+                self["Ie"].set_value(np.log10(res.x[2]), override_locked = was_none[r], index = r)
             if self["Re"].uncertainty is None:
                 self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().numpy(), override_locked = True)
             if self["Ie"].uncertainty is None:

@@ -34,12 +34,12 @@ def gaussian_np(R, sigma, I0):
     """
     return (I0 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5*((R/sigma)**2))
 
-def exponential_torch(R, Ie, Re):
+def exponential_torch(R, Re, Ie):
     """Exponential 1d profile function, specifically designed for pytorch
     operations.
 
     """
-    return Ie * torch.exp(- sersic_n_to_b(1.) * (R / Re - 1.))
+    return Ie * torch.exp(- sersic_n_to_b(1.) * ((R / Re) - 1.))
 def exponential_np(R, Ie, Re):
     """Exponential 1d profile function, works more generally with numpy
     operations.

@@ -122,7 +122,7 @@ class NonParametric_Ray(Ray_Galaxy):
         super().__init__(*args, **kwargs)
     
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
-    from ._shared_methods import nonparametric_initialize as initialize
+    from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
 
 # Third Order

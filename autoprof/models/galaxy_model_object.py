@@ -60,7 +60,8 @@ class Galaxy_Model(BaseModel):
         return torch.sqrt((torch.abs(X)+1e-6)**2 + (torch.abs(Y)+1e-6)**2) # epsilon added for numerical stability of gradient
 
     def transform_coordinates(self, X, Y):
-        return Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value, inv_scale = True)
+        X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
+        return X, Y/self["q"].value #Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value, inv_scale = True)
         
     def evaluate_model(self, image):
         X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])

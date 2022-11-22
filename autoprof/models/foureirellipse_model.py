@@ -12,7 +12,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     extension of the standard elliptical representation.
 
     """
-    model_type = f"fourierellipse {Galaxy_Model.model_type}"
+    model_type = f"fourier {Galaxy_Model.model_type}"
     parameter_specs = {
         "am": {"units": "none"},
         "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
@@ -29,7 +29,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     def radius_metric(self, X, Y):
         R = super().radius_metric(X, Y)
         theta = self.angular_metric(X, Y)
-        return R * torch.exp(1 + torch.sum(self["am"]*torch.cos(self.modes*theta + self["phim"]))) # fixme reshape to get correct output
+        return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
 
     def initialize(self):
         super().initialize()
@@ -47,7 +47,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
     extension of the standard elliptical representation.
 
     """
-    model_type = f"fourierellipse {Warp_Galaxy.model_type}"
+    model_type = f"fourier {Warp_Galaxy.model_type}"
     parameter_specs = {
         "am": {"units": "none"},
         "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
@@ -64,7 +64,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
     def radius_metric(self, X, Y):
         R = super().radius_metric(X, Y)
         theta = self.angular_metric(X, Y)
-        return R * torch.exp(1 + torch.sum(self["am"]*torch.cos(self.modes*theta + self["phim"]))) # fixme reshape to get correct output
+        return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
 
     def initialize(self):
         super().initialize()

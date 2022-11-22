@@ -1,5 +1,5 @@
 from autoprof.utils.initialize import isophotes
-from autoprof.utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
+from autoprof.utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np, exponential_torch, exponential_np
 from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from autoprof.utils.interpolate import cubic_spline_torch, interp1d_torch
 from autoprof.utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
