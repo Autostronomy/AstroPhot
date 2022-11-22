@@ -209,3 +209,10 @@ def nonparametric_radial_model(self, R, sample_image = None):
     res = 10**(I) * sample_image.pixelscale**2
     res[R > self.profR[-1]] = 0
     return res
+def nonparametric_iradial_model(self, i, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.model_image
+    I =  cubic_spline_torch(self.profR, self["I(R)"].value[i], R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
+    res = 10**(I) * sample_image.pixelscale**2
+    res[R > self.profR[-1]] = 0
+    return res

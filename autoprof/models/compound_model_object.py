@@ -5,9 +5,9 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-__all__ = ["Super_Model"]
+__all__ = ["Compound_Model"]
 
-class Super_Model(AutoProf_Model):
+class Compound_Model(AutoProf_Model):
     """Model object which represents a list of other models. For each
     general AutoProf model method, this calls all the appropriate
     models from its list and combines their output into a single
@@ -15,7 +15,7 @@ class Super_Model(AutoProf_Model):
 
     """
 
-    model_type = "supermodel"
+    model_type = "compoundmodel"
     
     def __init__(self, name, target = None, model_list = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
