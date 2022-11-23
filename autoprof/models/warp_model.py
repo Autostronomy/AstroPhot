@@ -48,6 +48,7 @@ class Warp_Galaxy(Galaxy_Model):
             while self.profR[-1] < np.min(self.fit_window.shape/2):
                 self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
             self.profR.pop()
+            self.profR.pop()
             self.profR.append(np.sqrt(np.sum((self.fit_window.shape/2)**2)))
             self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
         

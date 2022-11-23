@@ -180,7 +180,7 @@ class BaseModel(AutoProf_Model):
 
         """
         # Determine the on-sky window in which to integrate
-        if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) == 0:
+        if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
             return
         
         # Only need to evaluate integration within working image

@@ -175,6 +175,7 @@ def nonparametric_set_fit_window(self, window):
         while self.profR[-1] < np.min(self.fit_window.shape/2):
             self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
         self.profR.pop()
+        self.profR.pop()
         self.profR.append(np.sqrt(np.sum((self.fit_window.shape/2)**2)))
         self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
             
@@ -207,12 +208,12 @@ def nonparametric_radial_model(self, R, sample_image = None):
         sample_image = self.model_image
     I =  cubic_spline_torch(self.profR, self["I(R)"].value, R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
     res = 10**(I) * sample_image.pixelscale**2
-    res[R > self.profR[-1]] = 0
+    res[R > self.profR[-2]] = 10**(self["I(R)"].value[-2] + (R[R > self.profR[-2]] - self.profR[-2])*((self["I(R)"].value[-1] - self["I(R)"].value[-2])/(self.profR[-1] - self.profR[-2]))) * sample_image.pixelscale**2
     return res
 def nonparametric_iradial_model(self, i, R, sample_image = None):
     if sample_image is None:
         sample_image = self.model_image
     I =  cubic_spline_torch(self.profR, self["I(R)"].value[i], R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
     res = 10**(I) * sample_image.pixelscale**2
-    res[R > self.profR[-1]] = 0
+    res[R > self.profR[-2]] = 10**(self["I(R)"].value[i][-2] + (R[R > self.profR[-2]] - self.profR[-2])*((self["I(R)"].value[i][-1] - self["I(R)"].value[i][-2])/(self.profR[-1] - self.profR[-2]))) * sample_image.pixelscale**2
     return res

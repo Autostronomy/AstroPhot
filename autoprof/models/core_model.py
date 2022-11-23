@@ -159,7 +159,7 @@ class AutoProf_Model(object):
         optimizer = torch.optim.Adam(
             reps, lr=self.learning_rate, betas = (0.9,0.9),
         )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience=20, min_lr = self.learning_rate*1e-2, cooldown = 10)
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience=20, min_lr = self.learning_rate*1e-2, cooldown = 10)
         loss_history = []
         start = time()
         for epoch in range(self.max_iterations):
@@ -167,7 +167,7 @@ class AutoProf_Model(object):
             if (epoch % int(self.max_iterations / 10)) == 0:
                 print(f"Epoch: {epoch}/{self.max_iterations}.")
                 if epoch > 0:
-                    print(f"Est time to completion: {(self.max_iterations - epoch)*(time() - start)/(epoch*60)} min")
+                    print(f"Est time to completion: {(self.max_iterations - epoch)*(time() - start)/(epoch*60):.2f} min")
 
             optimizer.zero_grad()
             self.sample()
@@ -182,7 +182,7 @@ class AutoProf_Model(object):
                     print("WARNING: nan grad being fixed. Might be about to fail.")
                     sreps[i].grad *= 0
             optimizer.step()
-            scheduler.step(self.loss)
+            # scheduler.step(self.loss)
             self.step()
         self.finalize()
         print("runtime: ", time() - start)

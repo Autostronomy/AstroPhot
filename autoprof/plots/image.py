@@ -29,7 +29,7 @@ def target_image(fig, ax, target, window = None, **kwargs):
         extent = window.plt_extent,
         norm=ImageNormalize(stretch=HistEqStretch(dat[dat <= (sky + 3*noise)]), clip = False, vmax = sky + 3*noise, vmin = np.min(dat)),
     )
-    ax.imshow(
+    ax.imshow(# fixme plotting doesn't always look good with mask
         np.ma.masked_where(dat < (sky + 3*noise), dat), 
         origin="lower",
         cmap=cmap_grad,

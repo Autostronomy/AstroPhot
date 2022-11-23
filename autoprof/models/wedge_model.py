@@ -37,7 +37,7 @@ class Wedge_Galaxy(Galaxy_Model):
         else:
             for w in range(self.wedges):
                 angles = (T - (w*2*np.pi/self.wedges)) % (2*np.pi)
-                indices = torch.logical_or(angles < (np.pi/self.wedges), angles >= (np.pi*(1 - 1/self.wedges)))
+                indices = torch.logical_or(angles < (np.pi/self.wedges), angles >= (np.pi*(2 - 1/self.wedges)))
                 model[indices] += self.iradial_model(w, R[indices], image)
         return model
     
