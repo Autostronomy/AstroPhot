@@ -14,27 +14,22 @@ class Flat_Sky(Sky_Model):
     parameter_specs = {
         "sky": {"units": "flux/arcsec^2"},
     }
+    parameter_order = Sky_Model.parameter_order + ("sky",)
 
-    def _init_convert_input_units(self):
-        super()._init_convert_input_units()
-        
-        if self["sky"].value is not None:
-            self["sky"].set_value(self["sky"].value / self.target.pixelscale**2, override_locked = True)    
-    
     def initialize(self):        
         super().initialize()
 
         if self["sky"].value is None:
             self["sky"].set_representation(
-                np.median(self.target[self.model_image].data) / self.target.pixelscale**2,
+                np.median(self.target[self.model_image].data.detach().cpu().numpy()) / self.target.pixelscale**2,
                 override_locked=True,
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                (iqr(self.target[self.model_image].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * self.target.pixelscale**2)) / np.sqrt(np.prod(self.fit_window.shape)),
+                (iqr(self.target[self.model_image].data.detach().cpu().numpy(), rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * self.target.pixelscale**2)) / np.sqrt(np.prod(self.fit_window.shape)),
                 override_locked=True,
             )
 
     def evaluate_model(self, image):
         
-        return torch.ones(image.data.shape) * (self["sky"].value * image.pixelscale**2)
+        return torch.ones(image.data.shape, dtype = self.dtype, device = self.device) * (self["sky"].value * image.pixelscale**2)

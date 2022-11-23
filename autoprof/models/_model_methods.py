@@ -12,7 +12,6 @@ def _set_default_parameters(self):
     self.gradient = None
     self.iteration = -1
     self.is_sampled = False
-    self.center_shift = torch.zeros(2)
     
 def scale_window(self, scale = 1., border = 0.):
     window = (self._base_window * scale) + border
@@ -23,9 +22,11 @@ def scale_window(self, scale = 1., border = 0.):
 def target(self):
     return self._target
 @target.setter
-def target(self, val):
-    assert isinstance(val, Target_Image)
-    self._target = val
+def target(self, tar):
+    if tar is None:
+        tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
+    assert isinstance(tar, Target_Image)
+    self._target = tar.to(dtype = self.dtype, device = self.device)
     
 @property
 def fit_window(self):
@@ -54,6 +55,8 @@ def set_fit_window(self, window):
     self.model_image = Model_Image(
         pixelscale = self.target.pixelscale,
         window = self._fit_window,
+        dtype = self.dtype,
+        device = self.device,
     )
     
 @fit_window.setter
@@ -62,7 +65,7 @@ def fit_window(self, window):
     
 @property
 def integrate_window(self):
-    use_center = np.floor(self["center"].value.detach().numpy()/self.model_image.pixelscale)
+    use_center = np.floor(self["center"].value.detach().cpu().numpy()/self.model_image.pixelscale)
     int_origin = (
         (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
         (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
@@ -75,7 +78,7 @@ def integrate_window(self):
     
 @property
 def psf_window(self):
-    use_center = np.floor(self["center"].value.detach().numpy()/self.model_image.pixelscale)
+    use_center = np.floor(self["center"].value.detach().cpu().numpy()/self.model_image.pixelscale)
     psf_offset = (self.psf_window_size - (self.psf_window_size % 2))/2
     psf_origin = (
         (use_center[0] - psf_offset)*self.model_image.pixelscale,
@@ -105,13 +108,16 @@ def build_parameter_specs(cls, user_specs = None):
             pass
     parameter_specs.update(cls.parameter_specs)
     parameter_specs = deepcopy(parameter_specs)
-    if user_specs is not None:
+    if isinstance(user_specs, dict):
         for p in user_specs:
             # If the user supplied a parameter object subclass, simply use that as is
             if isinstance(user_specs[p], Parameter):
                 parameter_specs[p] = user_specs[p]
-            else: # if the user supplied parameter specifications, update the defaults
-                parameter_specs[p].update(user_specs[p])        
+            elif isinstance(user_specs[p], dict): # if the user supplied parameter specifications, update the defaults
+                parameter_specs[p].update(user_specs[p])
+            else:
+                parameter_specs[p]["value"] = user_specs[p]
+                
     return parameter_specs
 
 def build_parameters(self):
@@ -121,9 +127,9 @@ def build_parameters(self):
             continue
         # If a parameter object is provided, simply use as-is
         if isinstance(self.parameter_specs[p], Parameter):
-            self.parameters[p] = self.parameter_specs[p]
+            self.parameters[p] = self.parameter_specs[p].to(dtype = self.dtype, device = self.device)
         elif isinstance(self.parameter_specs[p], dict):
-            self.parameters[p] = Parameter(p, **self.parameter_specs[p])
+            self.parameters[p] = Parameter(p, dtype = self.dtype, device = self.device, **self.parameter_specs[p])
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
 
@@ -161,7 +167,11 @@ def step_iteration(self):
     self.iteration += 1
 
 def __str__(self):
-    return self.name
+    state = self.get_state()
+    presentation = ""
+    for key in state:
+        presentation = presentation + f"{key}: {state[key]}\n"
+    return presentation
 
 def __getitem__(self, key):
     # Access an element from an array parameter

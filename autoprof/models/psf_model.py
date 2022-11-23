@@ -1,4 +1,5 @@
 from .star_model_object import Star_Model
+from autoprof.image import Model_Image
 
 __all__ = ["PSF_Star"]
 
@@ -11,11 +12,16 @@ class PSF_Star(Star_Model):
     """
     
     model_type = f"psf {Star_Model.model_type}"
+    parameter_specs = {
+        "sky": {"units": "flux/arcsec^2"},
+    }
+    parameter_order = Star_Model.parameter_order + ("sky",)
+    
     lanczos_kernel_size = 5
     clip_lanczos_kernel = True
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.psf_model = Model_image(data = self.target.psf, pixelscale = self.target.pixelscale)
+        self.psf_model = Model_Image(data = self.target.psf, pixelscale = self.target.pixelscale)
 
     def evaluate_model(self, image):# fixme this definitely has bugs
         shift = ((0.5 + self["center"].value/self.psf_model.pixelscale) % 1.)

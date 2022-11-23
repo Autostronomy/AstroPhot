@@ -6,9 +6,9 @@ from scipy.stats import iqr
 import torch
 import numpy as np
 
-__all__ = ["Galaxy_Model"]
+__all__ = ["EdgeOn_Model"]
 
-class Galaxy_Model(BaseModel):
+class EdgeOn_Model(BaseModel):
     """General galaxy model to be subclassed for any specific
     representation. Defines a galaxy as an object with a position
     angle and axis ratio, or effectively a tilted disk. Most
@@ -16,25 +16,19 @@ class Galaxy_Model(BaseModel):
     to the coordinate transform.
 
     """
-    model_type = f"galaxy {BaseModel.model_type}"
+    model_type = f"edgeon {BaseModel.model_type}"
     parameter_specs = {
-        "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
-        "PA": {"units": "radians", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
+        "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
-    parameter_order = BaseModel.parameter_order + ("q", "PA")
+    parameter_order = BaseModel.parameter_order + ("PA", )
 
     def initialize(self):
         super().initialize()
-        if not (self["PA"].value is None or self["q"].value is None):
+        if self["PA"].value is not None:
             return
         with torch.no_grad():
             target_area = self.target[self.fit_window]
-            edge = np.concatenate((
-                target_area.data.detach().cpu().numpy()[:,0],
-                target_area.data.detach().cpu().numpy()[:,-1],
-                target_area.data.detach().cpu().numpy()[0,:],
-                target_area.data.detach().cpu().numpy()[-1,:]
-            ))
+            edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2
             icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
@@ -46,25 +40,12 @@ class Galaxy_Model(BaseModel):
                     pa = 0., q = 1., n_isophotes = 15
                 )
                 self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info[-int(len(iso_info)/3):]))/2) % np.pi, override_locked = True)
-            if self["q"].value is None:
-                q_samples = np.linspace(0.1,0.9,15)
-                iso_info = isophotes(
-                    target_area.data.detach().cpu().numpy() - edge_average,
-                    (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
-                    threshold = 3*edge_scatter,
-                    pa = self["PA"].value.detach().cpu().item(), q = q_samples,
-                ) 
-                self["q"].set_value(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))], override_locked = True)
-
-    def radius_metric(self, X, Y):
-        return torch.sqrt((torch.abs(X)+1e-6)**2 + (torch.abs(Y)+1e-6)**2) # epsilon added for numerical stability of gradient
 
     def transform_coordinates(self, X, Y):
-        X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
-        return X, Y/self["q"].value #Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value, inv_scale = True)
+        return Rotate_Cartesian(self["PA"].value, X, Y)
         
     def evaluate_model(self, image):
         X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         XX, YY = self.transform_coordinates(X, Y)
         
-        return self.radial_model(self.radius_metric(XX, YY), image)
+        return self.brightness_model(torch.abs(XX), torch.abs(YY), image)

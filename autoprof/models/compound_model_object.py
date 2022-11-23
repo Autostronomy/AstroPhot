@@ -5,9 +5,9 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-__all__ = ["Super_Model"]
+__all__ = ["Compound_Model"]
 
-class Super_Model(AutoProf_Model):
+class Compound_Model(AutoProf_Model):
     """Model object which represents a list of other models. For each
     general AutoProf model method, this calls all the appropriate
     models from its list and combines their output into a single
@@ -15,17 +15,19 @@ class Super_Model(AutoProf_Model):
 
     """
 
-    model_type = "supermodel"
+    model_type = "compoundmodel"
     
-    def __init__(self, name, model_list, target = None, locked = False, **kwargs):
+    def __init__(self, name, target = None, model_list = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
-        self.model_list = model_list
-        self.target = self.model_list[0].target if target is None else target
+        self.model_list = [] if model_list is None else model_list
+        self.target = target
         self._user_locked = locked
         self._locked = self._user_locked
         self._psf_mode = None
         self.loss = None
         self.update_fit_window()
+        if "filename" in kwargs:
+            self.load(kwargs["filename"])
 
     def add_model(self, model):
         self.model_list.append(model)
@@ -40,11 +42,22 @@ class Super_Model(AutoProf_Model):
                 self.fit_window = deepcopy(model.fit_window)
             else:
                 self.fit_window |= model.fit_window
+        if self.fit_window is None:
+            self.fit_window = self.target.window
         self.model_image = Model_Image(
             pixelscale = self.target.pixelscale,
             window = self.fit_window,
+            dtype = self.dtype,
+            device = self.device,
         )
-        
+
+    @property
+    def parameter_order(self):
+        param_order = tuple()
+        for model in self.model_list:
+            param_order = param_order + tuple(f"{model.name}|{mp}" for mp in model.parameter_order)
+        return param_order
+    
     def initialize(self):
         for model in self.model_list:
             model.initialize()
@@ -100,6 +113,8 @@ class Super_Model(AutoProf_Model):
             for p in values:
                 all_parameters[f"{model.name}|{p}"] = values[p] 
         return all_parameters
+
+    
     
     def __getitem__(self, key):
         if isinstance(key, tuple):
@@ -118,8 +133,10 @@ class Super_Model(AutoProf_Model):
         return self._target
     @target.setter
     def target(self, tar):
+        if tar is None:
+            tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
         assert isinstance(tar, Target_Image)
-        self._target = tar
+        self._target = tar.to(dtype = self.dtype, device = self.device)
         for model in self.model_list:
             model.target = tar
     @property
@@ -139,10 +156,15 @@ class Super_Model(AutoProf_Model):
             state["models"][model.name] = model.get_state()
         return state
 
-    def load(self, filename = "AutoProf.json"):
-        state = super().load(filename)
-        for model in self.model_list:
-            if model.name in state["models"]:
-                model.load(state["models"][model.name])
+    def load(self, filename = "AutoProf.yaml"):
+        state = AutoProf_Model.load(filename)
+        self.name = state["name"]
+        for model in state["models"]:
+            for own_model in self.model_list:
+                if model == own_model.name:
+                    own_model.load(state["models"][model])
+                    break
+            else:
+                self.add_model(AutoProf_Model(name = model, filename = state["models"][model], target = self.target))
                 
     from ._model_methods import locked

@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.io import fits
 
-def windows_from_segmentation_map(seg_map, expand_scale = 1.5, expand_border = 0., hdul_index = 0, skip_index = (0,)):
+def windows_from_segmentation_map(seg_map, hdul_index = 0, skip_index = (0,)):
     """Takes a segmentation map as input and uses the segmentation ids to
     determine bounding boxes for every object. Scales the bounding
     boxes according to given factors and returns the coordinates.
@@ -35,6 +35,11 @@ def windows_from_segmentation_map(seg_map, expand_scale = 1.5, expand_border = 0
             [np.min(Xid), np.max(Xid)],
             [np.min(Yid), np.max(Yid)]
         ]
+        
+    return windows
+
+def scale_windows(windows, image_shape = None, expand_scale = 1., expand_border = 0.):
+    for index in list(windows.keys()):
         # Get center and shape of the window
         center = (
             (windows[index][0][0] + windows[index][0][1])/2,
@@ -50,16 +55,16 @@ def windows_from_segmentation_map(seg_map, expand_scale = 1.5, expand_border = 0
             [int(center[1] - expand_scale*shape[1]/2 - expand_border), int(center[1] + expand_scale*shape[1]/2 + expand_border)],
         ]
         # Ensure the window does not exceed the borders of the image
-        windows[index] = [
-            [max(0,windows[index][0][0]), min(seg_map.shape[1], windows[0][1])],
-            [max(0,windows[index][1][0]), min(seg_map.shape[0], windows[1][1])],
-        ]
-        
+        if not image_shape is None:
+            windows[index] = [
+                [max(0,windows[index][0][0]), min(image_shape[1], windows[index][0][1])],
+                [max(0,windows[index][1][0]), min(image_shape[0], windows[index][1][1])],
+            ]
     return windows
 
 def filter_windows(windows, min_size = None, max_size = None, min_area = None, max_area = None, min_flux = None, max_flux = None, image = None):
 
-    for w in windows.keys():
+    for w in list(windows.keys()):
         if min_size is not None:
             if min(windows[w][0][1] - windows[w][0][0], windows[w][1][1] - windows[w][1][0]) < min_size:
                 del windows[w]

@@ -23,6 +23,7 @@ class BaseModel(AutoProf_Model):
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
     }
+    parameter_order = ("center",)
 
     # Hierarchy variables
     psf_mode = "none" # none, window/full, direct/fft
@@ -32,9 +33,9 @@ class BaseModel(AutoProf_Model):
     integrate_factor = 10
 
     # settings
-    special_kwargs = ["parameters"]
+    special_kwargs = ["parameters", "filename", "model_type"]
     
-    def __init__(self, name, target, window = None, locked = False, **kwargs):
+    def __init__(self, name, target = None, window = None, locked = False, **kwargs):
         super().__init__(name, target, window, locked, **kwargs)
         
         self._set_default_parameters()
@@ -42,11 +43,7 @@ class BaseModel(AutoProf_Model):
         self.fit_window = window
         self._user_locked = locked
         self._locked = self._user_locked
-            
-        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
-        with torch.no_grad():
-            self.build_parameters()
-            self._init_convert_input_units()
+        self.parameter_vector_len = None
         
         # Set any user defined attributes for the model
         for kwarg in kwargs:
@@ -56,19 +53,18 @@ class BaseModel(AutoProf_Model):
             # Set the model parameter
             print("setting: ", kwarg)
             setattr(self, kwarg, kwargs[kwarg])
+
+        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
+        with torch.no_grad():
+            self.build_parameters()
+            if isinstance(kwargs.get("parameters", None), torch.Tensor):
+                self.step(kwargs["parameters"])
+            
+        if "filename" in kwargs:
+            self.load(kwargs["filename"])
             
     # Initialization functions
     ######################################################################    
-    def _init_convert_input_units(self):
-        """Convert the center value from pixel coordinates, which are given
-        as input into physical coordinates which are used in the model
-        internally.
-
-        """
-        if self["center"].value is not None:
-            physcenter = index_to_coord(self["center"].value[1], self["center"].value[0], self.target)
-            self["center"].set_value(physcenter, override_locked = True)
-            
     def initialize(self):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
@@ -90,9 +86,9 @@ class BaseModel(AutoProf_Model):
                 return
 
             # Convert center coordinates to target area array indices
-            init_icenter = coord_to_index(self["center"].value[0].detach().item(), self["center"].value[1].detach().item(), target_area)
+            init_icenter = coord_to_index(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item(), target_area)
             # Compute center of mass in window
-            COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().numpy())
+            COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().cpu().numpy())
             if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
                 print("center of mass failed, using center of window")
                 return
@@ -101,6 +97,8 @@ class BaseModel(AutoProf_Model):
             # Set the new coordinates as the model center
             self["center"].value = COM_center + np.random.normal(loc = 0, scale = 0.3*self.target.pixelscale, size = len(COM_center))
 
+
+            
     def finalize(self):
         """Apply any needed functions after fitting has completed. This
         function is to be overloaded by subclasses.
@@ -116,7 +114,7 @@ class BaseModel(AutoProf_Model):
         overloaded by subclasses.
 
         """
-        return torch.zeros(image.data.shape)
+        return torch.zeros(image.data.shape, dtype = self.dtype, device = self.device)
     
     def sample(self, sample_image = None):
         """Evaluate the model on the space covered by an image object. This
@@ -132,7 +130,6 @@ class BaseModel(AutoProf_Model):
             return
         if sample_image is self.model_image:
             sample_image.clear_image()
-            #self.is_sampled = True
 
         # Check that psf and integrate modes line up
         if "window" in self.psf_mode:
@@ -142,17 +139,11 @@ class BaseModel(AutoProf_Model):
         working_window = deepcopy(sample_image.window)
         if "full" in self.psf_mode:
             working_window += self.target.psf_border 
-            center = self["center"].value.detach().numpy()
-            center_shift = center - np.floor(center/sample_image.pixelscale)*sample_image.pixelscale
-            if center_shift[0] < 0:
-                sub_window.shift_origin((-working_image.pixelscale,0))
-                center_shift[0] += working_image.pixelscale
-            if center_shift[1] < 0:
-                sub_window.shift_origin((0,-working_image.pixelscale))
-                center_shift[1] += working_image.pixelscale
+            center = self["center"].value.detach().cpu().numpy()
+            center_shift = np.round(center/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (center - 0.5*sample_image.pixelscale)
             working_window.shift_origin(center_shift)
             
-        working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
+        working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         if "full" not in self.integrate_mode:
             working_image.data += self.evaluate_model(working_image)
 
@@ -164,40 +155,16 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = self.psf_window.make_copy()
             sub_window += self.target.psf_border
-            center_shift = self["center"].value.detach().numpy() - sub_window.center #fixme, make center on a pixel, not necessarily central pixel ((0.5 + self["center"].value.detach().numpy()/self.target.pixelscale) % 1.)*self.target.pixelscale
-            if center_shift[0] < 0:
-                sub_window.shift_origin((-working_image.pixelscale,0))
-                center_shift[0] += working_image.pixelscale
-            if center_shift[1] < 0:
-                sub_window.shift_origin((0,-working_image.pixelscale))
-                center_shift[1] += working_image.pixelscale
+            center = self["center"].value.detach().cpu().numpy()
+            center_shift = np.round(center/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (center - 0.5*sample_image.pixelscale)
             sub_window.shift_origin(center_shift)
-            sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window)
+            sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window, dtype = self.dtype, device = self.device)
             sub_image.data = self.evaluate_model(sub_image)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("evaluate model")
-            # plt.show()
             self.integrate_model(sub_image)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("integrate model")
-            # plt.show()
             sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("convolve")
-            # plt.show()
             sub_image.shift_origin(-center_shift)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("shift")
-            # plt.show()
-            center_shift = torch.zeros(2)
             sub_image.crop(*self.target.psf_border_int)
-            # plt.imshow(sub_image.data.detach().numpy(),origin = "lower")
-            # plt.title("crop")
-            # plt.show()
             working_image.replace(sub_image)
-            # plt.imshow(working_image.data.detach().numpy(),origin = "lower")
-            # plt.title("working image")
-            # plt.show()
         else:
             self.integrate_model(working_image)
 
@@ -213,7 +180,7 @@ class BaseModel(AutoProf_Model):
 
         """
         # Determine the on-sky window in which to integrate
-        if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) == 0:
+        if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
             return
         
         # Only need to evaluate integration within working image
@@ -228,7 +195,7 @@ class BaseModel(AutoProf_Model):
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
 
         # Build an image to hold the integration data
-        integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window)
+        integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         # Evaluate the model at the fine sampling points
         X, Y = integrate_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         integrate_image.data = self.evaluate_model(integrate_image)
@@ -243,7 +210,6 @@ class BaseModel(AutoProf_Model):
                               ), dim = (1,3))
         )
 
-
     def get_state(self):
         state = super().get_state()
         if "parameters" not in state:
@@ -251,8 +217,8 @@ class BaseModel(AutoProf_Model):
         for P in self.parameters:
             state["parameters"][P] = self[P].get_state()
         return state
-    def load(self, filename = "AutoProf.json"):
-        state = super().load(filename)
+    def load(self, filename = "AutoProf.yaml"):
+        state = AutoProf_Model.load(filename)
         self.name = state["name"]
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])

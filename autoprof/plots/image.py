@@ -8,15 +8,15 @@ import torch
 from matplotlib.patches import Rectangle
 from autoprof import models
 
-__all__ = ["target_image", "model_image", "residual_image", "supermodel_boxes"]
+__all__ = ["target_image", "model_image", "residual_image", "model_window"]
 
 def target_image(fig, ax, target, window = None, **kwargs):
     if window is None:
         window = target.window
     if target.masked:
-        dat = np.ma.masked_array(target[window].data.detach().numpy(), mask = target[window].mask)
+        dat = np.ma.masked_array(target[window].data.detach().cpu().numpy(), mask = target[window].mask)
     else:
-        dat = target[window].data.detach().numpy()
+        dat = target[window].data.detach().cpu().numpy()
         
     sky = np.median(dat)
     noise = iqr(dat)/2
@@ -29,7 +29,7 @@ def target_image(fig, ax, target, window = None, **kwargs):
         extent = window.plt_extent,
         norm=ImageNormalize(stretch=HistEqStretch(dat[dat <= (sky + 3*noise)]), clip = False, vmax = sky + 3*noise, vmin = np.min(dat)),
     )
-    ax.imshow(
+    ax.imshow(# fixme plotting doesn't always look good with mask
         np.ma.masked_where(dat < (sky + 3*noise), dat), 
         origin="lower",
         cmap=cmap_grad,
@@ -46,7 +46,7 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     if image is None:
         with torch.no_grad():
             model.sample(model.model_image)
-        image = model.model_image.data.detach().numpy()
+        image = model.model_image.data.detach().cpu().numpy()
 
     imshow_kwargs = {
         "extent": model.model_image.window.plt_extent,
@@ -55,11 +55,11 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
-    # if isinstance(model, models.Super_Model):
+    # if isinstance(model, models.Compound_Model):
     #     for M in model.model_list:
     #         if isinstance(M,models.Sky_Model):
     #             try:
-    #                 sky_level = M["sky"].value.detach().item()*(1. + 1e-6)*model.target.pixelscale**2
+    #                 sky_level = M["sky"].value.detach().cpu().item()*(1. + 1e-6)*model.target.pixelscale**2
     #                 print("subtracting sky level: ", sky_level)
     #                 break
     #             except Exception as e:
@@ -81,8 +81,8 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
     with torch.no_grad():
         model.sample(model.model_image)
     residuals = (
-        model.target[window].data.detach().numpy()
-        - model.model_image[window].data.detach().numpy()
+        model.target[window].data.detach().cpu().numpy()
+        - model.model_image[window].data.detach().cpu().numpy()
     )    
     if model.target.masked:
         residuals[model.target[window].mask] = np.nan
@@ -106,11 +106,13 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
         clb.ax.set_yticklabels([])
     return fig, ax
 
-def supermodel_boxes(fig, ax, model, **kwargs):
-    assert isinstance(model, models.Super_Model)
-    target_image(fig, ax, model.target[model.fit_window])
+def model_window(fig, ax, model, **kwargs):
+    target_image(fig, ax, model.target)
 
-    for m in model.model_list:
-        ax.add_patch(Rectangle(xy = (m.fit_window.origin[0], m.fit_window.origin[1]), width = m.fit_window.shape[0], height = m.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+    if isinstance(model, models.Compound_Model):
+        for m in model.model_list:
+            ax.add_patch(Rectangle(xy = (m.fit_window.origin[0], m.fit_window.origin[1]), width = m.fit_window.shape[0], height = m.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+    else:
+        ax.add_patch(Rectangle(xy = (model.fit_window.origin[0], model.fit_window.origin[1]), width = model.fit_window.shape[0], height = model.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
 
     return fig, ax

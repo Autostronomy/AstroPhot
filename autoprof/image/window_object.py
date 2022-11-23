@@ -48,10 +48,12 @@ class AP_Window(object):
             np.linspace(self.origin[0] + pixelscale/2 - x, self.origin[0] + self.shape[0] - pixelscale/2 - x, int(round((self.shape[0]/pixelscale)))),
             np.linspace(self.origin[1] + pixelscale/2 - y, self.origin[1] + self.shape[1] - pixelscale/2 - y, int(round((self.shape[1]/pixelscale)))),
         )
-    def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
+    def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0., dtype = torch.float64, device = None):
+        if device is None:
+            device = "cuda:0" if torch.cuda.is_available() else "cpu"
         return torch.meshgrid(
-            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale))), dtype = torch.float64) - x,
-            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale))), dtype = torch.float64) - y,
+            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, int(round((self.shape[0]/pixelscale))), dtype = dtype, device = device) - x,
+            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, int(round((self.shape[1]/pixelscale))), dtype = dtype, device = device) - y,
             indexing = 'xy',
         )
         
