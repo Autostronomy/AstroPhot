@@ -77,8 +77,8 @@ class Parameter(object):
     @locked.setter
     def locked(self, value):
         self._locked = value
-        if self._representation is not None:
-            self._representation.requires_grad = not self._locked
+        # if self._representation is not None:
+        #     self._representation.requires_grad = not self._locked
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
@@ -147,8 +147,8 @@ class Parameter(object):
             self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.tensor(rep, dtype = self.dtype, device = self.device)
         else:
             self._representation[index] = rep
-        if self._representation is not None:
-            self._representation.requires_grad = not self.locked
+        # if self._representation is not None:
+        #     self._representation.requires_grad = not self.locked
 
     def get_state(self):
         

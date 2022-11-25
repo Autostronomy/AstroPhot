@@ -2,6 +2,7 @@ from .image_object import BaseImage
 import torch
 import numpy as np
 from torch.nn.functional import avg_pool2d
+from astropy.io import fits
 
 class Target_Image(BaseImage):
     """Image object which represents the data to be fit by a model. It can
@@ -119,3 +120,31 @@ class Target_Image(BaseImage):
             note = self.note,
             origin = self.origin,
         )
+
+    def _save_image_list(self):
+        image_list = super()._save_image_list()
+        if self._psf is not None:
+            psf_header = fits.Header()
+            psf_header["IMAGE"] = "PSF"
+            image_list.append(fits.ImageHDU(self._psf.detach().cpu().numpy(), header = psf_header))
+        if self._variance is not None:
+            var_header = fits.Header()
+            var_header["IMAGE"] = "VARIANCE"
+            image_list.append(fits.ImageHDU(self._variance.detach().cpu().numpy(), header = var_header))
+        if self._mask is not None:
+            mask_header = fits.Header()
+            mask_header["IMAGE"] = "MASK"
+            image_list.append(fits.ImageHDU(self._mask.detach().cpu().numpy(), header = mask_header))
+        return image_list
+
+    def load(self, filename):
+        hdul = super().load(filename)
+
+        for hdu in hdul:
+            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
+                self.set_psf(np.array(hdu.data, dtype = np.float64))
+            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
+                self.set_variance(np.array(hdu.data, dtype = np.float64))
+            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
+                self.set_mask(np.array(hdu.data, dtype = bool))
+        return hdul

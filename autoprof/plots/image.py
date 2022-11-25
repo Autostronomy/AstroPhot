@@ -55,7 +55,7 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
-    # if isinstance(model, models.Compound_Model):
+    # if isinstance(model, models.Group_Model):
     #     for M in model.model_list:
     #         if isinstance(M,models.Sky_Model):
     #             try:
@@ -109,7 +109,7 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
 def model_window(fig, ax, model, **kwargs):
     target_image(fig, ax, model.target)
 
-    if isinstance(model, models.Compound_Model):
+    if isinstance(model, models.Group_Model):
         for m in model.model_list:
             ax.add_patch(Rectangle(xy = (m.fit_window.origin[0], m.fit_window.origin[1]), width = m.fit_window.shape[0], height = m.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
     else:

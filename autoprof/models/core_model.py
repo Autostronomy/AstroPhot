@@ -6,7 +6,6 @@ from autoprof.utils.conversions.optimization import cyclic_difference_np
 from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from copy import copy
 from time import time
-
 __all__ = ["AutoProf_Model"]
 
 def all_subclasses(cls):
@@ -23,7 +22,7 @@ class AutoProf_Model(object):
 
     model_type = ""
     learning_rate = 0.05
-    max_iterations = 256
+    max_iterations = 200
     stop_rtol = 1e-5
     constraint_delay = 10
     constraint_strength = 1e-2
@@ -93,33 +92,33 @@ class AutoProf_Model(object):
         the loss.
 
         """
-        pixels = np.prod(self.target[self.fit_window].data.shape)
+        pixels = np.prod(self.target[self.model_image.window].data.shape)
         if self.target.masked:
-            mask = np.logical_not(self.target[self.fit_window].mask)
+            mask = np.logical_not(self.target[self.model_image.window].mask)
             self.loss = torch.sum(
                 torch.pow(
                     (
-                        self.target[self.fit_window].data[mask]
+                        self.target[self.model_image.window].data[mask]
                         - self.model_image.data[mask]
                     ),
                     2,
                 )
-                / self.target[self.fit_window].variance[mask]
+                / self.target[self.model_image.window].variance[mask]
             )
             pixels -= np.sum(mask)
         else:
             self.loss = torch.sum(
-                torch.pow((self.target[self.fit_window] - self.model_image).data, 2)
-                / self.target[self.fit_window].variance
+                torch.pow((self.target[self.model_image.window] - self.model_image).data, 2)
+                / self.target[self.model_image.window].variance
             )
         self.loss /= pixels - len(self.get_parameters_representation()[0])
         if self.constraints is not None:
             for constraint in self.constraints:
                 self.loss *= 1 + self.constraint_strength * constraint(self)
-        print("log10(loss): ", np.log10(self.loss.detach().cpu().item()))
+        # print("log10(loss): ", np.log10(self.loss.detach().cpu().item()))
         return self.loss
 
-    def step(self, parameters = None, parameters_as_representation = False):
+    def step(self, parameters = None, parameters_as_representation = True):
         """Call after updating any of the model parameters.
 
         """
@@ -135,9 +134,9 @@ class AutoProf_Model(object):
         start = 0
         for P, V in zip(self.parameter_order, self.parameter_vector_len):
             if parameters_as_representation:
-                self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
-            else:
                 self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
+            else:
+                self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
             start += V
         
     def get_parameters_representation(self):
@@ -156,10 +155,13 @@ class AutoProf_Model(object):
         self.startup()
         self.step()
         keys, reps = self.get_parameters_representation()
-        optimizer = torch.optim.Adam(
-            reps, lr=self.learning_rate, betas = (0.9,0.9),
+        optimizer = torch.optim.NAdam(
+            reps, lr=0.05, betas = (0.9,0.999),
         )
-        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.2, patience=20, min_lr = self.learning_rate*1e-2, cooldown = 10)
+        # optimizer = torch.optim.LBFGS(
+        #     reps, lr=0.05,
+        # )
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.9)
         loss_history = []
         start = time()
         for epoch in range(self.max_iterations):
@@ -168,8 +170,10 @@ class AutoProf_Model(object):
                 print(f"Epoch: {epoch}/{self.max_iterations}.")
                 if epoch > 0:
                     print(f"Est time to completion: {(self.max_iterations - epoch)*(time() - start)/(epoch*60):.2f} min")
-
+                    print(f"X^2/ndf: {self.loss.detach().cpu().item():.3e}")
+                    
             optimizer.zero_grad()
+                
             self.sample()
             self.compute_loss()
             loss_history.append(copy(self.loss.detach().cpu().item()))
@@ -182,10 +186,12 @@ class AutoProf_Model(object):
                     print("WARNING: nan grad being fixed. Might be about to fail.")
                     sreps[i].grad *= 0
             optimizer.step()
-            # scheduler.step(self.loss)
+            if epoch % 10 == 0 and epoch > 0:
+                scheduler.step()
             self.step()
         self.finalize()
-        print("runtime: ", time() - start)
+        print(f"Runtime: {(time() - start)/60:.2f} min")
+        print(f"X^2/ndf: {self.loss.detach().cpu().item():.3e}")
         self.epoch = None
         plt.plot(range(len(loss_history))[10:], np.log10(loss_history)[10:])
         plt.savefig("loss_history.jpg")

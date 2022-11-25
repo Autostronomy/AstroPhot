@@ -136,7 +136,7 @@ def build_parameters(self):
 def get_parameters_representation(self, exclude_locked = True):
     return_parameters = []
     return_keys = []
-    for p in self.parameters:
+    for p in self.parameter_order:
         # Skip currently locked parameters
         if exclude_locked and self.parameters[p].locked:
             continue
@@ -147,7 +147,7 @@ def get_parameters_representation(self, exclude_locked = True):
 
 def get_parameters_value(self, exclude_locked = True):
     return_parameters = {}
-    for p in self.parameters:
+    for p in self.parameter_order:
         # Skip currently locked parameters
         if exclude_locked and self.parameters[p].locked:
             continue

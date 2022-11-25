@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from copy import deepcopy
 from .window_object import AP_Window
+from astropy.io import fits
 
 class BaseImage(object):
     """Core class to represent images. Any image is represented by a data
@@ -13,11 +14,16 @@ class BaseImage(object):
 
     """
 
-    def __init__(self, data, pixelscale = None, window = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float64, **kwargs):
-        assert not (pixelscale is None and window is None)
+    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float64, **kwargs):
+        
         self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
         self.dtype = dtype
         self._data = None
+        
+        if filename is not None:
+            self.load(filename)
+            return
+        assert not (pixelscale is None and window is None)
         self.data = data
         self.zeropoint = zeropoint
         self.note = note
@@ -110,6 +116,36 @@ class BaseImage(object):
             note = self.note,
             origin = self.origin,
         )
+
+    def _save_image_list(self):
+        img_header = fits.Header()
+        img_header["IMAGE"] = "PRIMARY"
+        img_header["PXLSCALE"] = str(self.pixelscale)
+        img_header["WINDOW"] = str(self.window.get_state())
+        if not self.zeropoint is None:
+            img_header["ZEROPNT"] = str(self.zeropoint)
+        if not self.note is None:
+            img_header["NOTE"] = str(self.note)
+        image_list = [fits.PrimaryHDU(self._data.detach().cpu().numpy(), header = img_header)]
+        return image_list
+    def save(self, filename = None, overwrite = True):
+        image_list = self._save_image_list()
+        hdul = fits.HDUList(image_list)
+        if filename is not None:
+            hdul.writeto(filename, overwrite = overwrite)
+        return hdul
+
+    def load(self, filename):
+        hdul = fits.open(filename)
+        for hdu in hdul:
+            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
+                self.set_data(np.array(hdu.data, dtype = np.float64), require_shape = False)
+                self.pixelscale = eval(hdu.header.get("PXLSCALE"))
+                self.zeropoint = eval(hdu.header.get("ZEROPNT"))
+                self.note = hdu.header.get("NOTE")
+                self.window = AP_Window(**eval(hdu.header.get("WINDOW")))
+                break
+        return hdul
     
     def __sub__(self, other):
         if isinstance(other, BaseImage):

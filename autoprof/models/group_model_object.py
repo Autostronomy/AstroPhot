@@ -5,9 +5,9 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-__all__ = ["Compound_Model"]
+__all__ = ["Group_Model"]
 
-class Compound_Model(AutoProf_Model):
+class Group_Model(AutoProf_Model):
     """Model object which represents a list of other models. For each
     general AutoProf model method, this calls all the appropriate
     models from its list and combines their output into a single
@@ -15,7 +15,7 @@ class Compound_Model(AutoProf_Model):
 
     """
 
-    model_type = "compoundmodel"
+    model_type = "groupmodel"
     
     def __init__(self, name, target = None, model_list = None, locked = False, **kwargs):
         super().__init__(name, model_list, target, **kwargs)
@@ -25,13 +25,30 @@ class Compound_Model(AutoProf_Model):
         self._locked = self._user_locked
         self._psf_mode = None
         self.loss = None
+        self.equality_constraints = kwargs.get("equality_constraints", None)
+        if self.equality_constraints is not None and isinstance(self.equality_constraints[0], str):
+            self.equality_constraints = [self.equality_constraints]
         self.update_fit_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
+        self.update_equality_constraints()
 
     def add_model(self, model):
         self.model_list.append(model)
         self.update_fit_window()
+
+    def update_equality_constraints(self):
+        """Equality constraints given aa a list of tuples, where each tuple is
+        formatted as (parameter, model1, model2, model3, ...) which
+        indicates that "parameter" will be equal across all the listed
+        models.
+
+        """
+        if self.equality_constraints is None:
+            return
+        for constraint in self.equality_constraints:
+            for model in constraint[2:]:
+                self[model].parameters[constraint[0]] = self[constraint[1]].parameters[constraint[0]]
         
     def update_fit_window(self):
         self.fit_window = None
@@ -91,18 +108,28 @@ class Compound_Model(AutoProf_Model):
         if sample_image is self.model_image:
             self.is_sampled = True
 
-    def step(self):
-        super().step()
+    def step(self, parameters = None, parameters_as_representation = True):
+        super().step(parameters, parameters_as_representation)
         for model in self.model_list:
             model.step()
             
-    def get_parameters_representation(self, exclude_locked = True):
+    def get_parameters_representation(self, exclude_locked = True, exclude_equality_constraint = True):
         all_parameters = []
         all_keys = []
         for model in self.model_list:
             keys, reps = model.get_parameters_representation(exclude_locked)
-            all_parameters += reps
-            for k in keys:
+            for k, r in zip(keys, reps):
+                if exclude_locked and model[k].locked:
+                    continue
+                if exclude_equality_constraint and self.equality_constraints is not None:
+                    skip = False
+                    for constraint in self.equality_constraints:
+                        if k == constraint[0] and model.name in constraint[2:]:
+                            skip = True
+                            break
+                    if skip:
+                        continue
+                all_parameters.append(r)
                 all_keys.append(f"{model.name}|{k}")
         return all_keys, all_parameters
     
@@ -125,6 +152,10 @@ class Compound_Model(AutoProf_Model):
             for model in self.model_list:
                 if model.name == model_name:
                     return model[key[key.find("|")+1:]]
+        elif isinstance(key, str):
+            for model in self.model_list:
+                if model.name == key:
+                    return model
         
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 

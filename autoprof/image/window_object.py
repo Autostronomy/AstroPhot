@@ -10,12 +10,11 @@ class AP_Window(object):
     """
     def __init__(self, origin = None, shape = None, center = None):
         if center is None:
-            self.shape = np.array(shape)
-            self.origin = np.array(origin)
+            self.shape = np.array(shape, dtype = np.float64)
+            self.origin = np.array(origin, dtype = np.float64)
         elif origin is None:
-            self.shape = np.array(shape)
-            self.origin = np.array(center) - self.shape/2
-
+            self.shape = np.array(shape, dtype = np.float64)
+            self.origin = np.array(center, dtype = np.float64) - self.shape/2
     @property
     def center(self):
         return self.origin + self.shape/2
@@ -65,6 +64,13 @@ class AP_Window(object):
 
     def shift_origin(self, shift):
         self.origin += shift
+
+    def get_state(self):
+        state = {
+            "origin": tuple(float(o) for o in self.origin),
+            "shape": tuple(float(s) for s in self.shape),
+        }
+        return state
 
     # Window adjustment operators
     def __add__(self, other):

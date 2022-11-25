@@ -4,7 +4,7 @@ from .parameter_object import *
 from .galaxy_model_object import *
 from .ray_model import *
 from .sersic_model import *
-from .compound_model_object import *
+from .group_model_object import *
 from .sky_model_object import *
 from .flatsky_model import *
 from .planesky_model import *

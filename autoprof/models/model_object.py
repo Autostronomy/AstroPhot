@@ -182,7 +182,6 @@ class BaseModel(AutoProf_Model):
         # Determine the on-sky window in which to integrate
         if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
             return
-        
         # Only need to evaluate integration within working image
         if "window" in self.integrate_mode:
             working_window = self.integrate_window & working_image.window
@@ -212,6 +211,7 @@ class BaseModel(AutoProf_Model):
 
     def get_state(self):
         state = super().get_state()
+        state["window"] = self.fit_window.get_state()
         if "parameters" not in state:
             state["parameters"] = {}
         for P in self.parameters:
@@ -220,6 +220,7 @@ class BaseModel(AutoProf_Model):
     def load(self, filename = "AutoProf.yaml"):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
+        self.fit_window = AP_Window(**state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
         return state
