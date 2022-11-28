@@ -6,6 +6,7 @@ from autoprof.utils.conversions.optimization import cyclic_difference_np
 from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from copy import copy
 from time import time
+from torch.autograd.functional import jacobian
 __all__ = ["AutoProf_Model"]
 
 def all_subclasses(cls):
@@ -22,12 +23,12 @@ class AutoProf_Model(object):
 
     model_type = ""
     learning_rate = 0.05
-    max_iterations = 200
+    max_iterations = 256
     stop_rtol = 1e-5
     constraint_delay = 10
     constraint_strength = 1e-2
 
-    dtype = torch.float64
+    dtype = torch.float32
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def __new__(cls, *args, **kwargs):
@@ -156,7 +157,7 @@ class AutoProf_Model(object):
         self.step()
         keys, reps = self.get_parameters_representation()
         optimizer = torch.optim.NAdam(
-            reps, lr=0.05, betas = (0.9,0.999),
+            reps, lr=0.1, betas = (0.9,0.999),
         )
         # optimizer = torch.optim.LBFGS(
         #     reps, lr=0.05,
@@ -200,13 +201,26 @@ class AutoProf_Model(object):
     def full_sample(self, parameters = None):
         self.step(parameters)
         self.sample()
+        self.compute_loss()
         return self.model_image.data
+
+    def forward(self, parameters):
+        return self.full_sample(parameters)
     
     def full_loss(self, parameters = None):
         self.step(parameters)
         self.sample()
         self.compute_loss()
         return self.loss
+
+    def jacobian(self, parameters):
+        return jacobian(
+            self.full_sample,
+            parameters,
+            strategy = "forward-mode",
+            vectorize = True,
+            create_graph = False,
+        )
 
     def __str__(self):
         """String representation for the model."""

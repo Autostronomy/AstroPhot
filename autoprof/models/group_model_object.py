@@ -85,6 +85,11 @@ class Group_Model(AutoProf_Model):
             model.locked = False
             model.initialize()
 
+    def startup(self):
+        super().startup()
+        for model in self.model_list:
+            model.startup()
+            
     def finalize(self):
         for model in self.model_list:
             model.finalize()
@@ -141,8 +146,22 @@ class Group_Model(AutoProf_Model):
                 all_parameters[f"{model.name}|{p}"] = values[p] 
         return all_parameters
 
-    
-    
+    def jacobian(self, parameters):
+        vstart = 0
+        ivstart = 0
+        full_jac = torch.zeros(tuple(self.model_image.data.shape) + (len(parameters),))
+        for model in self.model_list:
+            keys, reps = model.get_parameters_representation()
+            vend = vstart + np.sum(self.parameter_vector_len[ivstart:ivstart + len(keys)])
+            sub_jac = model.jacobian(parameters[vstart:vend])
+            indices = model.model_image.window.get_indices(self.model_image)
+            for ip, i in enumerate(range(vstart, vend)):
+                full_jac[indices[0], indices[1], i] = sub_jac[:,:,ip]
+            ivstart += len(keys)
+            vstart = vend
+        return full_jac
+            
+        
     def __getitem__(self, key):
         if isinstance(key, tuple):
             return self.model_list[key[0]][key[1]]

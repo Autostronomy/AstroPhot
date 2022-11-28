@@ -65,7 +65,7 @@ def fit_window(self, window):
     
 @property
 def integrate_window(self):
-    use_center = np.floor(self["center"].value.detach().cpu().numpy()/self.model_image.pixelscale)
+    use_center = np.round(self["center"].value.detach().cpu().numpy()/self.model_image.pixelscale)
     int_origin = (
         (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
         (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,

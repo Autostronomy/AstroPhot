@@ -14,7 +14,7 @@ class BaseImage(object):
 
     """
 
-    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float64, **kwargs):
+    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float32, **kwargs):
         
         self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
         self.dtype = dtype
@@ -139,7 +139,7 @@ class BaseImage(object):
         hdul = fits.open(filename)
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
-                self.set_data(np.array(hdu.data, dtype = np.float64), require_shape = False)
+                self.set_data(np.array(hdu.data, dtype = np.float32), require_shape = False)
                 self.pixelscale = eval(hdu.header.get("PXLSCALE"))
                 self.zeropoint = eval(hdu.header.get("ZEROPNT"))
                 self.note = hdu.header.get("NOTE")

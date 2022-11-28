@@ -27,7 +27,7 @@ class Parameter(object):
 
         self.name = name
         
-        self.dtype = kwargs.get("dtype", torch.float64)
+        self.dtype = kwargs.get("dtype", torch.float32)
         self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)

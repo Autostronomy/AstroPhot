@@ -142,9 +142,9 @@ class Target_Image(BaseImage):
 
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.set_psf(np.array(hdu.data, dtype = np.float64))
+                self.set_psf(np.array(hdu.data, dtype = np.float32))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
-                self.set_variance(np.array(hdu.data, dtype = np.float64))
+                self.set_variance(np.array(hdu.data, dtype = np.float32))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
                 self.set_mask(np.array(hdu.data, dtype = bool))
         return hdul
