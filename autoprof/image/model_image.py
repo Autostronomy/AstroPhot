@@ -15,23 +15,23 @@ class Model_Image(BaseImage):
     def __init__(self, pixelscale = None, data = None, window = None, **kwargs):
         assert not (data is None and window is None)
         if data is None:
-            data = torch.zeros(tuple(int(s) for s in np.flip(np.round(window.shape/pixelscale))))
+            data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = kwargs.get("dtype", torch.float32), device = kwargs.get("device", "cpu"))
         super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
         
     def clear_image(self):
-        self.data = torch.zeros(self.data.shape, dtype = self.dtype, device = self.device)
+        self.data = torch.zeros_like(self.data)
 
     def shift_origin(self, shift):
         self.window.shift_origin(shift)
-        if np.any(np.abs(shift/self.pixelscale) > 1):
+        if torch.any(torch.abs(shift/self.pixelscale) > 1):
             raise NotImplementedError("Shifts larger than 1 are currently not handled")
         self.data = shift_Lanczos_torch(self.data, shift[0]/self.pixelscale, shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = self.dtype, device = self.device)
         
     def replace(self, other, data = None):
         if isinstance(other, BaseImage):
-            if not np.isclose(self.pixelscale, other.pixelscale):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
-            if np.any((self.origin + self.shape) < other.origin) or np.any((other.origin + other.shape) < self.origin):
+            if torch.any((self.origin + self.shape) < other.origin) or torch.any((other.origin + other.shape) < self.origin):
                 return
             self.data[other.window.get_indices(self)] = other.data[self.window.get_indices(other)]
         elif isinstance(other, AP_Window):
@@ -41,9 +41,9 @@ class Model_Image(BaseImage):
     
     def __iadd__(self, other):
         if isinstance(other, BaseImage):
-            if not np.isclose(self.pixelscale, other.pixelscale):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
-            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
                 return self
             self.data[other.window.get_indices(self)] += other.data[self.window.get_indices(other)]
         else:
@@ -52,9 +52,9 @@ class Model_Image(BaseImage):
 
     def __isub__(self, other):
         if isinstance(other, BaseImage):
-            if not np.isclose(self.pixelscale, other.pixelscale):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot subtract images with different pixelscale!")
-            if np.any(self.origin + self.shape < other.origin) or np.any(other.origin + other.shape < self.origin):
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
                 return self
             self.data[other.window.get_indices(self)] -= other.data[self.window.get_indices(other)]
         else:

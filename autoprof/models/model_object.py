@@ -64,7 +64,8 @@ class BaseModel(AutoProf_Model):
             self.load(kwargs["filename"])
             
     # Initialization functions
-    ######################################################################    
+    ######################################################################
+    @torch.no_grad()
     def initialize(self):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
@@ -72,40 +73,30 @@ class BaseModel(AutoProf_Model):
         until the iterations move by less than a pixel.
 
         """
-        with torch.no_grad():
-            # Get the sub-image area corresponding to the model image
-            target_area = self.target[self.fit_window]
-            
-            # Use center of window if a center hasn't been set yet
-            if self["center"].value is None:
-                self["center"].set_value(self.model_image.center, override_locked = True)
-            else:
-                return
-
-            if self["center"].locked:
-                return
-
-            # Convert center coordinates to target area array indices
-            init_icenter = coord_to_index(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item(), target_area)
-            # Compute center of mass in window
-            COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().cpu().numpy())
-            if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
-                print("center of mass failed, using center of window")
-                return
-            # Convert center of mass indices to coordinates
-            COM_center = index_to_coord(COM[0], COM[1], target_area)
-            # Set the new coordinates as the model center
-            self["center"].value = COM_center + np.random.normal(loc = 0, scale = 0.3*self.target.pixelscale, size = len(COM_center))
-
-
-            
-    def finalize(self):
-        """Apply any needed functions after fitting has completed. This
-        function is to be overloaded by subclasses.
-
-        """
-        pass
+        # Get the sub-image area corresponding to the model image
+        target_area = self.target[self.fit_window]
         
+        # Use center of window if a center hasn't been set yet
+        if self["center"].value is None:
+            self["center"].set_value(self.model_image.center, override_locked = True)
+        else:
+            return
+
+        if self["center"].locked:
+            return
+
+        # Convert center coordinates to target area array indices
+        init_icenter = coord_to_index(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item(), target_area)
+        # Compute center of mass in window
+        COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().cpu().numpy())
+        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
+            print("center of mass failed, using center of window")
+            return
+        # Convert center of mass indices to coordinates
+        COM_center = index_to_coord(COM[0], COM[1], target_area)
+        # Set the new coordinates as the model center
+        self["center"].value = COM_center + np.random.normal(loc = 0, scale = 0.3*self.target.pixelscale, size = len(COM_center))
+            
     # Fit loop functions
     ######################################################################
     def evaluate_model(self, image):
@@ -114,7 +105,7 @@ class BaseModel(AutoProf_Model):
         overloaded by subclasses.
 
         """
-        return torch.zeros(image.data.shape, dtype = self.dtype, device = self.device)
+        return torch.zeros_like(image.data) # do nothing in base model
     
     def sample(self, sample_image = None):
         """Evaluate the model on the space covered by an image object. This
@@ -136,11 +127,10 @@ class BaseModel(AutoProf_Model):
             if "window" in self.integrate_mode:
                 assert self.integrate_window_size <= self.psf_window_size
             assert "full" not in self.integrate_mode
-        working_window = deepcopy(sample_image.window)
+        working_window = sample_image.window.make_copy()
         if "full" in self.psf_mode:
-            working_window += self.target.psf_border 
-            center = self["center"].value.detach().cpu().numpy()
-            center_shift = np.round(center/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (center - 0.5*sample_image.pixelscale)
+            working_window += self.target.psf_border
+            center_shift = torch.round(self["center"].value/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (self["center"].value - 0.5*sample_image.pixelscale)
             working_window.shift_origin(center_shift)
             
         working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
@@ -155,8 +145,7 @@ class BaseModel(AutoProf_Model):
         elif "window" in self.psf_mode:
             sub_window = self.psf_window.make_copy()
             sub_window += self.target.psf_border
-            center = self["center"].value.detach().cpu().numpy()
-            center_shift = np.round(center/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (center - 0.5*sample_image.pixelscale)
+            center_shift = torch.round(self["center"].value/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (self["center"].value - 0.5*sample_image.pixelscale)
             sub_window.shift_origin(center_shift)
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window, dtype = self.dtype, device = self.device)
             sub_image.data = self.evaluate_model(sub_image)
@@ -182,7 +171,10 @@ class BaseModel(AutoProf_Model):
         # if True:
         #     return
         # Determine the on-sky window in which to integrate
-        if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
+        try:
+            if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
+                return
+        except AssertionError:
             return
         # Only need to evaluate integration within working image
         if "window" in self.integrate_mode:

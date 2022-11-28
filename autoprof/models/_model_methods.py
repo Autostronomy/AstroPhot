@@ -24,7 +24,7 @@ def target(self):
 @target.setter
 def target(self, tar):
     if tar is None:
-        tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
+        tar = Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
     assert isinstance(tar, Target_Image)
     self._target = tar.to(dtype = self.dtype, device = self.device)
     
@@ -45,8 +45,8 @@ def set_fit_window(self, window):
         self._fit_window = window
     else:
         self._fit_window = AP_Window(
-            origin = self.target.origin + np.array((window[0][0],window[1][0]))*self.target.pixelscale,
-            shape = np.array((window[0][1] - window[0][0], window[1][1] - window[1][0]))*self.target.pixelscale,
+            origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
+            shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
         )
     if self._base_window is None:
         self._base_window = deepcopy(self._fit_window)
@@ -65,7 +65,7 @@ def fit_window(self, window):
     
 @property
 def integrate_window(self):
-    use_center = np.round(self["center"].value.detach().cpu().numpy()/self.model_image.pixelscale)
+    use_center = torch.round(self["center"].value/self.model_image.pixelscale)
     int_origin = (
         (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
         (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
@@ -74,11 +74,11 @@ def integrate_window(self):
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
     )
-    return AP_Window(origin = int_origin, shape = int_shape)
+    return AP_Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
     
 @property
 def psf_window(self):
-    use_center = np.floor(self["center"].value.detach().cpu().numpy()/self.model_image.pixelscale)
+    use_center = torch.floor(self["center"].value/self.model_image.pixelscale)
     psf_offset = (self.psf_window_size - (self.psf_window_size % 2))/2
     psf_origin = (
         (use_center[0] - psf_offset)*self.model_image.pixelscale,
@@ -88,7 +88,7 @@ def psf_window(self):
         (psf_offset*2 + 1)*self.model_image.pixelscale,
         (psf_offset*2 + 1)*self.model_image.pixelscale,
     )
-    return AP_Window(origin = psf_origin, shape = psf_shape)
+    return AP_Window(origin = psf_origin, shape = psf_shape, dtype = self.dtype, device = self.device)
 
 @property
 def locked(self):

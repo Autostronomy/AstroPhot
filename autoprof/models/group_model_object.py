@@ -78,12 +78,12 @@ class Group_Model(AutoProf_Model):
     def initialize(self):
         for model in self.model_list:
             model.initialize()
-    def initialize(self):
-        for model in self.model_list:
-            model.locked = True
-        for mi, model in enumerate(self.model_list):
-            model.locked = False
-            model.initialize()
+    # def initialize(self):#fixme what was this?
+    #     for model in self.model_list:
+    #         model.locked = True
+    #     for mi, model in enumerate(self.model_list):
+    #         model.locked = False
+    #         model.initialize()
 
     def startup(self):
         super().startup()
@@ -115,7 +115,7 @@ class Group_Model(AutoProf_Model):
 
     def step(self, parameters = None, parameters_as_representation = True):
         super().step(parameters, parameters_as_representation)
-        for model in self.model_list:
+        for model in self.model_list:#fixme give each model their parameters individually? maybe
             model.step()
             
     def get_parameters_representation(self, exclude_locked = True, exclude_equality_constraint = True):
@@ -184,7 +184,7 @@ class Group_Model(AutoProf_Model):
     @target.setter
     def target(self, tar):
         if tar is None:
-            tar = Target_Image(data = np.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
+            tar = Target_Image(data = torch.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
         assert isinstance(tar, Target_Image)
         self._target = tar.to(dtype = self.dtype, device = self.device)
         for model in self.model_list:

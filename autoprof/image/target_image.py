@@ -19,7 +19,7 @@ class Target_Image(BaseImage):
     @property
     def variance(self):
         if self._variance is None:
-            return torch.ones(self.data.shape, dtype = self.dtype, device = self.device)
+            return torch.ones_like(self.data)
         return self._variance
     @variance.setter
     def variance(self, variance):
@@ -27,7 +27,7 @@ class Target_Image(BaseImage):
     @property
     def mask(self):
         if self._mask is None:
-            return np.zeros(self.data.shape, dtype = np.bool) # fixme make torch?
+            return torch.zeros_like(self.data, dtype = torch.bool)
         return self._mask
     @mask.setter
     def mask(self, mask):
@@ -43,45 +43,55 @@ class Target_Image(BaseImage):
         self.set_psf(psf)
     @property
     def psf_border(self):
-        return tuple(self.pixelscale * (1 + np.flip(np.array(self.psf.shape))) / 2)
+        return self.pixelscale * (1 + torch.flip(self.psf.shape, (0,))) / 2
     @property
     def psf_border_int(self):
-        return tuple(int(pb) for pb in ((1 + np.flip(np.array(self.psf.shape))) / 2))
+        return ((1 + torch.flip(self.psf.shape, (0,))) / 2).int()
 
     def set_variance(self, variance):
         if variance is None:
             self._variance = None
             return
         assert variance.shape == self.data.shape, "variance must have same shape as data"
-        self._variance = variance if isinstance(variance, torch.Tensor) else torch.tensor(variance, dtype = self.dtype, device = self.device)
+        self._variance = variance.to(dtype = self.dtype, device = self.device) if isinstance(variance, torch.Tensor) else torch.as_tensor(variance, dtype = self.dtype, device = self.device)
         
     def set_psf(self, psf):
         if psf is None:
             self._psf = None
             return
-        assert np.all(list((s % 2) == 1 for s in psf.shape)), "psf must have odd shape"
-        self._psf = psf if isinstance(psf, torch.Tensor) else torch.tensor(psf, dtype = self.dtype, device = self.device)
+        assert torch.all((psf.shape % 2) == 1), "psf must have odd shape"
+        self._psf = psf.to(dtype = self.dtype, device = self.device) if isinstance(psf, torch.Tensor) else torch.as_tensor(psf, dtype = self.dtype, device = self.device)
 
     def set_mask(self, mask):
         if mask is None:
             self._mask = None
             return
         assert mask.shape == self.data.shape, "mask must have same shape as data"
-        self._mask = mask
-        
+        self._mask = mask.to(dtype = torch.bool, device = self.device) if isinstance(mask, torch.Tensor) else torch.as_tensor(mask, dtype = torch.bool, device = self.device)
+
+    def to(self, dtype = None, device = None):
+        super().to(dtype = dtype, device = device)
+        if self._variance is not None:
+            self._variance = self._variance.to(dtype = self.dtype, device = self.device)
+        if self._psf is not None:
+            self._psf = self._psf.to(dtype = self.dtype, device = self.device)
+        if self._mask is not None:
+            self._mask = self.mask.to(dtype = torch.bool, device = self.device)
+        return self
+            
     def or_mask(self, mask):
-        self._mask = np.logical_or(self.mask, mask)
+        self._mask = torch.logical_or(self.mask, mask)
     def and_mask(self, mask):
-        self._mask = np.logical_and(self.mask, mask)
+        self._mask = torch.logical_and(self.mask, mask)
         
     def blank_copy(self):
         return self.__class__(
-            data = torch.zeros(self.data.shape, dtype = self.dtype, device = self.device),
+            data = torch.zeros_like(self.data),
             device = self.device,
             dtype = self.dtype,
             zeropoint = self.zeropoint,
-            mask = None if self._mask is None else self._mask,
-            psf = None if self._psf is None else self._psf,
+            mask = self._mask,
+            psf = self._psf,
             note = self.note,
             window = self.window,
         )
@@ -96,10 +106,10 @@ class Target_Image(BaseImage):
             zeropoint = self.zeropoint,
             variance = None if self._variance is None else self._variance[indices],
             mask = None if self._mask is None else self._mask[indices],
-            psf = None if self._psf is None else self.psf,
+            psf = self._psf,
             note = self.note,
-            origin = (max(self.origin[0], window.origin[0]),
-                      max(self.origin[1], window.origin[1]))
+            origin = (torch.max(self.origin[0], window.origin[0]),
+                      torch.max(self.origin[1], window.origin[1]))
         )
     
     def reduce(self, scale):
@@ -109,14 +119,14 @@ class Target_Image(BaseImage):
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
         return self.__class__(
-            data = self.data.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            data = self.data[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
             device = self.device,
             dtype = self.dtype,
             pixelscale = self.pixelscale * scale,
             zeropoint = self.zeropoint,
-            variance = None if self._variance is None else self.variance.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
-            mask = None if self._mask is None else self.mask.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).max(axis=(1, 3)),
-            psf = None if self._psf is None else self.psf.detach().numpy()[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            variance = None if self._variance is None else self.variance[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
+            mask = None if self._mask is None else self.mask[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).max(axis=(1, 3)),
+            psf = None if self._psf is None else self.psf[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),#fixme, psf doesnt reduce properly,  MS NS too large
             note = self.note,
             origin = self.origin,
         )
@@ -142,9 +152,9 @@ class Target_Image(BaseImage):
 
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.set_psf(np.array(hdu.data, dtype = np.float32))
+                self.set_psf(np.array(hdu.data, dtype = np.float64))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
-                self.set_variance(np.array(hdu.data, dtype = np.float32))
+                self.set_variance(np.array(hdu.data, dtype = np.float64))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
                 self.set_mask(np.array(hdu.data, dtype = bool))
         return hdul

@@ -93,9 +93,10 @@ class AutoProf_Model(object):
         the loss.
 
         """
-        pixels = np.prod(self.target[self.model_image.window].data.shape)
+        pixels = torch.prod(self.model_image.window.shape/self.target.pixelscale)
         if self.target.masked:
-            mask = np.logical_not(self.target[self.model_image.window].mask)
+            mask = torch.logical_not(self.target[self.model_image.window].mask)
+            pixels -= torch.sum(mask)
             self.loss = torch.sum(
                 torch.pow(
                     (
@@ -106,7 +107,6 @@ class AutoProf_Model(object):
                 )
                 / self.target[self.model_image.window].variance[mask]
             )
-            pixels -= np.sum(mask)
         else:
             self.loss = torch.sum(
                 torch.pow((self.target[self.model_image.window] - self.model_image).data, 2)
@@ -116,7 +116,6 @@ class AutoProf_Model(object):
         if self.constraints is not None:
             for constraint in self.constraints:
                 self.loss *= 1 + self.constraint_strength * constraint(self)
-        # print("log10(loss): ", np.log10(self.loss.detach().cpu().item()))
         return self.loss
 
     def step(self, parameters = None, parameters_as_representation = True):
@@ -129,7 +128,10 @@ class AutoProf_Model(object):
         if isinstance(parameters, dict):
             for P in parameters:
                 isinstance(parameters[P], torch.Tensor)
-                self[P].value = parameters[P]
+                if parameters_as_representation:
+                    self[P].representation = parameters[P]
+                else:
+                    self[P].value = parameters[P]
             return
         assert isinstance(parameters, torch.Tensor)
         start = 0
@@ -176,16 +178,11 @@ class AutoProf_Model(object):
             optimizer.zero_grad()
                 
             self.sample()
-            self.compute_loss()
+            self.compute_loss()            
+            self.loss.backward()
             loss_history.append(copy(self.loss.detach().cpu().item()))
             
-            self.loss.backward()
-            
             skeys, sreps = self.get_parameters_representation()
-            for i in range(len(sreps)):
-                if not torch.all(torch.isfinite(sreps[i].grad)):
-                    print("WARNING: nan grad being fixed. Might be about to fail.")
-                    sreps[i].grad *= 0
             optimizer.step()
             if epoch % 10 == 0 and epoch > 0:
                 scheduler.step()
