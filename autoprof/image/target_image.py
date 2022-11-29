@@ -18,23 +18,28 @@ class Target_Image(BaseImage):
 
     @property
     def variance(self):
-        if self._variance is None:
-            return torch.ones_like(self.data)
-        return self._variance
+        if self.has_variance:
+            return self._variance
+        return torch.ones_like(self.data)
     @variance.setter
     def variance(self, variance):
         self.set_variance(variance)
     @property
+    def has_variance(self):
+        return self._variance is not None
+    
+    @property
     def mask(self):
-        if self._mask is None:
-            return torch.zeros_like(self.data, dtype = torch.bool)
-        return self._mask
+        if self.has_mask:
+            return self._mask
+        return torch.zeros_like(self.data, dtype = torch.bool)
     @mask.setter
     def mask(self, mask):
         self.set_mask(mask)
     @property
-    def masked(self):
+    def has_mask(self):
         return self._mask is not None
+    
     @property
     def psf(self):
         return self._psf
@@ -47,6 +52,9 @@ class Target_Image(BaseImage):
     @property
     def psf_border_int(self):
         return ((1 + torch.flip(self.psf.shape, (0,))) / 2).int()
+    @property
+    def has_psf(self):
+        return self._psf is not None
 
     def set_variance(self, variance):
         if variance is None:
@@ -71,11 +79,11 @@ class Target_Image(BaseImage):
 
     def to(self, dtype = None, device = None):
         super().to(dtype = dtype, device = device)
-        if self._variance is not None:
+        if self.has_variance:
             self._variance = self._variance.to(dtype = self.dtype, device = self.device)
-        if self._psf is not None:
+        if self.has_psf:
             self._psf = self._psf.to(dtype = self.dtype, device = self.device)
-        if self._mask is not None:
+        if self.has_mask:
             self._mask = self.mask.to(dtype = torch.bool, device = self.device)
         return self
             
@@ -104,8 +112,8 @@ class Target_Image(BaseImage):
             dtype = self.dtype,
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
-            variance = None if self._variance is None else self._variance[indices],
-            mask = None if self._mask is None else self._mask[indices],
+            variance = self._variance[indices] if self.has_variance else None,
+            mask = self._mask[indices] if self.has_mask else None,
             psf = self._psf,
             note = self.note,
             origin = (torch.max(self.origin[0], window.origin[0]),
@@ -124,9 +132,9 @@ class Target_Image(BaseImage):
             dtype = self.dtype,
             pixelscale = self.pixelscale * scale,
             zeropoint = self.zeropoint,
-            variance = None if self._variance is None else self.variance[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
-            mask = None if self._mask is None else self.mask[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).max(axis=(1, 3)),
-            psf = None if self._psf is None else self.psf[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),#fixme, psf doesnt reduce properly,  MS NS too large
+            variance = self.variance[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)) if self.has_variance else None,
+            mask = self.mask[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).max(axis=(1, 3)) if self.has_mask else None,
+            psf = self.psf[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)) if self.has_psf else None,#fixme, psf doesnt reduce properly,  MS NS too large
             note = self.note,
             origin = self.origin,
         )
