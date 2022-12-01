@@ -21,7 +21,7 @@ class Galaxy_Model(BaseModel):
         "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
         "PA": {"units": "radians", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
-    parameter_order = BaseModel.parameter_order + ("q", "PA")
+    _parameter_order = BaseModel._parameter_order + ("q", "PA")
 
     def initialize(self):
         super().initialize()

@@ -23,7 +23,7 @@ class BaseModel(AutoProf_Model):
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
     }
-    parameter_order = ("center",)
+    _parameter_order = ("center",)
 
     # Hierarchy variables
     psf_mode = "none" # none, window/full, direct/fft
@@ -62,6 +62,15 @@ class BaseModel(AutoProf_Model):
             
         if "filename" in kwargs:
             self.load(kwargs["filename"])
+
+    @property
+    def parameter_order(self):
+        param_order = tuple()
+        for P in  self.__class__._parameter_order:
+            if self[P].locked:
+                continue
+            param_order = param_order + (P,)
+        return param_order
             
     # Initialization functions
     ######################################################################
@@ -86,16 +95,16 @@ class BaseModel(AutoProf_Model):
             return
 
         # Convert center coordinates to target area array indices
-        init_icenter = coord_to_index(self["center"].value[0].detach().cpu().item(), self["center"].value[1].detach().cpu().item(), target_area)
+        init_icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
         # Compute center of mass in window
-        COM = center_of_mass((init_icenter[0], init_icenter[1]), target_area.data.detach().cpu().numpy())
+        COM = center_of_mass((init_icenter[0].detach().cpu().item(), init_icenter[1].detach().cpu().item()), target_area.data.detach().cpu().numpy())
         if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
             print("center of mass failed, using center of window")
             return
         # Convert center of mass indices to coordinates
         COM_center = index_to_coord(COM[0], COM[1], target_area)
         # Set the new coordinates as the model center
-        self["center"].value = COM_center + np.random.normal(loc = 0, scale = 0.3*self.target.pixelscale, size = len(COM_center))
+        self["center"].value = COM_center
             
     # Fit loop functions
     ######################################################################

@@ -48,10 +48,10 @@ class Target_Image(BaseImage):
         self.set_psf(psf)
     @property
     def psf_border(self):
-        return self.pixelscale * (1 + torch.flip(self.psf.shape, (0,))) / 2
+        return self.pixelscale * (1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device), (0,))) / 2
     @property
     def psf_border_int(self):
-        return ((1 + torch.flip(self.psf.shape, (0,))) / 2).int()
+        return ((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device), (0,))) / 2).int()
     @property
     def has_psf(self):
         return self._psf is not None
@@ -67,7 +67,7 @@ class Target_Image(BaseImage):
         if psf is None:
             self._psf = None
             return
-        assert torch.all((psf.shape % 2) == 1), "psf must have odd shape"
+        assert torch.all((torch.tensor(psf.shape) % 2) == 1), "psf must have odd shape"
         self._psf = psf.to(dtype = self.dtype, device = self.device) if isinstance(psf, torch.Tensor) else torch.as_tensor(psf, dtype = self.dtype, device = self.device)
 
     def set_mask(self, mask):

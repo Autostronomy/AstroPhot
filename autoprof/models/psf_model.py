@@ -15,7 +15,7 @@ class PSF_Star(Star_Model):
     parameter_specs = {
         "sky": {"units": "flux/arcsec^2"},
     }
-    parameter_order = Star_Model.parameter_order + ("sky",)
+    _parameter_order = Star_Model._parameter_order + ("sky",)
     
     lanczos_kernel_size = 5
     clip_lanczos_kernel = True

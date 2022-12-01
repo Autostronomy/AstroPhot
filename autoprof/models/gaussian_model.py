@@ -19,7 +19,7 @@ class Gaussian_Galaxy(Galaxy_Model):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("sigma", "flux")
+    _parameter_order = Galaxy_Model._parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -34,7 +34,7 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = SuperEllipse_Galaxy.parameter_order + ("sigma", "flux")
+    _parameter_order = SuperEllipse_Galaxy._parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -49,7 +49,7 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = SuperEllipse_Warp.parameter_order + ("sigma", "flux")
+    _parameter_order = SuperEllipse_Warp._parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -64,7 +64,7 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = FourierEllipse_Galaxy.parameter_order + ("sigma", "flux")
+    _parameter_order = FourierEllipse_Galaxy._parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -79,7 +79,7 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = FourierEllipse_Warp.parameter_order + ("sigma", "flux")
+    _parameter_order = FourierEllipse_Warp._parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -94,7 +94,7 @@ class Gaussian_Warp(Warp_Galaxy):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = Warp_Galaxy.parameter_order + ("sigma", "flux")
+    _parameter_order = Warp_Galaxy._parameter_order + ("sigma", "flux")
 
     from ._shared_methods import gaussian_radial_model as radial_model
     from ._shared_methods import gaussian_initialize as initialize
@@ -109,7 +109,7 @@ class Gaussian_Star(Star_Model):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = Star_Model.parameter_order + ("sigma", "flux")
+    _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
 
     def initialize(self):
         super().initialize()
@@ -137,7 +137,7 @@ class Gaussian_Ray(Ray_Galaxy):
         "sigma": {"units": "arcsec", "limits": (0,None)},
         "flux": {"units": "flux", "limits": (0,None)},
     }
-    parameter_order = Ray_Galaxy.parameter_order + ("sigma", "flux")
+    _parameter_order = Ray_Galaxy._parameter_order + ("sigma", "flux")
 
     def initialize(self):
         super(self.__class__, self).initialize()

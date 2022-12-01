@@ -20,7 +20,7 @@ class EdgeOn_Model(BaseModel):
     parameter_specs = {
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
-    parameter_order = BaseModel.parameter_order + ("PA", )
+    _parameter_order = BaseModel._parameter_order + ("PA", )
 
     def initialize(self):
         super().initialize()

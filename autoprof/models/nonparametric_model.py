@@ -24,7 +24,7 @@ class NonParametric_Galaxy(Galaxy_Model):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("I(R)",)
+    _parameter_order = Galaxy_Model._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -43,7 +43,7 @@ class NonParametric_Star(Star_Model):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = Star_Model.parameter_order + ("I(R)",)
+    _parameter_order = Star_Model._parameter_order + ("I(R)",)
     # fixme don't have q anymore
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -62,7 +62,7 @@ class NonParametric_Warp(Warp_Galaxy):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = Warp_Galaxy.parameter_order + ("I(R)",)
+    _parameter_order = Warp_Galaxy._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -80,7 +80,7 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = SuperEllipse_Galaxy.parameter_order + ("I(R)",)
+    _parameter_order = SuperEllipse_Galaxy._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -96,7 +96,7 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = FourierEllipse_Galaxy.parameter_order + ("I(R)",)
+    _parameter_order = FourierEllipse_Galaxy._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -115,7 +115,7 @@ class NonParametric_Ray(Ray_Galaxy):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = Ray_Galaxy.parameter_order + ("I(R)",)
+    _parameter_order = Ray_Galaxy._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -134,7 +134,7 @@ class NonParametric_Wedge(Wedge_Galaxy):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = Wedge_Galaxy.parameter_order + ("I(R)",)
+    _parameter_order = Wedge_Galaxy._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -152,7 +152,7 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = SuperEllipse_Warp.parameter_order + ("I(R)",)
+    _parameter_order = SuperEllipse_Warp._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -168,7 +168,7 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    parameter_order = FourierEllipse_Warp.parameter_order + ("I(R)",)
+    _parameter_order = FourierEllipse_Warp._parameter_order + ("I(R)",)
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):

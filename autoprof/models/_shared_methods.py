@@ -81,19 +81,19 @@ def sersic_initialize(self):
         edge_scatter = iqr(edge, rng = (16,84))/2
         # Convert center coordinates to target area array indices
         icenter = coord_to_index(
-            self["center"].value[0].detach().cpu().item(),
-            self["center"].value[1].detach().cpu().item(), target_area
+            self["center"].value[0],
+            self["center"].value[1], target_area
         )
         iso_info = isophotes(
             target_area.data.detach().cpu().numpy() - edge_average,
-            (icenter[1], icenter[0]),
+            (icenter[1].item(), icenter[0].item()),
             threshold = 3*edge_scatter,
             pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
             q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
             n_isophotes = 15
         )
-        R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
-        flux = np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale**2
+        R = (torch.tensor(list(iso["R"] for iso in iso_info)) * self.target.pixelscale).detach().cpu().numpy()
+        flux = (torch.tensor(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale**2).detach().cpu().numpy()
         if np.sum(flux < 0) >= 1:
             flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
         x0 = [
@@ -172,36 +172,36 @@ def nonparametric_set_fit_window(self, window):
     
     if self.profR is None:
         self.profR = [0,self.target.pixelscale]
-        while self.profR[-1] < np.min(self.fit_window.shape/2):
-            self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
+        while self.profR[-1] < torch.min(self.fit_window.shape/2):
+            self.profR.append(self.profR[-1] + torch.max(self.target.pixelscale,self.profR[-1]*0.2))
         self.profR.pop()
         self.profR.pop()
-        self.profR.append(np.sqrt(np.sum((self.fit_window.shape/2)**2)))
+        self.profR.append(torch.sqrt(torch.sum((self.fit_window.shape/2)**2)))
         self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
-            
+
+@torch.no_grad()
 def nonparametric_initialize(self):
     super(self.__class__, self).initialize()
     if self["I(R)"].value is not None:
         return
     
-    with torch.no_grad():
-        profR = self.profR.detach().cpu().numpy()
-        target_area = self.target[self.fit_window]
-        X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
-        X, Y = self.transform_coordinates(X, Y)
-        R = self.radius_metric(X, Y).detach().cpu().numpy()
-        rad_bins = [profR[0]] + list((profR[:-1] + profR[1:])/2) + [profR[-1]*100]
-        raveldat = target_area.data.detach().cpu().numpy().ravel()
-        I = binned_statistic(R.ravel(), raveldat, statistic = 'median', bins = rad_bins)[0] / target_area.pixelscale**2
-        N = np.isfinite(I)
-        if not np.all(N):
-            I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
-        S = binned_statistic(R.ravel(), raveldat, statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
-        N = np.isfinite(S)
-        if not np.all(N):
-            S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-        self["I(R)"].set_value(np.log10(np.abs(I)), override_locked = True)
-        self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True)
+    profR = self.profR.detach().cpu().numpy()
+    target_area = self.target[self.fit_window]
+    X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+    X, Y = self.transform_coordinates(X, Y)
+    R = self.radius_metric(X, Y).detach().cpu().numpy()
+    rad_bins = [profR[0]] + list((profR[:-1] + profR[1:])/2) + [profR[-1]*100]
+    raveldat = target_area.data.detach().cpu().numpy().ravel()
+    I = binned_statistic(R.ravel(), raveldat, statistic = 'median', bins = rad_bins)[0] / target_area.pixelscale.item()**2
+    N = np.isfinite(I)
+    if not np.all(N):
+        I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
+    S = binned_statistic(R.ravel(), raveldat, statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
+    N = np.isfinite(S)
+    if not np.all(N):
+        S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
+    self["I(R)"].set_value(np.log10(np.abs(I)), override_locked = True)
+    self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True)
 
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:

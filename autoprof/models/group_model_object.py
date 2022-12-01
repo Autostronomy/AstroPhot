@@ -72,6 +72,8 @@ class Group_Model(AutoProf_Model):
     def parameter_order(self):
         param_order = tuple()
         for model in self.model_list:
+            if model.locked:
+                continue
             param_order = param_order + tuple(f"{model.name}|{mp}" for mp in model.parameter_order)
         return param_order
     

@@ -17,7 +17,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
         "am": {"units": "none"},
         "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
     }
-    parameter_order = Galaxy_Model.parameter_order + ("am", "phim")
+    _parameter_order = Galaxy_Model._parameter_order + ("am", "phim")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,7 +52,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
         "am": {"units": "none"},
         "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
     }
-    parameter_order = Warp_Galaxy.parameter_order + ("am", "phim")
+    _parameter_order = Warp_Galaxy._parameter_order + ("am", "phim")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

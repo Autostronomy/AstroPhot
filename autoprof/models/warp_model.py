@@ -22,7 +22,7 @@ class Warp_Galaxy(Galaxy_Model):
         "q(R)": {"units": "b/a", "limits": (0.05,1), "uncertainty": 0.04},
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("q(R)", "PA(R)")
+    _parameter_order = Galaxy_Model._parameter_order + ("q(R)", "PA(R)")
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "profR"):
@@ -45,11 +45,11 @@ class Warp_Galaxy(Galaxy_Model):
 
         if self.profR is None:
             self.profR = [0,self.target.pixelscale]
-            while self.profR[-1] < np.min(self.fit_window.shape/2):
-                self.profR.append(self.profR[-1] + max(self.target.pixelscale,self.profR[-1]*0.2))
+            while self.profR[-1] < torch.min(self.fit_window.shape/2):
+                self.profR.append(self.profR[-1] + torch.max(self.target.pixelscale,self.profR[-1]*0.2))
             self.profR.pop()
             self.profR.pop()
-            self.profR.append(np.sqrt(np.sum((self.fit_window.shape/2)**2)))
+            self.profR.append(torch.sqrt(torch.sum((self.fit_window.shape/2)**2)))
             self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
         
     def transform_coordinates(self, X, Y):

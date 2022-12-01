@@ -19,19 +19,19 @@ def galaxy_light_profile(
         doassert=True,
 ):
 
-    xx = np.linspace(
+    xx = torch.linspace(
         R0,
-        np.max(model.fit_window.shape/2) * extend_profile,
-        int(resolution),
+        torch.max(model.fit_window.shape/2) * extend_profile,
+        int(resolution),dtype = model.dtype, device = model.device,
     )
-    flux = model.radial_model(torch.tensor(xx, dtype = model.dtype, device = model.device)).detach().cpu().numpy()
+    flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
-        yy = flux_to_sb(flux, model.target.pixelscale, model.target.zeropoint)
+        yy = flux_to_sb(flux, model.target.pixelscale.item(), model.target.zeropoint.item())
     else:
         yy = np.log10(flux)
     with torch.no_grad():
         ax.plot(
-            xx,
+            xx.detach().cpu().numpy(),
             yy,
             linewidth=2,
             color=main_pallet["primary1"],
@@ -58,10 +58,10 @@ def ray_light_profile(
         doassert=True
 ):
         
-    xx = np.linspace(
+    xx = torch.linspace(
         0,
-        np.max(model.fit_window.shape/2) * extend_profile,
-        int(resolution),
+        torch.max(model.fit_window.shape/2) * extend_profile,
+        int(resolution),dtype = model.dtype, device = model.device,
     )
     for r in range(model.rays):
         if model.rays <= 5:
@@ -70,8 +70,8 @@ def ray_light_profile(
             col = cmap_grad(r / model.rays)
         with torch.no_grad():
             ax.plot(
-                xx,
-                np.log10(model.iradial_model(r, torch.tensor(xx,dtype = model.dtype, device = model.device)).detach().cpu().numpy()),
+                xx.detach().cpu().numpy(),
+                np.log10(model.iradial_model(r, xx).detach().cpu().numpy()),
                 linewidth=2,
                 color=col,
                 label=f"{model.name} profile {r}",
@@ -91,10 +91,10 @@ def wedge_light_profile(
         doassert=True
 ):
         
-    xx = np.linspace(
+    xx = torch.linspace(
         0,
-        np.max(model.fit_window.shape/2) * extend_profile,
-        int(resolution),
+        torch.max(model.fit_window.shape/2) * extend_profile,
+        int(resolution),dtype = model.dtype, device = model.device
     )
     for r in range(model.wedges):
         if model.wedges <= 5:
@@ -103,8 +103,8 @@ def wedge_light_profile(
             col = cmap_grad(r / model.wedges)
         with torch.no_grad():
             ax.plot(
-                xx,
-                np.log10(model.iradial_model(r, torch.tensor(xx,dtype = model.dtype, device = model.device)).detach().cpu().numpy()),
+                xx.detach().cpu().numpy(),
+                np.log10(model.iradial_model(r, xx).detach().cpu().numpy()),
                 linewidth=2,
                 color=col,
                 label=f"{model.name} profile {r}",

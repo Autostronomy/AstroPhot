@@ -17,7 +17,7 @@ class SuperEllipse_Galaxy(Galaxy_Model):
     parameter_specs = {
         "C0": {"units": "C-2", "value": 0.},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("C0",)
+    _parameter_order = Galaxy_Model._parameter_order + ("C0",)
     
     def radius_metric(self, X, Y):
         return torch.pow(torch.pow(torch.abs(X)+1e-6, self["C0"].value + 2.) + torch.pow(torch.abs(Y)+1e-6, self["C0"].value + 2.), 1. / (self["C0"].value + 2.)) # epsilon added for numerical stability of gradient
@@ -34,7 +34,7 @@ class SuperEllipse_Warp(Warp_Galaxy):
     parameter_specs = {
         "C0": {"units": "C-2", "value": 0.},
     }
-    parameter_order = Warp_Galaxy.parameter_order + ("C0",)
+    _parameter_order = Warp_Galaxy._parameter_order + ("C0",)
     
     def radius_metric(self, X, Y):
         return torch.pow(torch.pow(torch.abs(X)+1e-6, self["C0"].value + 2.) + torch.pow(torch.abs(Y)+1e-6, self["C0"].value + 2.), 1. / (self["C0"].value + 2.)) # epsilon added for numerical stability of gradient

@@ -27,7 +27,7 @@ class Exponential_Galaxy(Galaxy_Model):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("Re", "Ie")
+    _parameter_order = Galaxy_Model._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -42,7 +42,7 @@ class Exponential_Star(Star_Model):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = Star_Model.parameter_order + ("Re", "Ie")
+    _parameter_order = Star_Model._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -60,7 +60,7 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = SuperEllipse_Galaxy.parameter_order + ("Re", "Ie")
+    _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -75,7 +75,7 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = SuperEllipse_Warp.parameter_order + ("Re", "Ie")
+    _parameter_order = SuperEllipse_Warp._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -90,7 +90,7 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = FourierEllipse_Galaxy.parameter_order + ("Re", "Ie")
+    _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -105,7 +105,7 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = FourierEllipse_Warp.parameter_order + ("Re", "Ie")
+    _parameter_order = FourierEllipse_Warp._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -120,7 +120,7 @@ class Exponential_Warp(Warp_Galaxy):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = Warp_Galaxy.parameter_order + ("Re", "Ie")
+    _parameter_order = Warp_Galaxy._parameter_order + ("Re", "Ie")
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import exponential_initialize as initialize
@@ -135,7 +135,7 @@ class Exponential_Ray(Ray_Galaxy):
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = Ray_Galaxy.parameter_order + ("Re", "Ie")
+    _parameter_order = Ray_Galaxy._parameter_order + ("Re", "Ie")
 
     def initialize(self):
         super(self.__class__, self).initialize()
@@ -202,7 +202,7 @@ class Exponential_Exponential_EdgeOn(EdgeOn_Model):
         "Rr": {"units": "arcsec", "limits": (0,None)},
         "Rz": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("R0", "Rr", "Rz")
+    _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "Rz")
 
     def brightness_model(R, h, image):
         if sample_image is None:
@@ -220,7 +220,7 @@ class Exponential_Sech2_EdgeOn(EdgeOn_Model):
         "Rr": {"units": "arcsec", "limits": (0,None)},
         "hz": {"units": "arcsec", "limits": (0,None)},
     }
-    parameter_order = Galaxy_Model.parameter_order + ("R0", "Rr", "hz")
+    _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "hz")
 
     def brightness_model(R, h, image):
         if sample_image is None:

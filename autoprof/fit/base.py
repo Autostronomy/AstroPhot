@@ -13,9 +13,9 @@ class BaseOptimizer(object):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         
-        if initial_state is None:
+        if initial_state is None: # fixme, try to request parameters first
             self.model.initialize()
-            keys, reps = MODEL.get_parameters_representation()
+            keys, reps = self.model.get_parameters_representation()
             allparams = []
             for R in reps:
                 allparams += list(R.detach().cpu().numpy().flatten())
