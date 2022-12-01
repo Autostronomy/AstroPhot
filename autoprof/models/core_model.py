@@ -94,7 +94,7 @@ class AutoProf_Model(object):
 
         """
         pixels = torch.prod(self.model_image.window.shape/self.target.pixelscale)
-        if self.target.masked:
+        if self.target.has_mask:
             mask = torch.logical_not(self.target[self.model_image.window].mask)
             pixels -= torch.sum(mask)
             self.loss = torch.sum(
@@ -182,7 +182,6 @@ class AutoProf_Model(object):
             self.loss.backward()
             loss_history.append(copy(self.loss.detach().cpu().item()))
             
-            skeys, sreps = self.get_parameters_representation()
             optimizer.step()
             if epoch % 10 == 0 and epoch > 0:
                 scheduler.step()

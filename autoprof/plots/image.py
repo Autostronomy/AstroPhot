@@ -13,7 +13,7 @@ __all__ = ["target_image", "model_image", "residual_image", "model_window"]
 def target_image(fig, ax, target, window = None, **kwargs):
     if window is None:
         window = target.window
-    if target.masked:
+    if target.has_mask:
         dat = np.ma.masked_array(target[window].data.detach().cpu().numpy(), mask = target[window].mask)
     else:
         dat = target[window].data.detach().cpu().numpy()
@@ -84,7 +84,7 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
         model.target[window].data.detach().cpu().numpy()
         - model.model_image[window].data.detach().cpu().numpy()
     )    
-    if model.target.masked:
+    if model.target.has_mask:
         residuals[model.target[window].mask] = np.nan
     residuals = np.arctan(residuals/(iqr(residuals[np.isfinite(residuals)], rng = [10,90])*2))
     extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
