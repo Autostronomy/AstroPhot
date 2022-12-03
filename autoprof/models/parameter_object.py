@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, cyclic_boundaries
+from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, d_boundaries_dval, d_inv_boundaries_dval, cyclic_boundaries
 
 __all__ = ["Parameter"]
 
@@ -106,16 +106,20 @@ class Parameter(object):
             self._representation = self._representation.to(dtype = self.dtype, device = self.device)
         return self
     
-    def set_uncertainty(self, uncertainty, override_locked = False):
+    def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
         """Updates the value for the uncertainty of the value of the
         parameter. Only updates if the parameter is not locked.
 
         """
         if self.locked and not override_locked:
             return
-        if np.any(uncertainty < 0):
+        uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
+        if torch.any(uncertainty < 0):
             raise ValueError(f"{name} Uncertainty should be a positive real value, not {uncertainty}")
-        self._uncertainty = uncertainty
+        if uncertainty_as_representation and not self.cyclic and self.limits is not None:
+            self._uncertainty = uncertainty * d_inv_boundaries_dval(self.representation, self.limits)
+        else:
+            self._uncertainty = uncertainty
 
     def set_value(self, val, override_locked = False, index = None):
         """Set the value of the parameter. In fact this indirectly updates
@@ -132,6 +136,14 @@ class Parameter(object):
         elif self.limits is None:
             self.set_representation(val, override_locked = override_locked, index = index)
         else:
+            val = torch.as_tensor(val, dtype = self.dtype, device = self.device)
+            if self.limits[0] is None:
+                val = torch.clamp(val, max = self.limits[1] - 1e-3)
+            elif self.limits[1] is None:
+                val = torch.clamp(val, min = self.limits[0] + 1e-3)
+            else:
+                rng = self.limits[1] - self.limits[0]
+                val = torch.clamp(val, min = self.limits[0] + min(1e-3, 1e-3 * rng), max = self.limits[1] - min(1e-3, 1e-3 * rng))
             self.set_representation(boundaries(val, self.limits), override_locked = override_locked, index = index)
         
     def set_representation(self, rep, override_locked = False, index = None):

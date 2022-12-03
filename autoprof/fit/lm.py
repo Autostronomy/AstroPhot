@@ -32,7 +32,7 @@ class LM(BaseOptimizer):
     def __init__(self, model, initial_state = None, **kwargs):
         super().__init__(model, initial_state, **kwargs)
         
-        self.epsilon4 = kwargs.get("epsilon4", 1e-1)
+        self.epsilon4 = kwargs.get("epsilon4", 0)
         self.Lup = kwargs.get("Lup", 11.)
         self.Ldn = kwargs.get("Ldn", 9.)
         self.L = kwargs.get("L0", 1.)
@@ -49,7 +49,6 @@ class LM(BaseOptimizer):
             self.mask = self.model.target[self.model.fit_window].mask.reshape(-1)
         self.L_history = []
 
-
     def grad_step(self):
 
         print(self.current_state)
@@ -57,7 +56,7 @@ class LM(BaseOptimizer):
         grad_res = Grad(self.model, self.current_state, max_iter = 20, optim_kwargs = {"lr": 1e-3}).fit()
         self.current_state = torch.tensor(grad_res.lambda_history[np.argmin(grad_res.loss_history)], dtype = self.model.dtype, device = self.model.device)
         print(self.current_state)
-        print(self.model.full_loss(self.current_state)) # fixme why is the full_loss value different form the loss in the LM step?
+        print(self.model.full_loss(self.current_state)) 
         plt.plot(range(len(grad_res.loss_history)), grad_res.loss_history)
         plt.show()
         # temp_state = torch.clone(self.current_state)
@@ -84,8 +83,11 @@ class LM(BaseOptimizer):
     def step(self, current_state = None):
         if current_state is not None:
             self.current_state = current_state
-            
-        print("---------iter---------")
+
+        if self.iteration > 0:
+            print("---------iter---------")
+        else:
+            print("---------init---------")
         h = self.update_h()
         
         with torch.no_grad():
@@ -99,19 +101,18 @@ class LM(BaseOptimizer):
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
                 loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
-        if not torch.isfinite(loss):
-            print("nan loss, taking small grad step then will restart")
-            self.grad_step()
-            return
-            
         self.loss_history.append(loss.detach().cpu().item())
         self.L_history.append(self.L)
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
         
-        if self.iteration > 0:
-            print("LM loss: ", loss.item(), np.min(self.loss_history[:-1]), self.L)
+        if not torch.isfinite(loss):
+            print("nan loss, taking small grad step then will restart")
+            self.grad_step()
+            h = torch.zeros_like(self.current_state)
+        elif self.iteration > 0:
+            print("LM loss, best loss, L: ", loss.item(), np.min(self.loss_history[:-1]), self.L)
             rho = self.rho(np.min(self.loss_history[:-1]), loss, h) 
-            print(rho)
+            print("rho: ", rho.item())
             if rho > self.epsilon4:
                 print("accept")
                 self.prev_Y[0] = self.prev_Y[1]
@@ -123,28 +124,26 @@ class LM(BaseOptimizer):
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
-            elif self._count_reject < 4:
+            elif self._count_reject < 3:
                 print("reject")
                 self.L = min(1e9, self.L * self.Lup)
                 self._count_reject += 1
                 return
-            elif self._count_reject > 8:
-                print("reject > 8 taking random step, last hope")
-                self._count_reject += 1
-                self.random_step()
-            elif self._count_reject > 6:
-                print("reject > 6 taking grad step")
-                self._count_reject += 1
-                self.grad_step()
+            # elif self._count_reject > 8:
+            #     print("reject > 8 taking random step, last hope")
+            #     self._count_reject += 1
+            #     self.random_step()
+            # elif self._count_reject > 6:
+            #     print("reject > 6 taking grad step")
+            #     self._count_reject += 1
+            #     self.grad_step()
+            #     h = torch.zeros_like(self.current_state)
             else:
                 print("reject")
-                if self._count_reject == 4:
-                    self.L = min(1e9, self.L / self.Lup**2)
-                else:
-                    self.L = min(1e9, self.L * self.Lup)
+                self.L = min(1e9, self.L * self.Lup)
                 self._count_reject += 1
 
-        if self.J is None or self.iteration < 2 or self._count_reject >= 4:
+        if self.J is None or self.iteration < 2 or self._count_reject >= 4 or rho == 0:
             self.update_J_AD(h)
         else:
             self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
@@ -170,27 +169,33 @@ class LM(BaseOptimizer):
                 self.step()
             
                 if self._count_finish >= 3:
-                    print("success")
+                    self.message = self.message + "success"
                     break
-                elif self._count_reject >= 12:
-                    print("fail reject 12 in a row")
+                elif self.L >= (1e7 - 1) and self._count_reject >= 12:
+                    self.message = self.message + "fail reject 12 in a row"
                     break
                 elif self.iteration >= self.max_iter:
-                    print("fail max iterations reached: ", self.iteration)
+                    self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
                 elif not torch.all(torch.isfinite(self.current_state)):
-                    print("fail non-finite step taken")
+                    self.message = self.message + "fail non-finite step taken"
                     break
         except KeyboardInterrupt:
-            print("fail interrupted")
+            self.message = self.message + "fail interrupted"
             
+        self.model.step(torch.tensor(self.res()))
         self.model.finalize()
 
+        # set the uncertainty for each parameter
+        cov = self.covariance_matrix()
+        self.model.set_uncertainty(torch.diag(cov), uncertainty_as_representation = True)
+        
         return self
             
     def update_h(self):
 
-        if self.grad_only:
+        if self.grad_only or self._count_reject > 8:
+            print("pure grad")
             return self.grad / self.L
         count_reject = 0
         h = torch.zeros(len(self.current_state))
@@ -200,14 +205,14 @@ class LM(BaseOptimizer):
             # Sometimes the hesian + lambda matrix is singular, sometimes that can be fixed by giving lambda a boost.
             try:
                 with torch.no_grad():
-                    h = torch.linalg.solve(self.hess + self.L*torch.abs(torch.diag(self.hess))*torch.eye(len(self.grad)), self.grad)
+                    h = torch.linalg.solve(self.hess + self.L*torch.sqrt(torch.diag(self.hess))*torch.eye(len(self.grad)), self.grad)
                 break
             except Exception as e:
                 print("reject err: ", e)
-                print("WARNING: will massage Hessian to continue, results may not converge exactly")
+                print("WARNING: will massage Hessian to continue, results may not converge")
                 self.hess *= torch.eye(len(self.grad))*0.9 + 0.1
                 self.hess += torch.eye(len(self.grad))
-                self.L = min(1e9, self.L * self.Lup)
+                self.L = min(1e7, self.L * self.Lup)
                 count_reject += 1
         return h
     
@@ -228,6 +233,10 @@ class LM(BaseOptimizer):
             self.hess = torch.matmul(self.J.T, self.J)
         else:
             self.hess = torch.matmul(self.J.T, self.W.view(len(self.W),-1)*self.J)
+
+    @torch.no_grad()
+    def covariance_matrix(self):
+        return torch.linalg.inv(self.hess)
             
     @torch.no_grad()
     def update_grad(self, Yph):
@@ -239,6 +248,3 @@ class LM(BaseOptimizer):
     @torch.no_grad()
     def rho(self, Xp, Xph, h):
         return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess)) * h) + self.grad))
-
-    def res(self):
-        return self.lambda_history[np.argmin(self.loss_history)]

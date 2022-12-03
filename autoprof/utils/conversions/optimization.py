@@ -7,9 +7,9 @@ def boundaries(val, limits):
     """
     tval = val if isinstance(val, torch.Tensor) else torch.tensor(val)
     if limits[0] is None:
-        return tval - 1 / (tval - limits[1])
+        return tval - 1. / (tval - limits[1])
     elif limits[1] is None:
-        return tval - 1 / (tval - limits[0])
+        return tval - 1. / (tval - limits[0])
     return torch.tan((tval - limits[0]) * np.pi / (limits[1] - limits[0]) - np.pi/2)
 
 def inv_boundaries(val, limits):
@@ -17,12 +17,35 @@ def inv_boundaries(val, limits):
 
     """
     
-    tval = val if isinstance(val, torch.Tensor) else torch.tensor(val)
+    tval = torch.as_tensor(val)
     if limits[0] is None:
         return (tval + limits[1] - torch.sqrt(torch.pow(tval - limits[1], 2) + 4)) * 0.5
     elif limits[1] is None:
         return (tval + limits[0] + torch.sqrt(torch.pow(tval - limits[0], 2) + 4)) * 0.5
     return (torch.arctan(tval) + np.pi/2) * (limits[1] - limits[0]) / np.pi + limits[0]
+
+def d_boundaries_dval(val, limits):
+    """derivative of: val in limits expanded to range -inf to inf
+
+    """
+    tval = torch.as_tensor(val)
+    if limits[0] is None:
+        return 1. + 1. / (tval - limits[1])**2
+    elif limits[1] is None:
+        return 1. - 1. / (tval - limits[0])**2
+    return (np.pi / (limits[1] - limits[0])) / torch.cos((tval - limits[0]) * np.pi / (limits[1] - limits[0]) - np.pi/2)**2
+
+def d_inv_boundaries_dval(val, limits):
+    """derivative of: val in range -inf to inf compressed to within the limits
+
+    """
+    tval = torch.as_tensor(val)
+    if limits[0] is None:
+        return 0.5 - 0.5 * (tval - limits[1]) /torch.sqrt(torch.pow(tval - limits[1], 2) + 4)
+    elif limits[1] is None:
+        return 0.5 + 0.5 * (tval - limits[0]) /torch.sqrt(torch.pow(tval - limits[0], 2) + 4)
+    return (limits[1] - limits[0]) / (np.pi * (tval**2 + 1))
+    
 
 def cyclic_boundaries(val, limits):
     """Applies cyclic boundary conditions to the input value.

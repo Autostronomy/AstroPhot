@@ -47,6 +47,8 @@ def set_fit_window(self, window):
         self._fit_window = AP_Window(
             origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
             shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
+            dtype = self.dtype,
+            device = self.device,
         )
     if self._base_window is None:
         self._base_window = deepcopy(self._fit_window)

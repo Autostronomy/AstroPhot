@@ -74,7 +74,7 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     return fig, ax
 
 
-def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
+def residual_image(fig, ax, model, showcbar = True, window = None, center_residuals = False, **kwargs):
 
     if window is None:
         window = model.fit_window
@@ -86,6 +86,8 @@ def residual_image(fig, ax, model, showcbar = True, window = None, **kwargs):
     )    
     if model.target.has_mask:
         residuals[model.target[window].mask] = np.nan
+    if center_residuals:
+        residuals -= np.nanmedian(residuals)
     residuals = np.arctan(residuals/(iqr(residuals[np.isfinite(residuals)], rng = [10,90])*2))
     extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
     imshow_kwargs = {

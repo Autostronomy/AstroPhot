@@ -13,13 +13,22 @@ class BaseOptimizer(object):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         
-        if initial_state is None: # fixme, try to request parameters first
-            self.model.initialize()
-            keys, reps = self.model.get_parameters_representation()
-            allparams = []
-            for R in reps:
-                allparams += list(R.detach().cpu().numpy().flatten())
+        if initial_state is None: 
+            try:
+                keys, reps = self.model.get_parameters_representation()
+                allparams = []
+                for R in reps:
+                    assert not R is None
+                    allparams += list(R.detach().cpu().numpy().flatten())
+            except AssertionError:
+                self.model.initialize()
+                keys, reps = self.model.get_parameters_representation()
+                allparams = []
+                for R in reps:
+                    allparams += list(R.detach().cpu().numpy().flatten())
             initial_state = torch.tensor(allparams, dtype = self.model.dtype, device = self.model.device)
+        else:
+            initial_state = torch.as_tensor(initial_state, dtype = self.model.dtype, device = self.model.device)
                 
         self.current_state = torch.as_tensor(initial_state, dtype = self.model.dtype, device = self.model.device)
         if self.verbose > 1:
@@ -38,3 +47,7 @@ class BaseOptimizer(object):
         pass
     def step(self, current_state = None):
         pass
+
+    def res(self):
+        N = np.isfinite(self.loss_history)
+        return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]

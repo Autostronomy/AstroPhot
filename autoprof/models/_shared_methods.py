@@ -92,16 +92,26 @@ def sersic_initialize(self):
             q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
             n_isophotes = 15
         )
-        R = (torch.tensor(list(iso["R"] for iso in iso_info)) * self.target.pixelscale).detach().cpu().numpy()
-        flux = (torch.tensor(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale**2).detach().cpu().numpy()
-        if np.sum(flux < 0) >= 1:
+        R = (torch.tensor(list(iso["R"] for iso in iso_info), dtype = self.dtype, device = self.device) * self.target.pixelscale).detach().cpu().numpy()
+        flux = (torch.tensor(list(iso["flux"] for iso in iso_info), dtype = self.dtype, device = self.device) / self.target.pixelscale**2).detach().cpu().numpy()
+        if np.sum(flux < 0) > 0:
+            print("fixing flux")
             flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
         x0 = [
             2. if self["n"].value is None else self["n"].value.detach().cpu().item(),
             R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().item(),
             flux[4],
         ]
-        res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None)))
+        def optim(x):
+            residual = (np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2
+            N = np.argsort(residual)
+            return np.mean(residual[:-3])
+        res = minimize(optim, x0 = x0, method = "Nelder-Mead") # , bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))
+        print(res)
+        print(res.x, np.mean((np.log10(flux) - np.log10(sersic_np(R, res.x[0], res.x[1], res.x[2])))**2))
+        plt.scatter(R, np.log10(flux))
+        plt.plot(R, np.log10(sersic_np(R, res.x[0], res.x[1], res.x[2])))
+        plt.show()
         self["n"].set_value(res.x[0], override_locked = self["n"].value is None)
         self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
         self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))

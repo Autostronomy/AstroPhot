@@ -1,5 +1,6 @@
 from autoprof.image import Model_Image, AP_Window
 from autoprof.utils.initialize import center_of_mass
+from autoprof.utils.operations import fft_convolve_torch
 from autoprof import plots
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
 import numpy as np
@@ -148,7 +149,7 @@ class BaseModel(AutoProf_Model):
 
         if "full" in self.psf_mode:
             self.integrate_model(working_image)
-            working_image.data = conv2d(working_image.data.view(1,1,*working_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
+            working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)  #conv2d(working_image.data.view(1,1,*working_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
             working_image.shift_origin(-center_shift)
             working_image.crop(*self.target.psf_border_int)
         elif "window" in self.psf_mode:
@@ -223,7 +224,7 @@ class BaseModel(AutoProf_Model):
     def load(self, filename = "AutoProf.yaml"):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
-        self.fit_window = AP_Window(**state["window"])
+        self.fit_window = AP_Window(dtype = self.dtype, device = self.device, **state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
         return state

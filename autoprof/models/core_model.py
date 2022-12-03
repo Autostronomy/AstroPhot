@@ -96,23 +96,23 @@ class AutoProf_Model(object):
         pixels = torch.prod(self.model_image.window.shape/self.target.pixelscale)
         if self.target.has_mask:
             mask = torch.logical_not(self.target[self.model_image.window].mask)
-            pixels -= torch.sum(mask)
-            self.loss = torch.sum(
+            pixels = torch.sum(mask)
+            self.loss = torch.sum((
                 torch.pow(
                     (
-                        self.target[self.model_image.window].data[mask]
-                        - self.model_image.data[mask]
+                        self.target[self.model_image.window].data
+                        - self.model_image.data
                     ),
                     2,
                 )
-                / self.target[self.model_image.window].variance[mask]
-            )
+                / self.target[self.model_image.window].variance
+            )[mask])
         else:
             self.loss = torch.sum(
                 torch.pow((self.target[self.model_image.window] - self.model_image).data, 2)
                 / self.target[self.model_image.window].variance
             )
-        self.loss /= pixels - len(self.get_parameters_representation()[0])
+        self.loss /= pixels - np.sum(self.parameter_vector_len)
         if self.constraints is not None:
             for constraint in self.constraints:
                 self.loss *= 1 + self.constraint_strength * constraint(self)
@@ -133,7 +133,7 @@ class AutoProf_Model(object):
                 else:
                     self[P].value = parameters[P]
             return
-        assert isinstance(parameters, torch.Tensor)
+        parameters = torch.as_tensor(parameters, dtype = self.dtype, device = self.device)
         start = 0
         for P, V in zip(self.parameter_order, self.parameter_vector_len):
             if parameters_as_representation:
@@ -141,6 +141,16 @@ class AutoProf_Model(object):
             else:
                 self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
             start += V
+
+    def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
+        uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
+        start = 0
+        for P, V in zip(self.parameter_order, self.parameter_vector_len):
+            self[P].set_uncertainty(
+                uncertainty[start:start + V].reshape(self[P].representation.shape),
+                uncertainty_as_representation = uncertainty_as_representation,
+            )
+            start += V        
         
     def get_parameters_representation(self):
         """Get the optimizer friently representations of all the non-locked

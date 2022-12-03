@@ -87,11 +87,11 @@ class AP_Window(object):
         if isinstance(other, (float,int, torch.dtype)):
             new_origin = self.origin - other
             new_shape = self.shape + 2*other
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_origin = self.origin - torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_shape = self.shape + 2*torch.as_tensor(other, dtype = self.dtype, device = self.device)
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         raise ValueError(f"AP_Window object cannot be added with {type(other)}")
     def __iadd__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
@@ -107,11 +107,11 @@ class AP_Window(object):
         if isinstance(other, (float, int, torch.dtype)):
             new_origin = self.origin - other
             new_shape = self.shape + 2*other
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_origin = self.origin - torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_shape = self.shape + 2*torch.as_tensor(other, dtype = self.dtype, device = self.device)
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         raise ValueError(f"AP_Window object cannot be added with {type(other)}")
     def __isub__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
@@ -127,11 +127,11 @@ class AP_Window(object):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape * other
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_shape = self.shape * torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         raise ValueError(f"AP_Window object cannot be added with {type(other)}")
     def __imul__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
@@ -147,11 +147,11 @@ class AP_Window(object):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape / other
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_shape = self.shape / torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape)
+            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         raise ValueError(f"AP_Window object cannot be added with {type(other)}")
     def __idiv__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
@@ -182,7 +182,7 @@ class AP_Window(object):
     def __or__(self, other):
         new_origin = torch.minimum(self.origin, other.origin)
         new_end = torch.maximum(self.origin + self.shape, other.origin + other.shape)
-        return AP_Window(new_origin, new_end - new_origin)
+        return AP_Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
     def __ior__(self, other):
         new_origin = torch.minimum(self.origin, other.origin)
         new_end = torch.maximum(self.origin + self.shape, other.origin + other.shape)
@@ -192,7 +192,7 @@ class AP_Window(object):
     def __and__(self, other):
         new_origin = torch.maximum(self.origin, other.origin)
         new_end = torch.minimum(self.origin + self.shape, other.origin + other.shape)
-        return AP_Window(new_origin, new_end - new_origin)
+        return AP_Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
     def __iand__(self, other):
         new_origin = torch.maximum(self.origin, other.origin)
         new_end = torch.minimum(self.origin + self.shape, other.origin + other.shape)

@@ -76,6 +76,7 @@ class Grad(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + " fail interrupted"
             
+        self.model.step(torch.tensor(self.res()))
         self.model.finalize()
         
         return self

@@ -57,7 +57,7 @@ class Galaxy_Model(BaseModel):
                 self["q"].set_value(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))], override_locked = True)
 
     def radius_metric(self, X, Y):
-        return torch.sqrt((torch.abs(X)+1e-6)**2 + (torch.abs(Y)+1e-6)**2) # epsilon added for numerical stability of gradient
+        return torch.sqrt((torch.abs(X)+1e-8)**2 + (torch.abs(Y)+1e-8)**2) # epsilon added for numerical stability of gradient
 
     def transform_coordinates(self, X, Y):
         X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
