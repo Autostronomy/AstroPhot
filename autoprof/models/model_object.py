@@ -6,7 +6,6 @@ from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coor
 import numpy as np
 import torch
 from torch.nn.functional import conv2d
-from copy import deepcopy
 from .core_model import AutoProf_Model
 import matplotlib.pyplot as plt
 
@@ -76,7 +75,7 @@ class BaseModel(AutoProf_Model):
     # Initialization functions
     ######################################################################
     @torch.no_grad()
-    def initialize(self):
+    def initialize(self, target = None):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
@@ -84,8 +83,10 @@ class BaseModel(AutoProf_Model):
 
         """
         # Get the sub-image area corresponding to the model image
-        target_area = self.target[self.fit_window]
-        
+        if target is None:
+            target = self.target
+        target_area = target[self.fit_window]
+            
         # Use center of window if a center hasn't been set yet
         if self["center"].value is None:
             self["center"].set_value(self.model_image.center, override_locked = True)
@@ -160,7 +161,7 @@ class BaseModel(AutoProf_Model):
             sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window, dtype = self.dtype, device = self.device)
             sub_image.data = self.evaluate_model(sub_image)
             self.integrate_model(sub_image)
-            sub_image.data = conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
+            sub_image.data = fft_convolve_torch(sub_image.data, self.target.psf, img_prepadded = True) #conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
             sub_image.shift_origin(-center_shift)
             sub_image.crop(*self.target.psf_border_int)
             working_image.replace(sub_image)

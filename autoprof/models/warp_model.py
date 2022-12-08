@@ -29,8 +29,11 @@ class Warp_Galaxy(Galaxy_Model):
             self.profR = None
         super().__init__(*args, **kwargs)
 
-    def initialize(self):
-        super().initialize()
+    @torch.no_grad()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        super().initialize(target)
         if not (self["PA(R)"].value is None or self["q(R)"].value is None):
             return
 

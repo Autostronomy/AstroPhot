@@ -92,6 +92,18 @@ class Target_Image(BaseImage):
     def and_mask(self, mask):
         self._mask = torch.logical_and(self.mask, mask)
         
+    def copy(self):
+        return self.__class__(
+            data = torch.clone(self.data),
+            device = self.device,
+            dtype = self.dtype,
+            zeropoint = self.zeropoint,
+            mask = self._mask,
+            psf = self._psf,
+            variance = self._variance,
+            note = self.note,
+            window = self.window,
+        )
     def blank_copy(self):
         return self.__class__(
             data = torch.zeros_like(self.data),

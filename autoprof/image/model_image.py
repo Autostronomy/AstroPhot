@@ -39,26 +39,4 @@ class Model_Image(BaseImage):
         else:
             self.data = other
     
-    def __iadd__(self, other):
-        if isinstance(other, BaseImage):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot add images with different pixelscale!")
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
-                return self
-            self.data[other.window.get_indices(self)] += other.data[self.window.get_indices(other)]
-        else:
-            self.data += other
-        return self
-
-    def __isub__(self, other):
-        if isinstance(other, BaseImage):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot subtract images with different pixelscale!")
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
-                return self
-            self.data[other.window.get_indices(self)] -= other.data[self.window.get_indices(other)]
-        else:
-            self.data -= other
-        return self
-
     

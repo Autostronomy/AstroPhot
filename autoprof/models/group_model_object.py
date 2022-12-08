@@ -1,5 +1,6 @@
 from .core_model import AutoProf_Model
 from autoprof.image import Target_Image, Model_Image
+from autoprof.plots import target_image, model_image
 from copy import deepcopy
 import torch
 import numpy as np
@@ -76,10 +77,17 @@ class Group_Model(AutoProf_Model):
                 continue
             param_order = param_order + tuple(f"{model.name}|{mp}" for mp in model.parameter_order)
         return param_order
-    
-    def initialize(self):
+
+    @torch.no_grad()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+
+        target_copy = target.copy()
         for model in self.model_list:
-            model.initialize()
+            model.initialize(target_copy)
+            model.sample()
+            target_copy -= model.model_image
     # def initialize(self):#fixme what was this?
     #     for model in self.model_list:
     #         model.locked = True

@@ -148,56 +148,56 @@ class Sersic_Ray(Ray_Galaxy):
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("n", "Re", "Ie")
 
-    def initialize(self):
+    @torch.no_grad()
+    def initialize(self, target = None):
         super(self.__class__, self).initialize()
         if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
             return# fixme need to initialize n, Ie, Re as tensors
-        with torch.no_grad():
-            # Get the sub-image area corresponding to the model image
-            target_area = self.target[self.fit_window]
-            edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
-            edge_average = np.median(edge)
-            edge_scatter = iqr(edge, rng = (16,84))/2
-            # Convert center coordinates to target area array indices
-            icenter = coord_to_index(
-                self["center"].value[0].detach().cpu().item(),
-                self["center"].value[1].detach().cpu().item(), target_area
-            )
-            iso_info = isophotes(
-                target_area.data.detach().cpu().numpy() - edge_average,
-                (icenter[1], icenter[0]),
-                threshold = 3*edge_scatter,
-                pa = self["PA"].value.detach().cpu().item(), q = self["q"].value.detach().cpu().item(),
-                n_isophotes = 15,
-                more = True,
-            )
-            R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
-            was_none = [False, False, False]
-            for i, p in enumerate(["n", "Re", "Ie"]):
-                if self[p].value is None:
-                    was_none[i] = True
-                    self[p].set_value(np.zeros(self.rays), override_locked = True)
-            for r in range(self.rays):
-                flux = []
-                for iso in iso_info:
-                    modangles = (iso["angles"] - (self["PA"].value.detach().cpu().item() + r*np.pi/self.rays)) % np.pi
-                    flux.append(np.median(iso["isovals"][np.logical_or(modangles < (0.5*np.pi/self.rays), modangles >= (np.pi*(1 - 0.5/self.rays)))]) / self.target.pixelscale**2)
-                flux = np.array(flux)
-                if np.sum(flux < 0) >= 1:
-                    flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
-                x0 = [
-                    2. if self["n"].value is None else self["n"].value.detach().cpu().numpy()[r],
-                    R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().numpy()[r],
-                    flux[4],
-                ]
-                res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
-                self["n"].set_value(res.x[0], override_locked = was_none[0], index = r)
-                self["Re"].set_value(res.x[1], override_locked = was_none[1], index = r)
-                self["Ie"].set_value(np.log10(res.x[2]), override_locked = was_none[2], index = r)
-            if self["Re"].uncertainty is None:
-                self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().numpy(), override_locked = True)
-            if self["Ie"].uncertainty is None:
-                self["Ie"].set_uncertainty(0.02 * len(self["Ie"].value), override_locked = True)
+        # Get the sub-image area corresponding to the model image
+        target_area = self.target[self.fit_window]
+        edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+        edge_average = np.median(edge)
+        edge_scatter = iqr(edge, rng = (16,84))/2
+        # Convert center coordinates to target area array indices
+        icenter = coord_to_index(
+            self["center"].value[0].detach().cpu().item(),
+            self["center"].value[1].detach().cpu().item(), target_area
+        )
+        iso_info = isophotes(
+            target_area.data.detach().cpu().numpy() - edge_average,
+            (icenter[1], icenter[0]),
+            threshold = 3*edge_scatter,
+            pa = self["PA"].value.detach().cpu().item(), q = self["q"].value.detach().cpu().item(),
+            n_isophotes = 15,
+            more = True,
+        )
+        R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
+        was_none = [False, False, False]
+        for i, p in enumerate(["n", "Re", "Ie"]):
+            if self[p].value is None:
+                was_none[i] = True
+                self[p].set_value(np.zeros(self.rays), override_locked = True)
+        for r in range(self.rays):
+            flux = []
+            for iso in iso_info:
+                modangles = (iso["angles"] - (self["PA"].value.detach().cpu().item() + r*np.pi/self.rays)) % np.pi
+                flux.append(np.median(iso["isovals"][np.logical_or(modangles < (0.5*np.pi/self.rays), modangles >= (np.pi*(1 - 0.5/self.rays)))]) / self.target.pixelscale**2)
+            flux = np.array(flux)
+            if np.sum(flux < 0) >= 1:
+                flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
+            x0 = [
+                2. if self["n"].value is None else self["n"].value.detach().cpu().numpy()[r],
+                R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().numpy()[r],
+                flux[4],
+            ]
+            res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
+            self["n"].set_value(res.x[0], override_locked = was_none[0], index = r)
+            self["Re"].set_value(res.x[1], override_locked = was_none[1], index = r)
+            self["Ie"].set_value(np.log10(res.x[2]), override_locked = was_none[2], index = r)
+        if self["Re"].uncertainty is None:
+            self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().numpy(), override_locked = True)
+        if self["Ie"].uncertainty is None:
+            self["Ie"].set_uncertainty(0.02 * len(self["Ie"].value), override_locked = True)
     
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:

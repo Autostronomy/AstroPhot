@@ -32,7 +32,7 @@ class LM(BaseOptimizer):
     def __init__(self, model, initial_state = None, **kwargs):
         super().__init__(model, initial_state, **kwargs)
         
-        self.epsilon4 = kwargs.get("epsilon4", 0)
+        self.epsilon4 = kwargs.get("epsilon4", 0.1)
         self.Lup = kwargs.get("Lup", 11.)
         self.Ldn = kwargs.get("Ldn", 9.)
         self.L = kwargs.get("L0", 1.)
@@ -48,13 +48,15 @@ class LM(BaseOptimizer):
         if self.model.target.has_mask:
             self.mask = self.model.target[self.model.fit_window].mask.reshape(-1)
         self.L_history = []
-
+        self.decision_history = []
+        self.rho_history = []
+        
     def grad_step(self):
 
         print(self.current_state)
         print(self.model.full_loss(self.current_state))
         grad_res = Grad(self.model, self.current_state, max_iter = 20, optim_kwargs = {"lr": 1e-3}).fit()
-        self.current_state = torch.tensor(grad_res.lambda_history[np.argmin(grad_res.loss_history)], dtype = self.model.dtype, device = self.model.device)
+        self.current_state = torch.tensor(grad_res.lambda_history[np.nanargmin(grad_res.loss_history)], dtype = self.model.dtype, device = self.model.device)
         print(self.current_state)
         print(self.model.full_loss(self.current_state)) 
         plt.plot(range(len(grad_res.loss_history)), grad_res.loss_history)
@@ -88,6 +90,9 @@ class LM(BaseOptimizer):
             print("---------iter---------")
         else:
             print("---------init---------")
+        # if self.iteration > 6:
+        #     if self._count_reject >= 6:
+        #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
         h = self.update_h()
         
         with torch.no_grad():
@@ -106,51 +111,53 @@ class LM(BaseOptimizer):
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
         
         if not torch.isfinite(loss):
-            print("nan loss, taking small grad step then will restart")
-            self.grad_step()
-            h = torch.zeros_like(self.current_state)
+            print("nan loss")
+            self.decision_history.append("nan")
+            self.rho_history.append(None)
+            self._count_reject += 1
+            self.L = min(1e9, self.L * self.Lup)
+            return
         elif self.iteration > 0:
-            print("LM loss, best loss, L: ", loss.item(), np.min(self.loss_history[:-1]), self.L)
-            rho = self.rho(np.min(self.loss_history[:-1]), loss, h) 
+            print("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+            rho = self.rho(np.nanmin(self.loss_history[:-1]), loss, h)
+            self.rho_history.append(rho)
             print("rho: ", rho.item())
             if rho > self.epsilon4:
                 print("accept")
+                self.decision_history.append("accept")
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
                 self.current_state += h
                 self.L = max(1e-9, self.L / self.Ldn)
                 self._count_reject = 0
-                if 0 < ((np.min(self.loss_history[:-1]) - loss) / loss) < 1e-6:
+                if 0 < ((np.nanmin(self.loss_history[:-1]) - loss) / loss) < 1e-6:
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
-            elif self._count_reject < 3:
+            elif self._count_reject == 8:
+                print("reject, resetting jacobian")
+                self.decision_history.append("reject")
+                self.L = min(1e9, self.L / self.Lup**8)
+                self._count_reject += 1                
+            else:
                 print("reject")
+                self.decision_history.append("reject")
                 self.L = min(1e9, self.L * self.Lup)
                 self._count_reject += 1
                 return
-            # elif self._count_reject > 8:
-            #     print("reject > 8 taking random step, last hope")
-            #     self._count_reject += 1
-            #     self.random_step()
-            # elif self._count_reject > 6:
-            #     print("reject > 6 taking grad step")
-            #     self._count_reject += 1
-            #     self.grad_step()
-            #     h = torch.zeros_like(self.current_state)
-            else:
-                print("reject")
-                self.L = min(1e9, self.L * self.Lup)
-                self._count_reject += 1
+        else:
+            self.decision_history.append("init")
+            self.rho_history.append(None)
 
-        if self.J is None or self.iteration < 2 or self._count_reject >= 4 or rho == 0:
-            self.update_J_AD(h)
+        if self.J is None or self.iteration < 2 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+            self.update_J_AD()
+            print("full jac")
         else:
             self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
+            print("Broyden jac")
 
-        with torch.no_grad():
-            self.update_hess()
-            self.update_grad(self.current_Y)
+        self.update_hess()
+        self.update_grad(self.current_Y)
         self.iteration += 1
     
     def fit(self):
@@ -187,16 +194,15 @@ class LM(BaseOptimizer):
         self.model.finalize()
 
         # set the uncertainty for each parameter
+        self.update_J_AD()
+        self.update_hess()
         cov = self.covariance_matrix()
-        self.model.set_uncertainty(torch.diag(cov), uncertainty_as_representation = True)
+        self.model.set_uncertainty(torch.sqrt(2*torch.abs(torch.diag(cov))), uncertainty_as_representation = True)
         
         return self
             
     def update_h(self):
 
-        if self.grad_only or self._count_reject > 8:
-            print("pure grad")
-            return self.grad / self.L
         count_reject = 0
         h = torch.zeros(len(self.current_state))
         if self.iteration == 0:
@@ -205,7 +211,7 @@ class LM(BaseOptimizer):
             # Sometimes the hesian + lambda matrix is singular, sometimes that can be fixed by giving lambda a boost.
             try:
                 with torch.no_grad():
-                    h = torch.linalg.solve(self.hess + self.L*torch.sqrt(torch.diag(self.hess))*torch.eye(len(self.grad)), self.grad)
+                    h = torch.linalg.solve(self.hess + self.L*torch.abs(torch.diag(self.hess))*torch.eye(len(self.grad)), self.grad)
                 break
             except Exception as e:
                 print("reject err: ", e)
@@ -216,8 +222,8 @@ class LM(BaseOptimizer):
                 count_reject += 1
         return h
     
-    def update_J_AD(self, h):
-        self.J = self.model.jacobian(self.current_state + h).view(-1,len(self.current_state))
+    def update_J_AD(self):
+        self.J = self.model.jacobian(self.current_state).view(-1,len(self.current_state))
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
             

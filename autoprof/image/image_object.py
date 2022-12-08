@@ -64,6 +64,15 @@ class BaseImage(object):
             assert data.shape == self._data.shape
         self._data = data.to(dtype = self.dtype, device = self.device) if isinstance(data, torch.Tensor) else torch.as_tensor(data, dtype = self.dtype, device = self.device)
         
+    def copy(self):
+        return self.__class__(
+            data = torch.clone(self.data),
+            device = self.device,
+            dtype = self.dtype,
+            zeropoint = self.zeropoint,
+            note = self.note,
+            window = self.window,
+        )
     def blank_copy(self):
         return self.__class__(
             data = torch.zeros_like(self.data),
@@ -170,6 +179,28 @@ class BaseImage(object):
                             pixelscale = self.pixelscale, zeropoint = self.zeropoint, note = self.note, origin = (torch.max(self.origin[0], other.origin[0]), torch.max(self.origin[1], other.origin[1])))
         else:
             return self.__class__(data = self.data + other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, note = self.note, origin = self.origin)
+
+    def __iadd__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot add images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                return self
+            self.data[other.window.get_indices(self)] += other.data[self.window.get_indices(other)]
+        else:
+            self.data += other
+        return self
+
+    def __isub__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot subtract images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                return self
+            self.data[other.window.get_indices(self)] -= other.data[self.window.get_indices(other)]
+        else:
+            self.data -= other
+        return self
 
     def __getitem__(self, *args):
         if len(args) == 1 and isinstance(args[0], AP_Window):

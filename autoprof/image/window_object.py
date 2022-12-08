@@ -179,23 +179,27 @@ class AP_Window(object):
         return torch.all(self.origin >= other.origin) and torch.all((self.origin + self.shape) <= (other.origin + other.shape))
 
     # Window interaction operators
+    @torch.no_grad()
     def __or__(self, other):
-        new_origin = torch.minimum(self.origin, other.origin)
-        new_end = torch.maximum(self.origin + self.shape, other.origin + other.shape)
+        new_origin = torch.minimum(self.origin.clone(), other.origin)
+        new_end = torch.maximum(self.origin.clone() + self.shape.clone(), other.origin + other.shape)
         return AP_Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
+    @torch.no_grad()
     def __ior__(self, other):
-        new_origin = torch.minimum(self.origin, other.origin)
-        new_end = torch.maximum(self.origin + self.shape, other.origin + other.shape)
+        new_origin = torch.minimum(self.origin.clone(), other.origin)
+        new_end = torch.maximum(self.origin.clone() + self.shape.clone(), other.origin + other.shape)
         self.origin = new_origin
         self.shape = new_end - new_origin
         return self
+    @torch.no_grad()
     def __and__(self, other):
-        new_origin = torch.maximum(self.origin, other.origin)
-        new_end = torch.minimum(self.origin + self.shape, other.origin + other.shape)
+        new_origin = torch.maximum(self.origin.clone(), other.origin)
+        new_end = torch.minimum(self.origin.clone() + self.shape.clone(), other.origin + other.shape)
         return AP_Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
+    @torch.no_grad()
     def __iand__(self, other):
-        new_origin = torch.maximum(self.origin, other.origin)
-        new_end = torch.minimum(self.origin + self.shape, other.origin + other.shape)
+        new_origin = torch.maximum(self.origin.clone(), other.origin)
+        new_end = torch.minimum(self.origin.clone() + self.shape.clone(), other.origin + other.shape)
         self.origin = new_origin
         self.shape = new_end - new_origin
         return self

@@ -137,13 +137,15 @@ class Exponential_Ray(Ray_Galaxy):
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("Re", "Ie")
 
-    def initialize(self):
-        super(self.__class__, self).initialize()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        super(self.__class__, self).initialize(target)
         if all((self["Ie"].value is not None, self["Re"].value is not None)):
             return
         with torch.no_grad():
             # Get the sub-image area corresponding to the model image
-            target_area = self.target[self.fit_window]
+            target_area = target[self.fit_window]
             edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2

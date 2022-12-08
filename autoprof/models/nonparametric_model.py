@@ -34,6 +34,8 @@ class NonParametric_Galaxy(Galaxy_Model):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Star(Star_Model):
     """star model with a nonparametric radial light profile.
@@ -53,6 +55,8 @@ class NonParametric_Star(Star_Model):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a nonparametric light profile.
@@ -72,6 +76,8 @@ class NonParametric_Warp(Warp_Galaxy):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 # Second Order
 ######################################################################
@@ -90,6 +96,8 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
     model_type = f"nonparametric {FourierEllipse_Galaxy.model_type}"
@@ -106,6 +114,8 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Ray(Ray_Galaxy):
     """ray galaxy model with a nonparametric light profile.
@@ -125,6 +135,8 @@ class NonParametric_Ray(Ray_Galaxy):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Wedge(Wedge_Galaxy):
     """wedge galaxy model with a nonparametric light profile.
@@ -144,6 +156,8 @@ class NonParametric_Wedge(Wedge_Galaxy):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
     
 # Third Order
 ######################################################################
@@ -162,6 +176,8 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
     model_type = f"nonparametric {FourierEllipse_Warp.model_type}"
@@ -178,6 +194,8 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
     from ._shared_methods import nonparametric_set_fit_window as set_fit_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+    from ._shared_methods import nonparametric_get_state as get_state
+    from ._shared_methods import nonparametric_load as load
 
 
 

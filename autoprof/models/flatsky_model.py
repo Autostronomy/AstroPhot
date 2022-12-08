@@ -12,25 +12,27 @@ class Flat_Sky(Sky_Model):
     """
     model_type = f"flat {Sky_Model.model_type}"
     parameter_specs = {
-        "sky": {"units": "flux/arcsec^2"},
+        "sky": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Sky_Model._parameter_order + ("sky",)
 
     @torch.no_grad()
-    def initialize(self):
-        super().initialize()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        super().initialize(target)
 
         if self["sky"].value is None:
             self["sky"].set_representation(
-                torch.median(self.target[self.model_image].data) / self.target.pixelscale**2,
+                np.log10(torch.median(target[self.model_image].data) / target.pixelscale**2),
                 override_locked=True,
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                (iqr(self.target[self.model_image].data.detach().cpu().numpy(), rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * self.target.pixelscale.item()**2)) / np.sqrt(np.prod(self.fit_window.shape.detach().cpu().numpy())),
+                ((iqr(target[self.model_image].data.detach().cpu().numpy(), rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale.item()**2)) / np.sqrt(np.prod(self.fit_window.shape.detach().cpu().numpy())))/(10**self["sky"].value * np.log(10)),
                 override_locked=True,
             )
 
     def evaluate_model(self, image):
         
-        return torch.ones(image.data.shape, dtype = self.dtype, device = self.device) * (self["sky"].value * image.pixelscale**2)
+        return torch.ones(image.data.shape, dtype = self.dtype, device = self.device) * ((10**self["sky"].value) * image.pixelscale**2)

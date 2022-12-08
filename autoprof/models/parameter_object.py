@@ -115,7 +115,7 @@ class Parameter(object):
             return
         uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
         if torch.any(uncertainty < 0):
-            raise ValueError(f"{name} Uncertainty should be a positive real value, not {uncertainty}")
+            raise ValueError(f"{self.name} Uncertainty should be a positive real value, not {uncertainty}")
         if uncertainty_as_representation and not self.cyclic and self.limits is not None:
             self._uncertainty = uncertainty * d_inv_boundaries_dval(self.representation, self.limits)
         else:

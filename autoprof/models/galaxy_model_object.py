@@ -23,38 +23,40 @@ class Galaxy_Model(BaseModel):
     }
     _parameter_order = BaseModel._parameter_order + ("q", "PA")
 
-    def initialize(self):
-        super().initialize()
+    @torch.no_grad()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        super().initialize(target)
         if not (self["PA"].value is None or self["q"].value is None):
             return
-        with torch.no_grad():
-            target_area = self.target[self.fit_window]
-            edge = np.concatenate((
-                target_area.data.detach().cpu().numpy()[:,0],
-                target_area.data.detach().cpu().numpy()[:,-1],
-                target_area.data.detach().cpu().numpy()[0,:],
-                target_area.data.detach().cpu().numpy()[-1,:]
-            ))
-            edge_average = np.median(edge)
-            edge_scatter = iqr(edge, rng = (16,84))/2
-            icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
-            if self["PA"].value is None:
-                iso_info = isophotes(
-                    target_area.data.detach().cpu().numpy() - edge_average,
-                    (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
-                    threshold = 3*edge_scatter,
-                    pa = 0., q = 1., n_isophotes = 15
-                )
-                self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info[-int(len(iso_info)/3):]))/2) % np.pi, override_locked = True)
-            if self["q"].value is None:
-                q_samples = np.linspace(0.1,0.9,15)
-                iso_info = isophotes(
-                    target_area.data.detach().cpu().numpy() - edge_average,
-                    (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
-                    threshold = 3*edge_scatter,
-                    pa = self["PA"].value.detach().cpu().item(), q = q_samples,
-                ) 
-                self["q"].set_value(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))], override_locked = True)
+        target_area = target[self.fit_window]
+        edge = np.concatenate((
+            target_area.data.detach().cpu().numpy()[:,0],
+            target_area.data.detach().cpu().numpy()[:,-1],
+            target_area.data.detach().cpu().numpy()[0,:],
+            target_area.data.detach().cpu().numpy()[-1,:]
+        ))
+        edge_average = np.median(edge)
+        edge_scatter = iqr(edge, rng = (16,84))/2
+        icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
+        if self["PA"].value is None:
+            iso_info = isophotes(
+                target_area.data.detach().cpu().numpy() - edge_average,
+                (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
+                threshold = 3*edge_scatter,
+                pa = 0., q = 1., n_isophotes = 15
+            )
+            self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info[-int(len(iso_info)/3):]))/2) % np.pi, override_locked = True)
+        if self["q"].value is None:
+            q_samples = np.linspace(0.1,0.9,15)
+            iso_info = isophotes(
+                target_area.data.detach().cpu().numpy() - edge_average,
+                (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
+                threshold = 3*edge_scatter,
+                pa = self["PA"].value.detach().cpu().item(), q = q_samples,
+            ) 
+            self["q"].set_value(q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))], override_locked = True)
 
     def radius_metric(self, X, Y):
         return torch.sqrt((torch.abs(X)+1e-8)**2 + (torch.abs(Y)+1e-8)**2) # epsilon added for numerical stability of gradient
