@@ -33,9 +33,10 @@ class LM(BaseOptimizer):
         super().__init__(model, initial_state, **kwargs)
         
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
-        self.Lup = kwargs.get("Lup", 11.)
-        self.Ldn = kwargs.get("Ldn", 9.)
+        self.Lup = kwargs.get("Lup", 7.)
+        self.Ldn = kwargs.get("Ldn", 5.)
         self.L = kwargs.get("L0", 1.)
+        self.method = kwargs.get("method", 1)
         
         self.Y = self.model.target[self.model.fit_window].data.reshape(-1)
         #        1 / sigma^2
@@ -82,7 +83,7 @@ class LM(BaseOptimizer):
     def random_step(self):
         self.current_state += torch.normal(mean = 0., std = torch.abs(self.current_state*1e-3))
                 
-    def step(self, current_state = None):
+    def step_method1(self, current_state = None):
         if current_state is not None:
             self.current_state = current_state
 
@@ -93,7 +94,7 @@ class LM(BaseOptimizer):
         # if self.iteration > 6:
         #     if self._count_reject >= 6:
         #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
-        h = self.update_h()
+        h = self.update_h_v2()
         
         with torch.no_grad():
             start = 0
@@ -119,7 +120,7 @@ class LM(BaseOptimizer):
             return
         elif self.iteration > 0:
             print("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
-            rho = self.rho(np.nanmin(self.loss_history[:-1]), loss, h)
+            rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
             self.rho_history.append(rho)
             print("rho: ", rho.item())
             if rho > self.epsilon4:
@@ -130,14 +131,14 @@ class LM(BaseOptimizer):
                 self.current_state += h
                 self.L = max(1e-9, self.L / self.Ldn)
                 self._count_reject = 0
-                if 0 < ((np.nanmin(self.loss_history[:-1]) - loss) / loss) < 1e-6:
+                if 0 < ((np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
             elif self._count_reject == 8:
                 print("reject, resetting jacobian")
                 self.decision_history.append("reject")
-                self.L = min(1e9, self.L / self.Lup**8)
+                self.L = min(1e-2, self.L / self.Lup**8)
                 self._count_reject += 1                
             else:
                 print("reject")
@@ -149,7 +150,7 @@ class LM(BaseOptimizer):
             self.decision_history.append("init")
             self.rho_history.append(None)
 
-        if self.J is None or self.iteration < 2 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+        if self.J is None or self.iteration < 2 or rho < 0.1 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
             self.update_J_AD()
             print("full jac")
         else:
@@ -159,7 +160,172 @@ class LM(BaseOptimizer):
         self.update_hess()
         self.update_grad(self.current_Y)
         self.iteration += 1
-    
+
+    def step_method2(self, current_state = None):
+        if current_state is not None:
+            self.current_state = current_state
+
+        if self.iteration > 0:
+            print("---------iter---------")
+        else:
+            print("---------init---------")
+        # if self.iteration > 6:
+        #     if self._count_reject >= 6:
+        #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
+        if self.iteration == 1:
+            self.L = self.L * np.max(torch.diag(self.hess).detach().cpu().numpy())
+        h = self.update_h_v1()
+        
+        with torch.no_grad():
+            start = 0
+            if self.iteration > 0:
+                for P, V in zip(self.model.parameter_order, self.model.parameter_vector_len):
+                    # print(self.model.name, P, "state", self.current_state[start:start + V], "h", h[start:start + V], "grad", self.grad[start:start + V])
+                    start += V
+            self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
+            if self.model.target.has_mask:
+                loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
+            else:
+                loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+        self.loss_history.append(loss.detach().cpu().item())
+        self.L_history.append(self.L)
+        self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
+        
+        if not torch.isfinite(loss):
+            print("nan loss")
+            self.decision_history.append("nan")
+            self.rho_history.append(None)
+            self._count_reject += 1
+            self.L = min(1e9, self.L * self.Lup)
+            return
+        elif self.iteration > 0:
+            print("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+            alpha = torch.dot(self.grad, h) 
+            alpha = alpha / ((loss - np.nanmin(self.loss_history[:-1]))/2 + 2*alpha)
+            self.current_Y = self.model.full_sample(self.current_state + alpha*h).view(-1)
+            if self.model.target.has_mask:
+                alpha_loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
+            else:
+                alpha_loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+            rho = self.rho_2(np.nanmin(self.loss_history[:-1]), alpha_loss, h)
+            self.rho_history.append(rho)
+            print("rho: ", rho.item())
+            if rho > self.epsilon4:
+                print("accept")
+                self.decision_history.append("accept")
+                self.prev_Y[0] = self.prev_Y[1]
+                self.prev_Y[1] = torch.clone(self.current_Y)
+                self.current_state += h
+                self.L = max(1e-9, self.L / (1+alpha))
+                self._count_reject = 0
+                if 0 < ((np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
+                    self._count_finish += 1
+            elif self._count_reject == 8:
+                print("reject, resetting jacobian")
+                self.decision_history.append("reject")
+                self.L = 1e-2
+                self._count_reject += 1                
+            else:
+                print("reject")
+                self.decision_history.append("reject")
+                self.L = min(1e9, self.L + np.abs(alpha_loss - np.nanmin(self.loss_history[:-1])) / (2*alpha))
+                self._count_reject += 1
+                return
+        else:
+            self.decision_history.append("init")
+            self.rho_history.append(None)
+
+        if self.J is None or self.iteration < 2 or rho < 0.1 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+            self.update_J_AD()
+            print("full jac")
+        else:
+            self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
+            print("Broyden jac")
+
+        self.update_hess()
+        self.update_grad(self.current_Y)
+        self.iteration += 1
+        
+    def step_method3(self, current_state = None):
+        if current_state is not None:
+            self.current_state = current_state
+
+        if self.iteration > 0:
+            print("---------iter---------")
+        else:
+            print("---------init---------")
+        # if self.iteration > 6:
+        #     if self._count_reject >= 6:
+        #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
+        if self.iteration == 1:
+            self.L = self.L * np.max(torch.diag(self.hess).detach().cpu().numpy())
+        h = self.update_h_v1()
+        
+        with torch.no_grad():
+            start = 0
+            if self.iteration > 0:
+                for P, V in zip(self.model.parameter_order, self.model.parameter_vector_len):
+                    # print(self.model.name, P, "state", self.current_state[start:start + V], "h", h[start:start + V], "grad", self.grad[start:start + V])
+                    start += V
+            self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
+            if self.model.target.has_mask: # fixme something to do with the mask is a problem
+                loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
+            else:
+                loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+        self.loss_history.append(loss.detach().cpu().item())
+        self.L_history.append(self.L)
+        self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
+        
+        if not torch.isfinite(loss):
+            print("nan loss")
+            self.decision_history.append("nan")
+            self.rho_history.append(None)
+            self._count_reject += 1
+            self.L = min(1e9, self.L * self.Lup)
+            return
+        elif self.iteration > 0:
+            print("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+            rho = self.rho_2(np.nanmin(self.loss_history[:-1]), loss, h)
+            self.rho_history.append(rho)
+            print("rho: ", rho.item())
+            if rho > self.epsilon4:
+                print("accept")
+                self.decision_history.append("accept")
+                self.prev_Y[0] = self.prev_Y[1]
+                self.prev_Y[1] = torch.clone(self.current_Y)
+                self.current_state += h
+                self.L = max(1e-9, self.L / 3)
+                self.v = 2.
+                self._count_reject = 0
+                if 0 < ((np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
+                    self._count_finish += 1
+            elif self._count_reject == 8:
+                print("reject, resetting jacobian")
+                self.decision_history.append("reject")
+                self.L = 1e-2
+                self._count_reject += 1                
+            else:
+                print("reject")
+                self.decision_history.append("reject")
+                self.L = min(1e9, self.L * self.v)
+                self.v *= 2
+                self._count_reject += 1
+                return
+        else:
+            self.decision_history.append("init")
+            self.rho_history.append(None)
+
+        if self.J is None or self.iteration < 2 or rho < 0.1 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+            self.update_J_AD()
+            print("full jac")
+        else:
+            self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
+            print("Broyden jac")
+
+        self.update_hess()
+        self.update_grad(self.current_Y)
+        self.iteration += 1
+        
     def fit(self):
 
         self.model.startup()
@@ -169,12 +335,18 @@ class LM(BaseOptimizer):
         self._count_reject = 0
         self._count_finish = 0
         self.grad_only = False
-
+        self.v = 1.
+        
         try:
             while True:
 
-                self.step()
-            
+                if self.method == 3:
+                    self.step_method3()
+                elif self.method == 2:
+                    self.step_method2()
+                else:
+                    self.step_method1()
+                    
                 if self._count_finish >= 3:
                     self.message = self.message + "success"
                     break
@@ -201,17 +373,22 @@ class LM(BaseOptimizer):
         
         return self
             
-    def update_h(self):
+    @torch.no_grad()
+    def update_h_v1(self):
+        if self.iteration == 0:
+            return torch.zeros_like(self.current_state)
+        return torch.linalg.solve(self.hess + self.L*torch.eye(len(self.current_state)), self.grad)
+    @torch.no_grad()
+    def update_h_v2(self):
 
         count_reject = 0
-        h = torch.zeros(len(self.current_state))
+        h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
         while count_reject < 4:
             # Sometimes the hesian + lambda matrix is singular, sometimes that can be fixed by giving lambda a boost.
             try:
-                with torch.no_grad():
-                    h = torch.linalg.solve(self.hess + self.L*torch.abs(torch.diag(self.hess))*torch.eye(len(self.grad)), self.grad)
+                h = torch.linalg.solve(self.hess + self.L*torch.abs(torch.diag(self.hess))*torch.eye(len(self.grad)), self.grad)
                 break
             except Exception as e:
                 print("reject err: ", e)
@@ -242,7 +419,12 @@ class LM(BaseOptimizer):
 
     @torch.no_grad()
     def covariance_matrix(self):
-        return torch.linalg.inv(self.hess)
+        try:
+            return torch.linalg.inv(self.hess)
+        except:
+            print("WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.")
+            self.hess += torch.eye(len(self.grad))*(torch.diag(self.hess) == 0)
+            return torch.linalg.inv(self.hess)
             
     @torch.no_grad()
     def update_grad(self, Yph):
@@ -252,5 +434,15 @@ class LM(BaseOptimizer):
             self.grad = torch.matmul(self.J.T, self.W * (self.Y - Yph))
             
     @torch.no_grad()
-    def rho(self, Xp, Xph, h):
+    def rho_1(self, Xp, Xph, h):
+        update = self.Y - self.current_Y - torch.matmul(self.J,h)
+        if self.model.target.has_mask:
+            return self.ndf*(Xp - Xph) / abs(self.ndf*Xp - torch.dot(update,(self.W * update)))
+        else:
+            return self.ndf*(Xp - Xph) / abs(self.ndf*Xp - torch.dot(update,update))
+    @torch.no_grad()
+    def rho_2(self, Xp, Xph, h):
+        return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * h + self.grad))
+    @torch.no_grad()
+    def rho_3(self, Xp, Xph, h):
         return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess)) * h) + self.grad))

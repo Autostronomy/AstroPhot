@@ -62,7 +62,6 @@ class Grad(BaseOptimizer):
         try:
             while True:
                 self.step()
-                
                 if self.iteration >= self.max_iter:
                     self.message = self.message + " fail max iteration reached"
                     break

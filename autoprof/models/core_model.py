@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import io
 from autoprof import plots
 import matplotlib.pyplot as plt
 from autoprof.utils.conversions.optimization import cyclic_difference_np
@@ -14,39 +15,43 @@ def all_subclasses(cls):
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
 class AutoProf_Model(object):
-    """Prototype class for all AutoProf models. Every class should
-    define/overload the methods included here. The fit function is
-    however, sufficient for most cases and likely shouldn't be
-    overloaded.
+    """AutoProf_Model(name, *args, filename = None, model_type = None, **kwargs)
 
+    Core class for all AutoProf models and model like objects. The
+    signature defined for this class includes all expected behaviour
+    that will be accessed by some or all optimizers during
+    fitting. This base class also handles saving and loading of
+    models, though individual models should define thier "get_state"
+    behaviour and "load" behaviour to fully take advantage of this
+    functionality.
+
+    Parameters:
+        name: every AutoProf model should have a unique name [str]
+        filename: name of a file to load AutoProf parameters, window, and name. The model will still need to be told its target, device, and other information [str]
+        model_type: a model type string can determine which kind of AutoProf model is instantiated [str]
     """
 
     model_type = ""
-    learning_rate = 0.05
-    max_iterations = 256
-    stop_rtol = 1e-5
-    constraint_delay = 10
-    constraint_strength = 1e-2
 
     dtype = torch.float32
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    def __new__(cls, *args, **kwargs):
-        if "filename" in kwargs:
-            state = AutoProf_Model.load(kwargs["filename"])
+    def __new__(cls, *args, filename = None, model_type = None, **kwargs):
+        if filename is not None:
+            state = AutoProf_Model.load(filename)
             MODELS = all_subclasses(AutoProf_Model)
             for M in MODELS:
                 if M.model_type == state["model_type"]:
                     return super(AutoProf_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(f"Unknown AutoProf model type: {state['model_type']}")
-        elif "model_type" in kwargs:
+        elif model_type is not None:
             MODELS = all_subclasses(AutoProf_Model)
             for M in MODELS:
-                if M.model_type == kwargs["model_type"]:
+                if M.model_type == model_type:
                     return super(AutoProf_Model, cls).__new__(M)
             else:
-                raise ModuleNotFoundError(f"Unknown AutoProf model type: {kwargs['model_type']}")
+                raise ModuleNotFoundError(f"Unknown AutoProf model type: {model_type}")
             
         return super().__new__(cls)
 
@@ -163,56 +168,12 @@ class AutoProf_Model(object):
         """Get the non-locked parameter values for this model."""
         pass
 
-    def fit(self):
-        """Iteratively fit the model to data."""
-        self.startup()
-        self.step()
-        keys, reps = self.get_parameters_representation()
-        optimizer = torch.optim.NAdam(
-            reps, lr=0.1, betas = (0.9,0.999),
-        )
-        # optimizer = torch.optim.LBFGS(
-        #     reps, lr=0.05,
-        # )
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.9)
-        loss_history = []
-        start = time()
-        for epoch in range(self.max_iterations):
-            self.epoch = epoch
-            if (epoch % int(self.max_iterations / 10)) == 0:
-                print(f"Epoch: {epoch}/{self.max_iterations}.")
-                if epoch > 0:
-                    print(f"Est time to completion: {(self.max_iterations - epoch)*(time() - start)/(epoch*60):.2f} min")
-                    print(f"X^2/ndf: {self.loss.detach().cpu().item():.3e}")
-                    
-            optimizer.zero_grad()
-                
-            self.sample()
-            self.compute_loss()            
-            self.loss.backward()
-            loss_history.append(copy(self.loss.detach().cpu().item()))
-            
-            optimizer.step()
-            if epoch % 10 == 0 and epoch > 0:
-                scheduler.step()
-            self.step()
-        self.finalize()
-        print(f"Runtime: {(time() - start)/60:.2f} min")
-        print(f"X^2/ndf: {self.loss.detach().cpu().item():.3e}")
-        self.epoch = None
-        plt.plot(range(len(loss_history))[10:], np.log10(loss_history)[10:])
-        plt.savefig("loss_history.jpg")
-        plt.close()
-
     def full_sample(self, parameters = None):
         self.step(parameters)
         self.sample()
         self.compute_loss()
         return self.model_image.data
 
-    def forward(self, parameters):
-        return self.full_sample(parameters)
-    
     def full_loss(self, parameters = None):
         self.step(parameters)
         self.sample()
@@ -265,6 +226,9 @@ class AutoProf_Model(object):
     def load(cls, filename = "AutoProf.yaml"):
         if isinstance(filename, dict):
             state = filename
+        elif isinstance(filename, io.TextIOBase):
+            import yaml
+            state = yaml.load(filename, Loader = yaml.FullLoader)            
         elif filename.endswith(".yaml"):
             import yaml
             with open(filename, "r") as f:

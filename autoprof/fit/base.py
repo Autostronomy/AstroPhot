@@ -7,9 +7,15 @@ __all__ = ["BaseOptimizer"]
 class BaseOptimizer(object):
     """
     Base optimizer object that other optimizers inherit from. Ensures consistent signature for the classes.
+
+    Parameters:
+        model: an AutoProf_Model object that will have it's (unlocked) parameters optimized [AutoProf_Model]
+        initial_state: optional initialization for the parameters as a 1D tensor [tensor]
+        max_iter: maximum allowed number of iterations [int]
+        relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
     
     """
-    def __init__(self, model, initial_state = None, max_iter = None, **kwargs):
+    def __init__(self, model, initial_state = None, max_iter = None, relative_tolerance = 1e-7, **kwargs):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         
@@ -38,7 +44,8 @@ class BaseOptimizer(object):
         else:
             self.max_iter = max_iter
         self.iteration = 0
-        
+
+        self.relative_tolerance = relative_tolerance
         self.lambda_history = []
         self.loss_history = []
         self.message = ""

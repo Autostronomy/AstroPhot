@@ -12,27 +12,37 @@ import matplotlib.pyplot as plt
 __all__ = ["BaseModel"]
 
 class BaseModel(AutoProf_Model):
-    """This is the basis for almost any model which represents a single
+    """BaseModel(name, target, window, locked, **kwargs)
+
+    This is the basis for almost any model which represents a single
     object, or parametric form.  Subclassing models must define their
     parameters, initialization, and model evaluation
     functions. Otherwise, most function operate generally.
 
-    """
     
+    """
+
+    # name of the model that AutoProf uses to identify
     model_type = "model"
+    # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
     }
+    # Fixed order of parameters for all methods that interact with the list of parameters
     _parameter_order = ("center",)
 
-    # Hierarchy variables
+    # Technique and scope for PSF convolution
     psf_mode = "none" # none, window/full, direct/fft
+    # size in pixels of the PSF convolution box
     psf_window_size = 50
+    # Integration scope for model
     integrate_mode = "window" # none, window, full
+    # size of the window in which to perform integration
     integrate_window_size = 10
+    # Factor by which to upscale each dimension when integrating
     integrate_factor = 10
 
-    # settings
+    # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     
     def __init__(self, name, target = None, window = None, locked = False, **kwargs):
@@ -179,8 +189,6 @@ class BaseModel(AutoProf_Model):
         special circumstances.
 
         """
-        # if True:
-        #     return
         # Determine the on-sky window in which to integrate
         try:
             if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
