@@ -9,11 +9,10 @@ import numpy as np
 __all__ = ["EdgeOn_Model"]
 
 class EdgeOn_Model(BaseModel):
-    """General galaxy model to be subclassed for any specific
-    representation. Defines a galaxy as an object with a position
-    angle and axis ratio, or effectively a tilted disk. Most
-    subclassing models should simply define a radial model or update
-    to the coordinate transform.
+    """General Edge-On galaxy model to be subclassed for any specific
+    representation such as radial light profile or the structure of
+    the galaxy on the sky. Defines an edgeon galaxy as an object with
+    a position angle, no inclination information is included.
 
     """
     model_type = f"edgeon {BaseModel.model_type}"

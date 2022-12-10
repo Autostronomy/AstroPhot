@@ -12,7 +12,15 @@ class Group_Model(AutoProf_Model):
     """Model object which represents a list of other models. For each
     general AutoProf model method, this calls all the appropriate
     models from its list and combines their output into a single
-    summed model.
+    summed model. This class shoould be used when describing any
+    system more comlex than makes sense to represent with a single
+    light distribution.
+
+    Parameters:
+        name: unique name for the full group model
+        target: the target image that this group model is trying to fit to
+        model_list: list of AutoProf_Model objects which will combine for the group model
+        locked: boolean for if the whole group of models should be locked
 
     """
 
@@ -159,7 +167,7 @@ class Group_Model(AutoProf_Model):
     def jacobian(self, parameters):
         vstart = 0
         ivstart = 0
-        full_jac = torch.zeros(tuple(self.model_image.data.shape) + (len(parameters),))
+        full_jac = torch.zeros(tuple(self.model_image.data.shape) + (len(parameters),), dtype = self.dtype, device = self.device)
         for model in self.model_list:
             keys, reps = model.get_parameters_representation()
             vend = vstart + np.sum(self.parameter_vector_len[ivstart:ivstart + len(keys)])

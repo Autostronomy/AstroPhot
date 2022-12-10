@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 from time import time
+from scipy.special import gammainc
+from scipy.optimize import minimize
 
 __all__ = ["BaseOptimizer"]
 
@@ -15,7 +17,7 @@ class BaseOptimizer(object):
         relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
     
     """
-    def __init__(self, model, initial_state = None, max_iter = None, relative_tolerance = 1e-7, **kwargs):
+    def __init__(self, model, initial_state = None, max_iter = None, relative_tolerance = 1e-3, **kwargs):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         
@@ -58,3 +60,15 @@ class BaseOptimizer(object):
     def res(self):
         N = np.isfinite(self.loss_history)
         return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]
+
+    def chi2contour(self, n_params, confidence = 0.682689492137):
+            
+        def _f(x, nu):
+            return (gammainc(nu/2, x/2) - confidence)**2
+
+        for method in ["L-BFGS-B", "Powell", "Nelder-Mead"]:
+            res = minimize(_f, x0 = n_params, args = (n_params,), method = method, tol = 1e-8)
+
+            if res.success:
+                return res.x[0]
+        raise RuntimeError(f"Unable to compute Chi^2 contour for ndf: {ndf}")

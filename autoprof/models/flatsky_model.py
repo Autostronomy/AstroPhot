@@ -9,6 +9,9 @@ class Flat_Sky(Sky_Model):
     """Model for the sky background in which all values across the image
     are the same.
 
+    Parameters:
+        sky: brightness for the sky, represented as the log of the brightness over pixel scale squared, this is proportional to a surface brightness
+
     """
     model_type = f"flat {Sky_Model.model_type}"
     parameter_specs = {

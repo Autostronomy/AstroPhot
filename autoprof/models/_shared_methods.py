@@ -156,14 +156,14 @@ def gaussian_initialize(self, target = None):
         n_isophotes = 15
     )
     R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
-    flux = np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale**2
+    flux = np.array(list(iso["flux"] for iso in iso_info))
     if np.sum(flux < 0) >= 1:
         flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
     x0 = [
         R[-1]/5 if self["sigma"].value is None else self["sigma"].value.detach().cpu().item(),
-        np.sum(target_area.data.detach().cpu().numpy()) if self["flux"].value is None else self["flux"].value.detach().cpu().item(),
+        np.log10(np.sum(target_area.data.detach().cpu().numpy()) if self["flux"].value is None else self["flux"].value.detach().cpu().item()),
     ]
-    res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(gaussian_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
+    res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(gaussian_np(R, x[0], 10**x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
     for i, param in enumerate(["sigma", "flux"]):
         self[param].set_value(res.x[i], override_locked = self[param].value is None)
     if self["sigma"].uncertainty is None:
@@ -174,7 +174,7 @@ def gaussian_initialize(self, target = None):
 def gaussian_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.model_image
-    return gaussian_torch(R, self["sigma"].value, self["flux"].value * sample_image.pixelscale**2)
+    return gaussian_torch(R, self["sigma"].value, 10**self["flux"].value)
 
 # NonParametric
 ######################################################################

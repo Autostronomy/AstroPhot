@@ -17,8 +17,7 @@ class BaseModel(AutoProf_Model):
     This is the basis for almost any model which represents a single
     object, or parametric form.  Subclassing models must define their
     parameters, initialization, and model evaluation
-    functions. Otherwise, most function operate generally.
-
+    functions. See individual models for their behaviour.
     
     """
 
@@ -46,6 +45,14 @@ class BaseModel(AutoProf_Model):
     special_kwargs = ["parameters", "filename", "model_type"]
     
     def __init__(self, name, target = None, window = None, locked = False, **kwargs):
+        # Set any user defined attributes for the model
+        for kwarg in kwargs:
+            # Skip parameters with special behaviour
+            if kwarg in self.special_kwargs:
+                continue
+            # Set the model parameter
+            setattr(self, kwarg, kwargs[kwarg])
+            
         super().__init__(name, target, window, locked, **kwargs)
         
         self._set_default_parameters()
@@ -61,7 +68,6 @@ class BaseModel(AutoProf_Model):
             if kwarg in self.special_kwargs:
                 continue
             # Set the model parameter
-            print("setting: ", kwarg)
             setattr(self, kwarg, kwargs[kwarg])
 
         self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))

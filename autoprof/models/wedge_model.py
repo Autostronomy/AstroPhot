@@ -8,6 +8,20 @@ from autoprof.utils.conversions.coordinates import Axis_Ratio_Cartesian
 __all__ = ["Wedge_Galaxy"]
 
 class Wedge_Galaxy(Galaxy_Model):
+    """Variant of the ray model where no smooth transition is performed
+    between regions as a function of theta, instead there is a sharp
+    trnasition boundary. This may be desireable as it cleanly
+    separates where the pixel information is going. Due to the sharp
+    transition though, it may cause unusual behaviour when fitting. If
+    problems occur, try fitting a ray model first then fix the center,
+    PA, and q and then fit the wedge model. Essentially this breaks
+    down the structure fitting and the light profile fitting into two
+    steps. The wedge model, like the ray model, defines no extra
+    parameters, however a new option can be supplied on instantiation
+    of the wedge model which is "wedges" or the number of wedges in
+    the model.
+
+    """
 
     model_type = f"wedge {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]

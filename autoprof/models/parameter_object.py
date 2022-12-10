@@ -21,13 +21,23 @@ class Parameter(object):
     line. Any time the value, or representation are updated, both
     numbers get updated automatically so they are always in sync.
 
+    Properties:
+        name: the name of the parameter [str]
+        value: the value of the parameter for the sake of evaluating the model [float]
+        representation: alternate view of the parameter which is defined on the -inf,inf range. Only specify value or representation, not both [float]
+        uncertainty: 1 sigma uncertainty on the value of the parameter [float]
+        limits: tuple of values specifying the valid range for this parameter, use None to mean no limit [tuple: (float, float), (float, None), (None, float), None]
+        cyclic: boolean indicating if the parameter is cyclically defined. Note that cyclic parameters must specify limits [bool]
+        locked: boolean indicating if the parameter should have a fixed value [bool]
+        units: units for the value of the parameter. [str]
+        dtype: the data type for the value and representation [torch.dtype object]
+        device: the computational device with which to associate the parameter, either CPU or the GPU [str: "cpu" or name of GPU typically "cuda:0"]
     """
     
     def __init__(self, name, value = None, **kwargs):
-
         self.name = name
         
-        self.dtype = kwargs.get("dtype", torch.float32)
+        self.dtype = kwargs.get("dtype", torch.float64)
         self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
@@ -39,7 +49,7 @@ class Parameter(object):
         
     @property
     def representation(self):
-        """The representation is the stored number (or array of numbers) for
+        """The representation is the stored number (or tensor of numbers) for
         this parameter, it is what the optimizer sees and is defined
         in the range (-inf,+inf). This makes it well behaved during
         optimization. This is stored as a pytorch tensor which can
@@ -49,6 +59,9 @@ class Parameter(object):
         return self._representation
     @representation.setter
     def representation(self, rep):
+        """
+        Calls the set representation method, preserving locked behaviour.
+        """
         self.set_representation(rep)
     @property
     def value(self):
@@ -66,6 +79,9 @@ class Parameter(object):
         return inv_boundaries(self._representation, self.limits)
     @value.setter
     def value(self, val):
+        """
+        Calls the value setting method, preserving locked behaviour
+        """
         self.set_value(val)
     @property
     def locked(self):
@@ -76,18 +92,24 @@ class Parameter(object):
         return self._locked
     @locked.setter
     def locked(self, value):
+        """
+        updates the locked state of the parameter
+        """
         self._locked = value
         # if self._representation is not None:
         #     self._representation.requires_grad = not self._locked
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
-        is for the value, not the representation. # fixme is this best?
+        is for the value, not the representation. 
 
         """
         return self._uncertainty
     @uncertainty.setter
     def uncertainty(self, unc):
+        """
+        Calls the uncertainty setting method, preserving locked behaviour.
+        """
         self.set_uncertainty(unc)
     @property
     def grad(self):
@@ -98,6 +120,9 @@ class Parameter(object):
         return self._representation.grad
 
     def to(self, dtype = None, device = None):
+        """
+        updates the datatype or device of this parameter
+        """
         if dtype is not None:
             self.dtype = dtype
         if device is not None:
@@ -107,8 +132,8 @@ class Parameter(object):
         return self
     
     def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
-        """Updates the value for the uncertainty of the value of the
-        parameter. Only updates if the parameter is not locked.
+        """Updates the the uncertainty of the value of the parameter. Only
+        updates if the parameter is not locked.
 
         """
         if self.locked and not override_locked:
@@ -122,9 +147,9 @@ class Parameter(object):
             self._uncertainty = uncertainty
 
     def set_value(self, val, override_locked = False, index = None):
-        """Set the value of the parameter. In fact this indirectly updates
-        the representation for the parameter if any limits or cyclic
-        boundaries are applied for this parameter.
+        """Set the value of the parameter. In fact this indirectly updates the
+        representation for the parameter accoutning for any limits or
+        cyclic boundaries are applied for this parameter.
 
         """
         if self.locked and not override_locked:
@@ -156,14 +181,17 @@ class Parameter(object):
         if rep is None:
             self._representation = None
         elif index is None:
-            self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.tensor(rep, dtype = self.dtype, device = self.device)
+            self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = self.dtype, device = self.device)
         else:
             self._representation[index] = rep
         # if self._representation is not None:
         #     self._representation.requires_grad = not self.locked
 
     def get_state(self):
-        
+        """Return the values representing the current state of the parameter,
+        this can be used to re-load the state later from memory.
+
+        """
         state = {
             "name": self.name,
         }
@@ -183,6 +211,10 @@ class Parameter(object):
         return state
     
     def update_state(self, state):
+        """Update the state of the parameter given a state variable whcih
+        holds all information about a variable.
+
+        """
         self.name = state["name"]
         self.units = state.get("units", None)
         self.limits = state.get("limits", None)
@@ -192,8 +224,9 @@ class Parameter(object):
         self.locked = state.get("locked", False)
             
     def __str__(self):
-        """
-        String representation of the parameter which indicates it's value along with uncertainty, units, limits, etc.
+        """String representation of the parameter which indicates it's value
+        along with uncertainty, units, limits, etc.
+
         """
         return f"{self.name}: {self.value} +- {self.uncertainty} [{self.units}{'' if self.locked is False else ', locked'}{'' if self.limits is None else (', ' + str(self.limits))}{'' if self.cyclic is False else ', cyclic'}]"
 

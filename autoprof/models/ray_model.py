@@ -8,7 +8,26 @@ from autoprof.utils.conversions.coordinates import Axis_Ratio_Cartesian
 __all__ = ["Ray_Galaxy"]
 
 class Ray_Galaxy(Galaxy_Model):
+    """Variant of a galaxy model which defines multiple radial models
+    seprarately along some number of rays projected from the galaxy
+    center. These rays smoothly transition from one to another along
+    angles theta. The ray transition uses a cosine smoothing function
+    which depends on the number of rays, for example with two rays the
+    brightness would be:
 
+    I(R,theta) = I1(R)*cos(theta % pi) + I2(R)*cos((theta + pi/2) % pi)
+
+    Where I(R,theta) is the brightness function in polar coordinates,
+    R is the semi-major axis, theta is the polar angle (defined after
+    galaxy axis ratio is applied), I1(R) is the first brightness
+    profile, % is the modulo operator, and I2 is the second brightness
+    profile. The ray model defines no extra parameters, though now
+    every model parameter related to the brightness profile gains an
+    extra dimension for the ray number. Also a new input can be given
+    when instantiating the ray model: "rays" which is an integer for
+    the number of rays.
+
+    """
     model_type = f"ray {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["rays"]
     def __init__(self, *args, **kwargs):

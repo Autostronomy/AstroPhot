@@ -22,14 +22,27 @@ __all__ = [
 
 class Sersic_Galaxy(Galaxy_Model):
     """basic galaxy model with a sersic profile for the radial light
-    profile.
+    profile. The functional form of the Sersic profile is defined as:
 
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
+    
     """
     model_type = f"sersic {Galaxy_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36,8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0,None)},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("n", "Re", "Ie")
 
@@ -38,7 +51,20 @@ class Sersic_Galaxy(Galaxy_Model):
 
 class Sersic_Star(Star_Model):
     """basic galaxy model with a sersic profile for the radial light
-    profile.
+    profile. The functional form of the Sersic profile is defined as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {Star_Model.model_type}"
@@ -57,7 +83,20 @@ class Sersic_Star(Star_Model):
     
 class Sersic_SuperEllipse(SuperEllipse_Galaxy):
     """super ellipse galaxy model with a sersic profile for the radial
-    light profile.
+    light profile. The functional form of the Sersic profile is defined as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {SuperEllipse_Galaxy.model_type}"
@@ -73,7 +112,21 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
 
 class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
     """super ellipse warp galaxy model with a sersic profile for the
-    radial light profile.
+    radial light profile. The functional form of the Sersic profile is
+    defined as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {SuperEllipse_Warp.model_type}"
@@ -89,7 +142,21 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
 
 class Sersic_FourierEllipse(FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with a sersic
-    profile for the radial light profile.
+    profile for the radial light profile. The functional form of the
+    Sersic profile is defined as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {FourierEllipse_Galaxy.model_type}"
@@ -105,7 +172,21 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
 
 class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a sersic
-    profile for the radial light profile.
+    profile for the radial light profile. The functional form of the
+    Sersic profile is defined as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {FourierEllipse_Warp.model_type}"
@@ -120,8 +201,22 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
     from ._shared_methods import sersic_initialize as initialize
     
 class Sersic_Warp(Warp_Galaxy):
-    """warped coordinate galaxy model with a sersic profile for the
-    radial light model.
+    """warped coordinate galaxy model with a sersic profile for the radial
+    light model. The functional form of the Sersic profile is defined
+    as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {Warp_Galaxy.model_type}"
@@ -136,8 +231,21 @@ class Sersic_Warp(Warp_Galaxy):
     from ._shared_methods import sersic_initialize as initialize
 
 class Sersic_Ray(Ray_Galaxy):
-    """ray galaxy model with a sersic profile for the
-    radial light model.
+    """ray galaxy model with a sersic profile for the radial light
+    model. The functional form of the Sersic profile is defined as:
+
+    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
+
+    where I(R) is the brightness profile as a function of semi-major
+    axis, R is the semi-major axis length, Ie is the brightness as the
+    half light radius, bn is a function of n and is not involved in
+    the fit, Re is the half light radius, and n is the sersic index
+    which controls the shape of the profile.
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
+        Re: half light radius
 
     """
     model_type = f"sersic {Ray_Galaxy.model_type}"

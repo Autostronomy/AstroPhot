@@ -14,10 +14,25 @@ class Warp_Galaxy(Galaxy_Model):
     individually. In the limit that PA and q are a constant, this
     recovers a basic galaxy model with global PA/q. However, a linear
     PA profile will give a spiral appearance, variations of PA/q
-    profiles can create complex galaxy models.
+    profiles can create complex galaxy models. The form of the
+    coordinate transformation looks like:
+
+    X, Y = meshgrid(image)
+    R = sqrt(X^2 + Y^2)
+    X', Y' = Rot(theta(R), X, Y)
+    Y'' = Y' / q(R)
+
+    where the definitions are the same as for a regular galaxy model,
+    except now the theta is a function of radius R (before
+    transformation) and the axis ratio q is also a function of radius
+    (before the transformation).
+    
+    Parameters:
+        q(R): Tensor of axis ratio values for axis ratio spline
+        PA(R): Tensor of position angle values as input to the spline
 
     """
-    model_type = " ".join(("warp", Galaxy_Model.model_type))
+    model_type = f"warp {Galaxy_Model.model_type}"
     parameter_specs = {
         "q(R)": {"units": "b/a", "limits": (0.05,1), "uncertainty": 0.04},
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
@@ -47,9 +62,9 @@ class Warp_Galaxy(Galaxy_Model):
         super().set_fit_window(window)
 
         if self.profR is None:
-            self.profR = [0,self.target.pixelscale]
+            self.profR = [0,2*self.target.pixelscale]
             while self.profR[-1] < torch.min(self.fit_window.shape/2):
-                self.profR.append(self.profR[-1] + torch.max(self.target.pixelscale,self.profR[-1]*0.2))
+                self.profR.append(self.profR[-1] + torch.max(2*self.target.pixelscale,self.profR[-1]*0.2))
             self.profR.pop()
             self.profR.pop()
             self.profR.append(torch.sqrt(torch.sum((self.fit_window.shape/2)**2)))

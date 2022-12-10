@@ -11,13 +11,24 @@ import numpy as np
 __all__ = ["Gaussian_Galaxy", "Gaussian_SuperEllipse", "Gaussian_SuperEllipse_Warp", "Gaussian_FourierEllipse", "Gaussian_FourierEllipse_Warp", "Gaussian_Warp", "Gaussian_Star"]
 
 class Gaussian_Galaxy(Galaxy_Model):
-    """Basic galaxy model with Gaussian as the radial light profile.
+    """Basic galaxy model with Gaussian as the radial light profile. The
+    gaussian radial profile is defined as:
 
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
+    
     """
     model_type = f"gaussian {Galaxy_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("sigma", "flux")
 
@@ -26,13 +37,23 @@ class Gaussian_Galaxy(Galaxy_Model):
 
 class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     """Super ellipse galaxy model with Gaussian as the radial light
-    profile.
+    profile.The gaussian radial profile is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("sigma", "flux")
 
@@ -41,13 +62,23 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
 
 class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     """super ellipse warp galaxy model with a gaussian profile for the
-    radial light profile.
+    radial light profile. The gaussian radial profile is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {SuperEllipse_Warp.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("sigma", "flux")
 
@@ -56,13 +87,24 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     
 class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with a gaussian
-    profile for the radial light profile.
+    profile for the radial light profile. The gaussian radial profile
+    is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("sigma", "flux")
 
@@ -71,13 +113,24 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
 
 class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a gaussian
-    profile for the radial light profile.
+    profile for the radial light profile. The gaussian radial profile
+    is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {FourierEllipse_Warp.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("sigma", "flux")
 
@@ -86,13 +139,23 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
 
 class Gaussian_Warp(Warp_Galaxy):
     """Coordinate warped galaxy model with Gaussian as the radial light
-    profile.
+    profile. The gaussian radial profile is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {Warp_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("sigma", "flux")
 
@@ -101,13 +164,24 @@ class Gaussian_Warp(Warp_Galaxy):
 
 
 class Gaussian_Star(Star_Model):
-    """Basica star model with a Gaussian as the radial light profile.
+    """Basica star model with a Gaussian as the radial light profile. The
+    gaussian radial profile is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {Star_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
 
@@ -130,14 +204,24 @@ class Gaussian_Star(Star_Model):
         return self.radial_model(torch.sqrt(X**2 + Y**2), image)
         
 class Gaussian_Ray(Ray_Galaxy):
-    """ray galaxy model with a gaussian profile for the
-    radial light model.
+    """ray galaxy model with a gaussian profile for the radial light
+    model. The gaussian radial profile is defined as:
+
+    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
+
+    where I(R) is the prightness as a function of semi-major axis
+    length, F is the total flux in the model, R is the semi-major
+    axis, and S is the standard deviation.
+
+    Parameters:
+        sigma: standard deviation of the gaussian profile, must be a positive value
+        flux: the total flux in the gaussian model, represented as the log of the total
 
     """
     model_type = f"gaussian {Ray_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "flux", "limits": (0,None)},
+        "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("sigma", "flux")
 
@@ -193,5 +277,5 @@ class Gaussian_Ray(Ray_Galaxy):
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
             sample_image = self.model_image
-        return gaussian_torch(R, self["sigma"].value[i], self["flux"].value[i] * sample_image.pixelscale**2) # fixme flux * pixelscale^2? doesnt make sense for total flux 
+        return gaussian_torch(R, self["sigma"].value[i], 10**self["flux"].value[i]) # fixme flux * pixelscale^2? doesnt make sense for total flux 
     

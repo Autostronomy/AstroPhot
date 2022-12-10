@@ -19,7 +19,18 @@ __all__ = ["Exponential_Galaxy", "Exponential_Star", "Exponential_SuperEllipse",
 
 class Exponential_Galaxy(Galaxy_Model):
     """basic galaxy model with a exponential profile for the radial light
-    profile.
+    profile. The light profile is defined as:
+
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
 
     """
     model_type = f"exponential {Galaxy_Model.model_type}"
@@ -33,8 +44,19 @@ class Exponential_Galaxy(Galaxy_Model):
     from ._shared_methods import exponential_initialize as initialize
 
 class Exponential_Star(Star_Model):
-    """basic galaxy model with a exponential profile for the radial light
+    """basic star model with a exponential profile for the radial light
     profile.
+
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
 
     """
     model_type = f"exponential {Star_Model.model_type}"
@@ -54,6 +76,17 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
     """super ellipse galaxy model with a exponential profile for the radial
     light profile.
 
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
+
     """
     model_type = f"exponential {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
@@ -68,6 +101,17 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
 class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
     """super ellipse warp galaxy model with a exponential profile for the
     radial light profile.
+
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
 
     """
     model_type = f"exponential {SuperEllipse_Warp.model_type}"
@@ -84,6 +128,17 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with an
     expoential profile for the radial light profile.
 
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
+
     """
     model_type = f"exponential {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
@@ -98,6 +153,17 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
 class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a exponential
     profile for the radial light profile.
+
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
 
     """
     model_type = f"exponential {FourierEllipse_Warp.model_type}"
@@ -114,6 +180,17 @@ class Exponential_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a exponential profile for the
     radial light model.
 
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
+
     """
     model_type = f"exponential {Warp_Galaxy.model_type}"
     parameter_specs = {
@@ -128,6 +205,17 @@ class Exponential_Warp(Warp_Galaxy):
 class Exponential_Ray(Ray_Galaxy):
     """ray galaxy model with a exponential profile for the
     radial light model.
+
+    I(R) = Ie * exp(-b1(R/Re - 1))
+
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
+
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
 
     """
     model_type = f"exponential {Ray_Galaxy.model_type}"
@@ -197,6 +285,17 @@ class Exponential_Exponential_EdgeOn(EdgeOn_Model):
     """model for an edge-on galaxy with a exponential profile for the radial light
     profile and for the vertical light profile.
 
+    I(R, z) = I0 * exp(-R/Rr) * exp(-z/Rz)
+
+    where I(R, z) is the brightness as a function of semi-major axis and disk height, I0
+    is the central brightness, R is the semi-major axis, z is the disk height, Rr is the
+    scale length on the semi-major axis, Rz is the scale length in the disk height..
+
+    Parameters:
+        I0: Central brightness, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Rr: scale length in semi-major axis, represented in arcsec. This parameter cannot go below zero.
+        Rz: scale length in disk height, represented in arcsec. This parameter cannot go below zero.
+
     """
     model_type = f"expexp {EdgeOn_Model.model_type}"
     parameter_specs = {
@@ -215,6 +314,16 @@ class Exponential_Sech2_EdgeOn(EdgeOn_Model):
     """model for an edge-on galaxy with a exponential profile for the radial light
     profile and a sech^2 profile for the vertical component.
 
+    I(R, z) = I0 * exp(-R/Rr) * sech(-z/Rz)^2
+
+    where I(R, z) is the brightness as a function of semi-major axis and disk height, I0
+    is the central brightness, R is the semi-major axis, z is the disk height, Rr is the
+    scale length on the semi-major axis, Rz is the scale length in the disk height.
+
+    Parameters:
+        I0: Central brightness, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Rr: scale length in semi-major axis, represented in arcsec. This parameter cannot go below zero.
+        Rz: scale length in disk height, represented in arcsec. This parameter cannot go below zero.
     """
     model_type = f"expsech2 {EdgeOn_Model.model_type}"
     parameter_specs = {

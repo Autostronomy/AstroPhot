@@ -6,7 +6,17 @@ import torch
 __all__ = ["Plane_Sky"]
 
 class Plane_Sky(Sky_Model):
-    """Sky background model using a tilted plane for the sky flux.
+    """Sky background model using a tilted plane for the sky flux. The brightness for each pixel is defined as:
+
+    I(X, Y) = S + X*dx + Y*dy
+
+    where I(X,Y) is the brightness as a funcion of image position X Y,
+    S is the central sky brightness value, and dx dy are the slopes of
+    the sky brightness plane.
+
+    Parameters:
+        sky: central sky brightness value
+        delta: Tensor for slope of the sky brightness in each image dimension
 
     """
     model_type = f"plane {Sky_Model.model_type}"

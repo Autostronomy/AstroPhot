@@ -12,9 +12,17 @@ class BaseImage(object):
     object can also determine coordinate locations for all of its
     pixels (get_coordinate_meshgrid).
 
+    Parameters:
+        data: the matrix of pixel values for the image
+        pixelscale: the length of one side of a pixel in arcsec/pixel
+        window: an AutoProf Window object which defines the spatial cooridnates on the sky
+        filename: a filename from which to load the image.
+        zeropoint: photometric zero point for converting from pixel flux to magnitude
+        note: a note about this image if any
+        origin
     """
 
-    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float32, **kwargs):
+    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float64, **kwargs):
         
         self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
         self.dtype = dtype
@@ -150,7 +158,7 @@ class BaseImage(object):
         hdul = fits.open(filename)
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
-                self.set_data(np.array(hdu.data, dtype = np.float32), require_shape = False)
+                self.set_data(np.array(hdu.data, dtype = np.float64), require_shape = False)
                 self.pixelscale = eval(hdu.header.get("PXLSCALE"))
                 self.zeropoint = eval(hdu.header.get("ZEROPNT"))
                 self.note = hdu.header.get("NOTE")

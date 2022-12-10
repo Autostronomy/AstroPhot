@@ -33,7 +33,7 @@ class AutoProf_Model(object):
 
     model_type = ""
 
-    dtype = torch.float32
+    dtype = torch.float64
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def __new__(cls, *args, filename = None, model_type = None, **kwargs):
