@@ -163,7 +163,7 @@ class BaseModel(AutoProf_Model):
         working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         if "full" not in self.integrate_mode:
             working_image.data += self.evaluate_model(working_image)
-
+            
         if "full" in self.psf_mode:
             self.integrate_model(working_image)
             working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)  #conv2d(working_image.data.view(1,1,*working_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]

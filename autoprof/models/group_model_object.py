@@ -127,7 +127,6 @@ class Group_Model(AutoProf_Model):
             model.sample(sample_image)
             if sample_image is None:
                 self.model_image += model.model_image
-                
         if sample_image is self.model_image:
             self.is_sampled = True
 

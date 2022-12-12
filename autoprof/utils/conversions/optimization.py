@@ -7,7 +7,7 @@ def boundaries(val, limits):
     """
     tval = val if isinstance(val, torch.Tensor) else torch.tensor(val)
     if limits[0] is None:
-        return tval - 1. / (tval - limits[1])
+        return tval - 1. / (tval - limits[1]) # fixme check + or -?
     elif limits[1] is None:
         return tval - 1. / (tval - limits[0])
     return torch.tan((tval - limits[0]) * np.pi / (limits[1] - limits[0]) - np.pi/2)

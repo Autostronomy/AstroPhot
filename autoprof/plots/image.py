@@ -40,32 +40,33 @@ def target_image(fig, ax, target, window = None, **kwargs):
     )
 
     return fig, ax
-    
+
+@torch.no_grad()
 def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
 
     if image is None:
-        with torch.no_grad():
-            model.sample(model.model_image)
+        model.sample(model.model_image)
         image = model.model_image.data.detach().cpu().numpy()
 
     imshow_kwargs = {
         "extent": model.model_image.window.plt_extent,
         "cmap": cmap_grad,
         "origin": "lower",
+        "norm": ImageNormalize(stretch=LogStretch(),clip = False),
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
-    # if isinstance(model, models.Group_Model):
-    #     for M in model.model_list:
-    #         if isinstance(M,models.Sky_Model):
-    #             try:
-    #                 sky_level = M["sky"].value.detach().cpu().item()*(1. + 1e-6)*model.target.pixelscale**2
-    #                 print("subtracting sky level: ", sky_level)
-    #                 break
-    #             except Exception as e:
-    #                 print(e)
+    if isinstance(model, models.Group_Model):
+        for M in model.model_list:
+            if isinstance(M,models.Sky_Model):
+                try:
+                    sky_level = (10**(M["sky"].value)*model.target.pixelscale**2).detach().cpu().item()
+                    print("subtracting sky level: ", sky_level)
+                    break
+                except Exception as e:
+                    print(e)
     im = ax.imshow(
-        np.log10(image - sky_level),
+        image - sky_level,
         **imshow_kwargs,
     )
     if showcbar:
@@ -73,13 +74,12 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
 
     return fig, ax
 
-
+@torch.no_grad()
 def residual_image(fig, ax, model, showcbar = True, window = None, center_residuals = False, **kwargs):
 
     if window is None:
         window = model.fit_window
-    with torch.no_grad():
-        model.sample(model.model_image)
+    model.sample(model.model_image)
     residuals = (
         model.target[window].data.detach().cpu().numpy()
         - model.model_image[window].data.detach().cpu().numpy()
