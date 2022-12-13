@@ -192,7 +192,7 @@ class Gaussian_Star(Star_Model):
         super().initialize(target)
         if self["sigma"].value is not None and self["flux"].value is not None:
             return
-        target_area = target[self.fit_window]
+        target_area = target[self.window]
         self["sigma"].set_value(1, override_locked = self["sigma"].value is None)
         self["sigma"].set_uncertainty(1e-2, override_locked = self["sigma"].uncertainty is None)
         self["flux"].set_value(np.sum(target_area.data.detach().cpu().numpy()), override_locked = self["flux"].value is None)
@@ -231,7 +231,7 @@ class Gaussian_Ray(Ray_Galaxy):
         if all((self["sigma"].value is not None, self["flux"].value is not None)):
             return
         # Get the sub-image area corresponding to the model image
-        target_area = self.target[self.fit_window]
+        target_area = self.target[self.window]
         edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng = (16,84))/2
@@ -276,6 +276,6 @@ class Gaussian_Ray(Ray_Galaxy):
     
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
-            sample_image = self.model_image
-        return gaussian_torch(R, self["sigma"].value[i], 10**self["flux"].value[i]) # fixme flux * pixelscale^2? doesnt make sense for total flux 
+            sample_image = self.target
+        return gaussian_torch(R, self["sigma"].value[i], (10**self["flux"].value[i])*sample_image.pixelscale**2)
     

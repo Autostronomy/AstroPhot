@@ -28,7 +28,7 @@ class EdgeOn_Model(BaseModel):
         if self["PA"].value is not None:
             return
         with torch.no_grad():
-            target_area = target[self.fit_window]
+            target_area = target[self.window]
             edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2

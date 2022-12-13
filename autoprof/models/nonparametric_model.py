@@ -43,7 +43,7 @@ class NonParametric_Galaxy(Galaxy_Model):
             self.profR = None
         super().__init__(*args, **kwargs)    
             
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -76,7 +76,7 @@ class NonParametric_Star(Star_Model):
             self.profR = None
         super().__init__(*args, **kwargs)    
             
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -109,7 +109,7 @@ class NonParametric_Warp(Warp_Galaxy):
             self.profR = None
         super().__init__(*args, **kwargs)
     
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -144,7 +144,7 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
             self.profR = None
         super().__init__(*args, **kwargs)
             
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -176,7 +176,7 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
             self.profR = None
         super().__init__(*args, **kwargs)
             
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -209,7 +209,7 @@ class NonParametric_Ray(Ray_Galaxy):
             self.profR = None
         super().__init__(*args, **kwargs)
     
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -242,7 +242,7 @@ class NonParametric_Wedge(Wedge_Galaxy):
             self.profR = None
         super().__init__(*args, **kwargs)
     
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -276,7 +276,7 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
             self.profR = None
         super().__init__(*args, **kwargs)
             
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state
@@ -308,7 +308,7 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
             self.profR = None
         super().__init__(*args, **kwargs)
             
-    from ._shared_methods import nonparametric_set_fit_window as set_fit_window
+    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
     from ._shared_methods import nonparametric_get_state as get_state

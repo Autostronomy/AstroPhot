@@ -33,18 +33,18 @@ class Group_Model(AutoProf_Model):
         self._user_locked = locked
         self._locked = self._user_locked
         self._psf_mode = None
-        self.loss = None
+        self.window = None
         self.equality_constraints = kwargs.get("equality_constraints", None)
         if self.equality_constraints is not None and isinstance(self.equality_constraints[0], str):
             self.equality_constraints = [self.equality_constraints]
-        self.update_fit_window()
+        self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
         self.update_equality_constraints()
 
     def add_model(self, model):
         self.model_list.append(model)
-        self.update_fit_window()
+        self.update_window()
 
     def update_equality_constraints(self):
         """Equality constraints given aa a list of tuples, where each tuple is
@@ -58,24 +58,28 @@ class Group_Model(AutoProf_Model):
         for constraint in self.equality_constraints:
             for model in constraint[2:]:
                 self[model].parameters[constraint[0]] = self[constraint[1]].parameters[constraint[0]]
+
+    # @property #fixme move window to core_model
+    # def window(self):
+    #     return self._window
+    # @window.setter
+    # def window(self, win):
+    #     self._window = win
+    #     if win is None:
+    #         return
+    #     self._window.to(dtype = self.dtype, device = self.device)
         
-    def update_fit_window(self):
-        self.fit_window = None
+    def update_window(self):
+        self.window = None
         for model in self.model_list:
             if model.locked:
                 continue
-            if self.fit_window is None:
-                self.fit_window = deepcopy(model.fit_window)
+            if self.window is None:
+                self.window = model.window.make_copy()
             else:
-                self.fit_window |= model.fit_window
-        if self.fit_window is None:
-            self.fit_window = self.target.window
-        self.model_image = Model_Image(
-            pixelscale = self.target.pixelscale,
-            window = self.fit_window,
-            dtype = self.dtype,
-            device = self.device,
-        )
+                self.window |= model.window
+        if self.window is None:
+            self.window = self.target.window
 
     @property
     def parameter_order(self):
@@ -94,8 +98,7 @@ class Group_Model(AutoProf_Model):
         target_copy = target.copy()
         for model in self.model_list:
             model.initialize(target_copy)
-            model.sample()
-            target_copy -= model.model_image
+            target_copy -= model.sample()
     # def initialize(self):#fixme what was this?
     #     for model in self.model_list:
     #         model.locked = True
@@ -115,26 +118,21 @@ class Group_Model(AutoProf_Model):
     def sample(self, sample_image = None):
         if self.locked:
             return
-        if self.is_sampled and sample_image is self.model_image:
-            return
-        if sample_image is None or sample_image is self.model_image:
-            self.model_image.clear_image()
-        self.loss = None
-        
-        for model in self.model_list:
-            if model.locked:
-                continue
-            model.sample(sample_image)
-            if sample_image is None:
-                self.model_image += model.model_image
-        if sample_image is self.model_image:
-            self.is_sampled = True
 
-    def step(self, parameters = None, parameters_as_representation = True):
-        super().step(parameters, parameters_as_representation)
-        for model in self.model_list:#fixme give each model their parameters individually? maybe
-            model.step()
-            
+        if sample_image is None:
+            sample_window = True
+            sample_image = self.make_model_image()
+        else:
+            sample_window = False
+
+        for model in self.model_list:
+            if sample_window:
+                sample_image += model.sample()
+            else:
+                model.sample(sample_image)
+
+        return sample_image
+    
     def get_parameters_representation(self, exclude_locked = True, exclude_equality_constraint = True):
         all_parameters = []
         all_keys = []
@@ -166,12 +164,12 @@ class Group_Model(AutoProf_Model):
     def jacobian(self, parameters):
         vstart = 0
         ivstart = 0
-        full_jac = torch.zeros(tuple(self.model_image.data.shape) + (len(parameters),), dtype = self.dtype, device = self.device)
+        full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (len(parameters),), dtype = self.dtype, device = self.device)
         for model in self.model_list:
             keys, reps = model.get_parameters_representation()
             vend = vstart + np.sum(self.parameter_vector_len[ivstart:ivstart + len(keys)])
             sub_jac = model.jacobian(parameters[vstart:vend])
-            indices = model.model_image.window.get_indices(self.model_image)
+            indices = model.window._get_indices(self.window, self.target.pixelscale)
             for ip, i in enumerate(range(vstart, vend)):
                 full_jac[indices[0], indices[1], i] = sub_jac[:,:,ip]
             ivstart += len(keys)

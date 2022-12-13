@@ -89,7 +89,6 @@ class Grad(BaseOptimizer):
         # initialize the model for optimization. Calling startup lets the model know that optimization will begin soon
         self.model.startup()
         # step ensures that no previous state from sampling the model is saved, 
-        self.model.step()
 
         try:
             while True:
@@ -108,7 +107,7 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.step(torch.tensor(self.res()))
+        self.model.set_parameters(torch.tensor(self.res()))
         # finalize tells the model that optimization is now finished
         self.model.finalize()
         

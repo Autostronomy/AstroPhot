@@ -21,7 +21,7 @@ def exponential_initialize(self, target = None):
     if all((self["Ie"].value is not None, self["Re"].value is not None)):
         return
     # Get the sub-image area corresponding to the model image
-    target_area = target[self.fit_window]
+    target_area = target[self.window]
     edge = np.concatenate((
         target_area.data.detach().cpu().numpy()[:,0],
         target_area.data.detach().cpu().numpy()[:,-1],
@@ -61,7 +61,7 @@ def exponential_initialize(self, target = None):
             
 def exponential_radial_model(self, R, sample_image = None):
     if sample_image is None:
-        sample_image = self.model_image
+        sample_image = self.target
     return exponential_torch(R, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
 
 # Sersic
@@ -74,7 +74,7 @@ def sersic_initialize(self, target = None):
     if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
         return
     # Get the sub-image area corresponding to the model image
-    target_area = target[self.fit_window]
+    target_area = target[self.window]
     edge = np.concatenate((
         target_area.data.detach().cpu().numpy()[:,0],
         target_area.data.detach().cpu().numpy()[:,-1],
@@ -121,7 +121,7 @@ def sersic_initialize(self, target = None):
             
 def sersic_radial_model(self, R, sample_image = None):
     if sample_image is None:
-        sample_image = self.model_image
+        sample_image = self.target
     return sersic_torch(R, self["n"].value, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
 
 # Gaussian
@@ -134,7 +134,7 @@ def gaussian_initialize(self, target = None):
     if all((self["sigma"].value is not None, self["flux"].value is not None)):
         return
     # Get the sub-image area corresponding to the model image
-    target_area = target[self.fit_window]
+    target_area = target[self.window]
     edge = np.concatenate((
         target_area.data.detach().cpu().numpy()[:,0],
         target_area.data.detach().cpu().numpy()[:,-1],
@@ -173,21 +173,21 @@ def gaussian_initialize(self, target = None):
 
 def gaussian_radial_model(self, R, sample_image = None):
     if sample_image is None:
-        sample_image = self.model_image
-    return gaussian_torch(R, self["sigma"].value, 10**self["flux"].value)
+        sample_image = self.target
+    return gaussian_torch(R, self["sigma"].value, (10**self["flux"].value)*sample_image.pixelscale**2)
 
 # NonParametric
 ######################################################################
-def nonparametric_set_fit_window(self, window):
-    super(self.__class__, self).set_fit_window(window)
+def nonparametric_set_window(self, window):
+    super(self.__class__, self).set_window(window)
     
     if self.profR is None:
         self.profR = [0,2*self.target.pixelscale]
-        while self.profR[-1] < torch.min(self.fit_window.shape/2):
+        while self.profR[-1] < torch.min(self.window.shape/2):
             self.profR.append(self.profR[-1] + torch.max(2*self.target.pixelscale,self.profR[-1]*0.2))
         self.profR.pop()
         self.profR.pop()
-        self.profR.append(torch.sqrt(torch.sum((self.fit_window.shape/2)**2)))
+        self.profR.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
         self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
 
 @torch.no_grad()
@@ -199,7 +199,7 @@ def nonparametric_initialize(self, target = None):
         return
     
     profR = self.profR.detach().cpu().numpy()
-    target_area = target[self.fit_window]
+    target_area = target[self.window]
     X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
     X, Y = self.transform_coordinates(X, Y)
     R = self.radius_metric(X, Y).detach().cpu().numpy()
@@ -218,14 +218,14 @@ def nonparametric_initialize(self, target = None):
 
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:
-        sample_image = self.model_image
+        sample_image = self.target
     I = cubic_spline_torch(self.profR, self["I(R)"].value, R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
     res = 10**(I) * sample_image.pixelscale**2
     res[R > self.profR[-2]] = 10**(self["I(R)"].value[-2] + (R[R > self.profR[-2]] - self.profR[-2])*((self["I(R)"].value[-1] - self["I(R)"].value[-2])/(self.profR[-1] - self.profR[-2]))) * sample_image.pixelscale**2
     return res
 def nonparametric_iradial_model(self, i, R, sample_image = None):
     if sample_image is None:
-        sample_image = self.model_image
+        sample_image = self.target
     I =  cubic_spline_torch(self.profR, self["I(R)"].value[i], R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
     res = 10**(I) * sample_image.pixelscale**2
     res[R > self.profR[-2]] = 10**(self["I(R)"].value[i][-2] + (R[R > self.profR[-2]] - self.profR[-2])*((self["I(R)"].value[i][-1] - self["I(R)"].value[i][-2])/(self.profR[-1] - self.profR[-2]))) * sample_image.pixelscale**2

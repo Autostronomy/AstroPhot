@@ -233,7 +233,7 @@ class Exponential_Ray(Ray_Galaxy):
             return
         with torch.no_grad():
             # Get the sub-image area corresponding to the model image
-            target_area = target[self.fit_window]
+            target_area = target[self.window]
             edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
             edge_average = np.median(edge)
             edge_scatter = iqr(edge, rng = (16,84))/2
@@ -278,7 +278,7 @@ class Exponential_Ray(Ray_Galaxy):
     
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
-            sample_image = self.model_image
+            sample_image = self.target
         return exponential_torch(R, self["Re"].value[i], (10**self["Ie"].value[i]) * sample_image.pixelscale**2)
         
 class Exponential_Exponential_EdgeOn(EdgeOn_Model):
@@ -305,10 +305,10 @@ class Exponential_Exponential_EdgeOn(EdgeOn_Model):
     }
     _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "Rz")
 
-    def brightness_model(R, h, image):
+    def brightness_model(R, h, sample_image = None):
         if sample_image is None:
-            sample_image = self.model_image
-        return self["I0"] * torch.exp(- R / self["Rr"]) * torch.exp(- h / self["Rz"])
+            sample_image = self.target
+        return self["I0"] * torch.exp(- R / self["Rr"]) * torch.exp(- h / self["Rz"]) * sample_image.pixelscale**2
 
 class Exponential_Sech2_EdgeOn(EdgeOn_Model):
     """model for an edge-on galaxy with a exponential profile for the radial light
@@ -333,7 +333,7 @@ class Exponential_Sech2_EdgeOn(EdgeOn_Model):
     }
     _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "hz")
 
-    def brightness_model(R, h, image):
+    def brightness_model(R, h, sample_image = None):
         if sample_image is None:
-            sample_image = self.model_image
-        return self["I0"] * torch.exp(- R / self["Rr"]) * torch.sech(- h / self["hz"])**2
+            sample_image = self.target
+        return self["I0"] * torch.exp(- R / self["Rr"]) * torch.sech(- h / self["hz"])**2 * sample_image.pixelscale**2

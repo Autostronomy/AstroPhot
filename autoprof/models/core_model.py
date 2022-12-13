@@ -5,6 +5,8 @@ from autoprof import plots
 import matplotlib.pyplot as plt
 from autoprof.utils.conversions.optimization import cyclic_difference_np
 from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
+from autoprof.utils.optimization import reduced_chi_squared
+from autoprof.image import Model_Image, AP_Window
 from copy import copy
 from time import time
 from torch.autograd.functional import jacobian
@@ -69,6 +71,14 @@ class AutoProf_Model(object):
         """
         pass
 
+    def make_model_image(self):
+        return Model_Image(
+            window = self.window,
+            pixelscale = self.target.pixelscale,
+            dtype = self.dtype,
+            device = self.device,
+        )
+        
     def startup(self):
         """Run immediately before fitting begins. Typically this is not
         needed, though it is available for models which require
@@ -91,45 +101,29 @@ class AutoProf_Model(object):
         """
         pass
 
-    def compute_loss(self):
+    def compute_loss(self, return_sample = False):
         """Compute a standard Chi^2 loss given the target image, model, and
         variance image. Typically if overloaded this will also be
         called with super() and higher methods will multiply or add to
         the loss.
 
         """
-        pixels = torch.prod(self.model_image.window.shape/self.target.pixelscale)
-        if self.target.has_mask:
-            mask = torch.logical_not(self.target[self.model_image.window].mask)
-            pixels = torch.sum(mask)
-            self.loss = torch.sum((
-                torch.pow(
-                    (
-                        self.target[self.model_image.window].data
-                        - self.model_image.data
-                    ),
-                    2,
-                )
-                / self.target[self.model_image.window].variance
-            )[mask])
-        else:
-            self.loss = torch.sum(
-                torch.pow((self.target[self.model_image.window] - self.model_image).data, 2)
-                / self.target[self.model_image.window].variance
-            )
-        self.loss /= pixels - np.sum(self.parameter_vector_len)
-        if self.constraints is not None:
-            for constraint in self.constraints:
-                self.loss *= 1 + self.constraint_strength * constraint(self)
-        return self.loss
+        model_image = self.sample()
+        loss = reduced_chi_squared(
+            self.target[self.window].data,
+            model_image.data,
+            np.sum(self.parameter_vector_len),
+            self.target[self.window].mask,
+            self.target[self.window].variance
+        )
+        # if self.constraints is not None:
+        #     for constraint in self.constraints:
+        #         loss *= 1 + self.constraint_strength * constraint(self)
+        if return_sample:
+            return loss, model_image
+        return loss
 
-    def step(self, parameters = None, parameters_as_representation = True):
-        """Call after updating any of the model parameters.
-
-        """
-        self.is_sampled = False
-        if parameters is None:
-            return
+    def set_parameters(self, parameters, override_locked = False, parameters_as_representation = True):
         if isinstance(parameters, dict):
             for P in parameters:
                 isinstance(parameters[P], torch.Tensor)
@@ -146,7 +140,7 @@ class AutoProf_Model(object):
             else:
                 self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
             start += V
-
+        
     def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
         uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
         start = 0
@@ -169,16 +163,14 @@ class AutoProf_Model(object):
         pass
 
     def full_sample(self, parameters = None):
-        self.step(parameters)
-        self.sample()
-        self.compute_loss()
-        return self.model_image.data
+        if parameters is not None:
+            self.set_parameters(parameters)
+        return self.sample().data
 
     def full_loss(self, parameters = None):
-        self.step(parameters)
-        self.sample()
-        self.compute_loss()
-        return self.loss
+        if parameters is not None:
+            self.set_parameters(parameters)
+        return self.compute_loss()
 
     def jacobian(self, parameters):
         return jacobian(
@@ -188,6 +180,38 @@ class AutoProf_Model(object):
             vectorize = True,
             create_graph = False,
         )
+
+    @property
+    def window(self): # fixme allow None window that just reproduces full image
+        return self._window
+    def set_window(self, window):
+        # If no window given, use the whole image
+        if window is None:
+            window = [
+                [0, self.target.data.shape[1]],
+                [0, self.target.data.shape[0]],
+            ]
+            index_units = False
+    
+        # If the window is given in proper format, simply use as-is
+        if isinstance(window, AP_Window):
+            self._window = window
+        else:
+            self._window = AP_Window(
+                origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
+                shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
+                dtype = self.dtype,
+                device = self.device,
+            )
+        if self._base_window is None:
+            self._base_window = self._window.make_copy()
+    
+        self._window = self._window & self.target.window
+    
+    @window.setter
+    def window(self, window):
+        self.set_window(window)
+        self._window.to(dtype = self.dtype, device = self.device)
 
     def __str__(self):
         """String representation for the model."""

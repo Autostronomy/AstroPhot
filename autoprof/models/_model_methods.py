@@ -5,14 +5,6 @@ from autoprof.image import Model_Image, Target_Image, AP_Window
 from copy import deepcopy
 import torch
 
-def _set_default_parameters(self):
-    self._base_window = None
-    self.parameters = {}
-    self.loss = None
-    self.gradient = None
-    self.iteration = -1
-    self.is_sampled = False
-    
 def scale_window(self, scale = 1., border = 0.):
     window = (self._base_window * scale) + border
     window &= self.target.window
@@ -28,67 +20,31 @@ def target(self, tar):
     assert isinstance(tar, Target_Image)
     self._target = tar.to(dtype = self.dtype, device = self.device)
     
-@property
-def fit_window(self):
-    return self._fit_window
-def set_fit_window(self, window):
-    # If no window given, use the whole image
-    if window is None:
-        window = [
-            [0, self.target.data.shape[1]],
-            [0, self.target.data.shape[0]],
-        ]
-        index_units = False
-    
-    # If the window is given in proper format, simply use as-is
-    if isinstance(window, AP_Window):
-        self._fit_window = window
-    else:
-        self._fit_window = AP_Window(
-            origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
-            shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
-            dtype = self.dtype,
-            device = self.device,
-        )
-    if self._base_window is None:
-        self._base_window = deepcopy(self._fit_window)
-        
-    # Create the model image for this model
-    self.model_image = Model_Image(
-        pixelscale = self.target.pixelscale,
-        window = self._fit_window,
-        dtype = self.dtype,
-        device = self.device,
-    )
-    
-@fit_window.setter
-def fit_window(self, window):
-    self.set_fit_window(window)
     
 @property
 def integrate_window(self):
-    use_center = torch.round(self["center"].value/self.model_image.pixelscale)
+    use_center = torch.round(self["center"].value/self.target.pixelscale)
     int_origin = (
-        (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
-        (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.model_image.pixelscale,
+        (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
+        (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
     )
     int_shape = (
-        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
-        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.model_image.pixelscale,
+        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
+        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
     )
     return AP_Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
     
 @property
 def psf_window(self):
-    use_center = torch.floor(self["center"].value/self.model_image.pixelscale)
+    use_center = torch.floor(self["center"].value/self.target.pixelscale)
     psf_offset = (self.psf_window_size - (self.psf_window_size % 2))/2
     psf_origin = (
-        (use_center[0] - psf_offset)*self.model_image.pixelscale,
-        (use_center[1] - psf_offset)*self.model_image.pixelscale,
+        (use_center[0] - psf_offset)*self.target.pixelscale,
+        (use_center[1] - psf_offset)*self.target.pixelscale,
     )
     psf_shape = (
-        (psf_offset*2 + 1)*self.model_image.pixelscale,
-        (psf_offset*2 + 1)*self.model_image.pixelscale,
+        (psf_offset*2 + 1)*self.target.pixelscale,
+        (psf_offset*2 + 1)*self.target.pixelscale,
     )
     return AP_Window(origin = psf_origin, shape = psf_shape, dtype = self.dtype, device = self.device)
 
@@ -156,17 +112,6 @@ def get_parameters_value(self, exclude_locked = True):
         # Return parameter selected
         return_parameters[p] = self.parameters[p].value
     return return_parameters
-
-def step_iteration(self):
-    if self.locked:
-        if isinstance(self.locked, int):
-            self.update_locked(self.locked - 1)
-        if self.locked:
-            return
-    if not self.loss is None:
-        self.loss = None
-    self.is_sampled = False
-    self.iteration += 1
 
 def __str__(self):
     state = self.get_state()

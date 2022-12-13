@@ -40,7 +40,7 @@ class PSF_Star(Star_Model):
         if target is None:
             target = self.target
         super().initialize(target)
-        target_area = target[self.fit_window]        
+        target_area = target[self.window]        
         self["flux"].set_value(torch.log10(torch.abs(torch.sum(target_area.data)) / target_area.pixelscale**2), override_locked = self["flux"].value is None)
         self["flux"].set_uncertainty(torch.abs(self["flux"].value) * 1e-2, override_locked = self["flux"].uncertainty is None)
         

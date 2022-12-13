@@ -34,12 +34,12 @@ class Plane_Sky(Sky_Model):
 
         if self["sky"].value is None:
             self["sky"].set_value(
-                np.median(target[self.model_image].data) / target.pixelscale**2,
+                np.median(target[self.window].data) / target.pixelscale**2,
                 override_locked=True,
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                (iqr(target[self.model_image].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale**2)) / np.sqrt(np.prod(self.fit_window.shape)),
+                (iqr(target[self.window].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale**2)) / np.sqrt(np.prod(self.window.shape)),
                 override_locked=True,
             )
         if self["delta"].value is None:

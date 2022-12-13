@@ -38,8 +38,10 @@ class AP_Window(object):
     
     def get_shape(self, pixelscale):
         return (torch.round(self.shape / pixelscale)).int()
-        
-    def get_indices(self, obj):
+    def get_shape_flip(self, pixelscale):
+        return (torch.round(torch.flip(self.shape, (0,)) / pixelscale)).int()
+
+    def _get_indices(self, obj_window, obj_pixelscale):
         """
         Return an index slicing tuple for obj corresponding to this window
         """
@@ -48,11 +50,17 @@ class AP_Window(object):
         #     print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)# fixme
         #     raise ValueError("Cannot determine indices for misaligned windows")
         return (
-            slice(torch.max(torch.tensor(0,dtype = torch.int, device = self.device),(torch.round((self.origin[1] - obj.window.origin[1])/obj.pixelscale)).int()),
-                  torch.min((torch.round(obj.window.shape[1]/obj.pixelscale)).int(), (torch.round((self.origin[1] + self.shape[1] - obj.window.origin[1])/obj.pixelscale)).int())),
-            slice(torch.max(torch.tensor(0,dtype = torch.int, device = self.device),(torch.round((self.origin[0] - obj.window.origin[0])/obj.pixelscale)).int()),
-                  torch.min((torch.round(obj.window.shape[0]/obj.pixelscale)).int(), (torch.round((self.origin[0] + self.shape[0] - obj.window.origin[0])/obj.pixelscale)).int())),
-        )
+            slice(torch.max(torch.tensor(0,dtype = torch.int, device = self.device),(torch.round((self.origin[1] - obj_window.origin[1])/obj_pixelscale)).int()),
+                  torch.min((torch.round(obj_window.shape[1]/obj_pixelscale)).int(), (torch.round((self.origin[1] + self.shape[1] - obj_window.origin[1])/obj_pixelscale)).int())),
+            slice(torch.max(torch.tensor(0,dtype = torch.int, device = self.device),(torch.round((self.origin[0] - obj_window.origin[0])/obj_pixelscale)).int()),
+                  torch.min((torch.round(obj_window.shape[0]/obj_pixelscale)).int(), (torch.round((self.origin[0] + self.shape[0] - obj_window.origin[0])/obj_pixelscale)).int())),
+        )    
+        
+    def get_indices(self, obj):
+        """
+        Return an index slicing tuple for obj corresponding to this window
+        """
+        return self._get_indices(obj.window, obj.pixelscale)
 
     def get_coordinate_meshgrid_np(self, pixelscale, x = 0., y = 0.):
         return np.meshgrid(

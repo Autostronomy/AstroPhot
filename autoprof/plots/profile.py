@@ -21,7 +21,7 @@ def galaxy_light_profile(
 
     xx = torch.linspace(
         R0,
-        torch.max(model.fit_window.shape/2) * extend_profile,
+        torch.max(model.window.shape/2) * extend_profile,
         int(resolution),dtype = model.dtype, device = model.device,
     )
     flux = model.radial_model(xx).detach().cpu().numpy()
@@ -60,7 +60,7 @@ def ray_light_profile(
         
     xx = torch.linspace(
         0,
-        torch.max(model.fit_window.shape/2) * extend_profile,
+        torch.max(model.window.shape/2) * extend_profile,
         int(resolution),dtype = model.dtype, device = model.device,
     )
     for r in range(model.rays):
@@ -93,7 +93,7 @@ def wedge_light_profile(
         
     xx = torch.linspace(
         0,
-        torch.max(model.fit_window.shape/2) * extend_profile,
+        torch.max(model.window.shape/2) * extend_profile,
         int(resolution),dtype = model.dtype, device = model.device
     )
     for r in range(model.wedges):

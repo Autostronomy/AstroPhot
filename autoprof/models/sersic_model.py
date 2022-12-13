@@ -262,7 +262,7 @@ class Sersic_Ray(Ray_Galaxy):
         if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
             return# fixme need to initialize n, Ie, Re as tensors
         # Get the sub-image area corresponding to the model image
-        target_area = self.target[self.fit_window]
+        target_area = self.target[self.window]
         edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng = (16,84))/2
@@ -309,7 +309,7 @@ class Sersic_Ray(Ray_Galaxy):
     
     def iradial_model(self, i, R, sample_image = None):
         if sample_image is None:
-            sample_image = self.model_image
+            sample_image = self.target
         return sersic_torch(R, self[f"n"].value[i], self[f"Re"].value[i], (10**self[f"Ie"].value[i]) * sample_image.pixelscale**2)
         
 # class Sersic_Sersic_EdgeOn(EdgeOn_Model):

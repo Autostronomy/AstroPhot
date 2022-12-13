@@ -13,23 +13,23 @@ __all__ = ["target_image", "model_image", "residual_image", "model_window"]
 def target_image(fig, ax, target, window = None, **kwargs):
     if window is None:
         window = target.window
+    dat = np.copy(target[window].data.detach().cpu().numpy())
     if target.has_mask:
-        dat = np.ma.masked_array(target[window].data.detach().cpu().numpy(), mask = target[window].mask)
-    else:
-        dat = target[window].data.detach().cpu().numpy()
-        
-    sky = np.median(dat)
-    noise = iqr(dat)/2
+        dat[target[window].mask] = np.nan
+
+    sky = np.nanmedian(dat)
+    noise = iqr(dat[np.isfinite(dat)])/2
     vmin = sky - 5*noise
     vmax = sky + 5*noise
+    
     im = ax.imshow(
         dat,
         origin="lower",
         cmap="Greys",
         extent = window.plt_extent,
-        norm=ImageNormalize(stretch=HistEqStretch(dat[dat <= (sky + 3*noise)]), clip = False, vmax = sky + 3*noise, vmin = np.min(dat)),
+        norm=ImageNormalize(stretch=HistEqStretch(dat[np.logical_and(dat <= (sky + 3*noise), np.isfinite(dat))]), clip = False, vmax = sky + 3*noise, vmin = np.nanmin(dat)),
     )
-    ax.imshow(# fixme plotting doesn't always look good with mask
+    ax.imshow(
         np.ma.masked_where(dat < (sky + 3*noise), dat), 
         origin="lower",
         cmap=cmap_grad,
@@ -45,14 +45,13 @@ def target_image(fig, ax, target, window = None, **kwargs):
 def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
 
     if image is None:
-        model.sample(model.model_image)
-        image = model.model_image.data.detach().cpu().numpy()
+        sample_image = model.make_model_image()
+        sample_image = model.sample(sample_image).data.detach().cpu().numpy()
 
     imshow_kwargs = {
-        "extent": model.model_image.window.plt_extent,
+        "extent": model.window.plt_extent,
         "cmap": cmap_grad,
         "origin": "lower",
-        "norm": ImageNormalize(stretch=LogStretch(),clip = False),
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
@@ -60,13 +59,12 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
         for M in model.model_list:
             if isinstance(M,models.Sky_Model):
                 try:
-                    sky_level = (10**(M["sky"].value)*model.target.pixelscale**2).detach().cpu().item()
-                    print("subtracting sky level: ", sky_level)
+                    sky_level = (10**(M["sky"].value)*(1 - 1e-6)*model.target.pixelscale**2).detach().cpu().item()
                     break
                 except Exception as e:
                     print(e)
     im = ax.imshow(
-        image - sky_level,
+        np.log10(sample_image - sky_level),
         **imshow_kwargs,
     )
     if showcbar:
@@ -78,11 +76,12 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
 def residual_image(fig, ax, model, showcbar = True, window = None, center_residuals = False, **kwargs):
 
     if window is None:
-        window = model.fit_window
-    model.sample(model.model_image)
+        window = model.window
+    sample_image = model.make_model_image()
+    sample_image = model.sample(sample_image)
     residuals = (
         model.target[window].data.detach().cpu().numpy()
-        - model.model_image[window].data.detach().cpu().numpy()
+        - sample_image[window].data.detach().cpu().numpy()
     )    
     if model.target.has_mask:
         residuals[model.target[window].mask] = np.nan
@@ -113,8 +112,8 @@ def model_window(fig, ax, model, **kwargs):
 
     if isinstance(model, models.Group_Model):
         for m in model.model_list:
-            ax.add_patch(Rectangle(xy = (m.fit_window.origin[0], m.fit_window.origin[1]), width = m.fit_window.shape[0], height = m.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+            ax.add_patch(Rectangle(xy = (m.window.origin[0], m.window.origin[1]), width = m.window.shape[0], height = m.window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
     else:
-        ax.add_patch(Rectangle(xy = (model.fit_window.origin[0], model.fit_window.origin[1]), width = model.fit_window.shape[0], height = model.fit_window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+        ax.add_patch(Rectangle(xy = (model.window.origin[0], model.window.origin[1]), width = model.window.shape[0], height = model.window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
 
     return fig, ax

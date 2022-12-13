@@ -55,9 +55,10 @@ class BaseModel(AutoProf_Model):
             
         super().__init__(name, target, window, locked, **kwargs)
         
-        self._set_default_parameters()
+        self._base_window = None
+        self.parameters = {}
         self.target = target
-        self.fit_window = window
+        self.window = window
         self._user_locked = locked
         self._locked = self._user_locked
         self.parameter_vector_len = None
@@ -74,7 +75,7 @@ class BaseModel(AutoProf_Model):
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
-                self.step(kwargs["parameters"])
+                self.set_parameters(kwargs["parameters"])
             
         if "filename" in kwargs:
             self.load(kwargs["filename"])
@@ -101,11 +102,11 @@ class BaseModel(AutoProf_Model):
         # Get the sub-image area corresponding to the model image
         if target is None:
             target = self.target
-        target_area = target[self.fit_window]
+        target_area = target[self.window]
             
         # Use center of window if a center hasn't been set yet
         if self["center"].value is None:
-            self["center"].set_value(self.model_image.center, override_locked = True)
+            self["center"].set_value(self.window.center, override_locked = True)
         else:
             return
 
@@ -143,11 +144,7 @@ class BaseModel(AutoProf_Model):
         """
         
         if sample_image is None:
-            sample_image = self.model_image
-        if self.is_sampled and sample_image is self.model_image:
-            return
-        if sample_image is self.model_image:
-            sample_image.clear_image()
+            sample_image = self.make_model_image()
 
         # Check that psf and integrate modes line up
         if "window" in self.psf_mode:
@@ -185,8 +182,8 @@ class BaseModel(AutoProf_Model):
             self.integrate_model(working_image)
 
         sample_image += working_image
-        if sample_image is self.model_image:
-            self.is_sampled = True
+        
+        return sample_image
             
     def integrate_model(self, working_image):
         """Sample the model at a higher resolution than the given image, then
@@ -230,7 +227,7 @@ class BaseModel(AutoProf_Model):
 
     def get_state(self):
         state = super().get_state()
-        state["window"] = self.fit_window.get_state()
+        state["window"] = self.window.get_state()
         if "parameters" not in state:
             state["parameters"] = {}
         for P in self.parameters:
@@ -239,21 +236,19 @@ class BaseModel(AutoProf_Model):
     def load(self, filename = "AutoProf.yaml"):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
-        self.fit_window = AP_Window(dtype = self.dtype, device = self.device, **state["window"])
+        self.window = AP_Window(dtype = self.dtype, device = self.device, **state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
         return state
     
     # Extra background methods for the basemodel
     ######################################################################
-    from ._model_methods import _set_default_parameters
-    from ._model_methods import set_fit_window
-    from ._model_methods import fit_window
+    # from ._model_methods import set_window
+    # from ._model_methods import window
     from ._model_methods import scale_window
     from ._model_methods import target
     from ._model_methods import integrate_window
     from ._model_methods import psf_window
-    from ._model_methods import step_iteration
     from ._model_methods import locked
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters

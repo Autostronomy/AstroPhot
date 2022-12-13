@@ -58,16 +58,16 @@ class Warp_Galaxy(Galaxy_Model):
         if self["q(R)"].value is None:
             self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_locked = True)
             
-    def set_fit_window(self, window):
-        super().set_fit_window(window)
+    def set_window(self, window):
+        super().set_window(window)
 
         if self.profR is None:
             self.profR = [0,2*self.target.pixelscale]
-            while self.profR[-1] < torch.min(self.fit_window.shape/2):
+            while self.profR[-1] < torch.min(self.window.shape/2):
                 self.profR.append(self.profR[-1] + torch.max(2*self.target.pixelscale,self.profR[-1]*0.2))
             self.profR.pop()
             self.profR.pop()
-            self.profR.append(torch.sqrt(torch.sum((self.fit_window.shape/2)**2)))
+            self.profR.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
             self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
         
     def transform_coordinates(self, X, Y):

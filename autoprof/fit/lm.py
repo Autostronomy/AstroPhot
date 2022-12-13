@@ -5,6 +5,7 @@ from time import time
 from .base import BaseOptimizer
 from .gradient import Grad
 import matplotlib.pyplot as plt
+from torch.autograd.functional import jacobian
 
 __all__ = ["LM"]
 
@@ -53,21 +54,21 @@ class LM(BaseOptimizer):
         super().__init__(model, initial_state, **kwargs)
         
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
-        self.Lup = kwargs.get("Lup", 7.)
-        self.Ldn = kwargs.get("Ldn", 5.)
+        self.Lup = kwargs.get("Lup", 11.)
+        self.Ldn = kwargs.get("Ldn", 9.)
         self.L = kwargs.get("L0", 1.)
         self.method = kwargs.get("method", 1)
         
-        self.Y = self.model.target[self.model.fit_window].data.reshape(-1)
+        self.Y = self.model.target[self.model.window].data.reshape(-1)
         #        1 / sigma^2
-        self.W = 1. / self.model.target[self.model.fit_window].variance.reshape(-1) if model.target.has_variance else None
+        self.W = 1. / self.model.target[self.model.window].variance.reshape(-1) if model.target.has_variance else None
         #          # pixels      # parameters              # masked pixels
-        self.ndf = len(self.Y) - len(self.current_state) - torch.sum(model.target[self.model.fit_window].mask).item()
+        self.ndf = len(self.Y) - len(self.current_state) - torch.sum(model.target[self.model.window].mask).item()
         self.J = None
         self.current_Y = None
         self.prev_Y = [None, None]
         if self.model.target.has_mask:
-            self.mask = self.model.target[self.model.fit_window].mask.reshape(-1)
+            self.mask = self.model.target[self.model.window].mask.reshape(-1)
         self.L_history = []
         self.decision_history = []
         self.rho_history = []
@@ -86,17 +87,17 @@ class LM(BaseOptimizer):
         #     if self._count_reject >= 6:
         #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
         h = self.update_h_v2()
+        if self.verbose > 1:
+            print("h: ", h.detach().cpu().numpy())
         
         with torch.no_grad():
-            start = 0
-            if self.iteration > 0:
-                for P, V in zip(self.model.parameter_order, self.model.parameter_vector_len):
-                    start += V
             self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
-            if self.model.target.has_mask: # fixme something to do with the mask is a problem
+            if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
                 loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+        if self.iteration == 0:
+            self.prev_Y[1] = self.current_Y
         self.loss_history.append(loss.detach().cpu().item())
         self.L_history.append(self.L)
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
@@ -107,7 +108,7 @@ class LM(BaseOptimizer):
             self.decision_history.append("nan")
             self.rho_history.append(None)
             self._count_reject += 1
-            self.L = min(1e9, self.Li * self.Lup)
+            self.L = min(1e9, self.Lup)
             return
         elif self.iteration > 0:
             rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
@@ -118,6 +119,7 @@ class LM(BaseOptimizer):
             self.rho_history.append(rho)
             if self.verbose > 1:
                 print("rho: ", rho.item())
+                
             if rho > self.epsilon4:
                 if self.verbose > 0:
                     print("accept")
@@ -129,9 +131,7 @@ class LM(BaseOptimizer):
                 self._count_reject = 0
                 if 0 < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
                     self._count_finish += 1
-                else:
-                    self._count_finish = 0
-            elif self._count_reject == 6:
+            elif self._count_reject == 8:
                 if self.verbose > 1:
                     print("reject, resetting jacobian")
                 self.decision_history.append("reject")
@@ -144,22 +144,23 @@ class LM(BaseOptimizer):
                 self.L = min(1e9, self.L * self.Lup)
                 self._count_reject += 1
                 return
+            
         else:
             self.decision_history.append("init")
             self.rho_history.append(None)
 
-        if self.J is None or self.iteration < 2 or rho < 0.1 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
-            self.update_J_AD()
+        if self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
             if self.verbose > 1:
                 print("full jac")
+            self.update_J_AD()
         else:
-            self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
             if self.verbose > 1:
                 print("Broyden jac")
+            self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
 
         self.update_hess()
-        self.update_grad(self.current_Y)
-        self.iteration += 1
+        self.update_grad(self.prev_Y[1])
+        self.iteration += 1        
 
     def step_method2(self, current_state = None):
         if current_state is not None:
@@ -179,15 +180,13 @@ class LM(BaseOptimizer):
         h = self.update_h_v1()
         
         with torch.no_grad():
-            start = 0
-            if self.iteration > 0:
-                for P, V in zip(self.model.parameter_order, self.model.parameter_vector_len):
-                    start += V
             self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
                 loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+        if self.iteration == 0:
+            self.prev_Y[1] = self.current_Y
         self.loss_history.append(loss.detach().cpu().item())
         self.L_history.append(self.L)
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
@@ -254,7 +253,7 @@ class LM(BaseOptimizer):
                 print("Broyden jac")
 
         self.update_hess()
-        self.update_grad(self.current_Y)
+        self.update_grad(self.prev_Y[1])
         self.iteration += 1
         
     def step_method3(self, current_state = None):
@@ -275,15 +274,13 @@ class LM(BaseOptimizer):
         h = self.update_h_v1()
         
         with torch.no_grad():
-            start = 0
-            if self.iteration > 0:
-                for P, V in zip(self.model.parameter_order, self.model.parameter_vector_len):
-                    start += V
             self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
             if self.model.target.has_mask: # fixme something to do with the mask is a problem
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
                 loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+        if self.iteration == 0:
+            self.prev_Y[1] = self.current_Y
         self.loss_history.append(loss.detach().cpu().item())
         self.L_history.append(self.L)
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
@@ -323,7 +320,7 @@ class LM(BaseOptimizer):
                 self.decision_history.append("reset")
                 self.Li = 1.
                 self.v = 1.
-                self._count_reject = 0
+                self._count_reject += 1
             else:
                 if self.verbose > 1:
                     print("reject")
@@ -346,13 +343,13 @@ class LM(BaseOptimizer):
                 print("Broyden jac")
 
         self.update_hess()
-        self.update_grad(self.current_Y)
+        self.update_grad(self.prev_Y[1])
         self.iteration += 1
+        print(self.J, self.grad)
         
     def fit(self):
 
         self.model.startup()
-        self.model.step()
         
         self.iteration = 0
         self._count_reject = 0
@@ -389,7 +386,7 @@ class LM(BaseOptimizer):
 
         if "fail" in self.message and self._count_finish > 0:
             self.message = self.message + ". likely converged to numerical precision and could not make a better step, this is probably ok."
-        self.model.step(torch.tensor(self.res(), dtype = self.model.dtype, device = self.model.device))
+        self.model.set_parameters(torch.tensor(self.res(), dtype = self.model.dtype, device = self.model.device))
         self.model.finalize()
 
         # set the uncertainty for each parameter
@@ -428,7 +425,7 @@ class LM(BaseOptimizer):
         return h
     
     def update_J_AD(self):
-        self.J = self.model.jacobian(self.current_state).view(-1,len(self.current_state))
+        self.J = self.model.jacobian(torch.clone(self.current_state).detach()).view(-1,len(self.current_state))
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
             

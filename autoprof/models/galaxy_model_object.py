@@ -43,7 +43,7 @@ class Galaxy_Model(BaseModel):
         super().initialize(target)
         if not (self["PA"].value is None or self["q"].value is None):
             return
-        target_area = target[self.fit_window]
+        target_area = target[self.window]
         edge = np.concatenate((
             target_area.data.detach().cpu().numpy()[:,0],
             target_area.data.detach().cpu().numpy()[:,-1],
