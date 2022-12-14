@@ -19,20 +19,25 @@ def target(self, tar):
         tar = Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
     assert isinstance(tar, Target_Image)
     self._target = tar.to(dtype = self.dtype, device = self.device)
-    
-    
+
 @property
 def integrate_window(self):
-    use_center = torch.round(self["center"].value/self.target.pixelscale)
-    int_origin = (
-        (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
-        (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
-    )
-    int_shape = (
+    # use_center = torch.round(self["center"].value/self.target.pixelscale)
+    # int_origin = (
+    #     (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
+    #     (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
+    # )
+    # int_shape = (
+    #     (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
+    #     (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
+    # )
+    # return Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
+    use_center = torch.round(self["center"].value/self.target.pixelscale)*self.target.pixelscale
+    use_shape = (
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
     )
-    return Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
+    return Window(center = use_center, shape = use_shape, dtype = self.dtype, device = self.device)
     
 @property
 def psf_window(self):

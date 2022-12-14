@@ -116,16 +116,19 @@ class BaseImage(object):
     def crop(self, *pixels):
         self.set_data(self.data[pixels[1]:-pixels[1],pixels[0]:-pixels[0]], require_shape = False)
         self.window -= torch.as_tensor(pixels, dtype = self.dtype, device = self.device) * self.pixelscale
-
+        return self
+    
     def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
 
     def reduce(self, scale):
-        assert isinstance(scale, int)
-        assert scale > 1
+        assert isinstance(scale, int) or scale.dtype is torch.int32
 
+        if scale == 1:
+            return self
+        
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
         return self.__class__(
@@ -133,7 +136,7 @@ class BaseImage(object):
             pixelscale = self.pixelscale * scale,
             zeropoint = self.zeropoint,
             note = self.note,
-            origin = self.origin,
+            window = self.window.make_copy(),
         )
 
     def _save_image_list(self):

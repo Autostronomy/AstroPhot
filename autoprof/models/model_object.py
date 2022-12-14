@@ -39,7 +39,9 @@ class BaseModel(AutoProf_Model):
     # size of the window in which to perform integration
     integrate_window_size = 10
     # Factor by which to upscale each dimension when integrating
-    integrate_factor = 10
+    integrate_factor = 3 # number of pixels on one axis by which to supersample
+    integrate_recursion_factor = 2 # relative size of windows between recursion levels (2 means each window will be half the size of the previous one)
+    integrate_recursion_depth = 2 # number of recursion cycles to apply when integrating
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
@@ -134,77 +136,82 @@ class BaseModel(AutoProf_Model):
 
         """
         return torch.zeros_like(image.data) # do nothing in base model
-    
-    def sample(self, sample_image = None):
+
+    def sample(self, sample_image = None, sample_window = None):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
         convolution. This should not be overloaded except in special
         cases.
 
+        Parameters:
+            sample_image: An AutoProf Image object (likely a Model_Image) on which to evaluate the model values. Optional
+            sample_window: A window within which to evaluate the model. Should only be used if a subset of the full image is needed.
+
         """
-        
+        # Image on which to evaluate model
         if sample_image is None:
             sample_image = self.make_model_image()
-
-        # Check that psf and integrate modes line up
-        if "window" in self.psf_mode:
-            if "window" in self.integrate_mode:
-                assert self.integrate_window_size <= self.psf_window_size
-            assert "full" not in self.integrate_mode
-        working_window = sample_image.window.make_copy()
-        if "full" in self.psf_mode:
-            working_window += self.target.psf_border
-            center_shift = torch.round(self["center"].value/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (self["center"].value - 0.5*sample_image.pixelscale)
-            working_window.shift_origin(center_shift)
-            
-        working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
-        if "full" not in self.integrate_mode:
-            working_image.data += self.evaluate_model(working_image)
-            
-        if "full" in self.psf_mode:
-            self.integrate_model(working_image)
-            working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)  #conv2d(working_image.data.view(1,1,*working_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
-            working_image.shift_origin(-center_shift)
-            working_image.crop(*self.target.psf_border_int)
-        elif "window" in self.psf_mode:
-            sub_window = self.psf_window.make_copy()
-            sub_window += self.target.psf_border
-            center_shift = torch.round(self["center"].value/sample_image.pixelscale - 0.5)*sample_image.pixelscale - (self["center"].value - 0.5*sample_image.pixelscale)
-            sub_window.shift_origin(center_shift)
-            sub_image = Model_Image(pixelscale = sample_image.pixelscale, window = sub_window, dtype = self.dtype, device = self.device)
-            sub_image.data = self.evaluate_model(sub_image)
-            self.integrate_model(sub_image)
-            sub_image.data = fft_convolve_torch(sub_image.data, self.target.psf, img_prepadded = True) #conv2d(sub_image.data.view(1,1,*sub_image.data.shape), self.target.psf.view(1,1,*self.target.psf.shape), padding = "same")[0][0]
-            sub_image.shift_origin(-center_shift)
-            sub_image.crop(*self.target.psf_border_int)
-            working_image.replace(sub_image)
+        # Window within which to evaluate model
+        if sample_window is None:
+            working_window = sample_image.window.make_copy()
         else:
-            self.integrate_model(working_image)
-
-        sample_image += working_image
+            working_window = sample_window.make_copy() & sample_image.window
+            
+        if "full" in self.psf_mode:
+            # Add border for psf convolution edge effects, will be cropped out later
+            working_window += self.target.psf_border
+            # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
+            working_pixelscale = sample_image.pixelscale / self.target.psf_upscale
+            # Sub pixel shift to align the model with the center of a pixel
+            center_shift = torch.round(self["center"].value/working_pixelscale - 0.5)*working_pixelscale - (self["center"].value - 0.5*working_pixelscale)
+            working_window.shift_origin(center_shift)
+            # Make the image object to which the samples will be tracked
+            working_image = Model_Image(pixelscale = working_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
+            # Evaluate the model at the current resolution
+            working_image.data += self.evaluate_model(working_image)
+            # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
+            self.integrate_model(working_image, self.integrate_window, self.integrate_recursion_depth)
+            # Convolve the PSF
+            working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
+            # Shift image back to align with original pixel grid
+            working_image.shift_origin(-center_shift)
+            # Add the sampled/integrated/convolved pixels to the requested image
+            sample_image += working_image.reduce(self.target.psf_upscale).crop(*self.target.psf_border_int)  
+        else:
+            # Create an image to store pixel samples
+            working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
+            # Evaluate the model on the image
+            working_image.data += self.evaluate_model(working_image)
+            # Super-resolve and integrate where needed
+            self.integrate_model(working_image, self.integrate_window, self.integrate_recursion_depth)
+            # Add the sampled/integrated pixels to the requested image
+            sample_image += working_image 
         
         return sample_image
             
-    def integrate_model(self, working_image):
+            
+    def integrate_model(self, working_image, window, depth = 2):
         """Sample the model at a higher resolution than the given image, then
         integrate the super resolution up to the image
-        resolution. This should not be overloaded except in very
-        special circumstances.
+        resolution.
 
+        Parameters:
+            working_image: the image on which to perform the model integration. Pixels in this image will be replaced with the integrated values
+            window: A Window object within which to perform the integration.
+            depth: recursion depth tracker. When called with depth = n, this function will call itself again with depth = n-1 until depth is 0 at which point it will exit without integrating.
+        
         """
+        if depth <= 0 or "none" in self.integrate_mode:
+            return
         # Determine the on-sky window in which to integrate
         try:
-            if "none" in self.integrate_mode or self.integrate_window.overlap_frac(working_image.window) <= 0.:
+            if window.overlap_frac(working_image.window) <= 0.:
                 return
         except AssertionError:
             return
+        
         # Only need to evaluate integration within working image
-        if "window" in self.integrate_mode:
-            working_window = self.integrate_window & working_image.window
-        elif "full" in self.integrate_mode:
-            working_window = working_image.window
-        else:
-            raise ValueError(f"Unrecognized integration mode: {self.integrate_mode}, must include 'window' or 'full', or be 'none'.")    
+        working_window = window & working_image.window
             
         # Determine the upsampled pixelscale 
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
@@ -214,16 +221,22 @@ class BaseModel(AutoProf_Model):
         # Evaluate the model at the fine sampling points
         X, Y = integrate_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         integrate_image.data = self.evaluate_model(integrate_image)
+
+        # If needed, recursively evaluates smaller windows
+        recursive_shape = window.shape/integrate_pixelscale # get the number of pixels across the integrate window
+        recursive_shape = (recursive_shape/self.integrate_recursion_factor).int() # divide window by recursion factor, ensure integer result
+        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2)) * integrate_pixelscale # ensure odd number of pixels in shape
+        self.integrate_model(
+            integrate_image,
+            Window(
+                center = torch.round(self["center"].value/integrate_pixelscale)*integrate_pixelscale,
+                shape = recursive_shape,
+            ),
+            depth = depth - 1,
+        )
         
         # Replace the image data where the integration has been done
-        working_image.replace(working_window,
-                              torch.sum(integrate_image.data.view(
-                                  working_window.get_shape(working_image.pixelscale)[1],
-                                  self.integrate_factor,
-                                  working_window.get_shape(working_image.pixelscale)[0],
-                                  self.integrate_factor
-                              ), dim = (1,3))
-        )
+        working_image.replace(integrate_image.reduce(self.integrate_factor))
 
     def get_state(self):
         state = super().get_state()

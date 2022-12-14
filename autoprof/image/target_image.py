@@ -15,6 +15,7 @@ class Target_Image(BaseImage):
         self.set_variance(kwargs.get("variance", None))
         self.set_mask(kwargs.get("mask", None))
         self.set_psf(kwargs.get("psf", None))
+        self.psf_upscale = torch.tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
 
     @property
     def variance(self):
@@ -48,10 +49,10 @@ class Target_Image(BaseImage):
         self.set_psf(psf)
     @property
     def psf_border(self):
-        return self.pixelscale * (1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device), (0,))) / 2
+        return self.pixelscale * (1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device)/self.psf_upscale, (0,))) / 2
     @property
     def psf_border_int(self):
-        return ((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device), (0,))) / 2).int()
+        return ((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device)/self.psf_upscale, (0,))) / 2).int()
     @property
     def has_psf(self):
         return self._psf is not None
@@ -100,6 +101,7 @@ class Target_Image(BaseImage):
             zeropoint = self.zeropoint,
             mask = self._mask,
             psf = self._psf,
+            psf_upscale = self.psf_upscale,
             variance = self._variance,
             note = self.note,
             window = self.window,
@@ -112,6 +114,7 @@ class Target_Image(BaseImage):
             zeropoint = self.zeropoint,
             mask = self._mask,
             psf = self._psf,
+            psf_upscale = self.psf_upscale,
             note = self.note,
             window = self.window,
         )
@@ -127,17 +130,23 @@ class Target_Image(BaseImage):
             variance = self._variance[indices] if self.has_variance else None,
             mask = self._mask[indices] if self.has_mask else None,
             psf = self._psf,
+            psf_upscale = self.psf_upscale,
             note = self.note,
             origin = (torch.max(self.origin[0], window.origin[0]),
                       torch.max(self.origin[1], window.origin[1]))
         )
     
     def reduce(self, scale):
-        assert isinstance(scale, int)
-        assert scale > 1
+        assert isinstance(scale, int) or scale.dtype is torch.int32
+
+        if scale == 1:
+            return self
 
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
+        if self.has_psf:
+            PMS = self.psf.shape[0] // scale
+            PNS = self.psf.shape[1] // scale
         return self.__class__(
             data = self.data[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
             device = self.device,
@@ -146,7 +155,8 @@ class Target_Image(BaseImage):
             zeropoint = self.zeropoint,
             variance = self.variance[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)) if self.has_variance else None,
             mask = self.mask[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).max(axis=(1, 3)) if self.has_mask else None,
-            psf = self.psf[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)) if self.has_psf else None,#fixme, psf doesnt reduce properly,  MS NS too large
+            psf = self.psf[:PMS*scale, :PNS*scale].reshape(PMS, scale, PNS, scale).sum(axis=(1, 3)) if self.has_psf else None,
+            psf_upscale = self.psf_upscale,
             note = self.note,
             origin = self.origin,
         )
@@ -156,6 +166,7 @@ class Target_Image(BaseImage):
         if self._psf is not None:
             psf_header = fits.Header()
             psf_header["IMAGE"] = "PSF"
+            psf_header["UPSCALE"] = self.psf_upscale
             image_list.append(fits.ImageHDU(self._psf.detach().cpu().numpy(), header = psf_header))
         if self._variance is not None:
             var_header = fits.Header()
@@ -173,6 +184,7 @@ class Target_Image(BaseImage):
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
                 self.set_psf(np.array(hdu.data, dtype = np.float64))
+                self.psf_upscale = torch.tensor(hdu.header["UPSCALE"], dtype = torch.int32, device = self.device)
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
                 self.set_variance(np.array(hdu.data, dtype = np.float64))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
