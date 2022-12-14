@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-class AP_Window(object):
+class Window(object):
     """class to define a window on the sky in coordinate space. These
     windows can undergo arithmetic an preserve logical behavior. Image
     objects can also be indexed using windows and will return an
@@ -26,7 +26,7 @@ class AP_Window(object):
     def plt_extent(self):
         return tuple(pe.detach().cpu().item() for pe in (self.origin[0], self.origin[0] + self.shape[0], self.origin[1], self.origin[1] + self.shape[1]))
     def make_copy(self):
-        return AP_Window(origin = torch.clone(self.origin), shape = torch.clone(self.shape), dtype = self.dtype, device = self.device)
+        return Window(origin = torch.clone(self.origin), shape = torch.clone(self.shape), dtype = self.dtype, device = self.device)
 
     def to(self, dtype = None, device = None):
         if dtype is not None:
@@ -95,12 +95,12 @@ class AP_Window(object):
         if isinstance(other, (float,int, torch.dtype)):
             new_origin = self.origin - other
             new_shape = self.shape + 2*other
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_origin = self.origin - torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_shape = self.shape + 2*torch.as_tensor(other, dtype = self.dtype, device = self.device)
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __iadd__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             self.origin -= other
@@ -110,17 +110,17 @@ class AP_Window(object):
             self.origin -= torch.as_tensor(other, dtype = self.dtype, device = self.device)
             self.shape += 2*torch.as_tensor(other, dtype = self.dtype, device = self.device)
             return self
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __sub__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             new_origin = self.origin - other
             new_shape = self.shape + 2*other
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_origin = self.origin - torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_shape = self.shape + 2*torch.as_tensor(other, dtype = self.dtype, device = self.device)
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __isub__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             self.origin += other
@@ -130,17 +130,17 @@ class AP_Window(object):
             self.origin += torch.as_tensor(other, dtype = self.dtype, device = self.device)
             self.shape -= 2*torch.as_tensor(other, dtype = self.dtype, device = self.device)
             return self
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __mul__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape * other
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_shape = self.shape * torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __imul__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             self.shape *= other
@@ -150,17 +150,17 @@ class AP_Window(object):
             self.shape *= torch.as_tensor(other, dtype = self.dtype, device = self.device)
             self.origin = self.center - new_window_shape / 2
             return self
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __div__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape / other
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             new_shape = self.shape / torch.as_tensor(other, dtype = self.dtype, device = self.device)
             new_origin = self.center - new_shape / 2
-            return AP_Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+            return Window(new_origin, new_shape, dtype = self.dtype, device = self.device)
+        raise ValueError(f"Window object cannot be added with {type(other)}")
     def __idiv__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             self.shape /= other
@@ -170,7 +170,7 @@ class AP_Window(object):
             self.shape /= torch.as_tensor(other, dtype = self.dtype, device = self.device)
             self.origin = self.center - new_window_shape / 2
             return self
-        raise ValueError(f"AP_Window object cannot be added with {type(other)}")
+        raise ValueError(f"Window object cannot be added with {type(other)}")
 
     # Window Comparison operators
     def __eq__(self, other):
@@ -191,7 +191,7 @@ class AP_Window(object):
     def __or__(self, other):
         new_origin = torch.minimum(self.origin.clone(), other.origin)
         new_end = torch.maximum(self.origin.clone() + self.shape.clone(), other.origin + other.shape)
-        return AP_Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
+        return Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
     @torch.no_grad()
     def __ior__(self, other):
         new_origin = torch.minimum(self.origin.clone(), other.origin)
@@ -203,7 +203,7 @@ class AP_Window(object):
     def __and__(self, other):
         new_origin = torch.maximum(self.origin.clone(), other.origin)
         new_end = torch.minimum(self.origin.clone() + self.shape.clone(), other.origin + other.shape)
-        return AP_Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
+        return Window(new_origin, new_end - new_origin, dtype = self.dtype, device = self.device)
     @torch.no_grad()
     def __iand__(self, other):
         new_origin = torch.maximum(self.origin.clone(), other.origin)

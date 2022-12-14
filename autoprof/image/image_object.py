@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from copy import deepcopy
-from .window_object import AP_Window
+from .window_object import Window
 from astropy.io import fits
 
 class BaseImage(object):
@@ -44,7 +44,7 @@ class BaseImage(object):
                 origin = torch.as_tensor(origin, dtype = self.dtype, device = self.device)
             else:
                 origin = torch.as_tensor(center, dtype = self.dtype, device = self.device) - shape/2
-            self.window = AP_Window(origin = origin, shape = shape, dtype = self.dtype, device = self.device)
+            self.window = Window(origin = origin, shape = shape, dtype = self.dtype, device = self.device)
         else:
             self.window = window
             self.pixelscale = self.window.shape[0] / self.data.shape[1]
@@ -162,7 +162,7 @@ class BaseImage(object):
                 self.pixelscale = eval(hdu.header.get("PXLSCALE"))
                 self.zeropoint = eval(hdu.header.get("ZEROPNT"))
                 self.note = hdu.header.get("NOTE")
-                self.window = AP_Window(dtype = self.dtype, device = self.device, **eval(hdu.header.get("WINDOW")))
+                self.window = Window(dtype = self.dtype, device = self.device, **eval(hdu.header.get("WINDOW")))
                 break
         return hdul
     
@@ -211,7 +211,7 @@ class BaseImage(object):
         return self
 
     def __getitem__(self, *args):
-        if len(args) == 1 and isinstance(args[0], AP_Window):
+        if len(args) == 1 and isinstance(args[0], Window):
             return self.get_window(args[0])
         if len(args) == 1 and isinstance(args[0], BaseImage):
             return self.get_window(args[0].window)

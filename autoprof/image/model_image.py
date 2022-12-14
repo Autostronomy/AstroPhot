@@ -1,5 +1,5 @@
 from .image_object import BaseImage
-from .window_object import AP_Window
+from .window_object import Window
 from autoprof.utils.interpolate import shift_Lanczos_torch
 import torch
 import numpy as np
@@ -34,7 +34,7 @@ class Model_Image(BaseImage):
             if torch.any((self.origin + self.shape) < other.origin) or torch.any((other.origin + other.shape) < self.origin):
                 return
             self.data[other.window.get_indices(self)] = other.data[self.window.get_indices(other)]
-        elif isinstance(other, AP_Window):
+        elif isinstance(other, Window):
             self.data[other.get_indices(self)] = data
         else:
             self.data = other

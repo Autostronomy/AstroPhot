@@ -1,4 +1,4 @@
-from autoprof.image import Model_Image, AP_Window
+from autoprof.image import Model_Image, Window
 from autoprof.utils.initialize import center_of_mass
 from autoprof.utils.operations import fft_convolve_torch
 from autoprof import plots
@@ -236,7 +236,7 @@ class BaseModel(AutoProf_Model):
     def load(self, filename = "AutoProf.yaml"):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
-        self.window = AP_Window(dtype = self.dtype, device = self.device, **state["window"])
+        self.window = Window(dtype = self.dtype, device = self.device, **state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
         return state

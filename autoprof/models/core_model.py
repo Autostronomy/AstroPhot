@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from autoprof.utils.conversions.optimization import cyclic_difference_np
 from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from autoprof.utils.optimization import reduced_chi_squared
-from autoprof.image import Model_Image, AP_Window
+from autoprof.image import Model_Image, Window
 from copy import copy
 from time import time
 from torch.autograd.functional import jacobian
@@ -194,10 +194,10 @@ class AutoProf_Model(object):
             index_units = False
     
         # If the window is given in proper format, simply use as-is
-        if isinstance(window, AP_Window):
+        if isinstance(window, Window):
             self._window = window
         else:
-            self._window = AP_Window(
+            self._window = Window(
                 origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
                 shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
                 dtype = self.dtype,

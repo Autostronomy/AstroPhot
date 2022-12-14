@@ -1,7 +1,7 @@
 import numpy as np
 from .parameter_object import Parameter
 from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
-from autoprof.image import Model_Image, Target_Image, AP_Window
+from autoprof.image import Model_Image, Target_Image, Window
 from copy import deepcopy
 import torch
 
@@ -32,7 +32,7 @@ def integrate_window(self):
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
     )
-    return AP_Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
+    return Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
     
 @property
 def psf_window(self):
@@ -46,7 +46,7 @@ def psf_window(self):
         (psf_offset*2 + 1)*self.target.pixelscale,
         (psf_offset*2 + 1)*self.target.pixelscale,
     )
-    return AP_Window(origin = psf_origin, shape = psf_shape, dtype = self.dtype, device = self.device)
+    return Window(origin = psf_origin, shape = psf_shape, dtype = self.dtype, device = self.device)
 
 @property
 def locked(self):
