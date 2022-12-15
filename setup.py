@@ -1,9 +1,14 @@
 from setuptools import setup
 import autoprof as ap
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 setup(
     name="autoprof",
     version=ap.__version__,    
     description="Fast and flexible astronomical image modelling tool",
+    long_description=read("README.md"),
     url="https://github.com/ConnorStoneAstro/AutoProf-2",
     author=ap.__author__,
     author_email=ap.__email__,
