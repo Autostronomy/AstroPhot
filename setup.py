@@ -11,8 +11,8 @@ setup(
     packages=["autoprof"],
     install_requires=["scipy",
                       "numpy",
-                      "torch",
                       "astropy",
+                      "matplotlib",
                       ],
     entry_points = {
         'console_scripts': [
@@ -22,8 +22,7 @@ setup(
     classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: GPL-3.0 license",  
-        "Operating System :: POSIX :: Linux",        
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",  
         "Programming Language :: Python :: 3",
     ],
 )
