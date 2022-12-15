@@ -46,19 +46,10 @@ class BaseModel(AutoProf_Model):
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     
-    def __init__(self, name, *args, **kwargs):
-        # Set any user defined attributes for the model
-        for kwarg in kwargs:
-            # Skip parameters with special behaviour
-            if kwarg in self.special_kwargs:
-                continue
-            # Set the model parameter
-            setattr(self, kwarg, kwargs[kwarg])
-            
-        self.parameters = {}
-        
+    def __init__(self, name, *args, **kwargs):        
         super().__init__(name, *args, **kwargs)
         
+        self.parameters = {}
         # Set any user defined attributes for the model
         for kwarg in kwargs:
             # Skip parameters with special behaviour
@@ -76,6 +67,16 @@ class BaseModel(AutoProf_Model):
         if "filename" in kwargs:
             self.load(kwargs["filename"])
 
+    @property
+    def parameters(self):
+        try:
+            return self._parameters
+        except AttributeError:
+            return {}
+    @parameters.setter
+    def parameters(self, val):
+        self._parameters = val
+        
     @property
     def parameter_order(self):
         param_order = tuple()
@@ -225,6 +226,8 @@ class BaseModel(AutoProf_Model):
             Window(
                 center = (0.5 + torch.round(self["center"].value/integrate_pixelscale - 0.5))*integrate_pixelscale,
                 shape = recursive_shape,
+                dtype = self.dtype,
+                device = self.device,
             ),
             depth = depth - 1,
         )

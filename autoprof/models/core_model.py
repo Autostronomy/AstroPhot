@@ -62,7 +62,6 @@ class AutoProf_Model(object):
         self.constraints = kwargs.get("constraints", None)
         self.requires_grad = kwargs.get("requires_grad", False)
         self.target = target
-        self._base_window = None
         self.window = window
         self.parameter_vector_len = None
         self._locked = locked
@@ -188,9 +187,12 @@ class AutoProf_Model(object):
 
     @property
     def window(self): # fixme allow None window that just reproduces full image
-        if self._window is None:
+        try:
+            if self._window is None:
+                return self.target.window.make_copy()
+            return self._window
+        except AttributeError:
             return self.target.window.make_copy()
-        return self._window
     def set_window(self, window):
         # If no window given, dont go any further
         if window is None:
@@ -206,26 +208,28 @@ class AutoProf_Model(object):
                 dtype = self.dtype,
                 device = self.device,
             )
-        if self._base_window is None:
-            self._base_window = self._window.make_copy()
     
     @window.setter
     def window(self, window):
-        if window is None:
-            self._window = None
-            return
+        self._window = window
         self.set_window(window)
+        if window is None:
+            return
         self._window.to(dtype = self.dtype, device = self.device)
 
     @property 
     def target(self):
-        if self._target is None:
+        try:
+            if self._target is None:
+                return Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
+            return self._target
+        except AttributeError:
             return Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
-        return self._target
     @target.setter
     def target(self, tar):
         if tar is None:
             self._target = None
+            return
         assert isinstance(tar, Target_Image)
         self._target = tar.to(dtype = self.dtype, device = self.device)
 

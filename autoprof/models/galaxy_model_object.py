@@ -81,5 +81,4 @@ class Galaxy_Model(BaseModel):
     def evaluate_model(self, image):
         X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         XX, YY = self.transform_coordinates(X, Y)
-        
         return self.radial_model(self.radius_metric(XX, YY), image)

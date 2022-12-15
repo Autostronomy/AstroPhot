@@ -166,7 +166,7 @@ class Target_Image(BaseImage):
         if self._psf is not None:
             psf_header = fits.Header()
             psf_header["IMAGE"] = "PSF"
-            psf_header["UPSCALE"] = self.psf_upscale
+            psf_header["UPSCALE"] = int(self.psf_upscale.detach().cpu().item())
             image_list.append(fits.ImageHDU(self._psf.detach().cpu().numpy(), header = psf_header))
         if self._variance is not None:
             var_header = fits.Header()

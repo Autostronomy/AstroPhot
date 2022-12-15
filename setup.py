@@ -1,12 +1,12 @@
-from setuputils import setup
-
+from setuptools import setup
+import autoprof as ap
 setup(
     name="autoprof",
-    version="0.1.0",    
+    version=ap.__version__,    
     description="Fast and flexible astronomical image modelling tool",
     url="https://github.com/ConnorStoneAstro/AutoProf-2",
-    author="Connor Stone",
-    author_email="connorstone628@gmail.com",
+    author=ap.__author__,
+    author_email=ap.__email__,
     license="GPL-3.0 license",
     packages=["autoprof"],
     install_requires=["scipy",
@@ -14,11 +14,11 @@ setup(
                       "torch",
                       "astropy",
                       ],
-    entry_points = [
+    entry_points = {
         'console_scripts': [
             'autoprof = autoprof:run_from_commandline',
         ],
-    ],
+    },
     classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Science/Research",

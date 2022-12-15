@@ -27,8 +27,8 @@ class Group_Model(AutoProf_Model):
     model_type = "groupmodel"
     
     def __init__(self, name, *args, model_list = None, **kwargs):
-        self.model_list = [] if model_list is None else model_list
         super().__init__(name, *args, model_list = model_list, **kwargs)
+        self.model_list = [] if model_list is None else model_list
         self._psf_mode = None
         self.equality_constraints = kwargs.get("equality_constraints", None)
         if self.equality_constraints is not None and isinstance(self.equality_constraints[0], str):
@@ -113,11 +113,14 @@ class Group_Model(AutoProf_Model):
 
     @property
     def parameters(self):
-        params = {}
-        for model in self.model_list:
-            for p in model.parameters:
-                params[f"{model.name}|{p}"] = model.parameters[p]
-        return params
+        try:
+            params = {}
+            for model in self.model_list:
+                for p in model.parameters:
+                    params[f"{model.name}|{p}"] = model.parameters[p]
+            return params
+        except AttributeError:
+            return {}
             
     def get_parameters_representation(self, exclude_locked = True, exclude_equality_constraint = True):
         all_parameters = []
@@ -188,8 +191,11 @@ class Group_Model(AutoProf_Model):
             tar = Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
         assert isinstance(tar, Target_Image)
         self._target = tar.to(dtype = self.dtype, device = self.device)
-        for model in self.model_list:
-            model.target = tar
+        try:
+            for model in self.model_list:
+                model.target = tar
+        except AttributeError:
+            pass
             
     @property
     def psf_mode(self):

@@ -6,22 +6,12 @@ from copy import deepcopy
 import torch
 
 def scale_window(self, scale = 1., border = 0.):
-    window = (self._base_window * scale) + border
+    window = (self.window * scale) + border
     window &= self.target.window
     self.set_window(window)
 
 @property
 def integrate_window(self):
-    # use_center = torch.round(self["center"].value/self.target.pixelscale)
-    # int_origin = (
-    #     (use_center[0] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
-    #     (use_center[1] - (self.integrate_window_size - (self.integrate_window_size % 2))/2)*self.target.pixelscale,
-    # )
-    # int_shape = (
-    #     (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
-    #     (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
-    # )
-    # return Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
     use_center = (0.5 + torch.round(self["center"].value/self.target.pixelscale - 0.5))*self.target.pixelscale
     use_shape = (
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
