@@ -4,3 +4,4 @@ deleteme
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg
+pip_cheatsheet.txt
