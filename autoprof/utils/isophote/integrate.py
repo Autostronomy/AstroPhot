@@ -1,4 +1,4 @@
-
+import numpy as np
 
 def fluxdens_to_fluxsum(R, I, axisratio):
     """

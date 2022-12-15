@@ -1,12 +1,11 @@
 import torch
 import numpy as np
 import io
-from autoprof import plots
 import matplotlib.pyplot as plt
-from autoprof.utils.conversions.optimization import cyclic_difference_np
-from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
-from autoprof.utils.optimization import reduced_chi_squared
-from autoprof.image import Model_Image, Window, Target_Image
+from ..utils.conversions.optimization import cyclic_difference_np
+from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
+from ..utils.optimization import reduced_chi_squared
+from ..image import Model_Image, Window, Target_Image
 from copy import copy
 from time import time
 from torch.autograd.functional import jacobian

@@ -1,6 +1,5 @@
 from .core_model import AutoProf_Model
-from autoprof.image import Model_Image, Target_Image
-from autoprof.plots import target_image, model_image
+from ..image import Model_Image, Target_Image
 from copy import deepcopy
 import torch
 import numpy as np

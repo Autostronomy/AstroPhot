@@ -1,5 +1,5 @@
 from .star_model_object import Star_Model
-from autoprof.image import Model_Image
+from ..image import Model_Image
 import torch
 
 __all__ = ["PSF_Star"]

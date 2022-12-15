@@ -3,9 +3,6 @@ import torch
 import numpy as np
 from time import time
 from .base import BaseOptimizer
-from .gradient import Grad
-import matplotlib.pyplot as plt
-from torch.autograd.functional import jacobian
 
 __all__ = ["LM"]
 

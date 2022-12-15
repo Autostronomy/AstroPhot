@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-from autoprof import models
-from autoprof.utils.conversions.units import flux_to_sb
+from ..models import Warp_Galaxy
+from ..utils.conversions.units import flux_to_sb
 import numpy as np
 from .visuals import *
 import torch
@@ -123,7 +123,7 @@ def warp_phase_profile(
 ):
 
     if doassert:
-        assert isinstance(model, models.Warp_Model)
+        assert isinstance(model, Warp_Galaxy)
 
     ax.plot(
         model.profR,

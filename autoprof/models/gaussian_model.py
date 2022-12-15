@@ -4,7 +4,7 @@ from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .star_model_object import Star_Model
-from autoprof.utils.parametric_profiles import gaussian_torch, gaussian_np
+from ..utils.parametric_profiles import gaussian_torch, gaussian_np
 import torch
 import numpy as np
 

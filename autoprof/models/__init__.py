@@ -17,4 +17,5 @@ from .edgeon_model import *
 from .exponential_model import *
 from .foureirellipse_model import *
 from .wedge_model import *
+from .warp_model import *
 # from .isophote_model import Isophote_Galaxy

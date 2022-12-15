@@ -1,8 +1,8 @@
 from .galaxy_model_object import Galaxy_Model
-from autoprof.utils.interpolate import cubic_spline_torch
+from ..utils.interpolate import cubic_spline_torch
+from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
 import numpy as np
 import torch
-from autoprof.utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
 from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 
 __all__ = ["Warp_Galaxy"]

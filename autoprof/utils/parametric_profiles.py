@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from autoprof.utils.conversions.functions import sersic_n_to_b
+from .conversions.functions import sersic_n_to_b
 
 def sersic_torch(R, n, Re, Ie):
     """Seric 1d profile function, specifically designed for pytorch

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from autoprof.utils.interpolate import point_Lanczos
+from ..interpolate import point_Lanczos
 from scipy.optimize import minimize
 
 def center_of_mass(center, image, window = None):

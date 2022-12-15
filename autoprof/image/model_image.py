@@ -1,6 +1,6 @@
 from .image_object import BaseImage
 from .window_object import Window
-from autoprof.utils.interpolate import shift_Lanczos_torch
+from ..utils.interpolate import shift_Lanczos_torch
 import torch
 import numpy as np
 

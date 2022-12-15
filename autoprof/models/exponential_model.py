@@ -9,10 +9,9 @@ from .edgeon_model import EdgeOn_Model
 import torch
 import numpy as np
 from scipy.stats import iqr
-from autoprof.utils.initialize import isophotes
-from autoprof.utils.parametric_profiles import exponential_torch, exponential_np
-from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
-import matplotlib.pyplot as plt
+from ..utils.initialize import isophotes
+from ..utils.parametric_profiles import exponential_torch, exponential_np
+from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from scipy.optimize import minimize
 
 __all__ = ["Exponential_Galaxy", "Exponential_Star", "Exponential_SuperEllipse", "Exponential_SuperEllipse_Warp", "Exponential_Warp", "Exponential_Ray", "Exponential_Exponential_EdgeOn", "Exponential_Sech2_EdgeOn"]

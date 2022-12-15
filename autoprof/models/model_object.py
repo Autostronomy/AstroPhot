@@ -1,13 +1,10 @@
-from autoprof.image import Model_Image, Window
-from autoprof.utils.initialize import center_of_mass
-from autoprof.utils.operations import fft_convolve_torch
-from autoprof import plots
-from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
+from .core_model import AutoProf_Model
+from ..image import Model_Image, Window
+from ..utils.initialize import center_of_mass
+from ..utils.operations import fft_convolve_torch
+from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 import numpy as np
 import torch
-from torch.nn.functional import conv2d
-from .core_model import AutoProf_Model
-import matplotlib.pyplot as plt
 
 __all__ = ["BaseModel"]
 

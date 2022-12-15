@@ -1,7 +1,6 @@
 import numpy as np
 from .center import Lanczos_peak, center_of_mass, GaussianDensity_Peak
-from autoprof.utils.interpolate import shift_Lanczos_np, point_Lanczos
-import matplotlib.pyplot as plt
+from ..interpolate import shift_Lanczos_np, point_Lanczos
 
 def construct_psf(stars, image, sky_est, size = 51, mask = None, keep_init = False, Lanczos_scale = 3):
     """Given a list of initial guesses for star center locations, finds

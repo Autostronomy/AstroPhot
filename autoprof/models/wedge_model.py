@@ -1,9 +1,9 @@
 from .galaxy_model_object import Galaxy_Model
-from autoprof.utils.interpolate import cubic_spline_torch
 from .parameter_object import Parameter
+from ..utils.interpolate import cubic_spline_torch
+from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
 import numpy as np
 import torch
-from autoprof.utils.conversions.coordinates import Axis_Ratio_Cartesian
 
 __all__ = ["Wedge_Galaxy"]
 

@@ -1,7 +1,7 @@
 import numpy as np
 from .parameter_object import Parameter
-from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
-from autoprof.image import Model_Image, Target_Image, Window
+from ..utils.conversions.coordinates import coord_to_index, index_to_coord
+from ..image import Model_Image, Target_Image, Window
 from copy import deepcopy
 import torch
 
