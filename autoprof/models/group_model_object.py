@@ -1,5 +1,5 @@
 from .core_model import AutoProf_Model
-from autoprof.image import Target_Image, Model_Image
+from autoprof.image import Model_Image, Target_Image
 from autoprof.plots import target_image, model_image
 from copy import deepcopy
 import torch
@@ -26,14 +26,10 @@ class Group_Model(AutoProf_Model):
 
     model_type = "groupmodel"
     
-    def __init__(self, name, target = None, model_list = None, locked = False, **kwargs):
-        super().__init__(name, model_list, target, **kwargs)
+    def __init__(self, name, *args, model_list = None, **kwargs):
         self.model_list = [] if model_list is None else model_list
-        self.target = target
-        self._user_locked = locked
-        self._locked = self._user_locked
+        super().__init__(name, *args, model_list = model_list, **kwargs)
         self._psf_mode = None
-        self.window = None
         self.equality_constraints = kwargs.get("equality_constraints", None)
         if self.equality_constraints is not None and isinstance(self.equality_constraints[0], str):
             self.equality_constraints = [self.equality_constraints]
@@ -59,16 +55,6 @@ class Group_Model(AutoProf_Model):
             for model in constraint[2:]:
                 self[model].parameters[constraint[0]] = self[constraint[1]].parameters[constraint[0]]
 
-    # @property #fixme move window to core_model
-    # def window(self):
-    #     return self._window
-    # @window.setter
-    # def window(self, win):
-    #     self._window = win
-    #     if win is None:
-    #         return
-    #     self._window.to(dtype = self.dtype, device = self.device)
-        
     def update_window(self):
         self.window = None
         for model in self.model_list:
@@ -78,8 +64,6 @@ class Group_Model(AutoProf_Model):
                 self.window = model.window.make_copy()
             else:
                 self.window |= model.window
-        if self.window is None:
-            self.window = self.target.window
 
     @property
     def parameter_order(self):
@@ -99,12 +83,6 @@ class Group_Model(AutoProf_Model):
         for model in self.model_list:
             model.initialize(target_copy)
             target_copy -= model.sample()
-    # def initialize(self):#fixme what was this?
-    #     for model in self.model_list:
-    #         model.locked = True
-    #     for mi, model in enumerate(self.model_list):
-    #         model.locked = False
-    #         model.initialize()
 
     def startup(self):
         super().startup()
@@ -132,7 +110,15 @@ class Group_Model(AutoProf_Model):
                 model.sample(sample_image)
 
         return sample_image
-    
+
+    @property
+    def parameters(self):
+        params = {}
+        for model in self.model_list:
+            for p in model.parameters:
+                params[f"{model.name}|{p}"] = model.parameters[p]
+        return params
+            
     def get_parameters_representation(self, exclude_locked = True, exclude_equality_constraint = True):
         all_parameters = []
         all_keys = []
@@ -193,17 +179,18 @@ class Group_Model(AutoProf_Model):
         
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 
-    @property
+    @property 
     def target(self):
-        return self._target
+        return self._target    
     @target.setter
     def target(self, tar):
         if tar is None:
-            tar = Target_Image(data = torch.zeros((100,100)), pixelscale = 1., dtype = self.dtype, device = self.device)
+            tar = Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
         assert isinstance(tar, Target_Image)
         self._target = tar.to(dtype = self.dtype, device = self.device)
         for model in self.model_list:
             model.target = tar
+            
     @property
     def psf_mode(self):
         return self._psf_mode
@@ -231,5 +218,3 @@ class Group_Model(AutoProf_Model):
                     break
             else:
                 self.add_model(AutoProf_Model(name = model, filename = state["models"][model], target = self.target))
-                
-    from ._model_methods import locked

@@ -33,7 +33,9 @@ class Model_Image(BaseImage):
                 raise IndexError("Cannot add images with different pixelscale!")
             if torch.any((self.origin + self.shape) < other.origin) or torch.any((other.origin + other.shape) < self.origin):
                 return
-            self.data[other.window.get_indices(self)] = other.data[self.window.get_indices(other)]
+            other_indices = self.window.get_indices(other)
+            self_indices = other.window.get_indices(self)
+            self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
             self.data[other.get_indices(self)] = data
         else:

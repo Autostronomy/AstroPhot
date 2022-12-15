@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from autoprof.utils.conversions.optimization import cyclic_difference_np
 from autoprof.utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from autoprof.utils.optimization import reduced_chi_squared
-from autoprof.image import Model_Image, Window
+from autoprof.image import Model_Image, Window, Target_Image
 from copy import copy
 from time import time
 from torch.autograd.functional import jacobian
@@ -57,11 +57,16 @@ class AutoProf_Model(object):
             
         return super().__new__(cls)
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, *args, target = None, window = None, locked = False, **kwargs):
         self.name = name
-        self.epoch = None
         self.constraints = kwargs.get("constraints", None)
-        self.is_sampled = False
+        self.requires_grad = kwargs.get("requires_grad", False)
+        self.target = target
+        self._base_window = None
+        self.window = window
+        self.parameter_vector_len = None
+        self._locked = locked
+        
         
     def initialize(self):
         """When this function finishes, all parameters should have numerical
@@ -116,9 +121,9 @@ class AutoProf_Model(object):
             self.target[self.window].mask,
             self.target[self.window].variance
         )
-        # if self.constraints is not None:
-        #     for constraint in self.constraints:
-        #         loss *= 1 + self.constraint_strength * constraint(self)
+        if self.constraints is not None:
+            for constraint in self.constraints:
+                loss *= 1 + self.constraint_strength * constraint(self)
         if return_sample:
             return loss, model_image
         return loss
@@ -183,15 +188,13 @@ class AutoProf_Model(object):
 
     @property
     def window(self): # fixme allow None window that just reproduces full image
+        if self._window is None:
+            return self.target.window.make_copy()
         return self._window
     def set_window(self, window):
-        # If no window given, use the whole image
+        # If no window given, dont go any further
         if window is None:
-            window = [
-                [0, self.target.data.shape[1]],
-                [0, self.target.data.shape[0]],
-            ]
-            index_units = False
+            return
     
         # If the window is given in proper format, simply use as-is
         if isinstance(window, Window):
@@ -206,16 +209,51 @@ class AutoProf_Model(object):
         if self._base_window is None:
             self._base_window = self._window.make_copy()
     
-        self._window = self._window & self.target.window
-    
     @window.setter
     def window(self, window):
+        if window is None:
+            self._window = None
+            return
         self.set_window(window)
         self._window.to(dtype = self.dtype, device = self.device)
 
+    @property 
+    def target(self):
+        if self._target is None:
+            return Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
+        return self._target
+    @target.setter
+    def target(self, tar):
+        if tar is None:
+            self._target = None
+        assert isinstance(tar, Target_Image)
+        self._target = tar.to(dtype = self.dtype, device = self.device)
+
+    @property
+    def locked(self):
+        """Set when the model should remain fixed going forward. This model
+        will be bypassed when fitting parameters, however it will
+        still be sampled for generating the model image.
+
+        """
+        return self._locked
+    @locked.setter
+    def locked(self, val):
+        assert isinstance(val, bool)
+        self._locked = val
+    @property
+    def requires_grad(self):
+        return self._requires_grad
+    @requires_grad.setter
+    def requires_grad(self, val):
+        assert isinstance(val, bool)
+        self._requires_grad = val
+        for P in self.parameters:
+            self[P].requires_grad = val
+    
     def __str__(self):
         """String representation for the model."""
-        return "AutoProf Model Instance"
+        return str(self.get_state())
 
     def get_state(self):
         state = {

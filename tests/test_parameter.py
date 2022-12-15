@@ -1,5 +1,5 @@
 import unittest
-from autoprof.models import Parameter, Pointing_Parameter
+from autoprof.models import Parameter
 import torch
 
 class TestParameter(unittest.TestCase):
@@ -96,25 +96,10 @@ class TestParameter(unittest.TestCase):
             msg="cyclic variable should loop in range (lower)",
         )
 
-    def test_parameter_operations(self):
-
-        base_param1 = Parameter('base param1', value = 2.)
-        base_param2 = Parameter('base param2', value = 1.)
-
-        self.assertEqual(base_param1 - base_param2, 1, msg= "parameter difference not evaluated properly")
-
-        cyclic_param1 = Parameter('cyclic param1', value = -0.9, limits = (-1, 1), cyclic = True)
-        cyclic_param2 = Parameter('cyclic param2', value = 0.9, limits = (-1, 1), cyclic = True)
-
-        self.assertAlmostEqual((cyclic_param1 - cyclic_param2).detach().numpy(), -0.2, msg= "cyclic parameter difference should wrap") # fixme check positive/negative
-
-
     def test_parameter_array(self):
         
         param_array1 = Parameter("array1", value = list(float(3 + i) for i in range(5)))
         param_array2 = Parameter("array2", value = list(float(i) for i in range(5)))
-
-        self.assertTrue(torch.all((param_array1 - param_array2) == 3), msg = "parameter array difference not as expected")
 
         param_array2.value = list(float(3) for i in range(5))
         self.assertTrue(torch.all(param_array2.value == 3), msg = "parameter array value should be updated")
@@ -124,37 +109,9 @@ class TestParameter(unittest.TestCase):
 
         self.assertEqual(len(param_array2), 5, "parameter array should have length attribute")
 
-    def test_pointing_parameter(self):
-        original_param = Parameter("original", value = 5, limits = (0, 10))
-
-        point_param = Pointing_Parameter("pointer", original_param)
-
-        self.assertEqual(point_param.value, 5, "Pointer should take on original parameter value")
-        original_param.value = 6
-        self.assertEqual(point_param.value, 6, "Pointer should take on new value for original parameter")
-        point_param.value = 7        
-        self.assertEqual(original_param.value, 7, "Pointer should update original parameter when setting value")
-        self.assertEqual(original_param.representation, point_param.representation, "Pointer should track original parameter representation")
-
-        self.assertEqual(original_param.limits, point_param.limits, "Pointer should take on original parameter limit properties")
-        # fixme try setting _value
-        
-    def test_pointing_parameter_array(self):
-        original_array = Parameter("original", value = torch.arange(1,6), limits = (0,10))
-        point_array = Pointing_Parameter("pointer", original_array)
-
-        self.assertEqual(point_array.value[2], 3, "Pointer should take on original parameter value")
-        original_array.value = torch.arange(3,8)
-        self.assertEqual(point_array.value[2], 5, "Pointer should take on new value for original parameter")
-        point_array.value = torch.arange(4, 9)        
-        self.assertEqual(original_array.value[2], 6, "Pointer should update original parameter when setting value")
-        self.assertEqual(original_array.representation[2], point_array.representation[2], "Pointer should track original parameter representation")
-
-        self.assertEqual(original_array.limits, point_array.limits, "Pointer should take on original parameter limit properties")
-        # fixme try setting _value
 
     def test_parameter_gradients(self):
-        params = Parameter("input params", value = torch.ones(3))
+        params = Parameter("input params", value = torch.ones(3), requires_grad = True)
         X = torch.sum(params.value * 3)
         X.backward()
         self.assertTrue(torch.all(params.grad == 3), "Parameters should track gradient")

@@ -31,7 +31,7 @@ class BaseModel(AutoProf_Model):
     _parameter_order = ("center",)
 
     # Technique and scope for PSF convolution
-    psf_mode = "none" # none, window/full, direct/fft
+    psf_mode = "none" # none, window/full
     # size in pixels of the PSF convolution box
     psf_window_size = 50
     # Integration scope for model
@@ -46,7 +46,7 @@ class BaseModel(AutoProf_Model):
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     
-    def __init__(self, name, target = None, window = None, locked = False, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         # Set any user defined attributes for the model
         for kwarg in kwargs:
             # Skip parameters with special behaviour
@@ -55,15 +55,9 @@ class BaseModel(AutoProf_Model):
             # Set the model parameter
             setattr(self, kwarg, kwargs[kwarg])
             
-        super().__init__(name, target, window, locked, **kwargs)
-        
-        self._base_window = None
         self.parameters = {}
-        self.target = target
-        self.window = window
-        self._user_locked = locked
-        self._locked = self._user_locked
-        self.parameter_vector_len = None
+        
+        super().__init__(name, *args, **kwargs)
         
         # Set any user defined attributes for the model
         for kwarg in kwargs:
@@ -229,7 +223,7 @@ class BaseModel(AutoProf_Model):
         self.integrate_model(
             integrate_image,
             Window(
-                center = torch.round(self["center"].value/integrate_pixelscale)*integrate_pixelscale,
+                center = (0.5 + torch.round(self["center"].value/integrate_pixelscale - 0.5))*integrate_pixelscale,
                 shape = recursive_shape,
             ),
             depth = depth - 1,
@@ -237,7 +231,7 @@ class BaseModel(AutoProf_Model):
         
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
-
+        
     def get_state(self):
         state = super().get_state()
         state["window"] = self.window.get_state()
@@ -256,13 +250,9 @@ class BaseModel(AutoProf_Model):
     
     # Extra background methods for the basemodel
     ######################################################################
-    # from ._model_methods import set_window
-    # from ._model_methods import window
     from ._model_methods import scale_window
-    from ._model_methods import target
     from ._model_methods import integrate_window
     from ._model_methods import psf_window
-    from ._model_methods import locked
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
     from ._model_methods import get_parameters_representation

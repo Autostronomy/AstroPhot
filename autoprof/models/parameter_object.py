@@ -39,6 +39,8 @@ class Parameter(object):
         
         self.dtype = kwargs.get("dtype", torch.float64)
         self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
+        self._representation = None
+        self.requires_grad = kwargs.get("requires_grad", False)
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
         self._locked = False
@@ -86,7 +88,7 @@ class Parameter(object):
     @property
     def locked(self):
         """If locked, the parameter cannot normally be updated and will no
-        longer have "require_grad" in pytorch.
+        longer have "requires_grad" in pytorch.
 
         """
         return self._locked
@@ -95,9 +97,9 @@ class Parameter(object):
         """
         updates the locked state of the parameter
         """
+        
         self._locked = value
-        # if self._representation is not None:
-        #     self._representation.requires_grad = not self._locked
+        self.requires_grad = not bool(value)
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
@@ -111,6 +113,16 @@ class Parameter(object):
         Calls the uncertainty setting method, preserving locked behaviour.
         """
         self.set_uncertainty(unc)
+    @property
+    def requires_grad(self):
+        return self._requires_grad
+    @requires_grad.setter
+    def requires_grad(self, val):
+        assert isinstance(val, bool)
+        self._requires_grad = val
+        if self._representation is not None:
+            self._representation.requires_grad = val
+            
     @property
     def grad(self):
         """Returns the gradient for the representation of this parameter, if
@@ -184,9 +196,7 @@ class Parameter(object):
             self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = self.dtype, device = self.device)
         else:
             self._representation[index] = rep
-        # if self._representation is not None:
-        #     self._representation.requires_grad = not self.locked
-
+            
     def get_state(self):
         """Return the values representing the current state of the parameter,
         this can be used to re-load the state later from memory.

@@ -125,7 +125,6 @@ class BaseImage(object):
 
     def reduce(self, scale):
         assert isinstance(scale, int) or scale.dtype is torch.int32
-
         if scale == 1:
             return self
         

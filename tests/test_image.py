@@ -13,7 +13,7 @@ class TestImage(unittest.TestCase):
         self.assertEqual(base_image.origin[1], 0, 'image should track origin')
         self.assertEqual(base_image.note, 'test image', 'image should track note')
 
-        slicer = image.AP_Window((3,2), (4,5))
+        slicer = image.Window((3,2), (4,5))
         sliced_image = base_image[slicer]
         self.assertEqual(sliced_image.origin[0], 3, 'image should track origin')
         self.assertEqual(sliced_image.origin[1], 2, 'image should track origin')
@@ -31,7 +31,7 @@ class TestImage(unittest.TestCase):
 
         arr = torch.zeros((10,12))
         base_image = image.Model_Image(data = arr, pixelscale = 1.0, zeropoint = 1.0, origin = torch.ones(2), note = 'test image')
-        slicer = image.AP_Window((0,0), (5,5))
+        slicer = image.Window((0,0), (5,5))
         sliced_image = base_image[slicer]
         sliced_image += 1
         

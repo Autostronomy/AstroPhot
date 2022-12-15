@@ -15,7 +15,7 @@ class Target_Image(BaseImage):
         self.set_variance(kwargs.get("variance", None))
         self.set_mask(kwargs.get("mask", None))
         self.set_psf(kwargs.get("psf", None))
-        self.psf_upscale = torch.tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
+        self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
 
     @property
     def variance(self):

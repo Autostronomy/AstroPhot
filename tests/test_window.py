@@ -1,12 +1,12 @@
 import unittest
-from autoprof import image
+import autoprof as ap
 import numpy as np
 
 
 class TestWindow(unittest.TestCase):
     def test_window_creation(self):
 
-        window1 = image.AP_Window((0,6), (100,110))
+        window1 = ap.image.Window((0,6), (100,110))
 
         self.assertEqual(window1.origin[0], 0, "Window should store origin")
         self.assertEqual(window1.origin[1], 6, "Window should store origin")
@@ -17,8 +17,8 @@ class TestWindow(unittest.TestCase):
 
     def test_window_arithmetic(self):
 
-        windowbig = image.AP_Window((0,0), (100,110))
-        windowsmall = image.AP_Window((40,40), (20,30))
+        windowbig = ap.image.Window((0,0), (100,110))
+        windowsmall = ap.image.Window((40,40), (20,30))
 
         big_or_small = windowbig | windowsmall
 
@@ -39,7 +39,7 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(windowsmall.origin[0], 40, "logical and of images should not affect initial images")
         self.assertEqual(windowsmall.shape[0], 20, "logical and of images should not affect initial images")
         
-        windowoffset = image.AP_Window((40,-20), (100,90))
+        windowoffset = ap.image.Window((40,-20), (100,90))
         
         big_or_offset = windowbig | windowoffset
         self.assertEqual(big_or_offset.origin[0], 0, "logical or of images should take largest bounding box")
@@ -78,7 +78,7 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(windowoffset.origin[0], 40, "logical or of images should not affect input image")
         self.assertEqual(windowoffset.shape[0], 100, "logical or of images should not affect input image")
         
-        windowbig = image.AP_Window((0,0), (100,110))
+        windowbig = ap.image.Window((0,0), (100,110))
 
         windowbig &= windowoffset
 
@@ -95,7 +95,7 @@ class TestWindow(unittest.TestCase):
 
     def test_window_buffering(self):
 
-        window = image.AP_Window((0,0), (100,110))
+        window = ap.image.Window((0,0), (100,110))
 
         window_scaled = window * 2
         self.assertEqual(window_scaled.origin[0], -50, "Window scaling should remain centered")

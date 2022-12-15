@@ -10,16 +10,6 @@ def scale_window(self, scale = 1., border = 0.):
     window &= self.target.window
     self.set_window(window)
 
-@property 
-def target(self):
-    return self._target
-@target.setter
-def target(self, tar):
-    if tar is None:
-        tar = Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
-    assert isinstance(tar, Target_Image)
-    self._target = tar.to(dtype = self.dtype, device = self.device)
-
 @property
 def integrate_window(self):
     # use_center = torch.round(self["center"].value/self.target.pixelscale)
@@ -32,7 +22,7 @@ def integrate_window(self):
     #     (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
     # )
     # return Window(origin = int_origin, shape = int_shape, dtype = self.dtype, device = self.device)
-    use_center = torch.round(self["center"].value/self.target.pixelscale)*self.target.pixelscale
+    use_center = (0.5 + torch.round(self["center"].value/self.target.pixelscale - 0.5))*self.target.pixelscale
     use_shape = (
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
@@ -53,13 +43,6 @@ def psf_window(self):
     )
     return Window(origin = psf_origin, shape = psf_shape, dtype = self.dtype, device = self.device)
 
-@property
-def locked(self):
-    return self._locked or self._user_locked
-@locked.setter
-def locked(self, val):
-    assert isinstance(val, bool)
-    self._locked = val
 
 @classmethod
 def build_parameter_specs(cls, user_specs = None):
