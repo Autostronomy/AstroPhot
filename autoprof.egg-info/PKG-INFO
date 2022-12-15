@@ -1,0 +1,14 @@
+Metadata-Version: 1.1
+Name: autoprof
+Version: 0.1.0
+Summary: Fast and flexible astronomical image modelling tool
+Home-page: https://github.com/ConnorStoneAstro/AutoProf-2
+Author: Connor Stone
+Author-email: connorston628@gmail.com
+License: GPL-3.0 license
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Programming Language :: Python :: 3

@@ -1,0 +1,3 @@
+[console_scripts]
+autoprof = autoprof:run_from_commandline
+

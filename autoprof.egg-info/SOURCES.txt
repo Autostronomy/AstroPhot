@@ -1,0 +1,10 @@
+README.md
+setup.py
+autoprof/__init__.py
+autoprof/__main__.py
+autoprof.egg-info/PKG-INFO
+autoprof.egg-info/SOURCES.txt
+autoprof.egg-info/dependency_links.txt
+autoprof.egg-info/entry_points.txt
+autoprof.egg-info/requires.txt
+autoprof.egg-info/top_level.txt
