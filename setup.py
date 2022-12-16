@@ -22,7 +22,7 @@ setup(
                       ],
     entry_points = {
         'console_scripts': [
-            'autoprof = autoprof:run_from_commandline',
+            'autoprof = autoprof:run_from_terminal',
         ],
     },
     classifiers=[
