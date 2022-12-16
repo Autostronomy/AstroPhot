@@ -1,5 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import autoprof as ap
+import os
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -13,7 +14,7 @@ setup(
     author=ap.__author__,
     author_email=ap.__email__,
     license="GPL-3.0 license",
-    packages=["autoprof"],
+    packages=find_packages(),
     install_requires=["scipy",
                       "numpy",
                       "astropy",
@@ -21,7 +22,7 @@ setup(
                       ],
     entry_points = {
         'console_scripts': [
-            'autoprof = autoprof:run_from_commandline',
+            'autoprof = autoprof:run_from_terminal',
         ],
     },
     classifiers=[
