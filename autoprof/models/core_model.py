@@ -65,14 +65,15 @@ class AutoProf_Model(object):
         self.parameter_vector_len = None
         self._locked = locked
         
-        
-    def initialize(self):
+
+    @torch.no_grad()
+    def initialize(self, target = None):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
 
         """
-        pass
+        self.parameter_vector_len = list(int(np.prod(self[P].value.shape)) for P in self.parameter_order)
 
     def make_model_image(self):
         return Model_Image(
@@ -81,14 +82,6 @@ class AutoProf_Model(object):
             dtype = self.dtype,
             device = self.device,
         )
-        
-    def startup(self):
-        """Run immediately before fitting begins. Typically this is not
-        needed, though it is available for models which require
-        specific configuration for fitting, see also "finalize"
-
-        """
-        self.parameter_vector_len = list(int(np.prod(self[P].value.shape)) for P in self.parameter_order)
         
     def finalize(self):
         """This is run after fitting and can be used to undo any fitting

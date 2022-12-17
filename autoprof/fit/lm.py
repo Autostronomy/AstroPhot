@@ -346,8 +346,6 @@ class LM(BaseOptimizer):
         
     def fit(self):
 
-        self.model.startup()
-        
         self.iteration = 0
         self._count_reject = 0
         self._count_finish = 0

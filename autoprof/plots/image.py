@@ -42,7 +42,7 @@ def target_image(fig, ax, target, window = None, **kwargs):
     return fig, ax
 
 @torch.no_grad()
-def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
+def model_image(fig, ax, model, image = None, window = None, showcbar = True, **kwargs):
 
     if image is None:
         sample_image = model.make_model_image()

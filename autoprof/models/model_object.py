@@ -93,9 +93,10 @@ class BaseModel(AutoProf_Model):
         until the iterations move by less than a pixel.
 
         """
-        # Get the sub-image area corresponding to the model image
         if target is None:
             target = self.target
+        super().initialize(target)
+        # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
             
         # Use center of window if a center hasn't been set yet

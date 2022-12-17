@@ -27,6 +27,7 @@ class Group_Model(AutoProf_Model):
     
     def __init__(self, name, *args, model_list = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
+        print("at groupmodel window", self.window, self._window)
         self.model_list = [] if model_list is None else model_list
         self._psf_mode = None
         self.equality_constraints = kwargs.get("equality_constraints", None)
@@ -55,15 +56,16 @@ class Group_Model(AutoProf_Model):
                 self[model].parameters[constraint[0]] = self[constraint[1]].parameters[constraint[0]]
 
     def update_window(self):
-        self.window = None
+        new_window = None
         for model in self.model_list:
             if model.locked:
                 continue
-            if self.window is None:
-                self.window = model.window.make_copy()
+            if new_window is None:
+                new_window = model.window.make_copy()
             else:
-                self.window |= model.window
-
+                new_window |= model.window
+        self.window = new_window
+                
     @property
     def parameter_order(self):
         param_order = tuple()
@@ -75,18 +77,15 @@ class Group_Model(AutoProf_Model):
 
     @torch.no_grad()
     def initialize(self, target = None):
+        self.sync_target()
         if target is None:
             target = self.target
+        super().initialize(target)
 
         target_copy = target.copy()
         for model in self.model_list:
             model.initialize(target_copy)
             target_copy -= model.sample()
-
-    def startup(self):
-        super().startup()
-        for model in self.model_list:
-            model.startup()
             
     def finalize(self):
         for model in self.model_list:
@@ -181,20 +180,11 @@ class Group_Model(AutoProf_Model):
         
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 
-    @property 
-    def target(self):
-        return self._target    
-    @target.setter
-    def target(self, tar):
-        if tar is None:
-            tar = Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
-        assert isinstance(tar, Target_Image)
-        self._target = tar.to(dtype = self.dtype, device = self.device)
-        try:
-            for model in self.model_list:
-                model.target = tar
-        except AttributeError:
-            pass
+    def sync_target(self):
+        if self._target is None:
+            self.target = self.model_list[0].target
+        for model in self.model_list:
+            model.target = self.target
             
     @property
     def psf_mode(self):

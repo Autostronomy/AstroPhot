@@ -86,10 +86,6 @@ class Grad(BaseOptimizer):
         Perform an iterative fit of the model parameters using the specified optimizer
         """
 
-        # initialize the model for optimization. Calling startup lets the model know that optimization will begin soon
-        self.model.startup()
-        # step ensures that no previous state from sampling the model is saved, 
-
         try:
             while True:
                 self.step()
