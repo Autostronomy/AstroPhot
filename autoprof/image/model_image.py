@@ -1,4 +1,4 @@
-from .image_object import BaseImage
+from .image_object import BaseImage, Image_List
 from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
 import torch
@@ -42,3 +42,19 @@ class Model_Image(BaseImage):
             self.data = other
     
     
+class Model_Image_List(Image_List, Model_Image):
+    
+    def clear_image(self):
+        for image in self.image_list:
+            image.clear_image()
+
+    def shift_origin(self, shift):
+        raise NotImplementedError()
+
+    def replace(self, other, data = None):
+        if data is None:
+            for image, oth in zip(self.image_list, other):
+                image.replace(oth)
+        else:
+            for image, oth, dat in zip(self.image_list, other, data):
+                image.replace(oth, dat)

@@ -61,6 +61,9 @@ def build_parameters(self):
         # skip special parameters, these must be handled by the model child
         if "|" in p:
             continue
+        # skip if the parameter already exists
+        if p in self.parameters:
+            continue
         # If a parameter object is provided, simply use as-is
         if isinstance(self.parameter_specs[p], Parameter):
             self.parameters[p] = self.parameter_specs[p].to(dtype = self.dtype, device = self.device)

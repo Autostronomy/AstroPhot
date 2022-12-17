@@ -221,3 +221,104 @@ class BaseImage(object):
 
     def __str__(self):
         return f"image pixelscale: {self.pixelscale} origin: {self.origin}\ndata: {self.data}"
+
+class Image_List(Image):
+
+    def __init__(self, image_list, dtype = torch.float64, device = None):
+        self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
+        self.dtype = dtype
+        self._window = None
+        self.image_list = list(image_list)
+        
+    @property
+    def window(self):
+        if self._window is None:
+            new_window = self.image_list[0].window.make_copy()
+            for image in self.image_list[1:]:
+                new_window |= image.window
+        return self._window
+    @property
+    def pixelscale(self):
+        return tuple(image.pixelscale for image in self.image_list)
+    @property
+    def zeropoint(self):
+        return tuple(image.zeropoint for image in self.image_list)
+    
+    @property
+    def data(self):
+        return tuple(image.data for image in self.image_list)
+    @data.setter
+    def data(self, data):
+        for image, dat in zip(self.image_list, data):
+            image.data = dat
+
+    def copy(self):
+        return self.__class__(
+            *tuple(image.copy() for image in self.image_list),
+            device = self.device,
+            dtype = self.dtype,
+        )
+    def blank_copy(self):
+        return self.__class__(
+            *tuple(image.blank_copy() for image in self.image_list),
+            device = self.device,
+            dtype = self.dtype,
+        )
+        
+    def get_window(self, window):
+        return self.__class__(
+            *tuple(image[window] for image in self.image_list),
+            device = self.device,
+            dtype = self.dtype,
+        )
+    
+    def to(self, dtype = None, device = None):
+        if dtype is not None:
+            self.dtype = dtype
+        if device is not None:
+            self.device = device
+        for image in self.image_list:
+            image.to(dtype = self.dtype, device = self.device)
+        return self
+
+    def crop(self, *pixels):
+        for image in self.image_list:
+            image.crop(*pixels)
+        self._window = None
+        return self
+    
+    def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
+        return tuple(image.get_coordinate_meshgrid_np(x,y) for image in self.image_list)
+    def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
+        return tuple(image.get_coordinate_meshgrid_torch(x,y) for image in self.image_list)
+
+    def reduce(self, scale):
+        assert isinstance(scale, int) or scale.dtype is torch.int32
+        if scale == 1:
+            return self
+
+        return self.__class__(
+            *tuple(image.reduce(scale) for image in self.image_list),
+            device = self.device,
+            dtype = self.dtype,
+        )
+    def __sub__(self, other):
+        raise NotImplementedError()
+    def __add__(self, other):
+        raise NotImplementedError()
+    def __isub__(self, other):
+        raise NotImplementedError()
+    def __iadd__(self, other):
+        raise NotImplementedError()
+    
+    def __str__(self):
+        return f"image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
+    def __iter__(self):
+        self.index = 0
+        return self
+    def __next__(self):
+        if self.index >= len(self.image_list):
+            raise StopIteration
+        img = self.image_list[self.index]
+        self.index += 1
+        return img

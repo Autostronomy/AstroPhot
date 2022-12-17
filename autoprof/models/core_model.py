@@ -60,11 +60,22 @@ class AutoProf_Model(object):
     def __init__(self, name, *args, target = None, window = None, locked = False, **kwargs):
         self.name = name
         self.constraints = kwargs.get("constraints", None)
+        self.equality_constraints = []
         self.requires_grad = kwargs.get("requires_grad", False)
         self.target = target
         self.window = window
         self._locked = locked
 
+    def add_equality_constraint(self, parameter, root_model = None):
+        if isinstance(parameter, str):
+            self.parameters[parameter] = root_model[parameter]
+            self.equality_constraints.append(parameter)
+        elif isinstance(parameter, Parameter):
+            self.parameters[parameter.name] = parameter
+            self.equality_constraints.append(parameter.name)
+        else:
+            raise ValueError(f"Cannot add equality constraint with object: {parameter}")
+        
     @torch.no_grad()
     def initialize(self, target = None):
         """When this function finishes, all parameters should have numerical
@@ -184,6 +195,7 @@ class AutoProf_Model(object):
             return self._window
         except AttributeError:
             return self.target.window.make_copy()
+        
     def set_window(self, window):
         # If no window given, dont go any further
         if window is None:

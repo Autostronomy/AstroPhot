@@ -33,27 +33,6 @@ class Group_Model(AutoProf_Model):
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
-        if "equality_constraints" in kwargs:
-            if isinstance(kwargs["equality_constraints"][0], str):
-                self.add_equality_constraint(kwargs["equality_constraints"])
-            else:
-                for constraint in kwargs["equality_constraints"]:
-                    self.add_equality_constraint(constraint)
-
-    def add_equality_constraint(self, constraint):
-        for model in self.model_list:
-            if model.name == constraint[1]:
-                root_model = model
-                break
-        else:
-            raise ValueError(f"model name {constraint[1]} not found in model list. Could not constrain")
-        for model_name in constraint[2:]:
-            for model in self.model_list:
-                if model.name == model_name:
-                    model.add_equality_constraint(constraint[0], root_model)
-                    break
-            else:
-                raise ValueError(f"model name {constraint[1]} not found in model list. Could not constrain")
             
     def add_model(self, model):
         self.model_list.append(model)

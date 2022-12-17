@@ -48,7 +48,6 @@ class BaseModel(AutoProf_Model):
         super().__init__(name, *args, **kwargs)
         
         self.parameters = {}
-        self.equality_constraints = []
         # Set any user defined attributes for the model
         for kwarg in kwargs:
             # Skip parameters with special behaviour
@@ -66,16 +65,6 @@ class BaseModel(AutoProf_Model):
         if "filename" in kwargs:
             self.load(kwargs["filename"])
 
-    def add_equality_constraint(self, parameter, root_model = None):
-        if isinstance(parameter, str):
-            self.parameters[parameter] = root_model[parameter]
-            self.equality_constraints.append(parameter)
-        elif isinstance(parameter, Parameter):
-            self.parameter[parameter.name] = parameter
-            self.equality_constraints.append(parameter.name)
-        else:
-            raise ValueError(f"Cannot add equality constraint with object: {parameter}")
-        
     @property
     def parameters(self):
         try:
@@ -170,7 +159,7 @@ class BaseModel(AutoProf_Model):
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = sample_image.pixelscale / self.target.psf_upscale
             # Sub pixel shift to align the model with the center of a pixel
-            center_shift = torch.round(self["center"].value/working_pixelscale - 0.5)*working_pixelscale - (self["center"].value - 0.5*working_pixelscale)
+            center_shift = (torch.round(self["center"].value/working_pixelscale - 0.5) + 0.5)*working_pixelscale - self["center"].value
             working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(pixelscale = working_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
