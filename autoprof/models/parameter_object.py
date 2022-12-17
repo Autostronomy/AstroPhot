@@ -48,7 +48,12 @@ class Parameter(object):
         self.locked = kwargs.get("locked", False)
         self.units = kwargs.get("units", "none")
         self._uncertainty = kwargs.get("uncertainty", None)
-        
+        if "prof" in kwargs:
+            self.set_profile(kwargs["prof"])
+        else:
+            self.prof = None
+       self.to(dtype = self.dtype, device = self.device)
+       
     @property
     def representation(self):
         """The representation is the stored number (or tensor of numbers) for
@@ -61,8 +66,8 @@ class Parameter(object):
         return self._representation
     @representation.setter
     def representation(self, rep):
-        """
-        Calls the set representation method, preserving locked behaviour.
+        """Calls the set representation method, preserving locked behaviour.
+
         """
         self.set_representation(rep)
     @property
@@ -141,6 +146,10 @@ class Parameter(object):
             self.device = device
         if self._representation is not None:
             self._representation = self._representation.to(dtype = self.dtype, device = self.device)
+        if self._uncertainty is not None:
+            self._uncertainty = self._uncertainty.to(dtype = self.dtype, device = self.device)
+        if self.prof is not None:
+            self.prof = self.prof.to(dtype = self.dtype, device = self.device)
         return self
     
     def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
@@ -217,9 +226,14 @@ class Parameter(object):
             state["limits"] = self.limits
         if self.cyclic:
             state["cyclic"] = self.cyclic
+        if self.prof is not None:
+            state["prof"] = self.prof.detach().cpu().numpy().tolist()
             
         return state
-    
+
+    def set_profile(self, prof):
+        self.prof = torch.as_tensor(prof, dtype = self.dtype, device = self.device)
+            
     def update_state(self, state):
         """Update the state of the parameter given a state variable whcih
         holds all information about a variable.
@@ -232,7 +246,8 @@ class Parameter(object):
         self.uncertainty = state.get("uncertainty", None)
         self.value = state.get("value", None)
         self.locked = state.get("locked", False)
-            
+        self.prof = state.get("prof", None)
+        
     def __str__(self):
         """String representation of the parameter which indicates it's value
         along with uncertainty, units, limits, etc.
@@ -271,4 +286,4 @@ class Parameter(object):
         parameter.
 
         """
-        return len(self.value)    
+        return len(self.value)

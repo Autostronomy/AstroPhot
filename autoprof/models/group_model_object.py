@@ -27,38 +27,42 @@ class Group_Model(AutoProf_Model):
     
     def __init__(self, name, *args, model_list = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
-        print("at groupmodel window", self.window, self._window)
+        
         self.model_list = [] if model_list is None else model_list
         self._psf_mode = None
-        self.equality_constraints = kwargs.get("equality_constraints", None)
-        if self.equality_constraints is not None and isinstance(self.equality_constraints[0], str):
-            self.equality_constraints = [self.equality_constraints]
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
-        self.update_equality_constraints()
+        if "equality_constraints" in kwargs:
+            if isinstance(kwargs["equality_constraints"][0], str):
+                self.add_equality_constraint(kwargs["equality_constraints"])
+            else:
+                for constraint in kwargs["equality_constraints"]:
+                    self.add_equality_constraint(constraint)
 
+    def add_equality_constraint(self, constraint):
+        for model in self.model_list:
+            if model.name == constraint[1]:
+                root_model = model
+                break
+        else:
+            raise ValueError(f"model name {constraint[1]} not found in model list. Could not constrain")
+        for model_name in constraint[2:]:
+            for model in self.model_list:
+                if model.name == model_name:
+                    model.add_equality_constraint(constraint[0], root_model)
+                    break
+            else:
+                raise ValueError(f"model name {constraint[1]} not found in model list. Could not constrain")
+            
     def add_model(self, model):
         self.model_list.append(model)
         self.update_window()
 
-    def update_equality_constraints(self):
-        """Equality constraints given aa a list of tuples, where each tuple is
-        formatted as (parameter, model1, model2, model3, ...) which
-        indicates that "parameter" will be equal across all the listed
-        models.
-
-        """
-        if self.equality_constraints is None:
-            return
-        for constraint in self.equality_constraints:
-            for model in constraint[2:]:
-                self[model].parameters[constraint[0]] = self[constraint[1]].parameters[constraint[0]]
-
-    def update_window(self):
+    def update_window(self, include_locked = False):
         new_window = None
         for model in self.model_list:
-            if model.locked:
+            if model.locked and not include_locked:
                 continue
             if new_window is None:
                 new_window = model.window.make_copy()
@@ -92,8 +96,6 @@ class Group_Model(AutoProf_Model):
             model.finalize()
         
     def sample(self, sample_image = None):
-        if self.locked:
-            return
 
         if sample_image is None:
             sample_window = True
@@ -120,7 +122,7 @@ class Group_Model(AutoProf_Model):
         except AttributeError:
             return {}
             
-    def get_parameters_representation(self, exclude_locked = True, exclude_equality_constraint = True):
+    def get_parameters_representation(self, exclude_locked = True):
         all_parameters = []
         all_keys = []
         for model in self.model_list:
@@ -128,14 +130,6 @@ class Group_Model(AutoProf_Model):
             for k, r in zip(keys, reps):
                 if exclude_locked and model[k].locked:
                     continue
-                if exclude_equality_constraint and self.equality_constraints is not None:
-                    skip = False
-                    for constraint in self.equality_constraints:
-                        if k == constraint[0] and model.name in constraint[2:]:
-                            skip = True
-                            break
-                    if skip:
-                        continue
                 all_parameters.append(r)
                 all_keys.append(f"{model.name}|{k}")
         return all_keys, all_parameters

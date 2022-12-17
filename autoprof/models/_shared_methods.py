@@ -181,14 +181,14 @@ def gaussian_radial_model(self, R, sample_image = None):
 def nonparametric_set_window(self, window):
     super(self.__class__, self).set_window(window)
     
-    if self.profR is None:
-        self.profR = [0,2*self.target.pixelscale]
-        while self.profR[-1] < torch.min(self.window.shape/2):
-            self.profR.append(self.profR[-1] + torch.max(2*self.target.pixelscale,self.profR[-1]*0.2))
-        self.profR.pop()
-        self.profR.pop()
-        self.profR.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
-        self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
+    if self["I(R)"].prof is None and "I(R)" not in self.equality_constraints:
+        new_prof = [0,2*self.target.pixelscale]
+        while new_prof[-1] < torch.min(self.window.shape/2):
+            new_prof.append(new_prof[-1] + torch.max(2*self.target.pixelscale,new_prof[-1]*0.2))
+        new_prof.pop()
+        new_prof.pop()
+        new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
+        self["I(R)"].set_profile(new_prof)
 
 @torch.no_grad()
 def nonparametric_initialize(self, target = None):
@@ -198,7 +198,7 @@ def nonparametric_initialize(self, target = None):
     if self["I(R)"].value is not None:
         return
     
-    profR = self.profR.detach().cpu().numpy()
+    profR = self["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
     X, Y = self.transform_coordinates(X, Y)
@@ -219,24 +219,14 @@ def nonparametric_initialize(self, target = None):
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
-    I = cubic_spline_torch(self.profR, self["I(R)"].value, R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
+    I = cubic_spline_torch(self["I(R)"].prof, self["I(R)"].value, R.view(-1), extend = "none").view(*R.shape)
     res = 10**(I) * sample_image.pixelscale**2
-    res[R > self.profR[-2]] = 10**(self["I(R)"].value[-2] + (R[R > self.profR[-2]] - self.profR[-2])*((self["I(R)"].value[-1] - self["I(R)"].value[-2])/(self.profR[-1] - self.profR[-2]))) * sample_image.pixelscale**2
+    res[R > self["I(R)"].prof[-2]] = 10**(self["I(R)"].value[-2] + (R[R > self["I(R)"].prof[-2]] - self["I(R)"].prof[-2])*((self["I(R)"].value[-1] - self["I(R)"].value[-2])/(self["I(R)"].prof[-1] - self["I(R)"].prof[-2]))) * sample_image.pixelscale**2
     return res
 def nonparametric_iradial_model(self, i, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
-    I =  cubic_spline_torch(self.profR, self["I(R)"].value[i], R.view(-1), extend = "none").view(*R.shape) # interp1d_torch(self.profR, self["I(R)"].value, R)
+    I =  cubic_spline_torch(self["I(R)"].prof, self["I(R)"].value[i], R.view(-1), extend = "none").view(*R.shape)
     res = 10**(I) * sample_image.pixelscale**2
-    res[R > self.profR[-2]] = 10**(self["I(R)"].value[i][-2] + (R[R > self.profR[-2]] - self.profR[-2])*((self["I(R)"].value[i][-1] - self["I(R)"].value[i][-2])/(self.profR[-1] - self.profR[-2]))) * sample_image.pixelscale**2
+    res[R > self["I(R)"].prof[-2]] = 10**(self["I(R)"].value[i][-2] + (R[R > self["I(R)"].prof[-2]] - self["I(R)"].prof[-2])*((self["I(R)"].value[i][-1] - self["I(R)"].value[i][-2])/(self["I(R)"].prof[-1] - self["I(R)"].prof[-2]))) * sample_image.pixelscale**2
     return res
-
-def nonparametric_get_state(self):
-    state = super(self.__class__, self).get_state()
-    state["R"] = self.profR.detach().cpu().numpy().tolist()
-    return state
-
-def nonparametric_load(self, filename = "AutoProf.yaml"):
-    state = super(self.__class__, self).load(filename)
-    self.profR = torch.as_tensor(state["R"], dtype = self.dtype, device = self.device)
-    return state

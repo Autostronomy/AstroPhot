@@ -39,11 +39,6 @@ class Warp_Galaxy(Galaxy_Model):
     }
     _parameter_order = Galaxy_Model._parameter_order + ("q(R)", "PA(R)")
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-
     @torch.no_grad()
     def initialize(self, target = None):
         if target is None:
@@ -53,27 +48,28 @@ class Warp_Galaxy(Galaxy_Model):
             return
 
         if self["PA(R)"].value is None:
-            self["PA(R)"].set_value(np.zeros(len(self.profR)), override_locked = True)
+            self["PA(R)"].set_value(np.zeros(len(self["PA(R)"].prof)), override_locked = True)
             
         if self["q(R)"].value is None:
-            self["q(R)"].set_value(np.ones(len(self.profR))*0.9, override_locked = True)
+            self["q(R)"].set_value(np.ones(len(self["q(R)"].prof))*0.9, override_locked = True)
             
     def set_window(self, window):
         super().set_window(window)
 
-        if self.profR is None:
-            self.profR = [0,2*self.target.pixelscale]
-            while self.profR[-1] < torch.min(self.window.shape/2):
-                self.profR.append(self.profR[-1] + torch.max(2*self.target.pixelscale,self.profR[-1]*0.2))
-            self.profR.pop()
-            self.profR.pop()
-            self.profR.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
-            self.profR = torch.tensor(self.profR, dtype = self.dtype, device = self.device)
+        for prof_param in ["PA(R)", "q(R)"]:
+            if self[prof_param].prof is None:
+                new_prof = [0,2*self.target.pixelscale]
+                while new_prof[-1] < torch.min(self.window.shape/2):
+                    new_prof.append(new_prof[-1] + torch.max(2*self.target.pixelscale,new_prof[-1]*0.2))
+                new_prof.pop()
+                new_prof.pop()
+                new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
+                self[prof_param].set_profile(new_prof)
         
     def transform_coordinates(self, X, Y):
         X, Y = super().transform_coordinates(X, Y)
         R = self.radius_metric(X, Y)
-        PA = cubic_spline_torch(self.profR, -self["PA(R)"].value, R.view(-1)).view(*R.shape)
-        q = cubic_spline_torch(self.profR, self["q(R)"].value, R.view(-1)).view(*R.shape)
+        PA = cubic_spline_torch(self["PA(R)"].prof, -self["PA(R)"].value, R.view(-1)).view(*R.shape)
+        q = cubic_spline_torch(self["q(R)"].prof, self["q(R)"].value, R.view(-1)).view(*R.shape)
         X, Y = Rotate_Cartesian(PA, X, Y)
         return X, Y/q #Axis_Ratio_Cartesian(q, X, Y, PA, inv_scale = True)

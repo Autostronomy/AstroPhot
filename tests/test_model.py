@@ -21,7 +21,6 @@ class TestModel(unittest.TestCase):
         mod = ap.models.BaseModel(name = "base model", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
 
         mod.initialize()
-        mod.startup()
         
         self.assertFalse(mod.locked, "default model should not be locked")
         
@@ -54,7 +53,6 @@ class TestSersic(unittest.TestCase):
         self.assertFalse(mod.locked, "default model should not be locked")
         
         mod.initialize()
-        mod.startup()
 
         mod.requires_grad = True
         loss = mod.compute_loss()
@@ -98,7 +96,7 @@ class TestSersic(unittest.TestCase):
         self.assertFalse(mod.locked, "default model should not be locked")
         
         mod.initialize()
-        mod.startup()
+        
         mod_initparams = {}
         for p in mod.parameters:
             mod_initparams[p] = np.copy(mod[p].representation.detach().numpy())
@@ -127,7 +125,6 @@ class TestGroup(unittest.TestCase):
         self.assertFalse(smod.locked, "default model state should not be locked")
         
         smod.initialize()
-        smod.startup()
 
         self.assertTrue(torch.all(smod.sample().data == 0), "model_image should be zeros")
 
@@ -162,7 +159,6 @@ class TestGroup(unittest.TestCase):
         self.assertFalse(smod.locked, "default model should not be locked")
         
         smod.initialize()
-        smod.startup()
         
         mod1_initparams = {}
         for p in mod1.parameters:

@@ -1,5 +1,6 @@
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
+from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
 from ..utils.operations import fft_convolve_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
@@ -47,6 +48,7 @@ class BaseModel(AutoProf_Model):
         super().__init__(name, *args, **kwargs)
         
         self.parameters = {}
+        self.equality_constraints = []
         # Set any user defined attributes for the model
         for kwarg in kwargs:
             # Skip parameters with special behaviour
@@ -64,6 +66,16 @@ class BaseModel(AutoProf_Model):
         if "filename" in kwargs:
             self.load(kwargs["filename"])
 
+    def add_equality_constraint(self, parameter, root_model = None):
+        if isinstance(parameter, str):
+            self.parameters[parameter] = root_model[parameter]
+            self.equality_constraints.append(parameter)
+        elif isinstance(parameter, Parameter):
+            self.parameter[parameter.name] = parameter
+            self.equality_constraints.append(parameter.name)
+        else:
+            raise ValueError(f"Cannot add equality constraint with object: {parameter}")
+        
     @property
     def parameters(self):
         try:
@@ -79,6 +91,8 @@ class BaseModel(AutoProf_Model):
         param_order = tuple()
         for P in  self.__class__._parameter_order:
             if self[P].locked:
+                continue
+            if P in self.equality_constraints:
                 continue
             param_order = param_order + (P,)
         return param_order
@@ -247,6 +261,7 @@ class BaseModel(AutoProf_Model):
         self.window = Window(dtype = self.dtype, device = self.device, **state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
+            self[key].to(dtype = self.dtype, device = self.device)
         return state
     
     # Extra background methods for the basemodel

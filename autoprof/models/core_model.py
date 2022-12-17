@@ -36,7 +36,8 @@ class AutoProf_Model(object):
 
     dtype = torch.float64
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+    constraint_strength = 10.
+    
     def __new__(cls, *args, filename = None, model_type = None, **kwargs):
         if filename is not None:
             state = AutoProf_Model.load(filename)
@@ -62,9 +63,7 @@ class AutoProf_Model(object):
         self.requires_grad = kwargs.get("requires_grad", False)
         self.target = target
         self.window = window
-        self.parameter_vector_len = None
         self._locked = locked
-        
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -73,7 +72,7 @@ class AutoProf_Model(object):
         values.
 
         """
-        self.parameter_vector_len = list(int(np.prod(self[P].value.shape)) for P in self.parameter_order)
+        pass
 
     def make_model_image(self):
         return Model_Image(
@@ -246,7 +245,10 @@ class AutoProf_Model(object):
         self._requires_grad = val
         for P in self.parameters:
             self[P].requires_grad = val
-    
+    @property
+    def parameter_vector_len(self):
+        return list(int(np.prod(self[P].value.shape)) for P in self.parameter_order)
+            
     def __str__(self):
         """String representation for the model."""
         return str(self.get_state())
