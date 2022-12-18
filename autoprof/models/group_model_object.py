@@ -158,7 +158,8 @@ class Group_Model(AutoProf_Model):
             self.target = self.model_list[0].target
         for model in self.model_list:
             model.target = self.target
-            
+        self.update_window()
+        
     @property
     def psf_mode(self):
         return self._psf_mode
@@ -186,3 +187,4 @@ class Group_Model(AutoProf_Model):
                     break
             else:
                 self.add_model(AutoProf_Model(name = model, filename = state["models"][model], target = self.target))
+        self.update_window()

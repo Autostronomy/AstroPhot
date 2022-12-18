@@ -6,6 +6,7 @@ from ..utils.conversions.optimization import cyclic_difference_np
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
 from ..image import Model_Image, Window, Target_Image
+from .parameter_object import Parameter
 from copy import copy
 from time import time
 from torch.autograd.functional import jacobian
@@ -204,14 +205,23 @@ class AutoProf_Model(object):
         # If the window is given in proper format, simply use as-is
         if isinstance(window, Window):
             self._window = window
-        else:
+        elif len(window) == 2:
             self._window = Window(
                 origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
                 shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
                 dtype = self.dtype,
                 device = self.device,
             )
-    
+        elif len(window) == 4:
+            self._window = Window(
+                origin = self.target.origin + torch.tensor((window[0],window[2]), dtype = self.dtype, device = self.device),
+                shape = torch.tensor((window[1] - window[0], window[3] - window[2]), dtype = self.dtype, device = self.device),
+                dtype = self.dtype,
+                device = self.device,
+            )
+        else:
+            raise ValueError(f"Unrecognized window format: {str(window)}")
+            
     @window.setter
     def window(self, window):
         self._window = window
