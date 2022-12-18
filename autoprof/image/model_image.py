@@ -4,6 +4,8 @@ from ..utils.interpolate import shift_Lanczos_torch
 import torch
 import numpy as np
 
+__all__ = ["Model_Image", "Model_Image_List"]
+
 class Model_Image(BaseImage):
     """Image object which represents the sampling of a model at the given
     coordinates of the image. Extra arithmetic operations are

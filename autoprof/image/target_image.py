@@ -4,6 +4,8 @@ import numpy as np
 from torch.nn.functional import avg_pool2d
 from astropy.io import fits
 
+__all__ = ["Target_Image", "Target_Image_List"]
+
 class Target_Image(BaseImage):
     """Image object which represents the data to be fit by a model. It can
     include a variance image, mask, and PSF as anciliary data which

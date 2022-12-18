@@ -40,9 +40,11 @@ class PSF_Star(Star_Model):
         if target is None:
             target = self.target
         super().initialize(target)
-        target_area = target[self.window]        
-        self["flux"].set_value(torch.log10(torch.abs(torch.sum(target_area.data)) / target_area.pixelscale**2), override_locked = self["flux"].value is None)
-        self["flux"].set_uncertainty(torch.abs(self["flux"].value) * 1e-2, override_locked = self["flux"].uncertainty is None)
+        target_area = target[self.window]
+        if self["flux"].value is None:
+            self["flux"].set_value(torch.log10(torch.abs(torch.sum(target_area.data)) / target_area.pixelscale**2), override_locked = True)
+        if self["flux"].uncertainty is None:
+            self["flux"].set_uncertainty(torch.abs(self["flux"].value) * 1e-2, override_locked = True)
         
     def evaluate_model(self, image):# fixme this definitely has bugs
         new_origin = self["center"].value - self.psf_model.shape/2

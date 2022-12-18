@@ -40,19 +40,18 @@ class Parameter(object):
         self.dtype = kwargs.get("dtype", torch.float64)
         self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
         self._representation = None
-        self.requires_grad = kwargs.get("requires_grad", False)
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
-        self._locked = False
-        self.set_value(value, override_locked = True)
         self.locked = kwargs.get("locked", False)
+        self._representation = None
+        self.set_value(value, override_locked = True)
+        self.requires_grad = kwargs.get("requires_grad", False)
         self.units = kwargs.get("units", "none")
-        self._uncertainty = kwargs.get("uncertainty", None)
-        if "prof" in kwargs:
-            self.set_profile(kwargs["prof"])
-        else:
-            self.prof = None
-       self.to(dtype = self.dtype, device = self.device)
+        self._uncertainty = None
+        self.uncertainty = kwargs.get("uncertainty", None)
+        self.prof = None
+        self.set_profile(kwargs.get("prof", None))
+        self.to(dtype = self.dtype, device = self.device)
        
     @property
     def representation(self):
@@ -102,9 +101,8 @@ class Parameter(object):
         """
         updates the locked state of the parameter
         """
-        
         self._locked = value
-        self.requires_grad = not bool(value)
+        
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
@@ -125,7 +123,7 @@ class Parameter(object):
     def requires_grad(self, val):
         assert isinstance(val, bool)
         self._requires_grad = val
-        if self._representation is not None:
+        if self._representation is not None and not (self._representation.requires_grad is val):
             self._representation.requires_grad = val
             
     @property
@@ -158,6 +156,9 @@ class Parameter(object):
 
         """
         if self.locked and not override_locked:
+            return
+        if uncertainty is None:
+            self._uncertainty = None
             return
         uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
         if torch.any(uncertainty < 0):
@@ -231,7 +232,12 @@ class Parameter(object):
             
         return state
 
-    def set_profile(self, prof):
+    def set_profile(self, prof, override_locked = False):
+        if self.locked and not override_locked:
+            return
+        if prof is None:
+            self.prof = None
+            return
         self.prof = torch.as_tensor(prof, dtype = self.dtype, device = self.device)
             
     def update_state(self, state):

@@ -21,26 +21,25 @@ class EdgeOn_Model(BaseModel):
     }
     _parameter_order = BaseModel._parameter_order + ("PA", )
 
+    @torch.no_grad()
     def initialize(self, target = None):
         if target is None:
             target = self.target        
         super().initialize(target)
         if self["PA"].value is not None:
             return
-        with torch.no_grad():
-            target_area = target[self.window]
-            edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
-            edge_average = np.median(edge)
-            edge_scatter = iqr(edge, rng = (16,84))/2
-            icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
-            if self["PA"].value is None:
-                iso_info = isophotes(
-                    target_area.data.detach().cpu().numpy() - edge_average,
-                    (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
-                    threshold = 3*edge_scatter,
-                    pa = 0., q = 1., n_isophotes = 15
-                )
-                self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info[-int(len(iso_info)/3):]))/2) % np.pi, override_locked = True)
+        target_area = target[self.window]
+        edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+        edge_average = np.median(edge)
+        edge_scatter = iqr(edge, rng = (16,84))/2
+        icenter = coord_to_index(self["center"].value[0], self["center"].value[1], target_area)
+        iso_info = isophotes(
+            target_area.data.detach().cpu().numpy() - edge_average,
+            (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
+            threshold = 3*edge_scatter,
+            pa = 0., q = 1., n_isophotes = 15
+        )
+        self["PA"].set_value((-Angle_Average(list(iso["phase2"] for iso in iso_info[-int(len(iso_info)/3):]))/2) % np.pi, override_locked = True)
 
     def transform_coordinates(self, X, Y):
         return Rotate_Cartesian(self["PA"].value, X, Y)

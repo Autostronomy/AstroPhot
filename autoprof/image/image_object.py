@@ -4,6 +4,8 @@ from copy import deepcopy
 from .window_object import Window
 from astropy.io import fits
 
+__all__ = ["BaseImage", "Image_List"]
+
 class BaseImage(object):
     """Core class to represent images. Any image is represented by a data
     matrix, pixelscale, and window in cooridnate space. With this
@@ -222,7 +224,7 @@ class BaseImage(object):
     def __str__(self):
         return f"image pixelscale: {self.pixelscale} origin: {self.origin}\ndata: {self.data}"
 
-class Image_List(Image):
+class Image_List(BaseImage):
 
     def __init__(self, image_list, dtype = torch.float64, device = None):
         self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device

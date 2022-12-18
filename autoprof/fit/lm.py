@@ -342,7 +342,6 @@ class LM(BaseOptimizer):
         self.update_hess()
         self.update_grad(self.prev_Y[1])
         self.iteration += 1
-        print(self.J, self.grad)
         
     def fit(self):
 

@@ -52,8 +52,10 @@ def exponential_initialize(self, target = None):
         flux[4],
     ]
     res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(exponential_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None)))
-    self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
-    self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))
+    if self["Re"].value is None:
+        self["Re"].set_value(res.x[1], override_locked = True)
+    if self["Ie"].value is None:
+        self["Ie"].set_value(np.log10(res.x[2]), override_locked = True)
     if self["Re"].uncertainty is None:
         self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
     if self["Ie"].uncertainty is None:
@@ -111,9 +113,13 @@ def sersic_initialize(self, target = None):
         N = np.argsort(residual)
         return np.mean(residual[:-3])
     res = minimize(optim, x0 = x0, method = "Nelder-Mead") # , bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))
-    self["n"].set_value(res.x[0], override_locked = self["n"].value is None)
-    self["Re"].set_value(res.x[1], override_locked = self["Re"].value is None)
-    self["Ie"].set_value(np.log10(res.x[2]), override_locked = (self["Ie"].value is None))
+    
+    if self["n"].value is None:
+        self["n"].set_value(res.x[0], override_locked = True)
+    if self["Re"].value is None:
+        self["Re"].set_value(res.x[1], override_locked = True)
+    if self["Ie"].value is None:
+        self["Ie"].set_value(np.log10(res.x[2]), override_locked = True)
     if self["Re"].uncertainty is None:
         self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
     if self["Ie"].uncertainty is None:
@@ -165,7 +171,8 @@ def gaussian_initialize(self, target = None):
     ]
     res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(gaussian_np(R, x[0], 10**x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
     for i, param in enumerate(["sigma", "flux"]):
-        self[param].set_value(res.x[i], override_locked = self[param].value is None)
+        if self[param].value is None:
+            self[param].set_value(res.x[i], override_locked = True)
     if self["sigma"].uncertainty is None:
         self["sigma"].set_uncertainty(0.02 * self["sigma"].value.detach().cpu().item(), override_locked = True)
     if self["flux"].uncertainty is None:
@@ -178,23 +185,22 @@ def gaussian_radial_model(self, R, sample_image = None):
 
 # NonParametric
 ######################################################################
-def nonparametric_set_window(self, window):
-    super(self.__class__, self).set_window(window)
-    
-    if self["I(R)"].prof is None and "I(R)" not in self.equality_constraints:
-        new_prof = [0,2*self.target.pixelscale]
-        while new_prof[-1] < torch.min(self.window.shape/2):
-            new_prof.append(new_prof[-1] + torch.max(2*self.target.pixelscale,new_prof[-1]*0.2))
-        new_prof.pop()
-        new_prof.pop()
-        new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
-        self["I(R)"].set_profile(new_prof)
-
 @torch.no_grad()
 def nonparametric_initialize(self, target = None):
     if target is None:
         target = self.target
     super(self.__class__, self).initialize(target)
+
+    # Create the I(R) profile radii if needed
+    if self["I(R)"].prof is None and "I(R)" not in self.equality_constraints:
+        new_prof = [0,2*target.pixelscale]
+        while new_prof[-1] < torch.min(self.window.shape/2):
+            new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
+        new_prof.pop()
+        new_prof.pop()
+        new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
+        self["I(R)"].set_profile(new_prof)
+        
     if self["I(R)"].value is not None:
         return
     

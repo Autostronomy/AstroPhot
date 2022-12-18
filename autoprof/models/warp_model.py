@@ -44,6 +44,18 @@ class Warp_Galaxy(Galaxy_Model):
         if target is None:
             target = self.target
         super().initialize(target)
+        
+        # create the PA(R) and q(R) profile radii if needed
+        for prof_param in ["PA(R)", "q(R)"]:
+            if self[prof_param].prof is None:
+                new_prof = [0,2*target.pixelscale]
+                while new_prof[-1] < torch.min(self.window.shape/2):
+                    new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
+                new_prof.pop()
+                new_prof.pop()
+                new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
+                self[prof_param].set_profile(new_prof)
+                
         if not (self["PA(R)"].value is None or self["q(R)"].value is None):
             return
 
@@ -52,19 +64,6 @@ class Warp_Galaxy(Galaxy_Model):
             
         if self["q(R)"].value is None:
             self["q(R)"].set_value(np.ones(len(self["q(R)"].prof))*0.9, override_locked = True)
-            
-    def set_window(self, window):
-        super().set_window(window)
-
-        for prof_param in ["PA(R)", "q(R)"]:
-            if self[prof_param].prof is None:
-                new_prof = [0,2*self.target.pixelscale]
-                while new_prof[-1] < torch.min(self.window.shape/2):
-                    new_prof.append(new_prof[-1] + torch.max(2*self.target.pixelscale,new_prof[-1]*0.2))
-                new_prof.pop()
-                new_prof.pop()
-                new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
-                self[prof_param].set_profile(new_prof)
         
     def transform_coordinates(self, X, Y):
         X, Y = super().transform_coordinates(X, Y)
@@ -72,4 +71,4 @@ class Warp_Galaxy(Galaxy_Model):
         PA = cubic_spline_torch(self["PA(R)"].prof, -self["PA(R)"].value, R.view(-1)).view(*R.shape)
         q = cubic_spline_torch(self["q(R)"].prof, self["q(R)"].value, R.view(-1)).view(*R.shape)
         X, Y = Rotate_Cartesian(PA, X, Y)
-        return X, Y/q #Axis_Ratio_Cartesian(q, X, Y, PA, inv_scale = True)
+        return X, Y/q 

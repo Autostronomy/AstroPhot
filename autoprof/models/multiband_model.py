@@ -8,14 +8,23 @@ import matplotlib.pyplot as plt
 __all__ = ["Multiband_Model"]
 
 class Multiband_Model(Group_Model):
-    """
+    """A multi-band model functions similarly to a group model object,
+    except that instead of a single target for all models in the model
+    list, there is a unique target for each model. The target for a
+    multiband model is a Target_Image_List object which stores a
+    pointer to each target from the models in the multiband model
+    model list. Similarly, the model image that is output from
+    sampling the multiband model is a Model_Image_List object which
+    stores a pointer to the model image output from each of the
+    individual models.
 
     """
 
     model_type = f"multiband {Group_Model.model_type}"
 
     def sync_target(self):
-        return
+        for model, target in zip(self.model_list, self.target):
+            model.target = target
         
     def make_model_image(self):
         return Model_Image_List(list(model.make_model_image() for model in self.model_list), dtype = self.dtype, device = self.device)
