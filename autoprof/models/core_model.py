@@ -9,8 +9,6 @@ from ..image import Model_Image, Window, Target_Image
 from .parameter_object import Parameter
 from copy import copy
 from time import time
-from torch.autograd.functional import jacobian
-from functools import partial
 __all__ = ["AutoProf_Model"]
 
 def all_subclasses(cls):
@@ -69,11 +67,14 @@ class AutoProf_Model(object):
         self.window = window
         self._locked = locked
 
-    def add_equality_constraint(self, model, *parameters):
-        for P in parameters:
-            self.parameters[P] = model[P]
-            self.equality_constraints.append(P)
-            model.equality_constraints.append(P)
+    def add_equality_constraint(self, model, parameter):
+        if isinstance(parameter, (tuple, list)):
+            for P in parameter:
+                self.add_equality_constraint(model, P)
+            return
+        self.parameters[parameter] = model[parameter]
+        self.equality_constraints.append(parameter)
+        model.equality_constraints.append(parameter)
         
     @torch.no_grad()
     def initialize(self, target = None):
@@ -128,12 +129,12 @@ class AutoProf_Model(object):
             return loss, model_image
         return loss
 
-    def set_parameters(self, parameters, override_locked = False, parameters_as_representation = True):
+    def set_parameters(self, parameters, override_locked = False, as_representation = True):
         if isinstance(parameters, dict):
             for P in parameters:
                 if not override_locked and self[P].locked:
                     continue
-                if parameters_as_representation:
+                if as_representation:
                     self[P].representation = parameters[P]
                 else:
                     self[P].value = parameters[P]
@@ -141,13 +142,13 @@ class AutoProf_Model(object):
         parameters = torch.as_tensor(parameters, dtype = self.dtype, device = self.device)
         start = 0
         for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
-            if parameters_as_representation:
+            if as_representation:
                 self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
             else:
                 self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
             start += V
         
-    def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
+    def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False):
         if isinstance(uncertainty, dict):
             for P in uncertainty:
                 if not override_locked and self[P].locked:
@@ -155,7 +156,7 @@ class AutoProf_Model(object):
                 self[P].set_uncertainty(
                     uncertainty[P],
                     override_locked = override_locked,
-                    uncertainty_as_representation = uncertainty_as_representation
+                    as_representation = as_representation
                 )
             return
         uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
@@ -164,37 +165,24 @@ class AutoProf_Model(object):
             self[P].set_uncertainty(
                 uncertainty[start:start + V].reshape(self[P].representation.shape),
                 override_locked = override_locked,
-                uncertainty_as_representation = uncertainty_as_representation,
+                as_representation = as_representation,
             )
             start += V        
         
-    def full_sample(self, parameters = None, as_representation = False, override_locked = False):
-        if parameters is not None:
-            self.set_parameters(parameters, override_locked = override_locked, parameters_as_representation = as_representation)
-        return self.sample().data
-
-    def full_loss(self, parameters = None):
-        if parameters is not None:
-            self.set_parameters(parameters)
-        return self.compute_loss()
-
-    def jacobian(self, parameters = None, as_representation = False, override_locked = False):
+    def full_sample(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
-        return jacobian(
-            partial(
-                self.full_sample,
-                as_representation = as_representation,
-                override_locked = override_locked,
-            ),
-            self.get_parameter_vector(
-                as_representation = as_representation,
-                override_locked = override_locked,
-            ),
-            strategy = "forward-mode",
-            vectorize = True,
-            create_graph = False,
-        )
+        if flatten:
+            return self.sample().flatten()
+        return self.sample().data
+
+    def full_loss(self, parameters = None, as_representation = False, override_locked = False):
+        if parameters is not None:
+            self.set_parameters(parameters, as_representation = as_representation, override_locked = override_locked)
+        return self.compute_loss()
+
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        raise NotImplementedError
 
     @property
     def window(self): # fixme allow None window that just reproduces full image
@@ -351,3 +339,5 @@ class AutoProf_Model(object):
                 raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary.")
         return state
         
+    def __eq__(self, other):
+        return self is other

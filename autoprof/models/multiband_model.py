@@ -58,7 +58,7 @@ class Multiband_Model(Group_Model):
 
     def sample(self, sample_images = None):
 
-        if sample_image is None:
+        if sample_images is None:
             sample_window = True
             sample_images = self.make_model_image() 
         else:
@@ -87,16 +87,32 @@ class Multiband_Model(Group_Model):
             return res, Model_Image_List(samples, dtype = self.dtype, device = self.device)
         else:
             return res
-        
-    def jacobian(self, parameters):
-        full_jac = []
-        vstart = 0
-        ivstart = 0
+
+    def model_image_shapes(self):
+        shapes = []
         for model in self.model_list:
-            vend = vstart + np.sum(self.parameter_vector_len[ivstart:ivstart + len(keys)])
-            full_jac.append(model.jacobian(parameters[vstart:vend]))
-            ivstart += len(keys)
-            vstart = vend
-        return full_jac
+            shapes.append(model.window.get_shape_flip(model.target.pixelscale).detach().cpu().numpy())
+        return np.array(shapes, dtype = int)
+    def model_image_sizes(self):
+        sizes = []
+        for shape in self.model_image_shapes():
+            sizes.append(int(np.prod(shape)))
+        return np.array(sizes, dtype = int)
+        
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        if parameters is not None:
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
+        sub_jacs = []
+        for model in self.model_list:
+            sub_jacs.append(model.jacobian(as_representation = as_representation, override_locked = override_locked, flatten = flatten))
+        if flatten:
+            img_sizes = self.model_image_sizes()
+            full_jac = torch.zeros((sum(img_sizes),) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = self.dtype, device = self.device)
+            param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
+            for ijac, jac, p_map, vec_map in zip(range(len(sub_jacs)), sub_jacs, param_map, param_vec_map):
+                for imodel, imulti in enumerate(vec_map):
+                    full_jac[np.sum(img_sizes[:ijac]):np.sum(img_sizes[:ijac+1]),imulti] = jac[:,imodel]
+            return full_jac
+        return sub_jacs
 
     

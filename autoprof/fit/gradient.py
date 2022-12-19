@@ -69,7 +69,7 @@ class Grad(BaseOptimizer):
                 
         self.optimizer.zero_grad()
         
-        loss = self.model.full_loss(self.current_state)
+        loss = self.model.full_loss(self.current_state, as_representation = True, override_locked = False)
 
         loss.backward()
 
@@ -103,7 +103,7 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.set_parameters(torch.tensor(self.res()))
+        self.model.set_parameters(torch.tensor(self.res()), as_representation = True, override_locked = False)
         # finalize tells the model that optimization is now finished
         self.model.finalize()
         

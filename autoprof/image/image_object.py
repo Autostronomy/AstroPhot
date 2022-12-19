@@ -101,8 +101,7 @@ class BaseImage(object):
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
             note = self.note,
-            origin = (torch.max(self.origin[0], window.origin[0]),
-                      torch.max(self.origin[1], window.origin[1]))
+            origin = (self.window & window).origin,
         )
     
     def to(self, dtype = None, device = None):
@@ -120,8 +119,8 @@ class BaseImage(object):
         self.window -= torch.as_tensor(pixels, dtype = self.dtype, device = self.device) * self.pixelscale
         return self
 
-    def flatten(self):
-        return self.data.view(-1)
+    def flatten(self, attribute = "data"):
+        return getattr(self, attribute).reshape(-1)
     
     def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
@@ -259,20 +258,20 @@ class Image_List(BaseImage):
 
     def copy(self):
         return self.__class__(
-            *tuple(image.copy() for image in self.image_list),
+            tuple(image.copy() for image in self.image_list),
             device = self.device,
             dtype = self.dtype,
         )
     def blank_copy(self):
         return self.__class__(
-            *tuple(image.blank_copy() for image in self.image_list),
+            tuple(image.blank_copy() for image in self.image_list),
             device = self.device,
             dtype = self.dtype,
         )
         
     def get_window(self, window):
         return self.__class__(
-            *tuple(image[window] for image in self.image_list),
+            tuple(image[window] for image in self.image_list),
             device = self.device,
             dtype = self.dtype,
         )
@@ -297,8 +296,8 @@ class Image_List(BaseImage):
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
         return tuple(image.get_coordinate_meshgrid_torch(x,y) for image in self.image_list)
 
-    def flatten(self):
-        return torch.cat(tuple(image.flatten() for image in self.image_list))
+    def flatten(self, attribute = "data"):
+        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
 
     def reduce(self, scale):
         assert isinstance(scale, int) or scale.dtype is torch.int32
@@ -306,7 +305,7 @@ class Image_List(BaseImage):
             return self
 
         return self.__class__(
-            *tuple(image.reduce(scale) for image in self.image_list),
+            tuple(image.reduce(scale) for image in self.image_list),
             device = self.device,
             dtype = self.dtype,
         )

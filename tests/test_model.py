@@ -100,7 +100,7 @@ class TestSersic(unittest.TestCase):
         mod_initparams = {}
         for p in mod.parameters:
             mod_initparams[p] = np.copy(mod[p].representation.detach().numpy())
-
+            
         res = ap.fit.Grad(model = mod, max_iter = 10).fit()
         
         for p in mod.parameters:

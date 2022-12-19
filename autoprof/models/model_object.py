@@ -4,6 +4,8 @@ from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
 from ..utils.operations import fft_convolve_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
+from torch.autograd.functional import jacobian
+from functools import partial
 import numpy as np
 import torch
 
@@ -49,7 +51,7 @@ class BaseModel(AutoProf_Model):
         
         self.parameters = {}
         # Set any user defined attributes for the model
-        for kwarg in kwargs:
+        for kwarg in kwargs: # fixme move to core model?
             # Skip parameters with special behaviour
             if kwarg in self.special_kwargs:
                 continue
@@ -75,10 +77,10 @@ class BaseModel(AutoProf_Model):
     def parameters(self, val):
         self._parameters = val
         
-    def parameter_order(self, skip_locked = True):
+    def parameter_order(self, override_locked = False):
         param_order = tuple()
         for P in  self.__class__._parameter_order:
-            if skip_locked and self[P].locked:
+            if self[P].locked and not override_locked:
                 continue
             param_order = param_order + (P,)
         return param_order
@@ -232,6 +234,27 @@ class BaseModel(AutoProf_Model):
         
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
+
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        if parameters is not None:
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
+        full_jac = jacobian(
+            partial(
+                self.full_sample,
+                as_representation = as_representation,
+                override_locked = override_locked,
+            ),
+            self.get_parameter_vector(
+                as_representation = as_representation,
+                override_locked = override_locked,
+            ),
+            strategy = "forward-mode",
+            vectorize = True,
+            create_graph = False,
+        )
+        if flatten:
+            return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
+        return full_jac
         
     def get_state(self):
         state = super().get_state()

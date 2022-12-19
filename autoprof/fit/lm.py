@@ -56,16 +56,18 @@ class LM(BaseOptimizer):
         self.L = kwargs.get("L0", 1.)
         self.method = kwargs.get("method", 1)
         
-        self.Y = self.model.target[self.model.window].data.reshape(-1)
+        self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
-        self.W = 1. / self.model.target[self.model.window].variance.reshape(-1) if model.target.has_variance else None
-        #          # pixels      # parameters              # masked pixels
-        self.ndf = len(self.Y) - len(self.current_state) - torch.sum(model.target[self.model.window].mask).item()
+        self.W = 1. / self.model.target[self.model.window].flatten("variance") if model.target.has_variance else None
+        #          # pixels      # parameters
+        self.ndf = len(self.Y) - len(self.current_state)
         self.J = None
         self.current_Y = None
         self.prev_Y = [None, None]
         if self.model.target.has_mask:
-            self.mask = self.model.target[self.model.window].mask.reshape(-1)
+            self.mask = self.model.target[self.model.window].flatten("mask")
+            # subtract masked pixels from degrees of freedom
+            self.ndf -= torch.sum(self.mask)
         self.L_history = []
         self.decision_history = []
         self.rho_history = []
@@ -88,7 +90,7 @@ class LM(BaseOptimizer):
             print("h: ", h.detach().cpu().numpy())
         
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
+            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -177,7 +179,7 @@ class LM(BaseOptimizer):
         h = self.update_h_v1()
         
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
+            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -263,16 +265,14 @@ class LM(BaseOptimizer):
         else:
             if self.verbose > 0:
                 print("---------init---------")
-        # if self.iteration > 6:
-        #     if self._count_reject >= 6:
-        #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
+                
         if self.iteration > 0:
             self.L = self.Li * np.max(torch.diag(self.hess).detach().cpu().numpy())
         h = self.update_h_v1()
         
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h).view(-1)
-            if self.model.target.has_mask: # fixme something to do with the mask is a problem
+            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
+            if self.model.target.has_mask: 
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
                 loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
@@ -380,14 +380,14 @@ class LM(BaseOptimizer):
 
         if "fail" in self.message and self._count_finish > 0:
             self.message = self.message + ". likely converged to numerical precision and could not make a better step, this is probably ok."
-        self.model.set_parameters(torch.tensor(self.res(), dtype = self.model.dtype, device = self.model.device))
+        self.model.set_parameters(torch.tensor(self.res(), dtype = self.model.dtype, device = self.model.device), as_representation = True, override_locked = False)
         self.model.finalize()
 
         # set the uncertainty for each parameter
         self.update_J_AD()
         self.update_hess()
         cov = self.covariance_matrix()
-        self.model.set_uncertainty(torch.sqrt(2*torch.abs(torch.diag(cov))), uncertainty_as_representation = True)
+        self.model.set_uncertainty(torch.sqrt(2*torch.abs(torch.diag(cov))), as_representation = True, override_locked = False)
         
         return self
             
@@ -419,7 +419,7 @@ class LM(BaseOptimizer):
         return h
     
     def update_J_AD(self):
-        self.J = self.model.jacobian(torch.clone(self.current_state).detach()).view(-1,len(self.current_state))
+        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
             

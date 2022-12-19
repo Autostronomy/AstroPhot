@@ -74,7 +74,7 @@ class Group_Model(AutoProf_Model):
                 if p in model.equality_constraints:
                     for k in range(len(params)):
                         if params[k][1] is model.parameters[p]:
-                            params[k][0] = f"{model.name}:{params[k]}"
+                            params[k] = (f"{model.name}:{params[k][0]}", params[k][1])
                             break
                     else:
                         params.append((f"{model.name}|{p}", model.parameters[p]))
@@ -161,16 +161,18 @@ class Group_Model(AutoProf_Model):
             param_vec_map.append(sub_param_vec_map)
         return param_map, param_vec_map
         
-    def jacobian(self, parameters = None, as_representation = False, override_locked = False):
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
         param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
         full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = self.dtype, device = self.device)
         for model, vec_map in zip(self.model_list, param_vec_map):
-            sub_jac = model.jacobian(as_representation = as_representation, override_locked = override_locked)
+            sub_jac = model.jacobian(as_representation = as_representation, override_locked = override_locked, flatten = False)
             indices = model.window._get_indices(self.window, self.target.pixelscale)
             for imodel, igroup in enumerate(vec_map):
                 full_jac[indices[0], indices[1], igroup] += sub_jac[:,:,imodel]
+        if flatten:
+            return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
         return full_jac
         
     def __getitem__(self, key):

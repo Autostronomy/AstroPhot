@@ -204,7 +204,7 @@ class Target_Image_List(Image_List, Target_Image):
             image.set_variance(var)
     @property
     def has_variance(self):
-        return all(image.has_variance for image in self.image_list)
+        return any(image.has_variance for image in self.image_list)
     
     @property
     def mask(self):
@@ -215,7 +215,7 @@ class Target_Image_List(Image_List, Target_Image):
             image.set_mask(M)
     @property
     def has_mask(self):
-        return all(image.has_mask for image in self.image_list)
+        return any(image.has_mask for image in self.image_list)
     
     @property
     def psf(self):
@@ -226,7 +226,7 @@ class Target_Image_List(Image_List, Target_Image):
             image.set_psf(P)
     @property
     def has_psf(self):
-        return all(image.has_psf for image in self.image_list)
+        return any(image.has_psf for image in self.image_list)
     @property
     def psf_border(self):
         return tuple(image.psf_border for image in self.image_list)
