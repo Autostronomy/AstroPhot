@@ -27,14 +27,24 @@ class Group_Model(AutoProf_Model):
     
     def __init__(self, name, *args, model_list = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
-        
-        self.model_list = [] if model_list is None else model_list
+
+        self.model_list = []
+        if model_list is not None:
+            self.add_model(model_list)
         self._psf_mode = None
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
             
     def add_model(self, model):
+        if isinstance(model, (tuple, list)):
+            for mod in model:
+                self.add_model(mod)
+            return
+        for mod in self.model_list:
+            if model.name == mod.name:
+                raise KeyError(f"{self.name} already has model with name {model.name}, every model must have a unique name.")
+            
         self.model_list.append(model)
         self.update_window()
 
@@ -49,15 +59,53 @@ class Group_Model(AutoProf_Model):
                 new_window |= model.window
         self.window = new_window
                 
-    @property
-    def parameter_order(self):
-        param_order = tuple()
-        for model in self.model_list:
-            if model.locked:
-                continue
-            param_order = param_order + tuple(f"{model.name}|{mp}" for mp in model.parameter_order)
-        return param_order
+    def parameter_tuples_order(self, override_locked = False):
+        """Constructs a list where each entry is a tuple with a unique name
+        for the parameter and the parameter object itself.
 
+        """
+        params = []
+        for model in self.model_list:
+            if model.locked and not override_locked:
+                continue
+            for p in model.parameters:
+                if model[p].locked and not override_locked:
+                    continue
+                if p in model.equality_constraints:
+                    for k in range(len(params)):
+                        if params[k][1] is model.parameters[p]:
+                            params[k][0] = f"{model.name}:{params[k]}"
+                            break
+                    else:
+                        params.append((f"{model.name}|{p}", model.parameters[p]))
+                else:
+                    params.append((f"{model.name}|{p}", model.parameters[p]))
+        return params
+        
+    def parameter_order(self, override_locked = True):
+        """Gives the unique parameter names for this model in a repeatable
+        order. By default, locked parameters are excluded from the
+        tuple. The order of parameters will of course not be the same
+        when called with override_locked True/False.
+
+        """
+        param_tuples = self.parameter_tuples_order(override_locked = override_locked)
+        return tuple(P[0] for P in param_tuples)
+
+    @property
+    def parameters(self):
+        """A dictionary in which every unique parameter appears once. This
+        includes locked parameters. For constrained parameters across
+        several models, the parameter will only appear once where the
+        names of the models are connected by ":" characters.
+
+        """
+        try:
+            param_tuples = self.parameter_tuples_order(override_locked = True)
+            return dict(P for P in param_tuples)
+        except AttributeError:
+            return {}
+        
     @torch.no_grad()
     def initialize(self, target = None):
         self.sync_target()
@@ -90,61 +138,51 @@ class Group_Model(AutoProf_Model):
 
         return sample_image
 
-    @property
-    def parameters(self):
-        try:
-            params = {}
-            for model in self.model_list:
-                for p in model.parameters:
-                    params[f"{model.name}|{p}"] = model.parameters[p]
-            return params
-        except AttributeError:
-            return {}
-            
-    def get_parameters_representation(self, exclude_locked = True):
-        all_parameters = []
-        all_keys = []
+    def sub_model_parameter_map(self, override_locked = False):
+        base_parameters = self.parameters
+        base_parameters_order = self.parameter_order(override_locked = override_locked)
+        base_parameter_lens = self.parameter_vector_len(override_locked = override_locked)
+        param_map = []
+        param_vec_map = []
         for model in self.model_list:
-            keys, reps = model.get_parameters_representation(exclude_locked)
-            for k, r in zip(keys, reps):
-                if exclude_locked and model[k].locked:
-                    continue
-                all_parameters.append(r)
-                all_keys.append(f"{model.name}|{k}")
-        return all_keys, all_parameters
-    
-    def get_parameters_value(self, exclude_locked = True):
-        all_parameters = {}
-        for model in self.model_list:
-            values = model.get_parameters_value(exclude_locked)
-            for p in values:
-                all_parameters[f"{model.name}|{p}"] = values[p] 
-        return all_parameters
-
-    def jacobian(self, parameters):
-        vstart = 0
-        ivstart = 0
-        full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (len(parameters),), dtype = self.dtype, device = self.device)
-        for model in self.model_list:
-            keys, reps = model.get_parameters_representation()
-            vend = vstart + np.sum(self.parameter_vector_len[ivstart:ivstart + len(keys)])
-            sub_jac = model.jacobian(parameters[vstart:vend])
+            sub_param_map = []
+            sub_param_vec_map = []
+            for P in model.parameter_order(override_locked = override_locked):
+                for index in range(len(base_parameters_order)):
+                    if model[P] is base_parameters[base_parameters_order[index]]:
+                        sub_param_map.append(index)
+                        break
+                else:
+                    raise RuntimeError(f"Could not find parameter {P} for model {model.name}")
+                leadup = sum(base_parameter_lens[:sub_param_map[-1]])
+                for i in range(base_parameter_lens[sub_param_map[-1]]):
+                    sub_param_vec_map.append(leadup+i)
+            param_map.append(sub_param_map)
+            param_vec_map.append(sub_param_vec_map)
+        return param_map, param_vec_map
+        
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False):
+        if parameters is not None:
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
+        param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
+        full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = self.dtype, device = self.device)
+        for model, vec_map in zip(self.model_list, param_vec_map):
+            sub_jac = model.jacobian(as_representation = as_representation, override_locked = override_locked)
             indices = model.window._get_indices(self.window, self.target.pixelscale)
-            for ip, i in enumerate(range(vstart, vend)):
-                full_jac[indices[0], indices[1], i] = sub_jac[:,:,ip]
-            ivstart += len(keys)
-            vstart = vend
+            for imodel, igroup in enumerate(vec_map):
+                full_jac[indices[0], indices[1], igroup] += sub_jac[:,:,imodel]
         return full_jac
-            
         
     def __getitem__(self, key):
-        if isinstance(key, tuple):
-            return self.model_list[key[0]][key[1]]
-
+        try:
+            return self.parameters[key]
+        except KeyError:
+            pass
+        
         if isinstance(key, str) and "|" in key:
-            model_name = key[:key.find("|")]
+            model_name = key[:key.find("|")].split(":")
             for model in self.model_list:
-                if model.name == model_name:
+                if model.name in model_name:
                     return model[key[key.find("|")+1:]]
         elif isinstance(key, str):
             for model in self.model_list:

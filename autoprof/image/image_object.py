@@ -119,6 +119,9 @@ class BaseImage(object):
         self.set_data(self.data[pixels[1]:-pixels[1],pixels[0]:-pixels[0]], require_shape = False)
         self.window -= torch.as_tensor(pixels, dtype = self.dtype, device = self.device) * self.pixelscale
         return self
+
+    def flatten(self):
+        return self.data.view(-1)
     
     def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
@@ -293,6 +296,9 @@ class Image_List(BaseImage):
         return tuple(image.get_coordinate_meshgrid_np(x,y) for image in self.image_list)
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
         return tuple(image.get_coordinate_meshgrid_torch(x,y) for image in self.image_list)
+
+    def flatten(self):
+        return torch.cat(tuple(image.flatten() for image in self.image_list))
 
     def reduce(self, scale):
         assert isinstance(scale, int) or scale.dtype is torch.int32

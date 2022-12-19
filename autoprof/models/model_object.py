@@ -75,13 +75,10 @@ class BaseModel(AutoProf_Model):
     def parameters(self, val):
         self._parameters = val
         
-    @property
-    def parameter_order(self):
+    def parameter_order(self, skip_locked = True):
         param_order = tuple()
         for P in  self.__class__._parameter_order:
-            if self[P].locked:
-                continue
-            if P in self.equality_constraints:
+            if skip_locked and self[P].locked:
                 continue
             param_order = param_order + (P,)
         return param_order
@@ -255,13 +252,10 @@ class BaseModel(AutoProf_Model):
     
     # Extra background methods for the basemodel
     ######################################################################
-    from ._model_methods import scale_window
     from ._model_methods import integrate_window
     from ._model_methods import psf_window
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
-    from ._model_methods import get_parameters_representation
-    from ._model_methods import get_parameters_value
     from ._model_methods import __getitem__
     from ._model_methods import __contains__
     from ._model_methods import __str__

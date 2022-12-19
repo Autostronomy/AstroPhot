@@ -93,7 +93,6 @@ class Multiband_Model(Group_Model):
         vstart = 0
         ivstart = 0
         for model in self.model_list:
-            keys, reps = model.get_parameters_representation()
             vend = vstart + np.sum(self.parameter_vector_len[ivstart:ivstart + len(keys)])
             full_jac.append(model.jacobian(parameters[vstart:vend]))
             ivstart += len(keys)

@@ -23,18 +23,10 @@ class BaseOptimizer(object):
         
         if initial_state is None: 
             try:
-                keys, reps = self.model.get_parameters_representation()
-                allparams = []
-                for R in reps:
-                    assert not R is None
-                    allparams += list(R.detach().cpu().numpy().flatten())
+                initial_state = self.model.get_parameter_vector(as_representation = True)
             except AssertionError:
                 self.model.initialize()
-                keys, reps = self.model.get_parameters_representation()
-                allparams = []
-                for R in reps:
-                    allparams += list(R.detach().cpu().numpy().flatten())
-            initial_state = torch.tensor(allparams, dtype = self.model.dtype, device = self.model.device)
+                initial_state = self.model.get_parameter_vector(as_representation = True)
         else:
             initial_state = torch.as_tensor(initial_state, dtype = self.model.dtype, device = self.model.device)
                 

@@ -10,6 +10,7 @@ from .parameter_object import Parameter
 from copy import copy
 from time import time
 from torch.autograd.functional import jacobian
+from functools import partial
 __all__ = ["AutoProf_Model"]
 
 def all_subclasses(cls):
@@ -59,6 +60,7 @@ class AutoProf_Model(object):
         return super().__new__(cls)
 
     def __init__(self, name, *args, target = None, window = None, locked = False, **kwargs):
+        assert ":" not in name and "|" not in name, "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
         self.name = name
         self.constraints = kwargs.get("constraints", None)
         self.equality_constraints = []
@@ -67,15 +69,11 @@ class AutoProf_Model(object):
         self.window = window
         self._locked = locked
 
-    def add_equality_constraint(self, parameter, root_model = None):
-        if isinstance(parameter, str):
-            self.parameters[parameter] = root_model[parameter]
-            self.equality_constraints.append(parameter)
-        elif isinstance(parameter, Parameter):
-            self.parameters[parameter.name] = parameter
-            self.equality_constraints.append(parameter.name)
-        else:
-            raise ValueError(f"Cannot add equality constraint with object: {parameter}")
+    def add_equality_constraint(self, model, *parameters):
+        for P in parameters:
+            self.parameters[P] = model[P]
+            self.equality_constraints.append(P)
+            model.equality_constraints.append(P)
         
     @torch.no_grad()
     def initialize(self, target = None):
@@ -119,7 +117,7 @@ class AutoProf_Model(object):
         loss = reduced_chi_squared(
             self.target[self.window].data,
             model_image.data,
-            np.sum(self.parameter_vector_len),
+            np.sum(self.parameter_vector_len()),
             self.target[self.window].mask,
             self.target[self.window].variance
         )
@@ -133,7 +131,8 @@ class AutoProf_Model(object):
     def set_parameters(self, parameters, override_locked = False, parameters_as_representation = True):
         if isinstance(parameters, dict):
             for P in parameters:
-                isinstance(parameters[P], torch.Tensor)
+                if not override_locked and self[P].locked:
+                    continue
                 if parameters_as_representation:
                     self[P].representation = parameters[P]
                 else:
@@ -141,7 +140,7 @@ class AutoProf_Model(object):
             return
         parameters = torch.as_tensor(parameters, dtype = self.dtype, device = self.device)
         start = 0
-        for P, V in zip(self.parameter_order, self.parameter_vector_len):
+        for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
             if parameters_as_representation:
                 self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
             else:
@@ -149,29 +148,29 @@ class AutoProf_Model(object):
             start += V
         
     def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
+        if isinstance(uncertainty, dict):
+            for P in uncertainty:
+                if not override_locked and self[P].locked:
+                    continue
+                self[P].set_uncertainty(
+                    uncertainty[P],
+                    override_locked = override_locked,
+                    uncertainty_as_representation = uncertainty_as_representation
+                )
+            return
         uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
         start = 0
-        for P, V in zip(self.parameter_order, self.parameter_vector_len):
+        for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
             self[P].set_uncertainty(
                 uncertainty[start:start + V].reshape(self[P].representation.shape),
+                override_locked = override_locked,
                 uncertainty_as_representation = uncertainty_as_representation,
             )
             start += V        
         
-    def get_parameters_representation(self):
-        """Get the optimizer friently representations of all the non-locked
-        parameter values for this model.
-
-        """
-        pass
-
-    def get_parameters_value(self):
-        """Get the non-locked parameter values for this model."""
-        pass
-
-    def full_sample(self, parameters = None):
+    def full_sample(self, parameters = None, as_representation = False, override_locked = False):
         if parameters is not None:
-            self.set_parameters(parameters)
+            self.set_parameters(parameters, override_locked = override_locked, parameters_as_representation = as_representation)
         return self.sample().data
 
     def full_loss(self, parameters = None):
@@ -179,10 +178,19 @@ class AutoProf_Model(object):
             self.set_parameters(parameters)
         return self.compute_loss()
 
-    def jacobian(self, parameters):
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False):
+        if parameters is not None:
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
         return jacobian(
-            self.full_sample,
-            parameters,
+            partial(
+                self.full_sample,
+                as_representation = as_representation,
+                override_locked = override_locked,
+            ),
+            self.get_parameter_vector(
+                as_representation = as_representation,
+                override_locked = override_locked,
+            ),
             strategy = "forward-mode",
             vectorize = True,
             create_graph = False,
@@ -267,10 +275,23 @@ class AutoProf_Model(object):
         self._requires_grad = val
         for P in self.parameters:
             self[P].requires_grad = val
-    @property
-    def parameter_vector_len(self):
-        return list(int(np.prod(self[P].value.shape)) for P in self.parameter_order)
             
+    def parameter_vector_len(self, override_locked = False):
+        return list(int(np.prod(self[P].value.shape)) for P in self.parameter_order(override_locked = override_locked))
+    def get_parameter_vector(self, as_representation = False, override_locked = False):
+        parameters = torch.zeros(np.sum(self.parameter_vector_len(override_locked = override_locked)), dtype = self.dtype, device = self.device)
+        vstart = 0
+        for P, V in zip(
+                self.parameter_order(override_locked = override_locked),
+                self.parameter_vector_len(override_locked = override_locked)
+        ):
+            if as_representation:
+                parameters[vstart: vstart + V] = self[P].representation
+            else:
+                parameters[vstart: vstart + V] = self[P].value
+            vstart += V
+        return parameters
+                
     def __str__(self):
         """String representation for the model."""
         return str(self.get_state())

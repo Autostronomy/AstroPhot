@@ -286,6 +286,9 @@ class Parameter(object):
         if isinstance(S, str):
             return self.value[int(S[S.rfind("|")+1:])]
         return self.value
+
+    def __eq__(self, other):
+        return self is other
     
     def __len__(self):
         """If the parameter has multiple values, this is the length of the

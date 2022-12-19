@@ -5,11 +5,6 @@ from ..image import Model_Image, Target_Image, Window
 from copy import deepcopy
 import torch
 
-def scale_window(self, scale = 1., border = 0.):
-    window = (self.window * scale) + border
-    window &= self.target.window
-    self.set_window(window)
-
 @property
 def integrate_window(self):
     use_center = (0.5 + torch.round(self["center"].value/self.target.pixelscale - 0.5))*self.target.pixelscale
@@ -71,28 +66,6 @@ def build_parameters(self):
             self.parameters[p] = Parameter(p, dtype = self.dtype, device = self.device, **self.parameter_specs[p])
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
-
-def get_parameters_representation(self, exclude_locked = True):
-    return_parameters = []
-    return_keys = []
-    for p in self.parameter_order:
-        # Skip currently locked parameters
-        if exclude_locked and self.parameters[p].locked:
-            continue
-        # Return parameter selected
-        return_keys.append(p)
-        return_parameters.append(self.parameters[p].representation)
-    return return_keys, return_parameters
-
-def get_parameters_value(self, exclude_locked = True):
-    return_parameters = {}
-    for p in self.parameter_order:
-        # Skip currently locked parameters
-        if exclude_locked and self.parameters[p].locked:
-            continue
-        # Return parameter selected
-        return_parameters[p] = self.parameters[p].value
-    return return_parameters
 
 def __str__(self):
     state = self.get_state()
