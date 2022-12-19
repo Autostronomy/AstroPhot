@@ -5,7 +5,7 @@ from . import utils
 from . import fit
 
 # meta data
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 __author__ = "Connor Stone"
 __email__ = "connorston628@gmail.com"
 
@@ -16,8 +16,9 @@ def run_from_terminal():
         import requests
         tutorials = [
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/CombinedModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/GroupModels.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/MultibandModels.ipynb",
         ]
         for url in tutorials:
             R = requests.get(url)
