@@ -39,7 +39,7 @@ class Plane_Sky(Sky_Model):
             )
         if self["sky"].uncertainty is None:
             self["sky"].set_uncertainty(
-                (iqr(target[self.window].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale**2)) / np.sqrt(np.prod(self.window.shape)),
+                (iqr(target[self.window].data, rng=(31.731 / 2, 100 - 31.731 / 2)) / (2.0 * target.pixelscale**2)) / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy())),
                 override_locked=True,
             )
         if self["delta"].value is None:

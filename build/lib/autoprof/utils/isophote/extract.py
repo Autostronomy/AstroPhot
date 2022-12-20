@@ -1,7 +1,7 @@
 import numpy as np
 from .ellipse import parametric_SuperEllipse, Rscale_SuperEllipse
-from autoprof.utils.conversions.coordinates import Rotate_Cartesian_np
-from autoprof.utils.interpolate import interpolate_Lanczos
+from ..conversions.coordinates import Rotate_Cartesian_np
+from ..interpolate import interpolate_Lanczos
 from scipy.stats import iqr
 import logging
 

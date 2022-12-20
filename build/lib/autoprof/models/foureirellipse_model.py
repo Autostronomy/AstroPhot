@@ -64,15 +64,20 @@ class FourierEllipse_Galaxy(Galaxy_Model):
         theta = self.angular_metric(X, Y)
         return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
 
+    @torch.no_grad()
     def initialize(self, target = None):
         if target is None:
             target = self.target
         super().initialize(target)
 
-        self["am"].set_value(torch.zeros(len(self.modes)), override_locked = self["am"].value is None)
-        self["am"].set_uncertainty(torch.tensor(0.05*np.ones(len(self.modes))), override_locked = self["am"].uncertainty is None)
-        self["phim"].set_value(torch.zeros(len(self.modes)), override_locked = self["phim"].value is None)
-        self["phim"].set_uncertainty(torch.tensor((5*np.pi/180)*np.ones(len(self.modes))), override_locked = self["phim"].uncertainty is None)
+        if self["am"].value is None:
+            self["am"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+        if self["am"].uncertainty is None:
+            self["am"].set_uncertainty(torch.tensor(0.05*np.ones(len(self.modes))), override_locked = True)
+        if self["phim"].value is None:
+            self["phim"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+        if self["phim"].uncertainty is None:
+            self["phim"].set_uncertainty(torch.tensor((5*np.pi/180)*np.ones(len(self.modes))), override_locked = True)
 
 
 class FourierEllipse_Warp(Warp_Galaxy):
@@ -134,13 +139,18 @@ class FourierEllipse_Warp(Warp_Galaxy):
         theta = self.angular_metric(X, Y)
         return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
 
+    @torch.no_grad()
     def initialize(self, target = None):
         if target is None:
             target = self.target
         super().initialize(target)
 
-        self["am"].set_value(torch.zeros(len(self.modes)), override_locked = self["am"].value is None)
-        self["am"].set_uncertainty(torch.tensor(0.05*np.ones(len(self.modes))), override_locked = self["am"].uncertainty is None)
-        self["phim"].set_value(torch.zeros(len(self.modes)), override_locked = self["phim"].value is None)
-        self["phim"].set_uncertainty(torch.tensor((5*np.pi/180)*np.ones(len(self.modes))), override_locked = self["phim"].uncertainty is None)
-
+        if self["am"].value is None:
+            self["am"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+        if self["am"].uncertainty is None:
+            self["am"].set_uncertainty(torch.tensor(0.05*np.ones(len(self.modes))), override_locked = True)
+        if self["phim"].value is None:
+            self["phim"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+        if self["phim"].uncertainty is None:
+            self["phim"].set_uncertainty(torch.tensor((5*np.pi/180)*np.ones(len(self.modes))), override_locked = True)
+            

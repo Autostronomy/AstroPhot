@@ -1,7 +1,17 @@
 import numpy as np
 from .center import Lanczos_peak, center_of_mass, GaussianDensity_Peak
-from autoprof.utils.interpolate import shift_Lanczos_np, point_Lanczos
-import matplotlib.pyplot as plt
+from ..interpolate import shift_Lanczos_np, point_Lanczos
+
+def gaussian_psf(sigma, img_width, pixelscale):
+    assert img_width % 2 == 1, "psf images should have an odd shape"
+
+    XX, YY = np.meshgrid(
+        np.linspace(-(img_width - 1)*pixelscale/2, (img_width - 1)*pixelscale/2, img_width),
+        np.linspace(-(img_width - 1)*pixelscale/2, (img_width - 1)*pixelscale/2, img_width),
+    )
+    ZZ = np.exp(-0.5*(XX**2 + YY**2)/sigma**2)
+
+    return ZZ / np.sum(ZZ)
 
 def construct_psf(stars, image, sky_est, size = 51, mask = None, keep_init = False, Lanczos_scale = 3):
     """Given a list of initial guesses for star center locations, finds

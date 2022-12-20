@@ -8,10 +8,9 @@ from .edgeon_model import EdgeOn_Model
 import torch
 import numpy as np
 from scipy.stats import iqr
-from autoprof.utils.initialize import isophotes
-from autoprof.utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
-from autoprof.utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
-import matplotlib.pyplot as plt
+from ..utils.initialize import isophotes
+from ..utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
+from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from scipy.optimize import minimize
 
 __all__ = [
@@ -299,9 +298,13 @@ class Sersic_Ray(Ray_Galaxy):
                 flux[4],
             ]
             res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2), x0 = x0, method = "SLSQP", bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
-            self["n"].set_value(res.x[0], override_locked = was_none[0], index = r)
-            self["Re"].set_value(res.x[1], override_locked = was_none[1], index = r)
-            self["Ie"].set_value(np.log10(res.x[2]), override_locked = was_none[2], index = r)
+            
+            if was_none[0]:
+                self["n"].set_value(res.x[0], override_locked = True, index = r)
+            if was_none[1]:
+                self["Re"].set_value(res.x[1], override_locked = True, index = r)
+            if was_none[2]:
+                self["Ie"].set_value(np.log10(res.x[2]), override_locked = True, index = r)
         if self["Re"].uncertainty is None:
             self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().numpy(), override_locked = True)
         if self["Ie"].uncertainty is None:

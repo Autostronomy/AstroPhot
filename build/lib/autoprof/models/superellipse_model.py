@@ -26,7 +26,7 @@ class SuperEllipse_Galaxy(Galaxy_Model):
     """
     model_type = f"superellipse {Galaxy_Model.model_type}"
     parameter_specs = {
-        "C0": {"units": "C-2", "value": 0., "limits": (-2, None)},
+        "C0": {"units": "C-2", "value": 0., "uncertainty": 1e-2, "limits": (-2, None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("C0",)
     
@@ -55,7 +55,7 @@ class SuperEllipse_Warp(Warp_Galaxy):
     """
     model_type = f"superellipse {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "C0": {"units": "C-2", "value": 0.},
+        "C0": {"units": "C-2", "value": 0., "uncertainty": 1e-2, "limits": (-2, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("C0",)
     

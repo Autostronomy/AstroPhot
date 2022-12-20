@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from autoprof.utils.conversions.optimization import boundaries, inv_boundaries, d_boundaries_dval, d_inv_boundaries_dval, cyclic_boundaries
+from ..utils.conversions.optimization import boundaries, inv_boundaries, d_boundaries_dval, d_inv_boundaries_dval, cyclic_boundaries
 
 __all__ = ["Parameter"]
 
@@ -40,15 +40,19 @@ class Parameter(object):
         self.dtype = kwargs.get("dtype", torch.float64)
         self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
         self._representation = None
-        self.requires_grad = kwargs.get("requires_grad", False)
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
-        self._locked = False
-        self.set_value(value, override_locked = True)
         self.locked = kwargs.get("locked", False)
+        self._representation = None
+        self.set_value(value, override_locked = True)
+        self.requires_grad = kwargs.get("requires_grad", False)
         self.units = kwargs.get("units", "none")
-        self._uncertainty = kwargs.get("uncertainty", None)
-        
+        self._uncertainty = None
+        self.uncertainty = kwargs.get("uncertainty", None)
+        self.prof = None
+        self.set_profile(kwargs.get("prof", None))
+        self.to(dtype = self.dtype, device = self.device)
+       
     @property
     def representation(self):
         """The representation is the stored number (or tensor of numbers) for
@@ -61,8 +65,8 @@ class Parameter(object):
         return self._representation
     @representation.setter
     def representation(self, rep):
-        """
-        Calls the set representation method, preserving locked behaviour.
+        """Calls the set representation method, preserving locked behaviour.
+
         """
         self.set_representation(rep)
     @property
@@ -97,9 +101,8 @@ class Parameter(object):
         """
         updates the locked state of the parameter
         """
-        
         self._locked = value
-        self.requires_grad = not bool(value)
+        
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
@@ -120,7 +123,7 @@ class Parameter(object):
     def requires_grad(self, val):
         assert isinstance(val, bool)
         self._requires_grad = val
-        if self._representation is not None:
+        if self._representation is not None and not (self._representation.requires_grad is val):
             self._representation.requires_grad = val
             
     @property
@@ -141,19 +144,26 @@ class Parameter(object):
             self.device = device
         if self._representation is not None:
             self._representation = self._representation.to(dtype = self.dtype, device = self.device)
+        if self._uncertainty is not None:
+            self._uncertainty = self._uncertainty.to(dtype = self.dtype, device = self.device)
+        if self.prof is not None:
+            self.prof = self.prof.to(dtype = self.dtype, device = self.device)
         return self
     
-    def set_uncertainty(self, uncertainty, override_locked = False, uncertainty_as_representation = False):
+    def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False):
         """Updates the the uncertainty of the value of the parameter. Only
         updates if the parameter is not locked.
 
         """
         if self.locked and not override_locked:
             return
+        if uncertainty is None:
+            self._uncertainty = None
+            return
         uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
         if torch.any(uncertainty < 0):
             raise ValueError(f"{self.name} Uncertainty should be a positive real value, not {uncertainty}")
-        if uncertainty_as_representation and not self.cyclic and self.limits is not None:
+        if as_representation and not self.cyclic and self.limits is not None:
             self._uncertainty = uncertainty * d_inv_boundaries_dval(self.representation, self.limits)
         else:
             self._uncertainty = uncertainty
@@ -217,9 +227,19 @@ class Parameter(object):
             state["limits"] = self.limits
         if self.cyclic:
             state["cyclic"] = self.cyclic
+        if self.prof is not None:
+            state["prof"] = self.prof.detach().cpu().numpy().tolist()
             
         return state
-    
+
+    def set_profile(self, prof, override_locked = False):
+        if self.locked and not override_locked:
+            return
+        if prof is None:
+            self.prof = None
+            return
+        self.prof = torch.as_tensor(prof, dtype = self.dtype, device = self.device)
+            
     def update_state(self, state):
         """Update the state of the parameter given a state variable whcih
         holds all information about a variable.
@@ -232,7 +252,8 @@ class Parameter(object):
         self.uncertainty = state.get("uncertainty", None)
         self.value = state.get("value", None)
         self.locked = state.get("locked", False)
-            
+        self.prof = state.get("prof", None)
+        
     def __str__(self):
         """String representation of the parameter which indicates it's value
         along with uncertainty, units, limits, etc.
@@ -265,10 +286,13 @@ class Parameter(object):
         if isinstance(S, str):
             return self.value[int(S[S.rfind("|")+1:])]
         return self.value
+
+    def __eq__(self, other):
+        return self is other
     
     def __len__(self):
         """If the parameter has multiple values, this is the length of the
         parameter.
 
         """
-        return len(self.value)    
+        return len(self.value)

@@ -6,7 +6,7 @@ from astropy.visualization.mpl_normalize import ImageNormalize
 from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
 import torch
 from matplotlib.patches import Rectangle
-from autoprof import models
+from ..models import Group_Model, Sky_Model
 
 __all__ = ["target_image", "model_image", "residual_image", "model_window"]
 
@@ -42,7 +42,7 @@ def target_image(fig, ax, target, window = None, **kwargs):
     return fig, ax
 
 @torch.no_grad()
-def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
+def model_image(fig, ax, model, image = None, window = None, showcbar = True, **kwargs):
 
     if image is None:
         sample_image = model.make_model_image()
@@ -55,9 +55,9 @@ def model_image(fig, ax, model, image = None, showcbar = True, **kwargs):
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
-    if isinstance(model, models.Group_Model):
+    if isinstance(model, Group_Model):
         for M in model.model_list:
-            if isinstance(M,models.Sky_Model):
+            if isinstance(M,Sky_Model):
                 try:
                     sky_level = (10**(M["sky"].value)*(1 - 1e-6)*model.target.pixelscale**2).detach().cpu().item()
                     break
@@ -110,7 +110,7 @@ def residual_image(fig, ax, model, showcbar = True, window = None, center_residu
 def model_window(fig, ax, model, **kwargs):
     target_image(fig, ax, model.target)
 
-    if isinstance(model, models.Group_Model):
+    if isinstance(model, Group_Model):
         for m in model.model_list:
             ax.add_patch(Rectangle(xy = (m.window.origin[0], m.window.origin[1]), width = m.window.shape[0], height = m.window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
     else:

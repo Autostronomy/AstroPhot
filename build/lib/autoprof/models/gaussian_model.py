@@ -4,7 +4,7 @@ from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .star_model_object import Star_Model
-from autoprof.utils.parametric_profiles import gaussian_torch, gaussian_np
+from ..utils.parametric_profiles import gaussian_torch, gaussian_np
 import torch
 import numpy as np
 
@@ -193,10 +193,14 @@ class Gaussian_Star(Star_Model):
         if self["sigma"].value is not None and self["flux"].value is not None:
             return
         target_area = target[self.window]
-        self["sigma"].set_value(1, override_locked = self["sigma"].value is None)
-        self["sigma"].set_uncertainty(1e-2, override_locked = self["sigma"].uncertainty is None)
-        self["flux"].set_value(np.sum(target_area.data.detach().cpu().numpy()), override_locked = self["flux"].value is None)
-        self["flux"].set_uncertainty(self["flux"].value.detach().cpu().numpy() * 1e-2, override_locked = self["flux"].uncertainty is None)
+        if self["sigma"].value is None:
+            self["sigma"].set_value(1, override_locked = True)
+        if self["sigma"].uncertainty is None:
+            self["sigma"].set_uncertainty(1e-2, override_locked = True)
+        if self["flux"].value is None:
+            self["flux"].set_value(np.sum(target_area.data.detach().cpu().numpy()), override_locked = True)
+        if self["flux"].uncertainty is None:
+            self["flux"].set_uncertainty(self["flux"].value.detach().cpu().numpy() * 1e-2, override_locked = True)
     from ._shared_methods import gaussian_radial_model as radial_model
 
     def evaluate_model(self, image):
@@ -228,7 +232,7 @@ class Gaussian_Ray(Ray_Galaxy):
     @torch.no_grad()
     def initialize(self, target = None):
         super(self.__class__, self).initialize()
-        if all((self["sigma"].value is not None, self["flux"].value is not None)):
+        if self["sigma"].value is not None and self["flux"].value is not None:
             return
         # Get the sub-image area corresponding to the model image
         target_area = self.target[self.window]
@@ -267,8 +271,10 @@ class Gaussian_Ray(Ray_Galaxy):
                 flux[4],
             ]
             res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(gaussian_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
-            self["sigma"].set_value(res.x[0], override_locked = was_none[0], index = r)
-            self["flux"].set_value(np.log10(res.x[1]), override_locked = was_none[1], index = r)
+            if was_none[0]:
+                self["sigma"].set_value(res.x[0], override_locked = True, index = r)
+            if was_none[1]:
+                self["flux"].set_value(np.log10(res.x[1]), override_locked = True, index = r)
         if self["sigma"].uncertainty is None:
             self["sigma"].set_uncertainty(0.02 * self["sigma"].value.detach().cpu().numpy(), override_locked = True)
         if self["flux"].uncertainty is None:

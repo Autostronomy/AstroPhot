@@ -38,16 +38,8 @@ class NonParametric_Galaxy(Galaxy_Model):
     }
     _parameter_order = Galaxy_Model._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)    
-            
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Star(Star_Model):
     """star model with a nonparametric radial light profile. The light
@@ -70,17 +62,9 @@ class NonParametric_Star(Star_Model):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Star_Model._parameter_order + ("I(R)",)
-    # fixme don't have q anymore
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)    
-            
-    from ._shared_methods import nonparametric_set_window as set_window
+    
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a nonparametric light
@@ -104,16 +88,8 @@ class NonParametric_Warp(Warp_Galaxy):
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-    
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 # Second Order
 ######################################################################
@@ -139,16 +115,8 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-            
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
     """The light profile is defined as a cubic spline interpolation of the
@@ -171,16 +139,8 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-            
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Ray(Ray_Galaxy):
     """ray galaxy model with a nonparametric light profile. The light
@@ -204,16 +164,8 @@ class NonParametric_Ray(Ray_Galaxy):
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-    
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_Wedge(Wedge_Galaxy):
     """wedge galaxy model with a nonparametric light profile. The light
@@ -237,16 +189,8 @@ class NonParametric_Wedge(Wedge_Galaxy):
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-    
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
     
 # Third Order
 ######################################################################
@@ -271,16 +215,8 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-            
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
     """The light profile is defined as a cubic spline interpolation of the
@@ -303,16 +239,8 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("I(R)",)
 
-    def __init__(self, *args, **kwargs):
-        if not hasattr(self, "profR"):
-            self.profR = None
-        super().__init__(*args, **kwargs)
-            
-    from ._shared_methods import nonparametric_set_window as set_window
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-    from ._shared_methods import nonparametric_get_state as get_state
-    from ._shared_methods import nonparametric_load as load
 
 
 

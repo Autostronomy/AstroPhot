@@ -1,8 +1,10 @@
-from .image_object import BaseImage
+from .image_object import BaseImage, Image_List
 import torch
 import numpy as np
 from torch.nn.functional import avg_pool2d
 from astropy.io import fits
+
+__all__ = ["Target_Image", "Target_Image_List"]
 
 class Target_Image(BaseImage):
     """Image object which represents the data to be fit by a model. It can
@@ -190,3 +192,59 @@ class Target_Image(BaseImage):
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
                 self.set_mask(np.array(hdu.data, dtype = bool))
         return hdul
+    
+class Target_Image_List(Image_List, Target_Image):
+    
+    @property
+    def variance(self):
+        return tuple(image.variance for image in self.image_list)
+    @variance.setter
+    def variance(self, variance):
+        for image, var in zip(self.image_list, variance):
+            image.set_variance(var)
+    @property
+    def has_variance(self):
+        return any(image.has_variance for image in self.image_list)
+    
+    @property
+    def mask(self):
+        return tuple(image.mask for image in self.image_list)
+    @mask.setter
+    def mask(self, mask):
+        for image, M in zip(self.image_list, mask):
+            image.set_mask(M)
+    @property
+    def has_mask(self):
+        return any(image.has_mask for image in self.image_list)
+    
+    @property
+    def psf(self):
+        return tuple(image.psf for image in self.image_list)
+    @psf.setter
+    def psf(self, psf):
+        for image, P in zip(self.image_list, psf):
+            image.set_psf(P)
+    @property
+    def has_psf(self):
+        return any(image.has_psf for image in self.image_list)
+    @property
+    def psf_border(self):
+        return tuple(image.psf_border for image in self.image_list)
+    @property
+    def psf_border_int(self):
+        return tuple(image.psf_border_int for image in self.image_list)
+
+    def set_variance(self, variance, img):
+        self.image_list[img].set_variance(variance)
+        
+    def set_psf(self, psf, img):
+        self.image_list[img].set_psf(psf)
+
+    def set_mask(self, mask, img):
+        self.image_list[img].set_mask(mask)
+
+    def or_mask(self, mask):
+        raise NotImplementedError()
+    def and_mask(self, mask):
+        raise NotImplementedError()
+        

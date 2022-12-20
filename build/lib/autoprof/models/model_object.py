@@ -1,13 +1,13 @@
-from autoprof.image import Model_Image, Window
-from autoprof.utils.initialize import center_of_mass
-from autoprof.utils.operations import fft_convolve_torch
-from autoprof import plots
-from autoprof.utils.conversions.coordinates import coord_to_index, index_to_coord
+from .core_model import AutoProf_Model
+from ..image import Model_Image, Window
+from .parameter_object import Parameter
+from ..utils.initialize import center_of_mass
+from ..utils.operations import fft_convolve_torch
+from ..utils.conversions.coordinates import coord_to_index, index_to_coord
+from torch.autograd.functional import jacobian
+from functools import partial
 import numpy as np
 import torch
-from torch.nn.functional import conv2d
-from .core_model import AutoProf_Model
-import matplotlib.pyplot as plt
 
 __all__ = ["BaseModel"]
 
@@ -51,7 +51,7 @@ class BaseModel(AutoProf_Model):
         
         self.parameters = {}
         # Set any user defined attributes for the model
-        for kwarg in kwargs:
+        for kwarg in kwargs: # fixme move to core model?
             # Skip parameters with special behaviour
             if kwarg in self.special_kwargs:
                 continue
@@ -77,11 +77,10 @@ class BaseModel(AutoProf_Model):
     def parameters(self, val):
         self._parameters = val
         
-    @property
-    def parameter_order(self):
+    def parameter_order(self, override_locked = False):
         param_order = tuple()
         for P in  self.__class__._parameter_order:
-            if self[P].locked:
+            if self[P].locked and not override_locked:
                 continue
             param_order = param_order + (P,)
         return param_order
@@ -96,9 +95,10 @@ class BaseModel(AutoProf_Model):
         until the iterations move by less than a pixel.
 
         """
-        # Get the sub-image area corresponding to the model image
         if target is None:
             target = self.target
+        super().initialize(target)
+        # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
             
         # Use center of window if a center hasn't been set yet
@@ -158,7 +158,7 @@ class BaseModel(AutoProf_Model):
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = sample_image.pixelscale / self.target.psf_upscale
             # Sub pixel shift to align the model with the center of a pixel
-            center_shift = torch.round(self["center"].value/working_pixelscale - 0.5)*working_pixelscale - (self["center"].value - 0.5*working_pixelscale)
+            center_shift = (torch.round(self["center"].value/working_pixelscale - 0.5) + 0.5)*working_pixelscale - self["center"].value
             working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(pixelscale = working_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
@@ -234,6 +234,27 @@ class BaseModel(AutoProf_Model):
         
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
+
+    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        if parameters is not None:
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
+        full_jac = jacobian(
+            partial(
+                self.full_sample,
+                as_representation = as_representation,
+                override_locked = override_locked,
+            ),
+            self.get_parameter_vector(
+                as_representation = as_representation,
+                override_locked = override_locked,
+            ),
+            strategy = "forward-mode",
+            vectorize = True,
+            create_graph = False,
+        )
+        if flatten:
+            return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
+        return full_jac
         
     def get_state(self):
         state = super().get_state()
@@ -249,17 +270,15 @@ class BaseModel(AutoProf_Model):
         self.window = Window(dtype = self.dtype, device = self.device, **state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
+            self[key].to(dtype = self.dtype, device = self.device)
         return state
     
     # Extra background methods for the basemodel
     ######################################################################
-    from ._model_methods import scale_window
     from ._model_methods import integrate_window
     from ._model_methods import psf_window
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
-    from ._model_methods import get_parameters_representation
-    from ._model_methods import get_parameters_value
     from ._model_methods import __getitem__
     from ._model_methods import __contains__
     from ._model_methods import __str__

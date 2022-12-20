@@ -25,8 +25,9 @@ autoprof tutorials
 command to download the AutoProf tutorials. If you run into difficulty with this, you can also access the tutorials directly at [this link](https://github.com/ConnorStoneAstro/AutoProf-2/tree/main/docs/tutorials) to download. Once you have the tutorials, start a jupyter session and run through them. The recommended order is:
 
 1. GettingStarted
-1. CombinedModels
+1. GroupModels
 1. ModelZoo
+1. MultibandModels
 
 ## Documentation
 

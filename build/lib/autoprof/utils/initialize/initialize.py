@@ -1,4 +1,4 @@
-from autoprof.utils.isophote.extract import _iso_extract
+from ..isophote.extract import _iso_extract
 import numpy as np
 from scipy.stats import iqr
 from scipy.fftpack import fft

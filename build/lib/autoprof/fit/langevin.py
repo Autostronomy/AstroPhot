@@ -62,8 +62,6 @@ class MALA(BaseOptimizer):
 
     def fit(self):
 
-        self.model.startup()
-        self.model.step()
         self.iteration = 0
         self._accepted = 0
         self._sampled = 0

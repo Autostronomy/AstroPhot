@@ -32,6 +32,7 @@ autoprof/models/galaxy_model_object.py
 autoprof/models/gaussian_model.py
 autoprof/models/group_model_object.py
 autoprof/models/model_object.py
+autoprof/models/multiband_model.py
 autoprof/models/nonparametric_model.py
 autoprof/models/parameter_object.py
 autoprof/models/planesky_model.py

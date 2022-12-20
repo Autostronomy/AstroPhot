@@ -69,7 +69,7 @@ class Grad(BaseOptimizer):
                 
         self.optimizer.zero_grad()
         
-        loss = self.model.full_loss(self.current_state)
+        loss = self.model.full_loss(self.current_state, as_representation = True, override_locked = False)
 
         loss.backward()
 
@@ -85,10 +85,6 @@ class Grad(BaseOptimizer):
         """
         Perform an iterative fit of the model parameters using the specified optimizer
         """
-
-        # initialize the model for optimization. Calling startup lets the model know that optimization will begin soon
-        self.model.startup()
-        # step ensures that no previous state from sampling the model is saved, 
 
         try:
             while True:
@@ -107,7 +103,7 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.set_parameters(torch.tensor(self.res()))
+        self.model.set_parameters(torch.tensor(self.res()), as_representation = True, override_locked = False)
         # finalize tells the model that optimization is now finished
         self.model.finalize()
         
