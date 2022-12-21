@@ -1,6 +1,7 @@
 **__pycache__
 deleteme
 **.ipynb_checkpoints
+**.#*
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg

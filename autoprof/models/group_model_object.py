@@ -129,7 +129,6 @@ class Group_Model(AutoProf_Model):
             sample_image = self.make_model_image()
         else:
             sample_window = False
-
         for model in self.model_list:
             if sample_window:
                 sample_image += model.sample()

@@ -220,7 +220,7 @@ class Parameter(object):
         if self.units is not None:
             state["units"] = self.units
         if self.uncertainty is not None:
-            state["uncertainty"] = np.array(self.uncertainty).tolist()
+            state["uncertainty"] = self.uncertainty.detach().cpu().numpy().tolist()
         if self.locked:
             state["locked"] = self.locked
         if self.limits is not None:

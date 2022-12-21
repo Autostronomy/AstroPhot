@@ -51,7 +51,6 @@ class BaseImage(object):
             self.window = window
             self.pixelscale = self.window.shape[0] / self.data.shape[1]
             
-            
     @property
     def origin(self):
         return self.window.origin

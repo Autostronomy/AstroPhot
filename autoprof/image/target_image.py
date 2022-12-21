@@ -50,11 +50,11 @@ class Target_Image(BaseImage):
     def psf(self, psf):
         self.set_psf(psf)
     @property
-    def psf_border(self):
-        return self.pixelscale * (1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device)/self.psf_upscale, (0,))) / 2
-    @property
     def psf_border_int(self):
-        return ((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device)/self.psf_upscale, (0,))) / 2).int()
+        return torch.ceil((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device), (0,))/self.psf_upscale) / 2).int()
+    @property
+    def psf_border(self):
+        return self.pixelscale * self.psf_border_int
     @property
     def has_psf(self):
         return self._psf is not None
