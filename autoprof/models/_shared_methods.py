@@ -1,7 +1,6 @@
 from ..utils.initialize import isophotes
-from ..utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np, exponential_torch, exponential_np
+from ..utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np, exponential_torch, exponential_np, nonparametric_torch
 from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
-from ..utils.interpolate import cubic_spline_torch, interp1d_torch
 from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
 from scipy.special import gamma
 from scipy.stats import binned_statistic, iqr
@@ -225,14 +224,9 @@ def nonparametric_initialize(self, target = None):
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
-    I = cubic_spline_torch(self["I(R)"].prof, self["I(R)"].value, R.view(-1), extend = "none").view(*R.shape)
-    res = 10**(I) * sample_image.pixelscale**2
-    res[R > self["I(R)"].prof[-2]] = 10**(self["I(R)"].value[-2] + (R[R > self["I(R)"].prof[-2]] - self["I(R)"].prof[-2])*((self["I(R)"].value[-1] - self["I(R)"].value[-2])/(self["I(R)"].prof[-1] - self["I(R)"].prof[-2]))) * sample_image.pixelscale**2
-    return res
+    return nonparametric_torch(R, self["I(R)"].prof, self["I(R)"].value, sample_image.pixelscale**2)
+
 def nonparametric_iradial_model(self, i, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
-    I =  cubic_spline_torch(self["I(R)"].prof, self["I(R)"].value[i], R.view(-1), extend = "none").view(*R.shape)
-    res = 10**(I) * sample_image.pixelscale**2
-    res[R > self["I(R)"].prof[-2]] = 10**(self["I(R)"].value[i][-2] + (R[R > self["I(R)"].prof[-2]] - self["I(R)"].prof[-2])*((self["I(R)"].value[i][-1] - self["I(R)"].value[i][-2])/(self["I(R)"].prof[-1] - self["I(R)"].prof[-2]))) * sample_image.pixelscale**2
-    return res
+    return nonparametric_torch(R, self["I(R)"].prof, self["I(R)"].value[i], sample_image.pixelscale**2)

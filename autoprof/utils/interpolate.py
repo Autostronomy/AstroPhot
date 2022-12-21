@@ -28,11 +28,11 @@ def cubic_spline_torch(x, y, xs, extend = "const"):
     dx = (x[idxs + 1] - x[idxs])
     hh = _h_poly((xs - x[idxs]) / dx)
     ret = hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
-    if extend == "const":
-        ret[xs > x[-1]] = y[-1]
-    elif extend == "linear":
-        indices = xs > x[-1]
-        ret[indices] = y[-1] + (xs[indices] - x[-1])*(y[-1] - y[-2])/(x[-1] - x[-2])
+    # if extend == "const":
+    #     ret[xs > x[-1]] = y[-1]
+    # elif extend == "linear":
+    #     indices = xs > x[-1]
+    #     ret[indices] = y[-1] + (xs[indices] - x[-1])*(y[-1] - y[-2])/(x[-1] - x[-2])
     return ret
 
 

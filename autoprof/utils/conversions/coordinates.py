@@ -1,12 +1,11 @@
 import torch
 import numpy as np
 
+@torch.jit.script
 def Rotate_Cartesian(theta, X, Y):
     """
     Applies a rotation matrix to the X,Y coordinates
     """
-    if not isinstance(theta, torch.Tensor):
-        theta = torch.tensor(theta, dtype = X.dtype, device = X.device)
     s = torch.sin(theta)
     c = torch.cos(theta) 
     return c*X - s*Y, c*Y + s*X
@@ -26,10 +25,6 @@ def Axis_Ratio_Cartesian(q, X, Y, theta = 0., inv_scale = False):
     This effectively counter-rotates the coordinates so that the angle theta is along the x-axis
     then applies the y-axis scaling, then re-rotates everything back to where it was.
     """
-    if not isinstance(q, torch.Tensor):
-        q = torch.tensor(q, dtype = X.dtype, device = X.device)
-    if not isinstance(theta, torch.Tensor):
-        theta = torch.tensor(theta, dtype = X.dtype, device = X.device)
     if inv_scale:
         scale = (1 / q) - 1
     else:
