@@ -169,7 +169,7 @@ class AutoProf_Model(object):
             )
             start += V        
         
-    def full_sample(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+    def full_sample(self, parameters = None, as_representation = True, override_locked = False, flatten = False):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
         if flatten:
@@ -185,7 +185,7 @@ class AutoProf_Model(object):
         raise NotImplementedError
 
     @property
-    def window(self): # fixme allow None window that just reproduces full image
+    def window(self):
         try:
             if self._window is None:
                 return self.target.window.make_copy()

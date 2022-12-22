@@ -3,7 +3,6 @@ import numpy as np
 from .conversions.functions import sersic_n_to_b
 from .interpolate import cubic_spline_torch, interp1d_torch
 
-@torch.jit.script
 def sersic_torch(R, n, Re, Ie):
     """Seric 1d profile function, specifically designed for pytorch
     operations
@@ -33,7 +32,6 @@ def sersic_np(R, n, Re, Ie):
     bn = sersic_n_to_b(n)
     return Ie*np.exp(-bn*((R/Re)**(1/n) - 1))
 
-@torch.jit.script
 def gaussian_torch(R, sigma, I0):
     """Gaussian 1d profile function, specifically designed for pytorch
     operations.
@@ -55,7 +53,6 @@ def gaussian_np(R, sigma, I0):
     """
     return (I0 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5*((R/sigma)**2))
 
-@torch.jit.script
 def exponential_torch(R, Re, Ie):
     """Exponential 1d profile function, specifically designed for pytorch
     operations.
@@ -78,7 +75,6 @@ def exponential_np(R, Ie, Re):
     """
     return Ie * np.exp(- sersic_n_to_b(1.) * (R / Re - 1.))
 
-#@torch.jit.script
 def nonparametric_torch(R, profR, profI, pixelscale2):
     """Nonparametric 1d profile function, cubic spline between points up
     to second last point beyond which is linear, specifically designed

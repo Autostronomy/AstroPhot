@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 
-@torch.jit.script
 def Rotate_Cartesian(theta, X, Y):
     """
     Applies a rotation matrix to the X,Y coordinates
