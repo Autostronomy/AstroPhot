@@ -6,6 +6,15 @@ from .base import BaseOptimizer
 
 __all__ = ["LM"]
 
+@torch.no_grad()
+@torch.jit.script
+def Broyden_step(J, h, Yp, Yph):
+    delta = torch.matmul(J, h)
+    # avoid constructing a second giant jacobian matrix, instead go one row at a time
+    for j in range(J.shape[1]):
+        J[:,j] += (Yph - Yp - delta) * h[j] / torch.linalg.norm(h)
+    return J
+
 class LM(BaseOptimizer):
     """based heavily on:
     @article{gavin2019levenberg,
@@ -412,7 +421,7 @@ class LM(BaseOptimizer):
                 if self.verbose > 0:
                     print("reject err: ", e)
                 print("WARNING: Hessian singular, will massage Hessian to continue, results may not converge")
-                self.hess *= torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)*0.9 + 0.1
+                # self.hess *= torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)*0.9 + 0.1
                 self.hess += torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)
                 self.L = min(1e7, self.L * self.Lup)
                 count_reject += 1
@@ -425,7 +434,7 @@ class LM(BaseOptimizer):
             
     @torch.no_grad()
     def update_J_Broyden(self, h, Yp, Yph):
-        self.J += torch.outer(Yph - Yp - torch.matmul(self.J, h),h) / torch.linalg.norm(h)
+        self.J = Broyden_step(self.J, h, Yp, Yph)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
 

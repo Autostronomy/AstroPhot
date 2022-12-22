@@ -214,7 +214,6 @@ class BaseModel(AutoProf_Model):
         # Build an image to hold the integration data
         integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         # Evaluate the model at the fine sampling points
-        X, Y = integrate_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         integrate_image.data = self.evaluate_model(integrate_image)
 
         # If needed, recursively evaluates smaller windows
@@ -252,6 +251,7 @@ class BaseModel(AutoProf_Model):
             vectorize = True,
             create_graph = False,
         )
+        
         if flatten:
             return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
         return full_jac
