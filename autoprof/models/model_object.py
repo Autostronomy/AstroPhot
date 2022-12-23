@@ -42,6 +42,7 @@ class BaseModel(AutoProf_Model):
     integrate_factor = 3 # number of pixels on one axis by which to supersample
     integrate_recursion_factor = 2 # relative size of windows between recursion levels (2 means each window will be half the size of the previous one)
     integrate_recursion_depth = 2 # number of recursion cycles to apply when integrating
+    jacobian_mode = "full" # method to compute jacobian. "full" means full jacobian for all parameters at once (faster), "single" means one parameter at a time (less memory), "fragment"
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
@@ -237,21 +238,49 @@ class BaseModel(AutoProf_Model):
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
-        full_jac = jacobian(
-            partial(
-                self.full_sample,
+
+        if self.jacobian_mode == "full":
+            full_jac = jacobian(
+                partial(
+                    self.full_sample,
+                    as_representation = as_representation,
+                    override_locked = override_locked,
+                ),
+                self.get_parameter_vector(
+                    as_representation = as_representation,
+                    override_locked = override_locked,
+                ),
+                strategy = "forward-mode",
+                vectorize = True,
+                create_graph = False,
+            )
+        elif self.jacobian_mode == "single":
+            sub_jacs = []
+            start = 0
+            params = self.get_parameter_vector(
                 as_representation = as_representation,
                 override_locked = override_locked,
-            ),
-            self.get_parameter_vector(
-                as_representation = as_representation,
-                override_locked = override_locked,
-            ),
-            strategy = "forward-mode",
-            vectorize = True,
-            create_graph = False,
-        )
-        
+            )
+            for P, V in zip(self.parameter_order(override_locked = override_locked),self.parameter_vector_len(override_locked = override_locked)):
+                sub_jacs.append(
+                    jacobian(
+                        partial(
+                            self.full_sample,
+                            as_representation = as_representation,
+                            override_locked = override_locked,
+                            parameters_identity = (P,),
+                        ),
+                        params[start:start+V],
+                        strategy = "forward-mode",
+                        vectorize = True,
+                        create_graph = False,                        
+                    ).reshape(*tuple(self.window.get_shape_flip(self.target.pixelscale)), V)
+                )
+                start += V
+                full_jac = torch.cat(sub_jacs,dim = 2)
+        else:
+            raise ValueError(f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}")    
+            
         if flatten:
             return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
         return full_jac

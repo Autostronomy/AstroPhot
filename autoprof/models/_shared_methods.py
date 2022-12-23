@@ -114,11 +114,11 @@ def sersic_initialize(self, target = None):
     res = minimize(optim, x0 = x0, method = "Nelder-Mead") # , bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))
     
     if self["n"].value is None:
-        self["n"].set_value(res.x[0], override_locked = True)
+        self["n"].set_value(res.x[0] if res.success else x0[0], override_locked = True)
     if self["Re"].value is None:
-        self["Re"].set_value(res.x[1], override_locked = True)
+        self["Re"].set_value(res.x[1] if res.success else x0[1], override_locked = True)
     if self["Ie"].value is None:
-        self["Ie"].set_value(np.log10(res.x[2]), override_locked = True)
+        self["Ie"].set_value(np.log10(res.x[2] if res.success else x0[2]), override_locked = True)
     if self["Re"].uncertainty is None:
         self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
     if self["Ie"].uncertainty is None:

@@ -60,8 +60,8 @@ class LM(BaseOptimizer):
         super().__init__(model, initial_state, **kwargs)
         
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
-        self.Lup = kwargs.get("Lup", 11.)
-        self.Ldn = kwargs.get("Ldn", 9.)
+        self.Lup = kwargs.get("Lup", 5.)
+        self.Ldn = kwargs.get("Ldn", 3.)
         self.L = kwargs.get("L0", 1.)
         self.method = kwargs.get("method", 1)
         
@@ -116,7 +116,7 @@ class LM(BaseOptimizer):
             self.decision_history.append("nan")
             self.rho_history.append(None)
             self._count_reject += 1
-            self.L = min(1e9, self.Lup)
+            self.L = min(1e9, self.L*self.Lup)
             return
         elif self.iteration > 0:
             rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
@@ -352,6 +352,98 @@ class LM(BaseOptimizer):
         self.update_grad(self.prev_Y[1])
         self.iteration += 1
         
+    def step_method4(self, current_state = None):
+        """
+        same as method one, except that the off diagonal elements are scaled by 1/(1+L) making the move to pure gradient descent faster and better behaved
+        """
+        if current_state is not None:
+            self.current_state = current_state
+
+        if self.iteration > 0:
+            if self.verbose > 0:
+                print("---------iter---------")
+        else:
+            if self.verbose > 0:
+                print("---------init---------")
+        # if self.iteration > 6:
+        #     if self._count_reject >= 6:
+        #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
+        h = self.update_h_v3()
+        if self.verbose > 1:
+            print("h: ", h.detach().cpu().numpy())
+        
+        with torch.no_grad():
+            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
+            if self.model.target.has_mask:
+                loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
+            else:
+                loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
+        if self.iteration == 0:
+            self.prev_Y[1] = self.current_Y
+        self.loss_history.append(loss.detach().cpu().item())
+        self.L_history.append(self.L)
+        self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
+        
+        if not torch.isfinite(loss):
+            if self.verbose > 0:
+                print("nan loss")
+            self.decision_history.append("nan")
+            self.rho_history.append(None)
+            self._count_reject += 1
+            self.undo_step()
+            # self.L = min(1e9, self.L*self.Lup)
+            return
+        elif self.iteration > 0:
+            rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
+            if self.verbose > 1:
+                print("LM loss, best loss, loss diff, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+            elif self.verbose > 0 and rho > self.epsilon4:
+                print("LM loss", loss.item())
+            self.rho_history.append(rho)
+            if self.verbose > 1:
+                print("rho: ", rho.item())
+                
+            if rho > self.epsilon4:
+                if self.verbose > 0:
+                    print("accept")
+                self.decision_history.append("accept")
+                self.prev_Y[0] = self.prev_Y[1]
+                self.prev_Y[1] = torch.clone(self.current_Y)
+                self.current_state += h
+                self.L = max(1e-9, self.L / self.Ldn)
+                self._count_reject = 0
+                if 0 < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
+                    self._count_finish += 1
+            elif self._count_reject == 8:
+                if self.verbose > 1:
+                    print("reject, resetting jacobian")
+                self.decision_history.append("reject")
+                self.L = min(1e-2, self.L / self.Lup**8)
+                self._count_reject += 1                
+            else:
+                if self.verbose > 1:
+                    print("reject")
+                self.decision_history.append("reject")
+                self.L = min(1e9, self.L * self.Lup)
+                self._count_reject += 1
+                return    
+        else:
+            self.decision_history.append("init")
+            self.rho_history.append(None)
+
+        if self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+            if self.verbose > 1:
+                print("full jac")
+            self.update_J_AD()
+        else:
+            if self.verbose > 1:
+                print("Broyden jac")
+            self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
+
+        self.update_hess()
+        self.update_grad(self.prev_Y[1])
+        self.iteration += 1
+        
     def fit(self):
 
         self.iteration = 0
@@ -365,7 +457,9 @@ class LM(BaseOptimizer):
         try:
             while True:
 
-                if self.method == 3:
+                if self.method == 4:
+                    self.step_method4()                    
+                elif self.method == 3:
                     self.step_method3()
                 elif self.method == 2:
                     self.step_method2()
@@ -399,6 +493,23 @@ class LM(BaseOptimizer):
         self.model.set_uncertainty(torch.sqrt(2*torch.abs(torch.diag(cov))), as_representation = True, override_locked = False)
         
         return self
+
+    @torch.no_grad()
+    def undo_step(self):
+        print("undoing step, trying to recover")
+        assert self.decision_history.count("accept") >= 2, "cannot undo with not enough accepted steps, retry with new parameters"
+        assert len(self.decision_history) == len(self.lambda_history)
+        assert len(self.decision_history) == len(self.L_history)
+        found_accept = False
+        for i in reversed(range(len(self.decision_history))):
+            if not found_accept and self.decision_history[i] == "accept":
+                found_accept = True
+                continue
+            if self.decision_history[i] != "accept":
+                continue
+            self.current_state = torch.tensor(self.lambda_history[i], dtype = self.model.dtype, device = self.model.device)
+            self.L = self.L_history[i] * self.Lup
+            
             
     @torch.no_grad()
     def update_h_v1(self):
@@ -416,6 +527,27 @@ class LM(BaseOptimizer):
             # Sometimes the hesian + lambda matrix is singular, sometimes that can be fixed by giving lambda a boost.
             try:
                 h = torch.linalg.solve(self.hess + self.L*torch.abs(torch.diag(self.hess))*torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device), self.grad)
+                break
+            except Exception as e:
+                if self.verbose > 0:
+                    print("reject err: ", e)
+                print("WARNING: Hessian singular, will massage Hessian to continue, results may not converge")
+                # self.hess *= torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)*0.9 + 0.1
+                self.hess += torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)
+                self.L = min(1e7, self.L * self.Lup)
+                count_reject += 1
+        return h
+    @torch.no_grad()
+    def update_h_v3(self):
+
+        count_reject = 0
+        h = torch.zeros_like(self.current_state)
+        if self.iteration == 0:
+            return h
+        while count_reject < 4:
+            # Sometimes the hesian + lambda matrix is singular, sometimes that can be fixed by giving lambda a boost.
+            try:
+                h = torch.linalg.solve(self.hess*(1 + self.L*torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device))**2/(1 + self.L), self.grad)
                 break
             except Exception as e:
                 if self.verbose > 0:

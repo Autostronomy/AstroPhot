@@ -129,7 +129,16 @@ class AutoProf_Model(object):
             return loss, model_image
         return loss
 
-    def set_parameters(self, parameters, override_locked = False, as_representation = True):
+    def set_parameters(self, parameters, override_locked = False, as_representation = True, parameters_identity = None):
+        """
+        Set the parameter values for this model with a given object.
+
+        Parameters:
+            parameters: updated values for the parameters. Either as a dictionary of parameter_name: tensor pairs, or as a 1D tensor.
+            override_locked: locked parameters normally are ignored, set this to True to include locked parameters
+            as_representation: if true the parameters are given as a representation form, if false then the parameters are given as values (see parameters for difference between representation and value)
+            parameters_identity: iterable of parameter names if "parameters" is some subset of the full parameter tensor. Note that parameters_identity must be in the same order as model.parameter_order, though any combination can be included/missing
+        """
         if isinstance(parameters, dict):
             for P in parameters:
                 if not override_locked and self[P].locked:
@@ -142,10 +151,11 @@ class AutoProf_Model(object):
         parameters = torch.as_tensor(parameters, dtype = self.dtype, device = self.device)
         start = 0
         for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
-            if as_representation:
-                self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
-            else:
-                self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
+            if parameters_identity is None or P in parameters_identity:
+                if as_representation:
+                    self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
+                else:
+                    self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
             start += V
         
     def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False):
@@ -169,9 +179,9 @@ class AutoProf_Model(object):
             )
             start += V        
         
-    def full_sample(self, parameters = None, as_representation = True, override_locked = False, flatten = False):
+    def full_sample(self, parameters = None, as_representation = True, override_locked = False, flatten = False, parameters_identity = None):
         if parameters is not None:
-            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation, parameters_identity = parameters_identity)
         if flatten:
             return self.sample().flatten()
         return self.sample().data
