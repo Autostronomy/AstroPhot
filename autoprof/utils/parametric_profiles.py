@@ -87,7 +87,8 @@ def nonparametric_torch(R, profR, profI, pixelscale2):
         pixelscale2: squared pixelscale. Just use 1 if not needed
     """
     I = cubic_spline_torch(profR, profI, R.view(-1), extend = "none").view(*R.shape)
-    res = 10**(I)
+    res = torch.zeros_like(I)
+    res[R <= profR[-2]] = 10**(I[R <= profR[-2]])
     res[R > profR[-2]] = 10**(profI[-2] + (R[R > profR[-2]] - profR[-2])*((profI[-1] - profI[-2])/(profR[-1] - profR[-2])))
     return res * pixelscale2
     

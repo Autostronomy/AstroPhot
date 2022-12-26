@@ -17,7 +17,7 @@ class BaseOptimizer(object):
         relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
     
     """
-    def __init__(self, model, initial_state = None, max_iter = None, relative_tolerance = 1e-3, **kwargs):
+    def __init__(self, model, initial_state = None, relative_tolerance = 1e-3, **kwargs):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         
@@ -33,10 +33,7 @@ class BaseOptimizer(object):
         self.current_state = torch.as_tensor(initial_state, dtype = self.model.dtype, device = self.model.device)
         if self.verbose > 1:
             print("initial state: ", self.current_state)
-        if max_iter is None:
-            self.max_iter = 100*len(initial_state)
-        else:
-            self.max_iter = max_iter
+        self.max_iter = kwargs.get("max_iter", 100*len(initial_state))
         self.iteration = 0
 
         self.relative_tolerance = relative_tolerance

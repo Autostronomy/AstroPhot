@@ -18,6 +18,5 @@ def reduced_chi_squared(target, model, params, mask = None, variance = None):
         ndf = torch.prod(torch.tensor(target.shape, dtype = target.dtype, device = target.device)) - params
     else:
         ndf = torch.sum(torch.logical_not(mask)) - params
-        
     return chi_squared(target, model, mask, variance) / ndf
         
