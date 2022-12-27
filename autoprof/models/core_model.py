@@ -179,12 +179,14 @@ class AutoProf_Model(object):
             )
             start += V        
         
-    def full_sample(self, parameters = None, as_representation = True, override_locked = False, flatten = False, parameters_identity = None):
+    def full_sample(self, parameters = None, as_representation = True, override_locked = False, return_data = True, flatten = False, parameters_identity = None):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation, parameters_identity = parameters_identity)
         if flatten:
             return self.sample().flatten()
-        return self.sample().data
+        if return_data:
+            return self.sample().data
+        return self.sample()
 
     def full_loss(self, parameters = None, as_representation = False, override_locked = False):
         if parameters is not None:

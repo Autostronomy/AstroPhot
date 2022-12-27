@@ -177,10 +177,13 @@ class BaseImage(object):
                 raise IndexError("Cannot subtract images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
                 raise IndexError("images have no overlap, cannot subtract!")
-            return self.__class__(data = self.data[other.window.get_indices(self)] - other.data[self.window.get_indices(other)],
-                            pixelscale = self.pixelscale, zeropoint = self.zeropoint, note = self.note, origin = (torch.max(self.origin[0], other.origin[0]), torch.max(self.origin[1], other.origin[1])))
+            new_img = self[other.window].copy()
+            new_img.data -= other.data[self.window.get_indices(other)]
+            return new_img
         else:
-            return self.__class__(data = self.data - other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, note = self.note, origin = self.origin)
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data -= other
+            return new_img
         
     def __add__(self, other): # fixme
         if isinstance(other, BaseImage):
@@ -188,10 +191,13 @@ class BaseImage(object):
                 raise IndexError("Cannot add images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
                 return self
-            return self.__class__(data = self.data[other.window.get_indices(self)] + other.data[self.window.get_indices(other)],
-                            pixelscale = self.pixelscale, zeropoint = self.zeropoint, note = self.note, origin = (torch.max(self.origin[0], other.origin[0]), torch.max(self.origin[1], other.origin[1])))
+            new_img = self[other.window].copy()
+            new_img.data += other.data[self.window.get_indices(other)]
+            return new_img
         else:
-            return self.__class__(data = self.data + other, pixelscale = self.pixelscale, zeropoint = self.zeropoint, note = self.note, origin = self.origin)
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data += other
+            return new_img
 
     def __iadd__(self, other):
         if isinstance(other, BaseImage):
