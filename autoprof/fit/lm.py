@@ -482,7 +482,6 @@ class LM(BaseOptimizer):
                     break
                 elif self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
                     self.message = self.message + "success"
-                    print("converged")
                     break
                 elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
                     self.message = self.message + "fail reject 12 in a row"
