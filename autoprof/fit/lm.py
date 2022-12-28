@@ -576,6 +576,9 @@ class LM(BaseOptimizer):
         return h
     
     def update_J_AD(self):
+        del self.J
+        if "cpu" not in self.model.device:
+            torch.cuda.empty_cache()
         self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
