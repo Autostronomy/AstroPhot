@@ -47,7 +47,7 @@ class Window(object):
         """
         # alignment = ((self.origin + self.shape - obj.origin) / obj.pixelscale)
         # if not np.allclose(alignment/np.round(alignment), 1.):
-        #     print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)# fixme
+        #     print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)
         #     raise ValueError("Cannot determine indices for misaligned windows")
         return (
             slice(torch.max(torch.tensor(0,dtype = torch.int, device = self.device),(torch.round((self.origin[1] - obj_window.origin[1])/obj_pixelscale)).int()),

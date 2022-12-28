@@ -118,12 +118,14 @@ class Parameter(object):
         self.set_uncertainty(unc)
     @property
     def requires_grad(self):
-        return self._requires_grad
+        if self._representation is None:
+            return False
+        return self._representation.requires_grad
     @requires_grad.setter
     def requires_grad(self, val):
         assert isinstance(val, bool)
-        self._requires_grad = val
         if self._representation is not None and not (self._representation.requires_grad is val):
+            self._representation = self._representation.detach()
             self._representation.requires_grad = val
             
     @property
@@ -206,7 +208,7 @@ class Parameter(object):
             self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = self.dtype, device = self.device)
         else:
             self._representation[index] = rep
-            
+        
     def get_state(self):
         """Return the values representing the current state of the parameter,
         this can be used to re-load the state later from memory.
@@ -220,7 +222,7 @@ class Parameter(object):
         if self.units is not None:
             state["units"] = self.units
         if self.uncertainty is not None:
-            state["uncertainty"] = np.array(self.uncertainty).tolist()
+            state["uncertainty"] = self.uncertainty.detach().cpu().numpy().tolist()
         if self.locked:
             state["locked"] = self.locked
         if self.limits is not None:

@@ -13,6 +13,7 @@ autoprof/fit/__init__.py
 autoprof/fit/base.py
 autoprof/fit/gp.py
 autoprof/fit/gradient.py
+autoprof/fit/iterative.py
 autoprof/fit/langevin.py
 autoprof/fit/lm.py
 autoprof/image/__init__.py

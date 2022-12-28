@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: autoprof
-Version: 0.2.0
+Version: 0.2.1
 Summary: Fast and flexible astronomical image modelling tool
 Home-page: https://github.com/ConnorStoneAstro/AutoProf-2
 Author: Connor Stone
@@ -8,7 +8,7 @@ Author-email: connorston628@gmail.com
 License: GPL-3.0 license
 Description: <img src="media/AP_logo.png" alt="AutoProf" width="300"/>
         
-        AutoProf is a python based astronomical image modelling code. It is highly flexible for a wide range of analysis tasks and uses pytorch to accelerate calculations with automatic exact derivatives and either parallel CPU code, or by taking advantage of GPUs. While pytorch was developped for Machine Learning, AutoProf hijacks its capabilities for regular Chi squared minimization and so is not a Machine Learning tool itself. Written by [Connor Stone](https://connorjstone.com/), AutoProf was developped for a number of science goals such as LSB imaging, handling crowded fields, and dealing with massive volumes of data from the next generation of telescopes. Even if you aren't pushing these boundaries in particular, you will likely find AutoProf fast and easy to use for any astronomical image modelling task.
+        AutoProf is a python based astronomical image modelling code. It is highly flexible for a wide range of analysis tasks and uses pytorch to accelerate calculations with automatic exact derivatives and either parallel CPU code, or by taking advantage of GPUs. While pytorch was developped for Machine Learning, AutoProf hijacks its capabilities for regular Chi squared minimization and so is not a Machine Learning tool itself. Written by [Connor Stone](https://connorjstone.com/), AutoProf was developped for a number of science goals such as LSB imaging, handling crowded fields, simultaneous multi-band image modelling, and dealing with massive volumes of data from the next generation of telescopes. Even if you aren't pushing these boundaries in particular, you will likely find AutoProf fast and easy to use for any astronomical image modelling task.
         
         ## Installation
         
@@ -33,8 +33,9 @@ Description: <img src="media/AP_logo.png" alt="AutoProf" width="300"/>
         command to download the AutoProf tutorials. If you run into difficulty with this, you can also access the tutorials directly at [this link](https://github.com/ConnorStoneAstro/AutoProf-2/tree/main/docs/tutorials) to download. Once you have the tutorials, start a jupyter session and run through them. The recommended order is:
         
         1. GettingStarted
-        1. CombinedModels
+        1. GroupModels
         1. ModelZoo
+        1. MultibandModels
         
         ## Documentation
         
