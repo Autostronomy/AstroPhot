@@ -474,13 +474,12 @@ class LM(BaseOptimizer):
                 else:
                     self.step_method0()
 
-                
+                if self.save_steps is not None and self.decision_history[-1] == "accept":
+                    self.model.save(os.path.join(self.save_steps, f"{self.model.name}_Iteration_{self.iteration:03d}.yaml"))
+
                 lam, L, loss = self.progress_history()
                     
-                if self._count_finish >= 3:
-                    self.message = self.message + "success"
-                    break
-                elif self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
+                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
                     self.message = self.message + "success"
                     break
                 elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
