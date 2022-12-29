@@ -531,7 +531,8 @@ class LM(BaseOptimizer):
             if self.decision_history[i] == "accept":
                 return False
             if self.rho_history[i] is not None and self.rho_history[i] > 0:
-                print("taking a low rho step for some progress: ", self.rho_history[i])
+                if self.verbose > 0:
+                    print("taking a low rho step for some progress: ", self.rho_history[i])
                 self.current_state = torch.tensor(self.lambda_history[i], dtype = self.model.dtype, device = self.model.device)
                 self.L = self.L_history[i]
                 

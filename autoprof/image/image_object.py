@@ -49,7 +49,10 @@ class BaseImage(object):
             self.window = Window(origin = origin, shape = shape, dtype = self.dtype, device = self.device)
         else:
             self.window = window
-            self.pixelscale = self.window.shape[0] / self.data.shape[1]
+            if pixelscale is None:
+                self.pixelscale = self.window.shape[0] / self.data.shape[1]
+            else:
+                self.pixelscale = torch.as_tensor(pixelscale, dtype = self.dtype, device = self.device)
             
     @property
     def origin(self):

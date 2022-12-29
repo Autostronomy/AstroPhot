@@ -14,10 +14,11 @@ class Target_Image(BaseImage):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_variance(kwargs.get("variance", None))
-        self.set_mask(kwargs.get("mask", None))
-        self.set_psf(kwargs.get("psf", None))
-        self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
+        if kwargs.get("filename", None) is None:
+            self.set_variance(kwargs.get("variance", None))
+            self.set_mask(kwargs.get("mask", None))
+            self.set_psf(kwargs.get("psf", None))
+            self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
 
     @property
     def variance(self):
@@ -79,7 +80,7 @@ class Target_Image(BaseImage):
             return
         assert mask.shape == self.data.shape, "mask must have same shape as data"
         self._mask = mask.to(dtype = torch.bool, device = self.device) if isinstance(mask, torch.Tensor) else torch.as_tensor(mask, dtype = torch.bool, device = self.device)
-
+        
     def to(self, dtype = None, device = None):
         super().to(dtype = dtype, device = device)
         if self.has_variance:
@@ -149,6 +150,7 @@ class Target_Image(BaseImage):
         if self.has_psf:
             PMS = self.psf.shape[0] // scale
             PNS = self.psf.shape[1] // scale
+
         return self.__class__(
             data = self.data[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
             device = self.device,
@@ -177,7 +179,7 @@ class Target_Image(BaseImage):
         if self._mask is not None:
             mask_header = fits.Header()
             mask_header["IMAGE"] = "MASK"
-            image_list.append(fits.ImageHDU(self._mask.detach().cpu().numpy(), header = mask_header))
+            image_list.append(fits.ImageHDU(self._mask.detach().cpu().numpy().astype(int), header = mask_header))
         return image_list
 
     def load(self, filename):

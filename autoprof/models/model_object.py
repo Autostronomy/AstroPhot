@@ -208,7 +208,6 @@ class BaseModel(AutoProf_Model):
         
         # Only need to evaluate integration within working image
         working_window = window & working_image.window
-            
         # Determine the upsampled pixelscale 
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
 
