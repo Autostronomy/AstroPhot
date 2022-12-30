@@ -71,7 +71,7 @@ class Iter(BaseOptimizer):
         self.loss_history.append(loss.item())
         
         # test for convergence
-        if self.iteration > 2 and (0 < ((self.loss_history[-2] - self.loss_history[-1])/self.loss_history[-1]) < self.relative_tolerance):
+        if self.iteration >= 2 and (0 < ((self.loss_history[-2] - self.loss_history[-1])/self.loss_history[-1]) < (self.relative_tolerance/10)):
             self._count_finish += 1
         else:
             self._count_finish = 0

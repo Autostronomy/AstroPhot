@@ -63,8 +63,8 @@ class LM(BaseOptimizer):
         
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
         self.epsilon5 = kwargs.get("epsilon5", 1e-8)
-        self.Lup = kwargs.get("Lup", 5.)
-        self.Ldn = kwargs.get("Ldn", 3.)
+        self.Lup = kwargs.get("Lup", 11.)
+        self.Ldn = kwargs.get("Ldn", 9.)
         self.L = kwargs.get("L0", 1.)
         self.method = kwargs.get("method", 0)
         
@@ -74,6 +74,7 @@ class LM(BaseOptimizer):
         #          # pixels      # parameters
         self.ndf = len(self.Y) - len(self.current_state)
         self.J = None
+        self.full_jac = False
         self.current_Y = None
         self.prev_Y = [None, None]
         if self.model.target.has_mask:
@@ -84,6 +85,48 @@ class LM(BaseOptimizer):
         self.decision_history = []
         self.rho_history = []
 
+    @torch.no_grad()
+    def grad_step(self):
+        L = 0.1
+
+        for count in range(20):
+            Y = self.model.full_sample(self.current_state + self.grad/L, as_representation = True, override_locked = False, flatten = True)
+            if self.model.target.has_mask:
+                loss = torch.sum(((self.Y - Y)**2 if self.W is None else ((self.Y - Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
+            else:
+                loss = torch.sum((self.Y - Y)**2 if self.W is None else ((self.Y - Y)**2 * self.W)) / self.ndf
+            if not torch.isfinite(loss):
+                L /= 10
+                continue
+            if np.nanmin(self.loss_history[:-1]) > loss.item():
+                self.loss_history.append(loss.detach().cpu().item())
+                self.L = L
+                self.L_history.append(self.L)
+                self.current_state += self.grad/L
+                self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
+                self.decision_history.append("accept grad")
+                self.rho_history.append(1.)
+                self.prev_Y[0] = self.prev_Y[1]
+                self.prev_Y[1] = torch.clone(Y)
+                break
+            elif np.abs(np.nanmin(self.loss_history[:-1]) - loss.item()) < (self.relative_tolerance * 1e-4) and L < 1e-5:
+                self.loss_history.append(loss.detach().cpu().item())
+                self.L = max(1e-7, L)
+                self.L_history.append(self.L)
+                self.current_state += self.grad/L
+                self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
+                self.decision_history.append("accept bad grad")
+                self.rho_history.append(1.)                
+                self.prev_Y[0] = self.prev_Y[1]
+                self.prev_Y[1] = torch.clone(Y)
+                break
+            else:
+                L /= 10
+                continue
+        else:
+            raise RuntimeError("Unable to take gradient step! LM has found itself in a very bad place of parameter space, try adjusting initial parameters")
+        self.iteration += 1
+        
     def step_method0(self, current_state = None):
         """
         same as method one, except that the off diagonal elements are scaled by 1/(1+L) making the move to pure gradient descent faster and better behaved
@@ -148,7 +191,7 @@ class LM(BaseOptimizer):
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
-            elif self._count_reject == 8:
+            elif self._count_reject == 4:
                 if self.verbose > 1:
                     print("reject, resetting jacobian")
                 self.decision_history.append("reject")
@@ -484,8 +527,11 @@ class LM(BaseOptimizer):
                     self.message = self.message + "success"
                     break
                 elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
-                    self.message = self.message + "fail reject 12 in a row"
-                    break
+                    if not self.full_jac:
+                        self.update_J_AD()
+                        self.update_hess()
+                        self.update_grad(self.prev_Y[1])
+                    self.grad_step()
                 elif self.iteration >= self.max_iter:
                     self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
@@ -579,12 +625,14 @@ class LM(BaseOptimizer):
         self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
+        self.full_jac = True
             
     @torch.no_grad()
     def update_J_Broyden(self, h, Yp, Yph):
         self.J = Broyden_step(self.J, h, Yp, Yph)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
+        self.full_jac = False
 
     @torch.no_grad()
     def update_hess(self):
