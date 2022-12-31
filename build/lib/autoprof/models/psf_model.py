@@ -46,7 +46,7 @@ class PSF_Star(Star_Model):
         if self["flux"].uncertainty is None:
             self["flux"].set_uncertainty(torch.abs(self["flux"].value) * 1e-2, override_locked = True)
         
-    def evaluate_model(self, image):# fixme this definitely has bugs
+    def evaluate_model(self, image):
         new_origin = self["center"].value - self.psf_model.shape/2
         pixel_origin = torch.round(new_origin/image.pixelscale)*image.pixelscale
         pixel_shift = (new_origin/image.pixelscale - pixel_origin/image.pixelscale)*image.pixelscale

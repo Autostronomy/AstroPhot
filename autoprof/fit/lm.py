@@ -1,4 +1,5 @@
 # Levenberg-Marquardt algorithm
+import os
 import torch
 import numpy as np
 from time import time
@@ -517,13 +518,12 @@ class LM(BaseOptimizer):
                 else:
                     self.step_method0()
 
-                
+                if self.save_steps is not None and self.decision_history[-1] == "accept":
+                    self.model.save(os.path.join(self.save_steps, f"{self.model.name}_Iteration_{self.iteration:03d}.yaml"))
+
                 lam, L, loss = self.progress_history()
                     
-                if self._count_finish >= 3:
-                    self.message = self.message + "success"
-                    break
-                elif self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
+                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
                     self.message = self.message + "success"
                     break
                 elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
@@ -577,7 +577,8 @@ class LM(BaseOptimizer):
             if self.decision_history[i] == "accept":
                 return False
             if self.rho_history[i] is not None and self.rho_history[i] > 0:
-                print("taking a low rho step for some progress: ", self.rho_history[i])
+                if self.verbose > 0:
+                    print("taking a low rho step for some progress: ", self.rho_history[i])
                 self.current_state = torch.tensor(self.lambda_history[i], dtype = self.model.dtype, device = self.model.device)
                 self.L = self.L_history[i]
                 
@@ -622,6 +623,9 @@ class LM(BaseOptimizer):
         return h
     
     def update_J_AD(self):
+        del self.J
+        if "cpu" not in self.model.device:
+            torch.cuda.empty_cache()
         self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.

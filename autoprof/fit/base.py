@@ -35,7 +35,8 @@ class BaseOptimizer(object):
             print("initial state: ", self.current_state)
         self.max_iter = kwargs.get("max_iter", 100*len(initial_state))
         self.iteration = 0
-
+        self.save_steps = kwargs.get("save_steps", None)
+        
         self.relative_tolerance = relative_tolerance
         self.lambda_history = []
         self.loss_history = []

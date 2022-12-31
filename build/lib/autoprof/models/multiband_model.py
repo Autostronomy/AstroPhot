@@ -69,7 +69,6 @@ class Multiband_Model(Group_Model):
                 sample_image += model.sample()
             else:
                 model.sample(sample_image)
-
         return sample_images
 
     def compute_loss(self, return_sample = False):
@@ -84,9 +83,9 @@ class Multiband_Model(Group_Model):
             else:
                 loss += res
         if return_sample:
-            return res, Model_Image_List(samples, dtype = self.dtype, device = self.device)
+            return loss, Model_Image_List(samples, dtype = self.dtype, device = self.device)
         else:
-            return res
+            return loss
 
     def model_image_shapes(self):
         shapes = []
