@@ -49,7 +49,10 @@ class BaseImage(object):
             self.window = Window(origin = origin, shape = shape, dtype = self.dtype, device = self.device)
         else:
             self.window = window
-            self.pixelscale = self.window.shape[0] / self.data.shape[1]
+            if pixelscale is None:
+                self.pixelscale = self.window.shape[0] / self.data.shape[1]
+            else:
+                self.pixelscale = torch.as_tensor(pixelscale, dtype = self.dtype, device = self.device)
             
     @property
     def origin(self):
@@ -60,6 +63,12 @@ class BaseImage(object):
     @property
     def center(self):
         return self.window.center
+    def center_alignment(self):
+        """Determine if the center of the image is aligned at a pixel center
+        (True) or if it is aligned at a pixel edge (False).
+
+        """
+        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = self.dtype, device = self.device))
 
     @property
     def data(self):
@@ -127,6 +136,18 @@ class BaseImage(object):
         return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
 
     def reduce(self, scale):
+        """This operation will downsample an image by the factor given. If
+        scale = 2 then 2x2 blocks of pixels will be summed together to
+        form individual larger pixels. A new image object will be
+        returned with the appropriate pixelscale and data tensor. Note
+        that the window does not change in this operation since the
+        pixels are condensed, but the pixel size is increased
+        correspondingly.
+
+        Parameters:
+            scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
+
+        """
         assert isinstance(scale, int) or scale.dtype is torch.int32
         if scale == 1:
             return self

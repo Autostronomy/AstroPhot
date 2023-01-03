@@ -14,11 +14,14 @@ class Target_Image(BaseImage):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if kwargs.get("filename", None) is None:
+        if not self.has_variance:
             self.set_variance(kwargs.get("variance", None))
+        if not self.has_mask:
             self.set_mask(kwargs.get("mask", None))
+        if not self.has_psf:
             self.set_psf(kwargs.get("psf", None))
-            self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
+        self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
+                
 
     @property
     def variance(self):
@@ -30,7 +33,10 @@ class Target_Image(BaseImage):
         self.set_variance(variance)
     @property
     def has_variance(self):
-        return self._variance is not None
+        try:
+            return self._variance is not None
+        except AttributeError:
+            return False
     
     @property
     def mask(self):
@@ -42,11 +48,16 @@ class Target_Image(BaseImage):
         self.set_mask(mask)
     @property
     def has_mask(self):
-        return self._mask is not None
+        try:
+            return self._mask is not None
+        except AttributeError:
+            return False
     
     @property
     def psf(self):
-        return self._psf
+        if self.has_psf:
+            return self._psf
+        raise AttributeError("This image does not have a PSF")
     @psf.setter
     def psf(self, psf):
         self.set_psf(psf)
@@ -58,7 +69,10 @@ class Target_Image(BaseImage):
         return self.pixelscale * self.psf_border_int
     @property
     def has_psf(self):
-        return self._psf is not None
+        try:
+            return self._psf is not None
+        except AttributeError:
+            return False
 
     def set_variance(self, variance):
         if variance is None:

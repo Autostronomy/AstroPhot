@@ -14,10 +14,14 @@ class Target_Image(BaseImage):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_variance(kwargs.get("variance", None))
-        self.set_mask(kwargs.get("mask", None))
-        self.set_psf(kwargs.get("psf", None))
+        if not self.has_variance:
+            self.set_variance(kwargs.get("variance", None))
+        if not self.has_mask:
+            self.set_mask(kwargs.get("mask", None))
+        if not self.has_psf:
+            self.set_psf(kwargs.get("psf", None))
         self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = self.device)
+                
 
     @property
     def variance(self):
@@ -29,7 +33,10 @@ class Target_Image(BaseImage):
         self.set_variance(variance)
     @property
     def has_variance(self):
-        return self._variance is not None
+        try:
+            return self._variance is not None
+        except AttributeError:
+            return False
     
     @property
     def mask(self):
@@ -41,23 +48,31 @@ class Target_Image(BaseImage):
         self.set_mask(mask)
     @property
     def has_mask(self):
-        return self._mask is not None
+        try:
+            return self._mask is not None
+        except AttributeError:
+            return False
     
     @property
     def psf(self):
-        return self._psf
+        if self.has_psf:
+            return self._psf
+        raise AttributeError("This image does not have a PSF")
     @psf.setter
     def psf(self, psf):
         self.set_psf(psf)
     @property
-    def psf_border(self):
-        return self.pixelscale * (1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device)/self.psf_upscale, (0,))) / 2
-    @property
     def psf_border_int(self):
-        return ((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device)/self.psf_upscale, (0,))) / 2).int()
+        return torch.ceil((1 + torch.flip(torch.tensor(self.psf.shape, dtype = self.dtype, device = self.device), (0,))/self.psf_upscale) / 2).int()
+    @property
+    def psf_border(self):
+        return self.pixelscale * self.psf_border_int
     @property
     def has_psf(self):
-        return self._psf is not None
+        try:
+            return self._psf is not None
+        except AttributeError:
+            return False
 
     def set_variance(self, variance):
         if variance is None:
@@ -79,7 +94,7 @@ class Target_Image(BaseImage):
             return
         assert mask.shape == self.data.shape, "mask must have same shape as data"
         self._mask = mask.to(dtype = torch.bool, device = self.device) if isinstance(mask, torch.Tensor) else torch.as_tensor(mask, dtype = torch.bool, device = self.device)
-
+        
     def to(self, dtype = None, device = None):
         super().to(dtype = dtype, device = device)
         if self.has_variance:
@@ -149,6 +164,7 @@ class Target_Image(BaseImage):
         if self.has_psf:
             PMS = self.psf.shape[0] // scale
             PNS = self.psf.shape[1] // scale
+
         return self.__class__(
             data = self.data[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
             device = self.device,
@@ -177,7 +193,7 @@ class Target_Image(BaseImage):
         if self._mask is not None:
             mask_header = fits.Header()
             mask_header["IMAGE"] = "MASK"
-            image_list.append(fits.ImageHDU(self._mask.detach().cpu().numpy(), header = mask_header))
+            image_list.append(fits.ImageHDU(self._mask.detach().cpu().numpy().astype(int), header = mask_header))
         return image_list
 
     def load(self, filename):
