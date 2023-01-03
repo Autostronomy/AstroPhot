@@ -82,6 +82,7 @@ class Window(object):
 
     def shift_origin(self, shift):
         self.origin += shift
+        return self
 
     def get_state(self):
         state = {
@@ -213,4 +214,4 @@ class Window(object):
         return self
         
     def __str__(self):
-        return f"window origin: {list(self.origin)}, shape: {list(self.shape)}, center: {list(self.center)}"
+        return f"window origin: {list(self.origin.detach().cpu().numpy())}, shape: {list(self.shape.detach().cpu().numpy())}, center: {list(self.center.detach().cpu().numpy())}"
