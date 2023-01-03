@@ -166,7 +166,7 @@ class BaseModel(AutoProf_Model):
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            self.integrate_model(working_image, self.integrate_window, self.integrate_recursion_depth)
+            self.integrate_model(working_image, self.integrate_window.shift_origin(center_shift), self.integrate_recursion_depth)
             # Convolve the PSF
             working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
             # Shift image back to align with original pixel grid
@@ -205,13 +205,11 @@ class BaseModel(AutoProf_Model):
                 return
         except AssertionError:
             return
-        
+
         # Only need to evaluate integration within working image
         working_window = window & working_image.window
-            
         # Determine the upsampled pixelscale 
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
-
         # Build an image to hold the integration data
         integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
         # Evaluate the model at the fine sampling points
@@ -220,11 +218,11 @@ class BaseModel(AutoProf_Model):
         # If needed, recursively evaluates smaller windows
         recursive_shape = window.shape/integrate_pixelscale # get the number of pixels across the integrate window
         recursive_shape = (recursive_shape/self.integrate_recursion_factor).int() # divide window by recursion factor, ensure integer result
-        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2)) * integrate_pixelscale # ensure odd number of pixels in shape
+        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2) + 1 - ((integrate_image.window.shape/integrate_image.pixelscale) % 2)) * integrate_pixelscale # ensure shape pairity is matched during recursion # fixme more generally test for center alignment in/on pixel edges
         self.integrate_model(
             integrate_image,
             Window(
-                center = (0.5 + torch.round(self["center"].value/integrate_pixelscale - 0.5))*integrate_pixelscale,
+                center = window.center,
                 shape = recursive_shape,
                 dtype = self.dtype,
                 device = self.device,
