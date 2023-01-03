@@ -63,6 +63,12 @@ class BaseImage(object):
     @property
     def center(self):
         return self.window.center
+    def center_alignment(self):
+        """Determine if the center of the image is aligned at a pixel center
+        (True) or if it is aligned at a pixel edge (False).
+
+        """
+        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = self.dtype, device = self.device))
 
     @property
     def data(self):
