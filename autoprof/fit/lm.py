@@ -569,7 +569,6 @@ class LM(BaseOptimizer):
                 continue
             self.current_state = torch.tensor(self.lambda_history[i], dtype = self.model.dtype, device = self.model.device)
             self.L = self.L_history[i] * self.Lup
-
     
     def take_low_rho_step(self):
         
