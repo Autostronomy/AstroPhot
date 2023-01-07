@@ -335,14 +335,49 @@ class Image_List(BaseImage):
             device = self.device,
             dtype = self.dtype,
         )
+    
     def __sub__(self, other):
-        raise NotImplementedError()
+        new_image_list = []
+        if isinstance(other, Image_List):
+            for self_image, other_image in zip(self.image_list, other.image_list):
+                new_image_list.append(self_image - other_image)
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                new_image_list.append(self_image - other_image)
+        return self.__class__(
+            image_list = new_img,
+            device = self.device,
+            dtype = self.dtype,
+        )
     def __add__(self, other):
-        raise NotImplementedError()
+        new_image_list = []
+        if isinstance(other, Image_List):
+            for self_image, other_image in zip(self.image_list, other.image_list):
+                new_image_list.append(self_image + other_image)
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                new_image_list.append(self_image + other_image)
+        return self.__class__(
+            image_list = new_img,
+            device = self.device,
+            dtype = self.dtype,
+        )
     def __isub__(self, other):
-        raise NotImplementedError()
+        if isinstance(other, Image_List):
+            for self_image, other_image in zip(self.image_list, other.image_list):
+                self_image -= other_image
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                self_image -= other_image
+        return self
     def __iadd__(self, other):
-        raise NotImplementedError()
+        if isinstance(other, Image_List):
+            for self_image, other_image in zip(self.image_list, other.image_list):
+                self_image += other_image
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                self_image += other_image
+        return self
     
     def __str__(self):
         return f"image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
