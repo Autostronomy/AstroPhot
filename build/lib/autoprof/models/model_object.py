@@ -42,7 +42,7 @@ class BaseModel(AutoProf_Model):
     integrate_factor = 3 # number of pixels on one axis by which to supersample
     integrate_recursion_factor = 2 # relative size of windows between recursion levels (2 means each window will be half the size of the previous one)
     integrate_recursion_depth = 2 # number of recursion cycles to apply when integrating
-    jacobian_mode = "full" # method to compute jacobian. "full" means full jacobian for all parameters at once (faster), "single" means one parameter at a time (less memory), "fragment"
+    jacobian_mode = "full" # method to compute jacobian. "full" means full jacobian for all parameters at once (faster), "single" means one parameter at a time (less memory), "finite" means to use finite difference (minimum memory)
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
@@ -233,6 +233,20 @@ class BaseModel(AutoProf_Model):
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
 
+    @torch.no_grad()
+    def jacobian_finite(self, parameters = None, as_representation = False, override_locked = False):
+        """Compute the jacobian using regular finite differences. This uses
+        none of the automatic differentiation available in pytorch and
+        so is a bit slower and less precise. However, the memory
+        footprint required is the absolute minimum for finite
+        differences.
+
+        """
+        if parameters is not None:
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
+        # fill out finite diff jacobian
+        raise NotImplementedError("Finite differences jacobian not yet ready, but will be soon")
+    
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
@@ -275,7 +289,13 @@ class BaseModel(AutoProf_Model):
                     ).reshape(*tuple(self.window.get_shape_flip(self.target.pixelscale)), V)
                 )
                 start += V
-                full_jac = torch.cat(sub_jacs,dim = 2)
+            full_jac = torch.cat(sub_jacs,dim = 2)
+        elif self.jacobian_mode == "finite":
+            full_jac = self.jacobian_finite(
+                parameters = parameters,
+                as_representation = as_representation,
+                override_locked = override_locked,
+            )
         else:
             raise ValueError(f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}")    
             

@@ -48,13 +48,27 @@ class Warp_Galaxy(Galaxy_Model):
         # create the PA(R) and q(R) profile radii if needed
         for prof_param in ["PA(R)", "q(R)"]:
             if self[prof_param].prof is None:
-                new_prof = [0,2*target.pixelscale]
-                while new_prof[-1] < torch.min(self.window.shape/2):
-                    new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
-                new_prof.pop()
-                new_prof.pop()
-                new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
-                self[prof_param].set_profile(new_prof)
+                if self[prof_param].value is None: # from scratch
+                    new_prof = [0,2*target.pixelscale]
+                    while new_prof[-1] < torch.min(self.window.shape/2):
+                        new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
+                    new_prof.pop()
+                    new_prof.pop()
+                    new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
+                    self[prof_param].set_profile(new_prof)
+                else: # matching length of a provided profile
+                    # create logarithmically spaced profile radii
+                    new_prof = [0] + list(np.logspace(
+                        np.log10(2*target.pixelscale),
+                        np.log10(torch.max(self.window.shape/2).item()),
+                        len(self[prof_param].value) - 1,
+                    ))
+                    # ensure no step is smaller than a pixelscale
+                    for i in range(1,len(new_prof)):
+                        if new_prof[i] - new_prof[i-1] < target.pixelscale.item():
+                            new_prof[i] = new_prof[i-1] + target.pixelscale.item()
+                    self[prof_param].set_profile(new_prof)
+                    
                 
         if not (self["PA(R)"].value is None or self["q(R)"].value is None):
             return

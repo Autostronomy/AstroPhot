@@ -190,8 +190,24 @@ def nonparametric_initialize(self, target = None):
         target = self.target
     super(self.__class__, self).initialize(target)
 
+    if self["I(R)"].value is not None:
+        # Create the I(R) profile radii to match the input profile intensity values
+        if self["I(R)"].prof is None:
+            # create logarithmically spaced profile radii
+            new_prof = [0] + list(np.logspace(
+                np.log10(2*target.pixelscale),
+                np.log10(torch.max(self.window.shape/2).item()),
+                len(self["I(R)"].value) - 1,
+            ))
+            # ensure no step is smaller than a pixelscale
+            for i in range(1,len(new_prof)):
+                if new_prof[i] - new_prof[i-1] < target.pixelscale.item():
+                    new_prof[i] = new_prof[i-1] + target.pixelscale.item()
+            self["I(R)"].set_profile(new_prof)
+        return
+    
     # Create the I(R) profile radii if needed
-    if self["I(R)"].prof is None and "I(R)" not in self.equality_constraints:
+    if self["I(R)"].prof is None:
         new_prof = [0,2*target.pixelscale]
         while new_prof[-1] < torch.min(self.window.shape/2):
             new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
@@ -200,9 +216,6 @@ def nonparametric_initialize(self, target = None):
         new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
         self["I(R)"].set_profile(new_prof)
         
-    if self["I(R)"].value is not None:
-        return
-    
     profR = self["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
