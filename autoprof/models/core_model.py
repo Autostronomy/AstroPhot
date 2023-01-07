@@ -222,7 +222,7 @@ class AutoProf_Model(object):
             )
         elif len(window) == 4:
             self._window = Window(
-                origin = self.target.origin + torch.tensor((window[0],window[2]), dtype = self.dtype, device = self.device),
+                origin = torch.tensor((window[0],window[2]), dtype = self.dtype, device = self.device),
                 shape = torch.tensor((window[1] - window[0], window[3] - window[2]), dtype = self.dtype, device = self.device),
                 dtype = self.dtype,
                 device = self.device,

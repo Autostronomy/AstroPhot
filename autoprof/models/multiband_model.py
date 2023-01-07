@@ -88,11 +88,11 @@ class Multiband_Model(Group_Model):
         else:
             sample_window = False
 
-        for model, sample_image in zip(self.model_list, sample_image):
+        for model, sub_image in zip(self.model_list, sample_image):
             if sample_window:
-                sample_image += model.sample()
+                sub_image += model.sample()
             else:
-                model.sample(sample_image)
+                model.sample(sub_image)
         return sample_image
 
     def compute_loss(self, return_sample = False):
