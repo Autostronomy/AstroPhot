@@ -16,20 +16,35 @@ class Multiband_Model(Group_Model):
     model list. Similarly, the model image that is output from
     sampling the multiband model is a Model_Image_List object which
     stores a pointer to the model image output from each of the
-    individual models.
+    individual models. At a high level, the multiband model operates
+    like a group model object and in most cases shouldn't be
+    operationally different.
 
     """
 
     model_type = f"multiband {Group_Model.model_type}"
 
     def sync_target(self):
+        """Ensure that the target list object held by the multiband model
+        matches the targets of the individual models that it holds.
+
+        """
         for model, target in zip(self.model_list, self.target):
             model.target = target
         
     def make_model_image(self):
+        """Makes a blank Model_Image_List object, typically for the purposes
+        of sampling this model image will be filled by the individual
+        sub models.
+
+        """
         return Model_Image_List(list(model.make_model_image() for model in self.model_list), dtype = self.dtype, device = self.device)
 
     def _build_target_List(self):
+        """Construct a Target_Image_List object from the targets already held
+        by the individual sub models.
+
+        """
         return Target_Image_List(list(model.target for model in self.model_list), dtype = self.dtype, device = self.device)
     
     @property 
@@ -45,34 +60,45 @@ class Multiband_Model(Group_Model):
         if tar is None:
             self._target = None
             return
-        assert isinstance(tar, Target_Image_List)
+        assert isinstance(tar, Target_Image_List), f"multiband model object needs Target_Image_List object, not {type(tar)}"
         self._target = tar.to(dtype = self.dtype, device = self.device)
 
     @torch.no_grad()
     def initialize(self, targets = None):
+        """Initialize the models, ensure that all parameters have valid
+        values and any other ancilliary requirements are met before
+        sampling/fitting the sub models.
+
+        """
         if targets is None:
             targets = self.target
 
         for model, target in zip(self.model_list, targets):
             model.initialize(target)
 
-    def sample(self, sample_images = None):
+    def sample(self, sample_image = None):
+        """Fill the sample image object (a Model_Image_List) with samples
+        from the various sub models. This is the method by which the
+        model creates an image.
 
-        if sample_images is None:
+        """
+        if sample_image is None:
             sample_window = True
-            sample_images = self.make_model_image() 
+            sample_image = self.make_model_image() 
         else:
             sample_window = False
 
-        for model, sample_image in zip(self.model_list, sample_images):
+        for model, sub_image in zip(self.model_list, sample_image):
             if sample_window:
-                sample_image += model.sample()
+                sub_image += model.sample()
             else:
-                model.sample(sample_image)
-        return sample_images
+                model.sample(sub_image)
+        return sample_image
 
     def compute_loss(self, return_sample = False):
+        """Compute the Chi^2 for the multiband model.
 
+        """
         loss = 0
         samples = []
         for model in self.model_list:
@@ -88,17 +114,29 @@ class Multiband_Model(Group_Model):
             return loss
 
     def model_image_shapes(self):
+        """Return the shape of all the sub model image windows.
+
+        """
         shapes = []
         for model in self.model_list:
             shapes.append(model.window.get_shape_flip(model.target.pixelscale).detach().cpu().numpy())
         return np.array(shapes, dtype = int)
     def model_image_sizes(self):
+        """Return the size of all the sub model image windows.
+
+        """
         sizes = []
         for shape in self.model_image_shapes():
             sizes.append(int(np.prod(shape)))
         return np.array(sizes, dtype = int)
         
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        """Compute the jacobian for the full multiband model object. Unless
+        flatten is True, the jacobian will have the same shape as the
+        individual images for the multiple bands plus an extra
+        dimension which holds the values for each parameter.
+
+        """
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
         sub_jacs = []

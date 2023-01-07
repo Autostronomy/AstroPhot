@@ -222,7 +222,7 @@ class AutoProf_Model(object):
             )
         elif len(window) == 4:
             self._window = Window(
-                origin = self.target.origin + torch.tensor((window[0],window[2]), dtype = self.dtype, device = self.device),
+                origin = torch.tensor((window[0],window[2]), dtype = self.dtype, device = self.device),
                 shape = torch.tensor((window[1] - window[0], window[3] - window[2]), dtype = self.dtype, device = self.device),
                 dtype = self.dtype,
                 device = self.device,
@@ -242,10 +242,10 @@ class AutoProf_Model(object):
     def target(self):
         try:
             if self._target is None:
-                return Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
+                raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
             return self._target
         except AttributeError:
-            return Target_Image(data = torch.zeros((100,100), dtype = self.dtype, device = self.device), pixelscale = 1., dtype = self.dtype, device = self.device)
+            raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
     @target.setter
     def target(self, tar):
         if tar is None:
