@@ -17,8 +17,9 @@ class Model_Image(BaseImage):
     def __init__(self, pixelscale = None, data = None, window = None, **kwargs):
         assert not (data is None and window is None)
         if data is None:
-            data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = kwargs.get("dtype", torch.float64), device = kwargs.get("device", "cpu"))
+            data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = kwargs.get("dtype", torch.float64), device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu"))
         super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
+        self.to()
         
     def clear_image(self):
         self.data = torch.zeros_like(self.data)
