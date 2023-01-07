@@ -31,12 +31,19 @@ class Group_Model(AutoProf_Model):
         self.model_list = []
         if model_list is not None:
             self.add_model(model_list)
-        self._psf_mode = None
+        self._psf_mode = "none"
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
             
     def add_model(self, model):
+        """Adds a new model to the groupmodel list. Ensures that the same
+        model isn't added a second time.
+
+        Parameters:
+            model: a model object to add to the model list.
+
+        """
         if isinstance(model, (tuple, list)):
             for mod in model:
                 self.add_model(mod)
@@ -48,7 +55,30 @@ class Group_Model(AutoProf_Model):
         self.model_list.append(model)
         self.update_window()
 
+    def pop_model(self, model):
+        """Removes the specified model from the groupmodel list. Returns the
+        model object if it is found.
+
+        """
+        if isinstance(model, (tuple, list)):
+            for mod in model:
+                self.remove_model(mod)
+            return
+        if isinstance(model, str):
+            for sub_model in self.model_list:
+                if sub_model.name == model:
+                    model = sub_model
+                    break
+            else:
+                raise KeyError(f"Could not find {model} in {self.name} model list")
+
+        return self.model_list.pop(self.model_list.index(model))
+
     def update_window(self, include_locked = False):
+        """Makes a new window object which encloses all the windows of the
+        sub models in this groupmodel object.
+
+        """
         new_window = None
         for model in self.model_list:
             if model.locked and not include_locked:
@@ -119,6 +149,11 @@ class Group_Model(AutoProf_Model):
             target_copy -= model.sample()
             
     def finalize(self):
+        """To be called after optimization. This disables any optimization
+        specific properties that may be active for the collection of
+        sub models.
+
+        """
         for model in self.model_list:
             model.finalize()
         
@@ -193,6 +228,10 @@ class Group_Model(AutoProf_Model):
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 
     def sync_target(self):
+        """Ensure that the target object held by the group model matches the
+        targets of the individual models that it holds.
+
+        """
         if self._target is None:
             self.target = self.model_list[0].target
         for model in self.model_list:
@@ -209,6 +248,10 @@ class Group_Model(AutoProf_Model):
             model.psf_mode = value
     
     def get_state(self):
+        """Returns a dictionary with information about the state of the model
+        and its parameters.
+
+        """
         state = super().get_state()
         if "models" not in state:
             state["models"] = {}
@@ -217,6 +260,10 @@ class Group_Model(AutoProf_Model):
         return state
 
     def load(self, filename = "AutoProf.yaml"):
+        """Loads an AutoProf state file and updates this model with the
+        loaded parameters.
+
+        """
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
         for model in state["models"]:
