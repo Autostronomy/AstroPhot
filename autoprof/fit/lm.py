@@ -98,7 +98,8 @@ class LM(BaseOptimizer):
     @torch.no_grad()
     def grad_step(self):
         L = 0.1
-
+        if self.verbose > 1:
+            print("taking grad step. Loss to beat: ", np.nanmin(self.loss_history[:-1]))
         for count in range(20):
             Y = self.model.full_sample(self.current_state + self.grad*L, as_representation = True, override_locked = False, flatten = True)
             if self.model.target.has_mask:
@@ -112,7 +113,7 @@ class LM(BaseOptimizer):
                 print("grad step loss", loss.item(), "L", L)
             if np.nanmin(self.loss_history[:-1]) > loss.item():
                 self.loss_history.append(loss.detach().cpu().item())
-                self.L_up() 
+                self.L = 1.
                 self.L_history.append(self.L)
                 self.current_state += self.grad*L
                 self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
@@ -125,7 +126,7 @@ class LM(BaseOptimizer):
                 break
             elif np.abs(np.nanmin(self.loss_history[:-1]) - loss.item()) < (self.relative_tolerance * 1e-4) and L < 1e-5:
                 self.loss_history.append(loss.detach().cpu().item())
-                self.L_up()
+                self.L = 1.
                 self.L_history.append(self.L)
                 self.current_state += self.grad*L
                 self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
@@ -541,18 +542,18 @@ class LM(BaseOptimizer):
                 if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
                     self.message = self.message + "success"
                     break
-                elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
-                    if not self.full_jac:
-                        self.update_J_AD()
-                        self.update_hess()
-                        self.update_grad(self.prev_Y[1])
-                    self.grad_step()
                 elif self.iteration >= self.max_iter:
                     self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
                 elif not torch.all(torch.isfinite(self.current_state)):
                     self.message = self.message + "fail non-finite step taken"
                     break
+                elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
+                    if not self.full_jac:
+                        self.update_J_AD()
+                        self.update_hess()
+                        self.update_grad(self.prev_Y[1])
+                    self.grad_step()
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
