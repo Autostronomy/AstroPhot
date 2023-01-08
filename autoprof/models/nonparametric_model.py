@@ -37,6 +37,7 @@ class NonParametric_Galaxy(Galaxy_Model):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
@@ -62,6 +63,7 @@ class NonParametric_Star(Star_Model):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Star_Model._parameter_order + ("I(R)",)
+    extend_profile = True
     
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
@@ -87,6 +89,7 @@ class NonParametric_Warp(Warp_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
@@ -114,6 +117,7 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
@@ -138,6 +142,7 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
@@ -163,6 +168,7 @@ class NonParametric_Ray(Ray_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
@@ -188,6 +194,7 @@ class NonParametric_Wedge(Wedge_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
     from ._shared_methods import nonparametric_iradial_model as iradial_model
@@ -214,6 +221,7 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
@@ -238,6 +246,7 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("I(R)",)
+    extend_profile = True
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model

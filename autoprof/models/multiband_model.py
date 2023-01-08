@@ -1,5 +1,5 @@
 from .group_model_object import Group_Model
-from ..image import Model_Image_List, Target_Image_List
+from ..image import Model_Image_List, Target_Image_List, Window_List
 from copy import deepcopy
 import torch
 import numpy as np
@@ -22,13 +22,14 @@ class Multiband_Model(Group_Model):
 
     """
 
-    model_type = f"multiband {Group_Model.model_type}"
+    model_type = f"multiband"
 
     def sync_target(self):
         """Ensure that the target list object held by the multiband model
         matches the targets of the individual models that it holds.
 
         """
+        
         for model, target in zip(self.model_list, self.target):
             model.target = target
         
@@ -46,6 +47,13 @@ class Multiband_Model(Group_Model):
 
         """
         return Target_Image_List(list(model.target for model in self.model_list), dtype = self.dtype, device = self.device)
+    
+    @property
+    def window(self):
+        return Window_List(list(model.window for model in self.model_list), dtype = self.dtype, device = self.device)
+    @window.setter
+    def window(self, win):
+        pass
     
     @property 
     def target(self):
