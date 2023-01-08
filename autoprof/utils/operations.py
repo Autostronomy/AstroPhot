@@ -9,9 +9,11 @@ def fft_convolve_torch(img, psf, psf_fft = False, img_prepadded = False):
     psf = torch.as_tensor(psf)
     
     if img_prepadded:
-        s = list(int(2**(np.ceil(np.log2(d)))) for d in img.size())
+        s = list(int(d) for d in img.size())
+        # s = list(int(2**(np.ceil(np.log2(d)))) for d in img.size())
     else:
-        s = list(int(2**(np.ceil(np.log2(d + (p+1)/2)))) for d, p in zip(img.size(), psf.size()))
+        s = list(int(d + (p+1)/2) for d, p in zip(img.size(), psf.size()))
+        # s = list(int(2**(np.ceil(np.log2(d + (p+1)/2)))) for d, p in zip(img.size(), psf.size()))
         
     img_f = torch.fft.rfft2(img, s = s)
     if not psf_fft:

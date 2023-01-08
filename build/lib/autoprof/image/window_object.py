@@ -17,6 +17,8 @@ class Window(object):
         elif origin is None:
             self.shape = torch.as_tensor(shape, dtype = self.dtype, device = self.device)
             self.origin = torch.as_tensor(center, dtype = self.dtype, device = self.device) - self.shape/2
+        else:
+            raise Exception("One of center or origin must be provided to create window")
         assert torch.all(self.shape > 0)
         
     @property
