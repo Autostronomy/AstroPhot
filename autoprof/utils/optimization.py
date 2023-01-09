@@ -1,4 +1,5 @@
 import torch
+from .. import AP_config
 
 def chi_squared(target, model, mask = None, variance = None):
     if mask is None:
@@ -15,7 +16,7 @@ def chi_squared(target, model, mask = None, variance = None):
 
 def reduced_chi_squared(target, model, params, mask = None, variance = None):
     if mask is None:
-        ndf = torch.prod(torch.tensor(target.shape, dtype = target.dtype, device = target.device)) - params
+        ndf = torch.prod(torch.tensor(target.shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device)) - params
     else:
         ndf = torch.sum(torch.logical_not(mask)) - params
     return chi_squared(target, model, mask, variance) / ndf

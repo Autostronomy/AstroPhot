@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from time import time
 from .base import BaseOptimizer
+from .. import AP_config
 
 __all__ = ["LM"]
 
@@ -569,7 +570,7 @@ class LM(BaseOptimizer):
 
         if "fail" in self.message and self._count_finish > 0:
             self.message = self.message + ". likely converged to numerical precision and could not make a better step, this is probably ok."
-        self.model.set_parameters(torch.tensor(self.res(), dtype = self.model.dtype, device = self.model.device), as_representation = True, override_locked = False)
+        self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
         self.model.finalize()
 
         # set the uncertainty for each parameter
@@ -593,7 +594,7 @@ class LM(BaseOptimizer):
                 continue
             if self.decision_history[i] != "accept":
                 continue
-            self.current_state = torch.tensor(self.lambda_history[i], dtype = self.model.dtype, device = self.model.device)
+            self.current_state = torch.tensor(self.lambda_history[i], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             self.L = self.L_history[i] * self.Lup
     
     def take_low_rho_step(self):
@@ -604,7 +605,7 @@ class LM(BaseOptimizer):
             if self.rho_history[i] is not None and self.rho_history[i] > 0:
                 if self.verbose > 0:
                     print("taking a low rho step for some progress: ", self.rho_history[i])
-                self.current_state = torch.tensor(self.lambda_history[i], dtype = self.model.dtype, device = self.model.device)
+                self.current_state = torch.tensor(self.lambda_history[i], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
                 self.L = self.L_history[i]
                 
                 self.loss_history.append(self.loss_history[i])
@@ -628,7 +629,7 @@ class LM(BaseOptimizer):
     def update_h_v1(self):
         if self.iteration == 0:
             return torch.zeros_like(self.current_state)
-        return torch.linalg.solve(self.hess + self.L*torch.eye(len(self.current_state), dtype = self.model.dtype, device = self.model.device), self.grad)
+        return torch.linalg.solve(self.hess + self.L*torch.eye(len(self.current_state), dtype = AP_config.ap_dtype, device = AP_config.ap_device), self.grad)
     @torch.no_grad()
     def update_h_v2(self):
 
@@ -636,7 +637,7 @@ class LM(BaseOptimizer):
         h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
-        h = torch.linalg.solve(self.hess * (1 + self.L*torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)), self.grad)
+        h = torch.linalg.solve(self.hess * (1 + self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)), self.grad)
         return h
     
     @torch.no_grad()
@@ -644,12 +645,12 @@ class LM(BaseOptimizer):
         h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
-        h = torch.linalg.solve((self.hess + 1e-3*self.L*torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)) * (1 + self.L*torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device))**2/(1 + self.L), self.grad)
+        h = torch.linalg.solve((self.hess + 1e-3*self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)) * (1 + self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device))**2/(1 + self.L), self.grad)
         return h
     
     def update_J_AD(self):
         del self.J
-        if "cpu" not in self.model.device:
+        if "cpu" not in AP_config.ap_device:
             torch.cuda.empty_cache()
         self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
         if self.model.target.has_mask:
@@ -669,7 +670,7 @@ class LM(BaseOptimizer):
             self.hess = torch.matmul(self.J.T, self.J)
         else:
             self.hess = torch.matmul(self.J.T, self.W.view(len(self.W),-1)*self.J)
-        self.hess += self.epsilon5 * torch.eye(len(self.current_state), dtype = self.model.dtype, device = self.model.device)
+        self.hess += self.epsilon5 * torch.eye(len(self.current_state), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             
     @torch.no_grad()
     def covariance_matrix(self):
@@ -677,7 +678,7 @@ class LM(BaseOptimizer):
             return torch.linalg.inv(self.hess)
         except:
             print("WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.")
-            self.hess += torch.eye(len(self.grad), dtype = self.model.dtype, device = self.model.device)*(torch.diag(self.hess) == 0)
+            self.hess += torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*(torch.diag(self.hess) == 0)
             return torch.linalg.inv(self.hess)
             
     @torch.no_grad()

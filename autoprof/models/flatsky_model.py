@@ -38,4 +38,4 @@ class Flat_Sky(Sky_Model):
 
     def evaluate_model(self, image):
         
-        return torch.ones(image.data.shape, dtype = self.dtype, device = self.device) * ((10**self["sky"].value) * image.pixelscale**2)
+        return torch.ones_like(image.data) * ((10**self["sky"].value) * image.pixelscale**2)

@@ -21,7 +21,7 @@ def integrate_window(self, fix_to = "center"):
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
     )
-    return Window(center = use_center, shape = use_shape, dtype = self.dtype, device = self.device)
+    return Window(center = use_center, shape = use_shape)
 
 @classmethod
 def build_parameter_specs(cls, user_specs = None):
@@ -55,9 +55,9 @@ def build_parameters(self):
             continue
         # If a parameter object is provided, simply use as-is
         if isinstance(self.parameter_specs[p], Parameter):
-            self.parameters[p] = self.parameter_specs[p].to(dtype = self.dtype, device = self.device)
+            self.parameters[p] = self.parameter_specs[p].to()
         elif isinstance(self.parameter_specs[p], dict):
-            self.parameters[p] = Parameter(p, dtype = self.dtype, device = self.device, **self.parameter_specs[p])
+            self.parameters[p] = Parameter(p, **self.parameter_specs[p])
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
 

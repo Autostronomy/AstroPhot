@@ -100,7 +100,7 @@ class Iter(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
             
-        self.model.set_parameters(torch.tensor(self.res(), dtype = self.model.dtype, device = self.model.device), as_representation = True, override_locked = False)
+        self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
         self.model.finalize()
             
         return self

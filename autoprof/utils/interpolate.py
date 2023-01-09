@@ -147,13 +147,13 @@ def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     # plt.show()
     return LL
 
-def shift_Lanczos_torch(I, dx, dy, scale, dtype, device):
+def shift_Lanczos_torch(I, dx, dy, scale, dtype, device, img_prepadded = True):
     """Apply Lanczos interpolation to shift by less than a pixel in x and
     y.
 
     """
     LL = _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device)
-    ret = fft_convolve_torch(I, LL, img_prepadded = True)
+    ret = fft_convolve_torch(I, LL, img_prepadded = img_prepadded)
     return ret
 
 def shift_Lanczos_np(I, dx, dy, scale):

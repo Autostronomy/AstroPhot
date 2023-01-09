@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from ..utils.conversions.optimization import boundaries, inv_boundaries, d_boundaries_dval, d_inv_boundaries_dval, cyclic_boundaries
-
+from .. import AP_config
 __all__ = ["Parameter"]
 
 class Parameter(object):
@@ -30,15 +30,11 @@ class Parameter(object):
         cyclic: boolean indicating if the parameter is cyclically defined. Note that cyclic parameters must specify limits [bool]
         locked: boolean indicating if the parameter should have a fixed value [bool]
         units: units for the value of the parameter. [str]
-        dtype: the data type for the value and representation [torch.dtype object]
-        device: the computational device with which to associate the parameter, either CPU or the GPU [str: "cpu" or name of GPU typically "cuda:0"]
     """
     
     def __init__(self, name, value = None, **kwargs):
         self.name = name
         
-        self.dtype = kwargs.get("dtype", torch.float64)
-        self.device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu")
         self._representation = None
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
@@ -51,7 +47,7 @@ class Parameter(object):
         self.uncertainty = kwargs.get("uncertainty", None)
         self.prof = None
         self.set_profile(kwargs.get("prof", None))
-        self.to(dtype = self.dtype, device = self.device)
+        self.to()
        
     @property
     def representation(self):
@@ -141,15 +137,15 @@ class Parameter(object):
         updates the datatype or device of this parameter
         """
         if dtype is not None:
-            self.dtype = dtype
+            dtype = AP_config.ap_dtype
         if device is not None:
-            self.device = device
+            device = AP_config.ap_device
         if self._representation is not None:
-            self._representation = self._representation.to(dtype = self.dtype, device = self.device)
+            self._representation = self._representation.to(dtype = dtype, device = device)
         if self._uncertainty is not None:
-            self._uncertainty = self._uncertainty.to(dtype = self.dtype, device = self.device)
+            self._uncertainty = self._uncertainty.to(dtype = dtype, device = device)
         if self.prof is not None:
-            self.prof = self.prof.to(dtype = self.dtype, device = self.device)
+            self.prof = self.prof.to(dtype = dtype, device = device)
         return self
     
     def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False):
@@ -162,7 +158,7 @@ class Parameter(object):
         if uncertainty is None:
             self._uncertainty = None
             return
-        uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
+        uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         if torch.any(uncertainty < 0):
             raise ValueError(f"{self.name} Uncertainty should be a positive real value, not {uncertainty}")
         if as_representation and not self.cyclic and self.limits is not None:
@@ -185,7 +181,7 @@ class Parameter(object):
         elif self.limits is None:
             self.set_representation(val, override_locked = override_locked, index = index)
         else:
-            val = torch.as_tensor(val, dtype = self.dtype, device = self.device)
+            val = torch.as_tensor(val, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             if self.limits[0] is None:
                 val = torch.clamp(val, max = self.limits[1] - 1e-3)
             elif self.limits[1] is None:
@@ -205,7 +201,7 @@ class Parameter(object):
         if rep is None:
             self._representation = None
         elif index is None:
-            self._representation = rep.to(dtype = self.dtype, device = self.device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = self.dtype, device = self.device)
+            self._representation = rep.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         else:
             self._representation[index] = rep
         
@@ -240,7 +236,7 @@ class Parameter(object):
         if prof is None:
             self.prof = None
             return
-        self.prof = torch.as_tensor(prof, dtype = self.dtype, device = self.device)
+        self.prof = torch.as_tensor(prof, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             
     def update_state(self, state):
         """Update the state of the parameter given a state variable whcih

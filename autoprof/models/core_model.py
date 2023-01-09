@@ -9,6 +9,7 @@ from ..image import Model_Image, Window, Target_Image
 from .parameter_object import Parameter
 from copy import copy
 from time import time
+from .. import AP_config
 __all__ = ["AutoProf_Model"]
 
 def all_subclasses(cls):
@@ -33,9 +34,6 @@ class AutoProf_Model(object):
     """
 
     model_type = ""
-
-    dtype = torch.float64
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
     constraint_strength = 10.
     
     def __new__(cls, *args, filename = None, model_type = None, **kwargs):
@@ -89,8 +87,6 @@ class AutoProf_Model(object):
         return Model_Image(
             window = self.window,
             pixelscale = self.target.pixelscale,
-            dtype = self.dtype,
-            device = self.device,
         )
         
     def finalize(self):
@@ -148,7 +144,7 @@ class AutoProf_Model(object):
                 else:
                     self[P].value = parameters[P]
             return
-        parameters = torch.as_tensor(parameters, dtype = self.dtype, device = self.device)
+        parameters = torch.as_tensor(parameters, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         start = 0
         for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
             if parameters_identity is None or P in parameters_identity:
@@ -169,7 +165,7 @@ class AutoProf_Model(object):
                     as_representation = as_representation
                 )
             return
-        uncertainty = torch.as_tensor(uncertainty, dtype = self.dtype, device = self.device)
+        uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         start = 0
         for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
             self[P].set_uncertainty(
@@ -204,7 +200,7 @@ class AutoProf_Model(object):
             return self._window
         except AttributeError:
             return self.target.window.make_copy()
-        
+
     def set_window(self, window):
         # If no window given, dont go any further
         if window is None:
@@ -215,17 +211,13 @@ class AutoProf_Model(object):
             self._window = window
         elif len(window) == 2:
             self._window = Window(
-                origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
-                shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = self.dtype, device = self.device)*self.target.pixelscale,
-                dtype = self.dtype,
-                device = self.device,
+                origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*self.target.pixelscale,
+                shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*self.target.pixelscale,
             )
         elif len(window) == 4:
             self._window = Window(
-                origin = torch.tensor((window[0],window[2]), dtype = self.dtype, device = self.device),
-                shape = torch.tensor((window[1] - window[0], window[3] - window[2]), dtype = self.dtype, device = self.device),
-                dtype = self.dtype,
-                device = self.device,
+                origin = torch.tensor((window[0],window[2]), dtype = AP_config.ap_dtype, device = AP_config.ap_device),
+                shape = torch.tensor((window[1] - window[0], window[3] - window[2]), dtype = AP_config.ap_dtype, device = AP_config.ap_device),
             )
         else:
             raise ValueError(f"Unrecognized window format: {str(window)}")
@@ -234,9 +226,6 @@ class AutoProf_Model(object):
     def window(self, window):
         self._window = window
         self.set_window(window)
-        if window is None:
-            return
-        self._window.to(dtype = self.dtype, device = self.device)
 
     @property 
     def target(self):
@@ -248,12 +237,9 @@ class AutoProf_Model(object):
             raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
     @target.setter
     def target(self, tar):
-        if tar is None:
-            self._target = None
-            return
-        assert isinstance(tar, Target_Image)
-        self._target = tar.to(dtype = self.dtype, device = self.device)
-
+        self._target = tar
+        assert tar is None or isinstance(tar, Target_Image)
+        
     @property
     def locked(self):
         """Set when the model should remain fixed going forward. This model
@@ -279,7 +265,7 @@ class AutoProf_Model(object):
     def parameter_vector_len(self, override_locked = False):
         return list(int(np.prod(self[P].value.shape)) for P in self.parameter_order(override_locked = override_locked))
     def get_parameter_vector(self, as_representation = False, override_locked = False):
-        parameters = torch.zeros(np.sum(self.parameter_vector_len(override_locked = override_locked)), dtype = self.dtype, device = self.device)
+        parameters = torch.zeros(np.sum(self.parameter_vector_len(override_locked = override_locked)), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         vstart = 0
         for P, V in zip(
                 self.parameter_order(override_locked = override_locked),

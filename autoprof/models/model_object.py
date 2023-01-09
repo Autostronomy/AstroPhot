@@ -9,6 +9,7 @@ from torch.autograd.functional import jacobian
 from functools import partial
 import numpy as np
 import torch
+from .. import AP_config
 
 __all__ = ["BaseModel"]
 
@@ -167,13 +168,13 @@ class BaseModel(AutoProf_Model):
             center_shift = (torch.round(self["center"].value/working_pixelscale - align) + align)*working_pixelscale - self["center"].value
             working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
-            working_image = Model_Image(pixelscale = working_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
+            working_image = Model_Image(pixelscale = working_pixelscale, window = working_window)
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             self.integrate_model(working_image, self.integrate_window("center"), self.integrate_recursion_depth)
             # Convolve the PSF
-            LL = _shift_Lanczos_kernel_torch(-center_shift[0]/working_image.pixelscale, -center_shift[1]/working_image.pixelscale, 10, self.dtype, self.device)
+            LL = _shift_Lanczos_kernel_torch(-center_shift[0]/working_image.pixelscale, -center_shift[1]/working_image.pixelscale, 10, AP_config.ap_dtype, AP_config.ap_device)
             working_image.data = fft_convolve_multi_torch(working_image.data, [self.target.psf, LL], img_prepadded = True) #fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
             # Shift image back to align with original pixel grid
             working_image.window.shift_origin(-center_shift)
@@ -181,7 +182,7 @@ class BaseModel(AutoProf_Model):
             sample_image += working_image.reduce(self.target.psf_upscale).crop(*self.target.psf_border_int)  
         else:
             # Create an image to store pixel samples
-            working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window, dtype = self.dtype, device = self.device)
+            working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
             # Evaluate the model on the image
             working_image.data += self.evaluate_model(working_image)
             # Super-resolve and integrate where needed
@@ -216,21 +217,19 @@ class BaseModel(AutoProf_Model):
         # Determine the upsampled pixelscale 
         integrate_pixelscale = working_image.pixelscale / self.integrate_factor
         # Build an image to hold the integration data
-        integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
+        integrate_image = Model_Image(pixelscale = integrate_pixelscale, window = working_window)
         # Evaluate the model at the fine sampling points
         integrate_image.data = self.evaluate_model(integrate_image)
 
         # If needed, recursively evaluates smaller windows
         recursive_shape = window.shape/integrate_pixelscale # get the number of pixels across the integrate window
         recursive_shape = torch.round(recursive_shape/self.integrate_recursion_factor).int() # divide window by recursion factor, ensure integer result
-        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2) + 1 - integrate_image.center_alignment().to(dtype = torch.int32, device = self.device)) * integrate_pixelscale # ensure shape pairity is matched during recursion
+        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2) + 1 - integrate_image.center_alignment().to(dtype = torch.int32, device = AP_config.ap_device)) * integrate_pixelscale # ensure shape pairity is matched during recursion
         self.integrate_model(
             integrate_image,
             Window(
                 center = window.center,
                 shape = recursive_shape,
-                dtype = self.dtype,
-                device = self.device,
             ),
             depth = depth - 1,
         )
@@ -319,10 +318,10 @@ class BaseModel(AutoProf_Model):
     def load(self, filename = "AutoProf.yaml"):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
-        self.window = Window(dtype = self.dtype, device = self.device, **state["window"])
+        self.window = Window(**state["window"])
         for key in state["parameters"]:
             self[key].update_state(state["parameters"][key])
-            self[key].to(dtype = self.dtype, device = self.device)
+            self[key].to(dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         return state
     
     # Extra background methods for the basemodel

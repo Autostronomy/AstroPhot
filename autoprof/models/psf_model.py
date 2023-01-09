@@ -51,7 +51,7 @@ class PSF_Star(Star_Model):
         pixel_origin = torch.round(new_origin/image.pixelscale)*image.pixelscale
         pixel_shift = (new_origin/image.pixelscale - pixel_origin/image.pixelscale)*image.pixelscale
         psf = Model_Image(data = torch.clone(self.psf_model.data)*((10**self["flux"].value)*image.pixelscale**2), origin = pixel_origin - pixel_shift, pixelscale = self.psf_model.pixelscale)
-        psf.shift_origin(pixel_shift)
+        psf.shift_origin(pixel_shift, is_prepadded = False)
         img = image.blank_copy()
         img += psf
         return img.data

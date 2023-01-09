@@ -4,7 +4,7 @@ from ..utils.conversions.units import flux_to_sb
 import numpy as np
 from .visuals import *
 import torch
-
+from .. import AP_config
 __all__ = ["galaxy_light_profile", "ray_light_profile", "wedge_light_profile", "warp_phase_profile"]
 
 
@@ -22,7 +22,7 @@ def galaxy_light_profile(
     xx = torch.linspace(
         R0,
         torch.max(model.window.shape/2) * extend_profile,
-        int(resolution),dtype = model.dtype, device = model.device,
+        int(resolution),dtype = AP_config.ap_dtype, device = AP_config.ap_device,
     )
     flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
@@ -61,7 +61,7 @@ def ray_light_profile(
     xx = torch.linspace(
         0,
         torch.max(model.window.shape/2) * extend_profile,
-        int(resolution),dtype = model.dtype, device = model.device,
+        int(resolution),dtype = AP_config.ap_dtype, device = AP_config.ap_device,
     )
     for r in range(model.rays):
         if model.rays <= 5:
@@ -94,7 +94,7 @@ def wedge_light_profile(
     xx = torch.linspace(
         0,
         torch.max(model.window.shape/2) * extend_profile,
-        int(resolution),dtype = model.dtype, device = model.device
+        int(resolution),dtype = AP_config.ap_dtype, device = AP_config.ap_device
     )
     for r in range(model.wedges):
         if model.wedges <= 5:

@@ -4,7 +4,7 @@ from copy import deepcopy
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-
+from .. import AP_config
 __all__ = ["Group_Model"]
 
 class Group_Model(AutoProf_Model):
@@ -161,8 +161,6 @@ class Group_Model(AutoProf_Model):
                 Model_Image( # fixme add Model_Image __new__ method to hide list nature
                     window = window,
                     pixelscale = target.pixelscale,
-                    dtype = self.dtype,
-                    device = self.device,
                 ) for window, target in zip(self.window, self.target)
             ))
         else:
@@ -212,7 +210,7 @@ class Group_Model(AutoProf_Model):
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
         param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
-        full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = self.dtype, device = self.device)
+        full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         for model, vec_map in zip(self.model_list, param_vec_map):
             sub_jac = model.jacobian(as_representation = as_representation, override_locked = override_locked, flatten = False)
             indices = model.window._get_indices(self.window, self.target.pixelscale)

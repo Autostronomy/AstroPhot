@@ -3,6 +3,7 @@ import numpy as np
 from time import time
 from scipy.special import gammainc
 from scipy.optimize import minimize
+from .. import AP_config
 
 __all__ = ["BaseOptimizer"]
 
@@ -28,9 +29,9 @@ class BaseOptimizer(object):
                 self.model.initialize()
                 initial_state = self.model.get_parameter_vector(as_representation = True)
         else:
-            initial_state = torch.as_tensor(initial_state, dtype = self.model.dtype, device = self.model.device)
+            initial_state = torch.as_tensor(initial_state, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
                 
-        self.current_state = torch.as_tensor(initial_state, dtype = self.model.dtype, device = self.model.device)
+        self.current_state = torch.as_tensor(initial_state, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         if self.verbose > 1:
             print("initial state: ", self.current_state)
         self.max_iter = kwargs.get("max_iter", 100*len(initial_state))
