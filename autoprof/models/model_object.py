@@ -2,7 +2,8 @@ from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
-from ..utils.operations import fft_convolve_torch
+from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch
+from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from torch.autograd.functional import jacobian
 from functools import partial
@@ -172,9 +173,10 @@ class BaseModel(AutoProf_Model):
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             self.integrate_model(working_image, self.integrate_window("center"), self.integrate_recursion_depth)
             # Convolve the PSF
-            working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
+            LL = _shift_Lanczos_kernel_torch(-center_shift[0]/working_image.pixelscale, -center_shift[1]/working_image.pixelscale, 10, self.dtype, self.device)
+            working_image.data = fft_convolve_multi_torch(working_image.data, [self.target.psf, LL], img_prepadded = True) #fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
             # Shift image back to align with original pixel grid
-            working_image.shift_origin(-center_shift)
+            working_image.window.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
             sample_image += working_image.reduce(self.target.psf_upscale).crop(*self.target.psf_border_int)  
         else:
