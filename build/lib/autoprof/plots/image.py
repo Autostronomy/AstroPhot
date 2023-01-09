@@ -7,10 +7,17 @@ from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
 import torch
 from matplotlib.patches import Rectangle
 from ..models import Group_Model, Sky_Model
+from ..image import Image_List, Window_List
 
 __all__ = ["target_image", "model_image", "residual_image", "model_window"]
 
 def target_image(fig, ax, target, window = None, **kwargs):
+
+    # recursive call for target image list
+    if isinstance(target, Image_List):
+        for i in range(len(target.image_list)):
+            target_image(fig, ax[i], target.image_list[i], window = window, **kwargs)
+        return fig, ax
     if window is None:
         window = target.window
     dat = np.copy(target[window].data.detach().cpu().numpy())
@@ -42,12 +49,18 @@ def target_image(fig, ax, target, window = None, **kwargs):
     return fig, ax
 
 @torch.no_grad()
-def model_image(fig, ax, model, image = None, window = None, showcbar = True, **kwargs):
+def model_image(fig, ax, model, sample_image = None, window = None, showcbar = True, **kwargs):
 
-    if image is None:
+    if sample_image is None:
         sample_image = model.make_model_image()
-        sample_image = model.sample(sample_image).data.detach().cpu().numpy()
+        sample_image = model.sample(sample_image)
 
+    if isinstance(sample_image, Image_List):
+        for i, image in enumerate(sample_image): 
+            model_image(fig, ax[i], model, sample_image = image, window = window, showcbar = showcbar, **kwargs)
+        return fig, ax
+    
+    sample_image = sample_image.data.detach().cpu().numpy()
     imshow_kwargs = {
         "extent": model.window.plt_extent,
         "cmap": cmap_grad,
@@ -73,18 +86,27 @@ def model_image(fig, ax, model, image = None, window = None, showcbar = True, **
     return fig, ax
 
 @torch.no_grad()
-def residual_image(fig, ax, model, showcbar = True, window = None, center_residuals = False, **kwargs):
+def residual_image(fig, ax, model, target = None, sample_image = None, showcbar = True, window = None, center_residuals = False, **kwargs):
 
     if window is None:
         window = model.window
-    sample_image = model.make_model_image()
-    sample_image = model.sample(sample_image)
+    if target is None:
+        target = model.target
+    if sample_image is None:
+        sample_image = model.make_model_image()
+        sample_image = model.sample(sample_image)
+    if isinstance(window, Window_List):
+        for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
+            residual_image(fig, i_ax, model, target = tar, sample_image = sam, window = win, showcbar = showcbar, center_residuals = center_residuals, **kwargs)
+        return fig, ax
+    
     residuals = (
-        model.target[window].data.detach().cpu().numpy()
-        - sample_image[window].data.detach().cpu().numpy()
-    )    
-    if model.target.has_mask:
-        residuals[model.target[window].mask] = np.nan
+        target[window]
+        - sample_image[window]
+    ).data.detach().cpu().numpy()
+            
+    if target.has_mask:
+        residuals[target[window].mask] = np.nan
     if center_residuals:
         residuals -= np.nanmedian(residuals)
     residuals = np.arctan(residuals/(iqr(residuals[np.isfinite(residuals)], rng = [10,90])*2))
@@ -108,8 +130,11 @@ def residual_image(fig, ax, model, showcbar = True, window = None, center_residu
     return fig, ax
 
 def model_window(fig, ax, model, **kwargs):
-    target_image(fig, ax, model.target)
-
+    if isinstance(ax, np.ndarray):
+        for axitem in ax:
+            model_window(fig, axitem, model, **kwargs)
+        return fig, ax
+    
     if isinstance(model, Group_Model):
         for m in model.model_list:
             ax.add_patch(Rectangle(xy = (m.window.origin[0], m.window.origin[1]), width = m.window.shape[0], height = m.window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))

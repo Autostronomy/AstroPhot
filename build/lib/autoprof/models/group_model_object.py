@@ -1,5 +1,5 @@
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Target_Image
+from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window_List
 from copy import deepcopy
 import torch
 import numpy as np
@@ -61,9 +61,7 @@ class Group_Model(AutoProf_Model):
 
         """
         if isinstance(model, (tuple, list)):
-            for mod in model:
-                self.remove_model(mod)
-            return
+            return tuple(self.remove_model(mod) for mod in model)
         if isinstance(model, str):
             for sub_model in self.model_list:
                 if sub_model.name == model:
@@ -157,6 +155,19 @@ class Group_Model(AutoProf_Model):
         for model in self.model_list:
             model.finalize()
         
+    def make_model_image(self):
+        if isinstance(self.window, Window_List):
+            return Model_Image_List(list(
+                Model_Image( # fixme add Model_Image __new__ method to hide list nature
+                    window = window,
+                    pixelscale = target.pixelscale,
+                    dtype = self.dtype,
+                    device = self.device,
+                ) for window, target in zip(self.window, self.target)
+            ))
+        else:
+            return super().make_model_image()
+        
     def sample(self, sample_image = None):
 
         if sample_image is None:
@@ -196,6 +207,8 @@ class Group_Model(AutoProf_Model):
         return param_map, param_vec_map
         
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        if isinstance(self.window, Window_List):
+            raise NotImplementedError("Jacobian doesnt work for multiband models yet, it will soon")
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
         param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)

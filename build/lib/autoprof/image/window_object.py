@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+__all__ = ["Window", "Window_List"]
+
 class Window(object):
     """class to define a window on the sky in coordinate space. These
     windows can undergo arithmetic an preserve logical behavior. Image
@@ -217,3 +219,65 @@ class Window(object):
         
     def __str__(self):
         return f"window origin: {list(self.origin.detach().cpu().numpy())}, shape: {list(self.shape.detach().cpu().numpy())}, center: {list(self.center.detach().cpu().numpy())}"
+
+class Window_List(Window):
+    def __init__(self, window_list, dtype = torch.float64, device = None):
+        self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
+        self.dtype = dtype
+        self.window_list = list(window_list)
+        
+    @property
+    @torch.no_grad()
+    def origin(self):
+        origins = torch.cat(list(w.origin.view(-1,2) for w in self.window_list))
+        return torch.min(origins, dim = 0)[0]
+    @property
+    @torch.no_grad()
+    def shape(self):
+        ends = torch.cat(list((w.origin + w.shape).view(-1,2) for w in self.window_list))
+        return torch.max(ends, dim = 0)[0] - self.origin
+    @property
+    @torch.no_grad()
+    def center(self):
+        return self.origin + self.shape/2
+    
+    def make_copy(self):
+        return Window_List(list(w.make_copy() for w in self.window_list), dtype = self.dtype, device = self.device)
+    
+    def to(self, dtype = None, device = None):
+        if dtype is not None:
+            self.dtype = dtype
+        if device is not None:
+            self.device = device
+        for window in self.window_list:
+            window.to(self.dtype, self.device)
+            
+    # Window interaction operators
+    @torch.no_grad()
+    def __or__(self, other):
+        new_windows = list(sw | ow for sw, ow in zip(self, other))
+        return Window_List(new_windows, dtype = self.dtype, device = self.device)
+    @torch.no_grad()
+    def __ior__(self, other):
+        for sw, ow in zip(self, other):
+            sw |= ow
+        return self
+    @torch.no_grad()
+    def __and__(self, other):
+        new_windows = list(sw & ow for sw, ow in zip(self, other))
+        return Window_List(new_windows, dtype = self.dtype, device = self.device)
+    @torch.no_grad()
+    def __iand__(self, other):
+        for sw, ow in zip(self, other):
+            sw &= ow
+        return self
+    
+    def __iter__(self):
+        self.index = 0
+        return self
+    def __next__(self):
+        if self.index >= len(self.window_list):
+            raise StopIteration
+        img = self.window_list[self.index]
+        self.index += 1
+        return img

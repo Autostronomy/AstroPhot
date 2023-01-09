@@ -153,7 +153,8 @@ def shift_Lanczos_torch(I, dx, dy, scale, dtype, device): # fixme update to take
 
     """
     LL = _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device)
-    return fft_convolve_torch(I, LL, img_prepadded = True)
+    ret = fft_convolve_torch(I, LL, img_prepadded = True)
+    return ret
     #return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
 
 def shift_Lanczos_np(I, dx, dy, scale):

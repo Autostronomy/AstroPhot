@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from copy import deepcopy
-from .window_object import Window
+from .window_object import Window, Window_List
 from astropy.io import fits
 
 __all__ = ["BaseImage", "Image_List"]
@@ -69,6 +69,12 @@ class BaseImage(object):
 
         """
         return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = self.dtype, device = self.device))
+    @torch.no_grad()
+    def pixel_center_alignment(self):
+        """
+        Determine the relative position of the center of a pixel with respect to the origin (mod 1)
+        """
+        return ((self.origin + 0.5*self.pixelscale)/self.pixelscale) % 1
 
     @property
     def data(self):
@@ -257,16 +263,11 @@ class Image_List(BaseImage):
     def __init__(self, image_list, dtype = torch.float64, device = None):
         self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
         self.dtype = dtype
-        self._window = None
         self.image_list = list(image_list)
-        
+
     @property
     def window(self):
-        if self._window is None:
-            new_window = self.image_list[0].window.make_copy()
-            for image in self.image_list[1:]:
-                new_window |= image.window
-        return self._window
+        return Window_List(list(image.window for image in self.image_list))
     @property
     def pixelscale(self):
         return tuple(image.pixelscale for image in self.image_list)
@@ -297,7 +298,7 @@ class Image_List(BaseImage):
         
     def get_window(self, window):
         return self.__class__(
-            tuple(image[window] for image in self.image_list),
+            tuple(image[win] for image, win in zip(self.image_list, window)),
             device = self.device,
             dtype = self.dtype,
         )
@@ -312,10 +313,7 @@ class Image_List(BaseImage):
         return self
 
     def crop(self, *pixels):
-        for image in self.image_list:
-            image.crop(*pixels)
-        self._window = None
-        return self
+        raise NotImplementedError("Crop function not available for Image_List object")
     
     def get_coordinate_meshgrid_np(self, x = 0., y = 0.):
         return tuple(image.get_coordinate_meshgrid_np(x,y) for image in self.image_list)
@@ -345,7 +343,7 @@ class Image_List(BaseImage):
             for self_image, other_image in zip(self.image_list, other):
                 new_image_list.append(self_image - other_image)
         return self.__class__(
-            image_list = new_img,
+            image_list = new_image_list,
             device = self.device,
             dtype = self.dtype,
         )
@@ -358,7 +356,7 @@ class Image_List(BaseImage):
             for self_image, other_image in zip(self.image_list, other):
                 new_image_list.append(self_image + other_image)
         return self.__class__(
-            image_list = new_img,
+            image_list = new_image_list,
             device = self.device,
             dtype = self.dtype,
         )

@@ -196,9 +196,10 @@ def nonparametric_initialize(self, target = None):
             # create logarithmically spaced profile radii
             new_prof = [0] + list(np.logspace(
                 np.log10(2*target.pixelscale),
-                np.log10(torch.max(self.window.shape/2).item()),
-                len(self["I(R)"].value) - 1,
+                np.log10(np.sqrt(torch.sum((self.window.shape/2)**2).item())),
+                len(self["I(R)"].value),
             ))
+            new_prof.pop(-2)
             # ensure no step is smaller than a pixelscale
             for i in range(1,len(new_prof)):
                 if new_prof[i] - new_prof[i-1] < target.pixelscale.item():
@@ -209,7 +210,7 @@ def nonparametric_initialize(self, target = None):
     # Create the I(R) profile radii if needed
     if self["I(R)"].prof is None:
         new_prof = [0,2*target.pixelscale]
-        while new_prof[-1] < torch.min(self.window.shape/2):
+        while new_prof[-1] < torch.max(self.window.shape/2):
             new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
         new_prof.pop()
         new_prof.pop()
@@ -237,9 +238,9 @@ def nonparametric_initialize(self, target = None):
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
-    return nonparametric_torch(R, self["I(R)"].prof, self["I(R)"].value, sample_image.pixelscale**2)
+    return nonparametric_torch(R, self["I(R)"].prof, self["I(R)"].value, sample_image.pixelscale**2, extend = self.extend_profile)
 
 def nonparametric_iradial_model(self, i, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
-    return nonparametric_torch(R, self["I(R)"].prof, self["I(R)"].value[i], sample_image.pixelscale**2)
+    return nonparametric_torch(R, self["I(R)"].prof, self["I(R)"].value[i], sample_image.pixelscale**2, extend = self.extend_profile)

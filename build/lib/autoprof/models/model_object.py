@@ -153,20 +153,24 @@ class BaseModel(AutoProf_Model):
         else:
             working_window = sample_window.make_copy() & sample_image.window
             
+        if "window" in self.psf_mode:
+            raise NotImplementedError("PSF convolution in sub-window not available yet")
+            
         if "full" in self.psf_mode:
             # Add border for psf convolution edge effects, will be cropped out later
             working_window += self.target.psf_border
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = sample_image.pixelscale / self.target.psf_upscale
             # Sub pixel shift to align the model with the center of a pixel
-            center_shift = (torch.round(self["center"].value/working_pixelscale - 0.5) + 0.5)*working_pixelscale - self["center"].value
+            align = self.target.pixel_center_alignment()
+            center_shift = (torch.round(self["center"].value/working_pixelscale - align) + align)*working_pixelscale - self["center"].value
             working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(pixelscale = working_pixelscale, window = working_window, dtype = self.dtype, device = self.device)
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            self.integrate_model(working_image, self.integrate_window.shift_origin(center_shift), self.integrate_recursion_depth)
+            self.integrate_model(working_image, self.integrate_window("center"), self.integrate_recursion_depth)
             # Convolve the PSF
             working_image.data = fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
             # Shift image back to align with original pixel grid
@@ -179,7 +183,7 @@ class BaseModel(AutoProf_Model):
             # Evaluate the model on the image
             working_image.data += self.evaluate_model(working_image)
             # Super-resolve and integrate where needed
-            self.integrate_model(working_image, self.integrate_window, self.integrate_recursion_depth)
+            self.integrate_model(working_image, self.integrate_window("pixel"), self.integrate_recursion_depth)
             # Add the sampled/integrated pixels to the requested image
             sample_image += working_image 
         
@@ -205,7 +209,6 @@ class BaseModel(AutoProf_Model):
                 return
         except AssertionError:
             return
-
         # Only need to evaluate integration within working image
         working_window = window & working_image.window
         # Determine the upsampled pixelscale 
@@ -217,7 +220,7 @@ class BaseModel(AutoProf_Model):
 
         # If needed, recursively evaluates smaller windows
         recursive_shape = window.shape/integrate_pixelscale # get the number of pixels across the integrate window
-        recursive_shape = (recursive_shape/self.integrate_recursion_factor).int() # divide window by recursion factor, ensure integer result
+        recursive_shape = torch.round(recursive_shape/self.integrate_recursion_factor).int() # divide window by recursion factor, ensure integer result
         recursive_shape = (recursive_shape + 1 - (recursive_shape % 2) + 1 - integrate_image.center_alignment().to(dtype = torch.int32, device = self.device)) * integrate_pixelscale # ensure shape pairity is matched during recursion
         self.integrate_model(
             integrate_image,
@@ -323,7 +326,6 @@ class BaseModel(AutoProf_Model):
     # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import integrate_window
-    from ._model_methods import psf_window
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
     from ._model_methods import __getitem__

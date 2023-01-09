@@ -5,29 +5,23 @@ from ..image import Model_Image, Target_Image, Window
 from copy import deepcopy
 import torch
 
-@property
-def integrate_window(self):
-    use_center = (0.5 + torch.round(self["center"].value/self.target.pixelscale - 0.5))*self.target.pixelscale
+def integrate_window(self, fix_to = "center"):
+    """The appropriately sized window in which to perform integration for
+    this model, centered on the model center.
+
+    """
+    if fix_to == "center":
+        use_center = torch.round(self["center"].value/self.target.pixelscale)*self.target.pixelscale
+    elif fix_to == "pixel":
+        align = self.target.pixel_center_alignment()
+        use_center = (align + torch.round(self["center"].value/self.target.pixelscale - align))*self.target.pixelscale
+    else:
+        raise ValueError(f"integrate_window fix_to should be one of: center, pixel. not {fix_to}")
     use_shape = (
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
         (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
     )
     return Window(center = use_center, shape = use_shape, dtype = self.dtype, device = self.device)
-    
-@property
-def psf_window(self):
-    use_center = torch.floor(self["center"].value/self.target.pixelscale)
-    psf_offset = (self.psf_window_size - (self.psf_window_size % 2))/2
-    psf_origin = (
-        (use_center[0] - psf_offset)*self.target.pixelscale,
-        (use_center[1] - psf_offset)*self.target.pixelscale,
-    )
-    psf_shape = (
-        (psf_offset*2 + 1)*self.target.pixelscale,
-        (psf_offset*2 + 1)*self.target.pixelscale,
-    )
-    return Window(origin = psf_origin, shape = psf_shape, dtype = self.dtype, device = self.device)
-
 
 @classmethod
 def build_parameter_specs(cls, user_specs = None):

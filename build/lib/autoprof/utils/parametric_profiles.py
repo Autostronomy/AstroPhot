@@ -75,7 +75,7 @@ def exponential_np(R, Ie, Re):
     """
     return Ie * np.exp(- sersic_n_to_b(1.) * (R / Re - 1.))
 
-def nonparametric_torch(R, profR, profI, pixelscale2):
+def nonparametric_torch(R, profR, profI, pixelscale2, extend):
     """Nonparametric 1d profile function, cubic spline between points up
     to second last point beyond which is linear, specifically designed
     for pytorch.
@@ -89,6 +89,9 @@ def nonparametric_torch(R, profR, profI, pixelscale2):
     I = cubic_spline_torch(profR, profI, R.view(-1), extend = "none").view(*R.shape)
     res = torch.zeros_like(I)
     res[R <= profR[-2]] = 10**(I[R <= profR[-2]])
-    res[R > profR[-2]] = 10**(profI[-2] + (R[R > profR[-2]] - profR[-2])*((profI[-1] - profI[-2])/(profR[-1] - profR[-2])))
+    if extend:
+        res[R > profR[-2]] = 10**(profI[-2] + (R[R > profR[-2]] - profR[-2])*((profI[-1] - profI[-2])/(profR[-1] - profR[-2])))
+    else:
+        res[R > profR[-2]] = 0
     return res * pixelscale2
     
