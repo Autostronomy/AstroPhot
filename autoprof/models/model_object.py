@@ -172,7 +172,7 @@ class BaseModel(AutoProf_Model):
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            self.integrate_model(working_image, self.integrate_window("center"), self.integrate_recursion_depth)
+            self.integrate_model(working_image, self.integrate_window(working_image, "center"), self.integrate_recursion_depth)
             # Convolve the PSF
             LL = _shift_Lanczos_kernel_torch(-center_shift[0]/working_image.pixelscale, -center_shift[1]/working_image.pixelscale, 10, AP_config.ap_dtype, AP_config.ap_device)
             working_image.data = fft_convolve_multi_torch(working_image.data, [self.target.psf, LL], img_prepadded = True) #fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
@@ -186,7 +186,7 @@ class BaseModel(AutoProf_Model):
             # Evaluate the model on the image
             working_image.data += self.evaluate_model(working_image)
             # Super-resolve and integrate where needed
-            self.integrate_model(working_image, self.integrate_window("pixel"), self.integrate_recursion_depth)
+            self.integrate_model(working_image, self.integrate_window(working_image, "pixel"), self.integrate_recursion_depth)
             # Add the sampled/integrated pixels to the requested image
             sample_image += working_image 
         
@@ -234,7 +234,7 @@ class BaseModel(AutoProf_Model):
             ),
             depth = depth - 1,
         )
-        
+        int_red = integrate_image.reduce(self.integrate_factor)
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
 

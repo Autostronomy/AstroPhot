@@ -39,6 +39,8 @@ class Model_Image(BaseImage):
                 return
             other_indices = self.window.get_indices(other)
             self_indices = other.window.get_indices(self)
+            if self.data[self_indices].nelement() == 0 or other.data[other_indices].nelement() == 0:
+                return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
             self.data[other.get_indices(self)] = data
