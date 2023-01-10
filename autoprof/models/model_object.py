@@ -224,7 +224,8 @@ class BaseModel(AutoProf_Model):
         # If needed, recursively evaluates smaller windows
         recursive_shape = window.shape/integrate_pixelscale # get the number of pixels across the integrate window
         recursive_shape = torch.round(recursive_shape/self.integrate_recursion_factor).int() # divide window by recursion factor, ensure integer result
-        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2) + 1 - integrate_image.center_alignment().to(dtype = torch.int32, device = AP_config.ap_device)) * integrate_pixelscale # ensure shape pairity is matched during recursion
+        window_align = torch.isclose((((window.center - integrate_image.origin)/integrate_image.pixelscale) % 1), torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
+        recursive_shape = (recursive_shape + 1 - (recursive_shape % 2) + 1 - window_align.to(dtype = torch.int32)) * integrate_pixelscale # ensure shape pairity is matched during recursion
         self.integrate_model(
             integrate_image,
             Window(

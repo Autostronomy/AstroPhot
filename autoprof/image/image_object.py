@@ -66,7 +66,7 @@ class BaseImage(object):
         (True) or if it is aligned at a pixel edge (False).
 
         """
-        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device))
+        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
     @torch.no_grad()
     def pixel_center_alignment(self):
         """

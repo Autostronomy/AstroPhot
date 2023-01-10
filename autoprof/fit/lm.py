@@ -129,7 +129,7 @@ class LM(BaseOptimizer):
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(Y)
                 break
-            elif np.abs(np.nanmin(self.loss_history[:-1]) - loss.item()) < (self.relative_tolerance * 1e-4) and L < 1e-5:
+            elif np.abs(np.nanmin(self.loss_history[:-1]) - loss.item()) < (self.relative_tolerance * 1e-3) and L < 1e-5:
                 self.loss_history.append(loss.detach().cpu().item())
                 self.L = 1.
                 self.L_history.append(self.L)
