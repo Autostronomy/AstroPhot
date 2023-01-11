@@ -230,11 +230,9 @@ class AutoProf_Model(object):
     @property 
     def target(self):
         try:
-            if self._target is None:
-                raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
             return self._target
         except AttributeError:
-            raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
+            return None
     @target.setter
     def target(self, tar):
         self._target = tar

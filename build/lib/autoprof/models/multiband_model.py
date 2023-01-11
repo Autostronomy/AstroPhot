@@ -4,6 +4,7 @@ from copy import deepcopy
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from .. import AP_config
 
 __all__ = ["Multiband_Model"]
 
@@ -39,18 +40,18 @@ class Multiband_Model(Group_Model):
         sub models.
 
         """
-        return Model_Image_List(list(model.make_model_image() for model in self.model_list), dtype = self.dtype, device = self.device)
+        return Model_Image_List(list(model.make_model_image() for model in self.model_list))
 
     def _build_target_List(self):
         """Construct a Target_Image_List object from the targets already held
         by the individual sub models.
 
         """
-        return Target_Image_List(list(model.target for model in self.model_list), dtype = self.dtype, device = self.device)
+        return Target_Image_List(list(model.target for model in self.model_list))
     
     @property
     def window(self):
-        return Window_List(list(model.window for model in self.model_list), dtype = self.dtype, device = self.device)
+        return Window_List(list(model.window for model in self.model_list))
     @window.setter
     def window(self, win):
         pass
@@ -65,11 +66,8 @@ class Multiband_Model(Group_Model):
         return self._target
     @target.setter
     def target(self, tar):
-        if tar is None:
-            self._target = None
-            return
-        assert isinstance(tar, Target_Image_List), f"multiband model object needs Target_Image_List object, not {type(tar)}"
-        self._target = tar.to(dtype = self.dtype, device = self.device)
+        self._target = tar
+        assert tar is None or isinstance(tar, Target_Image_List), f"multiband model object needs Target_Image_List object, not {type(tar)}"
 
     @torch.no_grad()
     def initialize(self, targets = None):
@@ -117,7 +115,7 @@ class Multiband_Model(Group_Model):
             else:
                 loss += res
         if return_sample:
-            return loss, Model_Image_List(samples, dtype = self.dtype, device = self.device)
+            return loss, Model_Image_List(samples)
         else:
             return loss
 
@@ -152,7 +150,7 @@ class Multiband_Model(Group_Model):
             sub_jacs.append(model.jacobian(as_representation = as_representation, override_locked = override_locked, flatten = flatten))
         if flatten:
             img_sizes = self.model_image_sizes()
-            full_jac = torch.zeros((sum(img_sizes),) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = self.dtype, device = self.device)
+            full_jac = torch.zeros((sum(img_sizes),) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
             for ijac, jac, p_map, vec_map in zip(range(len(sub_jacs)), sub_jacs, param_map, param_vec_map):
                 for imodel, imulti in enumerate(vec_map):

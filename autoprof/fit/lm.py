@@ -560,8 +560,11 @@ class LM(BaseOptimizer):
                         self.update_J_AD()
                         self.update_hess()
                         self.update_grad(self.prev_Y[1])
-                    self.grad_step()
-
+                    try:
+                        self.grad_step()
+                    except RuntimeError:
+                        self.message = self.message + "fail by immobility, unable to find improvement or even small bad step"
+                        break
                 if self._count_converged >= 2:
                     self.message = self.message + "success"
                     break

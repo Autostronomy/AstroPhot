@@ -147,15 +147,14 @@ def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     # plt.show()
     return LL
 
-def shift_Lanczos_torch(I, dx, dy, scale, dtype, device): # fixme update to take input from -0.5, 0.5 instead of 0,1
+def shift_Lanczos_torch(I, dx, dy, scale, dtype, device, img_prepadded = True):
     """Apply Lanczos interpolation to shift by less than a pixel in x and
     y.
 
     """
     LL = _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device)
-    ret = fft_convolve_torch(I, LL, img_prepadded = True)
+    ret = fft_convolve_torch(I, LL, img_prepadded = img_prepadded)
     return ret
-    #return conv2d(I.view(1,1,*I.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
 
 def shift_Lanczos_np(I, dx, dy, scale):
     """Apply Lanczos interpolation to shift by less than a pixel in x and

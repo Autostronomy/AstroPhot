@@ -3,6 +3,7 @@ from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
 import torch
 import numpy as np
+from .. import AP_config
 
 __all__ = ["Model_Image", "Model_Image_List"]
 
@@ -17,18 +18,18 @@ class Model_Image(BaseImage):
     def __init__(self, pixelscale = None, data = None, window = None, **kwargs):
         assert not (data is None and window is None)
         if data is None:
-            data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = kwargs.get("dtype", torch.float64), device = kwargs.get("device", "cuda:0" if torch.cuda.is_available() else "cpu"))
+            data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
         self.to()
         
     def clear_image(self):
         self.data = torch.zeros_like(self.data)
 
-    def shift_origin(self, shift):
+    def shift_origin(self, shift, is_prepadded = True):
         self.window.shift_origin(shift)
         if torch.any(torch.abs(shift/self.pixelscale) > 1):
             raise NotImplementedError("Shifts larger than 1 are currently not handled")
-        self.data = shift_Lanczos_torch(self.data, shift[0]/self.pixelscale, shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = self.dtype, device = self.device)
+        self.data = shift_Lanczos_torch(self.data, shift[0]/self.pixelscale, shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = AP_config.ap_dtype, device = AP_config.ap_device, img_prepadded = is_prepadded)
         
     def replace(self, other, data = None):
         if isinstance(other, BaseImage):
@@ -38,6 +39,8 @@ class Model_Image(BaseImage):
                 return
             other_indices = self.window.get_indices(other)
             self_indices = other.window.get_indices(self)
+            if self.data[self_indices].nelement() == 0 or other.data[other_indices].nelement() == 0:
+                return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
             self.data[other.get_indices(self)] = data

@@ -5,7 +5,7 @@ from . import utils
 from . import fit
 
 # meta data
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 __author__ = "Connor Stone"
 __email__ = "connorston628@gmail.com"
 

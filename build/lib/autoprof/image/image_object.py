@@ -3,7 +3,7 @@ import numpy as np
 from copy import deepcopy
 from .window_object import Window, Window_List
 from astropy.io import fits
-
+from .. import AP_config
 __all__ = ["BaseImage", "Image_List"]
 
 class BaseImage(object):
@@ -24,10 +24,8 @@ class BaseImage(object):
         origin
     """
 
-    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, device = None, dtype = torch.float64, **kwargs):
+    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, **kwargs):
         
-        self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
-        self.dtype = dtype
         self._data = None
         
         if filename is not None:
@@ -35,24 +33,24 @@ class BaseImage(object):
             return
         assert not (pixelscale is None and window is None)
         self.data = data
-        self.zeropoint = None if zeropoint is None else torch.as_tensor(zeropoint, dtype = self.dtype, device = self.device)
+        self.zeropoint = None if zeropoint is None else torch.as_tensor(zeropoint, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         self.note = note
         if window is None:
-            self.pixelscale = torch.as_tensor(pixelscale, dtype = self.dtype, device = self.device)
-            shape = torch.flip(torch.tensor(data.shape, dtype = self.dtype, device = self.device),(0,)) * self.pixelscale
+            self.pixelscale = torch.as_tensor(pixelscale, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            shape = torch.flip(torch.tensor(data.shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device),(0,)) * self.pixelscale
             if origin is None and center is None:
-                origin = torch.zeros(2, dtype = self.dtype, device = self.device)
+                origin = torch.zeros(2, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             elif center is None:
-                origin = torch.as_tensor(origin, dtype = self.dtype, device = self.device)
+                origin = torch.as_tensor(origin, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             else:
-                origin = torch.as_tensor(center, dtype = self.dtype, device = self.device) - shape/2
-            self.window = Window(origin = origin, shape = shape, dtype = self.dtype, device = self.device)
+                origin = torch.as_tensor(center, dtype = AP_config.ap_dtype, device = AP_config.ap_device) - shape/2
+            self.window = Window(origin = origin, shape = shape)
         else:
             self.window = window
             if pixelscale is None:
                 self.pixelscale = self.window.shape[0] / self.data.shape[1]
             else:
-                self.pixelscale = torch.as_tensor(pixelscale, dtype = self.dtype, device = self.device)
+                self.pixelscale = torch.as_tensor(pixelscale, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             
     @property
     def origin(self):
@@ -68,7 +66,7 @@ class BaseImage(object):
         (True) or if it is aligned at a pixel edge (False).
 
         """
-        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = self.dtype, device = self.device))
+        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
     @torch.no_grad()
     def pixel_center_alignment(self):
         """
@@ -86,13 +84,11 @@ class BaseImage(object):
     def set_data(self, data, require_shape = True):
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
-        self._data = data.to(dtype = self.dtype, device = self.device) if isinstance(data, torch.Tensor) else torch.as_tensor(data, dtype = self.dtype, device = self.device)
+        self._data = data.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device) if isinstance(data, torch.Tensor) else torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         
     def copy(self):
         return self.__class__(
             data = torch.clone(self.data),
-            device = self.device,
-            dtype = self.dtype,
             zeropoint = self.zeropoint,
             note = self.note,
             window = self.window,
@@ -100,8 +96,6 @@ class BaseImage(object):
     def blank_copy(self):
         return self.__class__(
             data = torch.zeros_like(self.data),
-            device = self.device,
-            dtype = self.dtype,
             zeropoint = self.zeropoint,
             note = self.note,
             window = self.window,
@@ -110,8 +104,6 @@ class BaseImage(object):
     def get_window(self, window):
         return self.__class__(
             data = self.data[window.get_indices(self)],
-            device = self.device,
-            dtype = self.dtype,
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
             note = self.note,
@@ -120,17 +112,17 @@ class BaseImage(object):
     
     def to(self, dtype = None, device = None):
         if dtype is not None:
-            self.dtype = dtype
+            dtype = AP_config.ap_dtype
         if device is not None:
-            self.device = device
+            device = AP_config.ap_device
         if self._data is not None:
-            self._data = self._data.to(dtype = self.dtype, device = self.device)
-        self.window.to(dtype = self.dtype, device = self.device)
+            self._data = self._data.to(dtype = dtype, device = device)
+        self.window.to(dtype = dtype, device = device)
         return self
 
     def crop(self, *pixels):
         self.set_data(self.data[pixels[1]:-pixels[1],pixels[0]:-pixels[0]], require_shape = False)
-        self.window -= torch.as_tensor(pixels, dtype = self.dtype, device = self.device) * self.pixelscale
+        self.window -= torch.as_tensor(pixels, dtype = AP_config.ap_dtype, device = AP_config.ap_device) * self.pixelscale
         return self
 
     def flatten(self, attribute = "data"):
@@ -194,7 +186,7 @@ class BaseImage(object):
                 self.pixelscale = eval(hdu.header.get("PXLSCALE"))
                 self.zeropoint = eval(hdu.header.get("ZEROPNT"))
                 self.note = hdu.header.get("NOTE")
-                self.window = Window(dtype = self.dtype, device = self.device, **eval(hdu.header.get("WINDOW")))
+                self.window = Window(**eval(hdu.header.get("WINDOW")))
                 break
         return hdul
     
@@ -260,9 +252,7 @@ class BaseImage(object):
 
 class Image_List(BaseImage):
 
-    def __init__(self, image_list, dtype = torch.float64, device = None):
-        self.device = ("cuda:0" if torch.cuda.is_available() else "cpu") if device is None else device
-        self.dtype = dtype
+    def __init__(self, image_list):
         self.image_list = list(image_list)
 
     @property
@@ -286,30 +276,24 @@ class Image_List(BaseImage):
     def copy(self):
         return self.__class__(
             tuple(image.copy() for image in self.image_list),
-            device = self.device,
-            dtype = self.dtype,
         )
     def blank_copy(self):
         return self.__class__(
             tuple(image.blank_copy() for image in self.image_list),
-            device = self.device,
-            dtype = self.dtype,
         )
         
     def get_window(self, window):
         return self.__class__(
             tuple(image[win] for image, win in zip(self.image_list, window)),
-            device = self.device,
-            dtype = self.dtype,
         )
     
     def to(self, dtype = None, device = None):
         if dtype is not None:
-            self.dtype = dtype
+            dtype = AP_config.ap_dtype
         if device is not None:
-            self.device = device
+            device = AP_config.ap_device
         for image in self.image_list:
-            image.to(dtype = self.dtype, device = self.device)
+            image.to(dtype = dtype, device = device)
         return self
 
     def crop(self, *pixels):
@@ -330,8 +314,6 @@ class Image_List(BaseImage):
 
         return self.__class__(
             tuple(image.reduce(scale) for image in self.image_list),
-            device = self.device,
-            dtype = self.dtype,
         )
     
     def __sub__(self, other):
@@ -344,8 +326,6 @@ class Image_List(BaseImage):
                 new_image_list.append(self_image - other_image)
         return self.__class__(
             image_list = new_image_list,
-            device = self.device,
-            dtype = self.dtype,
         )
     def __add__(self, other):
         new_image_list = []
@@ -357,8 +337,6 @@ class Image_List(BaseImage):
                 new_image_list.append(self_image + other_image)
         return self.__class__(
             image_list = new_image_list,
-            device = self.device,
-            dtype = self.dtype,
         )
     def __isub__(self, other):
         if isinstance(other, Image_List):

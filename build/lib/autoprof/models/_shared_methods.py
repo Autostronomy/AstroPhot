@@ -97,8 +97,8 @@ def sersic_initialize(self, target = None):
         q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
         n_isophotes = 15
     )
-    R = (torch.tensor(list(iso["R"] for iso in iso_info), dtype = self.dtype, device = self.device) * self.target.pixelscale).detach().cpu().numpy()
-    flux = (torch.tensor(list(iso["flux"] for iso in iso_info), dtype = self.dtype, device = self.device) / self.target.pixelscale**2).detach().cpu().numpy()
+    R = (np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale.item())
+    flux = (np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale.item()**2)
     if np.sum(flux < 0) > 0:
         print("fixing flux")
         flux -= np.min(flux) - np.abs(np.min(flux)*0.1)

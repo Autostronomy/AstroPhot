@@ -4,24 +4,23 @@ from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ..image import Model_Image, Target_Image, Window
 from copy import deepcopy
 import torch
+from .. import AP_config
 
-def integrate_window(self, fix_to = "center"):
+def integrate_window(self, image, fix_to = "center"):
     """The appropriately sized window in which to perform integration for
     this model, centered on the model center.
 
     """
     if fix_to == "center":
-        use_center = torch.round(self["center"].value/self.target.pixelscale)*self.target.pixelscale
+        use_center = self["center"].value
     elif fix_to == "pixel":
         align = self.target.pixel_center_alignment()
         use_center = (align + torch.round(self["center"].value/self.target.pixelscale - align))*self.target.pixelscale
     else:
         raise ValueError(f"integrate_window fix_to should be one of: center, pixel. not {fix_to}")
-    use_shape = (
-        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
-        (self.integrate_window_size + 1 - (self.integrate_window_size % 2))*self.target.pixelscale,
-    )
-    return Window(center = use_center, shape = use_shape, dtype = self.dtype, device = self.device)
+    window_align = torch.isclose((((use_center - image.origin)/image.pixelscale) % 1), torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
+    use_shape = ((self.integrate_window_size + 1 - (self.integrate_window_size % 2) + 1 - window_align.to(dtype = torch.int32))*self.target.pixelscale)
+    return Window(center = use_center, shape = use_shape)
 
 @classmethod
 def build_parameter_specs(cls, user_specs = None):
@@ -55,9 +54,9 @@ def build_parameters(self):
             continue
         # If a parameter object is provided, simply use as-is
         if isinstance(self.parameter_specs[p], Parameter):
-            self.parameters[p] = self.parameter_specs[p].to(dtype = self.dtype, device = self.device)
+            self.parameters[p] = self.parameter_specs[p].to()
         elif isinstance(self.parameter_specs[p], dict):
-            self.parameters[p] = Parameter(p, dtype = self.dtype, device = self.device, **self.parameter_specs[p])
+            self.parameters[p] = Parameter(p, **self.parameter_specs[p])
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
 

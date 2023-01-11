@@ -1,6 +1,7 @@
 MANIFEST.in
 README.md
 setup.py
+autoprof/AP_config.py
 autoprof/__init__.py
 autoprof/__main__.py
 autoprof.egg-info/PKG-INFO
