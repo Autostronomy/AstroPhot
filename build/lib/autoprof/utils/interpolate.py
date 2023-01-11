@@ -127,25 +127,20 @@ def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     sub-pixel length.
 
     """
-    xx = torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dx #torch.flip(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dx, (0,))
-    if dx < 0:
-        xx *= -1
+    xsign = (1 - 2*(dx < 0).to(dtype = torch.int32)) # flips the kernel if the shift is negative
+    xx = xsign*(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dx)
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
-    Lx[0 if dx > 0  else -1] = 0
 
-    yy = torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dy #torch.flip(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dy, (0,))
-    if dy < 0:
-        yy *= -1
+    ysign = (1 - 2*(dy < 0).to(dtype = torch.int32))
+    yy = ysign*(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dy)
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
-    Ly[0 if dy < 0 else -1] = 0
     
     LXX, LYY = torch.meshgrid(Lx, Ly, indexing = 'xy')
     LL = LXX * LYY
     w = torch.sum(LL)
-    LL /= w
     # plt.imshow(LL.detach().numpy(), origin = "lower")
     # plt.show()
-    return LL
+    return LL / w
 
 def shift_Lanczos_torch(I, dx, dy, scale, dtype, device, img_prepadded = True):
     """Apply Lanczos interpolation to shift by less than a pixel in x and
