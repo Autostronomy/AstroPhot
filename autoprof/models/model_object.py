@@ -165,7 +165,7 @@ class BaseModel(AutoProf_Model):
             working_pixelscale = sample_image.pixelscale / self.target.psf_upscale
             # Sub pixel shift to align the model with the center of a pixel
             align = self.target.pixel_center_alignment()
-            center_shift = (torch.round(self["center"].value/working_pixelscale - align) + align)*working_pixelscale - self["center"].value
+            center_shift = self["center"].value - (torch.round(self["center"].value/working_pixelscale - align) + align)*working_pixelscale
             working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(pixelscale = working_pixelscale, window = working_window)
@@ -234,7 +234,6 @@ class BaseModel(AutoProf_Model):
             ),
             depth = depth - 1,
         )
-        int_red = integrate_image.reduce(self.integrate_factor)
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
 
