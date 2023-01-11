@@ -1,6 +1,8 @@
 from .star_model_object import Star_Model
 from ..image import Model_Image
 import torch
+from ..utils.interpolate import _shift_Lanczos_kernel_torch
+from .. import AP_config
 
 __all__ = ["PSF_Star"]
 
@@ -50,8 +52,12 @@ class PSF_Star(Star_Model):
         new_origin = self["center"].value - self.psf_model.shape/2
         pixel_origin = torch.round(new_origin/image.pixelscale)*image.pixelscale
         pixel_shift = (new_origin/image.pixelscale - pixel_origin/image.pixelscale)*image.pixelscale
-        psf = Model_Image(data = torch.clone(self.psf_model.data)*((10**self["flux"].value)*image.pixelscale**2), origin = pixel_origin - pixel_shift, pixelscale = self.psf_model.pixelscale)
-        psf.shift_origin(pixel_shift, is_prepadded = False)
+        LL = _shift_Lanczos_kernel_torch(-pixel_shift[0]/image.pixelscale, -pixel_shift[1]/image.pixelscale, 3, AP_config.ap_dtype, AP_config.ap_device)
+        psf = Model_Image(
+            data = torch.nn.functional.conv2d((torch.clone(self.psf_model.data)*((10**self["flux"].value)*image.pixelscale**2)).view(1,1,*self.psf_model.data.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0],
+            origin = pixel_origin - pixel_shift,
+            pixelscale = self.psf_model.pixelscale,
+        )
         img = image.blank_copy()
         img += psf
         return img.data

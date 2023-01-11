@@ -174,8 +174,9 @@ class BaseModel(AutoProf_Model):
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             self.integrate_model(working_image, self.integrate_window(working_image, "center"), self.integrate_recursion_depth)
             # Convolve the PSF
-            LL = _shift_Lanczos_kernel_torch(-center_shift[0]/working_image.pixelscale, -center_shift[1]/working_image.pixelscale, 10, AP_config.ap_dtype, AP_config.ap_device)
-            working_image.data = fft_convolve_multi_torch(working_image.data, [self.target.psf, LL], img_prepadded = True) #fft_convolve_torch(working_image.data, self.target.psf, img_prepadded = True)
+            LL = _shift_Lanczos_kernel_torch(-center_shift[0]/working_image.pixelscale, -center_shift[1]/working_image.pixelscale, 3, AP_config.ap_dtype, AP_config.ap_device)
+            shift_psf = torch.nn.functional.conv2d(self.target.psf.view(1,1,*self.target.psf.shape), LL.view(1,1,*LL.shape), padding = "same")[0][0]
+            working_image.data = fft_convolve_torch(working_image.data, shift_psf/torch.sum(shift_psf), img_prepadded = True)
             # Shift image back to align with original pixel grid
             working_image.window.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image

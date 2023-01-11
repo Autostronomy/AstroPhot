@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-
+from astropy.convolution import convolve_fft, convolve
 
 
 def fft_convolve_torch(img, psf, psf_fft = False, img_prepadded = False):
@@ -22,6 +22,7 @@ def fft_convolve_torch(img, psf, psf_fft = False, img_prepadded = False):
 
     conv_f = img_f * psf_f
     conv = torch.fft.irfft2(conv_f, s = s)
+    
     return torch.roll(conv, shifts = (-int((psf.size()[0]-1)/2),-int((psf.size()[1]-1)/2)), dims = (0,1))[:img.size()[0],:img.size()[1]]
 
 def fft_convolve_multi_torch(img, kernels, kernel_fft = False, img_prepadded = False, dtype = None, device = None):
@@ -51,7 +52,7 @@ def fft_convolve_multi_torch(img, kernels, kernel_fft = False, img_prepadded = F
 if __name__ == "__main__":
     my_image = np.zeros((100,100))
     my_image[3,7] = 1
-    my_image[20,65:82] = 1
+    my_image[20,62:82] = np.logspace(-20,0,20)
     my_image[73:78,31] = 1
     my_image[87:90,83:85] = 1
 
