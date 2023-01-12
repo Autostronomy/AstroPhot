@@ -229,7 +229,7 @@ class LM(BaseOptimizer):
             self.decision_history.append("init")
             self.rho_history.append(None)
 
-        if self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+        if True or self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
             if self.verbose > 1:
                 print("full jac")
             self.update_J_AD()
@@ -543,7 +543,7 @@ class LM(BaseOptimizer):
 
                 lam, L, loss = self.progress_history()
                     
-                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
+                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/10):
                     self._count_grad_step = 0
                     self._count_converged += 1
                 elif self._count_grad_step >= 5:
@@ -568,6 +568,12 @@ class LM(BaseOptimizer):
                 if self._count_converged >= 2:
                     self.message = self.message + "success"
                     break
+                lam, L, loss = self.accept_history()
+                if len(loss) >= 10:
+                    loss10 = np.array(loss[-10:])
+                    if np.all(np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1]) < self.relative_tolerance):
+                        self.message = self.message + "success"
+                        break
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
@@ -705,6 +711,17 @@ class LM(BaseOptimizer):
     def rho_3(self, Xp, Xph, h):
         return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h) + self.grad))
 
+    def accept_history(self):
+        lambdas = []
+        Ls = []
+        losses = []
+
+        for l in range(len(self.decision_history)):
+            if "accept" in self.decision_history[l] and np.isfinite(self.loss_history[l]):
+                lambdas.append(self.lambda_history[l])
+                Ls.append(self.L_history[l])
+                losses.append(self.loss_history[l])
+        return lambdas, Ls, losses
     def progress_history(self):
         lambdas = []
         Ls = []

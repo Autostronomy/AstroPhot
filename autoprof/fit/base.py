@@ -48,6 +48,8 @@ class BaseOptimizer(object):
     def step(self, current_state = None):
         pass
 
+    def chi2min(self):
+        return np.nanmin(self.loss_history)
     def res(self):
         N = np.isfinite(self.loss_history)
         return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]

@@ -89,7 +89,7 @@ class Iter(BaseOptimizer):
                 self.step()
                 if self.save_steps is not None:
                     self.model.save(os.path.join(self.save_steps, f"{self.model.name}_Iteration_{self.iteration:03d}.yaml"))
-                if self.iteration > 2 and self._count_finish >= 3:
+                if self.iteration > 2 and self._count_finish >= 2:
                     self.message = self.message + "success"
                     break                    
                 elif self.iteration > self.max_iter:
