@@ -33,7 +33,7 @@ class BaseOptimizer(object):
                 
         self.current_state = torch.as_tensor(initial_state, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         if self.verbose > 1:
-            print("initial state: ", self.current_state)
+            AP_config.ap_logger.info("initial state: ", self.current_state)
         self.max_iter = kwargs.get("max_iter", 100*len(initial_state))
         self.iteration = 0
         self.save_steps = kwargs.get("save_steps", None)
