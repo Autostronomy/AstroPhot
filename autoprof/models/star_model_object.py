@@ -1,4 +1,5 @@
 from .model_object import BaseModel
+import torch
 
 __all__ = ["Star_Model"]
 

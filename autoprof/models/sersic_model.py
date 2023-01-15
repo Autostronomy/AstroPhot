@@ -1,6 +1,7 @@
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
+from .wedge_model import Wedge_Galaxy
 from .star_model_object import Star_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
@@ -314,7 +315,11 @@ class Sersic_Ray(Ray_Galaxy):
         if sample_image is None:
             sample_image = self.target
         return sersic_torch(R, self[f"n"].value[i], self[f"Re"].value[i], (10**self[f"Ie"].value[i]) * sample_image.pixelscale**2)
-        
+
+class Sersic_Wedge(Wedge_Galaxy):
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError("Sersic_Wedge not ready yet, coming soon")
+
 # class Sersic_Sersic_EdgeOn(EdgeOn_Model):
 #     """model for an edge-on galaxy with a exponential profile for the radial light
 #     profile and for the vertical light profile.

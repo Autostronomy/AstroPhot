@@ -112,7 +112,8 @@ def nuker_torch(R, Rb, Ib, alpha, beta, gamma):
         gamma: inner power law slope
 
     """
-    return Ib * (2**((beta-gamma)/alpha)) * ((R / Rb)**(-gamma)) * ((1 + (R/Rb)**alpha)**((gamma - beta)/alpha))
+    Rplus = R + 1e-8 # added for numerical stability near R = 0
+    return Ib * (2**((beta-gamma)/alpha)) * ((Rplus / Rb)**(-gamma)) * ((1 + (Rplus/Rb)**alpha)**((gamma - beta)/alpha))
 def nuker_np(R, Rb, Ib, alpha, beta, gamma):
     """Nuker 1d profile function, works with numpy functions
 
