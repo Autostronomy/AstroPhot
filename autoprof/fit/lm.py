@@ -278,7 +278,7 @@ class LM(BaseOptimizer):
             return
         elif self.iteration > 0:
             rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
-            AP_config.ap_logger.debug("LM loss, best loss, loss diff, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+            AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
             if rho > self.epsilon4:
                 AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
@@ -356,7 +356,7 @@ class LM(BaseOptimizer):
             self.L_up()
             return
         elif self.iteration > 0:
-            AP_config.ap_logger.debug("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+            AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
             AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             alpha = torch.dot(self.grad, h) 
             alpha = alpha / ((loss - np.nanmin(self.loss_history[:-1]))/2 + 2*alpha)
@@ -442,12 +442,12 @@ class LM(BaseOptimizer):
         elif self.iteration > 0:
             rho = self.rho_2(np.nanmin(self.loss_history[:-1]), loss, h)
             if self.verbose > 1:
-                AP_config.ap_logger.debug("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+                AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
             elif self.verbose > 0 and rho > self.epsilon4:
                 AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
             if self.verbose > 1:
-                AP_config.ap_logger.debug("rho: ", rho.item())
+                AP_config.ap_logger.debug(f"rho: {rho.item()}")
             if rho > self.epsilon4:
                 if self.verbose > 1:
                     AP_config.ap_logger.info("accept")
@@ -559,7 +559,7 @@ class LM(BaseOptimizer):
 
             
         if "fail" in self.message and self._count_finish > 0:
-            self.message = self.message + ". likely converged to numerical precision and could not make a better step, this is probably ok."
+            self.message = self.message + ". possibly converged to numerical precision and could not make a better step."
         self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
         self.model.finalize()
         if self.verbose > 1:

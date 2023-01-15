@@ -58,6 +58,7 @@ class AutoProf_Model(object):
     def __init__(self, name, *args, target = None, window = None, locked = False, **kwargs):
         assert ":" not in name and "|" not in name, "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
         self.name = name
+        AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
         self.equality_constraints = []
         self.requires_grad = kwargs.get("requires_grad", False)
@@ -190,7 +191,7 @@ class AutoProf_Model(object):
         return self.compute_loss()
 
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
-        raise NotImplementedError
+        raise NotImplementedError("please use a subclass of AutoProf_Model")
 
     @property
     def window(self):
@@ -235,8 +236,8 @@ class AutoProf_Model(object):
             return None
     @target.setter
     def target(self, tar):
-        self._target = tar
         assert tar is None or isinstance(tar, Target_Image)
+        self._target = tar
         
     @property
     def locked(self):

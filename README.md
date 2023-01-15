@@ -28,6 +28,7 @@ command to download the AutoProf tutorials. If you run into difficulty with this
 1. GroupModels
 1. ModelZoo
 1. MultibandModels
+1. CustomModels (if you're feeling bold)
 
 ## Documentation
 

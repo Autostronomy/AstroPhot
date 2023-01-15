@@ -111,9 +111,9 @@ class BaseImage(object):
         )
     
     def to(self, dtype = None, device = None):
-        if dtype is not None:
+        if dtype is None:
             dtype = AP_config.ap_dtype
-        if device is not None:
+        if device is None:
             device = AP_config.ap_device
         if self._data is not None:
             self._data = self._data.to(dtype = dtype, device = device)
@@ -204,7 +204,7 @@ class BaseImage(object):
             new_img.data -= other
             return new_img
         
-    def __add__(self, other): # fixme
+    def __add__(self, other):
         if isinstance(other, BaseImage):
             if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")

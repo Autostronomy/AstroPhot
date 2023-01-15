@@ -14,7 +14,6 @@ def dict_to_hdf5(h, D):
             n = h.create_group(key)
             dict_to_hdf5(n, D[key])
         else:
-            print(key, D[key])
             if hasattr(D[key], "__iter__") and not isinstance(D[key],str):
                 if to_hdf5_has_None(D[key]):
                     h[key] = str(D[key])

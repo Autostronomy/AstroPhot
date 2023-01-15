@@ -33,7 +33,7 @@ class BaseOptimizer(object):
                 
         self.current_state = torch.as_tensor(initial_state, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         if self.verbose > 1:
-            AP_config.ap_logger.info("initial state: ", self.current_state)
+            AP_config.ap_logger.info(f"initial state: {self.current_state}")
         self.max_iter = kwargs.get("max_iter", 100*len(initial_state))
         self.iteration = 0
         self.save_steps = kwargs.get("save_steps", None)
@@ -44,9 +44,9 @@ class BaseOptimizer(object):
         self.message = ""
 
     def fit(self):
-        pass
+        raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
     def step(self, current_state = None):
-        pass
+        raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
     def chi2min(self):
         return np.nanmin(self.loss_history)

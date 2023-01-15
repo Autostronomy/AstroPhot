@@ -2,6 +2,7 @@ from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np, exponential_torch, exponential_np, nonparametric_torch
 from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
+from .. import AP_config
 from scipy.special import gamma
 from scipy.stats import binned_statistic, iqr
 import numpy as np
@@ -100,7 +101,7 @@ def sersic_initialize(self, target = None):
     R = (np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale.item())
     flux = (np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale.item()**2)
     if np.sum(flux < 0) > 0:
-        print("fixing flux")
+        AP_config.ap_logger.debug("fixing flux")
         flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
     x0 = [
         2. if self["n"].value is None else self["n"].value.detach().cpu().item(),

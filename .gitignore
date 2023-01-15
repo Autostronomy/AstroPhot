@@ -2,6 +2,7 @@
 deleteme
 **.ipynb_checkpoints
 **.#*
+**.log
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg

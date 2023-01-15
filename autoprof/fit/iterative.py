@@ -68,7 +68,7 @@ class Iter(BaseOptimizer):
             else:
                 loss = torch.sum(((D - self.Y.flatten("data"))**2 / V)) / self.ndf
         if self.verbose > 0:
-            AP_config.ap_logger.info("Loss: ", loss.item())
+            AP_config.ap_logger.info(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy((self.current_state).detach().cpu().numpy()))
         self.loss_history.append(loss.item())
         
@@ -84,7 +84,7 @@ class Iter(BaseOptimizer):
 
         self.iteration = 0
         self.Y = self.model.full_sample(self.current_state, as_representation = True, override_locked = False, return_data = False)
-
+        start_fit = time()
         try:
             while True:
                 self.step()

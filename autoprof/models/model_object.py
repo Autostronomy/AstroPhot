@@ -118,7 +118,7 @@ class BaseModel(AutoProf_Model):
         # Compute center of mass in window
         COM = center_of_mass((init_icenter[0].detach().cpu().item(), init_icenter[1].detach().cpu().item()), target_area.data.detach().cpu().numpy())
         if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
-            print("center of mass failed, using center of window")
+            AP_config.ap_logger.warning("center of mass failed, using center of window")
             return
         # Convert center of mass indices to coordinates
         COM_center = index_to_coord(COM[0], COM[1], target_area)

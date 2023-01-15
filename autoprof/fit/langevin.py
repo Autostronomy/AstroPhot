@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from time import time
 from .base import BaseOptimizer
+from .. import AP_config
 
 __all__ = ["MALA"]
 
@@ -40,7 +41,6 @@ def simps(f, a:float, b:float, T:int=128, device=None) -> torch.Tensor:
     x = torch.linspace(a, b, T + 1, device=device)
     y = torch.zeros_like(x)
     for i in range(len(x)):
-        print(x[i])
         y[i] = f(x[i])
     S = dx / 3 * torch.sum(y[0:-1:2] + 4 * y[1::2] + y[2::2], axis=0)
     return S
@@ -73,10 +73,10 @@ class MALA(BaseOptimizer):
                 self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
                 
                 if self.iteration >= self.max_iter:
-                    print("max iter reached")
+                    self.message = self.message + "fail. max iterations reached"
                     break
         except KeyboardInterrupt:
-            print("interrupted")
+            self.message = self.message + "fail. interrupted"
             
         self.model.finalize()
             

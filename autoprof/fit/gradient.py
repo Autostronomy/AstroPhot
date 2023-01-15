@@ -76,16 +76,17 @@ class Grad(BaseOptimizer):
         self.loss_history.append(loss.detach().cpu().item())
         self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
         if self.verbose > 0:
-            print("loss: ", loss.item())
+            AP_config.ap_logger.info(f"loss: {loss.item()}")
         if self.verbose > 1:
-            print("gradient: ", self.current_state.grad)
+            AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
         
     def fit(self):
         """
         Perform an iterative fit of the model parameters using the specified optimizer
         """
-
+        start_fit = time()
+        
         try:
             while True:
                 self.step()
@@ -106,6 +107,7 @@ class Grad(BaseOptimizer):
         self.model.set_parameters(torch.tensor(self.res()), as_representation = True, override_locked = False)
         # finalize tells the model that optimization is now finished
         self.model.finalize()
-        
+        if self.verbose > 1:
+            AP_config.ap_logger.info("Grad Fitting complete in {time() - start_fit} sec with message: self.message")
         return self
         
