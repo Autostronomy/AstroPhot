@@ -19,4 +19,6 @@ from .foureirellipse_model import *
 from .wedge_model import *
 from .warp_model import *
 from .multiband_model import *
+from .moffat_model import *
+from .nuker_model import *
 # from .isophote_model import Isophote_Galaxy

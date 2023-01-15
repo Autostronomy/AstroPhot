@@ -49,7 +49,7 @@ class Sersic_Galaxy(Galaxy_Model):
     from ._shared_methods import sersic_initialize as initialize
 
 class Sersic_Star(Star_Model):
-    """basic galaxy model with a sersic profile for the radial light
+    """basic star model with a sersic profile for the radial light
     profile. The functional form of the Sersic profile is defined as:
 
     I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
