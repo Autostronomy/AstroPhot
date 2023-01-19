@@ -36,7 +36,7 @@ Further documentation is in development. In the meantime you can contact the aut
 
 ## Model Org Chart
 
-As a quick reference for what kinds of models are available in AutoProf, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. For example one could follow a fairly direct path to get a `sersic galaxy model`, or a more complex path to get a `sersic fourier warp model`.
+As a quick reference for what kinds of models are available in AutoProf, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. For example one could follow a fairly direct path to get a `sersic galaxy model`, or a more complex path to get a `sersic fourier warp galaxy model`.
 
 <img src="media/AutoProfModelOrgchart.png" alt="AutoProf model Orgchart"/>
 
