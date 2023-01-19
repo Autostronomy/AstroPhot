@@ -1,4 +1,4 @@
-from .model_object import BaseModel
+from .model_object import Base_Model
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import Rotate_Cartesian, Axis_Ratio_Cartesian, coord_to_index, index_to_coord
@@ -8,18 +8,18 @@ import numpy as np
 
 __all__ = ["EdgeOn_Model"]
 
-class EdgeOn_Model(BaseModel):
+class EdgeOn_Model(Base_Model):
     """General Edge-On galaxy model to be subclassed for any specific
     representation such as radial light profile or the structure of
     the galaxy on the sky. Defines an edgeon galaxy as an object with
     a position angle, no inclination information is included.
 
     """
-    model_type = f"edgeon {BaseModel.model_type}"
+    model_type = f"edgeon {Base_Model.model_type}"
     parameter_specs = {
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
-    _parameter_order = BaseModel._parameter_order + ("PA", )
+    _parameter_order = Base_Model._parameter_order + ("PA", )
 
     @torch.no_grad()
     def initialize(self, target = None):

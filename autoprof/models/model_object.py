@@ -11,10 +11,10 @@ import numpy as np
 import torch
 from .. import AP_config
 
-__all__ = ["BaseModel"]
+__all__ = ["Base_Model"]
 
-class BaseModel(AutoProf_Model):
-    """BaseModel(name, target, window, locked, **kwargs)
+class Base_Model(AutoProf_Model):
+    """Base_Model(name, target, window, locked, **kwargs)
 
     This is the basis for almost any model which represents a single
     object, or parametric form.  Subclassing models must define their

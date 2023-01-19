@@ -18,13 +18,13 @@ class TestModel(unittest.TestCase):
             psf = np.array([[0.05, 0.1, 0.05],[0.1, 0.4, 0.1],[0.05, 0.1, 0.05]]),
         )
 
-        mod = ap.models.BaseModel(name = "base model", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
+        mod = ap.models.Base_Model(name = "base model", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
 
         mod.initialize()
         
         self.assertFalse(mod.locked, "default model should not be locked")
         
-        self.assertTrue(torch.all(mod.sample().data == 0), "BaseModel model_image should be zeros")
+        self.assertTrue(torch.all(mod.sample().data == 0), "Base_Model model_image should be zeros")
 
         loss = mod.compute_loss()
         
@@ -117,8 +117,8 @@ class TestGroup(unittest.TestCase):
             variance = np.ones(shape)*(1.4**2),
         )
 
-        mod1 = ap.models.BaseModel(name = "base model 1", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
-        mod2 = ap.models.BaseModel(name = "base model 2", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
+        mod1 = ap.models.Base_Model(name = "base model 1", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
+        mod2 = ap.models.Base_Model(name = "base model 2", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
 
         smod = ap.models.AutoProf_Model(name = "group model", model_type = "groupmodel", model_list = [mod1, mod2], target = tar)
             
