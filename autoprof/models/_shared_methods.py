@@ -11,17 +11,14 @@ from scipy.stats import iqr
 import torch
 from scipy.optimize import minimize
 
-# Exponential
+# General parametric
 ######################################################################
 @torch.no_grad()
-def exponential_initialize(self, target = None):
-    if target is None:
-        target = self.target
-    super(self.__class__, self).initialize(target)
-    if all((self["Ie"].value is not None, self["Re"].value is not None)):
+def parametric_initialize(model, target, prof_func, params, x0_func, force_uncertainty = None):
+    if all(list(model[param].value is not None for param in params)):
         return
     # Get the sub-image area corresponding to the model image
-    target_area = target[self.window]
+    target_area = target[model.window]
     edge = np.concatenate((
         target_area.data.detach().cpu().numpy()[:,0],
         target_area.data.detach().cpu().numpy()[:,-1],
@@ -32,250 +29,145 @@ def exponential_initialize(self, target = None):
     edge_scatter = iqr(edge, rng = (16,84))/2
     # Convert center coordinates to target area array indices
     icenter = coord_to_index(
-        self["center"].value[0].detach().cpu().item(),
-        self["center"].value[1].detach().cpu().item(), target_area
-    )
-    iso_info = isophotes(
-        target_area.data.detach().cpu().numpy() - edge_average,
-        (icenter[1], icenter[0]),
-        threshold = 3*edge_scatter,
-        pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
-        q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
-        n_isophotes = 15
-    )
-    R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
-    flux = np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale**2
-    if np.sum(flux < 0) >= 1:
-        flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
-    x0 = [
-        R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().item(),
-        flux[4],
-    ]
-    res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(exponential_np(R, x[0], x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None)))
-    if self["Re"].value is None:
-        self["Re"].set_value(res.x[1], override_locked = True)
-    if self["Ie"].value is None:
-        self["Ie"].set_value(np.log10(res.x[2]), override_locked = True)
-    if self["Re"].uncertainty is None:
-        self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
-    if self["Ie"].uncertainty is None:
-        self["Ie"].set_uncertainty(0.02, override_locked = True)
-            
-def exponential_radial_model(self, R, sample_image = None):
-    if sample_image is None:
-        sample_image = self.target
-    return exponential_torch(R, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
-
-# Sersic
-######################################################################
-@torch.no_grad()
-def sersic_initialize(self, target = None):
-    if target is None:
-        target = self.target
-    super(self.__class__, self).initialize(target)
-    if all((self["n"].value is not None, self["Ie"].value is not None, self["Re"].value is not None)):
-        return
-    # Get the sub-image area corresponding to the model image
-    target_area = target[self.window]
-    edge = np.concatenate((
-        target_area.data.detach().cpu().numpy()[:,0],
-        target_area.data.detach().cpu().numpy()[:,-1],
-        target_area.data.detach().cpu().numpy()[0,:],
-        target_area.data.detach().cpu().numpy()[-1,:]
-    ))
-    edge_average = np.median(edge)
-    edge_scatter = iqr(edge, rng = (16,84))/2
-    # Convert center coordinates to target area array indices
-    icenter = coord_to_index(
-        self["center"].value[0],
-        self["center"].value[1], target_area
+        model["center"].value[0],
+        model["center"].value[1], target_area
     )
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold = 3*edge_scatter,
-        pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
-        q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
+        pa = model["PA"].value.detach().cpu().item() if "PA" in model else 0.,
+        q = model["q"].value.detach().cpu().item() if "q" in model else 1.,
         n_isophotes = 15
     )
-    R = (np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale.item())
-    flux = (np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale.item()**2)
-    if np.sum(flux < 0) > 0:
-        AP_config.ap_logger.debug("fixing flux")
-        flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
-    x0 = [
-        2. if self["n"].value is None else self["n"].value.detach().cpu().item(),
-        R[4] if self["Re"].value is None else self["Re"].value.detach().cpu().item(),
-        flux[4],
-    ]
-    def optim(x):
-        residual = (np.log10(flux) - np.log10(sersic_np(R, x[0], x[1], x[2])))**2
-        N = np.argsort(residual)
-        return np.mean(residual[:-3])
-    res = minimize(optim, x0 = x0, method = "Nelder-Mead") # , bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))
-    
-    if self["n"].value is None:
-        self["n"].set_value(res.x[0] if res.success else x0[0], override_locked = True)
-    if self["Re"].value is None:
-        self["Re"].set_value(res.x[1] if res.success else x0[1], override_locked = True)
-    if self["Ie"].value is None:
-        self["Ie"].set_value(np.log10(res.x[2] if res.success else x0[2]), override_locked = True)
-    if self["Re"].uncertainty is None:
-        self["Re"].set_uncertainty(0.02 * self["Re"].value.detach().cpu().item(), override_locked = True)
-    if self["Ie"].uncertainty is None:
-        self["Ie"].set_uncertainty(0.02, override_locked = True)
-            
-def sersic_radial_model(self, R, sample_image = None):
-    if sample_image is None:
-        sample_image = self.target
-    return sersic_torch(R, self["n"].value, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
-
-# Moffat Profile
-######################################################################
-@torch.no_grad()
-def moffat_initialize(self, target = None):
-    if target is None:
-        target = self.target
-    super(self.__class__, self).initialize(target)
-    if all((self["n"].value is not None, self["I0"].value is not None, self["Rd"].value is not None)):
-        return
-    # Get the sub-image area corresponding to the model image
-    target_area = target[self.window]
-    edge = np.concatenate((
-        target_area.data.detach().cpu().numpy()[:,0],
-        target_area.data.detach().cpu().numpy()[:,-1],
-        target_area.data.detach().cpu().numpy()[0,:],
-        target_area.data.detach().cpu().numpy()[-1,:]
-    ))
-    edge_average = np.median(edge)
-    edge_scatter = iqr(edge, rng = (16,84))/2
-    # Convert center coordinates to target area array indices
-    icenter = coord_to_index(
-        self["center"].value[0],
-        self["center"].value[1], target_area
-    )
-    iso_info = isophotes(
-        target_area.data.detach().cpu().numpy() - edge_average,
-        (icenter[1].item(), icenter[0].item()),
-        threshold = 3*edge_scatter,
-        pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
-        q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
-        n_isophotes = 15
-    )
-    R = (np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale.item())
-    flux = (np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale.item()**2)
-    if np.sum(flux < 0) > 0:
-        AP_config.ap_logger.debug("fixing flux")
-        flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
-    x0 = [
-        2. if self["n"].value is None else self["n"].value.detach().cpu().item(),
-        R[4] if self["Rd"].value is None else self["Rd"].value.detach().cpu().item(),
-        flux[0],
-    ]
-    def optim(x):
-        residual = (np.log10(flux) - np.log10(moffat_np(R, x[0], x[1], x[2])))**2
-        N = np.argsort(residual)
-        return np.mean(residual[:-3])
-    res = minimize(optim, x0 = x0, method = "Nelder-Mead") # , bounds = ((0.5,6), (R[1]*1e-3, None), (flux[0]*1e-3, None))
-    
-    if self["n"].value is None:
-        self["n"].set_value(res.x[0] if res.success else x0[0], override_locked = True)
-    if self["Rd"].value is None:
-        self["Rd"].set_value(res.x[1] if res.success else x0[1], override_locked = True)
-    if self["I0"].value is None:
-        self["I0"].set_value(np.log10(res.x[2] if res.success else x0[2]), override_locked = True)
-    if self["Rd"].uncertainty is None:
-        self["Rd"].set_uncertainty(0.02 * self["Rd"].value.detach().cpu().item(), override_locked = True)
-    if self["I0"].uncertainty is None:
-        self["I0"].set_uncertainty(0.02, override_locked = True)
-    
-def moffat_radial_model(self, R, sample_image = None):
-    if sample_image is None:
-        sample_image = self.target
-    return moffat_torch(R, self["n"].value, self["Rd"].value, (10**self["I0"].value)*sample_image.pixelscale**2)
-
-# Nuker Profile
-######################################################################
-@torch.no_grad()
-def nuker_initialize(self, target = None):
-    if target is None:
-        target = self.target
-    super(self.__class__, self).initialize(target)
-    if all(list(self[param].value is not None for param in ["Rb", "Ib", "alpha", "beta", "gamma"])):
-        return
-    # Get the sub-image area corresponding to the model image
-    target_area = target[self.window]
-    edge = np.concatenate((
-        target_area.data.detach().cpu().numpy()[:,0],
-        target_area.data.detach().cpu().numpy()[:,-1],
-        target_area.data.detach().cpu().numpy()[0,:],
-        target_area.data.detach().cpu().numpy()[-1,:]
-    ))
-    edge_average = np.median(edge)
-    edge_scatter = iqr(edge, rng = (16,84))/2
-    # Convert center coordinates to target area array indices
-    icenter = coord_to_index(
-        self["center"].value[0],
-        self["center"].value[1], target_area
-    )
-    iso_info = isophotes(
-        target_area.data.detach().cpu().numpy() - edge_average,
-        (icenter[1].item(), icenter[0].item()),
-        threshold = 3*edge_scatter,
-        pa = self["PA"].value.detach().cpu().item() if "PA" in self else 0.,
-        q = self["q"].value.detach().cpu().item() if "q" in self else 1.,
-        n_isophotes = 15
-    )
-    R = (np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale.item())
-    flux = (np.array(list(iso["flux"] for iso in iso_info)) / self.target.pixelscale.item()**2)
+    R = (np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale.item())
+    flux = (np.array(list(iso["flux"] for iso in iso_info)) / target.pixelscale.item()**2)
     if np.sum(flux < 0) > 0:
         AP_config.ap_logger.debug("fixing flux")
         flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
     flux = np.log10(flux)
-    x0 = [
-        R[4] if self["Rb"].value is None else self["Rb"].value.detach().cpu().item(),
-        flux[4] if self["Ib"].value is None else self["Ib"].value.detach().cpu().item(),
-        1.,
-        2.,
-        0.5,
-    ]
-    def optim(x):
-        residual = (flux - np.log10(nuker_np(R, *x)))**2
+    x0 = list(x0_func(model, R, flux))
+    for i, param in enumerate(params):
+        x0[i] = x0[i] if model[param].value is None else model[param].value.item()
+    def optim(x, r, f):
+        residual = (f - np.log10(prof_func(r, *x)))**2
         N = np.argsort(residual)
         return np.mean(residual[:-3])
-    res = minimize(optim, x0 = x0, method = "Nelder-Mead")
-
-    for param, resx, x0x in zip(["Rb", "Ib", "alpha", "beta", "gamma"], res.x, x0):
-        if self[param].value is None:
-            self[param].set_value(resx if res.success else x0x, override_locked = True)
-        if self[param].uncertainty is None:
-            if param == "Ib":
-                self["Ib"].set_uncertainty(0.02, override_locked = True)
-            else:
-                self[param].set_uncertainty(abs(0.02 * self[param].value.detach().cpu().item()), override_locked = True)
-    
-def nuker_radial_model(self, R, sample_image = None):
-    if sample_image is None:
-        sample_image = self.target
-    return nuker_torch(R, self["Rb"].value, (10**self["Ib"].value)*sample_image.pixelscale**2, self["alpha"].value, self["beta"].value, self["gamma"].value)
-
-# Gaussian
-######################################################################
+    res = minimize(optim, x0 = x0, args = (R, flux), method = "Nelder-Mead")
+    if force_uncertainty is None:
+        reses = []
+        for i in range(10):
+            N = np.random.randint(0, len(R), len(R))
+            reses.append(minimize(optim, x0 = x0, args = (R[N], flux[N]), method = "Nelder-Mead"))
+    for param, resx, x0x in zip(params, res.x, x0):
+        if model[param].value is None:
+            model[param].set_value(resx if res.success else x0x, override_locked = True)
+        if force_uncertainty is None and model[param].uncertainty is None:
+            model[param].set_uncertainty(np.std(list(subres.x[params.index(param)] for subres in reses)), override_locked = True)
+        elif force_uncertainty is not None:
+            model[param].set_uncertainty(force_uncertainty[params.index(param)], override_locked = True)
+            
 @torch.no_grad()
-def gaussian_initialize(self, target = None):
-    if target is None:
-        target = self.target
-    super(self.__class__, self).initialize(target)
-    if all((self["sigma"].value is not None, self["flux"].value is not None)):
+def parametric_segment_initialize(model, target, prof_func, params, x0_func, segments, force_uncertainty = None):
+    if all(list(model[param].value is not None for param in params)):
         return
     # Get the sub-image area corresponding to the model image
-    target_area = target[self.window]
-    edge = np.concatenate((
-        target_area.data.detach().cpu().numpy()[:,0],
-        target_area.data.detach().cpu().numpy()[:,-1],
-        target_area.data.detach().cpu().numpy()[0,:],
-        target_area.data.detach().cpu().numpy()[-1,:]
-    ))
+    target_area = target[model.window]
+    edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
+    edge_average = np.median(edge)
+    edge_scatter = iqr(edge, rng = (16,84))/2
+    # Convert center coordinates to target area array indices
+    icenter = coord_to_index(
+        model["center"].value[0],
+        model["center"].value[1], target_area
+    )
+    iso_info = isophotes(
+        target_area.data.detach().cpu().numpy() - edge_average,
+        (icenter[1].item(), icenter[0].item()),
+        threshold = 3*edge_scatter,
+        pa = model["PA"].value.detach().cpu().item() if "PA" in model else 0.,
+        q = model["q"].value.detach().cpu().item() if "q" in model else 1.,
+        n_isophotes = 15,
+        more = True,
+    )
+    R = np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale.item()
+    was_none = list(False for i in range(len(params)))
+    for i, p in enumerate(params):
+        if model[p].value is None:
+            was_none[i] = True
+            model[p].set_value(np.zeros(segments), override_locked = True)
+            model[p].set_uncertainty(np.zeros(segments), override_locked = True)
+    for r in range(segments):
+        flux = []
+        for iso in iso_info:
+            modangles = (iso["angles"] - (model["PA"].value.detach().cpu().item() + r*np.pi/segments)) % np.pi
+            flux.append(np.median(iso["isovals"][np.logical_or(modangles < (0.5*np.pi/segments), modangles >= (np.pi*(1 - 0.5/segments)))]) / target.pixelscale.item()**2)
+        flux = np.array(flux)
+        if np.sum(flux < 0) >= 1:
+            flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
+        flux = np.log10(flux)
+        
+        x0 = list(x0_func(model, R, flux))
+        for i, param in enumerate(params):
+            x0[i] = x0[i] if was_none[i] else model[param].value.detach().cpu().numpy()[r]
+        res = minimize(lambda x: np.mean((flux - np.log10(prof_func(R, *x)))**2), x0 = x0, method = "Nelder-Mead")
+        if force_uncertainty is None:
+            reses = []
+            for i in range(10):
+                N = np.random.randint(0, len(R), len(R))
+                reses.append(minimize(lambda x: np.mean((flux - np.log10(prof_func(R, *x)))**2), x0 = x0, method = "Nelder-Mead"))
+        for i, param in enumerate(params):
+            if was_none[i]:
+                model[param].set_value(res.x[i] if res.success else x0[i], override_locked = True, index = r)
+                if force_uncertainty is None and model[param].uncertainty is None:
+                    model[param].set_uncertainty(np.std(list(subres.x[params.index(param)] for subres in reses)), override_locked = True, index = r)
+                elif force_uncertainty is not None:
+                    model[param].set_uncertainty(force_uncertainty[params.index(param)][r], override_locked = True, index = r)
+
+# Exponential
+######################################################################
+def exponential_radial_model(self, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return exponential_torch(R, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
+def exponential_iradial_model(self, i, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return exponential_torch(R, self["Re"].value[i], (10**self["Ie"].value[i]) * sample_image.pixelscale**2)
+
+# Sersic
+######################################################################
+def sersic_radial_model(self, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return sersic_torch(R, self["n"].value, self["Re"].value, (10**self["Ie"].value) * sample_image.pixelscale**2)
+def sersic_iradial_model(self, i, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return sersic_torch(R, self["n"].value[i], self["Re"].value[i], (10**self["Ie"].value[i]) * sample_image.pixelscale**2)
+
+# Moffat
+######################################################################
+def moffat_radial_model(self, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return moffat_torch(R, self["n"].value, self["Rd"].value, (10**self["I0"].value)*sample_image.pixelscale**2)
+def moffat_iradial_model(self, i, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return moffat_torch(R, self["n"].value[i], self["Rd"].value[i], (10**self["I0"].value[i])*sample_image.pixelscale**2)
+
+# Nuker Profile
+######################################################################
+@torch.no_grad()
+def nuker_i_initialize(self, target = None):
+    super(self.__class__, self).initialize()
+    params = ["Rb", "Ib", "alpha", "beta", "gamma"]
+    if all(list(self[param].value is not None for param in params)):
+        return
+    # Get the sub-image area corresponding to the model image
+    target_area = self.target[self.window]
+    edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
     edge_average = np.median(edge)
     edge_scatter = iqr(edge, rng = (16,84))/2
     # Convert center coordinates to target area array indices
@@ -288,29 +180,53 @@ def gaussian_initialize(self, target = None):
         (icenter[1], icenter[0]),
         threshold = 3*edge_scatter,
         pa = self["PA"].value.detach().cpu().item(), q = self["q"].value.detach().cpu().item(),
-        n_isophotes = 15
+        n_isophotes = 15,
+        more = True,
     )
     R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
-    flux = np.array(list(iso["flux"] for iso in iso_info))
-    if np.sum(flux < 0) >= 1:
-        flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
-    x0 = [
-        R[-1]/5 if self["sigma"].value is None else self["sigma"].value.detach().cpu().item(),
-        np.log10(np.sum(target_area.data.detach().cpu().numpy()) if self["flux"].value is None else self["flux"].value.detach().cpu().item()),
-    ]
-    res = minimize(lambda x: np.mean((np.log10(flux) - np.log10(gaussian_np(R, x[0], 10**x[1])))**2), x0 = x0, method = "SLSQP", bounds = ((R[1]*1e-3, None), (flux[0]*1e-3, None))) #, method = 'Nelder-Mead'
-    for i, param in enumerate(["sigma", "flux"]):
-        if self[param].value is None:
-            self[param].set_value(res.x[i], override_locked = True)
-    if self["sigma"].uncertainty is None:
-        self["sigma"].set_uncertainty(0.02 * self["sigma"].value.detach().cpu().item(), override_locked = True)
-    if self["flux"].uncertainty is None:
-        self["flux"].set_uncertainty(0.02 * np.abs(self["flux"].value.detach().cpu().item()), override_locked = True)
+    was_none = list(False for i in range(len(params)))
+    for i, p in enumerate(params):
+        if self[p].value is None:
+            was_none[i] = True
+            self[p].set_value(np.zeros(self.rays), override_locked = True)
+    for r in range(self.rays):
+        flux = []
+        for iso in iso_info:
+            modangles = (iso["angles"] - (self["PA"].value.detach().cpu().item() + r*np.pi/self.rays)) % np.pi
+            flux.append(np.median(iso["isovals"][np.logical_or(modangles < (0.5*np.pi/self.rays), modangles >= (np.pi*(1 - 0.5/self.rays)))]) / self.target.pixelscale**2)
+        flux = np.array(flux)
+        if np.sum(flux < 0) >= 1:
+            flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
+        flux = np.log10(flux)
+        
+        x0 = [R[4], flux[4], 1., 2., 0.5]
+        for i, param in enumerate(params):
+            x0[i] = x0[i] if self[params].value is None else self[params].value.detach().cpu().item()[r]
+        res = minimize(lambda x: np.mean((flux - np.log10(nuker_np(R, *x)))**2), x0 = x0, method = "Nelder-Mead")
+        for i, param in enumerate(params):
+            if was_none[i]:
+                self[param].set_value(res.x[i], override_locked = True, index = r)
+                self[param].set_uncertainty(0.02 * self[param].value.detach().cpu().numpy()[r], override_locked = True, index = r)
+                
+def nuker_radial_model(self, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return nuker_torch(R, self["Rb"].value, (10**self["Ib"].value)*sample_image.pixelscale**2, self["alpha"].value, self["beta"].value, self["gamma"].value)
+def nuker_iradial_model(self, i, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return nuker_torch(R, self["Rb"].value[i], (10**self["Ib"].value[i])*sample_image.pixelscale**2, self["alpha"].value[i], self["beta"].value[i], self["gamma"].value[i])
 
+# Gaussian
+######################################################################
 def gaussian_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
     return gaussian_torch(R, self["sigma"].value, (10**self["flux"].value)*sample_image.pixelscale**2)
+def gaussian_iradial_model(self, i, R, sample_image = None):
+    if sample_image is None:
+        sample_image = self.target
+    return gaussian_torch(R, self["sigma"].value[i], (10**self["flux"].value[i])*sample_image.pixelscale**2)
 
 # NonParametric
 ######################################################################

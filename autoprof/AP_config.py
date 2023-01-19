@@ -6,8 +6,13 @@ __all__ = ["ap_dtype", "ap_device", "ap_logger", "set_logging_output"]
 
 ap_dtype = torch.float64
 ap_device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
 logging.basicConfig(filename = "AutoProf.log", level = logging.INFO, format = "%(asctime)s:%(levelname)s: %(message)s")
 ap_logger = logging.getLogger()
+out_handler = logging.StreamHandler(sys.stdout)
+out_handler.setLevel(logging.INFO)
+out_handler.setFormatter(logging.Formatter("%(message)s"))
+ap_logger.addHandler(out_handler)
 
 def set_logging_output(stdout = True, filename = None, **kwargs):
     """Change the logging system for AutoProf. Here you can set whether

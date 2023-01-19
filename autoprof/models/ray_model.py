@@ -39,7 +39,7 @@ class Ray_Galaxy(Galaxy_Model):
         return torch.atan2(Y, X)
     
     def polar_model(self, R, T, image):
-        model = torch.zeros(R.shape)
+        model = torch.zeros_like(R)
         if self.rays % 2 == 0 and self.symmetric_rays:
             for r in range(self.rays):
                 angles = (T - (r*np.pi/self.rays)) % np.pi
