@@ -6,27 +6,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .. import AP_config
 
-__all__ = ["Multiband_Model"]
+__all__ = ["Joint_Model"]
 
-class Multiband_Model(Group_Model):
-    """A multi-band model functions similarly to a group model object,
-    except that instead of a single target for all models in the model
-    list, there is a unique target for each model. The target for a
-    multiband model is a Target_Image_List object which stores a
-    pointer to each target from the models in the multiband model
-    model list. Similarly, the model image that is output from
-    sampling the multiband model is a Model_Image_List object which
-    stores a pointer to the model image output from each of the
-    individual models. At a high level, the multiband model operates
-    like a group model object and in most cases shouldn't be
-    operationally different.
+class Joint_Model(Group_Model):
+    """A joint model functions similarly to a group model object, except
+    that instead of a single target for all models in the model list,
+    there is a unique target for each model. The target for a joint
+    model is a Target_Image_List object which stores a pointer to each
+    target from the models in the joint model model list. Similarly,
+    the model image that is output from sampling the joint model is a
+    Model_Image_List object which stores a pointer to the model image
+    output from each of the individual models. At a high level, the
+    joint model operates like a group model object and in most cases
+    shouldn't be operationally different.
 
     """
 
-    model_type = f"multiband"
+    model_type = f"jointmodel"
 
     def sync_target(self):
-        """Ensure that the target list object held by the multiband model
+        """Ensure that the target list object held by the joint model
         matches the targets of the individual models that it holds.
 
         """
@@ -67,7 +66,7 @@ class Multiband_Model(Group_Model):
     @target.setter
     def target(self, tar):
         self._target = tar
-        assert tar is None or isinstance(tar, Target_Image_List), f"multiband model object needs Target_Image_List object, not {type(tar)}"
+        assert tar is None or isinstance(tar, Target_Image_List), f"joint model object needs Target_Image_List object, not {type(tar)}"
 
     @torch.no_grad()
     def initialize(self, targets = None):
@@ -102,7 +101,7 @@ class Multiband_Model(Group_Model):
         return sample_image
 
     def compute_loss(self, return_sample = False):
-        """Compute the Chi^2 for the multiband model.
+        """Compute the Chi^2 for the joint model.
 
         """
         loss = 0
@@ -137,9 +136,9 @@ class Multiband_Model(Group_Model):
         return np.array(sizes, dtype = int)
         
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
-        """Compute the jacobian for the full multiband model object. Unless
+        """Compute the jacobian for the full joint model object. Unless
         flatten is True, the jacobian will have the same shape as the
-        individual images for the multiple bands plus an extra
+        individual images for the multiple images plus an extra
         dimension which holds the values for each parameter.
 
         """

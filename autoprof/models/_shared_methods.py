@@ -159,55 +159,6 @@ def moffat_iradial_model(self, i, R, sample_image = None):
 
 # Nuker Profile
 ######################################################################
-@torch.no_grad()
-def nuker_i_initialize(self, target = None):
-    super(self.__class__, self).initialize()
-    params = ["Rb", "Ib", "alpha", "beta", "gamma"]
-    if all(list(self[param].value is not None for param in params)):
-        return
-    # Get the sub-image area corresponding to the model image
-    target_area = self.target[self.window]
-    edge = np.concatenate((target_area.data[:,0], target_area.data[:,-1], target_area.data[0,:], target_area.data[-1,:]))
-    edge_average = np.median(edge)
-    edge_scatter = iqr(edge, rng = (16,84))/2
-    # Convert center coordinates to target area array indices
-    icenter = coord_to_index(
-        self["center"].value[0].detach().cpu().item(),
-        self["center"].value[1].detach().cpu().item(), target_area
-    )
-    iso_info = isophotes(
-        target_area.data.detach().cpu().numpy() - edge_average,
-        (icenter[1], icenter[0]),
-        threshold = 3*edge_scatter,
-        pa = self["PA"].value.detach().cpu().item(), q = self["q"].value.detach().cpu().item(),
-        n_isophotes = 15,
-        more = True,
-    )
-    R = np.array(list(iso["R"] for iso in iso_info)) * self.target.pixelscale
-    was_none = list(False for i in range(len(params)))
-    for i, p in enumerate(params):
-        if self[p].value is None:
-            was_none[i] = True
-            self[p].set_value(np.zeros(self.rays), override_locked = True)
-    for r in range(self.rays):
-        flux = []
-        for iso in iso_info:
-            modangles = (iso["angles"] - (self["PA"].value.detach().cpu().item() + r*np.pi/self.rays)) % np.pi
-            flux.append(np.median(iso["isovals"][np.logical_or(modangles < (0.5*np.pi/self.rays), modangles >= (np.pi*(1 - 0.5/self.rays)))]) / self.target.pixelscale**2)
-        flux = np.array(flux)
-        if np.sum(flux < 0) >= 1:
-            flux -= np.min(flux) - np.abs(np.min(flux)*0.1)
-        flux = np.log10(flux)
-        
-        x0 = [R[4], flux[4], 1., 2., 0.5]
-        for i, param in enumerate(params):
-            x0[i] = x0[i] if self[params].value is None else self[params].value.detach().cpu().item()[r]
-        res = minimize(lambda x: np.mean((flux - np.log10(nuker_np(R, *x)))**2), x0 = x0, method = "Nelder-Mead")
-        for i, param in enumerate(params):
-            if was_none[i]:
-                self[param].set_value(res.x[i], override_locked = True, index = r)
-                self[param].set_uncertainty(0.02 * self[param].value.detach().cpu().numpy()[r], override_locked = True, index = r)
-                
 def nuker_radial_model(self, R, sample_image = None):
     if sample_image is None:
         sample_image = self.target
@@ -232,6 +183,57 @@ def gaussian_iradial_model(self, i, R, sample_image = None):
 ######################################################################
 @torch.no_grad()
 def nonparametric_initialize(self, target = None):
+    if target is None:
+        target = self.target
+    super(self.__class__, self).initialize(target)
+
+    if self["I(R)"].value is not None:
+        # Create the I(R) profile radii to match the input profile intensity values
+        if self["I(R)"].prof is None:
+            # create logarithmically spaced profile radii
+            new_prof = [0] + list(np.logspace(
+                np.log10(2*target.pixelscale),
+                np.log10(np.sqrt(torch.sum((self.window.shape/2)**2).item())),
+                len(self["I(R)"].value),
+            ))
+            new_prof.pop(-2)
+            # ensure no step is smaller than a pixelscale
+            for i in range(1,len(new_prof)):
+                if new_prof[i] - new_prof[i-1] < target.pixelscale.item():
+                    new_prof[i] = new_prof[i-1] + target.pixelscale.item()
+            self["I(R)"].set_profile(new_prof)
+        return
+    
+    # Create the I(R) profile radii if needed
+    if self["I(R)"].prof is None:
+        new_prof = [0,2*target.pixelscale]
+        while new_prof[-1] < torch.max(self.window.shape/2):
+            new_prof.append(new_prof[-1] + torch.max(2*target.pixelscale,new_prof[-1]*0.2))
+        new_prof.pop()
+        new_prof.pop()
+        new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
+        self["I(R)"].set_profile(new_prof)
+        
+    profR = self["I(R)"].prof.detach().cpu().numpy()
+    target_area = target[self.window]
+    X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+    X, Y = self.transform_coordinates(X, Y)
+    R = self.radius_metric(X, Y).detach().cpu().numpy()
+    rad_bins = [profR[0]] + list((profR[:-1] + profR[1:])/2) + [profR[-1]*100]
+    raveldat = target_area.data.detach().cpu().numpy().ravel()
+    I = binned_statistic(R.ravel(), raveldat, statistic = 'median', bins = rad_bins)[0] / target_area.pixelscale.item()**2
+    N = np.isfinite(I)
+    if not np.all(N):
+        I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
+    S = binned_statistic(R.ravel(), raveldat, statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
+    N = np.isfinite(S)
+    if not np.all(N):
+        S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
+    self["I(R)"].set_value(np.log10(np.abs(I)), override_locked = True)
+    self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True)
+
+@torch.no_grad()
+def nonparametric_segment_initialize(self, target = None):
     if target is None:
         target = self.target
     super(self.__class__, self).initialize(target)

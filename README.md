@@ -34,6 +34,12 @@ command to download the AutoProf tutorials. If you run into difficulty with this
 
 Further documentation is in development. In the meantime you can contact the author [Connor Stone](https://connorjstone.com/) for any questions not answered by the tutorials.
 
+## Model Org Chart
+
+As a quick reference for what kinds of models are available in AutoProf, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. For example one could follow a fairly direct path to get a `sersic galaxy model`, or a more complex path to get a `sersic fourier warp model`.
+
+<img src="media/AutoProfModelOrgchart.png" alt="AutoProf model Orgchart"/>
+
 ## Credit / Citation
 
 If you use AutoProf in your research, please credit the author by citing: [ADS Bibliographic Record](https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.1870S/abstract). A new paper for the updated AutoProf code is in the works.

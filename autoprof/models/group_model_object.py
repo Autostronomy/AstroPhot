@@ -206,7 +206,7 @@ class Group_Model(AutoProf_Model):
         
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
         if isinstance(self.window, Window_List):
-            raise NotImplementedError("Jacobian doesnt work for multiband models yet, it will soon")
+            raise NotImplementedError("Jacobian doesnt work for joint models yet, it will soon")
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
         param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
