@@ -14,6 +14,8 @@ However, for AutoProf to run you will need to install pytorch as well. Installin
 
 Also note that AutoProf is only available for python3.
 
+You can fork the GitHub if you want to do some serious customization, everything will be in the `autoprof` directory once you download the source.
+
 ## Getting started
 
 The easiest way to get started using AutoProf is to try running the jupyter notebook tutorials. Simply make a new directory where you want to run the tutorials then run the:
@@ -27,7 +29,7 @@ command to download the AutoProf tutorials. If you run into difficulty with this
 1. GettingStarted
 1. GroupModels
 1. ModelZoo
-1. MultibandModels
+1. JointModels
 1. CustomModels (if you're feeling bold)
 
 ## Documentation
