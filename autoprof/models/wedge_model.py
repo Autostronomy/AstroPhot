@@ -25,6 +25,8 @@ class Wedge_Galaxy(Galaxy_Model):
 
     model_type = f"wedge {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]
+    useable = False
+    
     def __init__(self, *args, **kwargs):
         self.symmetric_wedges = True
         super().__init__(*args, **kwargs)

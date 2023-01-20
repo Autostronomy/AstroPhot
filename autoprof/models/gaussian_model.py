@@ -39,6 +39,7 @@ class Gaussian_Galaxy(Galaxy_Model):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -69,6 +70,7 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -99,6 +101,7 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -130,6 +133,7 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -161,6 +165,7 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -191,6 +196,7 @@ class Gaussian_Warp(Warp_Galaxy):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -221,6 +227,7 @@ class Gaussian_Star(Star_Model):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -255,6 +262,7 @@ class Gaussian_Ray(Ray_Galaxy):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("sigma", "flux")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -287,6 +295,7 @@ class Gaussian_Wedge(Wedge_Galaxy):
         "flux": {"units": "log10(flux)", "limits": (0,None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("sigma", "flux")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):

@@ -27,6 +27,7 @@ class PSF_Star(Star_Model):
         "flux": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Star_Model._parameter_order + ("flux",)
+    useable = True
     
     lanczos_kernel_size = 5
     clip_lanczos_kernel = True

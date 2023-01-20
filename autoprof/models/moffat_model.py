@@ -36,6 +36,7 @@ class Moffat_Galaxy(Galaxy_Model):
         "I0": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("n", "Rd", "I0")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -70,6 +71,7 @@ class Moffat_Star(Star_Model):
         "I0": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Star_Model._parameter_order + ("n", "Rd", "I0")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):

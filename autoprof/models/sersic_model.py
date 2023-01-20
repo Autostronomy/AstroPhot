@@ -51,6 +51,7 @@ class Sersic_Galaxy(Galaxy_Model):
         "Ie": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -87,6 +88,7 @@ class Sersic_Star(Star_Model):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Star_Model._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -125,6 +127,7 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -161,6 +164,7 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -197,6 +201,7 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -233,6 +238,7 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -269,6 +275,7 @@ class Sersic_Warp(Warp_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -304,6 +311,7 @@ class Sersic_Ray(Ray_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -340,6 +348,7 @@ class Sersic_Wedge(Wedge_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("n", "Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):

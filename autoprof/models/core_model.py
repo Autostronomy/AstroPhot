@@ -33,20 +33,21 @@ class AutoProf_Model(object):
         model_type: a model type string can determine which kind of AutoProf model is instantiated [str]
     """
 
-    model_type = ""
+    model_type = "model"
     constraint_strength = 10.
+    useable = False
     
     def __new__(cls, *args, filename = None, model_type = None, **kwargs):
         if filename is not None:
             state = AutoProf_Model.load(filename)
-            MODELS = all_subclasses(AutoProf_Model)
+            MODELS = AutoProf_Model.List_Models()
             for M in MODELS:
                 if M.model_type == state["model_type"]:
                     return super(AutoProf_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(f"Unknown AutoProf model type: {state['model_type']}")
         elif model_type is not None:
-            MODELS = all_subclasses(AutoProf_Model)
+            MODELS = AutoProf_Model.List_Models() #all_subclasses(AutoProf_Model)
             for M in MODELS:
                 if M.model_type == model_type:
                     return super(AutoProf_Model, cls).__new__(M)
@@ -335,6 +336,23 @@ class AutoProf_Model(object):
             else:
                 raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary.")
         return state
+
+    @classmethod
+    def List_Models(cls, useable = None):
+        MODELS = all_subclasses(cls)
+        if useable is not None:
+            for model in list(MODELS):
+                if model.useable is not useable:
+                    MODELS.remove(model)
+        return MODELS
+                
+    @classmethod
+    def List_Model_Names(cls, useable = None):
+        MODELS = cls.List_Models(useable = useable)
+        names = []
+        for model in MODELS:
+            names.append(model.model_type)
+        return list(sorted(names, key = lambda n: n[::-1]))
         
     def __eq__(self, other):
         return self is other

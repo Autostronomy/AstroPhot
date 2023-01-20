@@ -14,6 +14,7 @@ class Star_Model(Base_Model):
 
     """
     model_type = f"star {Base_Model.model_type}"
+    useable = False
     
     def radius_metric(self, X, Y):
         return torch.sqrt((torch.abs(X)+1e-8)**2 + (torch.abs(Y)+1e-8)**2) # epsilon added for numerical stability of gradient

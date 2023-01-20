@@ -19,7 +19,7 @@ from scipy.optimize import minimize
 __all__ = [
     "Exponential_Galaxy", "Exponential_Star", "Exponential_SuperEllipse",
     "Exponential_SuperEllipse_Warp", "Exponential_Warp", "Exponential_Ray",
-    "Exponential_Wedge", "Exponential_Exponential_EdgeOn", "Exponential_Sech2_EdgeOn"]
+    "Exponential_Wedge"] # "Exponential_Exponential_EdgeOn", "Exponential_Sech2_EdgeOn"
 
 def _x0_func(model_params, R, F):
     return R[4], F[4]
@@ -49,6 +49,7 @@ class Exponential_Galaxy(Galaxy_Model):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -80,6 +81,7 @@ class Exponential_Star(Star_Model):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Star_Model._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -114,6 +116,7 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -145,6 +148,7 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -176,6 +180,7 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -207,6 +212,7 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -238,6 +244,7 @@ class Exponential_Warp(Warp_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("Re", "Ie")
+    useable = True
 
     def initialize(self, target = None):
         if target is None:
@@ -269,6 +276,7 @@ class Exponential_Ray(Ray_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -302,6 +310,7 @@ class Exponential_Wedge(Wedge_Galaxy):
         "Re": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("Re", "Ie")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -418,6 +427,7 @@ class Exponential_Exponential_EdgeOn(EdgeOn_Model):
         "Rz": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "Rz")
+    useable = True
 
     def brightness_model(R, h, sample_image = None):
         if sample_image is None:
@@ -446,6 +456,7 @@ class Exponential_Sech2_EdgeOn(EdgeOn_Model):
         "hz": {"units": "arcsec", "limits": (0,None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "hz")
+    useable = True
 
     def brightness_model(R, h, sample_image = None):
         if sample_image is None:

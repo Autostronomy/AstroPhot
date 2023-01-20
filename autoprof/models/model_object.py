@@ -23,8 +23,6 @@ class Base_Model(AutoProf_Model):
     
     """
 
-    # name of the model that AutoProf uses to identify
-    model_type = "model"
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
@@ -48,6 +46,7 @@ class Base_Model(AutoProf_Model):
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
+    useable = False
     
     def __init__(self, name, *args, **kwargs):        
         super().__init__(name, *args, **kwargs)

@@ -18,6 +18,7 @@ class Flat_Sky(Sky_Model):
         "sky": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Sky_Model._parameter_order + ("sky",)
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):

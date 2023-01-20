@@ -120,7 +120,7 @@ class TestGroup(unittest.TestCase):
         mod1 = ap.models.Base_Model(name = "base model 1", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
         mod2 = ap.models.Base_Model(name = "base model 2", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
 
-        smod = ap.models.AutoProf_Model(name = "group model", model_type = "groupmodel", model_list = [mod1, mod2], target = tar)
+        smod = ap.models.AutoProf_Model(name = "group model", model_type = "group model", model_list = [mod1, mod2], target = tar)
             
         self.assertFalse(smod.locked, "default model state should not be locked")
         

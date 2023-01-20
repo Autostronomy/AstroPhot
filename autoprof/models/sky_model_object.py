@@ -14,6 +14,7 @@ class Sky_Model(Base_Model):
     parameter_specs = {
         "center": {"units": "arcsec", "locked": True, "uncertainty": 0.0},
     }
+    useable = False
 
     @property
     def psf_mode(self):

@@ -51,6 +51,7 @@ class Nuker_Galaxy(Galaxy_Model):
         "gamma": {"units": "none"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -91,6 +92,7 @@ class Nuker_Star(Star_Model):
         "gamma": {"units": "none"},
     }
     _parameter_order = Star_Model._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -134,6 +136,7 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
         "gamma": {"units": "none"},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -175,6 +178,7 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
         "gamma": {"units": "none"},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -215,6 +219,7 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
         "gamma": {"units": "none"},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -255,6 +260,7 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
         "gamma": {"units": "none"},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -295,6 +301,7 @@ class Nuker_Warp(Warp_Galaxy):
         "gamma": {"units": "none"},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -334,6 +341,7 @@ class Nuker_Ray(Ray_Galaxy):
         "gamma": {"units": "none"},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):
@@ -374,6 +382,7 @@ class Nuker_Wedge(Wedge_Galaxy):
         "gamma": {"units": "none"},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):

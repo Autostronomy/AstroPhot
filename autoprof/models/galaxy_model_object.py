@@ -35,6 +35,7 @@ class Galaxy_Model(Base_Model):
         "PA": {"units": "radians", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
     _parameter_order = Base_Model._parameter_order + ("q", "PA")
+    useable = False
 
     @torch.no_grad()
     def initialize(self, target = None):

@@ -25,6 +25,7 @@ class Plane_Sky(Sky_Model):
         "delta": {"units": "sky/arcsec"},
     }
     _parameter_order = Sky_Model._parameter_order + ("sky", "delta")
+    useable = True
 
     @torch.no_grad()
     def initialize(self, target = None):        

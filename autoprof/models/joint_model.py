@@ -1,4 +1,5 @@
 from .group_model_object import Group_Model
+from .core_model import AutoProf_Model
 from ..image import Model_Image_List, Target_Image_List, Window_List
 from copy import deepcopy
 import torch
@@ -22,7 +23,8 @@ class Joint_Model(Group_Model):
 
     """
 
-    model_type = f"jointmodel"
+    model_type = f"joint {AutoProf_Model.model_type}"
+    useable = True
 
     def sync_target(self):
         """Ensure that the target list object held by the joint model

@@ -20,6 +20,7 @@ class EdgeOn_Model(Base_Model):
         "PA": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
     _parameter_order = Base_Model._parameter_order + ("PA", )
+    useable = False
 
     @torch.no_grad()
     def initialize(self, target = None):

@@ -30,6 +30,8 @@ class Ray_Galaxy(Galaxy_Model):
     """
     model_type = f"ray {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["rays"]
+    useable = False
+    
     def __init__(self, *args, **kwargs):
         self.symmetric_rays = True
         super().__init__(*args, **kwargs)
