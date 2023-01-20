@@ -5,7 +5,6 @@ from .wedge_model import Wedge_Galaxy
 from .star_model_object import Star_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from .edgeon_model import EdgeOn_Model
 from ._shared_methods import parametric_initialize, parametric_segment_initialize
 import torch
 import numpy as np
@@ -19,7 +18,7 @@ __all__ = [
     "Sersic_Galaxy", "Sersic_Star", "Sersic_Warp",
     "Sersic_SuperEllipse", "Sersic_FourierEllipse", "Sersic_Ray",
     "Sersic_Wedge", "Sersic_SuperEllipse_Warp", "Sersic_FourierEllipse_Warp"
-] # , "Sersic_Sersic_EdgeOn", "Sersic_Sech2_EdgeOn"
+]
 
 def _x0_func(model, R, F):
     return 2., R[4], F[4]
@@ -359,39 +358,3 @@ class Sersic_Wedge(Wedge_Galaxy):
         parametric_segment_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func, self.wedges)
 
     from ._shared_methods import sersic_iradial_model as iradial_model
-
-# class Sersic_Sersic_EdgeOn(EdgeOn_Model):
-#     """model for an edge-on galaxy with a exponential profile for the radial light
-#     profile and for the vertical light profile.
-
-#     """
-#     model_type = f"sersicsersic {EdgeOn_Model.model_type}"
-#     parameter_specs = {
-#         "I0": {"units": "log10(flux/arcsec^2)"},
-#         "Rr": {"units": "arcsec", "limits": (0,None)},
-#         "Rz": {"units": "arcsec", "limits": (0,None)},
-#     }
-#     _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "Rz")
-
-#     def brightness_model(R, h, image):
-#         if sample_image is None:
-#             sample_image = self.model_image
-#         return self["I0"] * torch.exp(- R / self["Rr"]) * torch.exp(- h / self["Rz"])
-
-# class Sersic_Sech2_EdgeOn(EdgeOn_Model):
-#     """model for an edge-on galaxy with a exponential profile for the radial light
-#     profile and a sech^2 profile for the vertical component.
-
-#     """
-#     model_type = f"sersicsech2 {EdgeOn_Model.model_type}"
-#     parameter_specs = {
-#         "I0": {"units": "log10(flux/arcsec^2)"},
-#         "Rr": {"units": "arcsec", "limits": (0,None)},
-#         "hz": {"units": "arcsec", "limits": (0,None)},
-#     }
-#     _parameter_order = Galaxy_Model._parameter_order + ("R0", "Rr", "hz")
-
-#     def brightness_model(R, h, image):
-#         if sample_image is None:
-#             sample_image = self.model_image
-#         return self["I0"] * torch.exp(- R / self["Rr"]) * torch.sech(- h / self["hz"])**2
