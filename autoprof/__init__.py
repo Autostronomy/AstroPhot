@@ -6,7 +6,7 @@ from . import fit
 from . import AP_config
 
 # meta data
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __author__ = "Connor Stone"
 __email__ = "connorston628@gmail.com"
 
@@ -16,17 +16,27 @@ def run_from_terminal():
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog = "autoprof",
-        description = "Fast and flexible photometry reduction package",
+        description = "Fast and flexible astronomical image photometry package",
         epilog = "Please contact connor stone (connorstone628@gmail.com) for further assistance."
     )
 
-    parser.add_argument("filename", type = str, help = "the path to the configuration file. Or just 'tutorial' to download tutorials.")
+    parser.add_argument(
+        "filename",
+        nargs = "?",
+        help = "the path to the configuration file. Or just 'tutorial' to download tutorials."
+    )
     parser.add_argument(
         "-c", "--config",
         type = str,
         default = "autoprof",
         choices = ["autoprof", "galfit"],
         help = "The type of configuration file being being provided. One of: autoprof, galfit.",
+    )
+    parser.add_argument(
+        "-v", "--version",
+        action = "version",
+        version = f"%(prog)s {__version__}",
+        help = "print the current AutoProf version to screen",
     )
     args = parser.parse_args()
     
@@ -36,7 +46,7 @@ def run_from_terminal():
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/GettingStarted.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/GroupModels.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/MultibandModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/JointModels.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/CustomModels.ipynb",
         ]
         for url in tutorials:

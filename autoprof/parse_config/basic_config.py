@@ -25,16 +25,23 @@ def basic_config(config_file):
     ######################################################################
     target_file = config.get("ap_target_file", None)
     target_hdu = config.get("ap_target_hdu", 0)
+    variance_file = config.get("ap_variance_file", None)
+    variance_hdu = config.get("ap_variance_hdu", 0)
     target_pixelscale = config.get("ap_target_pixelscale", None)
     target_zeropoint = config.get("ap_target.zeropoint", None)
     target_origin = config.get("ap_target_origin", None)
 
+    if variance_file is not None:
+        var_data = np.array(fits.open(target_file)[target_hdu].data, dtype = np.float64)
+    else:
+        var_data = None
     if target_file is not None:
         data = np.array(fits.open(target_file)[target_hdu].data, dtype = np.float64)
         target = Target_Image(
             data = data,
             pixelscale = target_pixelscale,
             zeropoint = target_zeropoint,
+            variance = var_data,
             origin = target_origin,
         )
 
