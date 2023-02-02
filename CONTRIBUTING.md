@@ -4,6 +4,13 @@ Thank you for taking time to help make AutoProf better for everyone! Your contri
 
 In this guide you will get an overview of the contribution workflow from opening an issue, creating a PR, reviewing, and merging the PR. The workflow for contributing to AutoProf is quite standard, nonetheless we include details here for clarity.
 
+## Setup
+
+To begin working on the development of AutoProf, you will need to install the developer version of the code. 
+Instead of simply using `pip install autoprof` you will instead clone the main branch.
+Once you have cloned to a suitable location, cd into the root folder and run `pip install -e .` this tells pip to install AutoProf in an editable format.
+Any changes you make to the AutoProf code base will be reflected the next time you use `import autoprof as ap` or however you interact with the code.
+
 ## Main Workflow
 
 ### Creating an Issue
@@ -20,7 +27,7 @@ Please don't assign other people to an issue unless they have explicitly asked y
 
 ### Solving an Issue
 
-To begin solving an Issue, clone the current main branch, then make a new branch with a concise name that reflects the Issue at hand.
+To begin solving an Issue make a new branch with a concise name that reflects the Issue at hand.
 Once you have created the new branch, go to the `Issues` tab and add a comment to the issue specifying the branch name that you have created.
 You may then begin making changes in the new branch to solve the Issue.
 Please regularly commit your code and include helpful messages so that someone reading through the git log will have a good sense of what has been done.
