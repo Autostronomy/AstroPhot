@@ -33,9 +33,11 @@ autoprof/models/foureirellipse_model.py
 autoprof/models/galaxy_model_object.py
 autoprof/models/gaussian_model.py
 autoprof/models/group_model_object.py
+autoprof/models/joint_model.py
 autoprof/models/model_object.py
-autoprof/models/multiband_model.py
+autoprof/models/moffat_model.py
 autoprof/models/nonparametric_model.py
+autoprof/models/nuker_model.py
 autoprof/models/parameter_object.py
 autoprof/models/planesky_model.py
 autoprof/models/psf_model.py
@@ -46,6 +48,10 @@ autoprof/models/star_model_object.py
 autoprof/models/superellipse_model.py
 autoprof/models/warp_model.py
 autoprof/models/wedge_model.py
+autoprof/parse_config/__init__.py
+autoprof/parse_config/basic_config.py
+autoprof/parse_config/galfit_config.py
+autoprof/parse_config/shared_methods.py
 autoprof/plots/__init__.py
 autoprof/plots/image.py
 autoprof/plots/profile.py
