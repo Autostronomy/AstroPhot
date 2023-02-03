@@ -13,8 +13,8 @@ jobs:
         run: |
           sphinx-build doc _build
       - name: Deploy
-        uses: peaceiris/actions-main@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           publish_branch: main
           github_token: ${{ secrets.GITHUB_TOKEN }}
