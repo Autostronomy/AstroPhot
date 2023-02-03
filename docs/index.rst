@@ -16,11 +16,11 @@ AutoProf
 
 .. raw:: html
 
-   <img src="_static/AP_logo.png";" width="495"/>
+   <img src="../media/AP_logo.png";" width="495"/>
 
 .. only:: latex
 
-    .. image:: _static/AP_logo.png
+    .. image:: ../media/AP_logo.png
 
 |br|
 
@@ -34,12 +34,9 @@ AutoProf
 Getting Started
 ===============
 
-AutoProf is a pipeline for basic and advanced non-parametric galaxy image analysis.
+AutoProf is a tool for astronomical image photometry using forward modelling.
 Its design allows for fast startup and provides flexibility to explore new ideas and support advanced users.
-It was written by `Connor Stone <https://connorjstone.com/>`_ with contributions from
-`Nikhil Arora <https://www.astronikhil.com/>`_,
-`Stéphane Courteau <https://www.physics.queensu.ca/facultysites/courteau/>`_,
-and `Jean-Charles Cuillandre <https://www.cfht.hawaii.edu/~jcc/>`_.
+It was written by `Connor Stone <https://connorjstone.com/>`_ .
 
 This documentation is a work in progress, further updates will come.
 
@@ -50,21 +47,7 @@ This documentation is a work in progress, further updates will come.
     getting_started.rst
     contributing.rst
     citation.rst
-    license.rst
-
-User Documentation
-==================
-
-.. toctree::
-   :maxdepth: 1
-
-   defaultpipeline.rst
-   parameters.rst
-   pipelinemanipulation.rst
-   decisiontrees.rst
-   extramethods.rst
-   troubleshooting.rst
-   
+    license.rst   
 
 |br|
 
@@ -73,7 +56,7 @@ User Documentation
     Like much astronomy software, AutoProf is an evolving package.
     I try to keep the API stable and consistent, however I will make
     changes to the interface if it considerably improves things
-    going forward. Please contact connor.stone@queensu.ca if you experience
+    going forward. Please contact connorstone628@gmail.com if you experience
     issues. If you would like to be notified of major changes send an email
     with the subject line "AUTOPROF MAILING LIST".
 

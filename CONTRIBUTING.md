@@ -38,6 +38,7 @@ Feel free to contact other contributors (especially Connor Stone) and ask for ad
 You may also wish to add comments to the Issue as you progress since this is the most visible way that others can see your progress and comment on any ideas/modifications.
 
 Finally, when you are nearing completion of the issue, please add unit tests which reach the newly added/modified code.
+Also, make sure to update any relevant documentation if you have changed/added a feature that is public facing.
 
 ### Commit the Solution
 
