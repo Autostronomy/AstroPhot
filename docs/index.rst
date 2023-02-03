@@ -16,11 +16,11 @@ AutoProf
 
 .. raw:: html
 
-   <img src="../media/AP_logo.png";" width="495"/>
+   <img src="https://github.com/ConnorStoneAstro/AutoProf-2/blob/main/media/AP_logo.png?raw=true" width="495"/>
 
 .. only:: latex
 
-    .. image:: ../media/AP_logo.png
+    .. image:: https://github.com/ConnorStoneAstro/AutoProf-2/blob/main/media/AP_logo.png?raw=true
 
 |br|
 
