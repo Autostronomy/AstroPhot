@@ -148,7 +148,7 @@ class Parameter(object):
             self.prof = self.prof.to(dtype = dtype, device = device)
         return self
     
-    def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False):
+    def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False, index = None):
         """Updates the the uncertainty of the value of the parameter. Only
         updates if the parameter is not locked.
 
@@ -159,8 +159,14 @@ class Parameter(object):
             self._uncertainty = None
             return
         uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        if torch.any(uncertainty < 0):
-            raise ValueError(f"{self.name} Uncertainty should be a positive real value, not {uncertainty}")
+        if index is not None:
+            assert uncertainty >= 0, f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
+            if as_representation and not self.cyclic and self.limits is not None:
+                self._uncertainty[index] = uncertainty * d_inv_boundaries_dval(self.representation[index], self.limits)
+            else:
+                self._uncertainty[index] = uncertainty
+            return
+        assert torch.all(uncertainty >= 0), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.detach().cpu().tolist()}"
         if as_representation and not self.cyclic and self.limits is not None:
             self._uncertainty = uncertainty * d_inv_boundaries_dval(self.representation, self.limits)
         else:

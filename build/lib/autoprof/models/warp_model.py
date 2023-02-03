@@ -38,6 +38,7 @@ class Warp_Galaxy(Galaxy_Model):
         "PA(R)": {"units": "rad", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.08},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("q(R)", "PA(R)")
+    useable = False
 
     @torch.no_grad()
     def initialize(self, target = None):

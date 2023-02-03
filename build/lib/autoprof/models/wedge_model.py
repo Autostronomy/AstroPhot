@@ -25,6 +25,8 @@ class Wedge_Galaxy(Galaxy_Model):
 
     model_type = f"wedge {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]
+    useable = False
+    
     def __init__(self, *args, **kwargs):
         self.symmetric_wedges = True
         super().__init__(*args, **kwargs)
@@ -34,7 +36,7 @@ class Wedge_Galaxy(Galaxy_Model):
         return torch.atan2(Y, X)
     
     def polar_model(self, R, T, image):
-        model = torch.zeros(R.shape)
+        model = torch.zeros_like(R)
         if self.wedges % 2 == 0 and self.symmetric_wedges:
             for w in range(self.wedges):
                 angles = (T - (w*np.pi/self.wedges)) % np.pi

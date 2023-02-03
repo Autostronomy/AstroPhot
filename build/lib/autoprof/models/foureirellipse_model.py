@@ -51,6 +51,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
         "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
     }
     _parameter_order = Galaxy_Model._parameter_order + ("am", "phim")
+    useable = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -126,7 +127,8 @@ class FourierEllipse_Warp(Warp_Galaxy):
         "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("am", "phim")
-
+    useable = False
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.modes = torch.tensor(kwargs.get("modes", (1,3,4)))

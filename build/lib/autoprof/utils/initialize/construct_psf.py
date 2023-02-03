@@ -35,13 +35,13 @@ def construct_psf(stars, image, sky_est, size = 51, mask = None, keep_init = Fal
         try:
             peak = GaussianDensity_Peak(star, image)
         except Exception as e:
-            print("issue finding star center")
-            print(e)
-            print("skipping")
+            AP_config.ap_logger.warning("issue finding star center")
+            AP_config.ap_logger.warning(e)
+            AP_config.ap_logger.warning("skipping")
             continue
         pixel_cen = np.round(peak)
         if pixel_cen[0] < ((size-1)/2) or pixel_cen[0] > (image.shape[1] - ((size-1)/2) - 1) or pixel_cen[1] < ((size-1)/2) or pixel_cen[1] > (image.shape[0] - ((size-1)/2) - 1):
-            print("skipping star near edge at: ", peak)
+            AP_config.ap_logger.debug("skipping star near edge at: {peak}")
             continue
         star_centers.append(peak)
 

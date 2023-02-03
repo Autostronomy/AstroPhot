@@ -1,4 +1,4 @@
-from .model_object import BaseModel
+from .model_object import Base_Model
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import Rotate_Cartesian, Axis_Ratio_Cartesian, coord_to_index, index_to_coord
@@ -8,7 +8,7 @@ import numpy as np
 
 __all__ = ["Galaxy_Model"]
 
-class Galaxy_Model(BaseModel):
+class Galaxy_Model(Base_Model):
     """General galaxy model to be subclassed for any specific
     representation. Defines a galaxy as an object with a position
     angle and axis ratio, or effectively a tilted disk. Most
@@ -29,12 +29,13 @@ class Galaxy_Model(BaseModel):
         PA: position angle of the smei-major axis relative to the image positive x-axis in radians, it is a cyclic parameter in the range [0,pi)
 
     """
-    model_type = f"galaxy {BaseModel.model_type}"
+    model_type = f"galaxy {Base_Model.model_type}"
     parameter_specs = {
         "q": {"units": "b/a", "limits": (0,1), "uncertainty": 0.03},
         "PA": {"units": "radians", "limits": (0,np.pi), "cyclic": True, "uncertainty": 0.06},
     }
-    _parameter_order = BaseModel._parameter_order + ("q", "PA")
+    _parameter_order = Base_Model._parameter_order + ("q", "PA")
+    useable = False
 
     @torch.no_grad()
     def initialize(self, target = None):

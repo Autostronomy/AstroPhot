@@ -75,6 +75,59 @@ def exponential_np(R, Ie, Re):
     """
     return Ie * np.exp(- sersic_n_to_b(1.) * (R / Re - 1.))
 
+def moffat_torch(R, n, Rd, I0):
+    """Moffat 1d profile function, specifically designed for pytorch
+    operations
+
+    Parameters:
+        R: Radii tensor at which to evaluate the moffat function
+        n: concentration index
+        Rd: scale length in the same units as R
+        I0: central surface density
+
+    """
+    return I0 / (1 + (R/Rd)**2)**n
+def moffat_np(R, n, Rd, I0):
+    """Moffat 1d profile function, works with numpy operations.
+
+    Parameters:
+        R: Radii tensor at which to evaluate the moffat function
+        n: concentration index
+        Rd: scale length in the same units as R
+        I0: central surface density
+
+    """
+    return I0 / (1 + (R/Rd)**2)**n
+
+def nuker_torch(R, Rb, Ib, alpha, beta, gamma):
+    """Nuker 1d profile function, specifically designed for pytorch
+    operations
+
+    Parameters:
+        R: Radii tensor at which to evaluate the nuker function
+        Ib: brightness at the scale length, represented as the log of the brightness divided by pixel scale squared.
+        Rb: scale length radius
+        alpha: sharpness of transition between power law slopes
+        beta: outer power law slope
+        gamma: inner power law slope
+
+    """
+    Rplus = R + 1e-8 # added for numerical stability near R = 0
+    return Ib * (2**((beta-gamma)/alpha)) * ((Rplus / Rb)**(-gamma)) * ((1 + (Rplus/Rb)**alpha)**((gamma - beta)/alpha))
+def nuker_np(R, Rb, Ib, alpha, beta, gamma):
+    """Nuker 1d profile function, works with numpy functions
+
+    Parameters:
+        R: Radii tensor at which to evaluate the nuker function
+        Ib: brightness at the scale length, represented as the log of the brightness divided by pixel scale squared.
+        Rb: scale length radius
+        alpha: sharpness of transition between power law slopes
+        beta: outer power law slope
+        gamma: inner power law slope
+
+    """
+    return Ib * (2**((beta-gamma)/alpha)) * ((R / Rb)**(-gamma)) * ((1 + (R/Rb)**alpha)**((gamma - beta)/alpha))
+
 def nonparametric_torch(R, profR, profI, pixelscale2, extend):
     """Nonparametric 1d profile function, cubic spline between points up
     to second last point beyond which is linear, specifically designed

@@ -33,20 +33,21 @@ class AutoProf_Model(object):
         model_type: a model type string can determine which kind of AutoProf model is instantiated [str]
     """
 
-    model_type = ""
+    model_type = "model"
     constraint_strength = 10.
+    useable = False
     
     def __new__(cls, *args, filename = None, model_type = None, **kwargs):
         if filename is not None:
             state = AutoProf_Model.load(filename)
-            MODELS = all_subclasses(AutoProf_Model)
+            MODELS = AutoProf_Model.List_Models()
             for M in MODELS:
                 if M.model_type == state["model_type"]:
                     return super(AutoProf_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(f"Unknown AutoProf model type: {state['model_type']}")
         elif model_type is not None:
-            MODELS = all_subclasses(AutoProf_Model)
+            MODELS = AutoProf_Model.List_Models() #all_subclasses(AutoProf_Model)
             for M in MODELS:
                 if M.model_type == model_type:
                     return super(AutoProf_Model, cls).__new__(M)
@@ -58,6 +59,7 @@ class AutoProf_Model(object):
     def __init__(self, name, *args, target = None, window = None, locked = False, **kwargs):
         assert ":" not in name and "|" not in name, "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
         self.name = name
+        AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
         self.equality_constraints = []
         self.requires_grad = kwargs.get("requires_grad", False)
@@ -190,7 +192,7 @@ class AutoProf_Model(object):
         return self.compute_loss()
 
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
-        raise NotImplementedError
+        raise NotImplementedError("please use a subclass of AutoProf_Model")
 
     @property
     def window(self):
@@ -230,15 +232,13 @@ class AutoProf_Model(object):
     @property 
     def target(self):
         try:
-            if self._target is None:
-                raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
             return self._target
         except AttributeError:
-            raise RuntimeError(f"Model {self.name} currently has no target, set a target image for this model.")
+            return None
     @target.setter
     def target(self, tar):
-        self._target = tar
         assert tar is None or isinstance(tar, Target_Image)
+        self._target = tar
         
     @property
     def locked(self):
@@ -336,6 +336,23 @@ class AutoProf_Model(object):
             else:
                 raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary.")
         return state
+
+    @classmethod
+    def List_Models(cls, useable = None):
+        MODELS = all_subclasses(cls)
+        if useable is not None:
+            for model in list(MODELS):
+                if model.useable is not useable:
+                    MODELS.remove(model)
+        return MODELS
+                
+    @classmethod
+    def List_Model_Names(cls, useable = None):
+        MODELS = cls.List_Models(useable = useable)
+        names = []
+        for model in MODELS:
+            names.append(model.model_type)
+        return list(sorted(names, key = lambda n: n[::-1]))
         
     def __eq__(self, other):
         return self is other

@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from time import time
 from .base import BaseOptimizer
+from .. import AP_config
 import matplotlib.pyplot as plt
 
 __all__ = ["Iter"]
@@ -41,17 +42,17 @@ class Iter(BaseOptimizer):
         res = self.method(model, **self.method_kwargs).fit()
         self.Y += model.sample()
         if self.verbose > 1:
-            print(res.message)
+            AP_config.ap_logger.info(res.message)
         model.target = self.model.target
         
     def step(self):
         if self.verbose > 0:
-            print("--------iter-------")
+            AP_config.ap_logger.info("--------iter-------")
 
         # Fit each model individually
         for model in self.model.model_list:
             if self.verbose > 0:
-                print(model.name)
+                AP_config.ap_logger.info(model.name)
             self.sub_step(model)
         # Update the current state
         self.current_state = self.model.get_parameter_vector(as_representation = True)
@@ -67,7 +68,7 @@ class Iter(BaseOptimizer):
             else:
                 loss = torch.sum(((D - self.Y.flatten("data"))**2 / V)) / self.ndf
         if self.verbose > 0:
-            print("Loss: ", loss.item())
+            AP_config.ap_logger.info(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy((self.current_state).detach().cpu().numpy()))
         self.loss_history.append(loss.item())
         
@@ -83,24 +84,25 @@ class Iter(BaseOptimizer):
 
         self.iteration = 0
         self.Y = self.model.full_sample(self.current_state, as_representation = True, override_locked = False, return_data = False)
-
+        start_fit = time()
         try:
             while True:
                 self.step()
                 if self.save_steps is not None:
                     self.model.save(os.path.join(self.save_steps, f"{self.model.name}_Iteration_{self.iteration:03d}.yaml"))
-                if self.iteration > 2 and self._count_finish >= 3:
+                if self.iteration > 2 and self._count_finish >= 2:
                     self.message = self.message + "success"
                     break                    
                 elif self.iteration > self.max_iter:
                     self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
                     
-
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
             
         self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
         self.model.finalize()
+        if self.verbose > 1:
+            AP_config.ap_logger.info("Iter Fitting complete in {time() - start_fit} sec with message: self.message")
             
         return self

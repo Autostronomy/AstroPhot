@@ -25,7 +25,7 @@ def center_of_mass(center, image, window = None):
         ]
         # Avoid edge of image
         if ranges[0][0] < 0 or ranges[1][0] < 0 or ranges[0][1] >= image.shape[0] or ranges[1][1] >= image.shape[1]:
-            print('Image edge!')
+            AP_config.ap_logger.warning('Image edge!')
             return init_center
 
         # Compute COM

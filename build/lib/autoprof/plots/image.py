@@ -75,7 +75,7 @@ def model_image(fig, ax, model, sample_image = None, window = None, showcbar = T
                     sky_level = (10**(M["sky"].value)*(1 - 1e-6)*model.target.pixelscale**2).detach().cpu().item()
                     break
                 except Exception as e:
-                    print(e)
+                    AP_config.ap_logger.warning(e)
     im = ax.imshow(
         np.log10(sample_image - sky_level),
         **imshow_kwargs,

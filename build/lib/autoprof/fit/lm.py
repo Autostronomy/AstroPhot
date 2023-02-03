@@ -69,6 +69,7 @@ class LM(BaseOptimizer):
         self.Ldn = kwargs.get("Ldn", 9.)
         self.L = kwargs.get("L0", 1.)
         self.method = kwargs.get("method", 0)
+        self.use_broyden = kwargs.get("use_broyden", False)
         
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
@@ -104,7 +105,7 @@ class LM(BaseOptimizer):
         self.iteration += 1
         self._count_grad_step += 1
         if self.verbose > 1:
-            print("taking grad step. Loss to beat: ", np.nanmin(self.loss_history[:-1]))
+            AP_config.ap_logger.info(f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}")
         for count in range(20):
             Y = self.model.full_sample(self.current_state + self.grad*L, as_representation = True, override_locked = False, flatten = True)
             if self.model.target.has_mask:
@@ -115,7 +116,7 @@ class LM(BaseOptimizer):
                 L /= 10
                 continue
             if self.verbose > 1:
-                print("grad step loss", loss.item(), "L", L)
+                AP_config.ap_logger.info(f"grad step loss: {loss.item()}, L: {L}")
             if np.nanmin(self.loss_history[:-1]) > loss.item():
                 self.loss_history.append(loss.detach().cpu().item())
                 self.L = 1.
@@ -124,7 +125,7 @@ class LM(BaseOptimizer):
                 self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
                 self.decision_history.append("accept grad")
                 if self.verbose > 0:
-                    print("accept grad")
+                    AP_config.ap_logger.info("accept grad")
                 self.rho_history.append(1.)
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(Y)
@@ -137,7 +138,7 @@ class LM(BaseOptimizer):
                 self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
                 self.decision_history.append("accept bad grad")
                 if self.verbose > 0:
-                    print("accept bad grad")
+                    AP_config.ap_logger.info("accept bad grad")
                 self.rho_history.append(1.)                
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(Y)
@@ -157,16 +158,16 @@ class LM(BaseOptimizer):
 
         if self.iteration > 0:
             if self.verbose > 0:
-                print("---------iter---------")
+                AP_config.ap_logger.info("---------iter---------")
         else:
             if self.verbose > 0:
-                print("---------init---------")
+                AP_config.ap_logger.info("---------init---------")
         # if self.iteration > 6:
         #     if self._count_reject >= 6:
         #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
         h = self.update_h_v3()
-        if self.verbose > 2:
-            print("h: ", h.detach().cpu().numpy())
+        if self.verbose > 1:
+            AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
         with torch.no_grad():
             self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
             if self.model.target.has_mask:
@@ -181,7 +182,7 @@ class LM(BaseOptimizer):
         
         if self.iteration > 0 and not torch.isfinite(loss):
             if self.verbose > 0:
-                print("nan loss")
+                AP_config.ap_logger.warning("nan loss")
             self.decision_history.append("nan")
             self.rho_history.append(None)
             self._count_reject += 1
@@ -192,16 +193,16 @@ class LM(BaseOptimizer):
         elif self.iteration > 0:
             rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
             if self.verbose > 1:
-                print("LM loss, best loss, loss diff, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+                AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
             elif self.verbose > 0 and rho > self.epsilon4:
-                print("LM loss", loss.item())
+                AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
             if self.verbose > 1:
-                print("rho: ", rho.item())
+                AP_config.ap_logger.debug(f"rho: {rho.item()}")
                 
             if rho > self.epsilon4:
                 if self.verbose > 0:
-                    print("accept")
+                    AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
@@ -213,14 +214,14 @@ class LM(BaseOptimizer):
                 else:
                     self._count_finish = 0
             elif self._count_reject == 4:
-                if self.verbose > 1:
-                    print("reject, resetting jacobian")
+                if self.verbose > 0:
+                    AP_config.ap_logger.info("reject, resetting jacobian")
                 self.decision_history.append("reject")
                 self.L = min(1e-2, self.L / self.Lup**4)
                 self._count_reject += 1                
             else:
-                if self.verbose > 1:
-                    print("reject")
+                if self.verbose > 0:
+                    AP_config.ap_logger.info("reject")
                 self.decision_history.append("reject")
                 self.L_up()
                 self._count_reject += 1
@@ -229,13 +230,13 @@ class LM(BaseOptimizer):
             self.decision_history.append("init")
             self.rho_history.append(None)
 
-        if self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+        if (not self.use_broyden) or self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
             if self.verbose > 1:
-                print("full jac")
+                AP_config.ap_logger.debug("full jac")
             self.update_J_AD()
         else:
             if self.verbose > 1:
-                print("Broyden jac")
+                AP_config.ap_logger.debug("Broyden jac")
             self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
 
         self.update_hess()
@@ -247,17 +248,14 @@ class LM(BaseOptimizer):
             self.current_state = current_state
 
         if self.iteration > 0:
-            if self.verbose > 0:
-                print("---------iter---------")
+            AP_config.ap_logger.info("---------iter---------")
         else:
-            if self.verbose > 0:
-                print("---------init---------")
+            AP_config.ap_logger.info("---------init---------")
         # if self.iteration > 6:
         #     if self._count_reject >= 6:
         #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
         h = self.update_h_v2()
-        if self.verbose > 2:
-            print("h: ", h.detach().cpu().numpy())
+        AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
         
         with torch.no_grad():
             self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
@@ -272,8 +270,7 @@ class LM(BaseOptimizer):
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
         
         if not torch.isfinite(loss):
-            if self.verbose > 0:
-                print("nan loss")
+            AP_config.ap_logger.warning("nan loss")
             self.decision_history.append("nan")
             self.rho_history.append(None)
             self._count_reject += 1
@@ -281,17 +278,14 @@ class LM(BaseOptimizer):
             return
         elif self.iteration > 0:
             rho = self.rho_3(np.nanmin(self.loss_history[:-1]), loss, h)
-            if self.verbose > 1:
-                print("LM loss, best loss, loss diff, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
-            elif self.verbose > 0 and rho > self.epsilon4:
-                print("LM loss", loss.item())
+            AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
+            if rho > self.epsilon4:
+                AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
-            if self.verbose > 1:
-                print("rho: ", rho.item())
+            AP_config.ap_logger.debug(f"rho: {rho.item()}")
                 
             if rho > self.epsilon4:
-                if self.verbose > 0:
-                    print("accept")
+                AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
@@ -301,14 +295,12 @@ class LM(BaseOptimizer):
                 if 0 < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
                     self._count_finish += 1
             elif self._count_reject == 8:
-                if self.verbose > 1:
-                    print("reject, resetting jacobian")
+                AP_config.ap_logger.info("reject, resetting jacobian")
                 self.decision_history.append("reject")
                 self.L = min(1e-2, self.L / self.Lup**8)
                 self._count_reject += 1                
             else:
-                if self.verbose > 1:
-                    print("reject")
+                AP_config.ap_logger.info("reject")
                 self.decision_history.append("reject")
                 self.L_up()
                 self._count_reject += 1
@@ -319,12 +311,10 @@ class LM(BaseOptimizer):
             self.rho_history.append(None)
 
         if self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
-            if self.verbose > 1:
-                print("full jac")
+            AP_config.ap_logger.debug("full jac")
             self.update_J_AD()
         else:
-            if self.verbose > 1:
-                print("Broyden jac")
+            AP_config.ap_logger.debug("Broyden jac")
             self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
 
         self.update_hess()
@@ -336,11 +326,9 @@ class LM(BaseOptimizer):
             self.current_state = current_state
 
         if self.iteration > 0:
-            if self.verbose > 0:
-                print("---------iter---------")
+            AP_config.ap_logger.info("---------iter---------")
         else:
-            if self.verbose > 0:
-                print("---------init---------")
+            AP_config.ap_logger.info("---------init---------")
         # if self.iteration > 6:
         #     if self._count_reject >= 6:
         #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
@@ -361,18 +349,15 @@ class LM(BaseOptimizer):
         self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
         
         if not torch.isfinite(loss):
-            if self.verbose > 0:
-                print("nan loss")
+            AP_config.ap_logger.warning("nan loss")
             self.decision_history.append("nan")
             self.rho_history.append(None)
             self._count_reject += 1
             self.L_up()
             return
         elif self.iteration > 0:
-            if self.verbose > 1:
-                print("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
-            elif self.verbose > 0:
-                print("LM loss", loss.item())
+            AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
+            AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             alpha = torch.dot(self.grad, h) 
             alpha = alpha / ((loss - np.nanmin(self.loss_history[:-1]))/2 + 2*alpha)
             self.current_Y = self.model.full_sample(self.current_state + alpha*h).view(-1)
@@ -382,11 +367,9 @@ class LM(BaseOptimizer):
                 alpha_loss = torch.sum((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W)) / self.ndf
             rho = self.rho_2(np.nanmin(self.loss_history[:-1]), alpha_loss, h)
             self.rho_history.append(rho)
-            if self.verbose > 1:
-                print("rho: ", rho.item())
+            AP_config.ap_logger.debug(f"rho: {rho.item()}")
             if rho > self.epsilon4:
-                if self.verbose > 0:
-                    print("accept")
+                AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
@@ -396,14 +379,12 @@ class LM(BaseOptimizer):
                 if 0 < ((np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
                     self._count_finish += 1
             elif self._count_reject == 6:
-                if self.verbose > 0:
-                    print("reject, resetting jacobian")
+                AP_config.ap_logger.info("reject, resetting jacobian")
                 self.decision_history.append("reject")
                 self.L = 1e-2
                 self._count_reject += 1                
             else:
-                if self.verbose > 0:
-                    print("reject")
+                AP_config.ap_logger.info("reject")
                 self.decision_history.append("reject")
                 self.L = min(1e9, self.L + np.abs(alpha_loss - np.nanmin(self.loss_history[:-1])) / (2*alpha))
                 self._count_reject += 1
@@ -414,12 +395,10 @@ class LM(BaseOptimizer):
 
         if self.J is None or self.iteration < 2 or rho < 0.1 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
             self.update_J_AD()
-            if self.verbose > 1:
-                print("full jac")
+            AP_config.ap_logger.debug("full jac")
         else:
             self.update_J_Broyden(h, self.prev_Y[0], self.current_Y)
-            if self.verbose > 1:
-                print("Broyden jac")
+            AP_config.ap_logger.debug("Broyden jac")
 
         self.update_hess()
         self.update_grad(self.prev_Y[1])
@@ -431,10 +410,10 @@ class LM(BaseOptimizer):
 
         if self.iteration > 0:
             if self.verbose > 0:
-                print("---------iter---------")
+                AP_config.ap_logger.info("---------iter---------")
         else:
             if self.verbose > 0:
-                print("---------init---------")
+                AP_config.ap_logger.info("---------init---------")
                 
         if self.iteration > 0:
             self.L = self.Li * np.max(torch.diag(self.hess).detach().cpu().numpy())
@@ -454,7 +433,7 @@ class LM(BaseOptimizer):
         
         if not torch.isfinite(loss):
             if self.verbose > 0:
-                print("nan loss")
+                AP_config.ap_logger.warning("nan loss")
             self.decision_history.append("nan")
             self.rho_history.append(None)
             self._count_reject += 1
@@ -463,15 +442,15 @@ class LM(BaseOptimizer):
         elif self.iteration > 0:
             rho = self.rho_2(np.nanmin(self.loss_history[:-1]), loss, h)
             if self.verbose > 1:
-                print("LM loss, best loss, L: ", loss.item(), np.nanmin(self.loss_history[:-1]), np.nanmin(self.loss_history[:-1]) - loss.item(), self.L)
+                AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
             elif self.verbose > 0 and rho > self.epsilon4:
-                print("LM loss: ", loss.item())
+                AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
             if self.verbose > 1:
-                print("rho: ", rho.item())
+                AP_config.ap_logger.debug(f"rho: {rho.item()}")
             if rho > self.epsilon4:
                 if self.verbose > 1:
-                    print("accept")
+                    AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
@@ -483,14 +462,14 @@ class LM(BaseOptimizer):
                     self._count_finish += 1
             elif self._count_reject == 8:# fixme state not fully reset somehow
                 if self.verbose > 1:
-                    print("reject, resetting jacobian")
+                    AP_config.ap_logger.info("reject, resetting jacobian")
                 self.decision_history.append("reset")
                 self.Li = 1.
                 self.v = 1.
                 self._count_reject += 1
             else:
                 if self.verbose > 1:
-                    print("reject")
+                    AP_config.ap_logger.info("reject")
                 self.decision_history.append("reject")
                 self.Li = min(1e9, self.Li * self.v)
                 self.v *= 2.
@@ -503,11 +482,11 @@ class LM(BaseOptimizer):
         if self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
             self.update_J_AD()
             if self.verbose > 1:
-                print("full jac")
+                AP_config.ap_logger.debug("full jac")
         else:
             self.update_J_Broyden(h, self.prev_Y[0], self.prev_Y[1])
             if self.verbose > 1:
-                print("Broyden jac")
+                AP_config.ap_logger.debug("Broyden jac")
 
         self.update_hess()
         self.update_grad(self.prev_Y[1])
@@ -523,11 +502,12 @@ class LM(BaseOptimizer):
         if self.method == 3:
             self.v = 1.
             self.Li = self.L
-        
+
+        start_fit = time()
         try:
             while True:
                 if self.verbose > 0:
-                    print("L: ", self.L)
+                    AP_config.ap_logger.info(f"L: {self.L}")
                     
                 if self.method == 3:
                     self.step_method3()
@@ -543,7 +523,7 @@ class LM(BaseOptimizer):
 
                 lam, L, loss = self.progress_history()
                     
-                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/100):
+                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/10):
                     self._count_grad_step = 0
                     self._count_converged += 1
                 elif self._count_grad_step >= 5:
@@ -560,22 +540,34 @@ class LM(BaseOptimizer):
                         self.update_J_AD()
                         self.update_hess()
                         self.update_grad(self.prev_Y[1])
-                    self.grad_step()
-
+                    try:
+                        self.grad_step()
+                    except RuntimeError:
+                        self.message = self.message + "fail by immobility, unable to find improvement or even small bad step"
+                        break
                 if self._count_converged >= 2:
                     self.message = self.message + "success"
                     break
+                lam, L, loss = self.accept_history()
+                if len(loss) >= 10:
+                    loss10 = np.array(loss[-10:])
+                    if np.all(np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1]) < self.relative_tolerance):
+                        self.message = self.message + "success"
+                        break
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
+            
         if "fail" in self.message and self._count_finish > 0:
-            self.message = self.message + ". likely converged to numerical precision and could not make a better step, this is probably ok."
+            self.message = self.message + ". possibly converged to numerical precision and could not make a better step."
         self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
         self.model.finalize()
-
+        if self.verbose > 1:
+            AP_config.ap_logger.info("LM Fitting complete in {time() - start_fit} sec with message: self.message")
         # set the uncertainty for each parameter
-        self.update_J_AD()
-        self.update_hess()
+        if self.use_broyden:
+            self.update_J_AD()
+            self.update_hess()
         cov = self.covariance_matrix()
         self.model.set_uncertainty(torch.sqrt(2*torch.abs(torch.diag(cov))), as_representation = True, override_locked = False)
         
@@ -583,7 +575,7 @@ class LM(BaseOptimizer):
 
     @torch.no_grad()
     def undo_step(self):
-        print("undoing step, trying to recover")
+        AP_config.ap_logger.info("undoing step, trying to recover")
         assert self.decision_history.count("accept") >= 2, "cannot undo with not enough accepted steps, retry with new parameters"
         assert len(self.decision_history) == len(self.lambda_history)
         assert len(self.decision_history) == len(self.L_history)
@@ -604,7 +596,7 @@ class LM(BaseOptimizer):
                 return False
             if self.rho_history[i] is not None and self.rho_history[i] > 0:
                 if self.verbose > 0:
-                    print("taking a low rho step for some progress: ", self.rho_history[i])
+                    AP_config.ap_logger.info(f"taking a low rho step for some progress: {self.rho_history[i]}")
                 self.current_state = torch.tensor(self.lambda_history[i], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
                 self.L = self.L_history[i]
                 
@@ -677,7 +669,7 @@ class LM(BaseOptimizer):
         try:
             return torch.linalg.inv(self.hess)
         except:
-            print("WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.")
+            AP_config.ap_logger.warning("WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.")
             self.hess += torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*(torch.diag(self.hess) == 0)
             return torch.linalg.inv(self.hess)
             
@@ -702,6 +694,17 @@ class LM(BaseOptimizer):
     def rho_3(self, Xp, Xph, h):
         return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h) + self.grad))
 
+    def accept_history(self):
+        lambdas = []
+        Ls = []
+        losses = []
+
+        for l in range(len(self.decision_history)):
+            if "accept" in self.decision_history[l] and np.isfinite(self.loss_history[l]):
+                lambdas.append(self.lambda_history[l])
+                Ls.append(self.L_history[l])
+                losses.append(self.loss_history[l])
+        return lambdas, Ls, losses
     def progress_history(self):
         lambdas = []
         Ls = []

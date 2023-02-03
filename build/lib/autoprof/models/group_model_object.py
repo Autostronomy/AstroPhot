@@ -23,7 +23,8 @@ class Group_Model(AutoProf_Model):
 
     """
 
-    model_type = "groupmodel"
+    model_type = f"group {AutoProf_Model.model_type}"
+    useable = True
     
     def __init__(self, name, *args, model_list = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
@@ -37,7 +38,7 @@ class Group_Model(AutoProf_Model):
             self.load(kwargs["filename"])
             
     def add_model(self, model):
-        """Adds a new model to the groupmodel list. Ensures that the same
+        """Adds a new model to the group model list. Ensures that the same
         model isn't added a second time.
 
         Parameters:
@@ -56,7 +57,7 @@ class Group_Model(AutoProf_Model):
         self.update_window()
 
     def pop_model(self, model):
-        """Removes the specified model from the groupmodel list. Returns the
+        """Removes the specified model from the group model list. Returns the
         model object if it is found.
 
         """
@@ -74,7 +75,7 @@ class Group_Model(AutoProf_Model):
 
     def update_window(self, include_locked = False):
         """Makes a new window object which encloses all the windows of the
-        sub models in this groupmodel object.
+        sub models in this group model object.
 
         """
         new_window = None
@@ -206,7 +207,7 @@ class Group_Model(AutoProf_Model):
         
     def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
         if isinstance(self.window, Window_List):
-            raise NotImplementedError("Jacobian doesnt work for multiband models yet, it will soon")
+            raise NotImplementedError("Jacobian doesnt work for joint models yet, it will soon")
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
         param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)

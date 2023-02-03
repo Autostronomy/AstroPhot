@@ -11,10 +11,10 @@ import numpy as np
 import torch
 from .. import AP_config
 
-__all__ = ["BaseModel"]
+__all__ = ["Base_Model"]
 
-class BaseModel(AutoProf_Model):
-    """BaseModel(name, target, window, locked, **kwargs)
+class Base_Model(AutoProf_Model):
+    """Base_Model(name, target, window, locked, **kwargs)
 
     This is the basis for almost any model which represents a single
     object, or parametric form.  Subclassing models must define their
@@ -23,8 +23,6 @@ class BaseModel(AutoProf_Model):
     
     """
 
-    # name of the model that AutoProf uses to identify
-    model_type = "model"
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     parameter_specs = {
         "center": {"units": "arcsec", "uncertainty": 0.1},
@@ -48,6 +46,7 @@ class BaseModel(AutoProf_Model):
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
+    useable = False
     
     def __init__(self, name, *args, **kwargs):        
         super().__init__(name, *args, **kwargs)
@@ -118,7 +117,7 @@ class BaseModel(AutoProf_Model):
         # Compute center of mass in window
         COM = center_of_mass((init_icenter[0].detach().cpu().item(), init_icenter[1].detach().cpu().item()), target_area.data.detach().cpu().numpy())
         if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
-            print("center of mass failed, using center of window")
+            AP_config.ap_logger.warning("center of mass failed, using center of window")
             return
         # Convert center of mass indices to coordinates
         COM_center = index_to_coord(COM[0], COM[1], target_area)
