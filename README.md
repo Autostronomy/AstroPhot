@@ -1,4 +1,4 @@
-<img src="media/AP_logo.png" alt="AutoProf" width="50%"/>
+<img src="media/AP_logo.png" alt="AutoProf" width="70%"/>
 
 ![unittests](https://github.com/ConnorStoneAstro/AutoProf-2/actions/workflows/testing.yaml/badge.svg?branch=main)
 ![docs](https://github.com/ConnorStoneAstro/AutoProf-2/actions/workflows/documentation.yaml/badge.svg?branch=main)
