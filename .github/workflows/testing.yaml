@@ -1,16 +1,13 @@
 name: unittests
-
-on: [push]
-
+on:
+  - push
 jobs:
   build:
-
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
-	os: ["ubuntu-latest", "macOS-latest"]
-
+        os: [ubuntu-latest, macOS-latest]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -22,12 +19,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-	  
   test:
-
     needs: build
     steps:
       - name: Test with pytest
         run: |
-	  cd $GITHUB_WORKSPACE/AutoProf-2/tests
+          cd $GITHUB_WORKSPACE/AutoProf-2/tests
           pytest
