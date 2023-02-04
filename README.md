@@ -5,7 +5,7 @@
 ![pypi](https://img.shields.io/pypi/v/autoprof.svg?logo=pypi&logoColor=white&label=PyPI)
 ![downloads](https://img.shields.io/pypi/dm/autoprof?label=PyPI%20Downloads)
 
-AutoProf is a python based astronomical image modelling code. It is highly flexible for a wide range of analysis tasks and uses pytorch to accelerate calculations with automatic exact derivatives and either parallel CPU code, or by taking advantage of GPUs. While pytorch was developped for Machine Learning, AutoProf hijacks its capabilities for regular Chi squared minimization and so is not a Machine Learning tool itself. Written by [Connor Stone](https://connorjstone.com/), AutoProf was developped for a number of science goals such as LSB imaging, handling crowded fields, simultaneous multi-band image modelling, and dealing with massive volumes of data from the next generation of telescopes. Even if you aren't pushing these boundaries in particular, you will likely find AutoProf fast and easy to use for any astronomical image modelling task.
+AutoProf is a python based astronomical image modelling code. It is highly flexible for a wide range of analysis tasks and uses pytorch to accelerate calculations with automatic exact derivatives and either parallel CPU code, or by taking advantage of GPUs. While pytorch was developed for Machine Learning, AutoProf hijacks its capabilities for regular Chi squared minimization and so is not a Machine Learning tool itself. Written by [Connor Stone](https://connorjstone.com/), AutoProf was developed for a number of science goals such as LSB imaging, handling crowded fields, simultaneous multi-band image modelling, and dealing with massive volumes of data from the next generation of telescopes. Even if you aren't pushing these boundaries in particular, you will likely find AutoProf fast and easy to use for any astronomical image modelling task.
 
 ## Installation
 
@@ -39,13 +39,7 @@ command to download the AutoProf tutorials. If you run into difficulty with this
 
 ## Documentation
 
-You can find the documentation at [this site](https://connorstoneastro.github.io/AutoProf-2/) which covers many of the main use cases for AutoProf. For more advanced situations feel free to contact the author [Connor Stone](https://connorjstone.com/) for any questions not answered by the documentation or tutorials.
-
-## Model Org Chart
-
-As a quick reference for what kinds of models are available in AutoProf, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. Just use the second line at each step in the flow chart to construct the name. For example one could follow a fairly direct path to get a `sersic galaxy model`, or a more complex path to get a `muker fourier warp galaxy model`. Note that the `Base_Model` object doesn't have an identifier, it is really meant to hide in the background while its subclasses do the work.
-
-<img src="media/AutoProfModelOrgchart.png" alt="AutoProf model Orgchart"/>
+You can find the documentation at [this site](https://connorstoneastro.github.io/AutoProf-2/) which covers many of the main use cases for AutoProf. It is still in development, but lots of useful information is there. For more advanced situations feel free to contact the author [Connor Stone](https://connorjstone.com/) for any questions not answered by the documentation or tutorials.
 
 ## Credit / Citation
 

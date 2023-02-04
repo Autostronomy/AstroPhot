@@ -33,3 +33,5 @@ supplied here:
    adsurl = {https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.1870S},
    adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }
+
+A newer publication to detail the features of AutoProf-II is in production. For now, citing the original AutoProf paper is sufficient.
