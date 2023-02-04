@@ -14,14 +14,10 @@
 AutoProf
 *********
 
-.. raw:: html
-
-   <img src="https://github.com/ConnorStoneAstro/AutoProf-2/blob/main/media/AP_logo.png?raw=true" width="495"/>
-
-.. only:: latex
-
-    .. image:: https://github.com/ConnorStoneAstro/AutoProf-2/blob/main/media/AP_logo.png?raw=true
-
+.. image:: https://github.com/ConnorStoneAstro/AutoProf-2/blob/main/media/AP_logo.png?raw=true
+   :width: 100 %
+   :target: https://github.com/ConnorStoneAstro/AutoProf-2
+   
 |br|
 
 .. Important::
@@ -49,6 +45,16 @@ This documentation is a work in progress, further updates will come.
     citation.rst
     license.rst   
 
+User Documentation
+==================
+
+This documentation includes all functions available in the AutoProf package. For now it is somewhat scattered, the best way to navigate it is to search for the kind of function or model you are looking for. Further organization will come with future updates.
+
+.. toctree::
+    :maxdepth: 1
+
+    modules.rst   
+              
 |br|
 
 .. note::
