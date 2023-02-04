@@ -1,6 +1,7 @@
 name: unittests
-on:
-  - push
+
+on: [push]
+
 jobs:
   build:
     runs-on: ${{matrix.os}}
@@ -19,9 +20,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-  test:
-    needs: build
-    steps:
       - name: Test with pytest
         run: |
           cd $GITHUB_WORKSPACE/AutoProf-2/tests
