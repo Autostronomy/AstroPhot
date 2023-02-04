@@ -34,7 +34,7 @@ command to download the AutoProf tutorials. If you run into difficulty with this
 
 ## Documentation
 
-Further documentation is in development. In the meantime you can contact the author [Connor Stone](https://connorjstone.com/) for any questions not answered by the tutorials.
+You can find the documentation at [this site](https://connorstoneastro.github.io/AutoProf-2/) which covers many of the main use cases for AutoProf. For more advanced situations feel free to contact the author [Connor Stone](https://connorjstone.com/) for any questions not answered by the documentation or tutorials.
 
 ## Model Org Chart
 
