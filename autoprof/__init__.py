@@ -1,11 +1,12 @@
-from . import models
-from . import image
-from . import plots
-from . import utils
-from . import fit
-from . import AP_config
 import sys
 import argparse
+import models
+import image
+import plots
+import utils
+import fit
+import AP_config
+
 
 # meta data
 __version__ = "0.3.1"
