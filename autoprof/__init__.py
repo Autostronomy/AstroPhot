@@ -1,6 +1,6 @@
 import sys
 import argparse
-from . import models, image, plots, utilsfit, AP_config
+from . import models, image, plots, utils, fit, AP_config
 
 # meta data
 __version__ = "0.3.1"
