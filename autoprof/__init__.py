@@ -1,9 +1,6 @@
-from . import models
-from . import image
-from . import plots
-from . import utils
-from . import fit
-from . import AP_config
+import sys
+import argparse
+from . import models, image, plots, utils, fit, AP_config
 
 # meta data
 __version__ = "0.3.1"
@@ -11,8 +8,6 @@ __author__ = "Connor Stone"
 __email__ = "connorston628@gmail.com"
 
 def run_from_terminal():
-    import sys
-    import argparse
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog = "autoprof",
