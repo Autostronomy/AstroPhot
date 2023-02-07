@@ -19,6 +19,7 @@ setup(
                       "numpy",
                       "astropy",
                       "matplotlib",
+                      "torch",
                       ],
     entry_points = {
         'console_scripts': [

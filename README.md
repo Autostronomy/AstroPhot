@@ -1,4 +1,9 @@
-<img src="media/AP_logo.png" alt="AutoProf" width="70%"/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="media/AP_logo_white.png">
+  <source media="(prefers-color-scheme: light)" srcset="media/AP_logo.png">
+  <img alt="AutoProf logo" src="media/AP_logo.png" width="70%">
+</picture>
+
 
 ![unittests](https://github.com/ConnorStoneAstro/AutoProf-2/actions/workflows/testing.yaml/badge.svg?branch=main)
 ![docs](https://github.com/ConnorStoneAstro/AutoProf-2/actions/workflows/documentation.yaml/badge.svg?branch=main)
