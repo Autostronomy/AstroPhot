@@ -7,41 +7,45 @@ from .base import BaseOptimizer
 __all__ = ["Grad"]
 
 class Grad(BaseOptimizer):
-    """Basic wrapper just to make it easier to use the built in pytorch
-    gradient descent optimizers on AutoProf_Model objects. Note that
-    most of the pytorch gradient descent optimizers are designed for
-    stochastic gradient descent which is commonly used to optimize
-    Neural Networks. In the case of astronomical image fitting the
-    full Chi^2 can be computed at every iteration and so robustness to
-    stochastic changes to the Chi^2 is not necessary in this
-    case. Still, the methods like momentum which help for stochastic
-    loss functions are also helpful for covariant parameters which are
-    common in image fitting. When two models overlap considerably
-    there is a covariance in their parameters, this can be challenging
-    for a basic gradient descent optimizer but momentum helps with
-    convergence. In general however, for most astronomical image
-    fitting tasks it is faster to use a second order method such as
-    the Levenberg-Marquardt algorithm (implimented in AutoProf as
-    autoprof.fit.LM).
+    """A gradient descent optimization wrapper for AutoProf_Model objects.
 
-    The default method is "NAdam" which is a variant of the Adam
-    algorithm. Adam performs gradient descent optimization with a
-    momentum in the first and second moment of the gradient.
-    Essentially momentum in the gradient and its square values. The
-    NAdam method incorporate Nesterov momentum into the algorithm
-    which sometimes has faster convergence properties.
+    The default method is "NAdam", a variant of the Adam optimization algorithm. 
+    This optimizer uses a combination of gradient descent and Nesterov momentum for faster convergence. 
+    The optimizer is instantiated with a set of initial parameters and optimization options provided by the user. 
+    The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
     Parameters:
-        model: and AutoProf_Model object with which to perform optimization [AutoProf_Model object]
-        initial_state: optionally, and initial state for optimization [torch.Tensor]
-        method: optimization method to use for the update step. Any optimizer in pytorch should work [str]
-        patience: number of iterations without improvement before optimizer will exit early [int or None]
-        optim_kwargs: dictionary of key word arguments to pass to the pytorch optimizer [dict]
+        model (AutoProf_Model): an AutoProf_Model object with which to perform optimization.
+        initial_state (torch.Tensor, optional): an optional initial state for optimization.
+        method (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
+        patience (int or None, optional): the number of iterations without improvement before the optimizer will exit early. Defaults to None.
+        optim_kwargs (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
+
+    Attributes:
+        model (AutoProf_Model): the AutoProf_Model object to optimize.
+        current_state (torch.Tensor): the current state of the parameters being optimized.
+        iteration (int): the number of iterations performed during the optimization.
+        loss_history (list): the history of loss values at each iteration of the optimization.
+        lambda_history (list): the history of parameter values at each iteration of the optimization.
+        optimizer (torch.optimizer): the PyTorch optimizer object being used.
+        patience (int or None): the number of iterations without improvement before the optimizer will exit early.
+        method (str): the optimization method being used.
+        optim_kwargs (dict): the dictionary of keyword arguments passed to the PyTorch optimizer.
+   
 
     """
 
     
     def __init__(self, model, initial_state = None, **kwargs):
+        """Initialize the gradient descent optimizer.
+
+    Args:
+    - model: instance of the model to be optimized.
+    - initial_state: Initial state of the model.
+    - patience: (optional) If a positive integer, then stop the optimization if there has been no improvement in the loss for this number of iterations.
+    - method: (optional) The name of the optimization method to use. Default is NAdam.
+    - optim_kwargs: (optional) Keyword arguments to be passed to the optimizer.
+        """
 
         super().__init__(model, initial_state, **kwargs)
         self.current_state.requires_grad = True
@@ -59,10 +63,12 @@ class Grad(BaseOptimizer):
         self.optimizer = getattr(torch.optim, self.method)((self.current_state,), **self.optim_kwargs)
 
     def step(self):
-        """Take a single gradient step. Calls the model loss function,
-        applies automatic differentiation to get the gradient of the
-        parameters and takes a step with the pytorch optimizer.
-
+        """Take a single gradient step. Take a single gradient step.
+        
+        Computes the loss function of the model, 
+        computes the gradient of the parameters using automatic differentiation,
+        and takes a step with the PyTorch optimizer.
+       
         """
         
         self.iteration += 1
@@ -84,6 +90,11 @@ class Grad(BaseOptimizer):
     def fit(self):
         """
         Perform an iterative fit of the model parameters using the specified optimizer
+        
+        The fit procedure continues until a stopping criteria is met, 
+        such as the maximum number of iterations being reached,
+         or no improvement being made after a specified number of iterations.
+        
         """
         start_fit = time()
         

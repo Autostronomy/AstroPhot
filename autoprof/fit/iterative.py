@@ -10,18 +10,18 @@ import matplotlib.pyplot as plt
 __all__ = ["Iter"]
 
 class Iter(BaseOptimizer):
-    """This is an optimizer wrapper which performs optimization by
-    iteratively applying a different optimizer to a group model. This
-    can sometimes be advantageous for fitting an extremely large
-    number of models, more than can fit in memory, or for complex fits
-    in which the degeneracies of parameters may overwhelm a fitting
-    which acts simultaneously on all models.
+    """Optimizer wrapper that performs optimization iteratively.
 
-    Parameters:
-        model: and AutoProf_Model object with which to perform optimization [AutoProf_Model object]
-        method: optimizer class to apply at each iteration step [BaseOptimizer object]
-        initial_state: optionally, and initial state for optimization [torch.Tensor]
-        
+    This optimizer applies a different optimizer to a group model iteratively.
+    It can be used for complex fits or when the number of models to fit is too large to fit in memory.
+
+    Args:
+        model: An `AutoProf_Model` object to perform optimization on.
+        method: The optimizer class to apply at each iteration step.
+        initial_state: Optional initial state for optimization, defaults to None.
+        max_iter: Maximum number of iterations, defaults to 100.
+        method_kwargs: Keyword arguments to pass to `method`.
+        **kwargs: Additional keyword arguments. 
     """
 
     def __init__(self, model, method, initial_state = None, max_iter = 100, method_kwargs = {}, **kwargs):
