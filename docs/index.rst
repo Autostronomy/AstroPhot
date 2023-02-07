@@ -53,7 +53,8 @@ This documentation includes all functions available in the AutoProf package. For
 .. toctree::
     :maxdepth: 1
 
-    modules.rst   
+    modules.rst
+    configfile_interface.rst
               
 |br|
 
