@@ -76,7 +76,9 @@ def run_from_terminal():
         AP_config.dtype = torch.float64 if args.dtype == "float64" else torch.float32
     if args.device is not None:
         AP_config.device = "cpu" if args.device == "cpu" else "cuda:0"
-        
+
+    if args.filename is None:
+        raise RuntimeError("Please pass a config file to autoprof. See 'autoprof --help' for more information, or go to https://connorstoneastro.github.io/AutoProf-2/getting_started.html")
     if args.filename in ["tutorial", "tutorials"]:
         import requests
         tutorials = [
