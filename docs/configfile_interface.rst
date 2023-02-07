@@ -48,4 +48,4 @@ Running ``autoprof --help`` will generate the following message::
 Example config files
 --------------------
 
-Here we will provide a few example config files for basic usage. Buildign from these it should be possible to encompas most standard workflows.
+Further examples are under construction. A basic config file will be downloaded along with the other tutorials listed in the :doc:`getting_started` module. You can run the config file as described above to see it in action.

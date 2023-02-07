@@ -85,6 +85,7 @@ def run_from_terminal():
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/ModelZoo.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/JointModels.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
             try:
