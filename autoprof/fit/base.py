@@ -37,7 +37,7 @@ class BaseOptimizer(object):
         iteration (int): The current iteration number.
         save_steps (Union[None, int]): The frequency at which to save intermediate results.
         relative_tolerance (float): The relative tolerance for the optimization.
-        lambda_history (List[float]): A list of the optimization steps.
+        lambda_history (List[ndarray]): A list of the optimization steps.
         loss_history (List[float]): A list of the optimization losses.
         message (str): An informational message.
     """
@@ -93,7 +93,7 @@ class BaseOptimizer(object):
         """ Returns the value of lambda (regularization strength) at which minimum chi^2 loss was achieved.
     
             Returns:
-            float: Value of lambda at which minimum chi^2 loss was achieved.
+            ndarray: Value of lambda at which minimum chi^2 loss was achieved.
         """
         N = np.isfinite(self.loss_history)
         return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]
