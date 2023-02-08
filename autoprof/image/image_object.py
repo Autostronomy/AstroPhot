@@ -122,6 +122,7 @@ class BaseImage(object):
         return self
 
     def crop(self, pixels):
+        # does this show up?
         if len(pixels) == 1: # same crop in all dimension
             self.set_data(self.data[pixels[0]:self.data.shape[0] - pixels[0],pixels[0]:self.data.shape[1] - pixels[0]], require_shape = False)
             self.window -= pixels[0] * self.pixelscale
