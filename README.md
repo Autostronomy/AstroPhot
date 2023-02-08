@@ -14,7 +14,7 @@ AutoProf is a python based astronomical image modelling code. It is highly flexi
 
 ## Installation
 
-AutoProf can be pip installed with:
+AutoProf can be installed with pip:
 
 ```
 pip install autoprof
