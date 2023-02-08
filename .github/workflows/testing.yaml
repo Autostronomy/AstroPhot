@@ -40,6 +40,8 @@ jobs:
         shell: bash
       - name: Test with pytest
         run: |
-          cd $GITHUB_WORKSPACE/tests
+          cd tests/
+          echo $GITHUB_WORKSPACE
+          pwd
           pytest
         shell: bash
