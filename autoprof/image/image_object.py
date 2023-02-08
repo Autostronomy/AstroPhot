@@ -67,7 +67,6 @@ class BaseImage(object):
 
         """
         return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
-    
     @torch.no_grad()
     def pixel_center_alignment(self):
         """
@@ -121,16 +120,9 @@ class BaseImage(object):
         self.window.to(dtype = dtype, device = device)
         return self
 
-    def crop(self, pixels):
-        if len(pixels) == 1: # same crop in all dimension
-            self.set_data(self.data[pixels[0]:self.data.shape[0] - pixels[0],pixels[0]:self.data.shape[1] - pixels[0]], require_shape = False)
-            self.window -= pixels[0] * self.pixelscale
-        elif len(pixels) == 2: # different crop in each dimension
-            self.set_data(self.data[pixels[1]:self.data.shape[0] - pixels[1],pixels[0]:self.data.shape[1] - pixels[0]], require_shape = False)
-            self.window -= torch.as_tensor(pixels, dtype = AP_config.ap_dtype, device = AP_config.ap_device) * self.pixelscale
-        elif len(pixels) == 4: # different crop on all sides
-            self.set_data(self.data[pixels[2]:self.data.shape[0] - pixels[3],pixels[0]:self.data.shape[1] - pixels[1]], require_shape = False)
-            self.window -= torch.as_tensor(pixels, dtype = AP_config.ap_dtype, device = AP_config.ap_device) * self.pixelscale
+    def crop(self, *pixels):
+        self.set_data(self.data[pixels[1]:-pixels[1],pixels[0]:-pixels[0]], require_shape = False)
+        self.window -= torch.as_tensor(pixels, dtype = AP_config.ap_dtype, device = AP_config.ap_device) * self.pixelscale
         return self
 
     def flatten(self, attribute = "data"):
@@ -179,7 +171,6 @@ class BaseImage(object):
             img_header["NOTE"] = str(self.note)
         image_list = [fits.PrimaryHDU(self._data.detach().cpu().numpy(), header = img_header)]
         return image_list
-    
     def save(self, filename = None, overwrite = True):
         image_list = self._save_image_list()
         hdul = fits.HDUList(image_list)
