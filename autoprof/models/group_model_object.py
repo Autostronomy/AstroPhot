@@ -134,12 +134,6 @@ class Group_Model(AutoProf_Model):
             return dict(P for P in param_tuples)
         except AttributeError:
             return {}
-    @parameters.setter
-    def parameters(self, val):
-        """
-        You cannot set the parameters at the group model level, this function exists simply to avoid raising errors when intializing models.
-        """
-        pass
         
     @torch.no_grad()
     def initialize(self, target = None):
