@@ -51,7 +51,6 @@ class Base_Model(AutoProf_Model):
     def __init__(self, name, *args, **kwargs):        
         super().__init__(name, *args, **kwargs)
         
-        self.parameters = {}
         # Set any user defined attributes for the model
         for kwarg in kwargs: # fixme move to core model?
             # Skip parameters with special behaviour
@@ -179,7 +178,7 @@ class Base_Model(AutoProf_Model):
             # Shift image back to align with original pixel grid
             working_image.window.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            sample_image += working_image.reduce(self.target.psf_upscale).crop(*self.target.psf_border_int)  
+            sample_image += working_image.reduce(self.target.psf_upscale).crop(self.target.psf_border_int)  
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(pixelscale = sample_image.pixelscale, window = working_window)
