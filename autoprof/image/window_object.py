@@ -140,7 +140,6 @@ class Window(object):
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
     def __isub__(self, other):
-        print(type(other), isinstance(other, (float, int, torch.dtype)), other.size(), other.numel())
         if isinstance(other, (float, int, torch.dtype)) or (isinstance(other, torch.Tensor) and other.numel() == 1):
             self.origin += other
             self.shape -= 2*other
