@@ -42,7 +42,7 @@ jobs:
       - name: Install AutoProf
         run: |
           cd $GITHUB_WORKSPACE/AutoProf-2/
-          pip install .
+          pip install --force-reinstall --no-cache-dir .
         shell: bash
       - name: Test with pytest
         run: |
