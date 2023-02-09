@@ -37,12 +37,13 @@ jobs:
         shell: bash
       - name: Install AutoProf
         run: |
-          pip install .
+          cd $GITHUB_WORKSPACE/AutoProf-2/
+          pip install -e .
+          pip show autoprof
         shell: bash
       - name: Test with pytest
         run: |
-          cd tests/
-          echo $GITHUB_WORKSPACE
+          cd $GITHUB_WORKSPACE/AutoProf-2/tests/
           pwd
           pytest
         shell: bash
