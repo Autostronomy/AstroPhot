@@ -7,7 +7,9 @@ In this guide you will get an overview of the contribution workflow from opening
 ## Setup
 
 To begin working on the development of AutoProf, you will need to install the developer version of the code. 
-Instead of simply using `pip install autoprof` you will instead clone the main branch.
+Instead of simply using `pip install autoprof` you will instead fork and clone the main branch.
+Follow the instructions [at this link](https://docs.github.com/en/get-started/quickstart/fork-a-repo) to fork AutoProf, once this is done you will have a version of the code that you can modify freely.
+Next clone the forked repo to your machine, if you are unfamiliar with this process, the instructions are also in the fork-a-repo link.
 Once you have cloned to a suitable location, cd into the root folder and run `pip install -e .` this tells pip to install AutoProf in an editable format.
 Any changes you make to the AutoProf code base will be reflected the next time you use `import autoprof as ap` or however you interact with the code.
 
