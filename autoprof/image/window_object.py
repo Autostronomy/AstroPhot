@@ -122,6 +122,10 @@ class Window(object):
             self.origin -= torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             self.shape += 2*torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             return self
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (2*len(self.origin)):
+            self.origin -= torch.as_tensor(other[::2], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self.shape -= torch.as_tensor(torch.sum(other.view(-1,2), axis = 0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            return self
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
     def __sub__(self, other):
@@ -136,13 +140,17 @@ class Window(object):
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
     def __isub__(self, other):
-        if isinstance(other, (float, int, torch.dtype)):
+        if isinstance(other, (float, int, torch.dtype)) or (isinstance(other, torch.Tensor) and other.numel() == 1):
             self.origin += other
             self.shape -= 2*other
             return self
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
             self.origin += torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             self.shape -= 2*torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            return self
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (2*len(self.origin)):
+            self.origin += torch.as_tensor(other[::2], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self.shape += torch.as_tensor(torch.sum(other.view(-1,2), axis = 0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             return self
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
