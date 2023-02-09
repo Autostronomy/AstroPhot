@@ -6,7 +6,6 @@ jobs:
   build:
     runs-on: ${{matrix.os}}
     strategy:
-      fail-fast: false
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
         os: [ubuntu-latest, windows-latest, macOS-latest]
@@ -16,8 +15,6 @@ jobs:
           git clone https://github.com/ConnorStoneAstro/AutoProf-2.git
           cd AutoProf-2
           git checkout dev
-          git fetch --all
-          git reset --hard origin/dev
         shell: bash
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -29,7 +26,6 @@ jobs:
           echo github.ref is: ${{ github.ref }}
           echo GITHUB_SHA is: $GITHUB_SHA
           echo github.event_name is: ${{ github.event_name }}
-          cat $GITHUB_WORKSPACE/AutoProf-2/autoprof/image/image_object.py
         shell: bash
       - name: Install dependencies
         run: |
@@ -42,7 +38,7 @@ jobs:
       - name: Install AutoProf
         run: |
           cd $GITHUB_WORKSPACE/AutoProf-2/
-          pip install --force-reinstall --no-cache-dir .
+          pip install -e .
           pip show autoprof
         shell: bash
       - name: Test with pytest
