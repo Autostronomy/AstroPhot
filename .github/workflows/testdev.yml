@@ -34,6 +34,7 @@ jobs:
         shell: bash
       - name: Install AutoProf
         run: |
+          cd $GITHUB_WORKSPACE/AutoProf-2/
           pip install .
         shell: bash
       - name: Test with pytest
