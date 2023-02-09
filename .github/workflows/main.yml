@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: clone dev branch
         run: |
-          git clone git@github.com:ConnorStoneAstro/AutoProf-2.git
+          git clone https://github.com/ConnorStoneAstro/AutoProf-2.git
           cd AutoProf-2
           git checkout dev
       - name: Set up Python ${{ matrix.python-version }}
