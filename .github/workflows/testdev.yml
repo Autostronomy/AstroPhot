@@ -16,7 +16,8 @@ jobs:
           git clone https://github.com/ConnorStoneAstro/AutoProf-2.git
           cd AutoProf-2
           git checkout dev
-          git pull origin dev
+          git fetch --all
+          git reset --hard origin/dev
         shell: bash
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
