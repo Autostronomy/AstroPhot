@@ -29,6 +29,7 @@ jobs:
           echo github.ref is: ${{ github.ref }}
           echo GITHUB_SHA is: $GITHUB_SHA
           echo github.event_name is: ${{ github.event_name }}
+          cat $GITHUB_WORKSPACE/AutoProf-2/autoprof/image/image_object.py
         shell: bash
       - name: Install dependencies
         run: |
