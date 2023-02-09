@@ -39,6 +39,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/
           rm -rf build/
+          pip --version
           pip install -e .
           pip show autoprof
         shell: bash
