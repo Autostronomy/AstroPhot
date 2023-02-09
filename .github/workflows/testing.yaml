@@ -38,6 +38,7 @@ jobs:
       - name: Install AutoProf
         run: |
           cd $GITHUB_WORKSPACE/
+          rm -rf build/
           pip install .
           pip show autoprof
         shell: bash
