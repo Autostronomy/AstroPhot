@@ -32,7 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install wheel
-          pip install torch
+          cd $GITHUB_WORKSPACE/AutoProf-2/
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
       - name: Install AutoProf
