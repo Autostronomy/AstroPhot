@@ -62,7 +62,6 @@ class AutoProf_Model(object):
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
         self.equality_constraints = []
-        self.parameters = {}
         self.requires_grad = kwargs.get("requires_grad", False)
         self.target = target
         self.window = window
@@ -202,8 +201,6 @@ class AutoProf_Model(object):
                 return self.target.window.make_copy()
             return self._window
         except AttributeError:
-            if self.target is None:
-                raise ValueError("This model has no target or window, these must be provided by the user")
             return self.target.window.make_copy()
 
     def set_window(self, window):
