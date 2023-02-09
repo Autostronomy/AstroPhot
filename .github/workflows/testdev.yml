@@ -42,7 +42,8 @@ jobs:
       - name: Install AutoProf
         run: |
           cd $GITHUB_WORKSPACE/AutoProf-2/
-          pip install --force-reinstall --no-cache-dir .
+          pip install --force-reinstall --no-cache-dir -e .
+          pip show autoprof
         shell: bash
       - name: Test with pytest
         run: |
