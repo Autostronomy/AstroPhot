@@ -1,6 +1,8 @@
 **__pycache__
 deleteme
 _build
+build
+autoprof.egg-info
 **.ipynb_checkpoints
 **.#*
 **.log
