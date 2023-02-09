@@ -10,11 +10,12 @@
 ![pypi](https://img.shields.io/pypi/v/autoprof.svg?logo=pypi&logoColor=white&label=PyPI)
 ![downloads](https://img.shields.io/pypi/dm/autoprof?label=PyPI%20Downloads)
 
-AutoProf is a python based astronomical image modelling code. It is highly flexible for a wide range of analysis tasks and uses pytorch to accelerate calculations with automatic exact derivatives and either parallel CPU code, or by taking advantage of GPUs. While pytorch was developed for Machine Learning, AutoProf hijacks its capabilities for regular Chi squared minimization and so is not a Machine Learning tool itself. Written by [Connor Stone](https://connorjstone.com/), AutoProf was developed for a number of science goals such as LSB imaging, handling crowded fields, simultaneous multi-band image modelling, and dealing with massive volumes of data from the next generation of telescopes. Even if you aren't pushing these boundaries in particular, you will likely find AutoProf fast and easy to use for any astronomical image modelling task.
+
+AutoProf is a python astronomical image modelling code that uses PyTorch to quickly and efficiently perform analysis tasks. Written by [Connor Stone](https://connorjstone.com/) for tasks such as LSB imaging, handling crowded fields, and analyzing massive data from future telescopes. AutoProf is flexible and fast for any astronomical image modelling task, even though it uses PyTorch originally developed for Machine Learning.
 
 ## Installation
 
-AutoProf can be pip installed with:
+AutoProf can be installed with pip:
 
 ```
 pip install autoprof
