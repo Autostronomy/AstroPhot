@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import torch
-from typing import Dict
+from typing import Dict,Any
 
 from time import time
 
