@@ -23,15 +23,15 @@ before running AutoProf, make sure you have pytorch in the proper version. This 
 Developer Install
 -----------------
 
-If you wish to help develop AutoProf, thank you, you can get started by cloning the repository::
+If you wish to help develop AutoProf, thank you! You can get started by cloning the repository::
 
-  git clone git@github.com:ConnorStoneAstro/AutoProf-2.git
+  git clone https://github.com/ConnorStoneAstro/AutoProf-2.git
 
 Then you can locally install the code using::
 
   pip install -e .
 
-which will make the install editable so as you make changes it will update AutoProf. Just note that you will need to re-import autoprof for changes to take effect.
+which will make the install editable so as you make changes it will update AutoProf. Just note that you will need to re-import autoprof for changes to take effect. For further instructions about helping with AutoProf development see :doc:`contributing`.
 
 As with the basic install, you will need to make sure you have the proper pytorch version installed from the `pytorch website <https://pytorch.org/>`_ .
 
