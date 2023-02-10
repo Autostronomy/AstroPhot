@@ -18,7 +18,7 @@ class BaseOptimizer(object):
         relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
     
     """
-    def __init__(self, model, initial_state = None, relative_tolerance = 1e-3, **kwargs):
+    def __init__(self, model: object, initial_state: torch.Tensor = None, relative_tolerance: float = 1e-3, **kwargs) -> None:
         """
     Initializes a new instance of the class.
     
@@ -66,13 +66,13 @@ class BaseOptimizer(object):
         self.loss_history = []
         self.message = ""
 
-    def fit(self):
+    def fit(self) -> None:
         """ 
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
         """
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
-    def step(self, current_state = None):
+    def step(self, current_state: None = None)-> None:
         """ Args:
                 current_state (torch.Tensor, optional): Current state of the model parameters. Defaults to None.
     
@@ -81,7 +81,7 @@ class BaseOptimizer(object):
         """
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
-    def chi2min(self):
+    def chi2min(self) -> float:
         """
             Returns the minimum value of chi^2 loss in the loss history.
     
@@ -89,7 +89,7 @@ class BaseOptimizer(object):
                     float: Minimum value of chi^2 loss.
         """
         return np.nanmin(self.loss_history)
-    def res(self):
+    def res(self) -> float:
         """ Returns the value of lambda (regularization strength) at which minimum chi^2 loss was achieved.
     
             Returns:
@@ -98,7 +98,7 @@ class BaseOptimizer(object):
         N = np.isfinite(self.loss_history)
         return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]
 
-    def chi2contour(self, n_params, confidence = 0.682689492137):
+    def chi2contour(self, n_params: int, confidence = 0.682689492137) -> float:
         """
         Calculates the chi^2 contour for the given number of parameters.
 
