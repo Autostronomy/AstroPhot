@@ -1,11 +1,11 @@
 # Apply a different optimizer iteratively
 #According to PEP8 conventions
+from typing import Dict,Any
 import os
 import matplotlib.pyplot as plt
 
 import numpy as np
 import torch
-from typing import Dict,Any
 
 from time import time
 
