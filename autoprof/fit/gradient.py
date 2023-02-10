@@ -36,7 +36,7 @@ class Grad(BaseOptimizer):
     """
 
     
-    def __init__(self, model, initial_state = None, **kwargs):
+    def __init__(self, model: object, initial_state = None, **kwargs) -> None:
         """Initialize the gradient descent optimizer.
 
     Args:
@@ -62,7 +62,7 @@ class Grad(BaseOptimizer):
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
         self.optimizer = getattr(torch.optim, self.method)((self.current_state,), **self.optim_kwargs)
 
-    def step(self):
+    def step(self) -> None:
         """Take a single gradient step. Take a single gradient step.
         
         Computes the loss function of the model, 
@@ -87,7 +87,7 @@ class Grad(BaseOptimizer):
             AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
         
-    def fit(self):
+    def fit(self) -> None:
         """
         Perform an iterative fit of the model parameters using the specified optimizer
         

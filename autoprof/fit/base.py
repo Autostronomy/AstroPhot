@@ -3,7 +3,9 @@ import numpy as np
 from time import time
 from scipy.special import gammainc
 from scipy.optimize import minimize
+
 from .. import AP_config
+
 
 __all__ = ["BaseOptimizer"]
 
