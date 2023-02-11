@@ -97,28 +97,10 @@ class Joint_Model(Group_Model):
 
         for model, sub_image in zip(self.model_list, sample_image):
             if sample_window:
-                sub_image += model.sample()
+                sub_image += model()
             else:
-                model.sample(sub_image)
+                model(sub_image)
         return sample_image
-
-    def compute_loss(self, return_sample = False):
-        """Compute the Chi^2 for the joint model.
-
-        """
-        loss = 0
-        samples = []
-        for model in self.model_list:
-            res = model.compute_loss(return_sample)
-            if return_sample:
-                loss += res[0]
-                samples.append(res[1])
-            else:
-                loss += res
-        if return_sample:
-            return loss, Model_Image_List(samples)
-        else:
-            return loss
 
     def model_image_shapes(self):
         """Return the shape of all the sub model image windows.

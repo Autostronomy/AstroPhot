@@ -10,11 +10,15 @@ from .parameter_object import Parameter
 from copy import copy
 from time import time
 from .. import AP_config
+
 __all__ = ["AutoProf_Model"]
+
 
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)]
+    )
+
 
 class AutoProf_Model(object):
     """AutoProf_Model(name, *args, filename = None, model_type = None, **kwargs)
@@ -34,10 +38,10 @@ class AutoProf_Model(object):
     """
 
     model_type = "model"
-    constraint_strength = 10.
+    constraint_strength = 10.0
     useable = False
-    
-    def __new__(cls, *args, filename = None, model_type = None, **kwargs):
+
+    def __new__(cls, *args, filename=None, model_type=None, **kwargs):
         if filename is not None:
             state = AutoProf_Model.load(filename)
             MODELS = AutoProf_Model.List_Models()
@@ -45,19 +49,23 @@ class AutoProf_Model(object):
                 if M.model_type == state["model_type"]:
                     return super(AutoProf_Model, cls).__new__(M)
             else:
-                raise ModuleNotFoundError(f"Unknown AutoProf model type: {state['model_type']}")
+                raise ModuleNotFoundError(
+                    f"Unknown AutoProf model type: {state['model_type']}"
+                )
         elif model_type is not None:
-            MODELS = AutoProf_Model.List_Models() #all_subclasses(AutoProf_Model)
+            MODELS = AutoProf_Model.List_Models()  # all_subclasses(AutoProf_Model)
             for M in MODELS:
                 if M.model_type == model_type:
                     return super(AutoProf_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(f"Unknown AutoProf model type: {model_type}")
-            
+
         return super().__new__(cls)
 
-    def __init__(self, name, *args, target = None, window = None, locked = False, **kwargs):
-        assert ":" not in name and "|" not in name, "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
+    def __init__(self, name, *args, target=None, window=None, locked=False, **kwargs):
+        assert (
+            ":" not in name and "|" not in name
+        ), "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
         self.name = name
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
@@ -76,9 +84,9 @@ class AutoProf_Model(object):
         self.parameters[parameter] = model[parameter]
         self.equality_constraints.append(parameter)
         model.equality_constraints.append(parameter)
-        
+
     @torch.no_grad()
-    def initialize(self, target = None):
+    def initialize(self, target, *args, **kwargs):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
@@ -88,47 +96,24 @@ class AutoProf_Model(object):
 
     def make_model_image(self):
         return Model_Image(
-            window = self.window,
-            pixelscale = self.target.pixelscale,
+            window=self.window,
+            pixelscale=self.target.pixelscale,
         )
-        
-    def finalize(self):
-        """This is run after fitting and can be used to undo any fitting
-        specific settings or aspects of a model.
 
-        """
-        pass
-
-    def sample(self, sample_image=None):
+    def sample(self, image = None, *args, **kwargs):
         """Calling this function should fill the given image with values
         sampled from the given model.
 
         """
         pass
 
-    def compute_loss(self, return_sample = False):
-        """Compute a standard Chi^2 loss given the target image, model, and
-        variance image. Typically if overloaded this will also be
-        called with super() and higher methods will multiply or add to
-        the loss.
-
-        """
-        model_image = self.sample()
-        loss = reduced_chi_squared(
-            self.target[self.window].data,
-            model_image.data,
-            np.sum(self.parameter_vector_len()),
-            self.target[self.window].mask,
-            self.target[self.window].variance
-        )
-        if self.constraints is not None:
-            for constraint in self.constraints:
-                loss *= 1 + self.constraint_strength * constraint(self)
-        if return_sample:
-            return loss, model_image
-        return loss
-
-    def set_parameters(self, parameters, override_locked = False, as_representation = True, parameters_identity = None):
+    def set_parameters(
+        self,
+        parameters,
+        override_locked=False,
+        as_representation=True,
+        parameters_identity=None,
+    ):
         """
         Set the parameter values for this model with a given object.
 
@@ -147,52 +132,60 @@ class AutoProf_Model(object):
                 else:
                     self[P].value = parameters[P]
             return
-        parameters = torch.as_tensor(parameters, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        parameters = torch.as_tensor(
+            parameters, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
         start = 0
-        for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
+        for P, V in zip(
+            self.parameter_order(override_locked=override_locked),
+            self.parameter_vector_len(override_locked=override_locked),
+        ):
             if parameters_identity is None or P in parameters_identity:
                 if as_representation:
-                    self[P].representation = parameters[start:start + V].reshape(self[P].representation.shape)
+                    self[P].representation = parameters[start : start + V].reshape(
+                        self[P].representation.shape
+                    )
                 else:
-                    self[P].value = parameters[start:start + V].reshape(self[P].value.shape)
+                    self[P].value = parameters[start : start + V].reshape(
+                        self[P].value.shape
+                    )
             start += V
-        
-    def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False):
+
+    def set_uncertainty(
+        self, uncertainty, override_locked=False, as_representation=False
+    ):
         if isinstance(uncertainty, dict):
             for P in uncertainty:
                 if not override_locked and self[P].locked:
                     continue
                 self[P].set_uncertainty(
                     uncertainty[P],
-                    override_locked = override_locked,
-                    as_representation = as_representation
+                    override_locked=override_locked,
+                    as_representation=as_representation,
                 )
             return
-        uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        uncertainty = torch.as_tensor(
+            uncertainty, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
         start = 0
-        for P, V in zip(self.parameter_order(override_locked = override_locked), self.parameter_vector_len(override_locked = override_locked)):
+        for P, V in zip(
+            self.parameter_order(override_locked=override_locked),
+            self.parameter_vector_len(override_locked=override_locked),
+        ):
             self[P].set_uncertainty(
-                uncertainty[start:start + V].reshape(self[P].representation.shape),
-                override_locked = override_locked,
-                as_representation = as_representation,
+                uncertainty[start : start + V].reshape(self[P].representation.shape),
+                override_locked=override_locked,
+                as_representation=as_representation,
             )
-            start += V        
-        
-    def full_sample(self, parameters = None, as_representation = True, override_locked = False, return_data = True, flatten = False, parameters_identity = None):
-        if parameters is not None:
-            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation, parameters_identity = parameters_identity)
-        if flatten:
-            return self.sample().flatten()
-        if return_data:
-            return self.sample().data
-        return self.sample()
+            start += V
 
-    def full_loss(self, parameters = None, as_representation = False, override_locked = False):
-        if parameters is not None:
-            self.set_parameters(parameters, as_representation = as_representation, override_locked = override_locked)
-        return self.compute_loss()
-
-    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+    def jacobian(
+        self,
+        parameters=None,
+        as_representation=False,
+        override_locked=False,
+        flatten=False,
+    ):
         raise NotImplementedError("please use a subclass of AutoProf_Model")
 
     @property
@@ -203,46 +196,68 @@ class AutoProf_Model(object):
             return self._window
         except AttributeError:
             if self.target is None:
-                raise ValueError("This model has no target or window, these must be provided by the user")
+                raise ValueError(
+                    "This model has no target or window, these must be provided by the user"
+                )
             return self.target.window.make_copy()
 
     def set_window(self, window):
         # If no window given, dont go any further
         if window is None:
             return
-    
+
         # If the window is given in proper format, simply use as-is
         if isinstance(window, Window):
             self._window = window
         elif len(window) == 2:
             self._window = Window(
-                origin = self.target.origin + torch.tensor((window[0][0],window[1][0]), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*self.target.pixelscale,
-                shape = torch.tensor((window[0][1] - window[0][0], window[1][1] - window[1][0]), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*self.target.pixelscale,
+                origin=self.target.origin
+                + torch.tensor(
+                    (window[0][0], window[1][0]),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                * self.target.pixelscale,
+                shape=torch.tensor(
+                    (window[0][1] - window[0][0], window[1][1] - window[1][0]),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                * self.target.pixelscale,
             )
         elif len(window) == 4:
             self._window = Window(
-                origin = torch.tensor((window[0],window[2]), dtype = AP_config.ap_dtype, device = AP_config.ap_device),
-                shape = torch.tensor((window[1] - window[0], window[3] - window[2]), dtype = AP_config.ap_dtype, device = AP_config.ap_device),
+                origin=torch.tensor(
+                    (window[0], window[2]),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                ),
+                shape=torch.tensor(
+                    (window[1] - window[0], window[3] - window[2]),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                ),
             )
         else:
             raise ValueError(f"Unrecognized window format: {str(window)}")
-            
+
     @window.setter
     def window(self, window):
         self._window = window
         self.set_window(window)
 
-    @property 
+    @property
     def target(self):
         try:
             return self._target
         except AttributeError:
             return None
+
     @target.setter
     def target(self, tar):
         assert tar is None or isinstance(tar, Target_Image)
         self._target = tar
-        
+
     @property
     def locked(self):
         """Set when the model should remain fixed going forward. This model
@@ -251,36 +266,36 @@ class AutoProf_Model(object):
 
         """
         return self._locked
+
     @locked.setter
     def locked(self, val):
         assert isinstance(val, bool)
         self._locked = val
-    @property
-    def requires_grad(self):
-        return self._requires_grad
-    @requires_grad.setter
-    def requires_grad(self, val):
-        assert isinstance(val, bool)
-        self._requires_grad = val
-        for P in self.parameters:
-            self[P].requires_grad = val
-            
-    def parameter_vector_len(self, override_locked = False):
-        return list(int(np.prod(self[P].value.shape)) for P in self.parameter_order(override_locked = override_locked))
-    def get_parameter_vector(self, as_representation = False, override_locked = False):
-        parameters = torch.zeros(np.sum(self.parameter_vector_len(override_locked = override_locked)), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+
+    def parameter_vector_len(self, override_locked=False):
+        return list(
+            int(np.prod(self[P].value.shape))
+            for P in self.parameter_order(override_locked=override_locked)
+        )
+
+    def get_parameter_vector(self, as_representation=False, override_locked=False):
+        parameters = torch.zeros(
+            np.sum(self.parameter_vector_len(override_locked=override_locked)),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
         vstart = 0
         for P, V in zip(
-                self.parameter_order(override_locked = override_locked),
-                self.parameter_vector_len(override_locked = override_locked)
+            self.parameter_order(override_locked=override_locked),
+            self.parameter_vector_len(override_locked=override_locked),
         ):
             if as_representation:
-                parameters[vstart: vstart + V] = self[P].representation
+                parameters[vstart : vstart + V] = self[P].representation
             else:
-                parameters[vstart: vstart + V] = self[P].value
+                parameters[vstart : vstart + V] = self[P].value
             vstart += V
         return parameters
-                
+
     def __str__(self):
         """String representation for the model."""
         return str(self.get_state())
@@ -292,70 +307,106 @@ class AutoProf_Model(object):
         }
         return state
 
-    def save(self, filename = "AutoProf.yaml"):
+    def save(self, filename="AutoProf.yaml"):
         if filename.endswith(".yaml"):
             import yaml
+
             state = self.get_state()
             with open(filename, "w") as f:
-                yaml.dump(state, f, indent = 2) 
+                yaml.dump(state, f, indent=2)
         elif filename.endswith(".json"):
             import json
+
             state = self.get_state()
             with open(filename, "w") as f:
-                json.dump(state, f, indent = 2)
+                json.dump(state, f, indent=2)
         elif filename.endswith(".hdf5"):
             import h5py
+
             state = self.get_state()
             with h5py.File(filename, "w") as F:
                 dict_to_hdf5(F, state)
         else:
-            if isinstance(filename, str) and '.' in filename:
-                raise ValueError(f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5")
+            if isinstance(filename, str) and "." in filename:
+                raise ValueError(
+                    f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5"
+                )
             else:
-                raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5")
+                raise ValueError(
+                    f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5"
+                )
 
     @classmethod
-    def load(cls, filename = "AutoProf.yaml"):
+    def load(cls, filename="AutoProf.yaml"):
         if isinstance(filename, dict):
             state = filename
         elif isinstance(filename, io.TextIOBase):
             import yaml
-            state = yaml.load(filename, Loader = yaml.FullLoader)            
+
+            state = yaml.load(filename, Loader=yaml.FullLoader)
         elif filename.endswith(".yaml"):
             import yaml
+
             with open(filename, "r") as f:
-                state = yaml.load(f, Loader = yaml.FullLoader)            
+                state = yaml.load(f, Loader=yaml.FullLoader)
         elif filename.endswith(".json"):
             import json
-            with open(filename, 'r') as f:
+
+            with open(filename, "r") as f:
                 state = json.load(f)
         elif filename.endswith(".hdf5"):
             import h5py
+
             with h5py.File(filename, "r") as F:
                 state = hdf5_to_dict(F)
         else:
-            if isinstance(filename, str) and '.' in filename:
-                raise ValueError(f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5")
+            if isinstance(filename, str) and "." in filename:
+                raise ValueError(
+                    f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5"
+                )
             else:
-                raise ValueError(f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary.")
+                raise ValueError(
+                    f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary."
+                )
         return state
 
     @classmethod
-    def List_Models(cls, useable = None):
+    def List_Models(cls, useable=None):
         MODELS = all_subclasses(cls)
         if useable is not None:
             for model in list(MODELS):
                 if model.useable is not useable:
                     MODELS.remove(model)
         return MODELS
-                
+
     @classmethod
-    def List_Model_Names(cls, useable = None):
-        MODELS = cls.List_Models(useable = useable)
+    def List_Model_Names(cls, useable=None):
+        MODELS = cls.List_Models(useable=useable)
         names = []
         for model in MODELS:
             names.append(model.model_type)
-        return list(sorted(names, key = lambda n: n[::-1]))
-        
+        return list(sorted(names, key=lambda n: n[::-1]))
+
     def __eq__(self, other):
         return self is other
+
+    def __call__(
+        self,
+        image = None,
+        *args,
+        parameters=None,
+        as_representation=True,
+        override_locked=False,
+        parameters_identity=None,
+        **kwargs,
+    ):
+
+        if parameters is not None:
+            self.set_parameters(
+                parameters,
+                override_locked=override_locked,
+                as_representation=as_representation,
+                parameters_identity=parameters_identity,
+            )
+
+        return self.sample(image, *args, **kwargs)

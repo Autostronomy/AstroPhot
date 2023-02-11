@@ -62,6 +62,14 @@ class Grad(BaseOptimizer):
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
         self.optimizer = getattr(torch.optim, self.method)((self.current_state,), **self.optim_kwargs)
 
+    def compute_loss(self):
+        Ym = self.model(parameters = self.current_state, as_representation = True, override_locked = False).flatten()
+        Yt = self.model.target.flatten("data")
+        W = self.model.target.flatten("variance") if self.model.target.has_variance else 1.
+
+        loss = torch.sum((Ym - Yt)**2 / W)
+        return loss
+    
     def step(self):
         """Take a single gradient step. Take a single gradient step.
         
@@ -75,7 +83,7 @@ class Grad(BaseOptimizer):
                 
         self.optimizer.zero_grad()
         
-        loss = self.model.full_loss(self.current_state, as_representation = True, override_locked = False)
+        loss = self.compute_loss()
 
         loss.backward()
 
@@ -116,8 +124,6 @@ class Grad(BaseOptimizer):
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
         self.model.set_parameters(torch.tensor(self.res()), as_representation = True, override_locked = False)
-        # finalize tells the model that optimization is now finished
-        self.model.finalize()
         if self.verbose > 1:
             AP_config.ap_logger.info("Grad Fitting complete in {time() - start_fit} sec with message: self.message")
         return self

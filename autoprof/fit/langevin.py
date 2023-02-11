@@ -77,9 +77,7 @@ class MALA(BaseOptimizer):
                     break
         except KeyboardInterrupt:
             self.message = self.message + "fail. interrupted"
-            
-        self.model.finalize()
-            
+                        
         return self
             
     def step(self, current_state):

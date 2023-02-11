@@ -107,7 +107,7 @@ class LM(BaseOptimizer):
         if self.verbose > 1:
             AP_config.ap_logger.info(f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}")
         for count in range(20):
-            Y = self.model.full_sample(self.current_state + self.grad*L, as_representation = True, override_locked = False, flatten = True)
+            Y = self.model(parameters = self.current_state + self.grad*L, as_representation = True, override_locked = False).flatten("data")
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - Y)**2 if self.W is None else ((self.Y - Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -162,14 +162,12 @@ class LM(BaseOptimizer):
         else:
             if self.verbose > 0:
                 AP_config.ap_logger.info("---------init---------")
-        # if self.iteration > 6:
-        #     if self._count_reject >= 6:
-        #         self.L = self.L_history[-6:][np.argmax(np.abs(self.rho_history[-6:]))] * np.exp(np.random.normal(loc = 0, scale = 1))
+                
         h = self.update_h_v3()
         if self.verbose > 1:
             AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
+            self.current_Y = self.model(parameters = self.current_state + h, as_representation = True, override_locked = False).flatten("data")
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -187,7 +185,6 @@ class LM(BaseOptimizer):
             self.rho_history.append(None)
             self._count_reject += 1
             self.iteration += 1
-            #self.undo_step()
             self.L_up()
             return
         elif self.iteration > 0:
@@ -258,7 +255,7 @@ class LM(BaseOptimizer):
         AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
         
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
+            self.current_Y = self.model(parameters = self.current_state + h, as_representation = True, override_locked = False).flatten("data")
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -337,7 +334,7 @@ class LM(BaseOptimizer):
         h = self.update_h_v1()
         
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
+            self.current_Y = self.model(parameters = self.current_state + h, as_representation = True, override_locked = False).flatten("data")
             if self.model.target.has_mask:
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -360,7 +357,7 @@ class LM(BaseOptimizer):
             AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             alpha = torch.dot(self.grad, h) 
             alpha = alpha / ((loss - np.nanmin(self.loss_history[:-1]))/2 + 2*alpha)
-            self.current_Y = self.model.full_sample(self.current_state + alpha*h).view(-1)
+            self.current_Y = self.model(parameters = self.current_state + alpha*h).view(-1)
             if self.model.target.has_mask:
                 alpha_loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -420,7 +417,7 @@ class LM(BaseOptimizer):
         h = self.update_h_v1()
         
         with torch.no_grad():
-            self.current_Y = self.model.full_sample(self.current_state + h, as_representation = True, override_locked = False, flatten = True)
+            self.current_Y = self.model(parameters = self.current_state + h, as_representation = True, override_locked = False).flatten("data")
             if self.model.target.has_mask: 
                 loss = torch.sum(((self.Y - self.current_Y)**2 if self.W is None else ((self.Y - self.current_Y)**2 * self.W))[torch.logical_not(self.mask)]) / self.ndf
             else:
@@ -561,7 +558,6 @@ class LM(BaseOptimizer):
         if "fail" in self.message and self._count_finish > 0:
             self.message = self.message + ". possibly converged to numerical precision and could not make a better step."
         self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
-        self.model.finalize()
         if self.verbose > 1:
             AP_config.ap_logger.info("LM Fitting complete in {time() - start_fit} sec with message: self.message")
         # set the uncertainty for each parameter
@@ -607,7 +603,7 @@ class LM(BaseOptimizer):
                 self.rho_history.append(self.rho_history[i])
 
                 with torch.no_grad():
-                    Y = self.model.full_sample(self.current_state, as_representation = True, override_locked = False, flatten = True)
+                    Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False).flatten("data")
                     self.prev_Y[0] = self.prev_Y[1]
                     self.prev_Y[1] = Y
                 self.update_J_AD()
@@ -644,7 +640,7 @@ class LM(BaseOptimizer):
         del self.J
         if "cpu" not in AP_config.ap_device:
             torch.cuda.empty_cache()
-        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
+        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
         self.full_jac = True

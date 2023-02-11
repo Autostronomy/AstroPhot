@@ -37,10 +37,10 @@ class Iter(BaseOptimizer):
             self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
         
     def sub_step(self, model):
-        self.Y -= model.sample()
+        self.Y -= model()
         model.target = model.target[model.window] - self.Y[model.window]
         res = self.method(model, **self.method_kwargs).fit()
-        self.Y += model.sample()
+        self.Y += model()
         if self.verbose > 1:
             AP_config.ap_logger.info(res.message)
         model.target = self.model.target
@@ -59,7 +59,7 @@ class Iter(BaseOptimizer):
 
         # update the loss value
         with torch.no_grad():
-            self.Y = self.model.full_sample(self.current_state, as_representation = True, override_locked = False, return_data = False)
+            self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False, return_data = False)
             D = self.model.target[self.model.window].flatten("data")
             V = self.model.target[self.model.window].flatten("variance") if self.model.target.has_variance else 1.
             if self.model.target.has_mask:
@@ -83,7 +83,7 @@ class Iter(BaseOptimizer):
     def fit(self):
 
         self.iteration = 0
-        self.Y = self.model.full_sample(self.current_state, as_representation = True, override_locked = False, return_data = False)
+        self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False, return_data = False)
         start_fit = time()
         try:
             while True:
@@ -101,7 +101,6 @@ class Iter(BaseOptimizer):
             self.message = self.message + "fail interrupted"
             
         self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
-        self.model.finalize()
         if self.verbose > 1:
             AP_config.ap_logger.info("Iter Fitting complete in {time() - start_fit} sec with message: self.message")
             

@@ -41,11 +41,7 @@ class TestModel(unittest.TestCase):
         
         self.assertFalse(mod.locked, "default model should not be locked")
         
-        self.assertTrue(torch.all(mod.sample().data == 0), "Base_Model model_image should be zeros")
-
-        loss = mod.compute_loss()
-        
-        self.assertAlmostEqual(loss.detach().item(), 147.4986368304884/np.prod(shape), 5, "Loss calculation returns incorrect value")
+        self.assertTrue(torch.all(mod().data == 0), "Base_Model model_image should be zeros")
 
 class TestSersic(unittest.TestCase):
 
@@ -69,17 +65,6 @@ class TestSersic(unittest.TestCase):
         self.assertFalse(mod.locked, "default model should not be locked")
         
         mod.initialize()
-
-        mod.requires_grad = True
-        loss = mod.compute_loss()
-        
-        self.assertLess(loss.detach().item(), 15000, "Loss calculation returns value too high")
-
-        loss.backward()
-
-        for p in mod.parameters:
-            self.assertFalse(mod.parameters[p].grad is None, "Gradient should be evaluated for all model parameters")
-
             
 class TestGroup(unittest.TestCase):
 
@@ -101,11 +86,7 @@ class TestGroup(unittest.TestCase):
         
         smod.initialize()
 
-        self.assertTrue(torch.all(smod.sample().data == 0), "model_image should be zeros")
-
-        loss = smod.compute_loss()
-        
-        self.assertAlmostEqual(loss.detach().item(), 147.4986368304884/np.prod(shape), 5, "Loss calculation returns incorrect value")
+        self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
 
 
 if __name__ == "__main__":
