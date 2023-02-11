@@ -1,9 +1,9 @@
-from .model_object import Base_Model
+from .model_object import Component_Model
 import torch
 
 __all__ = ["Star_Model"]
 
-class Star_Model(Base_Model):
+class Star_Model(Component_Model):
     """Prototype star model, to be subclassed by other star models which
     define specific behavior. Mostly this just requires that no
     standard PSF convolution is applied to this model as that is to be
@@ -13,7 +13,7 @@ class Star_Model(Base_Model):
     already been done when constructing the PSF.
 
     """
-    model_type = f"star {Base_Model.model_type}"
+    model_type = f"star {Component_Model.model_type}"
     useable = False
     
     def radius_metric(self, X, Y):
