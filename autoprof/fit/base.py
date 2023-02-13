@@ -67,7 +67,7 @@ class BaseOptimizer(object):
         self.loss_history = []
         self.message = ""
 
-    def fit(self) -> Uniob[None,self]:
+    def fit(self) -> Union[None,self]:
         """ 
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
