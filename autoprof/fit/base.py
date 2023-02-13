@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from time import time
+from typing import Any
 from scipy.special import gammainc
 from scipy.optimize import minimize
 from .. import AP_config
@@ -18,14 +19,14 @@ class BaseOptimizer(object):
         relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
     
     """
-    def __init__(self, model: object, initial_state: torch.Tensor = None, relative_tolerance: float = 1e-3, **kwargs) -> None:
+    def __init__(self, model: 'Autorof_Model', initial_state: Any = None, relative_tolerance: float = 1e-3, **kwargs) -> None:
         """
     Initializes a new instance of the class.
     
     Args:
         model (object): An object representing the model.
-        initial_state (Union[None, Tensor]): The initial state of the model. If `None`, the model's default
-                                             initial state will be used.
+        initial_state (Union[None, Tensor]): The initial state of the model could be any tensor. 
+                       If `None`, the model's default initial state will be used.
         relative_tolerance (float): The relative tolerance for the optimization.
         **kwargs (dict): Additional keyword arguments.
         
@@ -66,13 +67,13 @@ class BaseOptimizer(object):
         self.loss_history = []
         self.message = ""
 
-    def fit(self) -> None:
+    def fit(self) -> self:
         """ 
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
         """
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
-    def step(self, current_state: None = None)-> None:
+    def step(self, current_state: torch.Tensor = None)-> None:
         """ Args:
                 current_state (torch.Tensor, optional): Current state of the model parameters. Defaults to None.
     
@@ -89,7 +90,7 @@ class BaseOptimizer(object):
                     float: Minimum value of chi^2 loss.
         """
         return np.nanmin(self.loss_history)
-    def res(self) -> float:
+    def res(self) -> np.ndarray:
         """ Returns the value of lambda (regularization strength) at which minimum chi^2 loss was achieved.
     
             Returns:
