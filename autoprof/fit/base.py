@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from time import time
-from typing import Any
+from typing import Any,Union
 from scipy.special import gammainc
 from scipy.optimize import minimize
 from .. import AP_config
@@ -67,7 +67,7 @@ class BaseOptimizer(object):
         self.loss_history = []
         self.message = ""
 
-    def fit(self) -> self:
+    def fit(self) -> Uniob[None,self]:
         """ 
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
