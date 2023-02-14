@@ -42,7 +42,7 @@ class Iter(BaseOptimizer):
 
     def __init__(self, 
                 model: 'AutoProf_Model', 
-                method: callable,
+                method: 'BaseOptimizer',
                 initial_state: np.ndarray = None, 
                 max_iter: int = 100, 
                 method_kwargs: Dict[str, Any] = {}, 
@@ -111,7 +111,7 @@ class Iter(BaseOptimizer):
 
         self.iteration += 1
         
-    def fit(self) -> None:
+    def fit(self) -> 'BaseOptimizer':
         """
         Fit the models to the target.
         
