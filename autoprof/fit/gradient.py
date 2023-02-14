@@ -36,7 +36,7 @@ class Grad(BaseOptimizer):
     """
 
     
-    def __init__(self, model: object, initial_state = None, **kwargs) -> None:
+    def __init__(self, model: 'AutoProf_Model', initial_state = None, **kwargs) -> None:
         """Initialize the gradient descent optimizer.
 
         Args:
@@ -87,7 +87,7 @@ class Grad(BaseOptimizer):
             AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
         
-    def fit(self) -> None:
+    def fit(self) -> 'BaseOptimizer':
         """
         Perform an iterative fit of the model parameters using the specified optimizer.
         
