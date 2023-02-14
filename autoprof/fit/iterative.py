@@ -2,12 +2,12 @@
 #According to PEP8 conventions
 from typing import Dict,Any
 import os
+from time import time
 import matplotlib.pyplot as plt
 
 import numpy as np
 import torch
 
-from time import time
 
 from scipy.optimize import minimize
 from scipy.special import gammainc
