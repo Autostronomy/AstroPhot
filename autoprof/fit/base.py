@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from time import time
-from typing import Any,Union
+from typing import Any,Union,Sequence
 from scipy.special import gammainc
 from scipy.optimize import minimize
 from .. import AP_config
@@ -19,7 +19,7 @@ class BaseOptimizer(object):
         relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
     
     """
-    def __init__(self, model: 'Autorof_Model', initial_state: Any = None, relative_tolerance: float = 1e-3, **kwargs) -> None:
+    def __init__(self, model: 'Autorof_Model', initial_state: Sequence = None, relative_tolerance: float = 1e-3, **kwargs) -> None:
         """
     Initializes a new instance of the class.
     
@@ -67,7 +67,7 @@ class BaseOptimizer(object):
         self.loss_history = []
         self.message = ""
 
-    def fit(self) -> Union[None,'BaseOptimizer']:
+    def fit(self) -> 'BaseOptimizer':
         """ 
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
