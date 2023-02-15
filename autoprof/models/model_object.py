@@ -11,10 +11,10 @@ import numpy as np
 import torch
 from .. import AP_config
 
-__all__ = ["Base_Model"]
+__all__ = ["Component_Model"]
 
-class Base_Model(AutoProf_Model):
-    """Base_Model(name, target, window, locked, **kwargs)
+class Component_Model(AutoProf_Model):
+    """Component_Model(name, target, window, locked, **kwargs)
 
     This is the basis for almost any model which represents a single
     object, or parametric form.  Subclassing models must define their
@@ -256,11 +256,12 @@ class Base_Model(AutoProf_Model):
 
         if self.jacobian_mode == "full":
             full_jac = jacobian(
-                partial(
-                    self.full_sample,
+                lambda P: self(
+                    image = None,
+                    parameters = P,
                     as_representation = as_representation,
-                    override_locked = override_locked,
-                ),
+                    override_locked = override_locked
+                ).data,
                 self.get_parameter_vector(
                     as_representation = as_representation,
                     override_locked = override_locked,
@@ -280,7 +281,8 @@ class Base_Model(AutoProf_Model):
                 sub_jacs.append(
                     jacobian(
                         partial(
-                            self.full_sample,
+                            self.__call__,
+                            image = None,
                             as_representation = as_representation,
                             override_locked = override_locked,
                             parameters_identity = (P,),

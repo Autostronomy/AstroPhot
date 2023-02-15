@@ -1,12 +1,11 @@
-import torch
-import numpy as np
 from time import time
 from typing import Any,Union,Sequence
+import torch
+import numpy as np
 from scipy.special import gammainc
 from scipy.optimize import minimize
 
 from .. import AP_config
-
 
 __all__ = ["BaseOptimizer"]
 
@@ -101,7 +100,7 @@ class BaseOptimizer(object):
         N = np.isfinite(self.loss_history)
         return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]
 
-    def chi2contour(self, n_params: int, confidence = 0.682689492137) -> float:
+    def chi2contour(self, n_params: int, confidence: float = 0.682689492137) -> float:
         """
         Calculates the chi^2 contour for the given number of parameters.
 

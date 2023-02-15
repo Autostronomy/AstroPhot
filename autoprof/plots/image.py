@@ -53,7 +53,7 @@ def model_image(fig, ax, model, sample_image = None, window = None, showcbar = T
 
     if sample_image is None:
         sample_image = model.make_model_image()
-        sample_image = model.sample(sample_image)
+        sample_image = model(sample_image)
 
     if isinstance(sample_image, Image_List):
         for i, image in enumerate(sample_image): 
@@ -94,7 +94,7 @@ def residual_image(fig, ax, model, target = None, sample_image = None, showcbar 
         target = model.target
     if sample_image is None:
         sample_image = model.make_model_image()
-        sample_image = model.sample(sample_image)
+        sample_image = model(sample_image)
     if isinstance(window, Window_List):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(fig, i_ax, model, target = tar, sample_image = sam, window = win, showcbar = showcbar, center_residuals = center_residuals, **kwargs)

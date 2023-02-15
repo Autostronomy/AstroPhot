@@ -114,9 +114,9 @@ def basic_config(config_file):
         
     model_image_save = config.get("ap_saveto_model_image", None)
     if model_image_save is not None:
-        MODEL.sample().save(model_image_save)
+        MODEL().save(model_image_save)
 
     model_residual_save = config.get("ap_saveto_model_residual", None)
     if model_residual_save is not None:
-        (target - MODEL.sample()).save(model_residual_save)
+        (target - MODEL()).save(model_residual_save)
     

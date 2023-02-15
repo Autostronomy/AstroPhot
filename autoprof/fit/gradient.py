@@ -1,7 +1,8 @@
 # Traditional gradient descent with Adam
+from time import time
+from typing import Sequence
 import torch
 import numpy as np
-from time import time
 from .base import BaseOptimizer
 
 __all__ = ["Grad"]
@@ -36,7 +37,7 @@ class Grad(BaseOptimizer):
     """
 
     
-    def __init__(self, model: 'AutoProf_Model', initial_state = None, **kwargs) -> None:
+    def __init__(self, model: 'AutoProf_Model', initial_state: Sequence = None, **kwargs) -> None:
         """Initialize the gradient descent optimizer.
 
         Args:
@@ -57,11 +58,19 @@ class Grad(BaseOptimizer):
 
         # Default learning rate if none given. Equalt to 1 / sqrt(parames)
         if not "lr" in self.optim_kwargs:
-            self.optim_kwargs["lr"] = 1. / np.sqrt(len(self.current_state))
+            self.optim_kwargs["lr"] = 1. / (len(self.current_state)**(0.5))
 
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
         self.optimizer = getattr(torch.optim, self.method)((self.current_state,), **self.optim_kwargs)
 
+    def compute_loss(self) -> torch.Tensor:
+        Ym = self.model(parameters = self.current_state, as_representation = True, override_locked = False).flatten()
+        Yt = self.model.target.flatten("data")
+        W = self.model.target.flatten("variance") if self.model.target.has_variance else 1.
+
+        loss = torch.sum((Ym - Yt)**2 / W)
+        return loss
+    
     def step(self) -> None:
         """Take a single gradient step. Take a single gradient step.
         
@@ -75,7 +84,7 @@ class Grad(BaseOptimizer):
                 
         self.optimizer.zero_grad()
         
-        loss = self.model.full_loss(self.current_state, as_representation = True, override_locked = False)
+        loss = self.compute_loss()
 
         loss.backward()
 
@@ -116,8 +125,6 @@ class Grad(BaseOptimizer):
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
         self.model.set_parameters(torch.tensor(self.res()), as_representation = True, override_locked = False)
-        # finalize tells the model that optimization is now finished
-        self.model.finalize()
         if self.verbose > 1:
             AP_config.ap_logger.info("Grad Fitting complete in {time() - start_fit} sec with message: self.message")
         return self

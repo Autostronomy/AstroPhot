@@ -35,17 +35,13 @@ class TestModel(unittest.TestCase):
             psf = np.array([[0.05, 0.1, 0.05],[0.1, 0.4, 0.1],[0.05, 0.1, 0.05]]),
         )
 
-        mod = ap.models.Base_Model(name = "base model", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
+        mod = ap.models.Component_Model(name = "base model", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
 
         mod.initialize()
         
         self.assertFalse(mod.locked, "default model should not be locked")
         
-        self.assertTrue(torch.all(mod.sample().data == 0), "Base_Model model_image should be zeros")
-
-        loss = mod.compute_loss()
-        
-        self.assertAlmostEqual(loss.detach().item(), 147.4986368304884/np.prod(shape), 5, "Loss calculation returns incorrect value")
+        self.assertTrue(torch.all(mod().data == 0), "Component_Model model_image should be zeros")
 
 class TestSersic(unittest.TestCase):
 
@@ -69,17 +65,6 @@ class TestSersic(unittest.TestCase):
         self.assertFalse(mod.locked, "default model should not be locked")
         
         mod.initialize()
-
-        mod.requires_grad = True
-        loss = mod.compute_loss()
-        
-        self.assertLess(loss.detach().item(), 15000, "Loss calculation returns value too high")
-
-        loss.backward()
-
-        for p in mod.parameters:
-            self.assertFalse(mod.parameters[p].grad is None, "Gradient should be evaluated for all model parameters")
-
             
 class TestGroup(unittest.TestCase):
 
@@ -92,8 +77,8 @@ class TestGroup(unittest.TestCase):
             variance = np.ones(shape)*(1.4**2),
         )
 
-        mod1 = ap.models.Base_Model(name = "base model 1", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
-        mod2 = ap.models.Base_Model(name = "base model 2", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
+        mod1 = ap.models.Component_Model(name = "base model 1", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
+        mod2 = ap.models.Component_Model(name = "base model 2", target = tar, parameters = {"center": {"value": [5,5], "locked": True}})
 
         smod = ap.models.AutoProf_Model(name = "group model", model_type = "group model", model_list = [mod1, mod2], target = tar)
             
@@ -101,11 +86,7 @@ class TestGroup(unittest.TestCase):
         
         smod.initialize()
 
-        self.assertTrue(torch.all(smod.sample().data == 0), "model_image should be zeros")
-
-        loss = smod.compute_loss()
-        
-        self.assertAlmostEqual(loss.detach().item(), 147.4986368304884/np.prod(shape), 5, "Loss calculation returns incorrect value")
+        self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
 
 
 if __name__ == "__main__":

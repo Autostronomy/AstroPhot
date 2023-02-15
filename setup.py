@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-import autoprof as ap
+import autoprof.__init__ as ap
 import os
 
 def read(fname):
@@ -8,7 +8,7 @@ def read(fname):
 setup(
     name="autoprof",
     version=ap.__version__,    
-    description="Fast and flexible astronomical image modelling tool",
+    description="A fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry",
     long_description=read("README.md"),
     url="https://github.com/ConnorStoneAstro/AutoProf-2",
     author=ap.__author__,

@@ -3,9 +3,9 @@ import argparse
 from . import models, image, plots, utils, fit, AP_config
 
 # meta data
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 __author__ = "Connor Stone"
-__email__ = "connorston628@gmail.com"
+__email__ = "connorstone628@gmail.com"
 
 def run_from_terminal():
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")

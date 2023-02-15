@@ -151,17 +151,8 @@ class Group_Model(AutoProf_Model):
         target_copy = target.copy()
         for model in self.model_list:
             model.initialize(target_copy)
-            target_copy -= model.sample()
+            target_copy -= model()
             
-    def finalize(self):
-        """To be called after optimization. This disables any optimization
-        specific properties that may be active for the collection of
-        sub models.
-
-        """
-        for model in self.model_list:
-            model.finalize()
-        
     def make_model_image(self):
         if isinstance(self.window, Window_List):
             return Model_Image_List(list(
@@ -173,20 +164,20 @@ class Group_Model(AutoProf_Model):
         else:
             return super().make_model_image()
         
-    def sample(self, sample_image = None):
+    def sample(self, image = None, *args, **kwargs):
 
-        if sample_image is None:
+        if image is None:
             sample_window = True
-            sample_image = self.make_model_image()
+            image = self.make_model_image()
         else:
             sample_window = False
         for model in self.model_list:
             if sample_window:
-                sample_image += model.sample()
+                image += model()
             else:
-                model.sample(sample_image)
+                model(image)
 
-        return sample_image
+        return image
 
     def sub_model_parameter_map(self, override_locked = False):
         base_parameters = self.parameters
