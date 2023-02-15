@@ -4,7 +4,9 @@ from time import time
 from typing import Any,Union,Sequence
 from scipy.special import gammainc
 from scipy.optimize import minimize
+
 from .. import AP_config
+
 
 __all__ = ["BaseOptimizer"]
 

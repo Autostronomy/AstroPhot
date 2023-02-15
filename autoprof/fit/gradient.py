@@ -36,15 +36,15 @@ class Grad(BaseOptimizer):
     """
 
     
-    def __init__(self, model, initial_state = None, **kwargs):
+    def __init__(self, model: 'AutoProf_Model', initial_state = None, **kwargs) -> None:
         """Initialize the gradient descent optimizer.
 
-    Args:
-    - model: instance of the model to be optimized.
-    - initial_state: Initial state of the model.
-    - patience: (optional) If a positive integer, then stop the optimization if there has been no improvement in the loss for this number of iterations.
-    - method: (optional) The name of the optimization method to use. Default is NAdam.
-    - optim_kwargs: (optional) Keyword arguments to be passed to the optimizer.
+        Args:
+            - model: instance of the model to be optimized.
+            - initial_state: Initial state of the model.
+            - patience: (optional) If a positive integer, then stop the optimization if there has been no improvement in the loss for this number of iterations.
+            - method: (optional) The name of the optimization method to use. Default is NAdam.
+            - optim_kwargs: (optional) Keyword arguments to be passed to the optimizer.
         """
 
         super().__init__(model, initial_state, **kwargs)
@@ -62,12 +62,12 @@ class Grad(BaseOptimizer):
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
         self.optimizer = getattr(torch.optim, self.method)((self.current_state,), **self.optim_kwargs)
 
-    def step(self):
+    def step(self) -> None:
         """Take a single gradient step. Take a single gradient step.
         
-        Computes the loss function of the model, 
-        computes the gradient of the parameters using automatic differentiation,
-        and takes a step with the PyTorch optimizer.
+            Computes the loss function of the model, 
+            computes the gradient of the parameters using automatic differentiation,
+            and takes a step with the PyTorch optimizer.
        
         """
         
@@ -87,13 +87,13 @@ class Grad(BaseOptimizer):
             AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
         
-    def fit(self):
+    def fit(self) -> 'BaseOptimizer':
         """
-        Perform an iterative fit of the model parameters using the specified optimizer
+        Perform an iterative fit of the model parameters using the specified optimizer.
         
         The fit procedure continues until a stopping criteria is met, 
         such as the maximum number of iterations being reached,
-         or no improvement being made after a specified number of iterations.
+        or no improvement being made after a specified number of iterations.
         
         """
         start_fit = time()
