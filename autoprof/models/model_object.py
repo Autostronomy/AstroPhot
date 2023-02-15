@@ -256,11 +256,12 @@ class Component_Model(AutoProf_Model):
 
         if self.jacobian_mode == "full":
             full_jac = jacobian(
-                partial(
-                    self.full_sample,
+                lambda P: self(
+                    image = None,
+                    parameters = P,
                     as_representation = as_representation,
-                    override_locked = override_locked,
-                ),
+                    override_locked = override_locked
+                ).data,
                 self.get_parameter_vector(
                     as_representation = as_representation,
                     override_locked = override_locked,
@@ -280,7 +281,8 @@ class Component_Model(AutoProf_Model):
                 sub_jacs.append(
                     jacobian(
                         partial(
-                            self.full_sample,
+                            self.__call__,
+                            image = None,
                             as_representation = as_representation,
                             override_locked = override_locked,
                             parameters_identity = (P,),

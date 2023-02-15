@@ -364,7 +364,7 @@ class LM(BaseOptimizer):
         del self.J
         if "cpu" not in AP_config.ap_device:
             torch.cuda.empty_cache()
-        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False)
+        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
         self.full_jac = True

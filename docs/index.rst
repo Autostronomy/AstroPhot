@@ -30,8 +30,8 @@ AutoProf
 Getting Started
 ===============
 
-AutoProf is a tool for astronomical image photometry using forward modelling.
-Its design allows for fast startup and provides flexibility to explore new ideas and support advanced users.
+AutoProf is a fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry.
+Its pythonic design allows for fast startup and provides flexibility to explore new ideas and support advanced users.
 It was written by `Connor Stone <https://connorjstone.com/>`_ .
 
 This documentation is a work in progress, further updates will come.

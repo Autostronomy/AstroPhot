@@ -1,11 +1,19 @@
 # Apply a different optimizer iteratively
+#According to PEP8 conventions
+from typing import Dict,Any
 import os
-import torch
-import numpy as np
 from time import time
+import matplotlib.pyplot as plt
+
+import numpy as np
+import torch
+
+
+from scipy.optimize import minimize
+from scipy.special import gammainc
+
 from .base import BaseOptimizer
 from .. import AP_config
-import matplotlib.pyplot as plt
 
 __all__ = ["Iter"]
 
@@ -22,9 +30,23 @@ class Iter(BaseOptimizer):
         max_iter: Maximum number of iterations, defaults to 100.
         method_kwargs: Keyword arguments to pass to `method`.
         **kwargs: Additional keyword arguments. 
+    
+    Attributes:
+        ndf: Degrees of freedom of the data.
+        method: The optimizer class to apply at each iteration step.
+        method_kwargs: Keyword arguments to pass to `method`.
+        iteration: The number of iterations performed.
+        lambda_history: A list of the states at each iteration step.
+        loss_history: A list of the losses at each iteration step
     """
 
-    def __init__(self, model, method, initial_state = None, max_iter = 100, method_kwargs = {}, **kwargs):
+    def __init__(self, 
+                model: 'AutoProf_Model', 
+                method: 'BaseOptimizer',
+                initial_state: np.ndarray = None, 
+                max_iter: int = 100, 
+                method_kwargs: Dict[str, Any] = {}, 
+                **kwargs: Dict[str, Any]) -> None:
 
         super().__init__(model, initial_state, max_iter = max_iter, **kwargs)
 
@@ -36,7 +58,13 @@ class Iter(BaseOptimizer):
             # subtract masked pixels from degrees of freedom
             self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
         
-    def sub_step(self, model):
+    def sub_step(self, model: 'AutoProf_Model') -> None:
+        """
+        Perform optimization for a single model.
+
+        Args:
+            model: The model to perform optimization on.
+        """
         self.Y -= model()
         model.target = model.target[model.window] - self.Y[model.window]
         res = self.method(model, **self.method_kwargs).fit()
@@ -45,7 +73,10 @@ class Iter(BaseOptimizer):
             AP_config.ap_logger.info(res.message)
         model.target = self.model.target
         
-    def step(self):
+    def step(self) -> None:
+        '''
+        Perform a single iteration of optimization.
+        '''
         if self.verbose > 0:
             AP_config.ap_logger.info("--------iter-------")
 
@@ -80,7 +111,12 @@ class Iter(BaseOptimizer):
 
         self.iteration += 1
         
-    def fit(self):
+    def fit(self) -> 'BaseOptimizer':
+        """
+        Fit the models to the target.
+        
+ 
+        """
 
         self.iteration = 0
         self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False, return_data = False)

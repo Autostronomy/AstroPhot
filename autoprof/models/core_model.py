@@ -393,7 +393,6 @@ class AutoProf_Model(object):
     def __call__(
         self,
         image = None,
-        *args,
         parameters=None,
         as_representation=True,
         override_locked=False,
@@ -409,4 +408,4 @@ class AutoProf_Model(object):
                 parameters_identity=parameters_identity,
             )
 
-        return self.sample(image, *args, **kwargs)
+        return self.sample(image, **kwargs)
