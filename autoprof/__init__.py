@@ -3,7 +3,7 @@ import argparse
 from . import models, image, plots, utils, fit, AP_config
 
 # meta data
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 __author__ = "Connor Stone"
 __email__ = "connorston628@gmail.com"
 
