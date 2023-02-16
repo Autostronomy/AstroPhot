@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Code Coverage
 
 on:
   push:
@@ -10,41 +10,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ${{matrix.os}}
-    strategy:
-      matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+  coverage:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.10'
       - name: Record State
         run: |
           pwd
           echo github.ref is: ${{ github.ref }}
           echo GITHUB_SHA is: $GITHUB_SHA
           echo github.event_name is: ${{ github.event_name }}
+          echo github workspace: ${{ github.workspace }}
           pip --version
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest
+          pip install pytest-cov
           pip install wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
       - name: Install AutoProf
         run: |
           cd $GITHUB_WORKSPACE/
-          pip install .
+          pip install -e .
           pip show autoprof
         shell: bash
       - name: Test with pytest
         run: |
-          cd $GITHUB_WORKSPACE/tests/
+          cd $GITHUB_WORKSPACE
           pwd
-          pytest
+          pytest --cov-report=xml --cov=autoprof tests/
+          cat coverage.xml
         shell: bash
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          files: ${{ github.workspace }}/coverage.xml
+          fail_ci_if_error: true
