@@ -1,9 +1,10 @@
 import torch
 import numpy as np
 from copy import deepcopy
-from .window_object import Window, Window_List
 from astropy.io import fits
+from .window_object import Window, Window_List
 from .. import AP_config
+
 __all__ = ["BaseImage", "Image_List"]
 
 class BaseImage(object):

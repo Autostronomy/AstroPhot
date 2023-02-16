@@ -6,6 +6,7 @@ from .star_model_object import Star_Model
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from ._shared_methods import parametric_initialize
+
 import numpy as np
 import torch
 

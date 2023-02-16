@@ -1,13 +1,3 @@
-from .galaxy_model_object import Galaxy_Model
-from ..utils.interpolate import cubic_spline_torch
-from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
-import numpy as np
-import torch
-from scipy.stats import iqr, binned_statistic, binned_statistic_2d
-
-__all__ = ["Warp_Galaxy"]
-
-class Warp_Galaxy(Galaxy_Model):
     """Galaxy model which includes radially varrying PA and q
     profiles. This works by warping the cooridnates using the same
     transform for a global PA/q except applied to each pixel

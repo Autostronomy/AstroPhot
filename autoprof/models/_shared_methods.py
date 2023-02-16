@@ -1,5 +1,17 @@
 from ..utils.initialize import isophotes
-from ..utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np, exponential_torch, exponential_np, nonparametric_torch, moffat_torch, moffat_np, nuker_torch, nuker_np
+from ..utils.parametric_profiles import (
+    sersic_torch,
+    sersic_np,
+    gaussian_torch,
+    gaussian_np,
+    exponential_torch,
+    exponential_np,
+    nonparametric_torch,
+    moffat_torch,
+    moffat_np,
+    nuker_torch,
+    nuker_np
+)
 from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
 from .. import AP_config
@@ -30,7 +42,8 @@ def parametric_initialize(model, target, prof_func, params, x0_func, force_uncer
     # Convert center coordinates to target area array indices
     icenter = coord_to_index(
         model["center"].value[0],
-        model["center"].value[1], target_area
+        model["center"].value[1], 
+        target_area
     )
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,

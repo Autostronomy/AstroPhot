@@ -1,10 +1,11 @@
 import numpy as np
+import torch
+from copy import deepcopy
 from .parameter_object import Parameter
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ..image import Model_Image, Target_Image, Window
-from copy import deepcopy
-import torch
 from .. import AP_config
+
 
 def integrate_window(self, image, fix_to = "center"):
     """The appropriately sized window in which to perform integration for

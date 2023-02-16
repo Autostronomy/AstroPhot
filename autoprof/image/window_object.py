@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from .. import AP_config
+
 __all__ = ["Window", "Window_List"]
 
 class Window(object):
