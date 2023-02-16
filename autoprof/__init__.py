@@ -11,7 +11,7 @@ def run_from_terminal():
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog = "autoprof",
-        description = "Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/ConnorStoneAstro/AutoProf-2",
+        description = "Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/ConnorStoneAstro/AutoProf",
         epilog = "Please see the documentation or contact connor stone (connorstone628@gmail.com) for further assistance."
     )
     parser.add_argument(
@@ -73,16 +73,16 @@ def run_from_terminal():
         AP_config.device = "cpu" if args.device == "cpu" else "cuda:0"
 
     if args.filename is None:
-        raise RuntimeError("Please pass a config file to autoprof. See 'autoprof --help' for more information, or go to https://connorstoneastro.github.io/AutoProf-2/getting_started.html")
+        raise RuntimeError("Please pass a config file to autoprof. See 'autoprof --help' for more information, or go to https://connorstoneastro.github.io/AutoProf/getting_started.html")
     if args.filename in ["tutorial", "tutorials"]:
         import requests
         tutorials = [
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/GroupModels.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/JointModels.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/CustomModels.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoProf-2/main/docs/tutorials/simple_config.py",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/GettingStarted.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/GroupModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/JointModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
             try:
