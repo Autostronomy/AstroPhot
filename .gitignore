@@ -6,6 +6,7 @@ autoprof.egg-info
 **.ipynb_checkpoints
 **.#*
 **.log
+**.coverage
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg
