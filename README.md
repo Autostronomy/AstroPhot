@@ -5,8 +5,8 @@
 </picture>
 
 
-![unittests](https://github.com/ConnorStoneAstro/AutoProf-2/actions/workflows/testing.yaml/badge.svg?branch=main)
-![docs](https://github.com/ConnorStoneAstro/AutoProf-2/actions/workflows/documentation.yaml/badge.svg?branch=main)
+![unittests](https://github.com/ConnorStoneAstro/AutoProf/actions/workflows/testing.yaml/badge.svg?branch=main)
+![docs](https://github.com/ConnorStoneAstro/AutoProf/actions/workflows/documentation.yaml/badge.svg?branch=main)
 ![pypi](https://img.shields.io/pypi/v/autoprof.svg?logo=pypi&logoColor=white&label=PyPI)
 ![downloads](https://img.shields.io/pypi/dm/autoprof?label=PyPI%20Downloads)
 
@@ -25,12 +25,12 @@ However, for AutoProf to run you will need to install pytorch as well. Installin
 
 Also note that AutoProf is only available for python3.
 
-See [the documentation](https://connorstoneastro.github.io/AutoProf-2/) for more details.
+See [the documentation](https://connorstoneastro.github.io/AutoProf/) for more details.
 
 ## Documentation
 
-You can find the documentation at the [GitHub Pages site connected with the AutoProf project](https://connorstoneastro.github.io/AutoProf-2/) which covers many of the main use cases for AutoProf. It is still in development, but lots of useful information is there. Feel free to contact the author, [Connor Stone](https://connorjstone.com/), for any questions not answered by the documentation or tutorials.
+You can find the documentation at the [GitHub Pages site connected with the AutoProf project](https://connorstoneastro.github.io/AutoProf/) which covers many of the main use cases for AutoProf. It is still in development, but lots of useful information is there. Feel free to contact the author, [Connor Stone](https://connorjstone.com/), for any questions not answered by the documentation or tutorials.
 
 ## Credit / Citation
 
-If you use AutoProf in your research, please follow the [citation instructions here](https://connorstoneastro.github.io/AutoProf-2/citation.html). A new paper for the updated AutoProf code is in the works.
+If you use AutoProf in your research, please follow the [citation instructions here](https://connorstoneastro.github.io/AutoProf/citation.html). A new paper for the updated AutoProf code is in the works.
