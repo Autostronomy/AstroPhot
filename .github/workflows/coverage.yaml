@@ -42,9 +42,9 @@ jobs:
         shell: bash
       - name: Test with pytest
         run: |
-          cd $GITHUB_WORKSPACE/tests/
+          cd $GITHUB_WORKSPACE
           pwd
-          pytest --cov ../autoprof --cov-report xml
+          pytest --cov-report xml --cov=autoprof tests/
           cat coverage.xml
         shell: bash
       - name: Upload coverage report to Codecov
