@@ -28,8 +28,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install coverage
           pip install pytest
+          pip install pytest-cov
           pip install wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
@@ -43,13 +43,9 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/tests/
           pwd
-          coverage run -m pytest
+          pytest --cov
         shell: bash
-      - name: Generate coverage report
-        run: |
-          cd $GITHUB_WORKSPACE/tests/
-          coverage report          
-      - name: Upload coverage reports to Codecov
+      - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
