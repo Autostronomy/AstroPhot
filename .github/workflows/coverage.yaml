@@ -31,7 +31,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install pytest-cov
-          pip install coverage
           pip install wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
@@ -45,13 +44,12 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           pwd
-          pytest --cov=autoprof tests/
-          coverage json
-          cat coverage.json
+          pytest --cov-report=xml --cov=autoprof tests/
+          cat coverage.xml
         shell: bash
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: ${{ github.workspace }}/coverage.json
+          files: ${{ github.workspace }}/coverage.xml
           fail_ci_if_error: true
