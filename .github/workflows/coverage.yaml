@@ -24,6 +24,8 @@ jobs:
           echo github.ref is: ${{ github.ref }}
           echo GITHUB_SHA is: $GITHUB_SHA
           echo github.event_name is: ${{ github.event_name }}
+          echo github action path: ${{ github.action_path }}
+          echo github event path: ${{ github.event_path }}
           pip --version
       - name: Install dependencies
         run: |
@@ -49,4 +51,4 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: ${{ github.action_path}}/tests/.coverage
+          files: .coverage
