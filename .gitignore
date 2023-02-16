@@ -7,6 +7,7 @@ autoprof.egg-info
 **.#*
 **.log
 **.coverage
+**.xml
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg

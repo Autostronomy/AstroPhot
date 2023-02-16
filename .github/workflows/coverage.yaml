@@ -46,12 +46,12 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/tests/
           pwd
-          pytest --cov
+          pytest --cov --cov-report xml
           cat .coverage
         shell: bash
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: ${{ github.workspace }}/tests/.coverage
+          files: ${{ github.workspace }}/tests/coverage.xml
           fail_ci_if_error: true
