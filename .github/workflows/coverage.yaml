@@ -46,9 +46,10 @@ jobs:
           cd $GITHUB_WORKSPACE/tests/
           pwd
           pytest --cov
+          cat .coverage
         shell: bash
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: .coverage
+          files: /home/runner/work/AutoProf/AutoProf/tests/.coverage
