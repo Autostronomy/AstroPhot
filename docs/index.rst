@@ -14,9 +14,9 @@
 AutoProf
 *********
 
-.. image:: https://github.com/ConnorStoneAstro/AutoProf-2/blob/main/media/AP_logo.png?raw=true
+.. image:: https://github.com/ConnorStoneAstro/AutoProf/blob/main/media/AP_logo.png?raw=true
    :width: 100 %
-   :target: https://github.com/ConnorStoneAstro/AutoProf-2
+   :target: https://github.com/ConnorStoneAstro/AutoProf
    
 |br|
 
