@@ -34,3 +34,7 @@ You can find the documentation at the [GitHub Pages site connected with the Auto
 ## Credit / Citation
 
 If you use AutoProf in your research, please follow the [citation instructions here](https://connorstoneastro.github.io/AutoProf/citation.html). A new paper for the updated AutoProf code is in the works.
+
+## Looking for the old AutoProf?
+
+Don't worry, the old AutoProf is still available unchanged as *AutoProf-Legacy* simply [follow this link](https://github.com/ConnorStoneAstro/AutoProf-Legacy) to see the github page.
