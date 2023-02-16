@@ -46,7 +46,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/tests/
           pwd
-          pytest --cov --cov-report xml
+          pytest --cov ../autoprof/ --cov-report xml
           cat .coverage
         shell: bash
       - name: Upload coverage report to Codecov
