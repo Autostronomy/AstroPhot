@@ -25,7 +25,7 @@ Developer Install
 
 If you wish to help develop AutoProf, thank you! You can get started by cloning the repository::
 
-  git clone https://github.com/ConnorStoneAstro/AutoProf-2.git
+  git clone https://github.com/ConnorStoneAstro/AutoProf.git
 
 Then you can locally install the code using::
 
