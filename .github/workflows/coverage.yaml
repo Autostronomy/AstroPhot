@@ -24,8 +24,6 @@ jobs:
           echo github.ref is: ${{ github.ref }}
           echo GITHUB_SHA is: $GITHUB_SHA
           echo github.event_name is: ${{ github.event_name }}
-          echo github action path: ${{ github.action_path }}
-          echo github event path: ${{ github.event_path }}
           echo github workspace: ${{ github.workspace }}
           pip --version
       - name: Install dependencies
@@ -46,8 +44,8 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/tests/
           pwd
-          pytest --cov ../autoprof/ --cov-report xml
-          cat .coverage
+          pytest --cov ../autoprof --cov-report xml
+          cat coverage.xml
         shell: bash
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
