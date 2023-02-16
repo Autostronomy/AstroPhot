@@ -5,11 +5,13 @@ import os
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+print(read("README.md"))
 setup(
     name="autoprof",
     version=ap.__version__,    
     description="A fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry",
     long_description=read("README.md"),
+    long_description_content_type='text/markdown',
     url="https://github.com/ConnorStoneAstro/AutoProf",
     author=ap.__author__,
     author_email=ap.__email__,
