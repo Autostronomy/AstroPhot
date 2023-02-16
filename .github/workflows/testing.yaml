@@ -48,3 +48,5 @@ jobs:
           pwd
           pytest
         shell: bash
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
