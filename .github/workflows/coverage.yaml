@@ -38,7 +38,7 @@ jobs:
       - name: Install AutoProf
         run: |
           cd $GITHUB_WORKSPACE/
-          pip install .
+          pip install -e .
           pip show autoprof
         shell: bash
       - name: Test with pytest
