@@ -8,8 +8,7 @@ from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 __all__ = ["Warp_Galaxy"]
 
 class Warp_Galaxy(Galaxy_Model):
-   
-   """Galaxy model which includes radially varrying PA and q
+    """Galaxy model which includes radially varrying PA and q
     profiles. This works by warping the cooridnates using the same
     transform for a global PA/q except applied to each pixel
     individually. In the limit that PA and q are a constant, this
@@ -88,3 +87,4 @@ class Warp_Galaxy(Galaxy_Model):
         q = cubic_spline_torch(self["q(R)"].prof, self["q(R)"].value, R.view(-1)).view(*R.shape)
         X, Y = Rotate_Cartesian(PA, X, Y)
         return X, Y/q 
+
