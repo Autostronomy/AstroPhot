@@ -10,7 +10,7 @@ setup(
     version=ap.__version__,    
     description="A fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry",
     long_description=read("README.md"),
-    url="https://github.com/ConnorStoneAstro/AutoProf-2",
+    url="https://github.com/ConnorStoneAstro/AutoProf",
     author=ap.__author__,
     author_email=ap.__email__,
     license="GPL-3.0 license",
