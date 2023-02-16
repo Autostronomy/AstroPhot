@@ -26,6 +26,7 @@ jobs:
           echo github.event_name is: ${{ github.event_name }}
           echo github action path: ${{ github.action_path }}
           echo github event path: ${{ github.event_path }}
+          echo github workspace: ${{ github.workspace }}
           pip --version
       - name: Install dependencies
         run: |
@@ -52,4 +53,5 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: /home/runner/work/AutoProf/AutoProf/tests/.coverage
+          files: ${{ github.workspace }}/tests/.coverage
+          fail_ci_if_error: true
