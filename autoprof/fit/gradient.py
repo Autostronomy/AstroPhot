@@ -1,4 +1,3 @@
-#changed according to PEP 8
 # Traditional gradient descent with Adam
 from time import time
 from typing import Sequence
