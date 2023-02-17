@@ -87,3 +87,4 @@ class Warp_Galaxy(Galaxy_Model):
         q = cubic_spline_torch(self["q(R)"].prof, self["q(R)"].value, R.view(-1)).view(*R.shape)
         X, Y = Rotate_Cartesian(PA, X, Y)
         return X, Y/q 
+

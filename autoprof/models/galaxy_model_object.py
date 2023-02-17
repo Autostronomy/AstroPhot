@@ -1,10 +1,16 @@
-from .model_object import Component_Model
-from ..utils.initialize import isophotes
-from ..utils.angle_operations import Angle_Average
-from ..utils.conversions.coordinates import Rotate_Cartesian, Axis_Ratio_Cartesian, coord_to_index, index_to_coord
-from scipy.stats import iqr
 import torch
 import numpy as np
+from scipy.stats import iqr
+from ..utils.initialize import isophotes
+from ..utils.angle_operations import Angle_Average
+from ..utils.conversions.coordinates import (
+    Rotate_Cartesian, 
+    Axis_Ratio_Cartesian, 
+    coord_to_index, 
+    index_to_coord
+)
+from .model_object import Component_Model
+
 
 __all__ = ["Galaxy_Model"]
 

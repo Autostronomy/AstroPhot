@@ -1,8 +1,8 @@
 import numpy as np
-from astropy.convolution import convolve, convolve_fft
 import torch
-from torch.nn.functional import conv2d
 import matplotlib.pyplot as plt
+from astropy.convolution import convolve, convolve_fft
+from torch.nn.functional import conv2d
 from .operations import fft_convolve_torch
 
 def window_function(img, X, Y, func, window):

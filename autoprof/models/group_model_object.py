@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from .. import AP_config
+
 __all__ = ["Group_Model"]
 
 class Group_Model(AutoProf_Model):

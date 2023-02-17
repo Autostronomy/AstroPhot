@@ -20,7 +20,13 @@ def fluxdens_to_fluxsum(R, I, axisratio):
 
 
 def fluxdens_to_fluxsum_errorprop(
-    R, I, IE, axisratio, axisratioE=None, N=100, symmetric_error=True
+    R, 
+    I, 
+    IE, 
+    axisratio,
+    axisratioE=None, 
+    N=100, 
+    symmetric_error=True
 ):
     """
     Integrate a flux density profile

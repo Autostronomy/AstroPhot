@@ -3,6 +3,7 @@ from time import time
 from typing import Sequence
 import torch
 import numpy as np
+
 from .base import BaseOptimizer
 
 __all__ = ["Grad"]

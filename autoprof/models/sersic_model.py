@@ -10,7 +10,12 @@ import torch
 import numpy as np
 from scipy.stats import iqr
 from ..utils.initialize import isophotes
-from ..utils.parametric_profiles import sersic_torch, sersic_np, gaussian_torch, gaussian_np
+from ..utils.parametric_profiles import (
+    sersic_torch, 
+    sersic_np, 
+    gaussian_torch, 
+    gaussian_np
+    )
 from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from scipy.optimize import minimize
 
