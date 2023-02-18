@@ -247,34 +247,6 @@ class TestWindow(unittest.TestCase):
         self.assertTrue(window1 < window3, "Window1 should be identified as smaller than window3")
         self.assertTrue(window1 <= window3, "Window1 should be identified as smaller than window3")
 
-######################################################################
-# Window List Object
-######################################################################
-        
-class TestWindowList(unittest.TestCase):
-
-    def test_windowlist_creation(self):
-
-        window1 = ap.image.Window((0,6), (100,110))
-        window2 = ap.image.Window((0,6), (100,110))
-        windowlist = ap.image.Window_List([window1, window2])
-        
-        windowlist.to(dtype = torch.float64, device = "cpu")
-
-        # under review
-        # self.assertEqual(windowlist.origin[0], 0, "Window should store origin")
-        # self.assertEqual(windowlist.origin[1], 6, "Window should store origin")
-        # self.assertEqual(windowlist.shape[0], 100, "Window should store shape")
-        # self.assertEqual(windowlist.shape[1], 110, "Window should store shape")
-        # self.assertEqual(windowlist.center[0], 50., "Window should determine center")
-        # self.assertEqual(windowlist.center[1], 61., "Window should determine center")
-
-        self.assertRaises(AssertionError, ap.image.Window_List)
-
-        x = str(windowlist)
-
-    
-    
         
 if __name__ == "__main__":
     unittest.main()

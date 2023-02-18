@@ -249,8 +249,6 @@ class Window(object):
 
 class Window_List(Window):
     def __init__(self, window_list = None, state = None):
-        print(window_list)
-        print(state)
         if state is not None:
             self.update_state(state)
         else:
@@ -334,7 +332,7 @@ class Window_List(Window):
         return torch.all(torch.cat(results))
     @torch.no_grad()
     def __le__(self, other):
-        results = list((sw >= ow).view(-1) for sw, ow in zip(self,other))
+        results = list((sw <= ow).view(-1) for sw, ow in zip(self,other))
         return torch.all(torch.cat(results))
     
     # Window adjustment operators
