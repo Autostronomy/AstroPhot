@@ -15,14 +15,14 @@ class Window(object):
         if state is not None:
             self.update_state(state)
             return
-        if center is None:
+        if center is None and shape is not None and origin is not None:
             self.shape = torch.as_tensor(shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             self.origin = torch.as_tensor(origin, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        elif origin is None:
+        elif origin is None and center is not None and shape is not None:
             self.shape = torch.as_tensor(shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             self.origin = torch.as_tensor(center, dtype = AP_config.ap_dtype, device = AP_config.ap_device) - self.shape/2
         else:
-            raise Exception("One of center or origin must be provided to create window")
+            raise ValueError("One of center or origin must be provided to create window")
         assert torch.all(self.shape > 0), "Window must have non-negative size"
         
     @property
@@ -130,12 +130,12 @@ class Window(object):
     @torch.no_grad()
     def __sub__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
-            new_origin = self.origin - other
-            new_shape = self.shape + 2*other
+            new_origin = self.origin + other
+            new_shape = self.shape - 2*other
             return Window(new_origin, new_shape)
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(self.origin):
-            new_origin = self.origin - torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-            new_shape = self.shape + 2*torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            new_origin = self.origin + torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            new_shape = self.shape - 2*torch.as_tensor(other, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             return Window(new_origin, new_shape)
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
@@ -150,7 +150,7 @@ class Window(object):
             return self
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (2*len(self.origin)):
             self.origin += torch.as_tensor(other[::2], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-            self.shape += torch.as_tensor(torch.sum(other.view(-1,2), axis = 0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self.shape -= torch.as_tensor(torch.sum(other.view(-1,2), axis = 0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             return self
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
@@ -176,7 +176,7 @@ class Window(object):
             return self
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
-    def __div__(self, other):
+    def __truediv__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape / other
             new_origin = self.center - new_shape / 2
@@ -187,7 +187,7 @@ class Window(object):
             return Window(new_origin, new_shape)
         raise ValueError(f"Window object cannot be added with {type(other)}")
     @torch.no_grad()
-    def __idiv__(self, other):
+    def __itruediv__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             self.shape /= other
             self.origin = self.center - new_window_shape / 2
@@ -249,6 +249,8 @@ class Window(object):
 
 class Window_List(Window):
     def __init__(self, window_list = None, state = None):
+        print(window_list)
+        print(state)
         if state is not None:
             self.update_state(state)
         else:
@@ -258,11 +260,13 @@ class Window_List(Window):
     @property
     @torch.no_grad()
     def origin(self):
+        # fixme, this should return a tensor of origins, or a tuple of origin tensors
         origins = torch.cat(list(w.origin.view(-1,2) for w in self.window_list))
         return torch.min(origins, dim = 0)[0]
     @property
     @torch.no_grad()
     def shape(self):
+        # fixme, this should return a tensor of shapes, or a tuple of shape tensors
         ends = torch.cat(list((w.origin + w.shape).view(-1,2) for w in self.window_list))
         return torch.max(ends, dim = 0)[0] - self.origin
 
@@ -279,7 +283,7 @@ class Window_List(Window):
             dtype = AP_config.ap_dtype
         if device is None:
             device = AP_config.ap_device
-        for window in window_list:
+        for window in self.window_list:
             window.to(dtype, device)
 
     def get_state(self):
