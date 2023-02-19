@@ -1,11 +1,12 @@
-from time import time
-from typing import Any,Union,Sequence
-import torch
 import numpy as np
-from scipy.special import gammainc
+import torch
 from scipy.optimize import minimize
+from scipy.special import gammainc
+from time import time
+from typing import Any, Union, Sequence
 
 from .. import AP_config
+
 
 __all__ = ["BaseOptimizer"]
 
@@ -115,7 +116,7 @@ class BaseOptimizer(object):
             RuntimeError: If unable to compute the Chi^2 contour for the given number of parameters.
 
         """
-        def _f(x, nu):
+        def _f(x: float, nu: int) -> float:
             """Helper function for calculating chi^2 contour."""
             return (gammainc(nu/2, x/2) - confidence)**2
 
@@ -124,4 +125,4 @@ class BaseOptimizer(object):
 
             if res.success:
                 return res.x[0]
-        raise RuntimeError(f"Unable to compute Chi^2 contour for ndf: {ndf}")
+        raise RuntimeError(f"Unable to compute Chi^2 contour for n_params: {n_params}")
