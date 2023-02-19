@@ -9,7 +9,7 @@ __version__ = "0.4.0"
 __author__ = "Connor Stone"
 __email__ = "connorstone628@gmail.com"
 
-def run_from_terminal()->(argparse.Namespace):
+def run_from_terminal() -> None:
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog = "autoprof",
