@@ -1,7 +1,7 @@
 import sys
 import argparse
 import requests
-from .parse_config import (galfit_config,basic_config)
+from .parse_config import (galfit_config, basic_config)
 from . import models, image, plots, utils, fit, AP_config
 
 # meta data
