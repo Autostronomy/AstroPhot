@@ -125,4 +125,4 @@ class BaseOptimizer(object):
 
             if res.success:
                 return res.x[0]
-        raise RuntimeError(f"Unable to compute Chi^2 contour for n_params: {n_params}")
+        raise RuntimeError(f"Unable to compute Chi^2 contour for ndf: {ndf}")
