@@ -1,5 +1,7 @@
 import sys
 import argparse
+import requests
+from .parse_config import (galfit_config, basic_config)
 from . import models, image, plots, utils, fit, AP_config
 
 # meta data
@@ -7,7 +9,7 @@ __version__ = "0.4.0"
 __author__ = "Connor Stone"
 __email__ = "connorstone628@gmail.com"
 
-def run_from_terminal():
+def run_from_terminal() -> None:
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog = "autoprof",
@@ -75,7 +77,6 @@ def run_from_terminal():
     if args.filename is None:
         raise RuntimeError("Please pass a config file to autoprof. See 'autoprof --help' for more information, or go to https://connorstoneastro.github.io/AutoProf/getting_started.html")
     if args.filename in ["tutorial", "tutorials"]:
-        import requests
         tutorials = [
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/GettingStarted.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/GroupModels.ipynb",
@@ -94,10 +95,8 @@ def run_from_terminal():
                     
         AP_config.ap_logger.info("collected the tutorials")
     elif args.config == "autoprof":
-        from .parse_config import basic_config
         basic_config(args.filename)
     elif args.config == "galfit":
-        from .parse_config import galfit_config
         galfit_config(args.filename)
     else:
         raise ValueError(f"Unrecognized configuration file format {args.config}. Should be one of: autoprof, galfit")
