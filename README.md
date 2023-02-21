@@ -9,7 +9,7 @@
 [![docs](https://github.com/ConnorStoneAstro/AutoProf/actions/workflows/documentation.yaml/badge.svg?branch=main)](https://connorstoneastro.github.io/AutoProf/)
 [![pypi](https://img.shields.io/pypi/v/autoprof.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/autoprof/)
 [![downloads](https://img.shields.io/pypi/dm/autoprof?label=PyPI%20Downloads)](https://libraries.io/pypi/autoprof)
-[![coverage](https://img.shields.io/codecov/c/github/ConnorStoneAstro/AutoProf)](https://app.codecov.io/github/ConnorStoneAstro/AutoProf/tree/main/autoprof?search=&displayType=list)
+[![codecov](https://codecov.io/github/ConnorStoneAstro/AutoProf/branch/main/graph/badge.svg?token=V8ISENV0RE)](https://codecov.io/github/ConnorStoneAstro/AutoProf)
 
 AutoProf is a fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry. It is a python based package that uses PyTorch to quickly and efficiently perform analysis tasks. Written by [Connor Stone](https://connorjstone.com/) for tasks such as LSB imaging, handling crowded fields, multi-band photometry, and analyzing massive data from future telescopes. AutoProf is flexible and fast for any astronomical image modelling task. While it uses PyTorch (originally developed for Machine Learning) it is NOT a machine learning based tool.
 
