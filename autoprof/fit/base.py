@@ -1,9 +1,10 @@
+
+from time import time
+from typing import Any, Union, Sequence
 import numpy as np
 import torch
 from scipy.optimize import minimize
 from scipy.special import gammainc
-from time import time
-from typing import Any, Union, Sequence
 
 from .. import AP_config
 
