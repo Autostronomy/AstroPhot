@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from typing import Optional, Union
 from copy import deepcopy
 from astropy.io import fits
 from .window_object import Window, Window_List
