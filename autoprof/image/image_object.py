@@ -27,13 +27,13 @@ class BaseImage(object):
     """
 
     def __init__(self, 
-            data: Optional[torch.Tensor] = None, 
+            data: Optional[Union[torch.Tensor]] = None, 
             pixelscale: Optional[Union[float, torch.Tensor]] = None,
             window: Optional[Window] = None, 
             filename: Optional[str] = None, 
             zeropoint: Optional[Union[float, torch.Tensor]] = None, 
             note: Optional[str] = None, 
-            origin: Optional[torch.Tensor] = None, 
+            origin: Optional[Union[torch.Tensor, np.ndarray]] = None, 
             center: Optional[torch.Tensor] = None, 
             **kwargs: Any) -> None:
 
@@ -94,7 +94,7 @@ class BaseImage(object):
         Returns the origin (bottom-left corner) of the image window.
 
         Returns:
-            torch.Tensor: A 2D tensor of shape (2,) containing the (x, y) coordinates of the origin.
+            torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the origin.
         """
         return self.window.origin
     @property
@@ -103,7 +103,7 @@ class BaseImage(object):
         Returns the shape (size) of the image window.
             
         Returns:
-                torch.Tensor: A 2D tensor of shape (2,) containing the (width, height) of the window in pixels.
+                torch.Tensor: A 1D tensor of shape (2,) containing the (width, height) of the window in pixels.
         """
         return self.window.shape
     @property
@@ -112,7 +112,7 @@ class BaseImage(object):
         Returns the center of the image window.
 
         Returns:
-            torch.Tensor: A 2D tensor of shape (2,) containing the (x, y) coordinates of the center.
+            torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the center.
         """
         return self.window.center
     def center_alignment(self):
