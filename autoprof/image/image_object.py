@@ -25,8 +25,42 @@ class BaseImage(object):
         origin
     """
 
-    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, **kwargs):
-        
+    def __init__(self, 
+            data: Optional[torch.Tensor] = None, 
+            pixelscale: Optional[Union[float, torch.Tensor]] = None,
+            window: Optional[Window] = None, 
+            filename: Optional[str] = None, 
+            zeropoint: Optional[Union[float, torch.Tensor]] = None, 
+            note: Optional[str] = None, 
+            origin: Optional[torch.Tensor] = None, 
+            center: Optional[torch.Tensor] = None, 
+            **kwargs: Any) -> None:
+
+        """Initialize an instance of the APImage class.
+
+        Parameters:
+        -----------
+        data : numpy.ndarray or None, optional
+            The image data. Default is None.
+        pixelscale : float or None, optional
+            The physical scale of the pixels in the image, in units of arcseconds. Default is None.
+        window : Window or None, optional
+            A Window object defining the area of the image to use. Default is None.
+        filename : str or None, optional
+            The name of a file containing the image data. Default is None.
+        zeropoint : float or None, optional
+            The image's zeropoint, used for flux calibration. Default is None.
+        note : str or None, optional
+            A note describing the image. Default is None.
+        origin : numpy.ndarray or None, optional
+            The origin of the image in the coordinate system, as a 2D array of length 2. Default is None.
+        center : numpy.ndarray or None, optional
+            The center of the image in the coordinate system, as a 2D array of length 2. Default is None.
+
+        Returns:
+        --------
+        None
+        """
         self._data = None
         
         if filename is not None:
@@ -55,12 +89,30 @@ class BaseImage(object):
             
     @property
     def origin(self):
+        """
+        Returns the origin (bottom-left corner) of the image window.
+
+        Returns:
+            torch.Tensor: A 2D tensor of shape (2,) containing the (x, y) coordinates of the origin.
+        """
         return self.window.origin
     @property
     def shape(self):
+        """
+        Returns the shape (size) of the image window.
+            
+        Returns:
+                torch.Tensor: A 2D tensor of shape (2,) containing the (width, height) of the window in pixels.
+        """
         return self.window.shape
     @property
     def center(self):
+        """
+        Returns the center of the image window.
+
+        Returns:
+            torch.Tensor: A 2D tensor of shape (2,) containing the (x, y) coordinates of the center.
+        """
         return self.window.center
     def center_alignment(self):
         """Determine if the center of the image is aligned at a pixel center
