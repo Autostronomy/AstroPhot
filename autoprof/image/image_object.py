@@ -33,8 +33,8 @@ class BaseImage(object):
             filename: Optional[str] = None, 
             zeropoint: Optional[Union[float, torch.Tensor]] = None, 
             note: Optional[str] = None, 
-            origin: Optional[Union[torch.Tensor, np.ndarray]] = None, 
-            center: Optional[torch.Tensor] = None, 
+            origin: center : Optional[Sequence] = None, 
+            center: center : Optional[Sequence] = None, 
             **kwargs: Any) -> None:
 
         """Initialize an instance of the APImage class.
