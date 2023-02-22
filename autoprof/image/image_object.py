@@ -54,9 +54,9 @@ class BaseImage(object):
         note : str or None, optional
             A note describing the image. Default is None.
         origin : numpy.ndarray or None, optional
-            The origin of the image in the coordinate system, as a 2D array of length 2. Default is None.
+            The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
         center : numpy.ndarray or None, optional
-            The center of the image in the coordinate system, as a 2D array of length 2. Default is None.
+            The center of the image in the coordinate system, as a 1D array of length 2. Default is None.
 
         Returns:
         --------
