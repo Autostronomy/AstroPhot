@@ -75,7 +75,9 @@ class BaseImage(object):
         if zeropoint is None:
             self.zeropoint = none
         else:
-            self.zeropoint = torch.as_tensor(zeropoint, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self.zeropoint = torch.as_tensor(zeropoint, 
+                                            dtype = AP_config.ap_dtype, 
+                                            device = AP_config.ap_device)
         
         self.note = note
 
@@ -184,7 +186,7 @@ class BaseImage(object):
         """
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
-        if isinstance(self._data, torch.Tensor):
+        if isinstance(data, torch.Tensor):
             self.data = data.to(dtype = AP_config.ap_dtype, device=AP_config.ap_device)
         else:
             self.data = torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
