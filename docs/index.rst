@@ -55,6 +55,7 @@ This documentation includes all functions available in the AutoProf package. For
 
     modules.rst
     configfile_interface.rst
+    tutorials.rst
               
 |br|
 

@@ -35,6 +35,7 @@ def target_image(fig, ax, target, window = None, **kwargs):
         cmap="Greys",
         extent = window.plt_extent,
         norm=ImageNormalize(stretch=HistEqStretch(dat[np.logical_and(dat <= (sky + 3*noise), np.isfinite(dat))]), clip = False, vmax = sky + 3*noise, vmin = np.nanmin(dat)),
+        interpolation = 'none',
     )
     ax.imshow(
         np.ma.masked_where(dat < (sky + 3*noise), dat), 
@@ -65,6 +66,7 @@ def model_image(fig, ax, model, sample_image = None, window = None, showcbar = T
         "extent": model.window.plt_extent,
         "cmap": cmap_grad,
         "origin": "lower",
+        "interpolation": 'none',
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.
@@ -95,7 +97,7 @@ def residual_image(fig, ax, model, target = None, sample_image = None, showcbar 
     if sample_image is None:
         sample_image = model.make_model_image()
         sample_image = model(sample_image)
-    if isinstance(window, Window_List):
+    if isinstance(window, Window_List) or isinstance(target, Image_List):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(fig, i_ax, model, target = tar, sample_image = sam, window = win, showcbar = showcbar, center_residuals = center_residuals, **kwargs)
         return fig, ax
@@ -117,6 +119,7 @@ def residual_image(fig, ax, model, target = None, sample_image = None, showcbar 
         "vmin": -extreme,
         "vmax": extreme,
         "origin": "lower",
+        "interpolation": 'none',
     }
     imshow_kwargs.update(kwargs)
     im = ax.imshow(
@@ -129,7 +132,7 @@ def residual_image(fig, ax, model, target = None, sample_image = None, showcbar 
         clb.ax.set_yticklabels([])
     return fig, ax
 
-def model_window(fig, ax, model, **kwargs):
+def model_window(fig, ax, model, rectangle_linewidth = 2, **kwargs):
     if isinstance(ax, np.ndarray):
         for axitem in ax:
             model_window(fig, axitem, model, **kwargs)
@@ -137,8 +140,8 @@ def model_window(fig, ax, model, **kwargs):
     
     if isinstance(model, Group_Model):
         for m in model.model_list:
-            ax.add_patch(Rectangle(xy = (m.window.origin[0], m.window.origin[1]), width = m.window.shape[0], height = m.window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+            ax.add_patch(Rectangle(xy = (m.window.origin[0], m.window.origin[1]), width = m.window.shape[0], height = m.window.shape[1], fill = False, linewidth = rectangle_linewidth, edgecolor = main_pallet["secondary1"]))
     else:
-        ax.add_patch(Rectangle(xy = (model.window.origin[0], model.window.origin[1]), width = model.window.shape[0], height = model.window.shape[1], fill = False, linewidth = 2, edgecolor = main_pallet["secondary1"]))
+        ax.add_patch(Rectangle(xy = (model.window.origin[0], model.window.origin[1]), width = model.window.shape[0], height = model.window.shape[1], fill = False, linewidth = rectangle_linewidth, edgecolor = main_pallet["secondary1"]))
 
     return fig, ax

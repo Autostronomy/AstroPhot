@@ -216,14 +216,12 @@ class AutoProf_Model(object):
                     (window[0][0], window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                )
-                * self.target.pixelscale,
+                ) * self.target.pixelscale,
                 shape=torch.tensor(
                     (window[0][1] - window[0][0], window[1][1] - window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                )
-                * self.target.pixelscale,
+                ) * self.target.pixelscale,
             )
         elif len(window) == 4:
             self._window = Window(

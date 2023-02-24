@@ -24,7 +24,8 @@ class Window(object):
             self.origin = torch.as_tensor(center, dtype = AP_config.ap_dtype, device = AP_config.ap_device) - self.shape/2
         else:
             raise ValueError("One of center or origin must be provided to create window")
-        assert torch.all(self.shape > 0), "Window must have non-negative size"
+        with torch.no_grad():
+            assert torch.all(self.shape > 0), f"Window must have non-negative size: {self.origin.detach().cpu().numpy()}, {self.shape.detach().cpu().numpy()}"
         
     @property
     def center(self):

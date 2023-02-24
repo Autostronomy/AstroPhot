@@ -3,6 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 from ..interpolate import point_Lanczos
 from scipy.optimize import minimize
+from ... import AP_config
 
 def center_of_mass(center, image, window = None):
     """Iterative light weighted center of mass optimization. Each step
