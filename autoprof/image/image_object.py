@@ -149,7 +149,7 @@ class BaseImage(object):
            or if it is aligned at a pixel edge (False).
 
         """
-        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.Tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25) 
+        return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
     
     @torch.no_grad()
     def pixel_center_alignment(self)-> torch.Tensor:
@@ -183,7 +183,7 @@ class BaseImage(object):
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
         if isinstance(data, torch.Tensor):
-            self._data = data.to(dtype = AP_config.ap_dtype, device=AP_config.ap_device)
+            self._data = data.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         else:
             self._data = torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     def copy(self):
