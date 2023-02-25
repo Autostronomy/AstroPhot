@@ -73,7 +73,7 @@ class BaseImage(object):
 
         #set Zeropoint
         if zeropoint is None:
-            self.zeropoint = none
+            self.zeropoint = None
         else:
             self.zeropoint = torch.as_tensor(zeropoint, 
                                             dtype = AP_config.ap_dtype, 
@@ -114,8 +114,8 @@ class BaseImage(object):
                 self.pixelscale = self.window.shape[0] / self.data.shape[1]
             else:
                 self.pixelscale = torch.as_tensor(pixelscale, 
-                                                 dtype = AP_config.ap_dtype, 
-                                                 device = AP_config.ap_device)
+                                                  dtype = AP_config.ap_dtype, 
+                                                  device = AP_config.ap_device)
             
     @property
     def origin(self)-> torch.Tensor:
@@ -150,10 +150,10 @@ class BaseImage(object):
 
         """
         return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, 
-                            0.5, 
-                            atol = 0.25, 
-                            dtype = AP_config.ap_dtype, 
-                            device = AP_config.ap_device)
+                             torch.Tensor(0.5, 
+                                          atol = 0.25, 
+                                          dtype = AP_config.ap_dtype, 
+                                          device = AP_config.ap_device))
     
     @torch.no_grad()
     def pixel_center_alignment(self)-> torch.Tensor:
@@ -187,9 +187,9 @@ class BaseImage(object):
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
         if isinstance(data, torch.Tensor):
-            self.data = data.to(dtype = AP_config.ap_dtype, device=AP_config.ap_device)
+            self._data = data.to(dtype = AP_config.ap_dtype, device=AP_config.ap_device)
         else:
-            self.data = torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self._data = torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     def copy(self):
         return self.__class__(
             data = torch.clone(self.data),
