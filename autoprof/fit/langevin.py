@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 from time import time
+from typing import Union, Dict, Optional
 from .base import BaseOptimizer
 from .. import AP_config
 
@@ -51,7 +52,24 @@ class MALA(BaseOptimizer):
 
     Borrowed heavily from Alexandre Adam: https://github.com/AlexandreAdam/
     """
-    def __init__(self, model, initial_state = None, **kwargs):
+    def __init__(self, model: 'AutoProf', initial_state: Optional[Dict[str,torch.Tensor]] = None, **kwargs)-> None:
+        """
+    Initialize a Langevin Dynamics sampler object for AutoProf.
+
+    Args:
+        model (AutoProf): An AutoProf object representing the model to be sampled.
+        initial_state (dict, optional): A dictionary containing the initial values of the model parameters to be sampled. 
+                                        If None, the initial state is set to the current state of the model. 
+                                        Defaults to None.
+        **kwargs: Additional keyword arguments.
+            epsilon (float): The step size of the Langevin Dynamics sampler. Defaults to 0.02.
+            delta_logp_steps (int): The number of steps between the gradient evaluations used for 
+                                    estimating the change in the log probability. 
+                                    Defaults to 10.
+            score_fn (callable): A function to evaluate the score (gradient of the log probability) of the model. 
+                                If None, the score is computed using automatic differentiation in PyTorch. 
+                                Defaults to None.
+        """
         super().__init__(model, initial_state, **kwargs)
 
         self.epsilon = kwargs.get("epsilon", 0.02)
@@ -80,7 +98,16 @@ class MALA(BaseOptimizer):
                         
         return self
             
-    def step(self, current_state):
+    def step(self, current_state: torch.Tensor) -> torch.Tensor:
+        """
+        Take a step of Langevin Monte Carlo and return the new state.
+
+        Args:
+            current_state: The current state of the algorithm.
+
+        Returns:
+            A tensor representing the new state of the algorithm.
+        """
         current_score = self.score_fn(current_state)
         proposed_state = current_state + self.epsilon * current_score + np.sqrt(2 * self.epsilon) * torch.normal(mean=torch.zeros_like(current_state), std=1)
         proposed_score = self.score_fn(proposed_state)
@@ -96,7 +123,7 @@ class MALA(BaseOptimizer):
         self.iteration += 1
         return current_state
     
-    def accept(self, log_alpha):
+    def accept(self, log_alpha: torch.Tensor)-> Union[bool, torch.Tensor]:
         """
         log_alpha: The log of the acceptance ratio. In details, this
             is the difference between the log probability of the proposed state x'
@@ -107,7 +134,7 @@ class MALA(BaseOptimizer):
         """
         return torch.log(torch.rand(log_alpha.shape, device=self.model.device)) < log_alpha
 
-    def delta_logp(self, current_state, proposed_state):
+    def delta_logp(self, current_state: torch.Tensor, proposed_state: torch.Tensor)-> torch.Tensor:
         """
         Computes the log probability difference between the proposed state x' and the current state x
             log p(x') - log p(x)
@@ -115,23 +142,36 @@ class MALA(BaseOptimizer):
         v = proposed_state - current_state
         T = self.delta_logp_steps + 1
         D = current_state.shape
+        return simps(self.integrand, 0., 1., self.delta_logp_steps, device=self.model.device)
 
-        def integrand(t):
+    def integrand(self, t: torch.Tensor)-> torch.Tensor:
             """
             No assumption is made about the dimension of the state vector, other than
             it can be decomposed into a batch (or walkers) dimension and a state dimension (shape = [B, *D]).
             The dot product assumes a uniform weight matrix.
             t: Time vector of size T
-            :return: The integrand, which is a vector of size [T, B] with value score(gamma(t))^T gamma'(t)
-                with gamma(t) = t * v + cs
+            
+            returns : 
+            The integrand, which is a vector of size [T, B] with value score(gamma(t))^T gamma'(t)
+            with gamma(t) = t * v + cs
             """
             gamma_t = t * v + current_state  # broadcast onto new time dimension
             score = self.score_fn(gamma_t)  # compress time and batch dimension together for network
             #v_repeated = v.repeat(T, *[1]*len(D))  # copy batch T times to match compressed dimension
             return torch.dot(score, v) #torch.einsum("td, td -> t", score.view(T, -1), v_repeated.view(T, -1)).view(T) # compute dot product across D
-        return simps(integrand, 0., 1., self.delta_logp_steps, device=self.model.device)
+        
 
-    def score_fn(self, state):
+    def score_fn(self, state: torch.Tensor)-> torch.Tensor:
+        """
+        Computes the score of a given state using the negative loss of the AutoProf model. 
+        Uses automatic differentiation to compute the gradient of the state.
+
+        Parameters:
+            state: A tensor representing the current state.
+
+        Returns:
+            A tensor representing the score of the current state.
+        """
         state = torch.clone(state)
         state.requires_grad = True
         score = -2*self.model.full_loss(state)
@@ -139,5 +179,11 @@ class MALA(BaseOptimizer):
         return state.grad
     
     @property
-    def acceptance(self):
+    def acceptance(self)-> float:
+        """
+        Calculates the acceptance ratio of the samples generated by the sampler.
+
+        Returns:
+            A float representing the acceptance ratio of the samples generated by the sampler.
+        """
         return self._accepted / self._sampled
