@@ -1,6 +1,6 @@
-import torch
-import logging
 import sys
+import logging
+import torch
 
 __all__ = ["ap_dtype", "ap_device", "ap_logger", "set_logging_output"]
 
@@ -15,19 +15,22 @@ out_handler.setFormatter(logging.Formatter("%(message)s"))
 ap_logger.addHandler(out_handler)
 
 def set_logging_output(stdout = True, filename = None, **kwargs):
-    """Change the logging system for AutoProf. Here you can set whether
-    output prints to screen or to a logging file. This function will
-    remove all handlers from the current logger in ap_logger, then add
-    new handlers based on the input to the function.
+    """
+    Change the logging system for AutoProf. 
+    Here you can set whether output prints to screen or to a logging file. 
+    This function will remove all handlers from the current logger in ap_logger, 
+    then add new handlers based on the input to the function.
 
     Parameters:
-        stdout: bollean if output should go to stdout (the console). default: True
-        filename: if given as a string, this will be the name of the file that log messages are written to. If None then no logging file will be used. default: None
-        stdout_level: the logging level of messages written to stdout, this can be different from the file level. default: logging.INFO
-        stdout_formatter: a logging.Formatter object which determines what information to include with the logging message only when printing to stdout. default: "%(message)s"
-        filename_level: the logging level of messages written to the log file, this can be different from the stdout level. default: logging.INFO
-        filename_formatter: a logging.Formatter object which determines what information to include with the logging message only when printing to the log file. default: "%(asctime)s:%(levelname)s: %(message)s"
-
+        stdout (bool): If True, log messages will be printed to the console (standard output). Default is True.
+        filename (str): If given as a string, this will be the name of the file that log messages are written to. 
+                        If None, no logging file will be used. Default is None.
+        stdout_level (int): The logging level of messages written to stdout, this can be different from the file level. 
+                            Default is logging.INFO.
+        stdout_formatter (logging.Formatter): A logging.Formatter object which determines what information to include with the logging message only when printing to stdout. Default is logging.Formatter('%(message)s').
+        filename_level (int): The logging level of messages written to the log file, this can be different from the stdout level. Default is logging.INFO.
+        filename_formatter (logging.Formatter): A logging.Formatter object which determines what information to include with the logging message only when printing to the log file. Default is logging.Formatter('%(asctime)s:%(levelname)s: %(message)s').
+        
     """
     hi = 0
     while hi < len(ap_logger.handlers):
@@ -49,5 +52,5 @@ def set_logging_output(stdout = True, filename = None, **kwargs):
         out_handler.setLevel(kwargs.get("filename_level", logging.INFO))
         out_handler.setFormatter(kwargs.get("filename_formatter", logging.Formatter("%(asctime)s:%(levelname)s: %(message)s")))
         ap_logger.addHandler(out_handler)
-        ap_logger.debug("logging now going to stdout")
+        ap_logger.debug("logging now going to %s" % filename)
         

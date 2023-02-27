@@ -1,7 +1,7 @@
 import sys
 import argparse
 import requests
-from .parse_config import (galfit_config, basic_config)
+from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, AP_config
 
 # meta data
@@ -10,6 +10,32 @@ __author__ = "Connor Stone"
 __email__ = "connorstone628@gmail.com"
 
 def run_from_terminal() -> None:
+    """
+    Execute AutoProf from the command line with various options.
+
+    This function uses the `argparse` module to parse command line arguments and execute the appropriate functionality. 
+    It accepts the following arguments:
+
+    - `filename`: the path to the configuration file. Or just 'tutorial' to download tutorials.
+    - `--config`: the type of configuration file being provided. One of: autoprof, galfit.
+    - `-v`, `--version`: print the current AutoProf version to screen.
+    - `--log`: set the log file name for AutoProf. Use 'none' to suppress the log file.
+    - `-q`: quiet flag to stop command line output, only print to log file.
+    - `--dtype`: set the float point precision. Must be one of: float64, float32.
+    - `--device`: set the device for AutoProf to use for computations. Must be one of: cpu, gpu.
+
+    If the `filename` argument is not provided, it raises a `RuntimeError`. 
+    If the `filename` argument is `tutorial` or `tutorials`, 
+    it downloads tutorials from various URLs and saves them locally.
+
+    This function logs messages using the `AP_config` module, 
+    which sets the logging output based on the `--log` and `-q` arguments. 
+    The `dtype` and `device` of AutoProf can also be set using the `--dtype` and `--device` arguments, respectively.
+
+    Returns:
+        None
+
+    """
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog = "autoprof",
