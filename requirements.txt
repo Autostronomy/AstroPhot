@@ -4,3 +4,4 @@ astropy
 matplotlib
 torch
 tqdm
+requests
