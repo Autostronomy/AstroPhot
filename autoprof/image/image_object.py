@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from typing import Optional, Union, Any, Sequence
 from copy import deepcopy
 from astropy.io import fits
 from .window_object import Window, Window_List
@@ -8,12 +9,10 @@ from .. import AP_config
 __all__ = ["BaseImage", "Image_List"]
 
 class BaseImage(object):
-    """Core class to represent images. Any image is represented by a data
-    matrix, pixelscale, and window in cooridnate space. With this
-    information, an image object can undergo arithmatic with other
-    image objects while preserving logical image boundaries. The image
-    object can also determine coordinate locations for all of its
-    pixels (get_coordinate_meshgrid).
+    """Core class to represent images with pixel values, pixel scale, 
+       and a window defining the spatial coordinates on the sky. 
+       It supports arithmetic operations with other image objects while preserving logical image boundaries. 
+       It also provides methods for determining the coordinate locations of pixels
 
     Parameters:
         data: the matrix of pixel values for the image
@@ -22,72 +21,171 @@ class BaseImage(object):
         filename: a filename from which to load the image.
         zeropoint: photometric zero point for converting from pixel flux to magnitude
         note: a note about this image if any
-        origin
+        origin: The origin of the image in the coordinate system.
     """
 
-    def __init__(self, data = None, pixelscale = None, window = None, filename = None, zeropoint = None, note = None, origin = None, center = None, **kwargs):
-        
+    def __init__(self, 
+            data: Optional[Union[torch.Tensor]] = None, 
+            pixelscale: Optional[Union[float, torch.Tensor]] = None,
+            window: Optional[Window] = None, 
+            filename: Optional[str] = None, 
+            zeropoint: Optional[Union[float, torch.Tensor]] = None, 
+            note: Optional[str] = None, 
+            origin: Optional[Sequence] = None, 
+            center: Optional[Sequence] = None, 
+            **kwargs: Any) -> None:
+
+        """Initialize an instance of the APImage class.
+
+        Parameters:
+        -----------
+        data : numpy.ndarray or None, optional
+            The image data. Default is None.
+        pixelscale : float or None, optional
+            The physical scale of the pixels in the image, in units of arcseconds. Default is None.
+        window : Window or None, optional
+            A Window object defining the area of the image to use. Default is None.
+        filename : str or None, optional
+            The name of a file containing the image data. Default is None.
+        zeropoint : float or None, optional
+            The image's zeropoint, used for flux calibration. Default is None.
+        note : str or None, optional
+            A note describing the image. Default is None.
+        origin : numpy.ndarray or None, optional
+            The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
+        center : numpy.ndarray or None, optional
+            The center of the image in the coordinate system, as a 1D array of length 2. Default is None.
+
+        Returns:
+        --------
+        None
+        """
         self._data = None
         
         if filename is not None:
             self.load(filename)
             return
+        
         assert not (pixelscale is None and window is None)
+
+        #set the data
         self.data = data
-        self.zeropoint = None if zeropoint is None else torch.as_tensor(zeropoint, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+
+        #set Zeropoint
+        if zeropoint is None:
+            self.zeropoint = None
+        else:
+            self.zeropoint = torch.as_tensor(zeropoint, 
+                                            dtype = AP_config.ap_dtype, 
+                                            device = AP_config.ap_device)
+        
         self.note = note
+
+        #Set Window
         if window is None:
-            self.pixelscale = torch.as_tensor(pixelscale, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-            shape = torch.flip(torch.tensor(data.shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device),(0,)) * self.pixelscale
+            # If window is not provided, create one based on pixelscale and data shape
+            assert pixelscale is not None, "pixelscale cannot be None if window is not provided"
+
+            self.pixelscale = torch.as_tensor(pixelscale, 
+                                              dtype = AP_config.ap_dtype, 
+                                              device = AP_config.ap_device)
+            shape = torch.flip(torch.tensor(data.shape, 
+                                            dtype = AP_config.ap_dtype, 
+                                            device = AP_config.ap_device),
+                                            (0,)) * self.pixelscale
             if origin is None and center is None:
-                origin = torch.zeros(2, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+                origin = torch.zeros(2, 
+                                     dtype = AP_config.ap_dtype, 
+                                     device = AP_config.ap_device)
             elif center is None:
-                origin = torch.as_tensor(origin, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+                origin = torch.as_tensor(origin, 
+                                         dtype = AP_config.ap_dtype, 
+                                         device = AP_config.ap_device)
             else:
-                origin = torch.as_tensor(center, dtype = AP_config.ap_dtype, device = AP_config.ap_device) - shape/2
+                origin = torch.as_tensor(center, 
+                                        dtype = AP_config.ap_dtype, 
+                                        device = AP_config.ap_device) - shape/2
+
             self.window = Window(origin = origin, shape = shape)
         else:
+            #When The Window object is provided
             self.window = window
             if pixelscale is None:
                 self.pixelscale = self.window.shape[0] / self.data.shape[1]
             else:
-                self.pixelscale = torch.as_tensor(pixelscale, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+                self.pixelscale = torch.as_tensor(pixelscale, 
+                                                  dtype = AP_config.ap_dtype, 
+                                                  device = AP_config.ap_device)
             
     @property
-    def origin(self):
+    def origin(self)-> torch.Tensor:
+        """
+        Returns the origin (bottom-left corner) of the image window.
+
+        Returns:
+            torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the origin.
+        """
         return self.window.origin
     @property
-    def shape(self):
+    def shape(self)-> torch.Tensor:
+        """
+        Returns the shape (size) of the image window.
+            
+        Returns:
+                torch.Tensor: A 1D tensor of shape (2,) containing the (width, height) of the window in pixels.
+        """
         return self.window.shape
     @property
-    def center(self):
+    def center(self)-> torch.Tensor:
+        """
+        Returns the center of the image window.
+
+        Returns:
+            torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the center.
+        """
         return self.window.center
-    def center_alignment(self):
-        """Determine if the center of the image is aligned at a pixel center
-        (True) or if it is aligned at a pixel edge (False).
+    def center_alignment(self)-> torch.Tensor:
+        """Determine if the center of the image is aligned at a pixel center (True) 
+           or if it is aligned at a pixel edge (False).
 
         """
         return torch.isclose(((self.center - self.origin) / self.pixelscale) % 1, torch.tensor(0.5, dtype = AP_config.ap_dtype, device = AP_config.ap_device), atol = 0.25)
     
     @torch.no_grad()
-    def pixel_center_alignment(self):
+    def pixel_center_alignment(self)-> torch.Tensor:
         """
         Determine the relative position of the center of a pixel with respect to the origin (mod 1)
         """
         return ((self.origin + 0.5*self.pixelscale)/self.pixelscale) % 1
 
     @property
-    def data(self):
+    def data(self) -> torch.Tensor:
+        """
+        Returns the image data.
+        """
         return self._data
     @data.setter
-    def data(self, data):
+    def data(self, data)-> None:
+        """Set the image data."""
         self.set_data(data)
         
-    def set_data(self, data, require_shape = True):
+    def set_data(self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True):
+        """
+        Set the image data.
+
+        Args:
+            data (torch.Tensor or numpy.ndarray): The image data.
+            require_shape (bool): Whether to check that the shape of the data is the same as the current data.
+            
+        Raises:
+            AssertionError: If `require_shape` is `True` and the shape of the data is different from the current data.
+        """
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
-        self._data = data.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device) if isinstance(data, torch.Tensor) else torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        
+        if isinstance(data, torch.Tensor):
+            self._data = data.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        else:
+            self._data = torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     def copy(self):
         return self.__class__(
             data = torch.clone(self.data),
