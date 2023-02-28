@@ -22,6 +22,7 @@ setup(
                       "astropy",
                       "matplotlib",
                       "torch",
+                      "tqdm",
                       ],
     entry_points = {
         'console_scripts': [
