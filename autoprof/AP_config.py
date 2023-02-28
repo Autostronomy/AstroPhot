@@ -25,7 +25,7 @@ def set_logging_output(stdout = True, filename = None, **kwargs):
         stdout (bool): If True, log messages will be printed to the console (standard output). Default is True.
         filename (str): If given as a string, this will be the name of the file that log messages are written to. 
                         If None, no logging file will be used. Default is None.
-        stdout_level (int): The logging level of messages written to stdout, this can be different from the file level. 
+        stdout_level (logging.INFO): The logging level of messages written to stdout, this can be different from the file level. 
                             Default is logging.INFO.
         stdout_formatter (logging.Formatter): A logging.Formatter object which determines what information to include with the logging message only when printing to stdout. Default is logging.Formatter('%(message)s').
         filename_level (int): The logging level of messages written to the log file, this can be different from the stdout level. Default is logging.INFO.
