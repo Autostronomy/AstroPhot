@@ -12,7 +12,7 @@ This tutorial explains the basics of the interface when creating and manipulatin
 .. raw:: html
 
     <embed>
-        <object data="https://github.com/ConnorStoneAstro/AutoProf/blob/main/docs/tutorials/GettingStarted.pdf?raw=true" width="100%" height="1000" type="application/pdf"></object>
+        <object data="tutorials/GettingStarted.pdf" width="100%" height="1000" type="application/pdf"></object>
     </embed>
 
 Group Models
