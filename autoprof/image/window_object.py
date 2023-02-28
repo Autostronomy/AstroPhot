@@ -77,8 +77,8 @@ class Window(object):
         )
     def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
         return torch.meshgrid(
-            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, torch.round(self.shape[0]/pixelscale).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - x,
-            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, torch.round(self.shape[1]/pixelscale).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - y,
+            torch.linspace((self.origin[0] + pixelscale/2).detach(), (self.origin[0] + self.shape[0] - pixelscale/2).detach(), torch.round((self.shape[0]/pixelscale).detach()).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - x,
+            torch.linspace((self.origin[1] + pixelscale/2).detach(), (self.origin[1] + self.shape[1] - pixelscale/2).detach(), torch.round((self.shape[1]/pixelscale).detach()).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - y,
             indexing = 'xy',
         )
         

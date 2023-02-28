@@ -139,3 +139,60 @@ class TestGroupModelFits(unittest.TestCase):
         for p in mod2.parameters:
             self.assertFalse(np.any(mod2[p].representation.detach().numpy() == mod2_initparams[p]), f"mod2 parameter {p} should update with optimization")
     
+
+class TestHMC(unittest.TestCase):
+
+    def test_singlesersic(self):
+        np.random.seed(12345)
+        N = 50
+        pixelscale = 0.8
+        true_params = {"n": 2, "Re": 10, "Ie": 1, "center": [-3.3, 5.3], "q": 0.7, "PA": np.pi/4}
+        target = ap.image.Target_Image(
+            data = np.zeros((N,N)),
+            pixelscale = pixelscale,
+        )
+
+        MODEL = ap.models.Sersic_Galaxy(
+            name = "sersic model",
+            target = target,
+            parameters = true_params,
+        )
+        img = MODEL().data.detach().cpu().numpy()
+        target.data = torch.Tensor(img + np.random.normal(scale = 0.1, size = img.shape) + np.random.normal(scale = np.sqrt(img)/10))
+        target.variance = torch.Tensor(0.1**2 + img/100)
+
+        HMC = ap.fit.HMC(MODEL, epsilon = 1e-2, max_iter = 10)
+        HMC.fit()
+
+        self.assertGreater(HMC.acceptance, 0.9, "HMC should have very high acceptance for simple fits")
+
+class TestMHMCMC(unittest.TestCase):
+
+    def test_singlesersic(self):
+        np.random.seed(12345)
+        N = 50
+        pixelscale = 0.8
+        true_params = {"n": 2, "Re": 10, "Ie": 1, "center": [-3.3, 5.3], "q": 0.7, "PA": np.pi/4}
+        target = ap.image.Target_Image(
+            data = np.zeros((N,N)),
+            pixelscale = pixelscale,
+        )
+
+        MODEL = ap.models.Sersic_Galaxy(
+            name = "sersic model",
+            target = target,
+            parameters = true_params,
+        )
+        img = MODEL().data.detach().cpu().numpy()
+        target.data = torch.Tensor(img + np.random.normal(scale = 0.1, size = img.shape) + np.random.normal(scale = np.sqrt(img)/10))
+        target.variance = torch.Tensor(0.1**2 + img/100)
+
+        MHMCMC = ap.fit.MHMCMC(MODEL, epsilon = 1e-1, max_iter = 100)
+        MHMCMC.fit()
+
+        self.assertGreater(MHMCMC.acceptance, 0.1, "MHMCMC should have nonzero acceptance for simple fits")
+        self.assertLess(MHMCMC.acceptance, 0.9, "MHMCMC should not have 100% acceptance for any fits")
+
+if __name__ == "__main__":
+    unittest.main()
+        

@@ -294,6 +294,24 @@ class AutoProf_Model(object):
             vstart += V
         return parameters
 
+    def get_uncertainty_vector(self, as_representation=False, override_locked=False):
+        uncertanty = torch.zeros(
+            np.sum(self.parameter_vector_len(override_locked=override_locked)),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        vstart = 0
+        for P, V in zip(
+            self.parameter_order(override_locked=override_locked),
+            self.parameter_vector_len(override_locked=override_locked),
+        ):
+            if as_representation:
+                uncertanty[vstart : vstart + V] = self[P].uncertainty_representation
+            else:
+                uncertanty[vstart : vstart + V] = self[P].uncertainty
+            vstart += V
+        return uncertanty
+    
     def __str__(self):
         """String representation for the model."""
         return str(self.get_state())
