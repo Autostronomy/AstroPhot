@@ -1,5 +1,4 @@
 # Apply a different optimizer iteratively
-#According to PEP8 conventions
 from typing import Dict,Any
 import os
 from time import time
