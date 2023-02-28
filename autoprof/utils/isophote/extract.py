@@ -207,7 +207,7 @@ def _iso_extract(
     countmasked = 0
     if not CHOOSE is None and np.sum(CHOOSE) <= 0:
         logging.warning(
-            "Entire Isophote is Masked! R: %.3f, PA: %.3f, q: %.3f"
+            "Entire Isophote was Masked! R: %.3f, PA: %.3f, q: %.3f"
             % (sma, PARAMS["pa"] * 180 / np.pi, PARAMS["q"])
         )
         # Interpolate clipped flux values if requested

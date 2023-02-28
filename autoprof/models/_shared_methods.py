@@ -51,7 +51,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func, force_uncer
         threshold = 3*edge_scatter,
         pa = model["PA"].value.detach().cpu().item() if "PA" in model else 0.,
         q = model["q"].value.detach().cpu().item() if "q" in model else 1.,
-        n_isophotes = 15
+        n_isophotes = 15,
     )
     R = (np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale.item())
     flux = (np.array(list(iso["flux"] for iso in iso_info)) / target.pixelscale.item()**2)

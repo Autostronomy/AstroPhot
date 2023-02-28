@@ -24,7 +24,8 @@ class Window(object):
             self.origin = torch.as_tensor(center, dtype = AP_config.ap_dtype, device = AP_config.ap_device) - self.shape/2
         else:
             raise ValueError("One of center or origin must be provided to create window")
-        assert torch.all(self.shape > 0), "Window must have non-negative size"
+        with torch.no_grad():
+            assert torch.all(self.shape > 0), f"Window must have non-negative size: {self.origin.detach().cpu().numpy()}, {self.shape.detach().cpu().numpy()}"
         
     @property
     def center(self):
@@ -76,8 +77,8 @@ class Window(object):
         )
     def get_coordinate_meshgrid_torch(self, pixelscale, x = 0., y = 0.):
         return torch.meshgrid(
-            torch.linspace(self.origin[0] + pixelscale/2, self.origin[0] + self.shape[0] - pixelscale/2, torch.round(self.shape[0]/pixelscale).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - x,
-            torch.linspace(self.origin[1] + pixelscale/2, self.origin[1] + self.shape[1] - pixelscale/2, torch.round(self.shape[1]/pixelscale).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - y,
+            torch.linspace((self.origin[0] + pixelscale/2).detach(), (self.origin[0] + self.shape[0] - pixelscale/2).detach(), torch.round((self.shape[0]/pixelscale).detach()).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - x,
+            torch.linspace((self.origin[1] + pixelscale/2).detach(), (self.origin[1] + self.shape[1] - pixelscale/2).detach(), torch.round((self.shape[1]/pixelscale).detach()).int(), dtype = AP_config.ap_dtype, device = AP_config.ap_device) - y,
             indexing = 'xy',
         )
         

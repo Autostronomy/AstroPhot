@@ -124,6 +124,21 @@ class Parameter(object):
         """
         self.set_uncertainty(unc)
     @property
+    def uncertainty_representation(self):
+        """The uncertainty for the parameter is stored here, the uncertainty
+        is for the value, not the representation. 
+
+        """
+        if not self.cyclic and self.limits is not None:
+            return self._uncertainty * d_boundaries_dval(self.value, self.limits)
+        return self._uncertainty
+    @uncertainty.setter
+    def uncertainty_representation(self, unc):
+        """
+        Calls the uncertainty setting method, preserving locked behaviour.
+        """
+        self.set_uncertainty(unc, as_representation = True)
+    @property
     def requires_grad(self):
         if self._representation is None:
             return False

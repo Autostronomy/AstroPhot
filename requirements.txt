@@ -3,5 +3,5 @@ numpy
 astropy
 matplotlib
 torch
-torchvision
-torchaudio                      
+tqdm
+requests

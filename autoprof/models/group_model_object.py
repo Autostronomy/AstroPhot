@@ -29,7 +29,7 @@ class Group_Model(AutoProf_Model):
     
     def __init__(self, name, *args, model_list = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
-
+        self._param_tuple = None
         self.model_list = []
         if model_list is not None:
             self.add_model(model_list)
@@ -123,6 +123,12 @@ class Group_Model(AutoProf_Model):
         return tuple(P[0] for P in param_tuples)
 
     @property
+    def param_tuple(self):
+        if self._param_tuple is None:
+            self._param_tuple = self.parameter_tuples_order(override_locked = True)
+        return self._param_tuple
+    
+    @property
     def parameters(self):
         """A dictionary in which every unique parameter appears once. This
         includes locked parameters. For constrained parameters across
@@ -131,8 +137,7 @@ class Group_Model(AutoProf_Model):
 
         """
         try:
-            param_tuples = self.parameter_tuples_order(override_locked = True)
-            return dict(P for P in param_tuples)
+            return dict(P for P in self.param_tuple)
         except AttributeError:
             return {}
     @parameters.setter
@@ -144,6 +149,7 @@ class Group_Model(AutoProf_Model):
         
     @torch.no_grad()
     def initialize(self, target = None):
+        self._param_tuple = None
         self.sync_target()
         if target is None:
             target = self.target
@@ -166,7 +172,8 @@ class Group_Model(AutoProf_Model):
             return super().make_model_image()
         
     def sample(self, image = None, *args, **kwargs):
-
+        self._param_tuple = None
+        
         if image is None:
             sample_window = True
             image = self.make_model_image()

@@ -89,7 +89,9 @@ class Iter(BaseOptimizer):
 
         # update the loss value
         with torch.no_grad():
-            self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False, return_data = False)
+            if self.verbose > 0:
+                AP_config.ap_logger.info("Update Chi^2 with new parameters")
+            self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False)
             D = self.model.target[self.model.window].flatten("data")
             V = self.model.target[self.model.window].flatten("variance") if self.model.target.has_variance else 1.
             if self.model.target.has_mask:
@@ -118,7 +120,7 @@ class Iter(BaseOptimizer):
         """
 
         self.iteration = 0
-        self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False, return_data = False)
+        self.Y = self.model(parameters = self.current_state, as_representation = True, override_locked = False)
         start_fit = time()
         try:
             while True:

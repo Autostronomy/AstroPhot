@@ -2,6 +2,7 @@ from ..isophote.extract import _iso_extract
 import numpy as np
 from scipy.stats import iqr
 from scipy.fftpack import fft
+import matplotlib.pyplot as plt
 
 def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3, more = False):
     """Method for quickly extracting a small number of elliptical
@@ -22,7 +23,7 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
 
         # Sample growing isophotes until threshold is reached
         ellipse_radii = [1.0]
-        while ellipse_radii[-1] < (len(image) / 2):
+        while ellipse_radii[-1] < (max(image.shape) / 2):
             ellipse_radii.append(ellipse_radii[-1] * (1 + 0.2))
             isovals = _iso_extract(
                 image,
@@ -53,7 +54,7 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         isophote_radii = np.ones(len(pa)) * R
     elif hasattr(q, "__len__"):
         isophote_radii = np.ones(len(q)) * R
-        
+
     # Sample the requested isophotes and record desired info
     iso_info = []
     for i, r in enumerate(isophote_radii):
@@ -72,6 +73,9 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         if more:
             angles = isovals[1]
             isovals = isovals[0]
+        if len(isovals) < 3:
+            iso_info[-1] = None
+            continue
         coefs = fft(isovals)
         iso_info[-1]["phase1"] = np.angle(coefs[1])
         iso_info[-1]["phase2"] = np.angle(coefs[2])
@@ -83,4 +87,16 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         if more:
             iso_info[-1]["isovals"] = isovals
             iso_info[-1]["angles"] = angles
+
+    # recover lost isophotes just to keep code moving
+    for i in reversed(range(len(iso_info))):
+        if iso_info[i] is not None:
+            good_index = i
+            break
+    else:
+        raise ValueError("Unable to recover any isophotes, try on a better band or manually provide values")
+    for i in range(len(iso_info)):
+        if iso_info[i] is None:
+            iso_info[i] = iso_info[good_index]
+            iso_info[i]["R"] = isophote_radii[i]
     return iso_info
