@@ -9,7 +9,7 @@ from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .star_model_object import Star_Model
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from ._shared_methods import parametric_initialize
+from ._shared_methods import nonparametric_segment_initialize
 
 __all__ = [
     "NonParametric_Galaxy", "NonParametric_Star", "NonParametric_Warp",
@@ -69,7 +69,9 @@ class NonParametric_Star(Star_Model):
     _parameter_order = Star_Model._parameter_order + ("I(R)",)
     useable = True
     extend_profile = True
-    
+
+    def transform_coordinates(self, X, Y):
+        return X, Y
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
 
@@ -179,7 +181,13 @@ class NonParametric_Ray(Ray_Galaxy):
     useable = True
     extend_profile = True
 
-    from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
+    @torch.no_grad()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        super().initialize(target)
+        
+        nonparametric_segment_initialize(self, target, segments = self.rays, symmetric = self.symmetric_rays)
     from ._shared_methods import nonparametric_iradial_model as iradial_model
 
 class NonParametric_Wedge(Wedge_Galaxy):
@@ -206,7 +214,13 @@ class NonParametric_Wedge(Wedge_Galaxy):
     useable = True
     extend_profile = True
 
-    from ._shared_methods import nonparametric_initialize as initialize # fixme specialized initialize
+    @torch.no_grad()
+    def initialize(self, target = None):
+        if target is None:
+            target = self.target
+        super().initialize(target)
+        
+        nonparametric_segment_initialize(self, target, segments = self.wedges, symmetric = self.symmetric_wedges)
     from ._shared_methods import nonparametric_iradial_model as iradial_model
     
 # Third Order
