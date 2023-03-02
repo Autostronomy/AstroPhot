@@ -402,7 +402,7 @@ class LM(BaseOptimizer):
     def rho(self, Xp, Xph, h)-> torch.Tensor:
         return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h) + self.grad))
 
-    def accept_history(self)-> List[torch.Tensor, torch.Tensor, List[float]]:
+    def accept_history(self)-> (torch.Tensor, torch.Tensor, List[float]):
         lambdas = []
         Ls = []
         losses = []
@@ -413,7 +413,7 @@ class LM(BaseOptimizer):
                 Ls.append(self.L_history[l])
                 losses.append(self.loss_history[l])
         return lambdas, Ls, losses
-    def progress_history(self)-> List[torch.Tensor, torch.Tensor, List[float]]:
+    def progress_history(self)-> (torch.Tensor, torch.Tensor, List[float]):
         lambdas = []
         Ls = []
         losses = []
