@@ -14,9 +14,10 @@ __all__ = ["HMC"]
 class HMC(BaseOptimizer):
     """Hamiltonian Monte-Carlo sampler, based on:
     https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo and
-    https://arxiv.org/abs/1701.02434. This MCMC algorithm uses
-    gradients of the Chi^2 to more efficiently explore the probability
-    distribution.
+    https://arxiv.org/abs/1701.02434 and
+    http://www.mcmchandbook.net/HandbookChapter5.pdf. This MCMC
+    algorithm uses gradients of the Chi^2 to more efficiently explore
+    the probability distribution.
 
     Args:
       model (AutoProf_Model): The model which will be sampled.
@@ -34,6 +35,8 @@ class HMC(BaseOptimizer):
         self.epsilon = kwargs.get("epsilon", 1e-2)
         self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
         self.mass = torch.tensor(kwargs.get("mass", 1.))
+        self.temperature = torch.tensor(kwargs.get("temperature", 1.))
+        self.temper = torch.tensor(kwargs.get("temper", 1.))
 
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
@@ -121,16 +124,17 @@ class HMC(BaseOptimizer):
         """
         Takes one step of the HMC sampler by integrating along a path initiated with a random momentum.
         """
-        momentum_0 = torch.normal(mean = torch.zeros_like(state), std = self.mass)
+        momentum_0 = torch.normal(mean = torch.zeros_like(state), std = self.temperature * self.mass)
         momentum_t = torch.clone(momentum_0)
         x_t = torch.clone(state)
         score_t = torch.clone(score)
-        for _ in range(self.leapfrog_steps):
+        temper = torch.sqrt(self.temper)
+        for leap in range(self.leapfrog_steps):
             # Update step
-            momentum_tp = momentum_t + self.epsilon * score_t / 2
+            momentum_tp = (temper if leap < self.leapfrog_steps/2 else (1/temper)) * (momentum_t + self.epsilon * score_t / 2)
             x_tp1 = x_t + self.epsilon * momentum_tp / self.mass
             score_tp1, chi2_tp1 = self.score_fn(x_tp1)
-            momentum_tp1 = momentum_tp + self.epsilon * score_tp1 / 2
+            momentum_tp1 = (temper if leap < self.leapfrog_steps//2 else (1/temper)) * (momentum_tp + self.epsilon * score_tp1 / 2)
             
             # set for next step
             x_t = torch.clone(x_tp1)
@@ -149,7 +153,7 @@ class HMC(BaseOptimizer):
         # Evaluate the Hamiltonian likelihood
         DU = chi2 - proposal_chi2
         DP = 0.5 * (torch.dot(momentum_0, momentum_0) - torch.dot(momentum_t, momentum_t)) / self.mass
-        log_alpha = DU + DP
+        log_alpha = (DU + DP) / self.temperature
 
         # Determine if proposal is accepted
         accept = self.accept(log_alpha)

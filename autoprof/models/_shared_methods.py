@@ -246,7 +246,7 @@ def nonparametric_initialize(self, target = None):
     self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True)
 
 @torch.no_grad()
-def nonparametric_segment_initialize(self, target = None):
+def nonparametric_segment_initialize(self, target = None, segments = 1, symmetric = True):
     if target is None:
         target = self.target
     super(self.__class__, self).initialize(target)
@@ -277,24 +277,43 @@ def nonparametric_segment_initialize(self, target = None):
         new_prof.pop()
         new_prof.append(torch.sqrt(torch.sum((self.window.shape/2)**2)))
         self["I(R)"].set_profile(new_prof)
-        
+
+    self["I(R)"].set_value(np.zeros((segments, len(self["I(R)"].prof))), override_locked = True)
+    self["I(R)"].set_uncertainty(np.zeros((segments, len(self["I(R)"].prof))), override_locked = True)
     profR = self["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     X, Y = target_area.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
     X, Y = self.transform_coordinates(X, Y)
     R = self.radius_metric(X, Y).detach().cpu().numpy()
+    T = self.angular_metric(X, Y).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:])/2) + [profR[-1]*100]
     raveldat = target_area.data.detach().cpu().numpy().ravel()
-    I = binned_statistic(R.ravel(), raveldat, statistic = 'median', bins = rad_bins)[0] / target_area.pixelscale.item()**2
-    N = np.isfinite(I)
-    if not np.all(N):
-        I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
-    S = binned_statistic(R.ravel(), raveldat, statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
-    N = np.isfinite(S)
-    if not np.all(N):
-        S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-    self["I(R)"].set_value(np.log10(np.abs(I)), override_locked = True)
-    self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True)
+    for s in range(segments):
+        if segments % 2 == 0 and symmetric:
+            angles = (T - (s*np.pi/segments)) % np.pi
+            TCHOOSE = np.logical_or(angles < (np.pi/segments), angles >= (np.pi*(1 - 1/segments)))
+        elif segments % 2 == 1 and symmetric:
+            angles = (T - (s*np.pi/segments)) % (2*np.pi)
+            TCHOOSE = np.logical_or(angles < (np.pi/segments), angles >= (np.pi*(2 - 1/segments)))
+            angles = (T - (np.pi + r*np.pi/segments)) % (2*np.pi)
+            TCHOOSE = np.logical_or(TCHOOSE, np.logical_or(angles < (np.pi/segments), angles >= (np.pi*(2 - 1/segments))))
+        elif segments % 2 == 0 and not symmetric:
+            angles = (T - (s*2*np.pi/segments)) % (2*np.pi)
+            TCHOOSE = torch.logical_or(angles < (2*np.pi/segments), angles >= (2*np.pi*(1 - 1/segments)))
+        else:
+            angles = (T - (s*2*np.pi/segments)) % (2*np.pi)
+            TCHOOSE = torch.logical_or(angles < (2*np.pi/segments), angles >= (np.pi*(2 - 1/segments)))
+        TCHOOSE = TCHOOSE.ravel()
+        I = binned_statistic(R.ravel()[TCHOOSE], raveldat[TCHOOSE], statistic = 'median', bins = rad_bins)[0] / target_area.pixelscale.item()**2
+        N = np.isfinite(I)
+        if not np.all(N):
+            I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
+        S = binned_statistic(R.ravel(), raveldat, statistic = lambda d:iqr(d,rng=[16,84])/2, bins = rad_bins)[0]
+        N = np.isfinite(S)
+        if not np.all(N):
+            S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
+        self["I(R)"].set_value(np.log10(np.abs(I)), override_locked = True, index = s)
+        self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True, index = s)
 
 def nonparametric_radial_model(self, R, sample_image = None):
     if sample_image is None:

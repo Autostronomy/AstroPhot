@@ -65,7 +65,6 @@ class Sersic_Galaxy(Galaxy_Model):
         
         parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
     from ._shared_methods import sersic_radial_model as radial_model
-    # from ._shared_methods import sersic_initialize as initialize
 
 class Sersic_Star(Star_Model):
     """basic star model with a sersic profile for the radial light

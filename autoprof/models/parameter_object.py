@@ -186,7 +186,7 @@ class Parameter(object):
             return
         uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         if index is not None:
-            assert uncertainty >= 0, f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
+            assert torch.all(uncertainty >= 0), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
             if as_representation and not self.cyclic and self.limits is not None:
                 self._uncertainty[index] = uncertainty * d_inv_boundaries_dval(self.representation[index], self.limits)
             else:
@@ -235,7 +235,7 @@ class Parameter(object):
         elif index is None:
             self._representation = rep.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         else:
-            self._representation[index] = rep
+            self._representation[index] = torch.as_tensor(rep, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         
     def get_state(self):
         """Return the values representing the current state of the parameter,

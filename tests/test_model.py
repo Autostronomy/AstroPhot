@@ -2,6 +2,7 @@ import unittest
 import autoprof as ap
 import torch
 import numpy as np
+from utils import make_basic_sersic
 
 class TestModel(unittest.TestCase):
 
@@ -43,6 +44,38 @@ class TestModel(unittest.TestCase):
         
         self.assertTrue(torch.all(mod().data == 0), "Component_Model model_image should be zeros")
 
+
+        
+class TestAllModelBasics(unittest.TestCase):
+
+    def test_all_model_init(self):
+
+        target = make_basic_sersic()
+        for model_type in ap.models.Component_Model.List_Model_Names(useable = True):
+            MODEL = ap.models.AutoProf_Model(
+                name = "test model",
+                model_type = model_type,
+                target = target,
+            )
+            MODEL.initialize()
+            for P in MODEL.parameter_order():
+                self.assertIsNotNone(MODEL[P].value, f"Model type {model_type} parameter {P} should not be None after initialization")
+                # perhaps add check that uncertainty is not none
+            
+    def test_all_model_sample(self):
+
+        target = make_basic_sersic()
+        for model_type in ap.models.Component_Model.List_Model_Names(useable = True):
+            MODEL = ap.models.AutoProf_Model(
+                name = "test model",
+                model_type = model_type,
+                target = target,
+            )
+            MODEL.initialize()
+            img = MODEL()
+            self.assertTrue(torch.all(torch.isfinite(img.data)), "Model should evaluate a real number for the full image")
+            
+        
 class TestSersic(unittest.TestCase):
 
     def test_sersic_creation(self):
