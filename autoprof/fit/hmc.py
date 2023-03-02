@@ -83,7 +83,7 @@ class HMC(BaseOptimizer):
         self.chain = np.stack(self.chain)
         return self
 
-    def append_chain(self, state: torch.Tensor):
+    def append_chain(self, state: torch.Tensor)-> None:
         """
         Add a state vector to the MCMC chain
         """
@@ -91,7 +91,7 @@ class HMC(BaseOptimizer):
         chain_state = self.model.get_parameter_vector(as_representation = False)
         self.chain.append(chain_state.detach().cpu().clone().numpy())
         
-    def score_fn(self, state: torch.Tensor):
+    def score_fn(self, state: torch.Tensor)-> (float, float):
         """
         Compute the score for the current state. This is the gradient of the Chi^2 wrt the model parameters.
         """
@@ -114,7 +114,7 @@ class HMC(BaseOptimizer):
         return -gradstate.grad, loss.detach()
         
     @staticmethod
-    def accept(log_alpha):
+    def accept(log_alpha)-> torch.Tensor:   
         """
         Evaluates randomly if a given proposal is accepted. This is done in log space which is more natural for the evaluation in the step.
         """

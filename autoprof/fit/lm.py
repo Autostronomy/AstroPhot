@@ -1,5 +1,6 @@
 # Levenberg-Marquardt algorithm
 import os
+from typing import List
 import torch
 import numpy as np
 from time import time
@@ -96,7 +97,7 @@ class LM(BaseOptimizer):
         self.L = max(1e-9, self.L/Ldn)
         
     @torch.no_grad()
-    def grad_step(self):
+    def grad_step(self)-> None:
         L = 0.1
         self.iteration += 1
         self._count_grad_step += 1
@@ -145,7 +146,7 @@ class LM(BaseOptimizer):
         else:
             raise RuntimeError("Unable to take gradient step! LM has found itself in a very bad place of parameter space, try adjusting initial parameters")
         
-    def step(self, current_state = None):
+    def step(self, current_state = None)-> None:
         """
         Levenberg-Marquardt update step
         """
@@ -309,7 +310,7 @@ class LM(BaseOptimizer):
         return self
 
     @torch.no_grad()
-    def undo_step(self):
+    def undo_step(self)-> None:
         AP_config.ap_logger.info("undoing step, trying to recover")
         assert self.decision_history.count("accept") >= 2, "cannot undo with not enough accepted steps, retry with new parameters"
         assert len(self.decision_history) == len(self.lambda_history)
@@ -324,7 +325,7 @@ class LM(BaseOptimizer):
             self.current_state = torch.tensor(self.lambda_history[i], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             self.L = self.L_history[i] * self.Lup
     
-    def take_low_rho_step(self):
+    def take_low_rho_step(self)-> bool:
         
         for i in reversed(range(len(self.decision_history))):
             if "accept" in self.decision_history[i]:
@@ -353,14 +354,14 @@ class LM(BaseOptimizer):
                 return True
             
     @torch.no_grad()
-    def update_h(self):
+    def update_h(self)-> torch.Tensor :
         h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
         h = torch.linalg.solve((self.hess + 1e-3*self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)) * (1 + self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device))**2/(1 + self.L), self.grad)
         return h
     
-    def update_J_AD(self):
+    def update_J_AD(self)-> None:
         del self.J
         if "cpu" not in AP_config.ap_device:
             torch.cuda.empty_cache()
@@ -370,14 +371,14 @@ class LM(BaseOptimizer):
         self.full_jac = True
             
     @torch.no_grad()
-    def update_J_Broyden(self, h, Yp, Yph):
+    def update_J_Broyden(self, h, Yp, Yph)-> None:
         self.J = Broyden_step(self.J, h, Yp, Yph)
         if self.model.target.has_mask:
             self.J[self.mask] = 0.
         self.full_jac = False
 
     @torch.no_grad()
-    def update_hess(self):
+    def update_hess(self)-> None:
         if isinstance(self.W, float):
             self.hess = torch.matmul(self.J.T, self.J)
         else:
@@ -385,23 +386,23 @@ class LM(BaseOptimizer):
         self.hess += self.epsilon5 * torch.eye(len(self.current_state), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
             
     @torch.no_grad()
-    def covariance_matrix(self):
+    def covariance_matrix(self)-> torch.Tensor:
         try:
             return torch.linalg.inv(self.hess)
         except:
-            AP_config.ap_logger.warning("WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.")
+            AP_config.ap_logger.warning("WARNING: Hessian is singular, likely at least one model is non-physical. Will message Hessian to continue but results should be inspected.")
             self.hess += torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*(torch.diag(self.hess) == 0)
             return torch.linalg.inv(self.hess)
             
     @torch.no_grad()
-    def update_grad(self, Yph):
+    def update_grad(self, Yph)-> None:
         self.grad = torch.matmul(self.J.T, self.W * (self.Y - Yph))
             
     @torch.no_grad()
-    def rho(self, Xp, Xph, h):
+    def rho(self, Xp, Xph, h)-> torch.Tensor:
         return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h) + self.grad))
 
-    def accept_history(self):
+    def accept_history(self)-> List[torch.Tensor, torch.Tensor, List[float]]:
         lambdas = []
         Ls = []
         losses = []
@@ -412,7 +413,7 @@ class LM(BaseOptimizer):
                 Ls.append(self.L_history[l])
                 losses.append(self.loss_history[l])
         return lambdas, Ls, losses
-    def progress_history(self):
+    def progress_history(self)-> List[torch.Tensor, torch.Tensor, List[float]]:
         lambdas = []
         Ls = []
         losses = []
