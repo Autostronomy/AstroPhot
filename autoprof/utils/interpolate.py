@@ -5,9 +5,6 @@ from astropy.convolution import convolve, convolve_fft
 from torch.nn.functional import conv2d
 from .operations import fft_convolve_torch
 
-def window_function(img, X, Y, func, window):
-    pass
-
 def _h_poly(t):
     tt = t[None, :]**(torch.arange(4, device=t.device)[:, None])
     A = torch.tensor([
@@ -34,7 +31,6 @@ def cubic_spline_torch(x, y, xs, extend = "const"):
         indices = xs > x[-1]
         ret[indices] = y[-1] + (xs[indices] - x[-1])*(y[-1] - y[-2])/(x[-1] - x[-2])
     return ret
-
 
 def interpolate_bicubic(img, X, Y):
     """
@@ -111,16 +107,6 @@ def point_Lanczos(I, X, Y, scale):
         max(0,ranges[0][0]):min(I.shape[1],ranges[0][1]),
     ]
     return np.sum(F * LL)
-
-def arbitrary_Lanczos(I, X, Y, scale):
-    """Apply Lanczos interpolation for a list of coordinates with
-    unspecified structure.
-
-    """
-    F = []
-    for x, y in zip(X, Y):
-        F.append(point_Lanczos(I, x, y, scale))
-    return np.array(F)
 
 def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     """convolution kernel for shifting all pixels in a grid by some
@@ -249,18 +235,6 @@ def interpolate_Lanczos(img, X, Y, scale):
         w = np.sum(L)
         flux.append(np.sum(chunk * L) / w)
     return np.array(flux)
-
-def nearest_neighbor(img, X, Y):
-    """Interpolation using the nearest pixel value.
-
-    """
-    return img[
-        np.clip(np.round(Y).astype(int), a_min = 0, a_max = img.shape[0] - 1),
-        np.clip(np.round(X).astype(int), a_min = 0, a_max = img.shape[1] - 1),
-    ]
-
-def mylerp(start, end, weight):
-    return start + weight*(end - start)
 
 def interp1d_torch(x_in, y_in, x_out): 
     indices = torch.searchsorted(x_in[:-1], x_out) - 1
