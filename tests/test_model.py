@@ -4,6 +4,10 @@ import torch
 import numpy as np
 from utils import make_basic_sersic
 
+######################################################################
+# Model Objects
+######################################################################
+
 class TestModel(unittest.TestCase):
 
     def test_AutoProf_Model(self):

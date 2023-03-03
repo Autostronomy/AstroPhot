@@ -3,6 +3,10 @@ import autoprof as ap
 import torch
 import numpy as np
 
+######################################################################
+# Fit Objects
+######################################################################
+
 class TestComponentModelFits(unittest.TestCase):
 
     def test_sersic_fit_grad(self):

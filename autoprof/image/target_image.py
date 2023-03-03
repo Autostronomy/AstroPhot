@@ -12,6 +12,8 @@ class Target_Image(BaseImage):
     describes the target image.
 
     """
+    image_count = 0
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.has_variance:
@@ -22,6 +24,10 @@ class Target_Image(BaseImage):
             self.set_psf(kwargs.get("psf", None))
         self.psf_upscale = torch.as_tensor(kwargs.get("psf_upscale", 1), dtype = torch.int32, device = AP_config.ap_device) 
 
+        # set the band
+        self.band = kwargs.get("band", str(Target_Image.image_count))
+        Target_Image.image_count += 1
+        
     @property
     def variance(self):
         if self.has_variance:
