@@ -24,7 +24,8 @@ class BaseImage(object):
         origin: The origin of the image in the coordinate system.
     """
 
-    def __init__(self, 
+    def __init__(
+            self, 
             data: Optional[Union[torch.Tensor]] = None, 
             pixelscale: Optional[Union[float, torch.Tensor]] = None,
             window: Optional[Window] = None, 
@@ -32,8 +33,9 @@ class BaseImage(object):
             zeropoint: Optional[Union[float, torch.Tensor]] = None, 
             note: Optional[str] = None, 
             origin: Optional[Sequence] = None, 
-            center: Optional[Sequence] = None, 
-            **kwargs: Any) -> None:
+            center: Optional[Sequence] = None,
+            **kwargs: Any
+    ) -> None:
 
         """Initialize an instance of the APImage class.
 
@@ -190,6 +192,7 @@ class BaseImage(object):
         return self.__class__(
             data = torch.clone(self.data),
             zeropoint = self.zeropoint,
+            origin = self.origin,
             note = self.note,
             window = self.window,
         )
@@ -197,6 +200,7 @@ class BaseImage(object):
         return self.__class__(
             data = torch.zeros_like(self.data),
             zeropoint = self.zeropoint,
+            origin = self.origin,
             note = self.note,
             window = self.window,
         )
@@ -299,34 +303,6 @@ class BaseImage(object):
                 break
         return hdul
     
-    def __sub__(self, other):
-        if isinstance(other, BaseImage):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot subtract images with different pixelscale!")
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
-                raise IndexError("images have no overlap, cannot subtract!")
-            new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_indices(self)].copy()
-            new_img.data -= other
-            return new_img
-        
-    def __add__(self, other):
-        if isinstance(other, BaseImage):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot add images with different pixelscale!")
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
-                return self
-            new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_indices(self)].copy()
-            new_img.data += other
-            return new_img
-
     def __iadd__(self, other):
         if isinstance(other, BaseImage):
             if not torch.isclose(self.pixelscale, other.pixelscale):
@@ -425,28 +401,6 @@ class Image_List(BaseImage):
             tuple(image.reduce(scale) for image in self.image_list),
         )
     
-    def __sub__(self, other):
-        new_image_list = []
-        if isinstance(other, Image_List):
-            for self_image, other_image in zip(self.image_list, other.image_list):
-                new_image_list.append(self_image - other_image)
-        else:
-            for self_image, other_image in zip(self.image_list, other):
-                new_image_list.append(self_image - other_image)
-        return self.__class__(
-            image_list = new_image_list,
-        )
-    def __add__(self, other):
-        new_image_list = []
-        if isinstance(other, Image_List):
-            for self_image, other_image in zip(self.image_list, other.image_list):
-                new_image_list.append(self_image + other_image)
-        else:
-            for self_image, other_image in zip(self.image_list, other):
-                new_image_list.append(self_image + other_image)
-        return self.__class__(
-            image_list = new_image_list,
-        )
     def __isub__(self, other):
         if isinstance(other, Image_List):
             for self_image, other_image in zip(self.image_list, other.image_list):
@@ -464,6 +418,14 @@ class Image_List(BaseImage):
                 self_image += other_image
         return self
     
+    def __getitem__(self, *args):
+        if len(args) == 1 and isinstance(args[0], Window):
+            return self.get_window(args[0])
+        if len(args) == 1 and isinstance(args[0], BaseImage):
+            return self.get_window(args[0].window)
+        if all(isinstance(arg, (int, slice)) for arg in args):
+            return self.image_list.__getitem__(*args)
+        raise ValueError("Unrecognized Image_List getitem request!")
     def __str__(self):
         return f"image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
     def __iter__(self):

@@ -1,6 +1,11 @@
 import unittest
 from autoprof import image
+import autoprof as ap
 import torch
+
+######################################################################
+# Image Objects
+######################################################################
 
 class TestImage(unittest.TestCase):
     def test_image_creation(self):
@@ -65,16 +70,25 @@ class TestImage(unittest.TestCase):
         self.assertEqual(base_image.data[5][5], 0, "slice should only update its region")
 
         second_image = image.BaseImage(data = torch.ones((5,5)), pixelscale = 1.0, zeropoint = 1.0, origin = [3,3], note = 'second image')
+
+        # Test iadd
         base_image += second_image
         self.assertEqual(base_image.data[1][1], 1, "image addition should only update its region")
         self.assertEqual(base_image.data[3][3], 2, "image addition should update its region")
         self.assertEqual(base_image.data[5][5], 1, "image addition should update its region")
         self.assertEqual(base_image.data[8][8], 0, "image addition should only update its region")
 
+        # Test isubtract
+        base_image -= second_image
+        self.assertEqual(base_image.data[1][1], 1, "image subtraction should only update its region")
+        self.assertEqual(base_image.data[3][3], 1, "image subtraction should update its region")
+        self.assertEqual(base_image.data[5][5], 0, "image subtraction should update its region")
+        self.assertEqual(base_image.data[8][8], 0, "image subtraction should only update its region")
+
         base_image.data[6:,6:] += 1.
         
         self.assertEqual(base_image.data[1][1], 1, "array addition should only update its region")
-        self.assertEqual(base_image.data[6][6], 2, "array addition should update its region")
+        self.assertEqual(base_image.data[6][6], 1, "array addition should update its region")
         self.assertEqual(base_image.data[8][8], 1, "array addition should update its region")
 
     def test_image_manipulation(self):
@@ -98,6 +112,20 @@ class TestImage(unittest.TestCase):
         new_image.crop([3, 2, 1, 0])
         self.assertEqual(new_image.data.shape[0], 9, "previous crop and current crop should have cut from this axis")
 
+    def test_image_save_load(self):
+        
+        new_image = image.BaseImage(torch.ones((16,32)), pixelscale = 0.76, zeropoint = 21.4, origin = torch.zeros(2) + 0.1, note = 'test image')
+
+        new_image.save("Test_AutoProf.fits")
+
+        loaded_image = ap.image.BaseImage(filename = "Test_AutoProf.fits")
+
+        self.assertTrue(torch.all(new_image.data == loaded_image.data), "Loaded image should have same pixel values")
+        self.assertTrue(torch.all(new_image.origin == loaded_image.origin), "Loaded image should have same origin")
+        self.assertEqual(new_image.pixelscale, loaded_image.pixelscale, "Loaded image should have same pixel scale")
+        self.assertEqual(new_image.zeropoint, loaded_image.zeropoint, "Loaded image should have same zeropoint")
+        
+
 class TestTargetImage(unittest.TestCase):
     def test_variance(self):
         
@@ -109,6 +137,7 @@ class TestTargetImage(unittest.TestCase):
             origin = torch.zeros(2) + 0.1,
             note = 'test image'
         )
+        
         self.assertTrue(new_image.has_variance, "target image should store variance")
 
         reduced_image = new_image.reduce(2)
@@ -155,6 +184,24 @@ class TestTargetImage(unittest.TestCase):
         new_image.psf = None
         self.assertFalse(new_image.has_psf, "target image update to no variance")
 
+    def test_target_save_load(self):
+        new_image = image.Target_Image(
+            data = torch.ones((16,32)),
+            variance = torch.ones((16,32)),
+            psf = torch.ones((9,9)),
+            pixelscale = 1.0,
+            zeropoint = 1.0,
+            origin = torch.zeros(2) + 0.1,
+            note = 'test image'
+        )
+        
+        new_image.save("Test_target_AutoProf.fits")
+
+        loaded_image = ap.image.Target_Image(filename = "Test_target_AutoProf.fits")
+
+        self.assertTrue(torch.all(new_image.variance == loaded_image.variance), "Loaded image should have same variance")
+        self.assertTrue(torch.all(new_image.psf == loaded_image.psf), "Loaded image should have same psf")
+        
 class TestModelImage(unittest.TestCase):
     def test_replace(self):
         new_image = image.Model_Image(data = torch.ones((16,32)), pixelscale = 1.0, zeropoint = 1.0, origin = torch.zeros(2) + 0.1, note = 'test image')
