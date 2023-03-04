@@ -91,7 +91,7 @@ class HMC(BaseOptimizer):
         chain_state = self.model.get_parameter_vector(as_representation = False)
         self.chain.append(chain_state.detach().cpu().clone().numpy())
         
-    def score_fn(self, state: torch.Tensor)-> (float, float):
+    def score_fn(self, state: torch.Tensor)-> (torch.Tensor, torch.Tensor):
         """
         Compute the score for the current state. This is the gradient of the Chi^2 wrt the model parameters.
         """
