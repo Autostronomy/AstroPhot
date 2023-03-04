@@ -1,8 +1,8 @@
-from .image_object import BaseImage, Image_List
 import torch
 import numpy as np
 from torch.nn.functional import avg_pool2d
 from astropy.io import fits
+from .image_object import BaseImage, Image_List
 from .. import AP_config
 __all__ = ["Target_Image", "Target_Image_List"]
 
