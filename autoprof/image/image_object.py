@@ -302,6 +302,34 @@ class BaseImage(object):
                 self.window = Window(**eval(hdu.header.get("WINDOW")))
                 break
         return hdul
+        
+    def __sub__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot subtract images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                raise IndexError("images have no overlap, cannot subtract!")
+            new_img = self[other.window].copy()
+            new_img.data -= other.data[self.window.get_indices(other)]
+            return new_img
+        else:
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data -= other
+            return new_img
+        
+    def __add__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot add images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                return self
+            new_img = self[other.window].copy()
+            new_img.data += other.data[self.window.get_indices(other)]
+            return new_img
+        else:
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data += other
+            return new_img
     
     def __iadd__(self, other):
         if isinstance(other, BaseImage):
