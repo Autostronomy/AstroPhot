@@ -1,3 +1,6 @@
+import torch
+import numpy as np
+
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
@@ -5,10 +8,8 @@ from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from .star_model_object import Star_Model
-from ._shared_methods import parametric_initialize, parametric_segment_initialize
+from ._shared_methods import parametric_initialize, parametric_segment_initialize, select_target
 from ..utils.parametric_profiles import gaussian_torch, gaussian_np
-import torch
-import numpy as np
 
 __all__ = ["Gaussian_Galaxy", "Gaussian_SuperEllipse", "Gaussian_SuperEllipse_Warp", "Gaussian_FourierEllipse", "Gaussian_FourierEllipse_Warp", "Gaussian_Warp", "Gaussian_Star"]
 
@@ -40,10 +41,10 @@ class Gaussian_Galaxy(Galaxy_Model):
     }
     _parameter_order = Galaxy_Model._parameter_order + ("sigma", "flux")
     useable = True
-
+    
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -72,9 +73,9 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -103,9 +104,9 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     _parameter_order = SuperEllipse_Warp._parameter_order + ("sigma", "flux")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -135,9 +136,9 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -167,9 +168,9 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     _parameter_order = FourierEllipse_Warp._parameter_order + ("sigma", "flux")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -198,9 +199,9 @@ class Gaussian_Warp(Warp_Galaxy):
     _parameter_order = Warp_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -229,9 +230,9 @@ class Gaussian_Star(Star_Model):
     _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
@@ -265,9 +266,8 @@ class Gaussian_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_segment_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.rays)
@@ -298,9 +298,8 @@ class Gaussian_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_segment_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.wedges)

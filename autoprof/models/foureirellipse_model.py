@@ -1,7 +1,9 @@
-from .galaxy_model_object import Galaxy_Model
-from .warp_model import Warp_Galaxy
 import torch
 import numpy as np
+
+from .galaxy_model_object import Galaxy_Model
+from .warp_model import Warp_Galaxy
+from ._shared_methods import select_target
 
 __all__ = ["FourierEllipse_Galaxy", "FourierEllipse_Warp"]
 
@@ -66,9 +68,8 @@ class FourierEllipse_Galaxy(Galaxy_Model):
         return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
 
         if self["am"].value is None:
@@ -142,9 +143,8 @@ class FourierEllipse_Warp(Warp_Galaxy):
         return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
 
         if self["am"].value is None:

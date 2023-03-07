@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window_List
+from ._shared_methods import select_target
 from .. import AP_config
 
 __all__ = ["Group_Model"]
@@ -175,10 +176,9 @@ class Group_Model(AutoProf_Model):
         pass
         
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
         self._param_tuple = None
-        if target is None:
-            target = self.target
 
         target_copy = target.copy()
         for model in self.model_list:

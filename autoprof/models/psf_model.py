@@ -1,7 +1,9 @@
+import torch
+
 from .star_model_object import Star_Model
 from ..image import Model_Image
-import torch
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
+from ._shared_methods import select_target
 from .. import AP_config
 
 __all__ = ["PSF_Star"]
@@ -39,9 +41,8 @@ class PSF_Star(Star_Model):
             self.psf_model = Model_Image(data = torch.clone(self.target.psf), pixelscale = self.target.pixelscale)
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         target_area = target[self.window]
         if self["flux"].value is None:
