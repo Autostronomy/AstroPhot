@@ -530,7 +530,7 @@ class LM(BaseOptimizer):
             return torch.linalg.inv(self.hess)
         except:
             AP_config.ap_logger.warning(
-                "WARNING: Hessian is singular, likely at least one model is non-physical. Will message Hessian to continue but results should be inspected."
+                "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
             )
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
