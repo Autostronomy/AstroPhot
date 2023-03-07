@@ -1,7 +1,7 @@
 # Levenberg-Marquardt algorithm
 import os
 from time import time
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Sequence, Any
 
 import torch
 from torch.autograd.functional import jacobian
@@ -414,7 +414,7 @@ class LM(BaseOptimizer):
             torch.cuda.empty_cache()
 
         # Compute jacobian on image
-        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False, flatten = True)
+        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False).flatten("data")
 
         # compute the constraint jacobian if needed
         if self.constraints is not None:
@@ -549,7 +549,7 @@ class LM_Constraint():
     
     def __init__(
             self,
-            constraint_func: Callable[torch.Tensor, torch.Tensor],
+            constraint_func: Callable[[torch.Tensor, Any], torch.Tensor],
             constraint_args: tuple = (),
             representation_parameters: bool = False,
             out_len: int = 1,

@@ -1,3 +1,10 @@
+from functools import partial
+from typing import Optional
+
+from torch.autograd.functional import jacobian
+import numpy as np
+import torch
+
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
@@ -5,10 +12,7 @@ from ..utils.initialize import center_of_mass
 from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
-from torch.autograd.functional import jacobian
-from functools import partial
-import numpy as np
-import torch
+from ._shared_methods import select_target
 from .. import AP_config
 
 __all__ = ["Component_Model"]
@@ -89,6 +93,7 @@ class Component_Model(AutoProf_Model):
     # Initialization functions
     ######################################################################
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
@@ -96,8 +101,6 @@ class Component_Model(AutoProf_Model):
         until the iterations move by less than a pixel.
 
         """
-        if target is None:
-            target = self.target
         super().initialize(target)
         # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
@@ -250,10 +253,23 @@ class Component_Model(AutoProf_Model):
         # fill out finite diff jacobian
         raise NotImplementedError("Finite differences jacobian not yet ready, but will be soon")
     
-    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+    def jacobian(self, parameters: Optional[torch.Tensor] = None, as_representation: bool = False, override_locked: bool = False, **kwargs):
+        """Compute the jacobian for this model. Done by first constructing a
+        full jacobian (Npixels * Nparameters) of zeros then call the
+        jacobian method of each sub model and add it in to the total.
+
+        Args:
+          parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
+          as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
+          override_locked (bool): If True, will compute jacobian for locked parameters as well. If False, will ignore locked parameters. Default False
+          pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+
+        """
+        
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
 
+        # idea, include mode to break up the image into chunks and evaluate jacobian on those
         if self.jacobian_mode == "full":
             full_jac = jacobian(
                 lambda P: self(
@@ -302,11 +318,13 @@ class Component_Model(AutoProf_Model):
                 override_locked = override_locked,
             )
         else:
-            raise ValueError(f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}")    
-            
-        if flatten:
-            return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
-        return full_jac
+            raise ValueError(f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}")
+
+        jac_img = self.target[self.window].jacobian_image(
+            parameters = self.get_parameter_identity_vector(override_locked = override_locked),
+            data = full_jac,
+        )
+        return jac_img
         
     def get_state(self):
         state = super().get_state()

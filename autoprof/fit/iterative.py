@@ -65,12 +65,13 @@ class Iter(BaseOptimizer):
             model: The model to perform optimization on.
         """
         self.Y -= model()
+        initial_target = model.target
         model.target = model.target[model.window] - self.Y[model.window]
         res = self.method(model, **self.method_kwargs).fit()
         self.Y += model()
         if self.verbose > 1:
             AP_config.ap_logger.info(res.message)
-        model.target = self.model.target
+        model.target = initial_target
         
     def step(self) -> None:
         '''
