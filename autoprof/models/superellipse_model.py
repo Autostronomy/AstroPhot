@@ -1,7 +1,8 @@
-from .galaxy_model_object import Galaxy_Model
-from .warp_model import Warp_Galaxy
 import torch
 import numpy as np
+
+from .galaxy_model_object import Galaxy_Model
+from .warp_model import Warp_Galaxy
 
 __all__ = ["SuperEllipse_Galaxy", "SuperEllipse_Warp"]
 

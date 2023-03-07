@@ -7,6 +7,7 @@ from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
 from ..image import Model_Image, Window, Target_Image
 from .parameter_object import Parameter
+from ._shared_methods import select_target, select_sample
 from copy import copy
 from time import time
 from .. import AP_config
@@ -19,7 +20,7 @@ def all_subclasses(cls):
         [s for c in cls.__subclasses__() for s in all_subclasses(c)]
     )
 
-
+######################################################################
 class AutoProf_Model(object):
     """AutoProf_Model(name, *args, filename = None, model_type = None, **kwargs)
 
@@ -86,6 +87,7 @@ class AutoProf_Model(object):
         model.equality_constraints.append(parameter)
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target, *args, **kwargs):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
@@ -95,10 +97,7 @@ class AutoProf_Model(object):
         pass
 
     def make_model_image(self):
-        return Model_Image(
-            window=self.window,
-            pixelscale=self.target.pixelscale,
-        )
+        return self.target[self.window].model_image()
 
     def sample(self, image = None, *args, **kwargs):
         """Calling this function should fill the given image with values
@@ -294,6 +293,18 @@ class AutoProf_Model(object):
             vstart += V
         return parameters
 
+    def get_parameter_identity_vector(self, override_locked=False):
+        parameters = []
+        vstart = 0
+        for P, V in zip(
+            self.parameter_order(override_locked=override_locked),
+            self.parameter_vector_len(override_locked=override_locked),
+        ):
+            for i in range(V):
+                parameters.append(f"{self[P].identity}:{i}")
+            vstart += V
+        return parameters
+
     def get_uncertainty_vector(self, as_representation=False, override_locked=False):
         uncertanty = torch.zeros(
             np.sum(self.parameter_vector_len(override_locked=override_locked)),
@@ -406,6 +417,7 @@ class AutoProf_Model(object):
     def __eq__(self, other):
         return self is other
 
+    @select_sample
     def __call__(
         self,
         image = None,

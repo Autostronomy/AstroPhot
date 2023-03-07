@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+
 from ..utils.conversions.optimization import (
     boundaries,
     inv_boundaries,
@@ -8,10 +9,6 @@ from ..utils.conversions.optimization import (
     cyclic_boundaries
     )
 from .. import AP_config
-
-
-
-
 
 __all__ = ["Parameter"]
 
@@ -42,10 +39,10 @@ class Parameter(object):
         locked: boolean indicating if the parameter should have a fixed value [bool]
         units: units for the value of the parameter. [str]
     """
-    
+
     def __init__(self, name, value = None, **kwargs):
         self.name = name
-        
+        self.identity = str(id(self))
         self._representation = None
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)

@@ -212,6 +212,16 @@ class TestModelImage(unittest.TestCase):
         self.assertEqual(new_image.data[0][0], 1, "image replace should occur at proper location in image, this data should be untouched")
         self.assertEqual(new_image.data[5][5], 5, "image replace should update values in its window")
         
+class TestJacobianImage(unittest.TestCase):
+    def test_jacobian_add(self):
+        
+        new_image = ap.image.Jacobian_Image(parameters = ["a", "b", "c"], target_identity = "target1", data = torch.ones((16,32,3)), pixelscale = 1.0, zeropoint = 1.0, window = ap.image.Window(origin = torch.zeros(2) + 0.1, shape = torch.tensor((16,32))), note = 'test image')
+        other_image = ap.image.Jacobian_Image(parameters = ["b", "d"], target_identity = "target1", data = 5*torch.ones((4,4,2)), pixelscale = 1.0, zeropoint = 1.0, window = ap.image.Window(origin = torch.zeros(2) + 4 + 0.1, shape = torch.tensor((4,4))), note = 'other image')
+
+        new_image += other_image
+
+        self.assertEqual(tuple(new_image.data.shape), (16,32,4), "Jacobian addition should manage parameter identities")
+        self.assertEqual(tuple(new_image.flatten("data").shape), (512,4), "Jacobian should flatten to Npix*Nparams tensor")
         
 if __name__ == "__main__":
     unittest.main()
