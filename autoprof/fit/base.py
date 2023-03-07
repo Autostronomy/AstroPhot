@@ -35,7 +35,7 @@ class BaseOptimizer(object):
 
         Args:
             model (object): An object representing the model.
-            initial_state (Union[None, Tensor]): The initial state of the model could be any tensor.
+            initial_state (Optional[Sequence]): The initial state of the model could be any tensor.
                            If `None`, the model's default initial state will be used.
             relative_tolerance (float): The relative tolerance for the optimization.
             **kwargs (dict): Additional keyword arguments.
@@ -113,8 +113,7 @@ class BaseOptimizer(object):
     def res(self) -> np.ndarray:
         """Returns the value of lambda (regularization strength) at which minimum chi^2 loss was achieved.
 
-        Returns:
-        ndarray: Value of lambda at which minimum chi^2 loss was achieved.
+        Returns: ndarray which is the Value of lambda at which minimum chi^2 loss was achieved.
         """
         N = np.isfinite(self.loss_history)
         return np.array(self.lambda_history)[N][
