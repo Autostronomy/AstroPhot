@@ -167,7 +167,12 @@ class TestLM(unittest.TestCase):
         LM.undo_step()
 
         LM.take_low_rho_step()
-        
+        for i in reversed(range(len(LM.decision_history))):
+            if "accept" in LM.decision_history[i]:
+                LM.decision_history[i] = "reject"
+                break
+        LM.take_low_rho_step()
+            
 
     def test_lm_constraint(self):
 
@@ -185,8 +190,9 @@ class TestLM(unittest.TestCase):
 
         jac = new_constraint.jacobian(new_model)
         samp = new_constraint(new_model)
-
+        
         self.assertTrue(torch.all(torch.isfinite(jac)), "Constraint Jacobian should produce real numbers")
+        self.assertTrue(torch.all(torch.isclose(jac, -torch.ones_like(jac))), "Constraint Jacobian should produce correct derivatives")
         self.assertTrue(torch.all(torch.isfinite(samp)), "Constraint sample should produce real numbers")
         
 class TestHMC(unittest.TestCase):
