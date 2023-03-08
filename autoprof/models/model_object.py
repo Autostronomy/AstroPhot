@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Optional
+from typing import Optional, Union
 import io
 
 from torch.autograd.functional import jacobian
