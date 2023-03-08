@@ -143,6 +143,7 @@ class TestTargetImage(unittest.TestCase):
         reduced_image = new_image.reduce(2)
         self.assertEqual(reduced_image.variance[0][0], 4, "reduced image should sum sub pixels")
         
+        new_image.to()
         new_image.variance = None
         self.assertFalse(new_image.has_variance, "target image update to no variance")
 
@@ -211,6 +212,14 @@ class TestModelImage(unittest.TestCase):
 
         self.assertEqual(new_image.data[0][0], 1, "image replace should occur at proper location in image, this data should be untouched")
         self.assertEqual(new_image.data[5][5], 5, "image replace should update values in its window")
+
+    def test_shift(self):
+
+        new_image = image.Model_Image(data = torch.ones((16,32)), pixelscale = 1.0, zeropoint = 1.0, origin = torch.zeros(2) + 0.1, note = 'test image')
+        new_image.shift_origin(torch.tensor((-0.1,-0.1)), is_prepadded = False)
+
+        self.assertAlmostEqual(torch.sum(new_image.data).item(), 16*32, delta = 1, msg = "Shifting field of ones should give field of ones")
+        
         
 class TestJacobianImage(unittest.TestCase):
     def test_jacobian_add(self):

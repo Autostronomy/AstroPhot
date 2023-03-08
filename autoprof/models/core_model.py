@@ -1,15 +1,17 @@
+from copy import copy
+from time import time
+import io
+
 import torch
 import numpy as np
-import io
 import matplotlib.pyplot as plt
+
 from ..utils.conversions.optimization import cyclic_difference_np
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
 from ..image import Model_Image, Window, Target_Image
 from .parameter_object import Parameter
 from ._shared_methods import select_target, select_sample
-from copy import copy
-from time import time
 from .. import AP_config
 
 __all__ = ["AutoProf_Model"]

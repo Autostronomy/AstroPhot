@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, Sequence
 
 import torch
 import numpy as np
@@ -20,18 +20,18 @@ class Group_Model(AutoProf_Model):
     system more comlex than makes sense to represent with a single
     light distribution.
 
-    Parameters:
-        name: unique name for the full group model
-        target: the target image that this group model is trying to fit to
-        model_list: list of AutoProf_Model objects which will combine for the group model
-        locked: boolean for if the whole group of models should be locked
+    Args:
+        name (str): unique name for the full group model
+        target (Target_Image): the target image that this group model is trying to fit to
+        model_list (Optional[Sequence[AutoProf_Model]]): list of AutoProf_Model objects which will combine for the group model
+        locked (bool): if the whole group of models should be locked
 
     """
 
     model_type = f"group {AutoProf_Model.model_type}"
     useable = True
     
-    def __init__(self, name, *args, model_list = None, **kwargs):
+    def __init__(self, name: str, *args, model_list: Optional[Sequence[AutoProf_Model]] = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
         self._param_tuple = None
         self.model_list = []
@@ -78,12 +78,12 @@ class Group_Model(AutoProf_Model):
 
         return self.model_list.pop(self.model_list.index(model))
 
-    def update_window(self, include_locked = False):
+    def update_window(self, include_locked: bool = False):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.
 
         """
-        if isinstance(self.target, Image_List):
+        if isinstance(self.target, Image_List): # Window_List if target is a Target_Image_List
             new_window = [None]*len(self.target.image_list)
             for model in self.model_list:
                 if model.locked and not include_locked:
@@ -115,7 +115,7 @@ class Group_Model(AutoProf_Model):
                     new_window |= model.window
         self.window = new_window
                 
-    def parameter_tuples_order(self, override_locked = False):
+    def parameter_tuples_order(self, override_locked: bool = False):
         """Constructs a list where each entry is a tuple with a unique name
         for the parameter and the parameter object itself.
 
@@ -138,7 +138,7 @@ class Group_Model(AutoProf_Model):
                     params.append((f"{model.name}|{p}", model.parameters[p]))
         return params
         
-    def parameter_order(self, override_locked = True):
+    def parameter_order(self, override_locked: bool = True):
         """Gives the unique parameter names for this model in a repeatable
         order. By default, locked parameters are excluded from the
         tuple. The order of parameters will of course not be the same
@@ -150,6 +150,9 @@ class Group_Model(AutoProf_Model):
 
     @property
     def param_tuple(self):
+        """A tuple with the name of every parameter in the group model
+
+        """
         if self._param_tuple is None:
             self._param_tuple = self.parameter_tuples_order(override_locked = True)
         return self._param_tuple
@@ -177,7 +180,13 @@ class Group_Model(AutoProf_Model):
         
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target: Optional["Target_Image"] = None):
+        """
+        Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
+
+        Args:
+          target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
+        """
         self._param_tuple = None
 
         target_copy = target.copy()
@@ -185,7 +194,16 @@ class Group_Model(AutoProf_Model):
             model.initialize(target_copy)
             target_copy -= model()
             
-    def sample(self, image = None, *args, **kwargs):
+    def sample(self, image: Optional["Model_Image"] = None, *args, **kwargs):
+        """Sample the group model on an image. Produces the flux values for
+        each pixel associated with the models in this group. Each
+        model is called individually and the results are added
+        together in one larger image.
+
+        Args:
+          image (Optional["Model_Image"]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
+        
+        """
         self._param_tuple = None
         
         if image is None:
@@ -204,29 +222,6 @@ class Group_Model(AutoProf_Model):
 
         return image
 
-    def sub_model_parameter_map(self, override_locked = False):
-        base_parameters = self.parameters
-        base_parameters_order = self.parameter_order(override_locked = override_locked)
-        base_parameter_lens = self.parameter_vector_len(override_locked = override_locked)
-        param_map = []
-        param_vec_map = []
-        for model in self.model_list:
-            sub_param_map = []
-            sub_param_vec_map = []
-            for P in model.parameter_order(override_locked = override_locked):
-                for index in range(len(base_parameters_order)):
-                    if model[P] is base_parameters[base_parameters_order[index]]:
-                        sub_param_map.append(index)
-                        break
-                else:
-                    raise RuntimeError(f"Could not find parameter {P} for model {model.name}")
-                leadup = sum(base_parameter_lens[:sub_param_map[-1]])
-                for i in range(base_parameter_lens[sub_param_map[-1]]):
-                    sub_param_vec_map.append(leadup+i)
-            param_map.append(sub_param_map)
-            param_vec_map.append(sub_param_vec_map)
-        return param_map, param_vec_map
-        
     def jacobian(self, parameters: Optional[torch.Tensor] = None, as_representation: bool = False, override_locked: bool = False, pass_jacobian: Optional["Jacobian_Image"] = None, **kwargs):
         """Compute the jacobian for this model. Done by first constructing a
         full jacobian (Npixels * Nparameters) of zeros then call the
