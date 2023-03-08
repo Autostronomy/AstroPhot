@@ -1,7 +1,10 @@
 import unittest
-import autoprof as ap
+
 import torch
 import numpy as np
+
+import autoprof as ap
+from utils import make_basic_sersic, make_basic_gaussian
 
 ######################################################################
 # Fit Objects
@@ -144,6 +147,48 @@ class TestGroupModelFits(unittest.TestCase):
             self.assertFalse(np.any(mod2[p].representation.detach().numpy() == mod2_initparams[p]), f"mod2 parameter {p} should update with optimization")
     
 
+class TestLM(unittest.TestCase):
+
+    def test_lm_creation(self):
+        target = make_basic_sersic()
+        new_model = ap.models.AutoProf_Model(
+            name = "constrained sersic",
+            model_type = "sersic galaxy model",
+            parameters = {"center": [20,20], "PA": 60*np.pi/180, "q": 0.5, "n": 2, "Re": 5, "Ie": 1},
+            target = target,
+        )
+
+        LM = ap.fit.LM(new_model)
+
+        LM.fit()
+
+        LM.grad_step()
+
+        LM.undo_step()
+
+        LM.take_low_rho_step()
+        
+
+    def test_lm_constraint(self):
+
+        def dummy_constraint(p):
+            return torch.sum(torch.abs(p))
+
+        new_constraint = ap.fit.LM_Constraint(dummy_constraint)
+        target = make_basic_sersic()
+        new_model = ap.models.AutoProf_Model(
+            name = "constrained sersic",
+            model_type = "sersic galaxy model",
+            parameters = {"center": [20,20], "PA": 60*np.pi/180, "q": 0.5, "n": 2, "Re": 5, "Ie": 1},
+            target = target,
+        )
+
+        jac = new_constraint.jacobian(new_model)
+        samp = new_constraint(new_model)
+
+        self.assertTrue(torch.all(torch.isfinite(jac)), "Constraint Jacobian should produce real numbers")
+        self.assertTrue(torch.all(torch.isfinite(samp)), "Constraint sample should produce real numbers")
+        
 class TestHMC(unittest.TestCase):
 
     def test_singlesersic(self):

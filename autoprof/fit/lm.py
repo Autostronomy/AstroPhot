@@ -6,6 +6,7 @@ from typing import Callable, Optional, Union, Sequence, Any
 import torch
 from torch.autograd.functional import jacobian
 import numpy as np
+
 from .base import BaseOptimizer
 from .. import AP_config
 
@@ -564,12 +565,12 @@ class LM_Constraint():
         self.out_len = out_len
         self.reduce_ndf = reduce_ndf
         self.reference_value = torch.as_tensor(
-            reference_value if reference_value is None else torch.zeros(out_len),
+            reference_value if reference_value is not None else torch.zeros(out_len),
             dtype = AP_config.ap_dtype,
             device = AP_config.ap_device
         )
         self.weight = torch.as_tensor(
-            weight if weight is None else torch.zeros(out_len),
+            weight if weight is not None else torch.ones(out_len),
             dtype = AP_config.ap_dtype,
             device = AP_config.ap_device
         )
