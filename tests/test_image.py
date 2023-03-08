@@ -143,6 +143,7 @@ class TestTargetImage(unittest.TestCase):
         reduced_image = new_image.reduce(2)
         self.assertEqual(reduced_image.variance[0][0], 4, "reduced image should sum sub pixels")
         
+        new_image.to()
         new_image.variance = None
         self.assertFalse(new_image.has_variance, "target image update to no variance")
 
