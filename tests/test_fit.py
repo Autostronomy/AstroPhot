@@ -192,7 +192,7 @@ class TestLM(unittest.TestCase):
         samp = new_constraint(new_model)
         
         self.assertTrue(torch.all(torch.isfinite(jac)), "Constraint Jacobian should produce real numbers")
-        self.assertTrue(torch.all(torch.isclose(jac, -torch.ones_like(jac))), "Constraint Jacobian should produce correct derivatives")
+        self.assertTrue(torch.all(torch.isclose(jac, torch.ones_like(jac))), "Constraint Jacobian should produce correct derivatives")
         self.assertTrue(torch.all(torch.isfinite(samp)), "Constraint sample should produce real numbers")
         
 class TestHMC(unittest.TestCase):
