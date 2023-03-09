@@ -1,7 +1,7 @@
 # Levenberg-Marquardt algorithm
 import os
 from time import time
-from typing import Callable, Optional, Union, Sequence, Any
+from typing import List, Callable, Optional, Union, Sequence, Any
 
 import torch
 from torch.autograd.functional import jacobian
@@ -12,14 +12,16 @@ from .. import AP_config
 
 __all__ = ["LM", "LM_Constraint"]
 
+
 @torch.no_grad()
 @torch.jit.script
 def Broyden_step(J, h, Yp, Yph):
     delta = torch.matmul(J, h)
     # avoid constructing a second giant jacobian matrix, instead go one row at a time
     for j in range(J.shape[1]):
-        J[:,j] += (Yph - Yp - delta) * h[j] / torch.linalg.norm(h)
+        J[:, j] += (Yph - Yp - delta) * h[j] / torch.linalg.norm(h)
     return J
+
 
 class LM(BaseOptimizer):
     """based heavily on:
@@ -61,22 +63,26 @@ class LM(BaseOptimizer):
         Ldn (Optional[float]): amount to decrease L when accetping an update step. Default 9.
 
     """
-    
+   
     def __init__(self, model: "AutoProf_Model", initial_state: Sequence = None, max_iter: int = 100, **kwargs):
-        super().__init__(model, initial_state, max_iter = max_iter, **kwargs)
+        super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         # Set optimizer parameters
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
         self.epsilon5 = kwargs.get("epsilon5", 1e-8)
-        self.Lup = kwargs.get("Lup", 11.)
-        self.Ldn = kwargs.get("Ldn", 9.)
-        self.L = kwargs.get("L0", 1.)
+        self.Lup = kwargs.get("Lup", 11.0)
+        self.Ldn = kwargs.get("Ldn", 9.0)
+        self.L = kwargs.get("L0", 1.0)
         self.use_broyden = kwargs.get("use_broyden", False)
 
         # Initialize optimizer atributes
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
-        self.W = 1. / self.model.target[self.model.window].flatten("variance") if model.target.has_variance else 1.
+        self.W = (
+            1.0 / self.model.target[self.model.window].flatten("variance")
+            if model.target.has_variance
+            else 1.0
+        )
         #          # pixels      # parameters
         self.ndf = len(self.Y) - len(self.current_state)
         self.J = None
@@ -105,25 +111,30 @@ class LM(BaseOptimizer):
                 self.ndf -= con.reduce_ndf
                 if self.model.target.has_mask:
                     self.mask = torch.cat((self.mask, torch.zeros_like(con.reference_value, dtype = torch.bool)))
+                    
     def L_up(self, Lup = None):
         if Lup is None:
             Lup = self.Lup
-        self.L = min(1e9, self.L*Lup)
-    def L_dn(self, Ldn = None):
+        self.L = min(1e9, self.L * Lup)
+
+    def L_dn(self, Ldn=None):
         if Ldn is None:
             Ldn = self.Ldn
-        self.L = max(1e-9, self.L/Ldn)
-        
+        self.L = max(1e-9, self.L / Ldn)
+
     @torch.no_grad()
-    def grad_step(self):
+    def grad_step(self) -> None:
         L = 0.1
         self.iteration += 1
         self._count_grad_step += 1
         if self.verbose > 1:
-            AP_config.ap_logger.info(f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}")
+            AP_config.ap_logger.info(
+                f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}"
+            )
         for count in range(20):
             self.update_Yp(self.grad*L)
             loss = self.update_chi2()
+
             if not torch.isfinite(loss):
                 L /= 10
                 continue
@@ -131,27 +142,35 @@ class LM(BaseOptimizer):
                 AP_config.ap_logger.info(f"grad step loss: {loss.item()}, L: {L}")
             if np.nanmin(self.loss_history[:-1]) > loss.item():
                 self.loss_history.append(loss.detach().cpu().item())
-                self.L = 1.
+                self.L = 1.0
                 self.L_history.append(self.L)
-                self.current_state += self.grad*L
-                self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
+                self.current_state += self.grad * L
+                self.lambda_history.append(
+                    np.copy(self.current_state.detach().cpu().numpy())
+                )
                 self.decision_history.append("accept grad")
                 if self.verbose > 0:
                     AP_config.ap_logger.info("accept grad")
-                self.rho_history.append(1.)
+                self.rho_history.append(1.0)
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
                 break
-            elif np.abs(np.nanmin(self.loss_history[:-1]) - loss.item()) < (self.relative_tolerance * 1e-3) and L < 1e-5:
+            elif (
+                np.abs(np.nanmin(self.loss_history[:-1]) - loss.item())
+                < (self.relative_tolerance * 1e-3)
+                and L < 1e-5
+            ):
                 self.loss_history.append(loss.detach().cpu().item())
-                self.L = 1.
+                self.L = 1.0
                 self.L_history.append(self.L)
-                self.current_state += self.grad*L
-                self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
+                self.current_state += self.grad * L
+                self.lambda_history.append(
+                    np.copy(self.current_state.detach().cpu().numpy())
+                )
                 self.decision_history.append("accept bad grad")
                 if self.verbose > 0:
                     AP_config.ap_logger.info("accept bad grad")
-                self.rho_history.append(1.)                
+                self.rho_history.append(1.0)
                 self.prev_Y[0] = self.prev_Y[1]
                 self.prev_Y[1] = torch.clone(self.current_Y)
                 break
@@ -159,9 +178,11 @@ class LM(BaseOptimizer):
                 L /= 10
                 continue
         else:
-            raise RuntimeError("Unable to take gradient step! LM has found itself in a very bad place of parameter space, try adjusting initial parameters")
-        
-    def step(self, current_state = None):
+            raise RuntimeError(
+                "Unable to take gradient step! LM has found itself in a very bad place of parameter space, try adjusting initial parameters"
+            )
+
+    def step(self, current_state=None) -> None:
         """
         Levenberg-Marquardt update step
         """
@@ -174,20 +195,22 @@ class LM(BaseOptimizer):
         else:
             if self.verbose > 0:
                 AP_config.ap_logger.info("---------init---------")
-                
+
         h = self.update_h()
         if self.verbose > 1:
             AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
 
         self.update_Yp(h)
         loss = self.update_chi2()
-        
+
         if self.iteration == 0:
             self.prev_Y[1] = self.current_Y
         self.loss_history.append(loss.detach().cpu().item())
         self.L_history.append(self.L)
-        self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
-        
+        self.lambda_history.append(
+            np.copy((self.current_state + h).detach().cpu().numpy())
+        )
+
         if self.iteration > 0 and not torch.isfinite(loss):
             if self.verbose > 0:
                 AP_config.ap_logger.warning("nan loss")
@@ -200,13 +223,15 @@ class LM(BaseOptimizer):
         elif self.iteration > 0:
             rho = self.rho(np.nanmin(self.loss_history[:-1]), loss, h)
             if self.verbose > 1:
-                AP_config.ap_logger.debug(f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}")
+                AP_config.ap_logger.debug(
+                    f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}"
+                )
             elif self.verbose > 0 and rho > self.epsilon4:
                 AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
             if self.verbose > 1:
                 AP_config.ap_logger.debug(f"rho: {rho.item()}")
-                
+
             if rho > self.epsilon4:
                 if self.verbose > 0:
                     AP_config.ap_logger.info("accept")
@@ -216,7 +241,11 @@ class LM(BaseOptimizer):
                 self.current_state += h
                 self.L_dn()
                 self._count_reject = 0
-                if 0 < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss) < self.relative_tolerance:
+                if (
+                    0
+                    < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss)
+                    < self.relative_tolerance
+                ):
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
@@ -225,19 +254,28 @@ class LM(BaseOptimizer):
                     AP_config.ap_logger.info("reject, resetting jacobian")
                 self.decision_history.append("reject")
                 self.L = min(1e-2, self.L / self.Lup**4)
-                self._count_reject += 1                
+                self._count_reject += 1
             else:
                 if self.verbose > 0:
                     AP_config.ap_logger.info("reject")
                 self.decision_history.append("reject")
                 self.L_up()
                 self._count_reject += 1
-                return    
+                return
         else:
             self.decision_history.append("init")
             self.rho_history.append(None)
 
-        if (not self.use_broyden) or self.J is None or self.iteration < 2 or "reset" in self.decision_history[-2:] or rho < self.epsilon4 or self._count_reject > 0 or self.iteration >= (2 * len(self.current_state)) or self.decision_history[-1] == "nan":
+        if (
+            (not self.use_broyden)
+            or self.J is None
+            or self.iteration < 2
+            or "reset" in self.decision_history[-2:]
+            or rho < self.epsilon4
+            or self._count_reject > 0
+            or self.iteration >= (2 * len(self.current_state))
+            or self.decision_history[-1] == "nan"
+        ):
             if self.verbose > 1:
                 AP_config.ap_logger.debug("full jac")
             self.update_J_AD()
@@ -248,10 +286,9 @@ class LM(BaseOptimizer):
 
         self.update_hess()
         self.update_grad(self.prev_Y[1])
-        self.iteration += 1        
-        
-    def fit(self):
+        self.iteration += 1
 
+    def fit(self):
         self.iteration = 0
         self._count_reject = 0
         self._count_finish = 0
@@ -267,25 +304,48 @@ class LM(BaseOptimizer):
                 self.step()
 
                 # Save the state of the model
-                if self.save_steps is not None and self.decision_history[-1] == "accept":
-                    self.model.save(os.path.join(self.save_steps, f"{self.model.name}_Iteration_{self.iteration:03d}.yaml"))
+                if (
+                    self.save_steps is not None
+                    and self.decision_history[-1] == "accept"
+                ):
+                    self.model.save(
+                        os.path.join(
+                            self.save_steps,
+                            f"{self.model.name}_Iteration_{self.iteration:03d}.yaml",
+                        )
+                    )
 
                 lam, L, loss = self.progress_history()
 
                 # Check for convergence
-                if self.decision_history.count("accept") > 2 and self.decision_history[-1] == "accept" and L[-1] < 0.1 and ((loss[-2] - loss[-1])/loss[-1]) < (self.relative_tolerance/10):
+                if (
+                    self.decision_history.count("accept") > 2
+                    and self.decision_history[-1] == "accept"
+                    and L[-1] < 0.1
+                    and ((loss[-2] - loss[-1]) / loss[-1])
+                    < (self.relative_tolerance / 10)
+                ):
                     self._count_grad_step = 0
                     self._count_converged += 1
                 elif self._count_grad_step >= 5:
-                    self.message = self.message + "success by immobility, unable to find improvement either converged or bad area of parameter space."
+                    self.message = (
+                        self.message
+                        + "success by immobility, unable to find improvement either converged or bad area of parameter space."
+                    )
                     break
                 elif self.iteration >= self.max_iter:
-                    self.message = self.message + f"fail max iterations reached: {self.iteration}"
+                    self.message = (
+                        self.message + f"fail max iterations reached: {self.iteration}"
+                    )
                     break
                 elif not torch.all(torch.isfinite(self.current_state)):
                     self.message = self.message + "fail non-finite step taken"
                     break
-                elif self.L >= (1e9 - 1) and self._count_reject >= 12 and not self.take_low_rho_step():
+                elif (
+                    self.L >= (1e9 - 1)
+                    and self._count_reject >= 12
+                    and not self.take_low_rho_step()
+                ):
                     if not self.full_jac:
                         self.update_J_AD()
                         self.update_hess()
@@ -293,7 +353,10 @@ class LM(BaseOptimizer):
                     try:
                         self.grad_step()
                     except RuntimeError:
-                        self.message = self.message + "fail by immobility, unable to find improvement or even small bad step"
+                        self.message = (
+                            self.message
+                            + "fail by immobility, unable to find improvement or even small bad step"
+                        )
                         break
                 if self._count_converged >= 2:
                     self.message = self.message + "success"
@@ -301,31 +364,46 @@ class LM(BaseOptimizer):
                 lam, L, loss = self.accept_history()
                 if len(loss) >= 10:
                     loss10 = np.array(loss[-10:])
-                    if np.all(np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1]) < self.relative_tolerance):
+                    if np.all(
+                        np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
+                        < self.relative_tolerance
+                    ):
                         self.message = self.message + "success"
                         break
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-            
         if self.message.startswith("fail") and self._count_finish > 0:
-            self.message = self.message + ". possibly converged to numerical precision and could not make a better step."
-        self.model.set_parameters(self.res(), as_representation = True, override_locked = False)
+            self.message = (
+                self.message
+                + ". possibly converged to numerical precision and could not make a better step."
+            )
+        self.model.set_parameters(
+            self.res(), as_representation=True, override_locked=False
+        )
         if self.verbose > 1:
-            AP_config.ap_logger.info("LM Fitting complete in {time() - start_fit} sec with message: self.message")
+            AP_config.ap_logger.info(
+                "LM Fitting complete in {time() - start_fit} sec with message: self.message"
+            )
         # set the uncertainty for each parameter
         if self.use_broyden:
             self.update_J_AD()
             self.update_hess()
         cov = self.covariance_matrix()
-        self.model.set_uncertainty(torch.sqrt(2*torch.abs(torch.diag(cov))), as_representation = True, override_locked = False)
-        
+        self.model.set_uncertainty(
+            torch.sqrt(2 * torch.abs(torch.diag(cov))),
+            as_representation=True,
+            override_locked=False,
+        )
+
         return self
 
     @torch.no_grad()
-    def undo_step(self):
+    def undo_step(self) -> None:
         AP_config.ap_logger.info("undoing step, trying to recover")
-        assert self.decision_history.count("accept") >= 2, "cannot undo with not enough accepted steps, retry with new parameters"
+        assert (
+            self.decision_history.count("accept") >= 2
+        ), "cannot undo with not enough accepted steps, retry with new parameters"
         assert len(self.decision_history) == len(self.lambda_history)
         assert len(self.decision_history) == len(self.L_history)
         found_accept = False
@@ -335,23 +413,34 @@ class LM(BaseOptimizer):
                 continue
             if self.decision_history[i] != "accept":
                 continue
-            self.current_state = torch.tensor(self.lambda_history[i], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self.current_state = torch.tensor(
+                self.lambda_history[i],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
             self.L = self.L_history[i] * self.Lup
-    
-    def take_low_rho_step(self):
-        
+
+    def take_low_rho_step(self) -> bool:
         for i in reversed(range(len(self.decision_history))):
             if "accept" in self.decision_history[i]:
                 return False
             if self.rho_history[i] is not None and self.rho_history[i] > 0:
                 if self.verbose > 0:
-                    AP_config.ap_logger.info(f"taking a low rho step for some progress: {self.rho_history[i]}")
-                self.current_state = torch.tensor(self.lambda_history[i], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+                    AP_config.ap_logger.info(
+                        f"taking a low rho step for some progress: {self.rho_history[i]}"
+                    )
+                self.current_state = torch.tensor(
+                    self.lambda_history[i],
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
                 self.L = self.L_history[i]
-                
+
                 self.loss_history.append(self.loss_history[i])
                 self.L_history.append(self.L)
-                self.lambda_history.append(np.copy((self.current_state).detach().cpu().numpy()))
+                self.lambda_history.append(
+                    np.copy((self.current_state).detach().cpu().numpy())
+                )
                 self.decision_history.append("low rho accept")
                 self.rho_history.append(self.rho_history[i])
 
@@ -365,9 +454,9 @@ class LM(BaseOptimizer):
                 self.iteration += 1
                 self.count_reject = 0
                 return True
-            
+
     @torch.no_grad()
-    def update_h(self):
+    def update_h(self) -> torch.Tensor:
         """Solves the LM update linear equation (H + L*I)h = G to determine
         the proposal for how to adjust the parameters to decrease the
         chi2.
@@ -376,7 +465,26 @@ class LM(BaseOptimizer):
         h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
-        h = torch.linalg.solve((self.hess + 1e-3*self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)) * (1 + self.L*torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device))**2/(1 + self.L), self.grad)
+        h = torch.linalg.solve(
+            (
+                self.hess
+                + 1e-3
+                * self.L
+                * torch.eye(
+                    len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            )
+            * (
+                1
+                + self.L
+                * torch.eye(
+                    len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            )
+            ** 2
+            / (1 + self.L),
+            self.grad,
+        )
         return h
 
     @torch.no_grad()
@@ -405,7 +513,7 @@ class LM(BaseOptimizer):
             
         return loss
     
-    def update_J_AD(self):
+    def update_J_AD(self) -> None:
         """
         Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state.
         """
@@ -415,7 +523,11 @@ class LM(BaseOptimizer):
             torch.cuda.empty_cache()
 
         # Compute jacobian on image
-        self.J = self.model.jacobian(torch.clone(self.current_state).detach(), as_representation = True, override_locked = False).flatten("data")
+        self.J = self.model.jacobian(
+            torch.clone(self.current_state).detach(), 
+            as_representation=True, 
+            override_locked=False
+        ).flatten("data")
 
         # compute the constraint jacobian if needed
         if self.constraints is not None:
@@ -428,9 +540,9 @@ class LM(BaseOptimizer):
             
         # Note that the most recent jacobian was a full autograd jacobian
         self.full_jac = True
-            
+
     @torch.no_grad()
-    def update_J_Broyden(self, h, Yp, Yph):
+    def update_J_Broyden(self, h, Yp, Yph) -> None:
         """
         Use the Broyden update to approximate the new Jacobian tensor at the current state. Less accurate, but far faster.
         """
@@ -440,7 +552,7 @@ class LM(BaseOptimizer):
 
         # Apply mask if needed
         if self.model.target.has_mask:
-            self.J[self.mask] = 0.
+            self.J[self.mask] = 0.0
 
         # compute the constraint jacobian if needed
         if self.constraints is not None:
@@ -451,49 +563,70 @@ class LM(BaseOptimizer):
         self.full_jac = False
 
     @torch.no_grad()
-    def update_hess(self):
+    def update_hess(self) -> None:
         """
         Update the Hessian using the jacobian most recently computed on the image.
         """
+
         if isinstance(self.W, float):
             self.hess = torch.matmul(self.J.T, self.J)
         else:
-            self.hess = torch.matmul(self.J.T, self.W.view(len(self.W),-1)*self.J)
-        self.hess += self.epsilon5 * torch.eye(len(self.current_state), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-            
+            self.hess = torch.matmul(self.J.T, self.W.view(len(self.W), -1) * self.J)
+        self.hess += self.epsilon5 * torch.eye(
+            len(self.current_state),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+
     @torch.no_grad()
-    def covariance_matrix(self):
+    def covariance_matrix(self) -> torch.Tensor:
         try:
             return torch.linalg.inv(self.hess)
         except:
-            AP_config.ap_logger.warning("WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.")
-            self.hess += torch.eye(len(self.grad), dtype = AP_config.ap_dtype, device = AP_config.ap_device)*(torch.diag(self.hess) == 0)
+            AP_config.ap_logger.warning(
+                "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
+            )
+            self.hess += torch.eye(
+                len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ) * (torch.diag(self.hess) == 0)
             return torch.linalg.inv(self.hess)
-            
+
     @torch.no_grad()
-    def update_grad(self, Yph):
+    def update_grad(self, Yph) -> None:
         """
         Update the gradient using the model evaluation on all pixels
         """
         self.grad = torch.matmul(self.J.T, self.W * (self.Y - Yph))
-            
-    @torch.no_grad()
-    def rho(self, Xp, Xph, h):
-        return self.ndf*(Xp - Xph) / abs(torch.dot(h, self.L * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h) + self.grad))
 
-    def accept_history(self):
+    @torch.no_grad()
+    def rho(self, Xp, Xph, h) -> torch.Tensor:
+        return (
+            self.ndf
+            * (Xp - Xph)
+            / abs(
+                torch.dot(
+                    h,
+                    self.L * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h)
+                    + self.grad,
+                )
+            )
+        )
+
+    def accept_history(self) -> (List[np.ndarray], List[np.ndarray], List[float]):
         lambdas = []
         Ls = []
         losses = []
 
         for l in range(len(self.decision_history)):
-            if "accept" in self.decision_history[l] and np.isfinite(self.loss_history[l]):
+            if "accept" in self.decision_history[l] and np.isfinite(
+                self.loss_history[l]
+            ):
                 lambdas.append(self.lambda_history[l])
                 Ls.append(self.L_history[l])
                 losses.append(self.loss_history[l])
         return lambdas, Ls, losses
-    
-    def progress_history(self):
+
+    def progress_history(self) -> (List[np.ndarray], List[np.ndarray], List[float]):
         lambdas = []
         Ls = []
         losses = []

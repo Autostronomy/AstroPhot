@@ -8,6 +8,7 @@ from .image_object import BaseImage, Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .model_image import Model_Image, Model_Image_List
 from astropy.io import fits
+from .image_object import BaseImage, Image_List
 from .. import AP_config
 
 __all__ = ["Target_Image", "Target_Image_List"]
