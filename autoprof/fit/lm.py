@@ -1,13 +1,16 @@
 # Levenberg-Marquardt algorithm
 import os
-from typing import List
-import torch
-import numpy as np
 from time import time
+from typing import List Callable, Optional, Union, Sequence, Any
+
+import torch
+from torch.autograd.functional import jacobian
+import numpy as np
+
 from .base import BaseOptimizer
 from .. import AP_config
 
-__all__ = ["LM"]
+__all__ = ["LM", "LM_Constraint"]
 
 
 @torch.no_grad()
@@ -49,20 +52,22 @@ class LM(BaseOptimizer):
     large L this is just a small gradient descent step (approximately
     h = grad/L). The method implimented is modified from Gavin 2019.
 
-    Parameters:
-        model: and AutoProf_Model object with which to perform optimization [AutoProf_Model object]
-        initial_state: optionally, and initial state for optimization [torch.Tensor]
-        epsilon4: approximation accuracy requirement, for any rho < epsilon4 the step will be rejected
-        epsilon5: numerical stability factor, added to the diagonal of the Hessian
-        L0: initial value for L factor in (H +L*I)h = G
-        Lup: amount to increase L when rejecting an update step
-        Ldn: amount to decrease L when accetping an update step
+    Args:
+        model (AutoProf_Model): object with which to perform optimization
+        initial_state (Optional[Sequence]): an initial state for optimization
+        epsilon4 (Optional[float]): approximation accuracy requirement, for any rho < epsilon4 the step will be rejected. Default 0.1
+        epsilon5 (Optional[float]): numerical stability factor, added to the diagonal of the Hessian. Default 1e-8
+        constraints (Optional[Union[LM_Constraint,tuple[LM_Constraint]]]): Constraint objects which control the fitting process. 
+        L0 (Optional[float]): initial value for L factor in (H +L*I)h = G. Default 1.
+        Lup (Optional[float]): amount to increase L when rejecting an update step. Default 11.
+        Ldn (Optional[float]): amount to decrease L when accetping an update step. Default 9.
 
     """
-
-    def __init__(self, model, initial_state=None, max_iter=100, **kwargs):
+   
+    def __init__(self, model: "AutoProf_Model", initial_state: Sequence = None, max_iter: int = 100, **kwargs):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
+        # Set optimizer parameters
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
         self.epsilon5 = kwargs.get("epsilon5", 1e-8)
         self.Lup = kwargs.get("Lup", 11.0)
@@ -70,6 +75,7 @@ class LM(BaseOptimizer):
         self.L = kwargs.get("L0", 1.0)
         self.use_broyden = kwargs.get("use_broyden", False)
 
+        # Initialize optimizer atributes
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
         self.W = (
@@ -93,7 +99,20 @@ class LM(BaseOptimizer):
         self._count_grad_step = 0
         self._count_converged = 0
 
-    def L_up(self, Lup=None):
+        # update attributes with constraints
+        self.constraints = kwargs.get("constraints", None)
+        if self.constraints is not None and isinstance(self.constraints, LM_Constraint):
+            self.constraints = (self.constraints, )
+
+        if self.constraints is not None:
+            for con in self.constraints:
+                self.Y = torch.cat((self.Y, con.reference_value))
+                self.W = torch.cat((self.W, 1 / con.weight))
+                self.ndf -= con.reduce_ndf
+                if self.model.target.has_mask:
+                    self.mask = torch.cat((self.mask, torch.zeros_like(con.reference_value, dtype = torch.bool)))
+                    
+    def L_up(self, Lup = None):
         if Lup is None:
             Lup = self.Lup
         self.L = min(1e9, self.L * Lup)
@@ -113,20 +132,9 @@ class LM(BaseOptimizer):
                 f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}"
             )
         for count in range(20):
-            Y = self.model(
-                parameters=self.current_state + self.grad * L,
-                as_representation=True,
-                override_locked=False,
-            ).flatten("data")
-            if self.model.target.has_mask:
-                loss = (
-                    torch.sum(
-                        ((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)]
-                    )
-                    / self.ndf
-                )
-            else:
-                loss = torch.sum((self.Y - Y) ** 2 * self.W) / self.ndf
+            self.update_Yp(self.grad*L)
+            loss = self.update_chi2()
+
             if not torch.isfinite(loss):
                 L /= 10
                 continue
@@ -145,7 +153,7 @@ class LM(BaseOptimizer):
                     AP_config.ap_logger.info("accept grad")
                 self.rho_history.append(1.0)
                 self.prev_Y[0] = self.prev_Y[1]
-                self.prev_Y[1] = torch.clone(Y)
+                self.prev_Y[1] = torch.clone(self.current_Y)
                 break
             elif (
                 np.abs(np.nanmin(self.loss_history[:-1]) - loss.item())
@@ -164,7 +172,7 @@ class LM(BaseOptimizer):
                     AP_config.ap_logger.info("accept bad grad")
                 self.rho_history.append(1.0)
                 self.prev_Y[0] = self.prev_Y[1]
-                self.prev_Y[1] = torch.clone(Y)
+                self.prev_Y[1] = torch.clone(self.current_Y)
                 break
             else:
                 L /= 10
@@ -191,23 +199,10 @@ class LM(BaseOptimizer):
         h = self.update_h()
         if self.verbose > 1:
             AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
-        with torch.no_grad():
-            self.current_Y = self.model(
-                parameters=self.current_state + h,
-                as_representation=True,
-                override_locked=False,
-            ).flatten("data")
-            if self.model.target.has_mask:
-                loss = (
-                    torch.sum(
-                        ((self.Y - self.current_Y) ** 2 * self.W)[
-                            torch.logical_not(self.mask)
-                        ]
-                    )
-                    / self.ndf
-                )
-            else:
-                loss = torch.sum((self.Y - self.current_Y) ** 2 * self.W) / self.ndf
+
+        self.update_Yp(h)
+        loss = self.update_chi2()
+
         if self.iteration == 0:
             self.prev_Y[1] = self.current_Y
         self.loss_history.append(loss.detach().cpu().item())
@@ -450,13 +445,9 @@ class LM(BaseOptimizer):
                 self.rho_history.append(self.rho_history[i])
 
                 with torch.no_grad():
-                    Y = self.model(
-                        parameters=self.current_state,
-                        as_representation=True,
-                        override_locked=False,
-                    ).flatten("data")
+                    self.update_Yp(torch.zeros_like(self.current_state))
                     self.prev_Y[0] = self.prev_Y[1]
-                    self.prev_Y[1] = Y
+                    self.prev_Y[1] = self.current_Y
                 self.update_J_AD()
                 self.update_hess()
                 self.update_grad(self.prev_Y[1])
@@ -466,6 +457,11 @@ class LM(BaseOptimizer):
 
     @torch.no_grad()
     def update_h(self) -> torch.Tensor:
+        """Solves the LM update linear equation (H + L*I)h = G to determine
+        the proposal for how to adjust the parameters to decrease the
+        chi2.
+
+        """
         h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
@@ -491,29 +487,87 @@ class LM(BaseOptimizer):
         )
         return h
 
+    @torch.no_grad()
+    def update_Yp(self, h):
+        """
+        Updates the current model values for each pixel
+        """
+        # Sample model at proposed state
+        self.current_Y = self.model(parameters = self.current_state + h, as_representation = True, override_locked = False).flatten("data")
+
+        # Add constraint evaluations
+        if self.constraints is not None:
+            for con in self.constraints:
+                self.current_Y = torch.cat((self.current_Y, con(self.model)))
+
+    @torch.no_grad()
+    def update_chi2(self):
+        """
+        Updates the chi squared / ndf value
+        """
+        # Apply mask if needed
+        if self.model.target.has_mask:
+            loss = torch.sum(((self.Y - self.current_Y)**2 * self.W)[torch.logical_not(self.mask)]) / self.ndf
+        else:
+            loss = torch.sum((self.Y - self.current_Y)**2 * self.W) / self.ndf
+            
+        return loss
+    
     def update_J_AD(self) -> None:
+        """
+        Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state.
+        """
+        # Free up memory
         del self.J
         if "cpu" not in AP_config.ap_device:
             torch.cuda.empty_cache()
+
+        # Compute jacobian on image
         self.J = self.model.jacobian(
-            torch.clone(self.current_state).detach(),
-            as_representation=True,
-            override_locked=False,
-            flatten=True,
-        )
+            torch.clone(self.current_state).detach(), 
+            as_representation=True, 
+            override_locked=False
+        ).flatten("data")
+
+        # compute the constraint jacobian if needed
+        if self.constraints is not None:
+            for con in self.constraints:
+                self.J = torch.cat((self.J, con.jacobian(self.model)))
+
+        # Apply mask if needed
         if self.model.target.has_mask:
-            self.J[self.mask] = 0.0
+            self.J[self.mask] = 0.
+            
+        # Note that the most recent jacobian was a full autograd jacobian
         self.full_jac = True
 
     @torch.no_grad()
     def update_J_Broyden(self, h, Yp, Yph) -> None:
+        """
+        Use the Broyden update to approximate the new Jacobian tensor at the current state. Less accurate, but far faster.
+        """
+
+        # Update the Jacobian
         self.J = Broyden_step(self.J, h, Yp, Yph)
+
+        # Apply mask if needed
         if self.model.target.has_mask:
             self.J[self.mask] = 0.0
+
+        # compute the constraint jacobian if needed
+        if self.constraints is not None:
+            for con in self.constraints:
+                self.J = torch.cat((self.J, con.jacobian(self.model)))
+
+        # Note that the most recent jacobian update was with Broyden step
         self.full_jac = False
 
     @torch.no_grad()
     def update_hess(self) -> None:
+        """
+        Update the Hessian using the jacobian most recently computed on the image.
+        """
+
         if isinstance(self.W, float):
             self.hess = torch.matmul(self.J.T, self.J)
         else:
@@ -539,6 +593,9 @@ class LM(BaseOptimizer):
 
     @torch.no_grad()
     def update_grad(self, Yph) -> None:
+        """
+        Update the gradient using the model evaluation on all pixels
+        """
         self.grad = torch.matmul(self.J.T, self.W * (self.Y - Yph))
 
     @torch.no_grad()
@@ -580,3 +637,92 @@ class LM(BaseOptimizer):
                 Ls.append(self.L_history[l])
                 losses.append(self.loss_history[l])
         return lambdas, Ls, losses
+
+class LM_Constraint():
+    """Add an arbitrary constraint to the LM optimization algorithm.
+
+    Expresses a constraint between parameters in the LM optimization
+    routine. Constraints may be used to bias parameters to have
+    certain behaviour, for example you may require the radius of one
+    model to be larger than that of another, or may require two models
+    to have the same position on the sky. The constraints defined in
+    this object are fuzzy constraints and so can be broken to some
+    degree, the amount of constraint breaking is determined my how
+    informative the data is and how strong the constraint weight is
+    set. To create a constraint, first construct a function which
+    takes as argument a 1D tensor of the model parameters and gives as
+    output a real number (or 1D tensor of real numbers) which is zero
+    when the constraint is satisfied and non-zero increasing based on
+    how much the constraint is violated. For example:
+
+    def example_constraint(P):
+        return (P[1] - P[0]) * (P[1] > P[0]).int()
+
+    which enforces that parameter 1 is less than parameter 0. Note
+    that we do not use any control flow "if" statements and instead
+    incorporate the condition through multiplication, this is
+    important as it allows pytorch to compute derivatives through the
+    expression and performs far faster on GPU since no communication
+    is needed back and forth to handle the if-statement. Keep this in
+    mind while constructing your constraint function. Also, make sure
+    that any math operations are performed by pytorch so it can
+    construct a computational graph. Bayond the requirement that the
+    constraint be differentiable, there is no limitation on what
+    constraints can be built with this system.
+
+    Args:
+      constraint_func (Callable[torch.Tensor, torch.Tensor]): python function which takes in a 1D tensor of parameters and generates real values in a tensor.
+      constraint_args (Optional[tuple]): An optional tuple of arguments for the constraint function that will be unpacked when calling the function.
+      weight (torch.Tensor): The weight of this constraint in the range (0,inf). Smaller values mean a stronger constraint, larger values mean a weaker constraint. Default 1.
+      representation_parameters (bool): if the constraint_func expects the parameters in the form of their representation or their standard value. Default False
+      out_len (int): the length of the output tensor by constraint_func. Default 1
+      reference_value (torch.Tensor): The value at which the constraint is satisfied. Default 0.
+      reduce_ndf (float): Amount by which to reduce the degrees of freedom. Default 0.
+
+    """
+    
+    def __init__(
+            self,
+            constraint_func: Callable[[torch.Tensor, Any], torch.Tensor],
+            constraint_args: tuple = (),
+            representation_parameters: bool = False,
+            out_len: int = 1,
+            reduce_ndf: float = 0.,
+            weight: Optional[torch.Tensor] = None,
+            reference_value: Optional[torch.Tensor] = None,
+            **kwargs
+    ):
+        self.constraint_func = constraint_func
+        self.constraint_args = constraint_args
+        self.representation_parameters = representation_parameters
+        self.out_len = out_len
+        self.reduce_ndf = reduce_ndf
+        self.reference_value = torch.as_tensor(
+            reference_value if reference_value is not None else torch.zeros(out_len),
+            dtype = AP_config.ap_dtype,
+            device = AP_config.ap_device
+        )
+        self.weight = torch.as_tensor(
+            weight if weight is not None else torch.ones(out_len),
+            dtype = AP_config.ap_dtype,
+            device = AP_config.ap_device
+        )
+
+    def jacobian(self, model: "AutoProf_Model"):
+
+        jac = jacobian(
+            lambda P: self.constraint_func(P, *self.constraint_args),
+            model.get_parameter_vector(as_representation = self.representation_parameters),
+            strategy = "forward-mode",
+            vectorize = True,
+            create_graph = False,
+        )
+            
+        return jac.reshape(-1, np.sum(model.parameter_vector_len()))        
+
+    def __call__(self, model: "AutoProf_Model"):
+        
+        return self.constraint_func(
+            model.get_parameter_vector(as_representation = self.representation_parameters),
+            *self.constraint_args
+        )

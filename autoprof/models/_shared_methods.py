@@ -1,3 +1,13 @@
+import functools
+
+from scipy.special import gamma
+from scipy.stats import binned_statistic, iqr
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import iqr
+import torch
+from scipy.optimize import minimize
+
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import (
     sersic_torch,
@@ -14,14 +24,42 @@ from ..utils.parametric_profiles import (
 )
 from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
 from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
+from ..image import Image_List, Target_Image, Model_Image_List, Target_Image_List
 from .. import AP_config
-from scipy.special import gamma
-from scipy.stats import binned_statistic, iqr
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import iqr
-import torch
-from scipy.optimize import minimize
+
+# Target Selector Decorator
+######################################################################
+def select_target(func):
+    @functools.wraps(func)
+    def targeted(self, target = None, **kwargs):
+        if target is None:
+            send_target = self.target
+        elif isinstance(target, Target_Image_List) and not isinstance(self.target, Image_List):
+            for sub_target in target:
+                if sub_target.identity == self.target.identity:
+                    send_target = sub_target
+                    break
+            else:
+                raise RuntimeError("{self.name} could not find matching target to initialize with")
+        else:
+            send_target = target    
+        return func(self, target = send_target, **kwargs)
+    return targeted
+
+def select_sample(func):
+    @functools.wraps(func)
+    def targeted(self, image = None, **kwargs):
+        if isinstance(image, Model_Image_List) and not isinstance(self.target, Image_List):
+            for sub_image in image:
+                if sub_image.target_identity == self.target.identity:
+                    send_image = sub_image
+                    break
+            else:
+                raise RuntimeError("{self.name} could not find matching image to sample with")
+        else:
+            send_image = image    
+        return func(self, image = send_image, **kwargs)
+    return targeted
 
 # General parametric
 ######################################################################
@@ -195,9 +233,8 @@ def gaussian_iradial_model(self, i, R, sample_image = None):
 # NonParametric
 ######################################################################
 @torch.no_grad()
+@select_target
 def nonparametric_initialize(self, target = None):
-    if target is None:
-        target = self.target
     super(self.__class__, self).initialize(target)
 
     if self["I(R)"].value is not None:
@@ -246,9 +283,8 @@ def nonparametric_initialize(self, target = None):
     self["I(R)"].set_uncertainty(S/(np.abs(I)*np.log(10)), override_locked = True)
 
 @torch.no_grad()
+@select_target
 def nonparametric_segment_initialize(self, target = None, segments = 1, symmetric = True):
-    if target is None:
-        target = self.target
     super(self.__class__, self).initialize(target)
 
     if self["I(R)"].value is not None:

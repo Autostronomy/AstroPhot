@@ -8,6 +8,7 @@ from ..utils.interpolate import shift_Lanczos_torch
 
 __all__ = ["Model_Image", "Model_Image_List"]
 
+######################################################################
 class Model_Image(BaseImage):
     """Image object which represents the sampling of a model at the given
     coordinates of the image. Extra arithmetic operations are
@@ -21,6 +22,7 @@ class Model_Image(BaseImage):
         if data is None:
             data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
+        self.target_identity = kwargs.get("target_identity", None)
         self.to()
         
     def clear_image(self):
@@ -31,6 +33,11 @@ class Model_Image(BaseImage):
         if torch.any(torch.abs(shift/self.pixelscale) > 1):
             raise NotImplementedError("Shifts larger than 1 are currently not handled")
         self.data = shift_Lanczos_torch(self.data, shift[0]/self.pixelscale, shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = AP_config.ap_dtype, device = AP_config.ap_device, img_prepadded = is_prepadded)
+
+    def get_window(self, window: Window, **kwargs):
+        return super().get_window(window, target_identity = self.target_identity, **kwargs)
+    def reduce(self, scale, **kwargs):
+        return super().reduce(scale, target_identity = self.target_identity, **kwargs)
         
     def replace(self, other, data = None):
         if isinstance(other, BaseImage):
@@ -47,10 +54,14 @@ class Model_Image(BaseImage):
             self.data[other.get_indices(self)] = data
         else:
             self.data = other
-    
-    
+
+######################################################################
 class Model_Image_List(Image_List, Model_Image):
-    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert all(isinstance(image, Model_Image) for image in self.image_list), f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}"
+        
     def clear_image(self):
         for image in self.image_list:
             image.clear_image()
@@ -65,3 +76,64 @@ class Model_Image_List(Image_List, Model_Image):
         else:
             for image, oth, dat in zip(self.image_list, other, data):
                 image.replace(oth, dat)
+    @property
+    def target_identity(self):
+        targets = tuple(image.target_identity for image in self.image_list)
+        if any(tar_id is None for tar_id in targets):
+            return None
+        return targets
+
+        
+    def __isub__(self, other):
+        if isinstance(other, Model_Image_List):
+            for other_image, zip_self_image in zip(other.image_list, self.image_list):
+                if other_image.target_identity is None or self.target_identity is None:
+                    zip_self_image -= other_image
+                    continue
+                for self_image in self.image_list:
+                    if other_image.target_identity == self_image.target_identity:
+                        self_image -= other_image
+                        break
+                else:
+                    self.image_list.append(other_image)
+        elif isinstance(other, Model_Image):
+            if other.target_identity is None or zip_self_image.target_identity is None:
+                zip_self_image -= other_image
+            else:
+                for self_image in self.image_list:
+                    if other.target_identity == self_image.target_identity:
+                        self_image -= other
+                        break
+                else:
+                    self.image_list.append(other)
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                self_image -= other_image
+        return self
+    def __iadd__(self, other):
+        if isinstance(other, Model_Image_List):
+            for other_image, zip_self_image in zip(other.image_list, self.image_list):
+                if other_image.target_identity is None or self.target_identity is None:
+                    zip_self_image += other_image
+                    continue
+                for self_image in self.image_list:
+                    if other_image.target_identity == self_image.target_identity:
+                        self_image += other_image
+                        break
+                else:
+                    self.image_list.append(other_image)
+        elif isinstance(other, Model_Image):
+            if other.target_identity is None or self.target_identity is None:
+                for self_image in self.image_list:
+                    self_image += other
+            else:
+                for self_image in self.image_list:
+                    if other.target_identity == self_image.target_identity:
+                        self_image += other
+                        break
+                else:
+                    self.image_list.append(other)
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                self_image += other_image
+        return self

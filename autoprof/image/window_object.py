@@ -49,6 +49,23 @@ class Window(object):
     def get_shape_flip(self, pixelscale):
         return (torch.round(torch.flip(self.shape, (0,)) / pixelscale)).int()
 
+    @torch.no_grad()
+    def pad_to(self, window, pixelscale = None):
+        """Assuming the input window is greater than the self window,
+        determines how much padding is needed to expand to the new
+        size.
+
+        """
+        pad_edges = (
+            window.origin[0] - self.window.origin[0],
+            window.origin[1] - self.window.origin[1],
+            window.origin[0] + window.shape[0] - (self.window.origin[0] + self.window.shape[0]),
+            window.origin[1] + window.shape[1] - (self.window.origin[1] + self.window.shape[1]),
+        )
+        if pixelscale is not None:
+            pad_edges = tuple(np.int64(np.round(np.array(pad_edges) / pixelscale)))
+        return pad_edges
+
     def _get_indices(self, obj_window, obj_pixelscale):
         """
         Return an index slicing tuple for obj corresponding to this window

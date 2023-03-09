@@ -1,3 +1,8 @@
+import torch
+import numpy as np
+from scipy.stats import iqr
+from scipy.optimize import minimize
+
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
@@ -6,14 +11,10 @@ from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from ._shared_methods import parametric_initialize, parametric_segment_initialize
-import torch
-import numpy as np
-from scipy.stats import iqr
+from ._shared_methods import parametric_initialize, parametric_segment_initialize, select_target
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import exponential_torch, exponential_np
 from ..utils.conversions.coordinates import Rotate_Cartesian, coord_to_index, index_to_coord
-from scipy.optimize import minimize
 
 __all__ = [
     "Exponential_Galaxy", "Exponential_Star", "Exponential_SuperEllipse",
@@ -50,9 +51,9 @@ class Exponential_Galaxy(Galaxy_Model):
     _parameter_order = Galaxy_Model._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -82,9 +83,9 @@ class Exponential_Star(Star_Model):
     _parameter_order = Star_Model._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -117,9 +118,9 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -149,9 +150,9 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
     _parameter_order = SuperEllipse_Warp._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -181,9 +182,9 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -213,9 +214,9 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
     _parameter_order = FourierEllipse_Warp._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -245,9 +246,9 @@ class Exponential_Warp(Warp_Galaxy):
     _parameter_order = Warp_Galaxy._parameter_order + ("Re", "Ie")
     useable = True
 
+    @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)        
@@ -278,9 +279,8 @@ class Exponential_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_segment_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func, self.rays)
@@ -312,9 +312,8 @@ class Exponential_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_segment_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func, self.wedges)

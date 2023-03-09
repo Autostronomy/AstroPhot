@@ -1,7 +1,9 @@
-from .sky_model_object import Sky_Model
 import numpy as np
 from scipy.stats import iqr
 import torch
+
+from .sky_model_object import Sky_Model
+from ._shared_methods import select_target
 
 __all__ = ["Plane_Sky"]
 
@@ -28,9 +30,8 @@ class Plane_Sky(Sky_Model):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):        
-        if target is None:
-            target = self.target
         super().initialize(target)
 
         if self["sky"].value is None:
