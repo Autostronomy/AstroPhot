@@ -1,7 +1,7 @@
 # Levenberg-Marquardt algorithm
 import os
 from time import time
-from typing import List Callable, Optional, Union, Sequence, Any
+from typing import List, Callable, Optional, Union, Sequence, Any
 
 import torch
 from torch.autograd.functional import jacobian
