@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def Angle_Average(a):
     """
     Compute the average for a list of angles, which may wrap around a cyclic boundary.

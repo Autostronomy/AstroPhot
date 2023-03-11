@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def flux_to_sb(flux, pixscale, zeropoint):
     """Conversion from flux units to logarithmic surface brightness
     units.
@@ -9,9 +10,7 @@ def flux_to_sb(flux, pixscale, zeropoint):
 
 
 def flux_to_mag(flux, zeropoint, fluxe=None):
-    """Converts a flux total into logarithmic magnitude units.
-
-    """
+    """Converts a flux total into logarithmic magnitude units."""
     if fluxe is None:
         return -2.5 * np.log10(flux) + zeropoint
     else:
@@ -19,21 +18,18 @@ def flux_to_mag(flux, zeropoint, fluxe=None):
 
 
 def sb_to_flux(sb, pixscale, zeropoint):
-    """Converts logarithmic surface brightness units into flux units.
-
-    """
-    return (pixscale ** 2) * 10 ** (-(sb - zeropoint) / 2.5)
+    """Converts logarithmic surface brightness units into flux units."""
+    return (pixscale**2) * 10 ** (-(sb - zeropoint) / 2.5)
 
 
 def mag_to_flux(mag, zeropoint, mage=None):
-    """converts logarithmic magnitude units into a flux total.
-
-    """
+    """converts logarithmic magnitude units into a flux total."""
     if mage is None:
         return 10 ** (-(mag - zeropoint) / 2.5)
     else:
         I = 10 ** (-(mag - zeropoint) / 2.5)
         return I, np.log(10) * I * mage / 2.5
+
 
 def magperarcsec2_to_mag(mu, a=None, b=None, A=None):
     """
@@ -63,23 +59,24 @@ def mag_to_magperarcsec2(m, a=None, b=None, R=None, A=None):
     """
     assert (not A is None) or (not a is None and not b is None) or (not R is None)
     if not R is None:
-        A = np.pi * (R ** 2)
+        A = np.pi * (R**2)
     elif A is None:
         A = np.pi * a * b
     return m + 2.5 * np.log10(
         A
     )  # https://en.wikipedia.org/wiki/Surface_brightness#Calculating_surface_brightness
 
-def PA_shift_convention(pa, unit = 'rad'):
+
+def PA_shift_convention(pa, unit="rad"):
     """
     Alternates between standard mathematical convention for angles, and astronomical position angle convention.
     The standard convention is to measure angles counter-clockwise relative to the positive x-axis
     The astronomical convention is to measure angles counter-clockwise relative to the positive y-axis
     """
 
-    if unit == 'rad':
+    if unit == "rad":
         shift = np.pi
-    elif unit == 'deg':
+    elif unit == "deg":
         shift = 180.0
-        
+
     return (pa - (shift / 2)) % shift
