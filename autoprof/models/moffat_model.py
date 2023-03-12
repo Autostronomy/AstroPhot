@@ -1,9 +1,10 @@
-from .galaxy_model_object import Galaxy_Model
-from .star_model_object import Star_Model
-from ._shared_methods import parametric_initialize
-from ..utils.parametric_profiles import moffat_np
 import torch
 import numpy as np
+
+from .galaxy_model_object import Galaxy_Model
+from .star_model_object import Star_Model
+from ._shared_methods import parametric_initialize, select_target
+from ..utils.parametric_profiles import moffat_np
 
 __all__ = ["Moffat_Galaxy", "Moffat_Star"]
 
@@ -39,9 +40,8 @@ class Moffat_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
@@ -74,13 +74,14 @@ class Moffat_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
+        
     from ._shared_methods import moffat_radial_model as radial_model
+    
     def evaluate_model(self, image):
         X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
         return self.radial_model(self.radius_metric(X, Y), image)

@@ -90,5 +90,66 @@ class TestImageList(unittest.TestCase):
         self.assertEqual(test_image[1].data[0][0], 1, "image addition should update its region")
         self.assertEqual(test_image[1].data[1][1], 1, "image addition should update its region")
 
+class TestModelImageList(unittest.TestCase):
+    def test_model_image_list_creation(self):
+        arr1 = torch.zeros((10,15))
+        base_image1 = ap.image.Model_Image(data = arr1, pixelscale = 1.0, zeropoint = 1.0, origin = torch.zeros(2), note = 'test image 1')
+        arr2 = torch.ones((15,10))
+        base_image2 = ap.image.Model_Image(data = arr2, pixelscale = 0.5, zeropoint = 2.0, origin = torch.ones(2), note = 'test image 2')
+
+        test_image = ap.image.Model_Image_List((base_image1, base_image2))
+
+        save_image = test_image.copy()
+        second_image = test_image.copy()
+
+        second_image += (2, 2)
+        second_image -= (1, 1)
+
+        test_image += second_image
+
+        test_image -= second_image
+
+        self.assertTrue(torch.all(test_image[0].data == save_image[0].data), "adding then subtracting should give the same image")
+        self.assertTrue(torch.all(test_image[1].data == save_image[1].data), "adding then subtracting should give the same image")
+
+        test_image.clear_image()
+        test_image.replace(second_image)
+
+        test_image -= (1,1)
+        
+        self.assertTrue(torch.all(test_image[0].data == save_image[0].data), "adding then subtracting should give the same image")
+        self.assertTrue(torch.all(test_image[1].data == save_image[1].data), "adding then subtracting should give the same image")
+
+        self.assertIsNone(test_image.target_identity, "Targets have not been assigned so target identity should be None")
+
+
+class TestTargetImageList(unittest.TestCase):
+    def test_target_image_list_creation(self):
+        arr1 = torch.zeros((10,15))
+        base_image1 = ap.image.Target_Image(data = arr1, pixelscale = 1.0, zeropoint = 1.0, origin = torch.zeros(2), note = 'test image 1', variance = torch.ones_like(arr1), mask = torch.zeros_like(arr1))
+        arr2 = torch.ones((15,10))
+        base_image2 = ap.image.Target_Image(data = arr2, pixelscale = 0.5, zeropoint = 2.0, origin = torch.ones(2), note = 'test image 2', variance = torch.ones_like(arr2), mask = torch.zeros_like(arr2))
+
+        test_image = ap.image.Target_Image_List((base_image1, base_image2))
+
+        save_image = test_image.copy()
+        second_image = test_image.copy()
+
+        second_image += (2, 2)
+        second_image -= (1, 1)
+
+        test_image += second_image
+
+        test_image -= second_image
+
+        self.assertTrue(torch.all(test_image[0].data == save_image[0].data), "adding then subtracting should give the same image")
+        self.assertTrue(torch.all(test_image[1].data == save_image[1].data), "adding then subtracting should give the same image")
+
+        test_image += (1,1)
+        test_image -= (1,1)
+        
+        self.assertTrue(torch.all(test_image[0].data == save_image[0].data), "adding then subtracting should give the same image")
+        self.assertTrue(torch.all(test_image[1].data == save_image[1].data), "adding then subtracting should give the same image")
+    
 if __name__ == "__main__":
     unittest.main()

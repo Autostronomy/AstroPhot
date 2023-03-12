@@ -1,9 +1,16 @@
-from .image_object import BaseImage, Image_List
+from typing import List, Optional
+
 import torch
 import numpy as np
 from torch.nn.functional import avg_pool2d
+
+from .image_object import BaseImage, Image_List
+from .jacobian_image import Jacobian_Image, Jacobian_Image_List
+from .model_image import Model_Image, Model_Image_List
 from astropy.io import fits
+from .image_object import BaseImage, Image_List
 from .. import AP_config
+
 __all__ = ["Target_Image", "Target_Image_List"]
 
 class Target_Image(BaseImage):
@@ -119,67 +126,83 @@ class Target_Image(BaseImage):
         self._mask = torch.logical_or(self.mask, mask)
     def and_mask(self, mask):
         self._mask = torch.logical_and(self.mask, mask)
-        
-    def copy(self):
-        return self.__class__(
-            data = torch.clone(self.data),
-            zeropoint = self.zeropoint,
+
+    def copy(self, **kwargs):
+        """Produce a copy of this image with all of the same properties. This
+        can be used when one wishes to make temporary modifications to
+        an image and then will want the original again.
+
+        """
+        return super().copy(
             mask = self._mask,
             psf = self._psf,
             psf_upscale = self.psf_upscale,
             variance = self._variance,
-            note = self.note,
-            window = self.window,
+            **kwargs
         )
-    def blank_copy(self):
-        return self.__class__(
-            data = torch.zeros_like(self.data),
-            zeropoint = self.zeropoint,
+    def blank_copy(self, **kwargs):
+        """Produces a blank copy of the image which has the same properties
+        except that its data is not filled with zeros.
+
+        """
+        return super().blank_copy(
             mask = self._mask,
             psf = self._psf,
             psf_upscale = self.psf_upscale,
-            note = self.note,
-            window = self.window,
+            **kwargs
         )
-    
-    def get_window(self, window):
+    def get_window(self, window, **kwargs):
+        """Get a sub-region of the image as defined by a window on the sky.
+
+        """
         indices = window.get_indices(self)
-        return self.__class__(
-            data = self.data[indices],
-            pixelscale = self.pixelscale,
-            zeropoint = self.zeropoint,
+        return super().get_window(
+            window,
             variance = self._variance[indices] if self.has_variance else None,
             mask = self._mask[indices] if self.has_mask else None,
             psf = self._psf,
             psf_upscale = self.psf_upscale,
-            note = self.note,
-            origin = (torch.max(self.origin[0], window.origin[0]),
-                      torch.max(self.origin[1], window.origin[1]))
+            **kwargs
+        )
+
+    def jacobian_image(self, parameters: List[str], data: Optional[torch.Tensor] = None, **kwargs):
+        return Jacobian_Image(
+            parameters = parameters,
+            target_identity = self.identity,
+            data = torch.zeros((*self.data.shape,len(parameters))) if data is None else data,
+            pixelscale = self.pixelscale,
+            zeropoint = self.zeropoint,
+            window = self.window,
+            **kwargs
         )
     
-    def reduce(self, scale):
-        assert isinstance(scale, int) or scale.dtype is torch.int32
-
-        if scale == 1:
-            return self
-
+    def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
+        return Model_Image(
+            data = torch.zeros_like(self.data) if data is None else data,
+            pixelscale = self.pixelscale,
+            target_identity = self.identity,
+            zeropoint = self.zeropoint,
+            window = self.window,
+            **kwargs
+        )
+    
+    def reduce(self, scale, **kwargs):
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
         if self.has_psf:
             PMS = self.psf.shape[0] // scale
             PNS = self.psf.shape[1] // scale
 
-        return self.__class__(
-            data = self.data[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)),
-            pixelscale = self.pixelscale * scale,
-            zeropoint = self.zeropoint,
+        return super().reduce(
+            scale = scale,
             variance = self.variance[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3)) if self.has_variance else None,
             mask = self.mask[:MS*scale, :NS*scale].reshape(MS, scale, NS, scale).amax(axis=(1, 3)) if self.has_mask else None,
             psf = self.psf[:PMS*scale, :PNS*scale].reshape(PMS, scale, PNS, scale).sum(axis=(1, 3)) if self.has_psf else None,
-            psf_upscale = self.psf_upscale,
-            note = self.note,
-            origin = self.origin,
+            psf_upscale = self.psf_upscale, # should psf_upscale change with reduce?
+            **kwargs
         )
+    def expand(self, padding):
+        raise NotImplementedError("expand not available for Target_Image yet")
 
     def _save_image_list(self):
         image_list = super()._save_image_list()
@@ -213,6 +236,10 @@ class Target_Image(BaseImage):
     
 class Target_Image_List(Image_List, Target_Image):
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert all(isinstance(image, Target_Image) for image in self.image_list), f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.image_list)}"
+        
     @property
     def variance(self):
         return tuple(image.variance for image in self.image_list)
@@ -223,6 +250,75 @@ class Target_Image_List(Image_List, Target_Image):
     @property
     def has_variance(self):
         return any(image.has_variance for image in self.image_list)
+    
+    def jacobian_image(self, parameters: List[str], data: Optional[List[torch.Tensor]] = None):
+        if data is None:
+            data = [None]*len(self.image_list)
+        return Jacobian_Image_List(
+            list(image.jacobian_image(parameters, dat) for image, dat in zip(self.image_list, data))
+        )
+
+    def model_image(self, data: Optional[List[torch.Tensor]] = None):
+        if data is None:
+            data = [None]*len(self.image_list)
+        return Model_Image_List(
+            list(image.model_image(data = dat) for image, dat in zip(self.image_list, data))
+        )
+
+    def __isub__(self, other):
+        if isinstance(other, Target_Image_List):
+            for other_image in other.image_list:
+                for self_image in self.image_list:
+                    if other_image.identity == self_image.identity:
+                        self_image -= other_image
+                        break
+                else:
+                    self.image_list.append(other_image)
+        elif isinstance(other, Target_Image):            
+            for self_image in self.image_list:
+                if other.identity == self.identity:
+                    self_image -= other
+        elif isinstance(other, Model_Image_List):
+            for other_image in other.image_list:
+                for self_image in self.image_list:
+                    if other_image.target_identity == self_image.identity:
+                        self_image -= other_image
+                        break
+        elif isinstance(other, Model_Image):            
+            for self_image in self.image_list:
+                if other.target_identity == self_image.identity:
+                    self_image -= other
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                self_image -= other_image
+        return self
+    def __iadd__(self, other):
+        if isinstance(other, Target_Image_List):
+            for other_image in other.image_list:
+                for self_image in self.image_list:
+                    if other_image.identity == self_image.identity:
+                        self_image += other_image
+                        break
+                else:
+                    self.image_list.append(other_image)
+        elif isinstance(other, Target_Image):            
+            for self_image in self.image_list:
+                if other.identity == self.identity:
+                    self_image += other
+        elif isinstance(other, Model_Image_List):
+            for other_image in other.image_list:
+                for self_image in self.image_list:
+                    if other_image.target_identity == self_image.identity:
+                        self_image += other_image
+                        break
+        elif isinstance(other, Model_Image):            
+            for self_image in self.image_list:
+                if other.target_identity == self_image.identity:
+                    self_image += other
+        else:
+            for self_image, other_image in zip(self.image_list, other):
+                self_image += other_image
+        return self
     
     @property
     def mask(self):

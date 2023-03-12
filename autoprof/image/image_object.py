@@ -1,8 +1,11 @@
-import torch
-import numpy as np
 from typing import Optional, Union, Any, Sequence
 from copy import deepcopy
+
+import torch
+from torch.nn.functional import pad
+import numpy as np
 from astropy.io import fits
+
 from .window_object import Window, Window_List
 from .. import AP_config
 
@@ -34,6 +37,7 @@ class BaseImage(object):
             note: Optional[str] = None, 
             origin: Optional[Sequence] = None, 
             center: Optional[Sequence] = None,
+            _identity: str = None,
             **kwargs: Any
     ) -> None:
 
@@ -64,6 +68,12 @@ class BaseImage(object):
         """
         self._data = None
         
+        # Record identity
+        if _identity is None:
+            self.identity = str(id(self))
+        else:
+            self.identity = _identity
+            
         if filename is not None:
             self.load(filename)
             return
@@ -80,7 +90,8 @@ class BaseImage(object):
             self.zeropoint = torch.as_tensor(zeropoint, 
                                             dtype = AP_config.ap_dtype, 
                                             device = AP_config.ap_device)
-        
+
+        # set a note for the image
         self.note = note
 
         #Set Window
@@ -188,30 +199,50 @@ class BaseImage(object):
             self._data = data.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         else:
             self._data = torch.as_tensor(data, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-    def copy(self):
+            
+    def copy(self, **kwargs):
+        """Produce a copy of this image with all of the same properties. This
+        can be used when one wishes to make temporary modifications to
+        an image and then will want the original again.
+
+        """
         return self.__class__(
             data = torch.clone(self.data),
             zeropoint = self.zeropoint,
             origin = self.origin,
             note = self.note,
             window = self.window,
+            _identity = self.identity,
+            **kwargs
         )
-    def blank_copy(self):
+    
+    def blank_copy(self, **kwargs):
+        """Produces a blank copy of the image which has the same properties
+        except that its data is not filled with zeros.
+
+        """
         return self.__class__(
             data = torch.zeros_like(self.data),
             zeropoint = self.zeropoint,
             origin = self.origin,
             note = self.note,
             window = self.window,
+            _identity = self.identity,
+            **kwargs
         )
         
-    def get_window(self, window):
+    def get_window(self, window, **kwargs):
+        """Get a sub-region of the image as defined by a window on the sky.
+
+        """
         return self.__class__(
             data = self.data[window.get_indices(self)],
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
             note = self.note,
             origin = (self.window & window).origin,
+            _identity = self.identity,
+            **kwargs
         )
     
     def to(self, dtype = None, device = None):
@@ -245,7 +276,7 @@ class BaseImage(object):
     def get_coordinate_meshgrid_torch(self, x = 0., y = 0.):
         return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
 
-    def reduce(self, scale):
+    def reduce(self, scale, **kwargs):
         """This operation will downsample an image by the factor given. If
         scale = 2 then 2x2 blocks of pixels will be summed together to
         form individual larger pixels. A new image object will be
@@ -270,7 +301,20 @@ class BaseImage(object):
             zeropoint = self.zeropoint,
             note = self.note,
             window = self.window.make_copy(),
+            _identity = self.identity,
+            **kwargs
         )
+
+    def expand(self, padding):
+        """
+        Args:
+          padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
+        """
+        padding = np.array(padding)
+        assert np.all(padding >= 0), "negative padding not allowed in expand method"
+        pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
+        self.data = pad(self.data, pad = pad_boundaries, mode = "constant", value = 0)
+        self.window += tuple(padding)
 
     def _save_image_list(self):
         img_header = fits.Header()
@@ -302,7 +346,63 @@ class BaseImage(object):
                 self.window = Window(**eval(hdu.header.get("WINDOW")))
                 break
         return hdul
+        
+    def __sub__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot subtract images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                raise IndexError("images have no overlap, cannot subtract!")
+            new_img = self[other.window].copy()
+            new_img.data -= other.data[self.window.get_indices(other)]
+            return new_img
+        else:
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data -= other
+            return new_img
+        
+    def __add__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot add images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                return self
+            new_img = self[other.window].copy()
+            new_img.data += other.data[self.window.get_indices(other)]
+            return new_img
+        else:
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data += other
+            return new_img
     
+    def __sub__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot subtract images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                raise IndexError("images have no overlap, cannot subtract!")
+            new_img = self[other.window].copy()
+            new_img.data -= other.data[self.window.get_indices(other)]
+            return new_img
+        else:
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data -= other
+            return new_img
+        
+    def __add__(self, other):
+        if isinstance(other, BaseImage):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot add images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(other.origin + other.shape < self.origin):
+                return self
+            new_img = self[other.window].copy()
+            new_img.data += other.data[self.window.get_indices(other)]
+            return new_img
+        else:
+            new_img = self[other.window.get_indices(self)].copy()
+            new_img.data += other
+            return new_img
+        
     def __iadd__(self, other):
         if isinstance(other, BaseImage):
             if not torch.isclose(self.pixelscale, other.pixelscale):
@@ -372,6 +472,13 @@ class Image_List(BaseImage):
             tuple(image[win] for image, win in zip(self.image_list, window)),
         )
     
+    def index(self, other):
+        if isinstance(other, BaseImage) and hasattr(other, "identity"):
+            for i, self_image in enumerate(self.image_list):
+                if other.identity == self_image.identity:
+                    return i
+        raise NotImplementedError(f"Image_List cannot get index for {type(other)}")
+            
     def to(self, dtype = None, device = None):
         if dtype is not None:
             dtype = AP_config.ap_dtype
@@ -401,6 +508,28 @@ class Image_List(BaseImage):
             tuple(image.reduce(scale) for image in self.image_list),
         )
     
+    def __sub__(self, other):
+        if isinstance(other, Image_List):
+            new_list = []
+            for self_image, other_image in zip(self.image_list, other.image_list):
+                new_list.append(self_image - other_image)
+            return self.__class__(new_list)
+        else:
+            new_list = []
+            for self_image, other_image in zip(self.image_list, other):
+                new_list.append(self_image - other_image)
+            return self.__class__(new_list)
+    def __add__(self, other):
+        if isinstance(other, Image_List):
+            new_list = []
+            for self_image, other_image in zip(self.image_list, other.image_list):
+                new_list.append(self_image + other_image)
+            return self.__class__(new_list)
+        else:
+            new_list = []
+            for self_image, other_image in zip(self.image_list, other):
+                new_list.append(self_image + other_image)
+            return self.__class__(new_list)
     def __isub__(self, other):
         if isinstance(other, Image_List):
             for self_image, other_image in zip(self.image_list, other.image_list):
@@ -429,11 +558,11 @@ class Image_List(BaseImage):
     def __str__(self):
         return f"image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
     def __iter__(self):
-        self.index = 0
+        self._index = 0
         return self
     def __next__(self):
-        if self.index >= len(self.image_list):
+        if self._index >= len(self.image_list):
             raise StopIteration
-        img = self.image_list[self.index]
-        self.index += 1
+        img = self.image_list[self._index]
+        self._index += 1
         return img

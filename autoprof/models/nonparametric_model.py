@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -9,7 +8,7 @@ from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .star_model_object import Star_Model
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from ._shared_methods import nonparametric_segment_initialize
+from ._shared_methods import nonparametric_segment_initialize, select_target
 
 __all__ = [
     "NonParametric_Galaxy", "NonParametric_Star", "NonParametric_Warp",
@@ -182,9 +181,8 @@ class NonParametric_Ray(Ray_Galaxy):
     extend_profile = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         nonparametric_segment_initialize(self, target, segments = self.rays, symmetric = self.symmetric_rays)
@@ -215,9 +213,8 @@ class NonParametric_Wedge(Wedge_Galaxy):
     extend_profile = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         nonparametric_segment_initialize(self, target, segments = self.wedges, symmetric = self.symmetric_wedges)

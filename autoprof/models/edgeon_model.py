@@ -1,4 +1,9 @@
+from scipy.stats import iqr
+import torch
+import numpy as np
+
 from .model_object import Component_Model
+from ._shared_methods import select_target
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import (
@@ -7,9 +12,6 @@ from ..utils.conversions.coordinates import (
     coord_to_index,
     index_to_coord
 )
-from scipy.stats import iqr
-import torch
-import numpy as np
 
 
 __all__ = ["Edgeon_Model"]
@@ -29,9 +31,8 @@ class Edgeon_Model(Component_Model):
     useable = False
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target        
         super().initialize(target)
         if self["PA"].value is not None:
             return
@@ -72,9 +73,8 @@ class Edgeon_Sech(Edgeon_Model):
     useable = False
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target        
         super().initialize(target)
         if (self["I0"].value is not None) and (self["hs"].value is not None):
             return
@@ -119,9 +119,8 @@ class Edgeon_Isothermal(Edgeon_Sech):
     useable = True
     
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target        
         super().initialize(target)
         if self["rs"].value is not None:
             return

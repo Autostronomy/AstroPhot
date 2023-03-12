@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from scipy.stats import iqr
+
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import (
@@ -10,6 +11,7 @@ from ..utils.conversions.coordinates import (
     index_to_coord
 )
 from .model_object import Component_Model
+from ._shared_methods import select_target
 
 
 __all__ = ["Galaxy_Model"]
@@ -44,9 +46,8 @@ class Galaxy_Model(Component_Model):
     useable = False
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         if not (self["PA"].value is None or self["q"].value is None):
             return

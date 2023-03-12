@@ -1,9 +1,13 @@
-from .core_model import AutoProf_Model
-from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window_List
 from copy import deepcopy
+from typing import Optional, Sequence
+
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+
+from .core_model import AutoProf_Model
+from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window_List
+from ._shared_methods import select_target
 from .. import AP_config
 
 __all__ = ["Group_Model"]
@@ -16,18 +20,18 @@ class Group_Model(AutoProf_Model):
     system more comlex than makes sense to represent with a single
     light distribution.
 
-    Parameters:
-        name: unique name for the full group model
-        target: the target image that this group model is trying to fit to
-        model_list: list of AutoProf_Model objects which will combine for the group model
-        locked: boolean for if the whole group of models should be locked
+    Args:
+        name (str): unique name for the full group model
+        target (Target_Image): the target image that this group model is trying to fit to
+        model_list (Optional[Sequence[AutoProf_Model]]): list of AutoProf_Model objects which will combine for the group model
+        locked (bool): if the whole group of models should be locked
 
     """
 
     model_type = f"group {AutoProf_Model.model_type}"
     useable = True
     
-    def __init__(self, name, *args, model_list = None, **kwargs):
+    def __init__(self, name: str, *args, model_list: Optional[Sequence[AutoProf_Model]] = None, **kwargs):
         super().__init__(name, *args, model_list = model_list, **kwargs)
         self._param_tuple = None
         self.model_list = []
@@ -74,22 +78,44 @@ class Group_Model(AutoProf_Model):
 
         return self.model_list.pop(self.model_list.index(model))
 
-    def update_window(self, include_locked = False):
+    def update_window(self, include_locked: bool = False):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.
 
         """
-        new_window = None
-        for model in self.model_list:
-            if model.locked and not include_locked:
-                continue
-            if new_window is None:
-                new_window = model.window.make_copy()
-            else:
-                new_window |= model.window
+        if isinstance(self.target, Image_List): # Window_List if target is a Target_Image_List
+            new_window = [None]*len(self.target.image_list)
+            for model in self.model_list:
+                if model.locked and not include_locked:
+                    continue
+                if isinstance(model.target, Image_List):
+                    for target, window in zip(model.target, model.window):
+                        index = self.target.index(target)
+                        if new_window[index] is None:
+                            new_window[index] = window.make_copy()
+                        else:
+                            new_window[index] |= window
+                elif isinstance(model.target, Target_Image):
+                    index = self.target.index(model.target)
+                    if new_window[index] is None:
+                        new_window[index] = model.window.make_copy()
+                    else:
+                        new_window[index] |= model.window
+                else:
+                    raise NotImplementedError("Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image")
+            new_window = Window_List(new_window)
+        else:
+            new_window = None
+            for model in self.model_list:
+                if model.locked and not include_locked:
+                    continue
+                if new_window is None:
+                    new_window = model.window.make_copy()
+                else:
+                    new_window |= model.window
         self.window = new_window
                 
-    def parameter_tuples_order(self, override_locked = False):
+    def parameter_tuples_order(self, override_locked: bool = False):
         """Constructs a list where each entry is a tuple with a unique name
         for the parameter and the parameter object itself.
 
@@ -112,7 +138,7 @@ class Group_Model(AutoProf_Model):
                     params.append((f"{model.name}|{p}", model.parameters[p]))
         return params
         
-    def parameter_order(self, override_locked = True):
+    def parameter_order(self, override_locked: bool = True):
         """Gives the unique parameter names for this model in a repeatable
         order. By default, locked parameters are excluded from the
         tuple. The order of parameters will of course not be the same
@@ -124,6 +150,9 @@ class Group_Model(AutoProf_Model):
 
     @property
     def param_tuple(self):
+        """A tuple with the name of every parameter in the group model
+
+        """
         if self._param_tuple is None:
             self._param_tuple = self.parameter_tuples_order(override_locked = True)
         return self._param_tuple
@@ -142,36 +171,39 @@ class Group_Model(AutoProf_Model):
             return {}
     @parameters.setter
     def parameters(self, val):
-        """
-        You cannot set the parameters at the group model level, this function exists simply to avoid raising errors when intializing models.
+        """You cannot set the parameters at the group model level, this
+        function exists simply to avoid raising errors when
+        intializing models.
+
         """
         pass
         
     @torch.no_grad()
-    def initialize(self, target = None):
+    @select_target
+    def initialize(self, target: Optional["Target_Image"] = None):
+        """
+        Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
+
+        Args:
+          target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
+        """
         self._param_tuple = None
-        self.sync_target()
-        if target is None:
-            target = self.target
-        super().initialize(target)
 
         target_copy = target.copy()
         for model in self.model_list:
             model.initialize(target_copy)
             target_copy -= model()
             
-    def make_model_image(self):
-        if isinstance(self.window, Window_List):
-            return Model_Image_List(list(
-                Model_Image( # fixme add Model_Image __new__ method to hide list nature
-                    window = window,
-                    pixelscale = target.pixelscale,
-                ) for window, target in zip(self.window, self.target)
-            ))
-        else:
-            return super().make_model_image()
+    def sample(self, image: Optional["Model_Image"] = None, *args, **kwargs):
+        """Sample the group model on an image. Produces the flux values for
+        each pixel associated with the models in this group. Each
+        model is called individually and the results are added
+        together in one larger image.
+
+        Args:
+          image (Optional["Model_Image"]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
         
-    def sample(self, image = None, *args, **kwargs):
+        """
         self._param_tuple = None
         
         if image is None:
@@ -179,52 +211,41 @@ class Group_Model(AutoProf_Model):
             image = self.make_model_image()
         else:
             sample_window = False
+            
         for model in self.model_list:
             if sample_window:
+                # Will sample the model fit window then add to the image
                 image += model()
             else:
+                # Will sample the entire image
                 model(image)
 
         return image
 
-    def sub_model_parameter_map(self, override_locked = False):
-        base_parameters = self.parameters
-        base_parameters_order = self.parameter_order(override_locked = override_locked)
-        base_parameter_lens = self.parameter_vector_len(override_locked = override_locked)
-        param_map = []
-        param_vec_map = []
-        for model in self.model_list:
-            sub_param_map = []
-            sub_param_vec_map = []
-            for P in model.parameter_order(override_locked = override_locked):
-                for index in range(len(base_parameters_order)):
-                    if model[P] is base_parameters[base_parameters_order[index]]:
-                        sub_param_map.append(index)
-                        break
-                else:
-                    raise RuntimeError(f"Could not find parameter {P} for model {model.name}")
-                leadup = sum(base_parameter_lens[:sub_param_map[-1]])
-                for i in range(base_parameter_lens[sub_param_map[-1]]):
-                    sub_param_vec_map.append(leadup+i)
-            param_map.append(sub_param_map)
-            param_vec_map.append(sub_param_vec_map)
-        return param_map, param_vec_map
-        
-    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
-        if isinstance(self.window, Window_List):
-            raise NotImplementedError("Jacobian doesnt work for joint models yet, it will soon")
+    def jacobian(self, parameters: Optional[torch.Tensor] = None, as_representation: bool = False, override_locked: bool = False, pass_jacobian: Optional["Jacobian_Image"] = None, **kwargs):
+        """Compute the jacobian for this model. Done by first constructing a
+        full jacobian (Npixels * Nparameters) of zeros then call the
+        jacobian method of each sub model and add it in to the total.
+
+        Args:
+          parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
+          as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
+          override_locked (bool): If True, will compute jacobian for locked parameters as well. If False, will ignore locked parameters. Default False
+          pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+
+        """
         if parameters is not None:
-            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)        
-        param_map, param_vec_map = self.sub_model_parameter_map(override_locked = override_locked)
-        full_jac = torch.zeros(tuple(self.window.get_shape_flip(self.target.pixelscale)) + (np.sum(self.parameter_vector_len(override_locked = override_locked)),), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        for model, vec_map in zip(self.model_list, param_vec_map):
-            sub_jac = model.jacobian(as_representation = as_representation, override_locked = override_locked, flatten = False)
-            indices = model.window._get_indices(self.window, self.target.pixelscale)
-            for imodel, igroup in enumerate(vec_map):
-                full_jac[indices[0], indices[1], igroup] += sub_jac[:,:,imodel]
-        if flatten:
-            return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
-        return full_jac
+            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
+
+        if pass_jacobian is None:
+            jac_img = self.target[self.window].jacobian_image(parameters = self.get_parameter_identity_vector())
+        else:
+            jac_img = pass_jacobian
+            
+        for model in self.model_list:
+            jac_img += model.jacobian(as_representation = as_representation, override_locked = override_locked, pass_jacobian = jac_img)
+            
+        return jac_img
         
     def __getitem__(self, key):
         try:
@@ -244,17 +265,6 @@ class Group_Model(AutoProf_Model):
         
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 
-    def sync_target(self):
-        """Ensure that the target object held by the group model matches the
-        targets of the individual models that it holds.
-
-        """
-        if self._target is None:
-            self.target = self.model_list[0].target
-        for model in self.model_list:
-            model.target = self.target
-        self.update_window()
-        
     @property
     def psf_mode(self):
         return self._psf_mode
