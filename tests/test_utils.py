@@ -185,8 +185,6 @@ class TestConversions(unittest.TestCase):
         d = {'mydata1': 'statement', 'mydata2': 'statement2'}
         ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(h=h5py.File('mytestfile2.hdf5','w'),D=d)
         self.assertEqual((list(h5py.File("mytestfile2.hdf5", "r"))), (list(d)), "Failed to convert dict of strings to hdf5")
-
-        #annnnnd test push
         
 if __name__ == "__main__":
     unittest.main()
