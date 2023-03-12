@@ -8,7 +8,7 @@ from ..image import Model_Image, Target_Image, Window
 from .. import AP_config
 
 
-def integrate_window(self, image: "Model_Image", fix_to: str() = "center") -> Window:
+def integrate_window(self, image: "BaseImage", fix_to: str = "center") -> Window:
     """
     The appropriately sized window in which to perform integration for
     this model, centered on the model center.
