@@ -170,10 +170,10 @@ class TestConversions(unittest.TestCase):
     def test_conversion_dict_to_hdf5(self):
 
         #convert string to hdf5
-        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='test'), (False), "Attempted to convert string object to hdf5")
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='test'), (False), "Failed to properly identify string object while converting to hdf5")
 
         #convert __iter__ to hdf5
-        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='__iter__'), (False), "Attempted to convert '__iter__' to hdf5")
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='__iter__'), (False), "Attempted to convert '__iter__' to hdf5 key")
 
         #convert hdf5 file to dict
         h = h5py.File("mytestfile.hdf5", "w")
@@ -182,13 +182,10 @@ class TestConversions(unittest.TestCase):
         self.assertEqual(ap.utils.conversions.dict_to_hdf5.hdf5_to_dict(h=h), ({'mydataset': h['mydataset']}), "Failed to convert hdf5 file to dict")
 
         #convert dict to hdf5
-        d = {'mydataset': [1.0]}
+        d = {'mydata1': 'statement', 'mydata2': 'statement2'}
         ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(h=h5py.File('mytestfile2.hdf5','w'),D=d)
-        f = h5py.File("mytestfile2.hdf5", "r")
-        print(list(f['mydataset']))
-        self.assertEqual((list(f['mydataset'])), (d['mydataset']), "Failed to convert dict file to hdf5")
+        self.assertEqual((list(h5py.File("mytestfile2.hdf5", "r"))), (list(d)), "Failed to convert dict of strings to hdf5")
         
         
 if __name__ == "__main__":
     unittest.main()
-B
