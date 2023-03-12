@@ -1,9 +1,10 @@
+import numpy as np
+import torch
+
 from .galaxy_model_object import Galaxy_Model
 from .parameter_object import Parameter
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
-import numpy as np
-import torch
 
 __all__ = ["Ray_Galaxy"]
 

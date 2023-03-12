@@ -1,3 +1,6 @@
+import torch
+import numpy as np
+
 from .galaxy_model_object import Galaxy_Model
 from .star_model_object import Star_Model
 from .warp_model import Warp_Galaxy
@@ -5,10 +8,8 @@ from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from ._shared_methods import parametric_initialize, parametric_segment_initialize
+from ._shared_methods import parametric_initialize, parametric_segment_initialize, select_target
 from ..utils.parametric_profiles import nuker_np
-import torch
-import numpy as np
 
 __all__ = [
     "Nuker_Galaxy", "Nuker_Star", "Nuker_SuperEllipse",
@@ -54,9 +55,8 @@ class Nuker_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -95,9 +95,8 @@ class Nuker_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -139,9 +138,8 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -181,9 +179,8 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -222,9 +219,8 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -263,9 +259,8 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -304,9 +299,8 @@ class Nuker_Warp(Warp_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
@@ -344,9 +338,8 @@ class Nuker_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_segment_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func, self.rays)
@@ -385,9 +378,8 @@ class Nuker_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @select_target
     def initialize(self, target = None):
-        if target is None:
-            target = self.target
         super().initialize(target)
         
         parametric_segment_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func, self.wedges)

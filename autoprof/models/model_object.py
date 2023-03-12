@@ -1,3 +1,11 @@
+from functools import partial
+from typing import Optional, Union
+import io
+
+from torch.autograd.functional import jacobian
+import numpy as np
+import torch
+
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
@@ -5,10 +13,7 @@ from ..utils.initialize import center_of_mass
 from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
-from torch.autograd.functional import jacobian
-from functools import partial
-import numpy as np
-import torch
+from ._shared_methods import select_target
 from .. import AP_config
 
 __all__ = ["Component_Model"]
@@ -78,7 +83,13 @@ class Component_Model(AutoProf_Model):
     def parameters(self, val):
         self._parameters = val
         
-    def parameter_order(self, override_locked = False):
+    def parameter_order(self, override_locked: bool = False):
+        """Returns a tuple of names of the parameters in their set order.
+
+        Args:
+          override_locked (bool): Include locked parameters as well as regular parameters. Default False
+        
+        """
         param_order = tuple()
         for P in  self.__class__._parameter_order:
             if self[P].locked and not override_locked:
@@ -89,15 +100,17 @@ class Component_Model(AutoProf_Model):
     # Initialization functions
     ######################################################################
     @torch.no_grad()
-    def initialize(self, target = None):
+    @select_target
+    def initialize(self, target: Optional["Target_Image"] = None):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
         until the iterations move by less than a pixel.
 
+        Args:
+          target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
+
         """
-        if target is None:
-            target = self.target
         super().initialize(target)
         # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
@@ -125,28 +138,32 @@ class Component_Model(AutoProf_Model):
             
     # Fit loop functions
     ######################################################################
-    def evaluate_model(self, image):
+    def evaluate_model(self, image: "BaseImage"):
         """Evaluate the model on every pixel in the given image. The
         basemodel object simply returns zeros, this function should be
         overloaded by subclasses.
 
+        Args:
+          image (BaseImage): The image defining the set of pixels on which to evaluate the model
+
         """
         return torch.zeros_like(image.data) # do nothing in base model
 
-    def sample(self, sample_image = None, sample_window = None):
+    def sample(self, sample_image: Optional["BaseImage"] = None, sample_window: Optional[Window] = None):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
         convolution. This should not be overloaded except in special
         cases.
 
         Parameters:
-            sample_image: An AutoProf Image object (likely a Model_Image) on which to evaluate the model values. Optional
-            sample_window: A window within which to evaluate the model. Should only be used if a subset of the full image is needed.
+            sample_image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) on which to evaluate the model values.
+            sample_window (Optional[Window]): A window within which to evaluate the model. Should only be used if a subset of the full image is needed.
 
         """
         # Image on which to evaluate model
         if sample_image is None:
             sample_image = self.make_model_image()
+            
         # Window within which to evaluate model
         if sample_window is None:
             working_window = sample_image.window.make_copy()
@@ -192,15 +209,15 @@ class Component_Model(AutoProf_Model):
         return sample_image
             
             
-    def integrate_model(self, working_image, window, depth = 2):
+    def integrate_model(self, working_image: "BaseImage", window: Window, depth: int = 2):
         """Sample the model at a higher resolution than the given image, then
         integrate the super resolution up to the image
         resolution.
 
         Parameters:
-            working_image: the image on which to perform the model integration. Pixels in this image will be replaced with the integrated values
-            window: A Window object within which to perform the integration.
-            depth: recursion depth tracker. When called with depth = n, this function will call itself again with depth = n-1 until depth is 0 at which point it will exit without integrating.
+            working_image (BaseImage): the image on which to perform the model integration. Pixels in this image will be replaced with the integrated values
+            window (Window): A Window object within which to perform the integration.
+            depth (int): recursion depth tracker. When called with depth = n, this function will call itself again with depth = n-1 until depth is 0 at which point it will exit without integrating.
         
         """
         if depth <= 0 or "none" in self.integrate_mode:
@@ -236,24 +253,23 @@ class Component_Model(AutoProf_Model):
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
 
-    @torch.no_grad()
-    def jacobian_finite(self, parameters = None, as_representation = False, override_locked = False):
-        """Compute the jacobian using regular finite differences. This uses
-        none of the automatic differentiation available in pytorch and
-        so is a bit slower and less precise. However, the memory
-        footprint required is the absolute minimum for finite
-        differences.
+    def jacobian(self, parameters: Optional[torch.Tensor] = None, as_representation: bool = False, override_locked: bool = False, **kwargs):
+        """Compute the jacobian for this model. Done by first constructing a
+        full jacobian (Npixels * Nparameters) of zeros then call the
+        jacobian method of each sub model and add it in to the total.
+
+        Args:
+          parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
+          as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
+          override_locked (bool): If True, will compute jacobian for locked parameters as well. If False, will ignore locked parameters. Default False
+          pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
-        if parameters is not None:
-            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
-        # fill out finite diff jacobian
-        raise NotImplementedError("Finite differences jacobian not yet ready, but will be soon")
-    
-    def jacobian(self, parameters = None, as_representation = False, override_locked = False, flatten = False):
+        
         if parameters is not None:
             self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
 
+        # idea, include mode to break up the image into chunks and evaluate jacobian on those
         if self.jacobian_mode == "full":
             full_jac = jacobian(
                 lambda P: self(
@@ -295,20 +311,28 @@ class Component_Model(AutoProf_Model):
                 )
                 start += V
             full_jac = torch.cat(sub_jacs,dim = 2)
-        elif self.jacobian_mode == "finite":
-            full_jac = self.jacobian_finite(
-                parameters = parameters,
-                as_representation = as_representation,
-                override_locked = override_locked,
-            )
+        elif self.jacobian_mode == "chunk":
+            raise NotImplementedError("chunk jacobian not avaialble yet")
         else:
-            raise ValueError(f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}")    
-            
-        if flatten:
-            return full_jac.reshape(-1, np.sum(self.parameter_vector_len(override_locked = override_locked)))
-        return full_jac
+            raise ValueError(f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}")
+
+        jac_img = self.target[self.window].jacobian_image(
+            parameters = self.get_parameter_identity_vector(override_locked = override_locked),
+            data = full_jac,
+        )
+        return jac_img
         
     def get_state(self):
+        """Returns a dictionary with a record of the current state of the
+        model.
+
+        Specifically, the current parameter settings and the
+        window for this model. From this information it is possible
+        for the model to re-build itself lated when loading from
+        disk. Note that the target image is not saved, this must be
+        reset when loading the model.
+
+        """
         state = super().get_state()
         state["window"] = self.window.get_state()
         if "parameters" not in state:
@@ -316,7 +340,18 @@ class Component_Model(AutoProf_Model):
         for P in self.parameters:
             state["parameters"][P] = self[P].get_state()
         return state
-    def load(self, filename = "AutoProf.yaml"):
+    
+    def load(self, filename: Union[str, dict, io.TextIOBase] = "AutoProf.yaml"):
+        """Used to load the model from a saved state.
+
+        Sets the model window to the saved value and updates all
+        parameters with the saved information. This overrides the
+        current parameter settings.
+
+        Args:
+          filename: The source from which to load the model parameters. Can be a string (the name of the file on disc), a dictionary (formatted as if from self.get_state), or an io.TextIOBase (a file stream to load the file from).
+
+        """
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
         self.window = Window(**state["window"])

@@ -15,3 +15,4 @@ docs/tutorials/*.jpg
 docs/autoprof.*rst
 docs/modules.rst
 pip_cheatsheet.txt
+.gitpod.yml
