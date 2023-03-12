@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import torch
+import h5py
 from scipy.signal import fftconvolve
 import autoprof as ap
 from utils import make_basic_sersic, make_basic_gaussian
@@ -128,6 +129,66 @@ class TestSegtoWindow(unittest.TestCase):
         # check original
         self.assertEqual(windows[3], [[80,84],[26,33]], "Original windows should not have changed")
         
+class TestConversions(unittest.TestCase):
+
+    def test_conversions_units(self):
+        
+        #flux to sb
+        self.assertEqual(ap.utils.conversions.units.flux_to_sb(1.,1.,0.), 0, "flux incorrectly converted to sb")
+
+        #sb to flux
+        self.assertEqual(ap.utils.conversions.units.sb_to_flux(1.,1.,0.), (10**(-1/2.5)), "sb incorrectly converted to flux")
+        
+        #flux to mag no error
+        self.assertEqual(ap.utils.conversions.units.flux_to_mag(1.,0.), 0, "flux incorrectly converted to mag (no error)")
+
+        #flux to mag with error
+        self.assertEqual(ap.utils.conversions.units.flux_to_mag(1.,0., fluxe=1.), (0., 2.5/np.log(10)), "flux incorrectly converted to mag (with error)")
+
+        #magperarcsec2 to mag with area A defined
+        self.assertEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=None, b=None, A=1.), (1. - 2.5 * np.log10(1.)), "mag/arcsec^2 incorrectly converted to mag (area A given, a and b not defined)")
+
+        #magperarcsec2 to mag with semi major and minor axes defined (a, and b)
+        self.assertEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=1., b=1., A=None), (1. - 2.5 * np.log10(np.pi)), "mag/arcsec^2 incorrectly converted to mag (semi major/minor axes defined)")
+
+        #mag to magperarcsec2 with area A defined
+        self.assertEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=1., R=None), (1. + 2.5 * np.log10(1.)), "mag incorrectly converted to mag/arcsec^2 (area A given)")
+
+        #mag to magperarcsec2 with radius R given (assumes circular)
+        self.assertEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=None, R=1.), (1. + 2.5 * np.log10(np.pi)), "mag incorrectly converted to mag/arcsec^2 (radius R given)")
+
+        #mag to magperarcsec2 with semi major and minor axes defined (a, and b)
+        self.assertEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=1., b=1., A=None, R=None), (1. + 2.5 * np.log10(np.pi)), "mag incorrectly converted to mag/arcsec^2 (area A given)")
+
+        #position angle PA to radians
+        self.assertEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='rad'), ((1. - (np.pi / 2)) % np.pi), "PA incorrectly converted to radians")
+
+        #position angle PA to degrees
+        self.assertEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='deg'), ((1. - (180 / 2)) % 180), "PA incorrectly converted to degrees")
+
+
+    def test_conversion_dict_to_hdf5(self):
+
+        #convert string to hdf5
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='test'), (False), "Attempted to convert string object to hdf5")
+
+        #convert __iter__ to hdf5
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='__iter__'), (False), "Attempted to convert '__iter__' to hdf5")
+
+        #convert hdf5 file to dict
+        h = h5py.File("mytestfile.hdf5", "w")
+        dset = h.create_dataset("mydataset", (1,), dtype='i')
+        dset[...] = np.array([1.0])
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.hdf5_to_dict(h=h), ({'mydataset': h['mydataset']}), "Failed to convert hdf5 file to dict")
+
+        #convert dict to hdf5
+        d = {'mydataset': [1.0]}
+        ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(h=h5py.File('mytestfile2.hdf5','w'),D=d)
+        f = h5py.File("mytestfile2.hdf5", "r")
+        print(list(f['mydataset']))
+        self.assertEqual((list(f['mydataset'])), (d['mydataset']), "Failed to convert dict file to hdf5")
+        
         
 if __name__ == "__main__":
     unittest.main()
+B
