@@ -23,6 +23,7 @@ setup(
                       "torch",
                       "tqdm",
                       "requests",
+                      "h5py",
                       ],
     entry_points = {
         'console_scripts': [
