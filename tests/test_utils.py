@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import h5py
 from scipy.signal import fftconvolve
+from scipy.special import gamma
+from torch.special import gammaln
 import autoprof as ap
 from utils import make_basic_sersic, make_basic_gaussian
 ######################################################################
@@ -145,6 +147,12 @@ class TestConversions(unittest.TestCase):
         #flux to mag with error
         self.assertEqual(ap.utils.conversions.units.flux_to_mag(1.,0., fluxe=1.), (0., 2.5/np.log(10)), "flux incorrectly converted to mag (with error)")
 
+        #mag to flux no error:
+        self.assertEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=None), (10**(-1/2.5)), "mag incorrectly converted to flux (no error)")
+
+        #mag to flux with error:
+        self.assertEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=1.), (10**(-1./2.5), np.log(10)*(1./2.5)*10**(-1./2.5)), "mag incorrectly converted to flux (with error)")
+        
         #magperarcsec2 to mag with area A defined
         self.assertEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=None, b=None, A=1.), (1. - 2.5 * np.log10(1.)), "mag/arcsec^2 incorrectly converted to mag (area A given, a and b not defined)")
 
@@ -185,6 +193,41 @@ class TestConversions(unittest.TestCase):
         d = {'mydata1': 'statement', 'mydata2': 'statement2'}
         ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(h=h5py.File('mytestfile2.hdf5','w'),D=d)
         self.assertEqual((list(h5py.File("mytestfile2.hdf5", "r"))), (list(d)), "Failed to convert dict of strings to hdf5")
+
+    def test_conversion_functions(self):
+
+        sersic_n = ap.utils.conversions.functions.sersic_n_to_b(1.)
+        #sersic I0 to flux - numpy
+        self.assertEqual(ap.utils.conversions.functions.sersic_I0_to_flux_np(1., 1., 1., 1.), (2*np.pi * gamma(2)), "Error converting sersic central intensity to flux (np)")
+
+        #sersic flux to I0 - numpy
+        self.assertEqual(ap.utils.conversions.functions.sersic_flux_to_I0_np(1., 1., 1., 1.), (1. / (2*np.pi * gamma(2))), "Error converting sersic flux to central intensity (np)")
+
+        #sersic Ie to flux - numpy
+        self.assertEqual(ap.utils.conversions.functions.sersic_Ie_to_flux_np(1., 1., 1., 1.), (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)), "Error converting sersic effective intensity to flux (np)")
+
+        #sersic flux to Ie - numpy
+        self.assertEqual(ap.utils.conversions.functions.sersic_flux_to_Ie_np(1., 1., 1., 1.), (1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))), "Error converting sersic flux to effective intensity (np)")
+
+        #inverse sersic - numpy
+        self.assertEqual(ap.utils.conversions.functions.sersic_inv_np(1., 1., 1., 1.), (1. - (1./sersic_n)*np.log(1.)), "Error computing inverse sersic function (np)")
+        
+        #sersic I0 to flux - torch
+        tv = torch.tensor([[1.]],dtype=torch.float64)
+        self.assertEqual(ap.utils.conversions.functions.sersic_I0_to_flux_np(tv,tv,tv,tv), torch.tensor([[2*np.pi * gamma(2)]]), "Error converting sersic central intensity to flux (torch)")
+
+        #sersic flux to I0 - torch
+        self.assertEqual(ap.utils.conversions.functions.sersic_flux_to_I0_np(tv,tv,tv,tv), torch.tensor([[1. / (2*np.pi * gamma(2))]]), "Error converting sersic flux to central intensity (torch)")
+
+        #sersic Ie to flux - torch
+        self.assertEqual(ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv,tv,tv,tv), torch.tensor([[2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)]]), "Error converting sersic effective intensity to flux (torch)")
+
+        #sersic flux to Ie - torch
+        self.assertEqual(ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv,tv,tv,tv), torch.tensor([[1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))]]), "Error converting sersic flux to effective intensity (torch)")
+
+        #inverse sersic - torch
+        self.assertEqual(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv), torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]), "Error computing inverse sersic function (torch)")
+        
         
 if __name__ == "__main__":
     unittest.main()
