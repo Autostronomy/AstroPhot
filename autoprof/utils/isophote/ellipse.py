@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def Rscale_Fmodes(theta, modes, Am, Phim):
     """Factor to scale radius values given a set of fourier mode
     amplitudes.
@@ -20,10 +21,9 @@ def parametric_Fmodes(theta, modes, Am, Phim):
     Rscale = Rscale_Fmodes(theta, modes, Am, Phim)
     return x * Rscale, y * Rscale
 
-def Rscale_SuperEllipse(theta, ellip, C=2):
-    """Scale factor for radius values given a super ellipse coefficient.
 
-    """
+def Rscale_SuperEllipse(theta, ellip, C=2):
+    """Scale factor for radius values given a super ellipse coefficient."""
     res = (1 - ellip) / (
         np.abs((1 - ellip) * np.cos(theta)) ** (C) + np.abs(np.sin(theta)) ** (C)
     ) ** (1.0 / C)

@@ -1,13 +1,15 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from .visuals import *
-from scipy.stats import iqr
-from astropy.visualization.mpl_normalize import ImageNormalize
-from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
 import torch
+
+from astropy.visualization import HistEqStretch, ImageNormalize, LogStretch, SqrtStretch
 from matplotlib.patches import Rectangle
+from matplotlib import pyplot as plt
+from scipy.stats import iqr
+
 from ..models import Group_Model, Sky_Model
 from ..image import Image_List, Window_List
+from .visuals import *
+
 
 __all__ = ["target_image", "model_image", "residual_image", "model_window"]
 

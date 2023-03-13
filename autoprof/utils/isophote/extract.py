@@ -1,9 +1,11 @@
 import numpy as np
+import logging
+from scipy.stats import iqr
+
 from .ellipse import parametric_SuperEllipse, Rscale_SuperEllipse
 from ..conversions.coordinates import Rotate_Cartesian_np
 from ..interpolate import interpolate_Lanczos
-from scipy.stats import iqr
-import logging
+
 
 def Sigma_Clip_Upper(v, iterations=10, nsigma=5):
     """
@@ -38,7 +40,6 @@ def _iso_between(
     sclip_iterations=10,
     sclip_nsigma=5,
 ):
-
     if not "m" in PARAMS:
         PARAMS["m"] = None
     if not "C" in PARAMS:
@@ -61,7 +62,7 @@ def _iso_between(
         + float(ranges[1][0]),
     )
     theta = np.arctan(YY / XX) + np.pi * (XX < 0)
-    RR = np.sqrt(XX ** 2 + YY ** 2)
+    RR = np.sqrt(XX**2 + YY**2)
     Fmode_Rscale = (
         1.0
         if PARAMS["m"] is None
@@ -137,9 +138,7 @@ def _iso_extract(
         N = max(minN, N)
     # points along ellipse to evaluate
     theta = np.linspace(0, 2 * np.pi * (1.0 - 1.0 / N), N)
-    theta = np.arctan(PARAMS["q"] * np.tan(theta)) + np.pi * (
-        np.cos(theta) < 0
-    )
+    theta = np.arctan(PARAMS["q"] * np.tan(theta)) + np.pi * (np.cos(theta) < 0)
     Fmode_Rscale = (
         1.0
         if PARAMS["m"] is None
@@ -148,7 +147,7 @@ def _iso_extract(
     R = sma * Fmode_Rscale
     # Define ellipse
     X, Y = parametric_SuperEllipse(
-        theta, 1. - PARAMS["q"], 2 if PARAMS["C"] is None else PARAMS["C"]
+        theta, 1.0 - PARAMS["q"], 2 if PARAMS["C"] is None else PARAMS["C"]
     )
     X, Y = R * X, R * Y
     # rotate ellipse by PA
@@ -229,7 +228,6 @@ def _iso_extract(
 
 
 def _iso_line(IMG, length, width, pa, c, more=False):
-
     start = np.array([c["x"], c["y"]])
     end = start + length * np.array([np.cos(pa), np.sin(pa)])
 

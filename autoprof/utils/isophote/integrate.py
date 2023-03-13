@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def fluxdens_to_fluxsum(R, I, axisratio):
     """
     Integrate a flux density profile
@@ -20,13 +21,7 @@ def fluxdens_to_fluxsum(R, I, axisratio):
 
 
 def fluxdens_to_fluxsum_errorprop(
-    R, 
-    I, 
-    IE, 
-    axisratio,
-    axisratioE=None, 
-    N=100, 
-    symmetric_error=True
+    R, I, IE, axisratio, axisratioE=None, N=100, symmetric_error=True
 ):
     """
     Integrate a flux density profile
@@ -90,7 +85,6 @@ def _Fmode_integrand(t, parameters):
 
 
 def Fmode_Areas(R, parameters):
-
     A = []
     for i in range(len(R)):
         A.append(

@@ -3,6 +3,7 @@ import numpy as np
 from .conversions.functions import sersic_n_to_b
 from .interpolate import cubic_spline_torch, interp1d_torch
 
+
 def sersic_torch(R, n, Re, Ie):
     """Seric 1d profile function, specifically designed for pytorch
     operations
@@ -14,7 +15,11 @@ def sersic_torch(R, n, Re, Ie):
         Ie: Effective surface density
     """
     bn = sersic_n_to_b(n)
-    return Ie * torch.exp(-bn*(torch.pow((R+1e-8)/Re, 1/n) - 1)) # epsilon added for numerical stability of gradient
+    return Ie * torch.exp(
+        -bn * (torch.pow((R + 1e-8) / Re, 1 / n) - 1)
+    )  # epsilon added for numerical stability of gradient
+
+
 def sersic_np(R, n, Re, Ie):
     """Sersic 1d profile function, works more generally with numpy
     operations. In the event that impossible values are passed to the
@@ -28,9 +33,10 @@ def sersic_np(R, n, Re, Ie):
         Ie: Effective surface density
     """
     if np.any(np.array([n, Re, Ie]) <= 0):
-        return np.ones(len(R))*1e6
+        return np.ones(len(R)) * 1e6
     bn = sersic_n_to_b(n)
-    return Ie*np.exp(-bn*((R/Re)**(1/n) - 1))
+    return Ie * np.exp(-bn * ((R / Re) ** (1 / n) - 1))
+
 
 def gaussian_torch(R, sigma, I0):
     """Gaussian 1d profile function, specifically designed for pytorch
@@ -41,7 +47,11 @@ def gaussian_torch(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / torch.sqrt(2 * np.pi * sigma**2)) * torch.exp(-0.5*torch.pow(R/sigma,2))
+    return (I0 / torch.sqrt(2 * np.pi * sigma**2)) * torch.exp(
+        -0.5 * torch.pow(R / sigma, 2)
+    )
+
+
 def gaussian_np(R, sigma, I0):
     """Gaussian 1d profile function, works more generally with numpy
     operations.
@@ -51,7 +61,8 @@ def gaussian_np(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5*((R/sigma)**2))
+    return (I0 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5 * ((R / sigma) ** 2))
+
 
 def exponential_torch(R, Re, Ie):
     """Exponential 1d profile function, specifically designed for pytorch
@@ -62,7 +73,11 @@ def exponential_torch(R, Re, Ie):
         Re: Effective radius in the same units as R
         Ie: Effective surface density
     """
-    return Ie * torch.exp(- sersic_n_to_b(torch.tensor(1.,dtype = R.dtype, device = R.device)) * ((R / Re) - 1.))
+    return Ie * torch.exp(
+        -sersic_n_to_b(torch.tensor(1.0, dtype=R.dtype, device=R.device))
+        * ((R / Re) - 1.0)
+    )
+
 
 def exponential_np(R, Ie, Re):
     """Exponential 1d profile function, works more generally with numpy
@@ -73,7 +88,8 @@ def exponential_np(R, Ie, Re):
         Re: Effective radius in the same units as R
         Ie: Effective surface density
     """
-    return Ie * np.exp(- sersic_n_to_b(1.) * (R / Re - 1.))
+    return Ie * np.exp(-sersic_n_to_b(1.0) * (R / Re - 1.0))
+
 
 def moffat_torch(R, n, Rd, I0):
     """Moffat 1d profile function, specifically designed for pytorch
@@ -86,7 +102,9 @@ def moffat_torch(R, n, Rd, I0):
         I0: central surface density
 
     """
-    return I0 / (1 + (R/Rd)**2)**n
+    return I0 / (1 + (R / Rd) ** 2) ** n
+
+
 def moffat_np(R, n, Rd, I0):
     """Moffat 1d profile function, works with numpy operations.
 
@@ -97,7 +115,8 @@ def moffat_np(R, n, Rd, I0):
         I0: central surface density
 
     """
-    return I0 / (1 + (R/Rd)**2)**n
+    return I0 / (1 + (R / Rd) ** 2) ** n
+
 
 def nuker_torch(R, Rb, Ib, alpha, beta, gamma):
     """Nuker 1d profile function, specifically designed for pytorch
@@ -112,8 +131,15 @@ def nuker_torch(R, Rb, Ib, alpha, beta, gamma):
         gamma: inner power law slope
 
     """
-    Rplus = R + 1e-8 # added for numerical stability near R = 0
-    return Ib * (2**((beta-gamma)/alpha)) * ((Rplus / Rb)**(-gamma)) * ((1 + (Rplus/Rb)**alpha)**((gamma - beta)/alpha))
+    Rplus = R + 1e-8  # added for numerical stability near R = 0
+    return (
+        Ib
+        * (2 ** ((beta - gamma) / alpha))
+        * ((Rplus / Rb) ** (-gamma))
+        * ((1 + (Rplus / Rb) ** alpha) ** ((gamma - beta) / alpha))
+    )
+
+
 def nuker_np(R, Rb, Ib, alpha, beta, gamma):
     """Nuker 1d profile function, works with numpy functions
 
@@ -126,7 +152,13 @@ def nuker_np(R, Rb, Ib, alpha, beta, gamma):
         gamma: inner power law slope
 
     """
-    return Ib * (2**((beta-gamma)/alpha)) * ((R / Rb)**(-gamma)) * ((1 + (R/Rb)**alpha)**((gamma - beta)/alpha))
+    return (
+        Ib
+        * (2 ** ((beta - gamma) / alpha))
+        * ((R / Rb) ** (-gamma))
+        * ((1 + (R / Rb) ** alpha) ** ((gamma - beta) / alpha))
+    )
+
 
 def nonparametric_torch(R, profR, profI, pixelscale2, extend):
     """Nonparametric 1d profile function, cubic spline between points up
@@ -139,12 +171,15 @@ def nonparametric_torch(R, profR, profI, pixelscale2, extend):
         profI: surface density values for the surface density profile
         pixelscale2: squared pixelscale. Just use 1 if not needed
     """
-    I = cubic_spline_torch(profR, profI, R.view(-1), extend = "none").view(*R.shape)
+    I = cubic_spline_torch(profR, profI, R.view(-1), extend="none").view(*R.shape)
     res = torch.zeros_like(I)
-    res[R <= profR[-2]] = 10**(I[R <= profR[-2]])
+    res[R <= profR[-2]] = 10 ** (I[R <= profR[-2]])
     if extend:
-        res[R > profR[-2]] = 10**(profI[-2] + (R[R > profR[-2]] - profR[-2])*((profI[-1] - profI[-2])/(profR[-1] - profR[-2])))
+        res[R > profR[-2]] = 10 ** (
+            profI[-2]
+            + (R[R > profR[-2]] - profR[-2])
+            * ((profI[-1] - profI[-2]) / (profR[-1] - profR[-2]))
+        )
     else:
         res[R > profR[-2]] = 0
     return res * pixelscale2
-    
