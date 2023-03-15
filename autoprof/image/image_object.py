@@ -356,7 +356,7 @@ class BaseImage(object):
             **kwargs,
         )
 
-    def expand(self, padding: Tuple(float)) -> None:
+    def expand(self, padding: Tuple[float]) -> None:
         """
         Args:
           padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
