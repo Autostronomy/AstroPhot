@@ -22,6 +22,7 @@ def all_subclasses(cls):
         [s for c in cls.__subclasses__() for s in all_subclasses(c)]
     )
 
+
 ######################################################################
 class AutoProf_Model(object):
     """AutoProf_Model(name, *args, filename = None, model_type = None, **kwargs)
@@ -101,7 +102,7 @@ class AutoProf_Model(object):
     def make_model_image(self):
         return self.target[self.window].model_image()
 
-    def sample(self, image = None, *args, **kwargs):
+    def sample(self, image=None, *args, **kwargs):
         """Calling this function should fill the given image with values
         sampled from the given model.
 
@@ -217,12 +218,14 @@ class AutoProf_Model(object):
                     (window[0][0], window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ) * self.target.pixelscale,
+                )
+                * self.target.pixelscale,
                 shape=torch.tensor(
                     (window[0][1] - window[0][0], window[1][1] - window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ) * self.target.pixelscale,
+                )
+                * self.target.pixelscale,
             )
         elif len(window) == 4:
             self._window = Window(
@@ -324,7 +327,7 @@ class AutoProf_Model(object):
                 uncertanty[vstart : vstart + V] = self[P].uncertainty
             vstart += V
         return uncertanty
-    
+
     def __str__(self):
         """String representation for the model."""
         return str(self.get_state())
@@ -422,14 +425,13 @@ class AutoProf_Model(object):
     @select_sample
     def __call__(
         self,
-        image = None,
+        image=None,
         parameters=None,
         as_representation=True,
         override_locked=False,
         parameters_identity=None,
         **kwargs,
     ):
-
         if parameters is not None:
             self.set_parameters(
                 parameters,

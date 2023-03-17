@@ -10,6 +10,7 @@ from .. import AP_config
 
 __all__ = ["basic_config"]
 
+
 def GetOptions(c):
     newoptions = {}
     for var in dir(c):
@@ -19,25 +20,26 @@ def GetOptions(c):
                 newoptions[var] = val
     return newoptions
 
+
 def import_configfile(config_file):
-    if '/' in config_file:
-        startat = config_file.rfind('/')+1
+    if "/" in config_file:
+        startat = config_file.rfind("/") + 1
     else:
         startat = 0
-    if '.' in config_file:
-        use_config = config_file[startat:config_file.rfind('.')]
+    if "." in config_file:
+        use_config = config_file[startat : config_file.rfind(".")]
     else:
         use_config = config_file[startat:]
     if startat > 0:
-        sys.path.append(os.path.abspath(config_file[:config_file.rfind('/')]))
+        sys.path.append(os.path.abspath(config_file[: config_file.rfind("/")]))
     else:
         sys.path.append(os.getcwd())
     c = importlib.import_module(use_config)
     return c
 
+
 def basic_config(config_file):
-    
-    c = import_configfile(config_file) #importlib.import_module(config_file)
+    c = import_configfile(config_file)  # importlib.import_module(config_file)
     config = GetOptions(c)
 
     # Parse Target
@@ -52,19 +54,21 @@ def basic_config(config_file):
         target_pixelscale = config.get("ap_target_pixelscale", None)
         target_zeropoint = config.get("ap_target.zeropoint", None)
         target_origin = config.get("ap_target_origin", None)
-        
+
         if variance_file is not None:
-            var_data = np.array(fits.open(target_file)[target_hdu].data, dtype = np.float64)
+            var_data = np.array(
+                fits.open(target_file)[target_hdu].data, dtype=np.float64
+            )
         else:
             var_data = None
         if target_file is not None:
-            data = np.array(fits.open(target_file)[target_hdu].data, dtype = np.float64)
+            data = np.array(fits.open(target_file)[target_hdu].data, dtype=np.float64)
             target = Target_Image(
-                data = data,
-                pixelscale = target_pixelscale,
-                zeropoint = target_zeropoint,
-                variance = var_data,
-                origin = target_origin,
+                data=data,
+                pixelscale=target_pixelscale,
+                zeropoint=target_zeropoint,
+                variance=var_data,
+                origin=target_origin,
             )
 
     # Parse Models
@@ -82,17 +86,15 @@ def basic_config(config_file):
             model_info_list[-1]["name"] = name
     model_list = []
     for model in model_info_list:
-        model_list.append(
-            AutoProf_Model(target = target, **model)
-        )
+        model_list.append(AutoProf_Model(target=target, **model))
 
     MODEL = AutoProf_Model(
-        name = "AutoProf",
-        model_type = "group model",
-        model_list = model_list,
-        target = target,
+        name="AutoProf",
+        model_type="group model",
+        model_list=model_list,
+        target=target,
     )
-    
+
     # Parse Optimize
     ######################################################################
     AP_config.ap_logger.info("Running optimization")
@@ -105,13 +107,13 @@ def basic_config(config_file):
         pass
     elif optim_type == "LM":
         result = LM(MODEL, **optim_kwargs).fit()
-        
+
     # Parse Save
     ######################################################################
     AP_config.ap_logger.info("Saving model")
     model_save = config.get("ap_saveto_model", "AutoProf.yaml")
     MODEL.save(model_save)
-        
+
     model_image_save = config.get("ap_saveto_model_image", None)
     if model_image_save is not None:
         MODEL().save(model_image_save)
@@ -119,4 +121,3 @@ def basic_config(config_file):
     model_residual_save = config.get("ap_saveto_model_residual", None)
     if model_residual_save is not None:
         (target - MODEL()).save(model_residual_save)
-    

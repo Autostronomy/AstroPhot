@@ -57,14 +57,20 @@ class LM(BaseOptimizer):
         initial_state (Optional[Sequence]): an initial state for optimization
         epsilon4 (Optional[float]): approximation accuracy requirement, for any rho < epsilon4 the step will be rejected. Default 0.1
         epsilon5 (Optional[float]): numerical stability factor, added to the diagonal of the Hessian. Default 1e-8
-        constraints (Optional[Union[LM_Constraint,tuple[LM_Constraint]]]): Constraint objects which control the fitting process. 
+        constraints (Optional[Union[LM_Constraint,tuple[LM_Constraint]]]): Constraint objects which control the fitting process.
         L0 (Optional[float]): initial value for L factor in (H +L*I)h = G. Default 1.
         Lup (Optional[float]): amount to increase L when rejecting an update step. Default 11.
         Ldn (Optional[float]): amount to decrease L when accetping an update step. Default 9.
 
     """
-   
-    def __init__(self, model: "AutoProf_Model", initial_state: Sequence = None, max_iter: int = 100, **kwargs):
+
+    def __init__(
+        self,
+        model: "AutoProf_Model",
+        initial_state: Sequence = None,
+        max_iter: int = 100,
+        **kwargs,
+    ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         # Set optimizer parameters
@@ -102,7 +108,7 @@ class LM(BaseOptimizer):
         # update attributes with constraints
         self.constraints = kwargs.get("constraints", None)
         if self.constraints is not None and isinstance(self.constraints, LM_Constraint):
-            self.constraints = (self.constraints, )
+            self.constraints = (self.constraints,)
 
         if self.constraints is not None:
             for con in self.constraints:
@@ -110,9 +116,14 @@ class LM(BaseOptimizer):
                 self.W = torch.cat((self.W, 1 / con.weight))
                 self.ndf -= con.reduce_ndf
                 if self.model.target.has_mask:
-                    self.mask = torch.cat((self.mask, torch.zeros_like(con.reference_value, dtype = torch.bool)))
-                    
-    def L_up(self, Lup = None):
+                    self.mask = torch.cat(
+                        (
+                            self.mask,
+                            torch.zeros_like(con.reference_value, dtype=torch.bool),
+                        )
+                    )
+
+    def L_up(self, Lup=None):
         if Lup is None:
             Lup = self.Lup
         self.L = min(1e9, self.L * Lup)
@@ -132,7 +143,7 @@ class LM(BaseOptimizer):
                 f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}"
             )
         for count in range(20):
-            self.update_Yp(self.grad*L)
+            self.update_Yp(self.grad * L)
             loss = self.update_chi2()
 
             if not torch.isfinite(loss):
@@ -493,7 +504,11 @@ class LM(BaseOptimizer):
         Updates the current model values for each pixel
         """
         # Sample model at proposed state
-        self.current_Y = self.model(parameters = self.current_state + h, as_representation = True, override_locked = False).flatten("data")
+        self.current_Y = self.model(
+            parameters=self.current_state + h,
+            as_representation=True,
+            override_locked=False,
+        ).flatten("data")
 
         # Add constraint evaluations
         if self.constraints is not None:
@@ -507,12 +522,19 @@ class LM(BaseOptimizer):
         """
         # Apply mask if needed
         if self.model.target.has_mask:
-            loss = torch.sum(((self.Y - self.current_Y)**2 * self.W)[torch.logical_not(self.mask)]) / self.ndf
+            loss = (
+                torch.sum(
+                    ((self.Y - self.current_Y) ** 2 * self.W)[
+                        torch.logical_not(self.mask)
+                    ]
+                )
+                / self.ndf
+            )
         else:
-            loss = torch.sum((self.Y - self.current_Y)**2 * self.W) / self.ndf
-            
+            loss = torch.sum((self.Y - self.current_Y) ** 2 * self.W) / self.ndf
+
         return loss
-    
+
     def update_J_AD(self) -> None:
         """
         Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state.
@@ -524,9 +546,9 @@ class LM(BaseOptimizer):
 
         # Compute jacobian on image
         self.J = self.model.jacobian(
-            torch.clone(self.current_state).detach(), 
-            as_representation=True, 
-            override_locked=False
+            torch.clone(self.current_state).detach(),
+            as_representation=True,
+            override_locked=False,
         ).flatten("data")
 
         # compute the constraint jacobian if needed
@@ -536,8 +558,8 @@ class LM(BaseOptimizer):
 
         # Apply mask if needed
         if self.model.target.has_mask:
-            self.J[self.mask] = 0.
-            
+            self.J[self.mask] = 0.0
+
         # Note that the most recent jacobian was a full autograd jacobian
         self.full_jac = True
 
@@ -638,7 +660,8 @@ class LM(BaseOptimizer):
                 losses.append(self.loss_history[l])
         return lambdas, Ls, losses
 
-class LM_Constraint():
+
+class LM_Constraint:
     """Add an arbitrary constraint to the LM optimization algorithm.
 
     Expresses a constraint between parameters in the LM optimization
@@ -680,17 +703,17 @@ class LM_Constraint():
       reduce_ndf (float): Amount by which to reduce the degrees of freedom. Default 0.
 
     """
-    
+
     def __init__(
-            self,
-            constraint_func: Callable[[torch.Tensor, Any], torch.Tensor],
-            constraint_args: tuple = (),
-            representation_parameters: bool = False,
-            out_len: int = 1,
-            reduce_ndf: float = 0.,
-            weight: Optional[torch.Tensor] = None,
-            reference_value: Optional[torch.Tensor] = None,
-            **kwargs
+        self,
+        constraint_func: Callable[[torch.Tensor, Any], torch.Tensor],
+        constraint_args: tuple = (),
+        representation_parameters: bool = False,
+        out_len: int = 1,
+        reduce_ndf: float = 0.0,
+        weight: Optional[torch.Tensor] = None,
+        reference_value: Optional[torch.Tensor] = None,
+        **kwargs,
     ):
         self.constraint_func = constraint_func
         self.constraint_args = constraint_args
@@ -699,30 +722,32 @@ class LM_Constraint():
         self.reduce_ndf = reduce_ndf
         self.reference_value = torch.as_tensor(
             reference_value if reference_value is not None else torch.zeros(out_len),
-            dtype = AP_config.ap_dtype,
-            device = AP_config.ap_device
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
         )
         self.weight = torch.as_tensor(
             weight if weight is not None else torch.ones(out_len),
-            dtype = AP_config.ap_dtype,
-            device = AP_config.ap_device
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
         )
 
     def jacobian(self, model: "AutoProf_Model"):
-
         jac = jacobian(
             lambda P: self.constraint_func(P, *self.constraint_args),
-            model.get_parameter_vector(as_representation = self.representation_parameters),
-            strategy = "forward-mode",
-            vectorize = True,
-            create_graph = False,
+            model.get_parameter_vector(
+                as_representation=self.representation_parameters
+            ),
+            strategy="forward-mode",
+            vectorize=True,
+            create_graph=False,
         )
-            
-        return jac.reshape(-1, np.sum(model.parameter_vector_len()))        
+
+        return jac.reshape(-1, np.sum(model.parameter_vector_len()))
 
     def __call__(self, model: "AutoProf_Model"):
-        
         return self.constraint_func(
-            model.get_parameter_vector(as_representation = self.representation_parameters),
-            *self.constraint_args
+            model.get_parameter_vector(
+                as_representation=self.representation_parameters
+            ),
+            *self.constraint_args,
         )

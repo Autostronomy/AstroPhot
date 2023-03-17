@@ -9,6 +9,7 @@ from .. import AP_config
 
 __all__ = ["Jacobian_Image", "Jacobian_Image_List"]
 
+
 ######################################################################
 class Jacobian_Image(BaseImage):
     """Jacobian of a model evaluated in an image.
@@ -21,35 +22,40 @@ class Jacobian_Image(BaseImage):
     """
 
     def __init__(
-            self,
-            parameters: List[str],
-            target_identity: str,
-            **kwargs,
+        self,
+        parameters: List[str],
+        target_identity: str,
+        **kwargs,
     ):
         super().__init__(**kwargs)
-        
+
         self.target_identity = target_identity
         self.parameters = parameters
-        assert len(self.parameters) == len(set(self.parameters)), "Every parameter should be unique upon jacobian creation"
+        assert len(self.parameters) == len(
+            set(self.parameters)
+        ), "Every parameter should be unique upon jacobian creation"
 
     def flatten(self, attribute: str = "data"):
         return getattr(self, attribute).reshape((-1, len(self.parameters)))
 
     def copy(self, **kwargs):
         return super().copy(
-            parameters = self.parameters,
-            target_identity = self.target_identity,
-            **kwargs
+            parameters=self.parameters, target_identity=self.target_identity, **kwargs
         )
-    
+
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
+
     def __sub__(self, other):
         raise NotImplementedError("Jacobian images cannot subtract")
+
     def __isub__(self, other):
         raise NotImplementedError("Jacobian images cannot subtract")
+
     def __iadd__(self, other):
-        assert isinstance(other, Jacobian_Image), "Jacobian images can only add with each other"
+        assert isinstance(
+            other, Jacobian_Image
+        ), "Jacobian images can only add with each other"
         full_window = self.window | other.window
         if full_window > self.window:
             warnings.warn("Jacobian image addition without full coverage")
@@ -59,12 +65,23 @@ class Jacobian_Image(BaseImage):
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)
             else:
-                self.set_data(torch.cat((self.data, torch.zeros(self.data.shape[0], self.data.shape[1], 1)), dim=2), require_shape = False)
+                self.set_data(
+                    torch.cat(
+                        (
+                            self.data,
+                            torch.zeros(self.data.shape[0], self.data.shape[1], 1),
+                        ),
+                        dim=2,
+                    ),
+                    require_shape=False,
+                )
                 self.parameters.append(other_identity)
                 other_loc = -1
             print(other_identity, indices, other_loc, self.data.shape, other.data.shape)
-            self.data[indices[0],indices[1],other_loc] += other.data[:,:,i] # fixme match indices for other as well
+            # fixme match indices for other as well
+            self.data[indices[0], indices[1], other_loc] += other.data[:, :, i]
         return self
+
 
 ######################################################################
 class Jacobian_Image_List(Image_List, Jacobian_Image):
@@ -79,20 +96,27 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
     and image.
 
     """
+
     def __init__(self, image_list):
         super().__init__(image_list)
 
-    def flatten(self, attribute = "data"):
+    def flatten(self, attribute="data"):
         if len(self.image_list) > 1:
             for image in self.image_list[1:]:
-                assert self.image_list[0].parameters == image.parameters, "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used"
+                assert (
+                    self.image_list[0].parameters == image.parameters
+                ), "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used"
         return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
+
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
+
     def __sub__(self, other):
         raise NotImplementedError("Jacobian images cannot subtract")
+
     def __isub__(self, other):
         raise NotImplementedError("Jacobian images cannot subtract")
+
     def __iadd__(self, other):
         if isinstance(other, Jacobian_Image_List):
             for other_image in other.image_list:
@@ -114,4 +138,3 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
             for self_image, other_image in zip(self.image_list, other):
                 self_image += other_image
         return self
-    
