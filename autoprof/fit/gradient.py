@@ -8,12 +8,13 @@ from .base import BaseOptimizer
 
 __all__ = ["Grad"]
 
+
 class Grad(BaseOptimizer):
     """A gradient descent optimization wrapper for AutoProf_Model objects.
 
-    The default method is "NAdam", a variant of the Adam optimization algorithm. 
-    This optimizer uses a combination of gradient descent and Nesterov momentum for faster convergence. 
-    The optimizer is instantiated with a set of initial parameters and optimization options provided by the user. 
+    The default method is "NAdam", a variant of the Adam optimization algorithm.
+    This optimizer uses a combination of gradient descent and Nesterov momentum for faster convergence.
+    The optimizer is instantiated with a set of initial parameters and optimization options provided by the user.
     The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
     Parameters:
@@ -33,12 +34,13 @@ class Grad(BaseOptimizer):
         patience (int or None): the number of iterations without improvement before the optimizer will exit early.
         method (str): the optimization method being used.
         optim_kwargs (dict): the dictionary of keyword arguments passed to the PyTorch optimizer.
-   
+
 
     """
 
-    
-    def __init__(self, model: 'AutoProf_Model', initial_state: Sequence = None, **kwargs) -> None:
+    def __init__(
+        self, model: "AutoProf_Model", initial_state: Sequence = None, **kwargs
+    ) -> None:
         """Initialize the gradient descent optimizer.
 
         Args:
@@ -59,32 +61,40 @@ class Grad(BaseOptimizer):
 
         # Default learning rate if none given. Equalt to 1 / sqrt(parames)
         if not "lr" in self.optim_kwargs:
-            self.optim_kwargs["lr"] = 1. / (len(self.current_state)**(0.5))
+            self.optim_kwargs["lr"] = 1.0 / (len(self.current_state) ** (0.5))
 
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
-        self.optimizer = getattr(torch.optim, self.method)((self.current_state,), **self.optim_kwargs)
+        self.optimizer = getattr(torch.optim, self.method)(
+            (self.current_state,), **self.optim_kwargs
+        )
 
     def compute_loss(self) -> torch.Tensor:
-        Ym = self.model(parameters = self.current_state, as_representation = True, override_locked = False).flatten()
+        Ym = self.model(
+            parameters=self.current_state, as_representation=True, override_locked=False
+        ).flatten()
         Yt = self.model.target.flatten("data")
-        W = self.model.target.flatten("variance") if self.model.target.has_variance else 1.
+        W = (
+            self.model.target.flatten("variance")
+            if self.model.target.has_variance
+            else 1.0
+        )
 
-        loss = torch.sum((Ym - Yt)**2 / W)
+        loss = torch.sum((Ym - Yt) ** 2 / W)
         return loss
-    
+
     def step(self) -> None:
         """Take a single gradient step. Take a single gradient step.
-        
-            Computes the loss function of the model, 
-            computes the gradient of the parameters using automatic differentiation,
-            and takes a step with the PyTorch optimizer.
-       
+
+        Computes the loss function of the model,
+        computes the gradient of the parameters using automatic differentiation,
+        and takes a step with the PyTorch optimizer.
+
         """
-        
+
         self.iteration += 1
-                
+
         self.optimizer.zero_grad()
-        
+
         loss = self.compute_loss()
 
         loss.backward()
@@ -96,25 +106,29 @@ class Grad(BaseOptimizer):
         if self.verbose > 1:
             AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
-        
-    def fit(self) -> 'BaseOptimizer':
+
+    def fit(self) -> "BaseOptimizer":
         """
         Perform an iterative fit of the model parameters using the specified optimizer.
-        
-        The fit procedure continues until a stopping criteria is met, 
+
+        The fit procedure continues until a stopping criteria is met,
         such as the maximum number of iterations being reached,
         or no improvement being made after a specified number of iterations.
-        
+
         """
         start_fit = time()
-        
+
         try:
             while True:
                 self.step()
                 if self.iteration >= self.max_iter:
                     self.message = self.message + " fail max iteration reached"
                     break
-                if self.patience is not None and (len(self.loss_history) - np.argmin(self.loss_history)) > self.patience:
+                if (
+                    self.patience is not None
+                    and (len(self.loss_history) - np.argmin(self.loss_history))
+                    > self.patience
+                ):
                     self.message = self.message + " fail no improvement"
                     break
                 L = np.sort(self.loss_history)
@@ -125,8 +139,11 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.set_parameters(torch.tensor(self.res()), as_representation = True, override_locked = False)
+        self.model.set_parameters(
+            torch.tensor(self.res()), as_representation=True, override_locked=False
+        )
         if self.verbose > 1:
-            AP_config.ap_logger.info("Grad Fitting complete in {time() - start_fit} sec with message: self.message")
+            AP_config.ap_logger.info(
+                "Grad Fitting complete in {time() - start_fit} sec with message: self.message"
+            )
         return self
-        

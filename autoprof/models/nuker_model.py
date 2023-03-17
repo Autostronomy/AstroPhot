@@ -8,20 +8,32 @@ from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from ._shared_methods import parametric_initialize, parametric_segment_initialize, select_target
+from ._shared_methods import (
+    parametric_initialize,
+    parametric_segment_initialize,
+    select_target,
+)
 from ..utils.parametric_profiles import nuker_np
 
 __all__ = [
-    "Nuker_Galaxy", "Nuker_Star", "Nuker_SuperEllipse",
-    "Nuker_SuperEllipse_Warp", "Nuker_FourierEllipse",
-    "Nuker_FourierEllipse_Warp", "Nuker_Warp", "Nuker_Ray"
+    "Nuker_Galaxy",
+    "Nuker_Star",
+    "Nuker_SuperEllipse",
+    "Nuker_SuperEllipse_Warp",
+    "Nuker_FourierEllipse",
+    "Nuker_FourierEllipse_Warp",
+    "Nuker_Warp",
+    "Nuker_Ray",
 ]
 
+
 def _x0_func(model_params, R, F):
-    return R[4], F[4], 1., 2., 0.5
-def _wrap_nuker(R,rb,ib,a,b,g):
-    return nuker_np(R, rb,10**(ib),a,b,g)
-        
+    return R[4], F[4], 1.0, 2.0, 0.5
+
+
+def _wrap_nuker(R, rb, ib, a, b, g):
+    return nuker_np(R, rb, 10 ** (ib), a, b, g)
+
 
 class Nuker_Galaxy(Galaxy_Model):
     """basic galaxy model with a Nuker profile for the radial light
@@ -43,25 +55,37 @@ class Nuker_Galaxy(Galaxy_Model):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {Galaxy_Model.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = Galaxy_Model._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = Galaxy_Model._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
+
     # from ._shared_methods import nuker_initialize as initialize
+
 
 class Nuker_Star(Star_Model):
     """basic star model with a Nuker profile for the radial light
@@ -83,28 +107,41 @@ class Nuker_Star(Star_Model):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {Star_Model.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = Star_Model._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = Star_Model._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
+
     def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+        X, Y = image.get_coordinate_meshgrid_torch(
+            self["center"].value[0], self["center"].value[1]
+        )
         return self.radial_model(self.radius_metric(X, Y), image)
-    
+
 
 class Nuker_SuperEllipse(SuperEllipse_Galaxy):
     """super ellipse galaxy model with a Nuker profile for the radial
@@ -126,24 +163,35 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = SuperEllipse_Galaxy._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
+
 
 class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
     """super ellipse warp galaxy model with a Nuker profile for the
@@ -167,24 +215,35 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
 
 
     """
+
     model_type = f"nuker {SuperEllipse_Warp.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = SuperEllipse_Warp._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = SuperEllipse_Warp._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
+
 
 class Nuker_FourierEllipse(FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with a Nuker
@@ -207,24 +266,35 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = FourierEllipse_Galaxy._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
+
 
 class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a Nuker
@@ -247,25 +317,36 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {FourierEllipse_Warp.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = FourierEllipse_Warp._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = FourierEllipse_Warp._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
-    
+
+
 class Nuker_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a Nuker profile for the radial
     light model. The functional form of the Nuker profile is defined
@@ -287,24 +368,35 @@ class Nuker_Warp(Warp_Galaxy):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = Warp_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = Warp_Galaxy._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func)
+
+        parametric_initialize(
+            self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+        )
+
     from ._shared_methods import nuker_radial_model as radial_model
+
 
 class Nuker_Ray(Ray_Galaxy):
     """ray galaxy model with a nuker profile for the radial light
@@ -326,26 +418,41 @@ class Nuker_Ray(Ray_Galaxy):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {Ray_Galaxy.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = Ray_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = Ray_Galaxy._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_segment_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func, self.rays)
-            
+
+        parametric_segment_initialize(
+            self,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
+            self.rays,
+        )
+
     from ._shared_methods import nuker_iradial_model as iradial_model
-    
+
+
 class Nuker_Wedge(Wedge_Galaxy):
     """wedge galaxy model with a nuker profile for the radial light
     model. The functional form of the Sersic profile is defined as:
@@ -366,22 +473,36 @@ class Nuker_Wedge(Wedge_Galaxy):
         gamma: inner power law slope
 
     """
+
     model_type = f"nuker {Wedge_Galaxy.model_type}"
     parameter_specs = {
-        "Rb": {"units": "arcsec", "limits": (0,None)},
+        "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = Wedge_Galaxy._parameter_order + ("Rb", "Ib", "alpha", "beta", "gamma")
+    _parameter_order = Wedge_Galaxy._parameter_order + (
+        "Rb",
+        "Ib",
+        "alpha",
+        "beta",
+        "gamma",
+    )
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_segment_initialize(self, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func, self.wedges)
-            
+
+        parametric_segment_initialize(
+            self,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
+            self.wedges,
+        )
+
     from ._shared_methods import nuker_iradial_model as iradial_model

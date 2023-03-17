@@ -8,6 +8,7 @@ from ..utils.interpolate import shift_Lanczos_torch
 
 __all__ = ["Model_Image", "Model_Image_List"]
 
+
 ######################################################################
 class Model_Image(BaseImage):
     """Image object which represents the sampling of a model at the given
@@ -17,37 +18,58 @@ class Model_Image(BaseImage):
     accuracy.
 
     """
-    def __init__(self, pixelscale = None, data = None, window = None, **kwargs):
+
+    def __init__(self, pixelscale=None, data=None, window=None, **kwargs):
         assert not (data is None and window is None)
         if data is None:
-            data = torch.zeros(tuple(torch.flip(torch.round(window.shape/pixelscale).int(), (0,))), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        super().__init__(data = data, pixelscale = pixelscale, window = window, **kwargs)
+            data = torch.zeros(
+                tuple(torch.flip(torch.round(window.shape / pixelscale).int(), (0,))),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+        super().__init__(data=data, pixelscale=pixelscale, window=window, **kwargs)
         self.target_identity = kwargs.get("target_identity", None)
         self.to()
-        
+
     def clear_image(self):
         self.data = torch.zeros_like(self.data)
 
-    def shift_origin(self, shift, is_prepadded = True):
+    def shift_origin(self, shift, is_prepadded=True):
         self.window.shift_origin(shift)
-        if torch.any(torch.abs(shift/self.pixelscale) > 1):
+        if torch.any(torch.abs(shift / self.pixelscale) > 1):
             raise NotImplementedError("Shifts larger than 1 are currently not handled")
-        self.data = shift_Lanczos_torch(self.data, shift[0]/self.pixelscale, shift[1]/self.pixelscale, min(min(self.data.shape), 10), dtype = AP_config.ap_dtype, device = AP_config.ap_device, img_prepadded = is_prepadded)
+        self.data = shift_Lanczos_torch(
+            self.data,
+            shift[0] / self.pixelscale,
+            shift[1] / self.pixelscale,
+            min(min(self.data.shape), 10),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+            img_prepadded=is_prepadded,
+        )
 
     def get_window(self, window: Window, **kwargs):
-        return super().get_window(window, target_identity = self.target_identity, **kwargs)
+        return super().get_window(
+            window, target_identity=self.target_identity, **kwargs
+        )
+
     def reduce(self, scale, **kwargs):
-        return super().reduce(scale, target_identity = self.target_identity, **kwargs)
-        
-    def replace(self, other, data = None):
+        return super().reduce(scale, target_identity=self.target_identity, **kwargs)
+
+    def replace(self, other, data=None):
         if isinstance(other, BaseImage):
             if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
-            if torch.any((self.origin + self.shape) < other.origin) or torch.any((other.origin + other.shape) < self.origin):
+            if torch.any((self.origin + self.shape) < other.origin) or torch.any(
+                (other.origin + other.shape) < self.origin
+            ):
                 return
             other_indices = self.window.get_indices(other)
             self_indices = other.window.get_indices(self)
-            if self.data[self_indices].nelement() == 0 or other.data[other_indices].nelement() == 0:
+            if (
+                self.data[self_indices].nelement() == 0
+                or other.data[other_indices].nelement() == 0
+            ):
                 return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
@@ -55,13 +77,15 @@ class Model_Image(BaseImage):
         else:
             self.data = other
 
+
 ######################################################################
 class Model_Image_List(Image_List, Model_Image):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        assert all(isinstance(image, Model_Image) for image in self.image_list), f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}"
-        
+        assert all(
+            isinstance(image, Model_Image) for image in self.image_list
+        ), f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}"
+
     def clear_image(self):
         for image in self.image_list:
             image.clear_image()
@@ -69,13 +93,14 @@ class Model_Image_List(Image_List, Model_Image):
     def shift_origin(self, shift):
         raise NotImplementedError()
 
-    def replace(self, other, data = None):
+    def replace(self, other, data=None):
         if data is None:
             for image, oth in zip(self.image_list, other):
                 image.replace(oth)
         else:
             for image, oth, dat in zip(self.image_list, other, data):
                 image.replace(oth, dat)
+
     @property
     def target_identity(self):
         targets = tuple(image.target_identity for image in self.image_list)
@@ -83,7 +108,6 @@ class Model_Image_List(Image_List, Model_Image):
             return None
         return targets
 
-        
     def __isub__(self, other):
         if isinstance(other, Model_Image_List):
             for other_image, zip_self_image in zip(other.image_list, self.image_list):
@@ -110,6 +134,7 @@ class Model_Image_List(Image_List, Model_Image):
             for self_image, other_image in zip(self.image_list, other):
                 self_image -= other_image
         return self
+
     def __iadd__(self, other):
         if isinstance(other, Model_Image_List):
             for other_image, zip_self_image in zip(other.image_list, self.image_list):

@@ -10,21 +10,21 @@ main_pallet = {
     "primary3": "#2D936C",
     "secondary1": "#595122",
     "secondary2": "#BFAE48",
-    "pop": "#391463",    
+    "pop": "#391463",
 }
 
 grad_list = [
     "#000000",
     "#1A1F16",
     "#1E3F20",
-    "#335E31", #"#294C28",
-    "#477641", #"#345830",
-    "#5D986D", #"#4A7856",
-    "#88BF9E", #"#6FB28A",
+    "#335E31",  # "#294C28",
+    "#477641",  # "#345830",
+    "#5D986D",  # "#4A7856",
+    "#88BF9E",  # "#6FB28A",
     "#94ECBE",
-    "#FFFFFF"
+    "#FFFFFF",
 ]
-#grad_list = ["#000000", "#1A1F16", "#1E3F20", "#294C28", "#345830", "#4A7856", "#6FB28A", "#94ECBE", "#FFFFFF"]
+# grad_list = ["#000000", "#1A1F16", "#1E3F20", "#294C28", "#345830", "#4A7856", "#6FB28A", "#94ECBE", "#FFFFFF"]
 grad_cdict = {"red": [], "green": [], "blue": []}
 cpoints = np.linspace(0, 1, len(grad_list))
 for i in range(len(grad_list)):
@@ -52,7 +52,7 @@ div_list = [
     "#0D5D09",
     "#073805",
 ]
-#div_list = ["#083D77", "#7E886B", "#B9AE65", "#FFFFFF", "#F1B555", "#EE964B", "#F95738"]
+# div_list = ["#083D77", "#7E886B", "#B9AE65", "#FFFFFF", "#F1B555", "#EE964B", "#F95738"]
 div_cdict = {"red": [], "green": [], "blue": []}
 cpoints = np.linspace(0, 1, len(div_list))
 for i in range(len(div_list)):
@@ -72,7 +72,7 @@ cmap_div = LinearSegmentedColormap("cmap_div", div_cdict)
 # N = 3
 # print(np.concatenate((C(np.linspace(0,1,N)),np.array(((1,1,1,1),)),P(np.linspace(0,1,N)))))
 # cmap_div = ListedColormap(["#083D77", "#7E886B", "#B9AE65", "#FFFFFF", "#F1B555", "#EE964B", "#F95738"])
-    
+
 # main_pallet = {
 #     "primary1": "g",
 #     "primary2": "r",

@@ -12,6 +12,7 @@ from .. import AP_config
 
 __all__ = ["Group_Model"]
 
+
 class Group_Model(AutoProf_Model):
     """Model object which represents a list of other models. For each
     general AutoProf model method, this calls all the appropriate
@@ -30,9 +31,15 @@ class Group_Model(AutoProf_Model):
 
     model_type = f"group {AutoProf_Model.model_type}"
     useable = True
-    
-    def __init__(self, name: str, *args, model_list: Optional[Sequence[AutoProf_Model]] = None, **kwargs):
-        super().__init__(name, *args, model_list = model_list, **kwargs)
+
+    def __init__(
+        self,
+        name: str,
+        *args,
+        model_list: Optional[Sequence[AutoProf_Model]] = None,
+        **kwargs,
+    ):
+        super().__init__(name, *args, model_list=model_list, **kwargs)
         self._param_tuple = None
         self.model_list = []
         if model_list is not None:
@@ -41,7 +48,7 @@ class Group_Model(AutoProf_Model):
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"])
-            
+
     def add_model(self, model):
         """Adds a new model to the group model list. Ensures that the same
         model isn't added a second time.
@@ -56,8 +63,10 @@ class Group_Model(AutoProf_Model):
             return
         for mod in self.model_list:
             if model.name == mod.name:
-                raise KeyError(f"{self.name} already has model with name {model.name}, every model must have a unique name.")
-            
+                raise KeyError(
+                    f"{self.name} already has model with name {model.name}, every model must have a unique name."
+                )
+
         self.model_list.append(model)
         self.update_window()
 
@@ -83,8 +92,10 @@ class Group_Model(AutoProf_Model):
         sub models in this group model object.
 
         """
-        if isinstance(self.target, Image_List): # Window_List if target is a Target_Image_List
-            new_window = [None]*len(self.target.image_list)
+        if isinstance(
+            self.target, Image_List
+        ):  # Window_List if target is a Target_Image_List
+            new_window = [None] * len(self.target.image_list)
             for model in self.model_list:
                 if model.locked and not include_locked:
                     continue
@@ -102,7 +113,9 @@ class Group_Model(AutoProf_Model):
                     else:
                         new_window[index] |= model.window
                 else:
-                    raise NotImplementedError("Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image")
+                    raise NotImplementedError(
+                        "Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image"
+                    )
             new_window = Window_List(new_window)
         else:
             new_window = None
@@ -114,7 +127,7 @@ class Group_Model(AutoProf_Model):
                 else:
                     new_window |= model.window
         self.window = new_window
-                
+
     def parameter_tuples_order(self, override_locked: bool = False):
         """Constructs a list where each entry is a tuple with a unique name
         for the parameter and the parameter object itself.
@@ -137,7 +150,7 @@ class Group_Model(AutoProf_Model):
                 else:
                     params.append((f"{model.name}|{p}", model.parameters[p]))
         return params
-        
+
     def parameter_order(self, override_locked: bool = True):
         """Gives the unique parameter names for this model in a repeatable
         order. By default, locked parameters are excluded from the
@@ -145,18 +158,16 @@ class Group_Model(AutoProf_Model):
         when called with override_locked True/False.
 
         """
-        param_tuples = self.parameter_tuples_order(override_locked = override_locked)
+        param_tuples = self.parameter_tuples_order(override_locked=override_locked)
         return tuple(P[0] for P in param_tuples)
 
     @property
     def param_tuple(self):
-        """A tuple with the name of every parameter in the group model
-
-        """
+        """A tuple with the name of every parameter in the group model"""
         if self._param_tuple is None:
-            self._param_tuple = self.parameter_tuples_order(override_locked = True)
+            self._param_tuple = self.parameter_tuples_order(override_locked=True)
         return self._param_tuple
-    
+
     @property
     def parameters(self):
         """A dictionary in which every unique parameter appears once. This
@@ -169,6 +180,7 @@ class Group_Model(AutoProf_Model):
             return dict(P for P in self.param_tuple)
         except AttributeError:
             return {}
+
     @parameters.setter
     def parameters(self, val):
         """You cannot set the parameters at the group model level, this
@@ -177,7 +189,7 @@ class Group_Model(AutoProf_Model):
 
         """
         pass
-        
+
     @torch.no_grad()
     @select_target
     def initialize(self, target: Optional["Target_Image"] = None):
@@ -193,7 +205,7 @@ class Group_Model(AutoProf_Model):
         for model in self.model_list:
             model.initialize(target_copy)
             target_copy -= model()
-            
+
     def sample(self, image: Optional["Model_Image"] = None, *args, **kwargs):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
@@ -202,16 +214,16 @@ class Group_Model(AutoProf_Model):
 
         Args:
           image (Optional["Model_Image"]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
-        
+
         """
         self._param_tuple = None
-        
+
         if image is None:
             sample_window = True
             image = self.make_model_image()
         else:
             sample_window = False
-            
+
         for model in self.model_list:
             if sample_window:
                 # Will sample the model fit window then add to the image
@@ -222,7 +234,14 @@ class Group_Model(AutoProf_Model):
 
         return image
 
-    def jacobian(self, parameters: Optional[torch.Tensor] = None, as_representation: bool = False, override_locked: bool = False, pass_jacobian: Optional["Jacobian_Image"] = None, **kwargs):
+    def jacobian(
+        self,
+        parameters: Optional[torch.Tensor] = None,
+        as_representation: bool = False,
+        override_locked: bool = False,
+        pass_jacobian: Optional["Jacobian_Image"] = None,
+        **kwargs,
+    ):
         """Compute the jacobian for this model. Done by first constructing a
         full jacobian (Npixels * Nparameters) of zeros then call the
         jacobian method of each sub model and add it in to the total.
@@ -235,45 +254,56 @@ class Group_Model(AutoProf_Model):
 
         """
         if parameters is not None:
-            self.set_parameters(parameters, override_locked = override_locked, as_representation = as_representation)
+            self.set_parameters(
+                parameters,
+                override_locked=override_locked,
+                as_representation=as_representation,
+            )
 
         if pass_jacobian is None:
-            jac_img = self.target[self.window].jacobian_image(parameters = self.get_parameter_identity_vector())
+            jac_img = self.target[self.window].jacobian_image(
+                parameters=self.get_parameter_identity_vector()
+            )
         else:
             jac_img = pass_jacobian
-            
+
         for model in self.model_list:
-            jac_img += model.jacobian(as_representation = as_representation, override_locked = override_locked, pass_jacobian = jac_img)
-            
+            jac_img += model.jacobian(
+                as_representation=as_representation,
+                override_locked=override_locked,
+                pass_jacobian=jac_img,
+            )
+
         return jac_img
-        
+
     def __getitem__(self, key):
         try:
             return self.parameters[key]
         except KeyError:
             pass
-        
+
         if isinstance(key, str) and "|" in key:
-            model_name = key[:key.find("|")].split(":")
+            model_name = key[: key.find("|")].split(":")
             for model in self.model_list:
                 if model.name in model_name:
-                    return model[key[key.find("|")+1:]]
+                    return model[key[key.find("|") + 1 :]]
         elif isinstance(key, str):
             for model in self.model_list:
                 if model.name == key:
                     return model
-        
+
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 
     @property
     def psf_mode(self):
         return self._psf_mode
+
     @psf_mode.setter
     def psf_mode(self, value):
         self._psf_mode = value
         for model in self.model_list:
             model.psf_mode = value
-    
+
     def get_state(self):
         """Returns a dictionary with information about the state of the model
         and its parameters.
@@ -286,7 +316,7 @@ class Group_Model(AutoProf_Model):
             state["models"][model.name] = model.get_state()
         return state
 
-    def load(self, filename = "AutoProf.yaml"):
+    def load(self, filename="AutoProf.yaml"):
         """Loads an AutoProf state file and updates this model with the
         loaded parameters.
 
@@ -299,5 +329,9 @@ class Group_Model(AutoProf_Model):
                     own_model.load(state["models"][model])
                     break
             else:
-                self.add_model(AutoProf_Model(name = model, filename = state["models"][model], target = self.target))
+                self.add_model(
+                    AutoProf_Model(
+                        name=model, filename=state["models"][model], target=self.target
+                    )
+                )
         self.update_window()

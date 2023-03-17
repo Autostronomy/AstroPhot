@@ -8,16 +8,31 @@ from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from .star_model_object import Star_Model
-from ._shared_methods import parametric_initialize, parametric_segment_initialize, select_target
+from ._shared_methods import (
+    parametric_initialize,
+    parametric_segment_initialize,
+    select_target,
+)
 from ..utils.parametric_profiles import gaussian_torch, gaussian_np
 
-__all__ = ["Gaussian_Galaxy", "Gaussian_SuperEllipse", "Gaussian_SuperEllipse_Warp", "Gaussian_FourierEllipse", "Gaussian_FourierEllipse_Warp", "Gaussian_Warp", "Gaussian_Star"]
+__all__ = [
+    "Gaussian_Galaxy",
+    "Gaussian_SuperEllipse",
+    "Gaussian_SuperEllipse_Warp",
+    "Gaussian_FourierEllipse",
+    "Gaussian_FourierEllipse_Warp",
+    "Gaussian_Warp",
+    "Gaussian_Star",
+]
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[0]    
-def _wrap_gauss(R, sig,flu):
+    return R[4], F[0]
+
+
+def _wrap_gauss(R, sig, flu):
     return gaussian_np(R, sig, 10**flu)
+
 
 class Gaussian_Galaxy(Galaxy_Model):
     """Basic galaxy model with Gaussian as the radial light profile. The
@@ -32,23 +47,26 @@ class Gaussian_Galaxy(Galaxy_Model):
     Parameters:
         sigma: standard deviation of the gaussian profile, must be a positive value
         flux: the total flux in the gaussian model, represented as the log of the total
-    
+
     """
+
     model_type = f"gaussian {Galaxy_Model.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("sigma", "flux")
     useable = True
-    
+
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
+
 
 class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     """Super ellipse galaxy model with Gaussian as the radial light
@@ -65,21 +83,24 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
+
 
 class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     """super ellipse warp galaxy model with a gaussian profile for the
@@ -96,22 +117,25 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {SuperEllipse_Warp.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
-    
+
+
 class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with a gaussian
     profile for the radial light profile. The gaussian radial profile
@@ -128,21 +152,24 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
+
 
 class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a gaussian
@@ -160,21 +187,24 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {FourierEllipse_Warp.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
+
 
 class Gaussian_Warp(Warp_Galaxy):
     """Coordinate warped galaxy model with Gaussian as the radial light
@@ -191,21 +221,24 @@ class Gaussian_Warp(Warp_Galaxy):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
+
 
 class Gaussian_Star(Star_Model):
     """Basica star model with a Gaussian as the radial light profile. The
@@ -222,25 +255,30 @@ class Gaussian_Star(Star_Model):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {Star_Model.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)        
+
+        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+
     from ._shared_methods import gaussian_radial_model as radial_model
 
     def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+        X, Y = image.get_coordinate_meshgrid_torch(
+            self["center"].value[0], self["center"].value[1]
+        )
         return self.radial_model(torch.sqrt(X**2 + Y**2), image)
+
 
 class Gaussian_Ray(Ray_Galaxy):
     """ray galaxy model with a gaussian profile for the radial light
@@ -257,22 +295,26 @@ class Gaussian_Ray(Ray_Galaxy):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {Ray_Galaxy.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_segment_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.rays)
-            
+
+        parametric_segment_initialize(
+            self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.rays
+        )
+
     from ._shared_methods import gaussian_iradial_model as iradial_model
+
 
 class Gaussian_Wedge(Wedge_Galaxy):
     """wedge galaxy model with a gaussian profile for the radial light
@@ -289,19 +331,22 @@ class Gaussian_Wedge(Wedge_Galaxy):
         flux: the total flux in the gaussian model, represented as the log of the total
 
     """
+
     model_type = f"gaussian {Wedge_Galaxy.model_type}"
     parameter_specs = {
-        "sigma": {"units": "arcsec", "limits": (0,None)},
-        "flux": {"units": "log10(flux)", "limits": (0,None)},
+        "sigma": {"units": "arcsec", "limits": (0, None)},
+        "flux": {"units": "log10(flux)", "limits": (0, None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        parametric_segment_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.wedges)
-            
-    from ._shared_methods import gaussian_iradial_model as iradial_model    
+
+        parametric_segment_initialize(
+            self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.wedges
+        )
+
+    from ._shared_methods import gaussian_iradial_model as iradial_model
