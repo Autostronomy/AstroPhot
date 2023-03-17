@@ -150,6 +150,23 @@ class TestTargetImageList(unittest.TestCase):
         
         self.assertTrue(torch.all(test_image[0].data == save_image[0].data), "adding then subtracting should give the same image")
         self.assertTrue(torch.all(test_image[1].data == save_image[1].data), "adding then subtracting should give the same image")
-    
+
+class TestJacobianImageList(unittest.TestCase):
+    def test_jacobian_image_list_creation(self):
+        arr1 = torch.zeros((10,15,3))
+        base_image1 = ap.image.Jacobian_Image(data = arr1, parameters = ["a", "b", "c"], target_identity = "target1", pixelscale = 1.0, zeropoint = 1.0, note = 'test image 1', window = ap.image.Window(origin = torch.zeros(2) + 0.1, shape = torch.tensor((15, 10))))
+        arr2 = torch.ones((15,10,3))
+        base_image2 = ap.image.Jacobian_Image(data = arr2, parameters = ["a", "b", "c"], target_identity = "target2", pixelscale = 0.5, zeropoint = 2.0, note = 'test image 2', window = ap.image.Window(origin = torch.zeros(2) + 0.2, shape = torch.tensor((10, 15))))
+
+        test_image = ap.image.Jacobian_Image_List((base_image1, base_image2))
+
+        second_image = test_image.copy()
+
+        print(test_image[0].target_identity, test_image[0].data.shape, test_image[1].target_identity, test_image[1].data.shape)
+        print(second_image[0].target_identity, second_image[0].data.shape, second_image[1].target_identity, second_image[1].data.shape)
+        test_image += second_image
+
+        self.assertEqual(test_image.flatten("data").shape, (300,3), "flattened jacobian should include all pixels and merge parameters")
+        
 if __name__ == "__main__":
     unittest.main()

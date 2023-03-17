@@ -169,7 +169,7 @@ class Target_Image(BaseImage):
         return Jacobian_Image(
             parameters = parameters,
             target_identity = self.identity,
-            data = torch.zeros((*self.data.shape,len(parameters))) if data is None else data,
+            data = torch.zeros((*self.data.shape,len(parameters)), dtype = AP_config.ap_dtype, device = AP_config.ap_device) if data is None else data,
             pixelscale = self.pixelscale,
             zeropoint = self.zeropoint,
             window = self.window,

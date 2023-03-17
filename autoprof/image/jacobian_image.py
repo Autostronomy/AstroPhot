@@ -34,6 +34,13 @@ class Jacobian_Image(BaseImage):
 
     def flatten(self, attribute: str = "data"):
         return getattr(self, attribute).reshape((-1, len(self.parameters)))
+
+    def copy(self, **kwargs):
+        return super().copy(
+            parameters = self.parameters,
+            target_identity = self.target_identity,
+            **kwargs
+        )
     
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
@@ -55,7 +62,8 @@ class Jacobian_Image(BaseImage):
                 self.set_data(torch.cat((self.data, torch.zeros(self.data.shape[0], self.data.shape[1], 1)), dim=2), require_shape = False)
                 self.parameters.append(other_identity)
                 other_loc = -1
-            self.data[indices[0],indices[1],other_loc] += other.data[:,:,i]
+            print(other_identity, indices, other_loc, self.data.shape, other.data.shape)
+            self.data[indices[0],indices[1],other_loc] += other.data[:,:,i] # fixme match indices for other as well
         return self
 
 ######################################################################
@@ -74,6 +82,11 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
     def __init__(self, image_list):
         super().__init__(image_list)
 
+    def flatten(self, attribute = "data"):
+        if len(self.image_list) > 1:
+            for image in self.image_list[1:]:
+                assert self.image_list[0].parameters == image.parameters, "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used"
+        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
     def __sub__(self, other):
@@ -85,6 +98,7 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
             for other_image in other.image_list:
                 for self_image in self.image_list:
                     if other_image.target_identity == self_image.target_identity:
+                        print(other_image.target_identity, self_image.target_identity)
                         self_image += other_image
                         break
                 else:
