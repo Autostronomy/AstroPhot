@@ -1,10 +1,11 @@
+import numpy as np
+import torch
 import matplotlib.pyplot as plt
+
+from .. import AP_config
 from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
-import numpy as np
 from .visuals import *
-import torch
-from .. import AP_config
 
 __all__ = ["galaxy_light_profile", "ray_light_profile", "wedge_light_profile", "warp_phase_profile"]
 

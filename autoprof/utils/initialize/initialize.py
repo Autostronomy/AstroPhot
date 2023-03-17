@@ -1,25 +1,29 @@
-from ..isophote.extract import _iso_extract
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import iqr
 from scipy.fftpack import fft
-import matplotlib.pyplot as plt
 
-def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_isophotes = 3, more = False):
+from ..isophote.extract import _iso_extract
+
+
+def isophotes(
+    image, center, threshold=None, pa=None, q=None, R=None, n_isophotes=3, more=False
+):
     """Method for quickly extracting a small number of elliptical
     isophotes for the sake of initializing other models.
 
     """
 
     if pa is None:
-        pa = 0.
+        pa = 0.0
 
     if q is None:
-        q = 1.
+        q = 1.0
 
     if R is None:
         # Determine basic threshold if none given
         if threshold is None:
-            threshold = np.median(image) + 3*iqr(image, rng = (16,84))/2
+            threshold = np.median(image) + 3 * iqr(image, rng=(16, 84)) / 2
 
         # Sample growing isophotes until threshold is reached
         ellipse_radii = [1.0]
@@ -28,8 +32,10 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
             isovals = _iso_extract(
                 image,
                 ellipse_radii[-1],
-                {"q": q if isinstance(q, float) else np.max(q),
-                 "pa": pa if isinstance(pa, float) else np.min(pa)},
+                {
+                    "q": q if isinstance(q, float) else np.max(q),
+                    "pa": pa if isinstance(pa, float) else np.min(pa),
+                },
                 {"x": center[0], "y": center[1]},
                 more=False,
                 sigmaclip=True,
@@ -47,7 +53,7 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         if n_isophotes == 1:
             isophote_radii = [R]
         else:
-            isophote_radii = np.linspace(0,R, n_isophotes)
+            isophote_radii = np.linspace(0, R, n_isophotes)
     elif hasattr(R, "__len__"):
         isophote_radii = R
     elif hasattr(pa, "__len__"):
@@ -62,8 +68,10 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         isovals = _iso_extract(
             image,
             r,
-            {"q": q if isinstance(q, float) else q[i],
-             "pa": pa if isinstance(pa, float) else pa[i]},
+            {
+                "q": q if isinstance(q, float) else q[i],
+                "pa": pa if isinstance(pa, float) else pa[i],
+            },
             {"x": center[0], "y": center[1]},
             more=more,
             sigmaclip=True,
@@ -80,10 +88,14 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
         iso_info[-1]["phase1"] = np.angle(coefs[1])
         iso_info[-1]["phase2"] = np.angle(coefs[2])
         iso_info[-1]["flux"] = np.median(isovals)
-        iso_info[-1]["noise"] = iqr(isovals, rng = (16,84))/2
-        iso_info[-1]["amplitude1"] = np.abs(coefs[1]) / (len(isovals) * (max(0,iso_info[-1]["flux"]) + iso_info[-1]["noise"]))
-        iso_info[-1]["amplitude2"] = np.abs(coefs[2]) / (len(isovals) * (max(0,iso_info[-1]["flux"]) + iso_info[-1]["noise"]))
-        iso_info[-1]["N"] = len(isovals)        
+        iso_info[-1]["noise"] = iqr(isovals, rng=(16, 84)) / 2
+        iso_info[-1]["amplitude1"] = np.abs(coefs[1]) / (
+            len(isovals) * (max(0, iso_info[-1]["flux"]) + iso_info[-1]["noise"])
+        )
+        iso_info[-1]["amplitude2"] = np.abs(coefs[2]) / (
+            len(isovals) * (max(0, iso_info[-1]["flux"]) + iso_info[-1]["noise"])
+        )
+        iso_info[-1]["N"] = len(isovals)
         if more:
             iso_info[-1]["isovals"] = isovals
             iso_info[-1]["angles"] = angles
@@ -94,7 +106,9 @@ def isophotes(image, center, threshold = None, pa = None, q = None, R = None, n_
             good_index = i
             break
     else:
-        raise ValueError("Unable to recover any isophotes, try on a better band or manually provide values")
+        raise ValueError(
+            "Unable to recover any isophotes, try on a better band or manually provide values"
+        )
     for i in range(len(iso_info)):
         if iso_info[i] is None:
             iso_info[i] = iso_info[good_index]

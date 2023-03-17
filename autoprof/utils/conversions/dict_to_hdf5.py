@@ -29,6 +29,7 @@ def dict_to_hdf5(h, D):
 
 def hdf5_to_dict(h):
     import h5py
+
     D = {}
     for key in h.keys():
         if isinstance(h[key], h5py.Group):

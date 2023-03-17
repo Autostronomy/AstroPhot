@@ -5,32 +5,39 @@ from astropy.convolution import convolve, convolve_fft
 from torch.nn.functional import conv2d
 from .operations import fft_convolve_torch
 
+
 def _h_poly(t):
-    tt = t[None, :]**(torch.arange(4, device=t.device)[:, None])
-    A = torch.tensor([
-        [1, 0, -3, 2],
-        [0, 1, -2, 1],
-        [0, 0, 3, -2],
-        [0, 0, -1, 1]
-    ], dtype=t.dtype, device=t.device)
+    tt = t[None, :] ** (torch.arange(4, device=t.device)[:, None])
+    A = torch.tensor(
+        [[1, 0, -3, 2], [0, 1, -2, 1], [0, 0, 3, -2], [0, 0, -1, 1]],
+        dtype=t.dtype,
+        device=t.device,
+    )
     return A @ tt
 
-def cubic_spline_torch(x, y, xs, extend = "const"):
+
+def cubic_spline_torch(x, y, xs, extend="const"):
     """
     1d Cubic spline function implimented for pytorch
     """
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
     m = torch.cat([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
     idxs = torch.searchsorted(x[:-1], xs) - 1
-    dx = (x[idxs + 1] - x[idxs])
+    dx = x[idxs + 1] - x[idxs]
     hh = _h_poly((xs - x[idxs]) / dx)
-    ret = hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
+    ret = (
+        hh[0] * y[idxs]
+        + hh[1] * m[idxs] * dx
+        + hh[2] * y[idxs + 1]
+        + hh[3] * m[idxs + 1] * dx
+    )
     if extend == "const":
         ret[xs > x[-1]] = y[-1]
     elif extend == "linear":
         indices = xs > x[-1]
-        ret[indices] = y[-1] + (xs[indices] - x[-1])*(y[-1] - y[-2])/(x[-1] - x[-2])
+        ret[indices] = y[-1] + (xs[indices] - x[-1]) * (y[-1] - y[-2]) / (x[-1] - x[-2])
     return ret
+
 
 def interpolate_bicubic(img, X, Y):
     """
@@ -43,12 +50,13 @@ def interpolate_bicubic(img, X, Y):
     )
     return f_interp(Y, X, grid=False)
 
+
 def Lanczos_kernel_np(dx, dy, scale):
     """convolution kernel for shifting all pixels in a grid by some
     sub-pixel length.
 
     """
-    xx = np.arange(-scale, scale+1) - dx
+    xx = np.arange(-scale, scale + 1) - dx
     if dx < 0:
         xx *= -1
     Lx = np.sinc(xx) * np.sinc(xx / scale)
@@ -57,16 +65,16 @@ def Lanczos_kernel_np(dx, dy, scale):
     else:
         Lx[-1] = 0
 
-    yy = np.arange(-scale, scale+1) - dy
+    yy = np.arange(-scale, scale + 1) - dy
     if dy < 0:
         yy *= -1
     Ly = np.sinc(yy) * np.sinc(yy / scale)
     if dx > 0:
         Ly[0] = 0
     else:
-        Ly[-1] = 0        
-        
-    LXX, LYY = np.meshgrid(Lx, Ly, indexing = 'xy')
+        Ly[-1] = 0
+
+    LXX, LYY = np.meshgrid(Lx, Ly, indexing="xy")
     LL = LXX * LYY
     w = np.sum(LL)
     LL /= w
@@ -74,13 +82,14 @@ def Lanczos_kernel_np(dx, dy, scale):
     # plt.show()
     return LL
 
+
 def Lanczos_kernel(dx, dy, scale):
     """Kernel function for Lanczos interpolation, defines the
     interpolation behavior between pixels.
 
     """
-    xx = np.arange(-scale+1, scale+1) + dx
-    yy = np.arange(-scale+1, scale+1) + dy
+    xx = np.arange(-scale + 1, scale + 1) + dx
+    yy = np.arange(-scale + 1, scale + 1) + dy
     Lx = np.sinc(xx) * np.sinc(xx / scale)
     Ly = np.sinc(yy) * np.sinc(yy / scale)
     LXX, LYY = np.meshgrid(Lx, Ly)
@@ -88,54 +97,64 @@ def Lanczos_kernel(dx, dy, scale):
     w = np.sum(LL)
     LL /= w
     return LL
-    
+
+
 def point_Lanczos(I, X, Y, scale):
     """
     Apply Lanczos interpolation to evaluate a single point.
     """
     ranges = [
-        [int(np.floor(X)-scale+1), int(np.floor(X)+scale+1)],
-        [int(np.floor(Y)-scale+1), int(np.floor(Y)+scale+1)],
+        [int(np.floor(X) - scale + 1), int(np.floor(X) + scale + 1)],
+        [int(np.floor(Y) - scale + 1), int(np.floor(Y) + scale + 1)],
     ]
     LL = Lanczos_kernel(np.floor(X) - X, np.floor(Y) - Y, scale)
     LL = LL[
-        max(0,-ranges[1][0]):LL.shape[0] + min(0,I.shape[0] - ranges[1][1]),
-        max(0,-ranges[0][0]):LL.shape[1] + min(0,I.shape[1] - ranges[0][1]),
+        max(0, -ranges[1][0]) : LL.shape[0] + min(0, I.shape[0] - ranges[1][1]),
+        max(0, -ranges[0][0]) : LL.shape[1] + min(0, I.shape[1] - ranges[0][1]),
     ]
     F = I[
-        max(0,ranges[1][0]):min(I.shape[0],ranges[1][1]),
-        max(0,ranges[0][0]):min(I.shape[1],ranges[0][1]),
+        max(0, ranges[1][0]) : min(I.shape[0], ranges[1][1]),
+        max(0, ranges[0][0]) : min(I.shape[1], ranges[0][1]),
     ]
     return np.sum(F * LL)
+
 
 def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     """convolution kernel for shifting all pixels in a grid by some
     sub-pixel length.
 
     """
-    xsign = (1 - 2*(dx < 0).to(dtype = torch.int32)) # flips the kernel if the shift is negative
-    xx = xsign*(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dx)
+    xsign = 1 - 2 * (dx < 0).to(
+        dtype=torch.int32
+    )  # flips the kernel if the shift is negative
+    xx = xsign * (
+        torch.arange(int(-scale), int(scale + 1), dtype=dtype, device=device) - dx
+    )
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
 
-    ysign = (1 - 2*(dy < 0).to(dtype = torch.int32))
-    yy = ysign*(torch.arange(int(-scale), int(scale+1), dtype = dtype, device = device) - dy)
+    ysign = 1 - 2 * (dy < 0).to(dtype=torch.int32)
+    yy = ysign * (
+        torch.arange(int(-scale), int(scale + 1), dtype=dtype, device=device) - dy
+    )
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
-    
-    LXX, LYY = torch.meshgrid(Lx, Ly, indexing = 'xy')
+
+    LXX, LYY = torch.meshgrid(Lx, Ly, indexing="xy")
     LL = LXX * LYY
     w = torch.sum(LL)
     # plt.imshow(LL.detach().numpy(), origin = "lower")
     # plt.show()
     return LL / w
 
-def shift_Lanczos_torch(I, dx, dy, scale, dtype, device, img_prepadded = True):
+
+def shift_Lanczos_torch(I, dx, dy, scale, dtype, device, img_prepadded=True):
     """Apply Lanczos interpolation to shift by less than a pixel in x and
     y.
 
     """
     LL = _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device)
-    ret = fft_convolve_torch(I, LL, img_prepadded = img_prepadded)
+    ret = fft_convolve_torch(I, LL, img_prepadded=img_prepadded)
     return ret
+
 
 def shift_Lanczos_np(I, dx, dy, scale):
     """Apply Lanczos interpolation to shift by less than a pixel in x and
@@ -147,7 +166,7 @@ def shift_Lanczos_np(I, dx, dy, scale):
     scale: dictates size of the Lanczos kernel. Full kernel size is 2*scale+1
     """
     LL = Lanczos_kernel_np(dx, dy, scale)
-    return convolve_fft(I, LL, boundary = "fill")
+    return convolve_fft(I, LL, boundary="fill")
 
 
 def interpolate_Lanczos_grid(img, X, Y, scale):
@@ -155,40 +174,48 @@ def interpolate_Lanczos_grid(img, X, Y, scale):
     Perform Lanczos interpolation at a grid of points.
     https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html
     """
-    
+
     sinc_X = list(
         np.sinc(np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i]))
-        * np.sinc(
-            (np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i])) / scale
-        )
+        * np.sinc((np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i])) / scale)
         for i in range(len(X))
     )
     sinc_Y = list(
         np.sinc(np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i]))
-        * np.sinc(
-            (np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i])) / scale
-        )
+        * np.sinc((np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i])) / scale)
         for i in range(len(Y))
     )
 
     # Extract an image which has the required dimensions
     use_img = np.take(
-        np.take(img, np.arange(int(np.floor(Y[0]) - step + 1), int(np.floor(Y[-1]) + step + 1)), 0, mode = "clip"),
-        np.arange(int(np.floor(X[0]) - step + 1), int(np.floor(X[-1]) + step + 1)), 1, mode = "clip"
+        np.take(
+            img,
+            np.arange(int(np.floor(Y[0]) - step + 1), int(np.floor(Y[-1]) + step + 1)),
+            0,
+            mode="clip",
+        ),
+        np.arange(int(np.floor(X[0]) - step + 1), int(np.floor(X[-1]) + step + 1)),
+        1,
+        mode="clip",
     )
 
     # Create a sliding window view of the image with the dimensions of the lanczos scale grid
-    #window = np.lib.stride_tricks.sliding_window_view(use_img, (2*scale, 2*scale))
+    # window = np.lib.stride_tricks.sliding_window_view(use_img, (2*scale, 2*scale))
 
     # fixme going to need some broadcasting magic
-    XX = np.ones((2*scale,2*scale))
+    XX = np.ones((2 * scale, 2 * scale))
     res = np.zeros((len(Y), len(X)))
-    for x, lowx, highx in zip(range(len(X)), np.floor(X) - step + 1, np.floor(X) + step + 1):
-        for y, lowy, highy in zip(range(len(Y)), np.floor(Y) - step + 1, np.floor(Y) + step + 1):
+    for x, lowx, highx in zip(
+        range(len(X)), np.floor(X) - step + 1, np.floor(X) + step + 1
+    ):
+        for y, lowy, highy in zip(
+            range(len(Y)), np.floor(Y) - step + 1, np.floor(Y) + step + 1
+        ):
             L = XX * sinc_X[x] * sinc_Y[y].reshape((sinc_Y[y].size, -1))
-            res[y,x] = np.sum(use_img[lowy:highy,lowx:highx] * L) / np.sum(L)
+            res[y, x] = np.sum(use_img[lowy:highy, lowx:highx] * L) / np.sum(L)
     return res
-            
+
+
 def interpolate_Lanczos(img, X, Y, scale):
     """
     Perform Lanczos interpolation on an image at a series of specified points.
@@ -236,9 +263,8 @@ def interpolate_Lanczos(img, X, Y, scale):
         flux.append(np.sum(chunk * L) / w)
     return np.array(flux)
 
-def interp1d_torch(x_in, y_in, x_out): 
+
+def interp1d_torch(x_in, y_in, x_out):
     indices = torch.searchsorted(x_in[:-1], x_out) - 1
     weights = (y_in[1:] - y_in[:-1]) / (x_in[1:] - x_in[:-1])
-    return y_in[indices] + weights[indices]*(x_out - x_in[indices])
-
-
+    return y_in[indices] + weights[indices] * (x_out - x_in[indices])
