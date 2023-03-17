@@ -3,6 +3,7 @@ import torch
 
 __all__ = ["Star_Model"]
 
+
 class Star_Model(Component_Model):
     """Prototype star model, to be subclassed by other star models which
     define specific behavior. Mostly this just requires that no
@@ -13,21 +14,27 @@ class Star_Model(Component_Model):
     already been done when constructing the PSF.
 
     """
+
     model_type = f"star {Component_Model.model_type}"
     useable = False
-    
+
     def radius_metric(self, X, Y):
-        return torch.sqrt((torch.abs(X)+1e-8)**2 + (torch.abs(Y)+1e-8)**2) # epsilon added for numerical stability of gradient
+        return torch.sqrt(
+            (torch.abs(X) + 1e-8) ** 2 + (torch.abs(Y) + 1e-8) ** 2
+        )  # epsilon added for numerical stability of gradient
 
     @property
     def psf_mode(self):
         return "none"
+
     @psf_mode.setter
     def psf_mode(self, val):
         pass
+
     @property
     def integrate_mode(self):
         return "none"
+
     @integrate_mode.setter
     def integrate_mode(self, val):
         pass

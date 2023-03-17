@@ -7,6 +7,7 @@ from ._shared_methods import select_target
 
 __all__ = ["FourierEllipse_Galaxy", "FourierEllipse_Warp"]
 
+
 class FourierEllipse_Galaxy(Galaxy_Model):
     """Expanded galaxy model which includes a Fourier transformation in
     its radius metric. This allows for the expression of arbitrarily
@@ -41,45 +42,60 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     higher than 4 are only useful in very specialized situations. In
     general one should consider carefully why the Fourier modes are
     being used for the science case at hand.
-    
+
     Parameters:
         am: Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.
         phi_m: Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis. It is cyclically defined in the range [0,2pi)
 
     """
+
     model_type = f"fourier {Galaxy_Model.model_type}"
     parameter_specs = {
         "am": {"units": "none"},
-        "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
+        "phim": {"units": "radians", "limits": (0, 2 * np.pi), "cyclic": True},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("am", "phim")
     useable = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.modes = torch.tensor(kwargs.get("modes", (1,3,4)))
-    
+        self.modes = torch.tensor(kwargs.get("modes", (1, 3, 4)))
+
     def angular_metric(self, X, Y):
         return torch.atan2(Y, X)
-    
+
     def radius_metric(self, X, Y):
         R = super().radius_metric(X, Y)
         theta = self.angular_metric(X, Y)
-        return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
+        return R * torch.exp(
+            torch.sum(
+                self["am"].value.view(len(self.modes), -1)
+                * torch.cos(
+                    self.modes.view(len(self.modes), -1) * theta.view(-1)
+                    + self["phim"].value.view(len(self.modes), -1)
+                ),
+                0,
+            ).view(theta.shape)
+        )
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
 
         if self["am"].value is None:
-            self["am"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+            self["am"].set_value(torch.zeros(len(self.modes)), override_locked=True)
         if self["am"].uncertainty is None:
-            self["am"].set_uncertainty(torch.tensor(0.05*np.ones(len(self.modes))), override_locked = True)
+            self["am"].set_uncertainty(
+                torch.tensor(0.05 * np.ones(len(self.modes))), override_locked=True
+            )
         if self["phim"].value is None:
-            self["phim"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+            self["phim"].set_value(torch.zeros(len(self.modes)), override_locked=True)
         if self["phim"].uncertainty is None:
-            self["phim"].set_uncertainty(torch.tensor((5*np.pi/180)*np.ones(len(self.modes))), override_locked = True)
+            self["phim"].set_uncertainty(
+                torch.tensor((5 * np.pi / 180) * np.ones(len(self.modes))),
+                override_locked=True,
+            )
 
 
 class FourierEllipse_Warp(Warp_Galaxy):
@@ -116,43 +132,57 @@ class FourierEllipse_Warp(Warp_Galaxy):
     higher than 4 are only useful in very specialized situations. In
     general one should consider carefully why the Fourier modes are
     being used for the science case at hand.
-    
+
     Parameters:
         am: Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.
         phi_m: Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis. It is cyclically defined in the range [0,2pi)
 
     """
+
     model_type = f"fourier {Warp_Galaxy.model_type}"
     parameter_specs = {
         "am": {"units": "none"},
-        "phim": {"units": "radians", "limits": (0, 2*np.pi), "cyclic": True}
+        "phim": {"units": "radians", "limits": (0, 2 * np.pi), "cyclic": True},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("am", "phim")
     useable = False
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.modes = torch.tensor(kwargs.get("modes", (1,3,4)))
-    
+        self.modes = torch.tensor(kwargs.get("modes", (1, 3, 4)))
+
     def angular_metric(self, X, Y):
         return torch.atan2(Y, X)
-    
+
     def radius_metric(self, X, Y):
         R = super().radius_metric(X, Y)
         theta = self.angular_metric(X, Y)
-        return R * torch.exp(torch.sum(self["am"].value.view(len(self.modes), -1)*torch.cos(self.modes.view(len(self.modes), -1)*theta.view(-1) + self["phim"].value.view(len(self.modes), -1)), 0).view(theta.shape))
+        return R * torch.exp(
+            torch.sum(
+                self["am"].value.view(len(self.modes), -1)
+                * torch.cos(
+                    self.modes.view(len(self.modes), -1) * theta.view(-1)
+                    + self["phim"].value.view(len(self.modes), -1)
+                ),
+                0,
+            ).view(theta.shape)
+        )
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
 
         if self["am"].value is None:
-            self["am"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+            self["am"].set_value(torch.zeros(len(self.modes)), override_locked=True)
         if self["am"].uncertainty is None:
-            self["am"].set_uncertainty(torch.tensor(0.05*np.ones(len(self.modes))), override_locked = True)
+            self["am"].set_uncertainty(
+                torch.tensor(0.05 * np.ones(len(self.modes))), override_locked=True
+            )
         if self["phim"].value is None:
-            self["phim"].set_value(torch.zeros(len(self.modes)), override_locked = True)
+            self["phim"].set_value(torch.zeros(len(self.modes)), override_locked=True)
         if self["phim"].uncertainty is None:
-            self["phim"].set_uncertainty(torch.tensor((5*np.pi/180)*np.ones(len(self.modes))), override_locked = True)
-            
+            self["phim"].set_uncertainty(
+                torch.tensor((5 * np.pi / 180) * np.ones(len(self.modes))),
+                override_locked=True,
+            )

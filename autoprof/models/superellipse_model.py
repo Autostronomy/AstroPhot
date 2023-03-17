@@ -6,6 +6,7 @@ from .warp_model import Warp_Galaxy
 
 __all__ = ["SuperEllipse_Galaxy", "SuperEllipse_Warp"]
 
+
 class SuperEllipse_Galaxy(Galaxy_Model):
     """Expanded galaxy model which includes a superellipse transformation
     in its radius metric. This allows for the expression of "boxy" and
@@ -23,17 +24,23 @@ class SuperEllipse_Galaxy(Galaxy_Model):
 
     Parameters:
         C0: superellipse distance metric parameter where C0 = C-2 so that a value of zero is now a standard ellipse.
-    
+
     """
+
     model_type = f"superellipse {Galaxy_Model.model_type}"
     parameter_specs = {
-        "C0": {"units": "C-2", "value": 0., "uncertainty": 1e-2, "limits": (-2, None)},
+        "C0": {"units": "C-2", "value": 0.0, "uncertainty": 1e-2, "limits": (-2, None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("C0",)
     useable = False
-    
+
     def radius_metric(self, X, Y):
-        return torch.pow(torch.pow(torch.abs(X)+1e-6, self["C0"].value + 2.) + torch.pow(torch.abs(Y)+1e-6, self["C0"].value + 2.), 1. / (self["C0"].value + 2.)) # epsilon added for numerical stability of gradient
+        return torch.pow(
+            torch.pow(torch.abs(X) + 1e-6, self["C0"].value + 2.0)
+            + torch.pow(torch.abs(Y) + 1e-6, self["C0"].value + 2.0),
+            1.0 / (self["C0"].value + 2.0),
+        )  # epsilon added for numerical stability of gradient
+
 
 class SuperEllipse_Warp(Warp_Galaxy):
     """Expanded warp model which includes a superellipse transformation
@@ -55,14 +62,17 @@ class SuperEllipse_Warp(Warp_Galaxy):
 
 
     """
+
     model_type = f"superellipse {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "C0": {"units": "C-2", "value": 0., "uncertainty": 1e-2, "limits": (-2, None)},
+        "C0": {"units": "C-2", "value": 0.0, "uncertainty": 1e-2, "limits": (-2, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("C0",)
     useable = False
-    
-    def radius_metric(self, X, Y):
-        return torch.pow(torch.pow(torch.abs(X)+1e-6, self["C0"].value + 2.) + torch.pow(torch.abs(Y)+1e-6, self["C0"].value + 2.), 1. / (self["C0"].value + 2.)) # epsilon added for numerical stability of gradient
 
-    
+    def radius_metric(self, X, Y):
+        return torch.pow(
+            torch.pow(torch.abs(X) + 1e-6, self["C0"].value + 2.0)
+            + torch.pow(torch.abs(Y) + 1e-6, self["C0"].value + 2.0),
+            1.0 / (self["C0"].value + 2.0),
+        )  # epsilon added for numerical stability of gradient

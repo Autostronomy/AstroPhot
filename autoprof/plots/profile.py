@@ -7,28 +7,36 @@ from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
-__all__ = ["galaxy_light_profile", "ray_light_profile", "wedge_light_profile", "warp_phase_profile"]
+__all__ = [
+    "galaxy_light_profile",
+    "ray_light_profile",
+    "wedge_light_profile",
+    "warp_phase_profile",
+]
 
 
 def galaxy_light_profile(
-        fig,
-        ax,
-        model,
-        rad_unit="arcsec",
-        extend_profile=1.0,
-        R0 = 0.,    
-        resolution=1000,
-        doassert=True,
+    fig,
+    ax,
+    model,
+    rad_unit="arcsec",
+    extend_profile=1.0,
+    R0=0.0,
+    resolution=1000,
+    doassert=True,
 ):
-
     xx = torch.linspace(
         R0,
-        torch.max(model.window.shape/2) * extend_profile,
-        int(resolution),dtype = AP_config.ap_dtype, device = AP_config.ap_device,
+        torch.max(model.window.shape / 2) * extend_profile,
+        int(resolution),
+        dtype=AP_config.ap_dtype,
+        device=AP_config.ap_device,
     )
     flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
-        yy = flux_to_sb(flux, model.target.pixelscale.item(), model.target.zeropoint.item())
+        yy = flux_to_sb(
+            flux, model.target.pixelscale.item(), model.target.zeropoint.item()
+        )
     else:
         yy = np.log10(flux)
     with torch.no_grad():
@@ -47,23 +55,25 @@ def galaxy_light_profile(
     else:
         ax.set_ylabel("log$_{10}$(flux/arcsec^2)")
     ax.set_xlabel(f"Radius [{rad_unit}]")
-    ax.set_xlim([R0,None])
+    ax.set_xlim([R0, None])
     return fig, ax
 
+
 def ray_light_profile(
-        fig,
-        ax,
-        model,
-        rad_unit="arcsec",
-        extend_profile=1.0,
-        resolution=1000,
-        doassert=True
+    fig,
+    ax,
+    model,
+    rad_unit="arcsec",
+    extend_profile=1.0,
+    resolution=1000,
+    doassert=True,
 ):
-        
     xx = torch.linspace(
         0,
-        torch.max(model.window.shape/2) * extend_profile,
-        int(resolution),dtype = AP_config.ap_dtype, device = AP_config.ap_device,
+        torch.max(model.window.shape / 2) * extend_profile,
+        int(resolution),
+        dtype=AP_config.ap_dtype,
+        device=AP_config.ap_device,
     )
     for r in range(model.rays):
         if model.rays <= 5:
@@ -83,20 +93,22 @@ def ray_light_profile(
 
     return fig, ax
 
+
 def wedge_light_profile(
-        fig,
-        ax,
-        model,
-        rad_unit="arcsec",
-        extend_profile=1.0,
-        resolution=1000,
-        doassert=True
+    fig,
+    ax,
+    model,
+    rad_unit="arcsec",
+    extend_profile=1.0,
+    resolution=1000,
+    doassert=True,
 ):
-        
     xx = torch.linspace(
         0,
-        torch.max(model.window.shape/2) * extend_profile,
-        int(resolution),dtype = AP_config.ap_dtype, device = AP_config.ap_device
+        torch.max(model.window.shape / 2) * extend_profile,
+        int(resolution),
+        dtype=AP_config.ap_dtype,
+        device=AP_config.ap_device,
     )
     for r in range(model.wedges):
         if model.wedges <= 5:
@@ -116,14 +128,8 @@ def wedge_light_profile(
 
     return fig, ax
 
-def warp_phase_profile(
-    fig,
-    ax,
-    model,
-    rad_unit="arcsec",
-    doassert=True
-):
 
+def warp_phase_profile(fig, ax, model, rad_unit="arcsec", doassert=True):
     if doassert:
         assert isinstance(model, Warp_Galaxy)
 
