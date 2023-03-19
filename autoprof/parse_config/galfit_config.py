@@ -12,7 +12,7 @@ galfit_object_type_map = {
 }
 
 galfit_parameter_map = {
-    "sersic galaxy model":{
+    "sersic galaxy model": {
         "1": ["centerpix", 2],
         "3": ["totalmag", 1],
         "4": ["Repix", 1],
@@ -21,6 +21,7 @@ galfit_parameter_map = {
         "10": ["PAdeg", 1],
     }
 }
+
 
 def space_split(l):
     items = list(ls.strip() for ls in l.split(" "))
@@ -32,9 +33,12 @@ def space_split(l):
             index += 1
     return items
 
+
 def galfit_config(config_file):
     if True:
-        raise NotImplementedError("galfit configuration file interface under construction")
+        raise NotImplementedError(
+            "galfit configuration file interface under construction"
+        )
     with open(config_file, "r") as f:
         config_lines = f.readlines()
     # Header info
@@ -68,7 +72,7 @@ def galfit_config(config_file):
             headerinfo["target_zeropoint"] = line[2:].strip()
         if line.startswith("K)"):
             headerinfo["target_pixelscale"] = line[2:].strip()
-        
+
     # Object info
     objects = []
     in_object = False
@@ -82,9 +86,7 @@ def galfit_config(config_file):
 
         # New model added to the fit
         if linem.startswith("0)"):
-            objects.append({
-                "model_type": galfit_object_type_map[linem[2:].strip()]
-            })
+            objects.append({"model_type": galfit_object_type_map[linem[2:].strip()]})
             in_object = True
         # Model finished adding
         if linem.startswith("Z)"):
@@ -92,10 +94,16 @@ def galfit_config(config_file):
 
         # Collect the parameters
         if in_object:
-            param = linem[:linem.find(")")]
-            objects[-1][galfit_parameter_map[objects[-1]["model_type"]][param][0]] = space_split(linem[linem.find(")")+1:])
-            if len(objects[-1][galfit_parameter_map[objects[-1]["model_type"]][param][0]]) != (2*galfit_parameter_map[objects[-1]["model_type"]][param][1]):
-                raise ValueError(f"Incorrectly formatted line in GALFIT config file:\n{line}")
+            param = linem[: linem.find(")")]
+            objects[-1][
+                galfit_parameter_map[objects[-1]["model_type"]][param][0]
+            ] = space_split(linem[linem.find(")") + 1 :])
+            if len(
+                objects[-1][galfit_parameter_map[objects[-1]["model_type"]][param][0]]
+            ) != (2 * galfit_parameter_map[objects[-1]["model_type"]][param][1]):
+                raise ValueError(
+                    f"Incorrectly formatted line in GALFIT config file:\n{line}"
+                )
 
     # Format parameters
     for i in range(len(objects)):
@@ -106,12 +114,16 @@ def galfit_config(config_file):
         # common params
         if "centerpix" in objects[i]:
             autoprof_object["center"] = {
-                "value": [float(objects[i]["centerpix"][0]) * headerinfo["target_pixelscale"], float(objects[i]["centerpix"][1]) * headerinfo["target_pixelscale"]],
+                "value": [
+                    float(objects[i]["centerpix"][0]) * headerinfo["target_pixelscale"],
+                    float(objects[i]["centerpix"][1]) * headerinfo["target_pixelscale"],
+                ],
                 "locked": bool(objects[i]["centerpix"][2]),
             }
         if "Repix" in objects[i]:
             autoprof_object["Re"] = {
-                "value": float(objects[i]["Repix"][0]) * headerinfo["target_pixelscale"],
+                "value": float(objects[i]["Repix"][0])
+                * headerinfo["target_pixelscale"],
                 "locked": bool(objects[i]["Repix"][1]),
             }
         if "q" in objects[i]:
@@ -121,8 +133,6 @@ def galfit_config(config_file):
             }
         if "PAdeg" in objects[i]:
             autoprof_object["PA"] = {
-                "value": float(objects[i]["PAdeg"][0])*np.pi/180,
+                "value": float(objects[i]["PAdeg"][0]) * np.pi / 180,
                 "locked": bool(objects[i]["PAdeg"][1]),
             }
-        
-        

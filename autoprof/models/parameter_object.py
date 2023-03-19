@@ -6,11 +6,12 @@ from ..utils.conversions.optimization import (
     inv_boundaries,
     d_boundaries_dval,
     d_inv_boundaries_dval,
-    cyclic_boundaries
-    )
+    cyclic_boundaries,
+)
 from .. import AP_config
 
 __all__ = ["Parameter"]
+
 
 class Parameter(object):
     """Object for storing model parameters that are to be optimized in the
@@ -40,7 +41,7 @@ class Parameter(object):
         units: units for the value of the parameter. [str]
     """
 
-    def __init__(self, name, value = None, **kwargs):
+    def __init__(self, name, value=None, **kwargs):
         self.name = name
         self.identity = str(id(self))
         self._representation = None
@@ -48,7 +49,7 @@ class Parameter(object):
         self.cyclic = kwargs.get("cyclic", False)
         self.locked = kwargs.get("locked", False)
         self._representation = None
-        self.set_value(value, override_locked = True)
+        self.set_value(value, override_locked=True)
         self.requires_grad = kwargs.get("requires_grad", False)
         self.units = kwargs.get("units", "none")
         self._uncertainty = None
@@ -56,7 +57,7 @@ class Parameter(object):
         self.prof = None
         self.set_profile(kwargs.get("prof", None))
         self.to()
-       
+
     @property
     def representation(self):
         """The representation is the stored number (or tensor of numbers) for
@@ -67,12 +68,12 @@ class Parameter(object):
 
         """
         return self._representation
+
     @representation.setter
     def representation(self, rep):
-        """Calls the set representation method, preserving locked behaviour.
-
-        """
+        """Calls the set representation method, preserving locked behaviour."""
         self.set_representation(rep)
+
     @property
     def value(self):
         """The value of the parameter is what should be used in model
@@ -87,12 +88,14 @@ class Parameter(object):
         if self.limits is None:
             return self._representation
         return inv_boundaries(self._representation, self.limits)
+
     @value.setter
     def value(self, val):
         """
         Calls the value setting method, preserving locked behaviour
         """
         self.set_value(val)
+
     @property
     def locked(self):
         """If locked, the parameter cannot normally be updated and will no
@@ -100,53 +103,61 @@ class Parameter(object):
 
         """
         return self._locked
+
     @locked.setter
     def locked(self, value):
         """
         updates the locked state of the parameter
         """
         self._locked = value
-        
+
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
-        is for the value, not the representation. 
+        is for the value, not the representation.
 
         """
         return self._uncertainty
+
     @uncertainty.setter
     def uncertainty(self, unc):
         """
         Calls the uncertainty setting method, preserving locked behaviour.
         """
         self.set_uncertainty(unc)
+
     @property
     def uncertainty_representation(self):
         """The uncertainty for the parameter is stored here, the uncertainty
-        is for the value, not the representation. 
+        is for the value, not the representation.
 
         """
         if not self.cyclic and self.limits is not None:
             return self._uncertainty * d_boundaries_dval(self.value, self.limits)
         return self._uncertainty
+
     @uncertainty.setter
     def uncertainty_representation(self, unc):
         """
         Calls the uncertainty setting method, preserving locked behaviour.
         """
-        self.set_uncertainty(unc, as_representation = True)
+        self.set_uncertainty(unc, as_representation=True)
+
     @property
     def requires_grad(self):
         if self._representation is None:
             return False
         return self._representation.requires_grad
+
     @requires_grad.setter
     def requires_grad(self, val):
         assert isinstance(val, bool)
-        if self._representation is not None and not (self._representation.requires_grad is val):
+        if self._representation is not None and not (
+            self._representation.requires_grad is val
+        ):
             self._representation = self._representation.detach()
             self._representation.requires_grad = val
-            
+
     @property
     def grad(self):
         """Returns the gradient for the representation of this parameter, if
@@ -155,7 +166,7 @@ class Parameter(object):
         """
         return self._representation.grad
 
-    def to(self, dtype = None, device = None):
+    def to(self, dtype=None, device=None):
         """
         updates the datatype or device of this parameter
         """
@@ -164,14 +175,16 @@ class Parameter(object):
         if device is not None:
             device = AP_config.ap_device
         if self._representation is not None:
-            self._representation = self._representation.to(dtype = dtype, device = device)
+            self._representation = self._representation.to(dtype=dtype, device=device)
         if self._uncertainty is not None:
-            self._uncertainty = self._uncertainty.to(dtype = dtype, device = device)
+            self._uncertainty = self._uncertainty.to(dtype=dtype, device=device)
         if self.prof is not None:
-            self.prof = self.prof.to(dtype = dtype, device = device)
+            self.prof = self.prof.to(dtype=dtype, device=device)
         return self
-    
-    def set_uncertainty(self, uncertainty, override_locked = False, as_representation = False, index = None):
+
+    def set_uncertainty(
+        self, uncertainty, override_locked=False, as_representation=False, index=None
+    ):
         """Updates the the uncertainty of the value of the parameter. Only
         updates if the parameter is not locked.
 
@@ -181,21 +194,31 @@ class Parameter(object):
         if uncertainty is None:
             self._uncertainty = None
             return
-        uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        uncertainty = torch.as_tensor(
+            uncertainty, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
         if index is not None:
-            assert torch.all(uncertainty >= 0), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
+            assert torch.all(
+                uncertainty >= 0
+            ), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
             if as_representation and not self.cyclic and self.limits is not None:
-                self._uncertainty[index] = uncertainty * d_inv_boundaries_dval(self.representation[index], self.limits)
+                self._uncertainty[index] = uncertainty * d_inv_boundaries_dval(
+                    self.representation[index], self.limits
+                )
             else:
                 self._uncertainty[index] = uncertainty
             return
-        assert torch.all(uncertainty >= 0), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.detach().cpu().tolist()}"
+        assert torch.all(
+            uncertainty >= 0
+        ), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.detach().cpu().tolist()}"
         if as_representation and not self.cyclic and self.limits is not None:
-            self._uncertainty = uncertainty * d_inv_boundaries_dval(self.representation, self.limits)
+            self._uncertainty = uncertainty * d_inv_boundaries_dval(
+                self.representation, self.limits
+            )
         else:
             self._uncertainty = uncertainty
 
-    def set_value(self, val, override_locked = False, index = None):
+    def set_value(self, val, override_locked=False, index=None):
         """Set the value of the parameter. In fact this indirectly updates the
         representation for the parameter accoutning for any limits or
         cyclic boundaries are applied for this parameter.
@@ -206,21 +229,35 @@ class Parameter(object):
         if val is None:
             self._representation = None
         elif self.cyclic:
-            self.set_representation(cyclic_boundaries(val, self.limits), override_locked = override_locked, index = index)
+            self.set_representation(
+                cyclic_boundaries(val, self.limits),
+                override_locked=override_locked,
+                index=index,
+            )
         elif self.limits is None:
-            self.set_representation(val, override_locked = override_locked, index = index)
+            self.set_representation(val, override_locked=override_locked, index=index)
         else:
-            val = torch.as_tensor(val, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            val = torch.as_tensor(
+                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
             if self.limits[0] is None:
-                val = torch.clamp(val, max = self.limits[1] - 1e-3)
+                val = torch.clamp(val, max=self.limits[1] - 1e-3)
             elif self.limits[1] is None:
-                val = torch.clamp(val, min = self.limits[0] + 1e-3)
+                val = torch.clamp(val, min=self.limits[0] + 1e-3)
             else:
                 rng = self.limits[1] - self.limits[0]
-                val = torch.clamp(val, min = self.limits[0] + min(1e-3, 1e-3 * rng), max = self.limits[1] - min(1e-3, 1e-3 * rng))
-            self.set_representation(boundaries(val, self.limits), override_locked = override_locked, index = index)
-        
-    def set_representation(self, rep, override_locked = False, index = None):
+                val = torch.clamp(
+                    val,
+                    min=self.limits[0] + min(1e-3, 1e-3 * rng),
+                    max=self.limits[1] - min(1e-3, 1e-3 * rng),
+                )
+            self.set_representation(
+                boundaries(val, self.limits),
+                override_locked=override_locked,
+                index=index,
+            )
+
+    def set_representation(self, rep, override_locked=False, index=None):
         """Update the representation for this parameter. Ensures that the
         representation is a pytorch tensor for optimization purposes.
 
@@ -230,10 +267,18 @@ class Parameter(object):
         if rep is None:
             self._representation = None
         elif index is None:
-            self._representation = rep.to(dtype = AP_config.ap_dtype, device = AP_config.ap_device) if isinstance(rep, torch.Tensor) else torch.as_tensor(rep, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self._representation = (
+                rep.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+                if isinstance(rep, torch.Tensor)
+                else torch.as_tensor(
+                    rep, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            )
         else:
-            self._representation[index] = torch.as_tensor(rep, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        
+            self._representation[index] = torch.as_tensor(
+                rep, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+
     def get_state(self):
         """Return the values representing the current state of the parameter,
         this can be used to re-load the state later from memory.
@@ -256,17 +301,19 @@ class Parameter(object):
             state["cyclic"] = self.cyclic
         if self.prof is not None:
             state["prof"] = self.prof.detach().cpu().numpy().tolist()
-            
+
         return state
 
-    def set_profile(self, prof, override_locked = False):
+    def set_profile(self, prof, override_locked=False):
         if self.locked and not override_locked:
             return
         if prof is None:
             self.prof = None
             return
-        self.prof = torch.as_tensor(prof, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-            
+        self.prof = torch.as_tensor(
+            prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+
     def update_state(self, state):
         """Update the state of the parameter given a state variable whcih
         holds all information about a variable.
@@ -280,7 +327,7 @@ class Parameter(object):
         self.value = state.get("value", None)
         self.locked = state.get("locked", False)
         self.prof = state.get("prof", None)
-        
+
     def __str__(self):
         """String representation of the parameter which indicates it's value
         along with uncertainty, units, limits, etc.
@@ -295,14 +342,14 @@ class Parameter(object):
         """
         self.i = -1
         return self
-    
+
     def __next__(self):
         self.i += 1
         if self.i < len(self.value):
             return self[self.i]
         else:
             raise StopIteration()
-    
+
     def __getitem__(self, S):
         """If the parameter has multiple values, get the value at a given
         index.
@@ -311,12 +358,12 @@ class Parameter(object):
         if isinstance(S, int):
             return self.value[S]
         if isinstance(S, str):
-            return self.value[int(S[S.rfind("|")+1:])]
+            return self.value[int(S[S.rfind("|") + 1 :])]
         return self.value
 
     def __eq__(self, other):
         return self is other
-    
+
     def __len__(self):
         """If the parameter has multiple values, this is the length of the
         parameter.

@@ -10,6 +10,7 @@ from .. import AP_config
 
 __all__ = ["MHMCMC"]
 
+
 class MHMCMC(BaseOptimizer):
     """Metropolis-Hastings Markov-Chain Monte-Carlo sampler, based on:
     https://en.wikipedia.org/wiki/Metropolis-Hastings_algorithm . This
@@ -22,17 +23,27 @@ class MHMCMC(BaseOptimizer):
       initial_state (Optional[Sequence]): A 1D array with the values for each parameter in the model. Note that these values should be in the form of "as_representation" in the model.
       max_iter (int): The number of sampling steps to perform. Default 1000
       epsilon (float or array): The random step length to take at each iteration. This is the standard deviation for the normal distribution sampling. Default 1e-2
-      
+
     """
 
-    def __init__(self, model: "AutoProf_Model", initial_state: Optional[Sequence] = None, max_iter: int = 1000, **kwargs):
-        super().__init__(model, initial_state, max_iter = max_iter, **kwargs)
+    def __init__(
+        self,
+        model: "AutoProf_Model",
+        initial_state: Optional[Sequence] = None,
+        max_iter: int = 1000,
+        **kwargs
+    ):
+        super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         self.epsilon = kwargs.get("epsilon", 1e-2)
 
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
-        self.W = 1. / self.model.target[self.model.window].flatten("variance") if model.target.has_variance else 1.
+        self.W = (
+            1.0 / self.model.target[self.model.window].flatten("variance")
+            if model.target.has_variance
+            else 1.0
+        )
         #          # pixels      # parameters
         self.ndf = len(self.Y) - len(self.current_state)
 
@@ -41,10 +52,10 @@ class MHMCMC(BaseOptimizer):
         self._sampled = 0
 
     def fit(
-            self,
-            state: Optional[torch.Tensor] = None,
-            nsamples: Optional[int] = None,
-            restart_chain: bool = True,
+        self,
+        state: Optional[torch.Tensor] = None,
+        nsamples: Optional[int] = None,
+        restart_chain: bool = True,
     ):
         """
         Performs the MCMC sampling using a Metropolis Hastings acceptance step and records the chain for later examination.
@@ -52,7 +63,7 @@ class MHMCMC(BaseOptimizer):
 
         if nsamples is None:
             nsamples = self.max_iter
-            
+
         if state is None:
             state = self.current_state
         chi2 = self.sample(state)
@@ -73,10 +84,10 @@ class MHMCMC(BaseOptimizer):
         Add a state vector to the MCMC chain
         """
 
-        self.model.set_parameters(state, as_representation = True)
-        chain_state = self.model.get_parameter_vector(as_representation = False)
+        self.model.set_parameters(state, as_representation=True)
+        chain_state = self.model.get_parameter_vector(as_representation=False)
         self.chain.append(chain_state.detach().cpu().clone().numpy())
-        
+
     @staticmethod
     def accept(log_alpha):
         """
@@ -89,24 +100,29 @@ class MHMCMC(BaseOptimizer):
         """
         Samples the model at the proposed state vector values
         """
-        Y = self.model(parameters = state, as_representation = True, override_locked = False).flatten("data")
+        Y = self.model(
+            parameters=state, as_representation=True, override_locked=False
+        ).flatten("data")
         # Compute Chi^2
         if self.model.target.has_mask:
-            loss = torch.sum(((self.Y - Y)**2 * self.W)[torch.logical_not(self.mask)]) / self.ndf
+            loss = (
+                torch.sum(((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)])
+                / self.ndf
+            )
         else:
-            loss = torch.sum((self.Y - Y)**2 * self.W) / self.ndf
+            loss = torch.sum((self.Y - Y) ** 2 * self.W) / self.ndf
 
         return loss
-        
+
     @torch.no_grad()
     def step(self, state: torch.Tensor, chi2: torch.Tensor) -> torch.Tensor:
         """
         Takes one step of the HMC sampler by integrating along a path initiated with a random momentum.
         """
 
-        proposal_state = torch.normal(mean = state, std = self.epsilon)
+        proposal_state = torch.normal(mean=state, std=self.epsilon)
         proposal_chi2 = self.sample(proposal_state)
-        log_alpha = (chi2 - proposal_chi2)/2
+        log_alpha = (chi2 - proposal_chi2) / 2
         accept = self.accept(log_alpha)
         self._accepted += accept
         self._sampled += 1
@@ -117,5 +133,5 @@ class MHMCMC(BaseOptimizer):
         """
         Returns the ratio of accepted states to total states sampled.
         """
-        
+
         return self._accepted / self._sampled
