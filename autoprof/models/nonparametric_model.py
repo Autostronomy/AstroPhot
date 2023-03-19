@@ -11,10 +11,16 @@ from .wedge_model import Wedge_Galaxy
 from ._shared_methods import nonparametric_segment_initialize, select_target
 
 __all__ = [
-    "NonParametric_Galaxy", "NonParametric_Star", "NonParametric_Warp",
-    "NonParametric_SuperEllipse", "NonParametric_FourierEllipse", "NonParametric_Ray",
-    "NonParametric_SuperEllipse_Warp", "NonParametric_FourierEllipse_Warp"
+    "NonParametric_Galaxy",
+    "NonParametric_Star",
+    "NonParametric_Warp",
+    "NonParametric_SuperEllipse",
+    "NonParametric_FourierEllipse",
+    "NonParametric_Ray",
+    "NonParametric_SuperEllipse_Warp",
+    "NonParametric_FourierEllipse_Warp",
 ]
+
 
 # First Order
 ######################################################################
@@ -34,6 +40,7 @@ class NonParametric_Galaxy(Galaxy_Model):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {Galaxy_Model.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -44,6 +51,7 @@ class NonParametric_Galaxy(Galaxy_Model):
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+
 
 class NonParametric_Star(Star_Model):
     """star model with a nonparametric radial light profile. The light
@@ -61,6 +69,7 @@ class NonParametric_Star(Star_Model):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {Star_Model.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -71,8 +80,10 @@ class NonParametric_Star(Star_Model):
 
     def transform_coordinates(self, X, Y):
         return X, Y
+
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+
 
 class NonParametric_Warp(Warp_Galaxy):
     """warped coordinate galaxy model with a nonparametric light
@@ -90,6 +101,7 @@ class NonParametric_Warp(Warp_Galaxy):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {Warp_Galaxy.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -100,6 +112,7 @@ class NonParametric_Warp(Warp_Galaxy):
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+
 
 # Second Order
 ######################################################################
@@ -118,7 +131,7 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
-    
+
     model_type = f"nonparametric {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -129,6 +142,7 @@ class NonParametric_SuperEllipse(SuperEllipse_Galaxy):
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+
 
 class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
     """The light profile is defined as a cubic spline interpolation of the
@@ -145,6 +159,7 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -155,6 +170,7 @@ class NonParametric_FourierEllipse(FourierEllipse_Galaxy):
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+
 
 class NonParametric_Ray(Ray_Galaxy):
     """ray galaxy model with a nonparametric light profile. The light
@@ -172,6 +188,7 @@ class NonParametric_Ray(Ray_Galaxy):
         I(R): 2D Tensor of brighntess values for each ray, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {Ray_Galaxy.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -182,11 +199,15 @@ class NonParametric_Ray(Ray_Galaxy):
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        nonparametric_segment_initialize(self, target, segments = self.rays, symmetric = self.symmetric_rays)
+
+        nonparametric_segment_initialize(
+            self, target, segments=self.rays, symmetric=self.symmetric_rays
+        )
+
     from ._shared_methods import nonparametric_iradial_model as iradial_model
+
 
 class NonParametric_Wedge(Wedge_Galaxy):
     """wedge galaxy model with a nonparametric light profile. The light
@@ -204,6 +225,7 @@ class NonParametric_Wedge(Wedge_Galaxy):
         I(R): 2D Tensor of brighntess values for each wedge, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {Wedge_Galaxy.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -214,12 +236,16 @@ class NonParametric_Wedge(Wedge_Galaxy):
 
     @torch.no_grad()
     @select_target
-    def initialize(self, target = None):
+    def initialize(self, target=None):
         super().initialize(target)
-        
-        nonparametric_segment_initialize(self, target, segments = self.wedges, symmetric = self.symmetric_wedges)
+
+        nonparametric_segment_initialize(
+            self, target, segments=self.wedges, symmetric=self.symmetric_wedges
+        )
+
     from ._shared_methods import nonparametric_iradial_model as iradial_model
-    
+
+
 # Third Order
 ######################################################################
 class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
@@ -237,6 +263,7 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {SuperEllipse_Warp.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -247,6 +274,7 @@ class NonParametric_SuperEllipse_Warp(SuperEllipse_Warp):
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
+
 
 class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
     """The light profile is defined as a cubic spline interpolation of the
@@ -263,6 +291,7 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
         I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
 
     """
+
     model_type = f"nonparametric {FourierEllipse_Warp.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
@@ -273,6 +302,3 @@ class NonParametric_FourierEllipse_Warp(FourierEllipse_Warp):
 
     from ._shared_methods import nonparametric_initialize as initialize
     from ._shared_methods import nonparametric_radial_model as radial_model
-
-
-
