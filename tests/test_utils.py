@@ -5,6 +5,7 @@ import h5py
 from scipy.signal import fftconvolve
 from scipy.special import gamma
 from torch.special import gammaln
+from scipy.interpolate import RectBivariateSpline
 import autoprof as ap
 from utils import make_basic_sersic, make_basic_gaussian
 ######################################################################
@@ -228,6 +229,38 @@ class TestConversions(unittest.TestCase):
 
         #inverse sersic - torch
         self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]),decimals=7), msg="Error computing inverse sersic function (torch)")
+
+
+class TestInterpolate(unittest.TestCase):
+
+    def test_interpolate_functions(self):
+
+        #Lanczos kernel interpolation on the center point of a gaussian (10., 10.)
+        model = make_basic_gaussian(x = 10., y = 10.).data.detach().numpy()
+        lanczos_interp = ap.utils.interpolate.point_Lanczos(model, 10., 10., scale=0.8)
+        self.assertTrue(np.all(np.isfinite(model)),msg="gaussian model returning nonfinite values")
+        self.assertLess(lanczos_interp, 1.0, msg="Lanczos interpolation greater than total flux")
+        self.assertTrue(np.isfinite(lanczos_interp), msg="Lanczos interpolate returning nonfinite values")
+
+        # fixme
+        #interpolate bicubic - RectBivariateSpline not defined in autoprof/utils/interpolate.py (?)
+        #print(ap.utils.interpolate.interpolate_bicubic(model, 10., 10.))
+
+        #Lanczos interpolation over a grid of values - step not defined
+        #lanczos_interp_grid = ap.utils.interpolate.interpolate_Lanczos_grid(model, np.arange(1.,10.), np.arange(1.,10.), scale=0.8)
+        #print(lanczos_interp_grid)
+
+
+class TestAngleOperations(unittest.TestCase):
+
+    def test_angle_operation_functions(self):
+
+        test_angles = np.array([np.pi, 2*np.pi, 3*np.pi, 4*np.pi])
+        #angle median
+        self.assertAlmostEqual(ap.utils.angle_operations.Angle_Median(test_angles), -np.pi/2, msg="incorrectly calculating median of list of angles")
+
+        #angle scatter (iqr)
+        self.assertAlmostEqual(ap.utils.angle_operations.Angle_Scatter(test_angles), np.pi, msg="incorrectly calculating iqr of list of angles")
         
 if __name__ == "__main__":
     unittest.main()
