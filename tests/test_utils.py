@@ -215,19 +215,19 @@ class TestConversions(unittest.TestCase):
         
         #sersic I0 to flux - torch
         tv = torch.tensor([[1.]],dtype=torch.float64)
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_I0_to_flux_np(tv,tv,tv,tv).numpy(), torch.tensor([[2*np.pi * gamma(2)]]).numpy(), msg="Error converting sersic central intensity to flux (torch)")
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_I0_to_flux_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[2*np.pi * gamma(2)]]),decimals=7), msg="Error converting sersic central intensity to flux (torch)")
 
         #sersic flux to I0 - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_I0_np(tv,tv,tv,tv).numpy(), torch.tensor([[1. / (2*np.pi * gamma(2))]]).numpy(), msg="Error converting sersic flux to central intensity (torch)")
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_flux_to_I0_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1. / (2*np.pi * gamma(2))]]),decimals=7), msg="Error converting sersic flux to central intensity (torch)")
 
         #sersic Ie to flux - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv,tv,tv,tv).numpy(), torch.tensor([[2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)]]).numpy(), msg="Error converting sersic effective intensity to flux (torch)")
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)]]),decimals=7), msg="Error converting sersic effective intensity to flux (torch)")
 
         #sersic flux to Ie - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv,tv,tv,tv).numpy(), torch.tensor([[1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))]]).numpy(), msg="Error converting sersic flux to effective intensity (torch)")
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))]]),decimals=7), msg="Error converting sersic flux to effective intensity (torch)")
 
         #inverse sersic - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv).numpy(), torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]).numpy(), msg="Error computing inverse sersic function (torch)")
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]),decimals=7), msg="Error computing inverse sersic function (torch)")
         
 if __name__ == "__main__":
     unittest.main()
