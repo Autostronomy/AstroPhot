@@ -151,28 +151,28 @@ class TestConversions(unittest.TestCase):
         self.assertEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=None), (10**(-1/2.5)), "mag incorrectly converted to flux (no error)")
 
         #mag to flux with error:
-        [self.assertAlmostEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=1.)[i], (10**(-1./2.5), np.log(10)*(1./2.5)*10**(-1./2.5))[i], "mag incorrectly converted to flux (with error)") for i in range(1)]
+        [self.assertAlmostEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=1.)[i], (10**(-1./2.5), np.log(10)*(1./2.5)*10**(-1./2.5))[i], msg="mag incorrectly converted to flux (with error)") for i in range(1)]
         
         #magperarcsec2 to mag with area A defined
-        self.assertAlmostEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=None, b=None, A=1.), (1. - 2.5 * np.log10(1.)), "mag/arcsec^2 incorrectly converted to mag (area A given, a and b not defined)")
+        self.assertAlmostEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=None, b=None, A=1.), (1. - 2.5 * np.log10(1.)), msg="mag/arcsec^2 incorrectly converted to mag (area A given, a and b not defined)")
 
         #magperarcsec2 to mag with semi major and minor axes defined (a, and b)
-        self.assertAlmostEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=1., b=1., A=None), (1. - 2.5 * np.log10(np.pi)), "mag/arcsec^2 incorrectly converted to mag (semi major/minor axes defined)")
+        self.assertAlmostEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=1., b=1., A=None), (1. - 2.5 * np.log10(np.pi)), msg="mag/arcsec^2 incorrectly converted to mag (semi major/minor axes defined)")
 
         #mag to magperarcsec2 with area A defined
-        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=1., R=None), (1. + 2.5 * np.log10(1.)), "mag incorrectly converted to mag/arcsec^2 (area A given)")
+        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=1., R=None), (1. + 2.5 * np.log10(1.)), msg="mag incorrectly converted to mag/arcsec^2 (area A given)")
 
         #mag to magperarcsec2 with radius R given (assumes circular)
-        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=None, R=1.), (1. + 2.5 * np.log10(np.pi)), "mag incorrectly converted to mag/arcsec^2 (radius R given)")
+        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=None, R=1.), (1. + 2.5 * np.log10(np.pi)), msg="mag incorrectly converted to mag/arcsec^2 (radius R given)")
 
         #mag to magperarcsec2 with semi major and minor axes defined (a, and b)
-        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=1., b=1., A=None, R=None), (1. + 2.5 * np.log10(np.pi)), "mag incorrectly converted to mag/arcsec^2 (area A given)")
+        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=1., b=1., A=None, R=None), (1. + 2.5 * np.log10(np.pi)), msg="mag incorrectly converted to mag/arcsec^2 (area A given)")
 
         #position angle PA to radians
-        self.assertAlmostEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='rad'), ((1. - (np.pi / 2)) % np.pi), "PA incorrectly converted to radians")
+        self.assertAlmostEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='rad'), ((1. - (np.pi / 2)) % np.pi), msg="PA incorrectly converted to radians")
 
         #position angle PA to degrees
-        self.assertAlmostEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='deg'), ((1. - (180 / 2)) % 180), "PA incorrectly converted to degrees")
+        self.assertAlmostEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='deg'), ((1. - (180 / 2)) % 180), msg="PA incorrectly converted to degrees")
 
 
     def test_conversion_dict_to_hdf5(self):
@@ -215,19 +215,19 @@ class TestConversions(unittest.TestCase):
         
         #sersic I0 to flux - torch
         tv = torch.tensor([[1.]],dtype=torch.float64)
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_I0_to_flux_np(tv,tv,tv,tv), torch.tensor([[2*np.pi * gamma(2)]]), msg="Error converting sersic central intensity to flux (torch)")
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_I0_to_flux_np(tv,tv,tv,tv).numpy(), torch.tensor([[2*np.pi * gamma(2)]]).numpy(), msg="Error converting sersic central intensity to flux (torch)")
 
         #sersic flux to I0 - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_I0_np(tv,tv,tv,tv), torch.tensor([[1. / (2*np.pi * gamma(2))]]), msg="Error converting sersic flux to central intensity (torch)")
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_I0_np(tv,tv,tv,tv).numpy(), torch.tensor([[1. / (2*np.pi * gamma(2))]]).numpy(), msg="Error converting sersic flux to central intensity (torch)")
 
         #sersic Ie to flux - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv,tv,tv,tv), torch.tensor([[2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)]]), msg="Error converting sersic effective intensity to flux (torch)")
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv,tv,tv,tv).numpy(), torch.tensor([[2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)]]).numpy(), msg="Error converting sersic effective intensity to flux (torch)")
 
         #sersic flux to Ie - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv,tv,tv,tv), torch.tensor([[1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))]]), msg="Error converting sersic flux to effective intensity (torch)")
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv,tv,tv,tv).numpy(), torch.tensor([[1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))]]).numpy(), msg="Error converting sersic flux to effective intensity (torch)")
 
         #inverse sersic - torch
-        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv), torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]), msg="Error computing inverse sersic function (torch)")
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv).numpy(), torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]).numpy(), msg="Error computing inverse sersic function (torch)")
         
 if __name__ == "__main__":
     unittest.main()
