@@ -20,7 +20,7 @@ def dict_to_hdf5(h, D):
                 if to_hdf5_has_None(D[key]):
                     h[key] = str(D[key])
                 else:
-                    h.create_dataset(key, D[key])
+                    h.create_dataset(key, data=D[key])
             elif D[key] is not None:
                 h[key] = D[key]
             else:

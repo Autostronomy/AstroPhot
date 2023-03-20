@@ -1,7 +1,11 @@
 import unittest
 import numpy as np
 import torch
+import h5py
 from scipy.signal import fftconvolve
+from scipy.special import gamma
+from torch.special import gammaln
+from scipy.interpolate import RectBivariateSpline
 import autoprof as ap
 from utils import make_basic_sersic, make_basic_gaussian
 ######################################################################
@@ -128,6 +132,135 @@ class TestSegtoWindow(unittest.TestCase):
         # check original
         self.assertEqual(windows[3], [[80,84],[26,33]], "Original windows should not have changed")
         
+class TestConversions(unittest.TestCase):
+
+    def test_conversions_units(self):
+        
+        #flux to sb
+        self.assertEqual(ap.utils.conversions.units.flux_to_sb(1.,1.,0.), 0, "flux incorrectly converted to sb")
+
+        #sb to flux
+        self.assertEqual(ap.utils.conversions.units.sb_to_flux(1.,1.,0.), (10**(-1/2.5)), "sb incorrectly converted to flux")
+        
+        #flux to mag no error
+        self.assertEqual(ap.utils.conversions.units.flux_to_mag(1.,0.), 0, "flux incorrectly converted to mag (no error)")
+
+        #flux to mag with error
+        self.assertEqual(ap.utils.conversions.units.flux_to_mag(1.,0., fluxe=1.), (0., 2.5/np.log(10)), "flux incorrectly converted to mag (with error)")
+
+        #mag to flux no error:
+        self.assertEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=None), (10**(-1/2.5)), "mag incorrectly converted to flux (no error)")
+
+        #mag to flux with error:
+        [self.assertAlmostEqual(ap.utils.conversions.units.mag_to_flux(1.,0., mage=1.)[i], (10**(-1./2.5), np.log(10)*(1./2.5)*10**(-1./2.5))[i], msg="mag incorrectly converted to flux (with error)") for i in range(1)]
+        
+        #magperarcsec2 to mag with area A defined
+        self.assertAlmostEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=None, b=None, A=1.), (1. - 2.5 * np.log10(1.)), msg="mag/arcsec^2 incorrectly converted to mag (area A given, a and b not defined)")
+
+        #magperarcsec2 to mag with semi major and minor axes defined (a, and b)
+        self.assertAlmostEqual(ap.utils.conversions.units.magperarcsec2_to_mag(1., a=1., b=1., A=None), (1. - 2.5 * np.log10(np.pi)), msg="mag/arcsec^2 incorrectly converted to mag (semi major/minor axes defined)")
+
+        #mag to magperarcsec2 with area A defined
+        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=1., R=None), (1. + 2.5 * np.log10(1.)), msg="mag incorrectly converted to mag/arcsec^2 (area A given)")
+
+        #mag to magperarcsec2 with radius R given (assumes circular)
+        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=None, b=None, A=None, R=1.), (1. + 2.5 * np.log10(np.pi)), msg="mag incorrectly converted to mag/arcsec^2 (radius R given)")
+
+        #mag to magperarcsec2 with semi major and minor axes defined (a, and b)
+        self.assertAlmostEqual(ap.utils.conversions.units.mag_to_magperarcsec2(1., a=1., b=1., A=None, R=None), (1. + 2.5 * np.log10(np.pi)), msg="mag incorrectly converted to mag/arcsec^2 (area A given)")
+
+        #position angle PA to radians
+        self.assertAlmostEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='rad'), ((1. - (np.pi / 2)) % np.pi), msg="PA incorrectly converted to radians")
+
+        #position angle PA to degrees
+        self.assertAlmostEqual(ap.utils.conversions.units.PA_shift_convention(1., unit='deg'), ((1. - (180 / 2)) % 180), msg="PA incorrectly converted to degrees")
+
+
+    def test_conversion_dict_to_hdf5(self):
+
+        #convert string to hdf5
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='test'), (False), "Failed to properly identify string object while converting to hdf5")
+
+        #convert __iter__ to hdf5
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.to_hdf5_has_None(l='__iter__'), (False), "Attempted to convert '__iter__' to hdf5 key")
+
+        #convert hdf5 file to dict
+        h = h5py.File("mytestfile.hdf5", "w")
+        dset = h.create_dataset("mydataset", (1,), dtype='i')
+        dset[...] = np.array([1.0])
+        self.assertEqual(ap.utils.conversions.dict_to_hdf5.hdf5_to_dict(h=h), ({'mydataset': h['mydataset']}), "Failed to convert hdf5 file to dict")
+
+        #convert dict to hdf5
+        target = make_basic_sersic().data.detach().numpy()[0]
+        d = {'sersic': target.tolist()}
+        ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(h=h5py.File('mytestfile2.hdf5','w'),D=d)
+        self.assertEqual((list(h5py.File("mytestfile2.hdf5", "r"))), (list(d)), "Failed to convert dict of strings to hdf5")
+
+    def test_conversion_functions(self):
+
+        sersic_n = ap.utils.conversions.functions.sersic_n_to_b(1.)
+        #sersic I0 to flux - numpy
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_I0_to_flux_np(1., 1., 1., 1.), (2*np.pi * gamma(2)), msg="Error converting sersic central intensity to flux (np)")
+
+        #sersic flux to I0 - numpy
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_I0_np(1., 1., 1., 1.), (1. / (2*np.pi * gamma(2))), msg="Error converting sersic flux to central intensity (np)")
+
+        #sersic Ie to flux - numpy
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_Ie_to_flux_np(1., 1., 1., 1.), (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)), msg="Error converting sersic effective intensity to flux (np)")
+
+        #sersic flux to Ie - numpy
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_flux_to_Ie_np(1., 1., 1., 1.), (1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))), msg="Error converting sersic flux to effective intensity (np)")
+        
+        #inverse sersic - numpy
+        self.assertAlmostEqual(ap.utils.conversions.functions.sersic_inv_np(1., 1., 1., 1.), (1. - (1./sersic_n)*np.log(1.)), msg="Error computing inverse sersic function (np)")
+        
+        #sersic I0 to flux - torch
+        tv = torch.tensor([[1.]],dtype=torch.float64)
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_I0_to_flux_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[2*np.pi * gamma(2)]]),decimals=7), msg="Error converting sersic central intensity to flux (torch)")
+
+        #sersic flux to I0 - torch
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_flux_to_I0_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1. / (2*np.pi * gamma(2))]]),decimals=7), msg="Error converting sersic flux to central intensity (torch)")
+
+        #sersic Ie to flux - torch
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2)]]),decimals=7), msg="Error converting sersic effective intensity to flux (torch)")
+
+        #sersic flux to Ie - torch
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1 / (2*np.pi * gamma(2) * np.exp(sersic_n)*sersic_n**(-2))]]),decimals=7), msg="Error converting sersic flux to effective intensity (torch)")
+
+        #inverse sersic - torch
+        self.assertEqual(torch.round(ap.utils.conversions.functions.sersic_inv_np(tv,tv,tv,tv),decimals=7), torch.round(torch.tensor([[1. - (1./sersic_n)*np.log(1.)]]),decimals=7), msg="Error computing inverse sersic function (torch)")
+
+
+class TestInterpolate(unittest.TestCase):
+
+    def test_interpolate_functions(self):
+
+        #Lanczos kernel interpolation on the center point of a gaussian (10., 10.)
+        model = make_basic_gaussian(x = 10., y = 10.).data.detach().numpy()
+        lanczos_interp = ap.utils.interpolate.point_Lanczos(model, 10., 10., scale=0.8)
+        self.assertTrue(np.all(np.isfinite(model)),msg="gaussian model returning nonfinite values")
+        self.assertLess(lanczos_interp, 1.0, msg="Lanczos interpolation greater than total flux")
+        self.assertTrue(np.isfinite(lanczos_interp), msg="Lanczos interpolate returning nonfinite values")
+
+        # fixme
+        #interpolate bicubic - RectBivariateSpline not defined in autoprof/utils/interpolate.py (?)
+        #print(ap.utils.interpolate.interpolate_bicubic(model, 10., 10.))
+
+        #Lanczos interpolation over a grid of values - step not defined
+        #lanczos_interp_grid = ap.utils.interpolate.interpolate_Lanczos_grid(model, np.arange(1.,10.), np.arange(1.,10.), scale=0.8)
+        #print(lanczos_interp_grid)
+
+
+class TestAngleOperations(unittest.TestCase):
+
+    def test_angle_operation_functions(self):
+
+        test_angles = np.array([np.pi, 2*np.pi, 3*np.pi, 4*np.pi])
+        #angle median
+        self.assertAlmostEqual(ap.utils.angle_operations.Angle_Median(test_angles), -np.pi/2, msg="incorrectly calculating median of list of angles")
+
+        #angle scatter (iqr)
+        self.assertAlmostEqual(ap.utils.angle_operations.Angle_Scatter(test_angles), np.pi, msg="incorrectly calculating iqr of list of angles")
         
 if __name__ == "__main__":
     unittest.main()
