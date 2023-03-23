@@ -2,12 +2,10 @@
 from typing import Dict, Any
 import os
 from time import time
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-
 from scipy.optimize import minimize
 from scipy.special import gammainc
 
@@ -161,7 +159,7 @@ class Iter(BaseOptimizer):
                 if self.iteration > 2 and self._count_finish >= 2:
                     self.message = self.message + "success"
                     break
-                elif self.iteration > self.max_iter:
+                elif self.iteration >= self.max_iter:
                     self.message = (
                         self.message + f"fail max iterations reached: {self.iteration}"
                     )

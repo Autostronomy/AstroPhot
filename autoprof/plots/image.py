@@ -86,6 +86,7 @@ def model_image(
         "cmap": cmap_grad,
         "origin": "lower",
         "interpolation": "none",
+        "norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.0
@@ -107,7 +108,7 @@ def model_image(
                 except Exception as e:
                     AP_config.ap_logger.warning(e)
     im = ax.imshow(
-        np.log10(sample_image - sky_level),
+        sample_image - sky_level,
         **imshow_kwargs,
     )
     if showcbar:

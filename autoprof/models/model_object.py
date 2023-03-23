@@ -89,7 +89,7 @@ class Component_Model(AutoProf_Model):
     def parameters(self, val):
         self._parameters = val
 
-    def parameter_order(self, override_locked: bool = False):
+    def parameter_order(self, override_locked: bool = False, parameters_identity: Optional[tuple] = None):
         """Returns a tuple of names of the parameters in their set order.
 
         Args:
@@ -99,6 +99,8 @@ class Component_Model(AutoProf_Model):
         param_order = tuple()
         for P in self.__class__._parameter_order:
             if self[P].locked and not override_locked:
+                continue
+            if parameters_identity is not None and not any(pid in parameters_identity for pid in self[P].identities):
                 continue
             param_order = param_order + (P,)
         return param_order
@@ -120,7 +122,7 @@ class Component_Model(AutoProf_Model):
         super().initialize(target)
         # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
-
+        
         # Use center of window if a center hasn't been set yet
         if self["center"].value is None:
             self["center"].set_value(self.window.center, override_locked=True)
@@ -331,6 +333,7 @@ class Component_Model(AutoProf_Model):
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
         override_locked: bool = False,
+        parameters_identity: Optional[tuple] = None,
         **kwargs,
     ):
         """Compute the jacobian for this model. Done by first constructing a
@@ -345,13 +348,22 @@ class Component_Model(AutoProf_Model):
 
         """
 
+        # skip jacobian calculation if no parameters match criteria
+        porder = self.parameter_order(override_locked=override_locked, parameters_identity=parameters_identity)
+        if len(porder) == 0:
+            return self.target[self.window].jacobian_image(
+                parameters=[],
+                null_jacobian=True,
+            )
+        
         if parameters is not None:
             self.set_parameters(
                 parameters,
                 override_locked=override_locked,
                 as_representation=as_representation,
+                parameters_identity=parameters_identity,
             )
-
+        
         # idea, include mode to break up the image into chunks and evaluate jacobian on those
         if self.jacobian_mode == "full":
             full_jac = jacobian(
@@ -360,16 +372,19 @@ class Component_Model(AutoProf_Model):
                     parameters=P,
                     as_representation=as_representation,
                     override_locked=override_locked,
+                    parameters_identity=parameters_identity,
                 ).data,
                 self.get_parameter_vector(
                     as_representation=as_representation,
                     override_locked=override_locked,
+                    parameters_identity=parameters_identity,
                 ),
                 strategy="forward-mode",
                 vectorize=True,
                 create_graph=False,
             )
         elif self.jacobian_mode == "single":
+            assert parameters_identity is None
             sub_jacs = []
             start = 0
             params = self.get_parameter_vector(
@@ -408,7 +423,8 @@ class Component_Model(AutoProf_Model):
 
         jac_img = self.target[self.window].jacobian_image(
             parameters=self.get_parameter_identity_vector(
-                override_locked=override_locked
+                override_locked=override_locked,
+                parameters_identity=parameters_identity,
             ),
             data=full_jac,
         )

@@ -210,16 +210,18 @@ class Target_Image(BaseImage):
     def jacobian_image(
         self, parameters: List[str], data: Optional[torch.Tensor] = None, **kwargs
     ):
-        return Jacobian_Image(
-            parameters=parameters,
-            target_identity=self.identity,
-            data=torch.zeros(
+        if kwargs.get("null_jacobian", False):
+            data = None
+        elif data is None:
+            data = torch.zeros(
                 (*self.data.shape, len(parameters)),
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
-            if data is None
-            else data,
+        return Jacobian_Image(
+            parameters=parameters,
+            target_identity=self.identity,
+            data=data,
             pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
             window=self.window,

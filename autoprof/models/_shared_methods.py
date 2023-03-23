@@ -102,6 +102,7 @@ def parametric_initialize(
     icenter = coord_to_index(
         model["center"].value[0], model["center"].value[1], target_area
     )
+    # Collect isophotes for 1D fit
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
@@ -114,10 +115,12 @@ def parametric_initialize(
     flux = (
         np.array(list(iso["flux"] for iso in iso_info)) / target.pixelscale.item() ** 2
     )
+    # Correct the flux if values are negative, so fit can be done in log space
     if np.sum(flux < 0) > 0:
         AP_config.ap_logger.debug("fixing flux")
         flux -= np.min(flux) - np.abs(np.min(flux) * 0.1)
     flux = np.log10(flux)
+    
     x0 = list(x0_func(model, R, flux))
     for i, param in enumerate(params):
         x0[i] = x0[i] if model[param].value is None else model[param].value.item()

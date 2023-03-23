@@ -69,9 +69,10 @@ class LM(BaseOptimizer):
         model: "AutoProf_Model",
         initial_state: Sequence = None,
         max_iter: int = 100,
+        fit_parameters_identity: Optional[tuple] = None,
         **kwargs,
     ):
-        super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
+        super().__init__(model, initial_state, max_iter=max_iter, fit_parameters_identity=fit_parameters_identity, **kwargs)
 
         # Set optimizer parameters
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
@@ -213,6 +214,8 @@ class LM(BaseOptimizer):
 
         self.update_Yp(h)
         loss = self.update_chi2()
+        if self.verbose > 0:
+            AP_config.ap_logger.info(f"LM loss: {loss.item()}")
 
         if self.iteration == 0:
             self.prev_Y[1] = self.current_Y
@@ -237,8 +240,6 @@ class LM(BaseOptimizer):
                 AP_config.ap_logger.debug(
                     f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}"
                 )
-            elif self.verbose > 0 and rho > self.epsilon4:
-                AP_config.ap_logger.info(f"LM loss: {loss.item()}")
             self.rho_history.append(rho)
             if self.verbose > 1:
                 AP_config.ap_logger.debug(f"rho: {rho.item()}")
@@ -390,7 +391,7 @@ class LM(BaseOptimizer):
                 + ". possibly converged to numerical precision and could not make a better step."
             )
         self.model.set_parameters(
-            self.res(), as_representation=True, override_locked=False
+            self.res(), as_representation=True, override_locked=False, parameters_identity=self.fit_parameters_identity,
         )
         if self.verbose > 1:
             AP_config.ap_logger.info(
@@ -405,6 +406,7 @@ class LM(BaseOptimizer):
             torch.sqrt(2 * torch.abs(torch.diag(cov))),
             as_representation=True,
             override_locked=False,
+            parameters_identity=self.fit_parameters_identity,
         )
 
         return self
@@ -508,6 +510,7 @@ class LM(BaseOptimizer):
             parameters=self.current_state + h,
             as_representation=True,
             override_locked=False,
+            parameters_identity=self.fit_parameters_identity,
         ).flatten("data")
 
         # Add constraint evaluations
@@ -549,6 +552,7 @@ class LM(BaseOptimizer):
             torch.clone(self.current_state).detach(),
             as_representation=True,
             override_locked=False,
+            parameters_identity=self.fit_parameters_identity,
         ).flatten("data")
 
         # compute the constraint jacobian if needed

@@ -215,7 +215,9 @@ class BaseImage(object):
         """
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
-        if isinstance(data, torch.Tensor):
+        if data is None:
+            self.data = torch.tensor((), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        elif isinstance(data, torch.Tensor):
             self._data = data.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         else:
             self._data = torch.as_tensor(

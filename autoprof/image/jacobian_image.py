@@ -56,6 +56,11 @@ class Jacobian_Image(BaseImage):
         assert isinstance(
             other, Jacobian_Image
         ), "Jacobian images can only add with each other"
+
+        # exclude null jacobian images
+        if self.data is None or other.data is None:
+            return self
+        
         full_window = self.window | other.window
         if full_window > self.window:
             warnings.warn("Jacobian image addition without full coverage")
@@ -77,7 +82,7 @@ class Jacobian_Image(BaseImage):
                 )
                 self.parameters.append(other_identity)
                 other_loc = -1
-            print(other_identity, indices, other_loc, self.data.shape, other.data.shape)
+            #print(other_identity, indices, other_loc, self.data.shape, other.data.shape)
             # fixme match indices for other as well
             self.data[indices[0], indices[1], other_loc] += other.data[:, :, i]
         return self
@@ -122,7 +127,6 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
             for other_image in other.image_list:
                 for self_image in self.image_list:
                     if other_image.target_identity == self_image.target_identity:
-                        print(other_image.target_identity, self_image.target_identity)
                         self_image += other_image
                         break
                 else:

@@ -70,6 +70,18 @@ class Group_Model(AutoProf_Model):
         self.model_list.append(model)
         self.update_window()
 
+    @property
+    def equality_constraints(self):
+        try:
+            return self._equality_constraints
+        except AttributeError:
+            return []
+
+    @equality_constraints.setter
+    def equality_constraints(self, val):
+        pass
+        
+        
     def pop_model(self, model):
         """Removes the specified model from the group model list. Returns the
         model object if it is found.
@@ -128,12 +140,13 @@ class Group_Model(AutoProf_Model):
                     new_window |= model.window
         self.window = new_window
 
-    def parameter_tuples_order(self, override_locked: bool = False):
+    def parameter_tuples_order(self, override_locked: bool = True):
         """Constructs a list where each entry is a tuple with a unique name
         for the parameter and the parameter object itself.
 
         """
         params = []
+        self._equality_constraints = []
         for model in self.model_list:
             if model.locked and not override_locked:
                 continue
@@ -143,15 +156,18 @@ class Group_Model(AutoProf_Model):
                 if p in model.equality_constraints:
                     for k in range(len(params)):
                         if params[k][1] is model.parameters[p]:
+                            self._equality_constraints.pop(self.equality_constraints.index(params[k][0]))
                             params[k] = (f"{model.name}:{params[k][0]}", params[k][1])
+                            self._equality_constraints.append(params[k][0])
                             break
                     else:
                         params.append((f"{model.name}|{p}", model.parameters[p]))
+                        self._equality_constraints.append(f"{model.name}|{p}")
                 else:
                     params.append((f"{model.name}|{p}", model.parameters[p]))
         return params
 
-    def parameter_order(self, override_locked: bool = True):
+    def parameter_order(self, override_locked: bool = False, parameters_identity: Optional[tuple] = None):
         """Gives the unique parameter names for this model in a repeatable
         order. By default, locked parameters are excluded from the
         tuple. The order of parameters will of course not be the same
@@ -159,7 +175,13 @@ class Group_Model(AutoProf_Model):
 
         """
         param_tuples = self.parameter_tuples_order(override_locked=override_locked)
-        return tuple(P[0] for P in param_tuples)
+        param_order = []
+        for P, M in param_tuples:
+            if parameters_identity is not None and not any(pid in parameters_identity for pid in self[P].identities):
+                continue
+            param_order.append(P)
+            
+        return tuple(param_order)
 
     @property
     def param_tuple(self):
@@ -239,6 +261,7 @@ class Group_Model(AutoProf_Model):
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
         override_locked: bool = False,
+        parameters_identity: Optional[tuple] = None,
         pass_jacobian: Optional["Jacobian_Image"] = None,
         **kwargs,
     ):
@@ -253,16 +276,22 @@ class Group_Model(AutoProf_Model):
           pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
+        self._param_tuple = None
+
         if parameters is not None:
             self.set_parameters(
                 parameters,
                 override_locked=override_locked,
                 as_representation=as_representation,
+                parameters_identity=parameters_identity,
             )
-
+            
         if pass_jacobian is None:
             jac_img = self.target[self.window].jacobian_image(
-                parameters=self.get_parameter_identity_vector()
+                parameters=self.get_parameter_identity_vector(
+                    override_locked=override_locked,
+                    parameters_identity=parameters_identity,
+                )
             )
         else:
             jac_img = pass_jacobian
@@ -271,6 +300,7 @@ class Group_Model(AutoProf_Model):
             jac_img += model.jacobian(
                 as_representation=as_representation,
                 override_locked=override_locked,
+                parameters_identity=parameters_identity,
                 pass_jacobian=jac_img,
             )
 
