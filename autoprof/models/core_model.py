@@ -355,6 +355,23 @@ class AutoProf_Model(object):
             vstart += V
         return parameters
 
+    def get_parameter_name_vector(self, parameters_identity=None):
+        parameters = []
+        porder = self.parameter_order(parameters_identity=parameters_identity)
+        # If vector is requested by identity, they are individually updated
+        if parameters_identity is not None:
+            pindex = 0
+            for P in porder:
+                for pid, nid in zip(self[P].identities, self[P].names):
+                    if pid in parameters_identity:
+                        parameters.append(nid)
+            return parameters
+        
+        # If the full vector is requested, they are added in bulk
+        for P in porder:
+            parameters += list(self[P].names)
+        return parameters
+
     def get_parameter_identity_vector(self, parameters_identity=None):
         parameters = []
         vstart = 0

@@ -258,7 +258,7 @@ class Iter_LM(BaseOptimizer):
                 # Remove the selected ids from the list
                 for p in chunk:
                     param_ids.pop(param_ids.index(p))
-            elif isinstance(self.chunks, tuple):
+            elif isinstance(self.chunks, (tuple, list)):
                 if _chunk_choices is None:
                     # Make a list of the chunks as given explicitly
                     _chunk_choices = list(range(len(self.chunks)))
@@ -279,8 +279,11 @@ class Iter_LM(BaseOptimizer):
                 AP_config.ap_logger.info(str(chunk))
             del res
             res = LM(self.model, fit_parameters_identity=chunk, ndf = self.ndf, **self.LM_kwargs).fit()
-            if self.verbose > 1:
+            if self.verbose > 0:
                 AP_config.ap_logger.info(f"chunk loss: {res.res_loss()}")
+            if self.verbose > 1:
+                AP_config.ap_logger.info(f"chunk message: {res.message}")
+                
         self.loss_history.append(res.res_loss())
         self.lambda_history.append(self.model.get_parameter_vector(as_representation=True).detach().cpu().numpy())
         if self.verbose > 0:

@@ -330,6 +330,9 @@ class Group_Model(AutoProf_Model):
 
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
 
+    def __iter__(self):
+        return (mod for mod in self.model_list)
+
     @property
     def psf_mode(self):
         return self._psf_mode

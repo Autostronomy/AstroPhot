@@ -112,6 +112,10 @@ class Parameter(object):
         return tuple(f"{self.identity}:{i}" for i in range(self.value.numel()))
 
     @property
+    def names(self):
+        return tuple(f"{self.name}:{i}" for i in range(self.value.numel()))
+
+    @property
     def limits(self):
         try:
             return self._limits
