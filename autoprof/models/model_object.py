@@ -89,16 +89,13 @@ class Component_Model(AutoProf_Model):
     def parameters(self, val):
         self._parameters = val
 
-    def parameter_order(self, override_locked: bool = False, parameters_identity: Optional[tuple] = None):
+    def parameter_order(self, parameters_identity: Optional[tuple] = None):
         """Returns a tuple of names of the parameters in their set order.
-
-        Args:
-          override_locked (bool): Include locked parameters as well as regular parameters. Default False
 
         """
         param_order = tuple()
         for P in self.__class__._parameter_order:
-            if self[P].locked and not override_locked:
+            if self[P].locked:
                 continue
             if parameters_identity is not None and not any(pid in parameters_identity for pid in self[P].identities):
                 continue
@@ -169,8 +166,8 @@ class Component_Model(AutoProf_Model):
 
     def sample(
         self,
-        sample_image: Optional["BaseImage"] = None,
-        sample_window: Optional[Window] = None,
+        image: Optional["BaseImage"] = None,
+        window: Optional[Window] = None,
     ):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
@@ -178,19 +175,19 @@ class Component_Model(AutoProf_Model):
         cases.
 
         Parameters:
-            sample_image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) on which to evaluate the model values.
-            sample_window (Optional[Window]): A window within which to evaluate the model. Should only be used if a subset of the full image is needed.
+            image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) on which to evaluate the model values.
+            window (Optional[Window]): A window within which to evaluate the model. Should only be used if a subset of the full image is needed.
 
         """
         # Image on which to evaluate model
-        if sample_image is None:
-            sample_image = self.make_model_image()
+        if image is None:
+            image = self.make_model_image(window=window)
 
         # Window within which to evaluate model
-        if sample_window is None:
-            working_window = sample_image.window.make_copy()
+        if window is None:
+            working_window = image.window.make_copy()
         else:
-            working_window = sample_window.make_copy() & sample_image.window
+            working_window = window.make_copy() & image.window
 
         if "window" in self.psf_mode:
             raise NotImplementedError("PSF convolution in sub-window not available yet")
@@ -199,7 +196,7 @@ class Component_Model(AutoProf_Model):
             # Add border for psf convolution edge effects, will be cropped out later
             working_window += self.target.psf_border
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
-            working_pixelscale = sample_image.pixelscale / self.target.psf_upscale
+            working_pixelscale = image.pixelscale / self.target.psf_upscale
             # Sub pixel shift to align the model with the center of a pixel
             align = self.target.pixel_center_alignment()
             center_shift = (
@@ -242,13 +239,13 @@ class Component_Model(AutoProf_Model):
             # Shift image back to align with original pixel grid
             working_image.window.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            sample_image += working_image.reduce(self.target.psf_upscale).crop(
+            image += working_image.reduce(self.target.psf_upscale).crop(
                 self.target.psf_border_int
             )
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(
-                pixelscale=sample_image.pixelscale, window=working_window
+                pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
             working_image.data += self.evaluate_model(working_image)
@@ -259,9 +256,9 @@ class Component_Model(AutoProf_Model):
                 self.integrate_recursion_depth,
             )
             # Add the sampled/integrated pixels to the requested image
-            sample_image += working_image
+            image += working_image
 
-        return sample_image
+        return image
 
     def integrate_model(
         self, working_image: "BaseImage", window: Window, depth: int = 2
@@ -332,8 +329,8 @@ class Component_Model(AutoProf_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        override_locked: bool = False,
         parameters_identity: Optional[tuple] = None,
+        window: Optional[Window] = None,
         **kwargs,
     ):
         """Compute the jacobian for this model. Done by first constructing a
@@ -343,40 +340,43 @@ class Component_Model(AutoProf_Model):
         Args:
           parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
           as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
-          override_locked (bool): If True, will compute jacobian for locked parameters as well. If False, will ignore locked parameters. Default False
           pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
-
+        if window is None:
+            window = self.window
+        else:
+            window = self.window & window
         # skip jacobian calculation if no parameters match criteria
-        porder = self.parameter_order(override_locked=override_locked, parameters_identity=parameters_identity)
-        if len(porder) == 0:
-            return self.target[self.window].jacobian_image(
-                parameters=[],
-                null_jacobian=True,
-            )
+        porder = self.parameter_order(parameters_identity=parameters_identity)
+        if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
+            return self.target[window].jacobian_image()
         
         if parameters is not None:
             self.set_parameters(
                 parameters,
-                override_locked=override_locked,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             )
-        
+
         # idea, include mode to break up the image into chunks and evaluate jacobian on those
         if self.jacobian_mode == "full":
+            if parameters_identity is None:
+                pids = None
+            else:
+                pids = self.get_parameter_identity_vector(
+                    parameters_identity=parameters_identity,
+                )
             full_jac = jacobian(
                 lambda P: self(
                     image=None,
                     parameters=P,
                     as_representation=as_representation,
-                    override_locked=override_locked,
-                    parameters_identity=parameters_identity,
+                    parameters_identity=pids,
+                    window=window
                 ).data,
-                self.get_parameter_vector(
+                self.get_parameter_vector(# fixme this does not necessariy get the parameters in the same order as the jacobian if there are many shared parameters!!!!
                     as_representation=as_representation,
-                    override_locked=override_locked,
                     parameters_identity=parameters_identity,
                 ),
                 strategy="forward-mode",
@@ -384,36 +384,7 @@ class Component_Model(AutoProf_Model):
                 create_graph=False,
             )
         elif self.jacobian_mode == "single":
-            assert parameters_identity is None
-            sub_jacs = []
-            start = 0
-            params = self.get_parameter_vector(
-                as_representation=as_representation,
-                override_locked=override_locked,
-            )
-            for P, V in zip(
-                self.parameter_order(override_locked=override_locked),
-                self.parameter_vector_len(override_locked=override_locked),
-            ):
-                sub_jacs.append(
-                    jacobian(
-                        partial(
-                            self.__call__,
-                            image=None,
-                            as_representation=as_representation,
-                            override_locked=override_locked,
-                            parameters_identity=(P,),
-                        ),
-                        params[start : start + V],
-                        strategy="forward-mode",
-                        vectorize=True,
-                        create_graph=False,
-                    ).reshape(
-                        *tuple(self.window.get_shape_flip(self.target.pixelscale)), V
-                    )
-                )
-                start += V
-            full_jac = torch.cat(sub_jacs, dim=2)
+            raise NotImplementedError("single jacobian not avaialble yet")
         elif self.jacobian_mode == "chunk":
             raise NotImplementedError("chunk jacobian not avaialble yet")
         else:
@@ -421,9 +392,8 @@ class Component_Model(AutoProf_Model):
                 f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}"
             )
 
-        jac_img = self.target[self.window].jacobian_image(
+        jac_img = self.target[window].jacobian_image(
             parameters=self.get_parameter_identity_vector(
-                override_locked=override_locked,
                 parameters_identity=parameters_identity,
             ),
             data=full_jac,

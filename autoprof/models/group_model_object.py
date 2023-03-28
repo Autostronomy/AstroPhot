@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window_List
+from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window, Window_List
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -228,7 +228,7 @@ class Group_Model(AutoProf_Model):
             model.initialize(target_copy)
             target_copy -= model()
 
-    def sample(self, image: Optional["Model_Image"] = None, *args, **kwargs):
+    def sample(self, image: Optional["Model_Image"] = None, window: Optional[Window] = None, *args, **kwargs):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
         model is called individually and the results are added
@@ -239,20 +239,27 @@ class Group_Model(AutoProf_Model):
 
         """
         self._param_tuple = None
-
         if image is None:
             sample_window = True
-            image = self.make_model_image()
+            image = self.make_model_image(window=window)
         else:
             sample_window = False
 
         for model in self.model_list:
+            if window is not None and isinstance(window, Window_List):
+                indices = self.target.match_indices(model.target)
+                if isinstance(indices, (tuple, list)):
+                    use_window = Window_List(window_list = list(window.window_list[ind] for ind in indices))
+                else:
+                    use_window = window.window_list[indices]
+            else:
+                use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model()
+                image += model(window=use_window)
             else:
                 # Will sample the entire image
-                model(image)
+                model(image, window=use_window)
 
         return image
 
@@ -260,9 +267,9 @@ class Group_Model(AutoProf_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        override_locked: bool = False,
         parameters_identity: Optional[tuple] = None,
         pass_jacobian: Optional["Jacobian_Image"] = None,
+        window: Optional[Window] = None,
         **kwargs,
     ):
         """Compute the jacobian for this model. Done by first constructing a
@@ -272,24 +279,23 @@ class Group_Model(AutoProf_Model):
         Args:
           parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
           as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
-          override_locked (bool): If True, will compute jacobian for locked parameters as well. If False, will ignore locked parameters. Default False
           pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
+        if window is None:
+            window = self.window
         self._param_tuple = None
 
         if parameters is not None:
             self.set_parameters(
                 parameters,
-                override_locked=override_locked,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             )
             
         if pass_jacobian is None:
-            jac_img = self.target[self.window].jacobian_image(
+            jac_img = self.target[window].jacobian_image(
                 parameters=self.get_parameter_identity_vector(
-                    override_locked=override_locked,
                     parameters_identity=parameters_identity,
                 )
             )
@@ -299,9 +305,9 @@ class Group_Model(AutoProf_Model):
         for model in self.model_list:
             jac_img += model.jacobian(
                 as_representation=as_representation,
-                override_locked=override_locked,
                 parameters_identity=parameters_identity,
                 pass_jacobian=jac_img,
+                window=window,
             )
 
         return jac_img

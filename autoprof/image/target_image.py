@@ -208,10 +208,11 @@ class Target_Image(BaseImage):
         )
 
     def jacobian_image(
-        self, parameters: List[str], data: Optional[torch.Tensor] = None, **kwargs
+        self, parameters: Optional[List[str]] = None, data: Optional[torch.Tensor] = None, **kwargs
     ):
-        if kwargs.get("null_jacobian", False):
+        if parameters is None:
             data = None
+            parameters = []
         elif data is None:
             data = torch.zeros(
                 (*self.data.shape, len(parameters)),
@@ -351,6 +352,25 @@ class Target_Image_List(Image_List, Target_Image):
             )
         )
 
+    def match_indices(self, other):
+        indices = []
+        if isinstance(other, Target_Image_List):
+            for other_image in other.image_list:
+                for isi, self_image in enumerate(self.image_list):
+                    if other_image.identity == self_image.identity:
+                        indices.append(isi)
+                        break
+                else:
+                    indices.append(None)
+        elif isinstance(other, Target_Image):
+            for isi, self_image in enumerate(self.image_list):
+                if other.identity == self_image.identity:
+                    indices = isi
+                    break
+            else:
+                indices = None    
+        return indices
+
     def __isub__(self, other):
         if isinstance(other, Target_Image_List):
             for other_image in other.image_list:
@@ -362,8 +382,9 @@ class Target_Image_List(Image_List, Target_Image):
                     self.image_list.append(other_image)
         elif isinstance(other, Target_Image):
             for self_image in self.image_list:
-                if other.identity == self.identity:
+                if other.identity == self_image.identity:
                     self_image -= other
+                    break
         elif isinstance(other, Model_Image_List):
             for other_image in other.image_list:
                 for self_image in self.image_list:
@@ -390,7 +411,7 @@ class Target_Image_List(Image_List, Target_Image):
                     self.image_list.append(other_image)
         elif isinstance(other, Target_Image):
             for self_image in self.image_list:
-                if other.identity == self.identity:
+                if other.identity == self_image.identity:
                     self_image += other
         elif isinstance(other, Model_Image_List):
             for other_image in other.image_list:

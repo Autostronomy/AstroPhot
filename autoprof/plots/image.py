@@ -4,6 +4,7 @@ import torch
 from astropy.visualization import HistEqStretch, ImageNormalize, LogStretch, SqrtStretch
 from matplotlib.patches import Rectangle
 from matplotlib import pyplot as plt
+import matplotlib
 from scipy.stats import iqr
 
 from ..models import Group_Model, Sky_Model
@@ -86,7 +87,7 @@ def model_image(
         "cmap": cmap_grad,
         "origin": "lower",
         "interpolation": "none",
-        "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        "norm": matplotlib.colors.LogNorm(),        #"norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
     sky_level = 0.0

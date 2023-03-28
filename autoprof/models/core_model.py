@@ -1,6 +1,7 @@
 from copy import copy
 from time import time
 import io
+from typing import Optional
 
 import torch
 import numpy as np
@@ -99,10 +100,14 @@ class AutoProf_Model(object):
         """
         pass
 
-    def make_model_image(self):
-        return self.target[self.window].model_image()
+    def make_model_image(self, window: Optional[Window] = None):
+        if window is None:
+            window = self.window
+        else:
+            window = self.window & window
+        return self.target[window].model_image()
 
-    def sample(self, image=None, *args, **kwargs):
+    def sample(self, image=None, window=None, *args, **kwargs):
         """Calling this function should fill the given image with values
         sampled from the given model.
 
@@ -112,7 +117,6 @@ class AutoProf_Model(object):
     def set_parameters(
         self,
         parameters,
-        override_locked=False,
         as_representation=True,
         parameters_identity=None,
     ):
@@ -121,13 +125,12 @@ class AutoProf_Model(object):
 
         Parameters:
             parameters: updated values for the parameters. Either as a dictionary of parameter_name: tensor pairs, or as a 1D tensor.
-            override_locked: locked parameters normally are ignored, set this to True to include locked parameters
             as_representation: if true the parameters are given as a representation form, if false then the parameters are given as values (see parameters for difference between representation and value)
             parameters_identity: iterable of parameter identities if "parameters" is some subset of the full parameter tensor. The identity can be found with `parameter.identity` where `parameter` is a parameter object
         """
         if isinstance(parameters, dict):
             for P in parameters:
-                if not override_locked and self[P].locked:
+                if self[P].locked:
                     continue
                 if as_representation:
                     self[P].representation = parameters[P]
@@ -139,25 +142,31 @@ class AutoProf_Model(object):
             parameters, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         # track the order of the parameters
-        porder = self.parameter_order(override_locked=override_locked, parameters_identity=parameters_identity)
+        porder = self.parameter_order(parameters_identity=parameters_identity)
 
         # If parameters are provided by identity, they are individually updated
         if parameters_identity is not None:
-            for pval, pid in zip(parameters, parameters_identity):
-                for P in porder:
-                    if self[P].identity in pid:
+            parameters_identity = list(parameters_identity)
+            for P in porder:
+                for pid in self[P].identities:
+                    if pid in parameters_identity:
                         if as_representation:
-                            self[P].set_representation(pval, override_locked=override_locked, identity = pid)
+                            self[P].set_representation(
+                                parameters[parameters_identity.index(pid)],
+                                identity = pid
+                            )
                         else:
-                            self[P].set_value(pval, override_locked=override_locked, identity = pid)
-                        break
+                            self[P].set_value(
+                                parameters[parameters_identity.index(pid)],
+                                identity = pid
+                            )
             return
         
         # If parameters are provided as the full vector, they are added in bulk
         start = 0
         for P, V in zip(
             porder,
-            self.parameter_vector_len(override_locked=override_locked),
+            self.parameter_vector_len(),
         ):
             if as_representation:
                 self[P].representation = parameters[start : start + V].reshape(
@@ -170,15 +179,14 @@ class AutoProf_Model(object):
             start += V
 
     def set_uncertainty(
-            self, uncertainty, override_locked=False, as_representation=False, parameters_identity=None,
+            self, uncertainty, as_representation=False, parameters_identity=None,
     ):
         if isinstance(uncertainty, dict):
             for P in uncertainty:
-                if not override_locked and self[P].locked:
+                if self[P].locked:
                     continue
                 self[P].set_uncertainty(
                     uncertainty[P],
-                    override_locked=override_locked,
                     as_representation=as_representation,
                 )
             return
@@ -186,26 +194,29 @@ class AutoProf_Model(object):
             uncertainty, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         # track the order of the parameters
-        porder = self.parameter_order(override_locked=override_locked, parameters_identity=parameters_identity)
+        porder = self.parameter_order(parameters_identity=parameters_identity)
 
         # If uncertainty is provided by identity, they are individually updated
         if parameters_identity is not None:
-            for uval, pid in zip(uncertainty, parameters_identity):
-                for P in porder:
-                    if self[P].identity in pid:
-                        self[P].set_uncertainty(uval, override_locked=override_locked, as_representation = as_representation, identity = pid)
-                        break
+            parameters_identity = list(parameters_identity)
+            for P in porder:
+                for pid in self[P].identities:
+                    if pid in parameters_identity:
+                        self[P].set_uncertainty(
+                            uncertainty[parameters_identity.index(pid)],
+                            as_representation = as_representation,
+                            identity = pid
+                        )
             return
         
         # If uncertainty is provided as the full vector, they are added in bulk
         start = 0
         for P, V in zip(
             porder,
-            self.parameter_vector_len(override_locked=override_locked),
+            self.parameter_vector_len(),
         ):
             self[P].set_uncertainty(
                 uncertainty[start : start + V].reshape(self[P].representation.shape),
-                override_locked=override_locked,
                 as_representation=as_representation,
             )
             start += V
@@ -214,8 +225,7 @@ class AutoProf_Model(object):
         self,
         parameters=None,
         as_representation=False,
-        override_locked=False,
-        flatten=False,
+        **kwargs,
     ):
         raise NotImplementedError("please use a subclass of AutoProf_Model")
 
@@ -303,29 +313,28 @@ class AutoProf_Model(object):
         assert isinstance(val, bool)
         self._locked = val
 
-    def parameter_vector_len(self, override_locked=False, parameters_identity=None):
+    def parameter_vector_len(self, parameters_identity=None):
         param_vec_len = []
-        for P in self.parameter_order(override_locked=override_locked, parameters_identity=parameters_identity):
+        for P in self.parameter_order(parameters_identity=parameters_identity):
             if parameters_identity is None:
                 param_vec_len.append(int(np.prod(self[P].value.shape)))
             else:
                 param_vec_len.append(sum(pid in parameters_identity for pid in self[P].identities))
         return param_vec_len
 
-    def get_parameter_vector(self, as_representation=False, override_locked=False, parameters_identity=None):
+    def get_parameter_vector(self, as_representation=False, parameters_identity=None):
         parameters = torch.zeros(
-            np.sum(self.parameter_vector_len(override_locked=override_locked, parameters_identity=parameters_identity)),
+            np.sum(self.parameter_vector_len(parameters_identity=parameters_identity)),
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
-        porder = self.parameter_order(override_locked=override_locked, parameters_identity=parameters_identity)
-        
+        porder = self.parameter_order(parameters_identity=parameters_identity)
         # If vector is requested by identity, they are individually updated
         if parameters_identity is not None:
             pindex = 0
             for P in porder:
-                for pid in parameters_identity:
-                    if self[P].identity in pid:
+                for pid in self[P].identities:
+                    if pid in parameters_identity:
                         if as_representation:
                             parameters[pindex] = self[P].get_representation(identity = pid)
                         else:
@@ -337,7 +346,7 @@ class AutoProf_Model(object):
         vstart = 0
         for P, V in zip(
             porder,
-            self.parameter_vector_len(override_locked=override_locked, parameters_identity=parameters_identity),
+            self.parameter_vector_len(),
         ):
             if as_representation:
                 parameters[vstart : vstart + V] = self[P].representation
@@ -346,30 +355,29 @@ class AutoProf_Model(object):
             vstart += V
         return parameters
 
-    def get_parameter_identity_vector(self, override_locked=False, parameters_identity=None):
+    def get_parameter_identity_vector(self, parameters_identity=None):
         parameters = []
         vstart = 0
         for P, V in zip(
-            self.parameter_order(override_locked=override_locked),
-            self.parameter_vector_len(override_locked=override_locked),
+            self.parameter_order(),
+            self.parameter_vector_len(),
         ):
-            for i in range(V):
-                pid = f"{self[P].identity}:{i}"
+            for pid in self[P].identities:
                 if parameters_identity is None or pid in parameters_identity:
                     parameters.append(pid)
             vstart += V
         return parameters
 
-    def get_uncertainty_vector(self, as_representation=False, override_locked=False):
+    def get_uncertainty_vector(self, as_representation=False):
         uncertanty = torch.zeros(
-            np.sum(self.parameter_vector_len(override_locked=override_locked)),
+            np.sum(self.parameter_vector_len()),
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
         vstart = 0
         for P, V in zip(
-            self.parameter_order(override_locked=override_locked),
-            self.parameter_vector_len(override_locked=override_locked),
+            self.parameter_order(),
+            self.parameter_vector_len(),
         ):
             if as_representation:
                 uncertanty[vstart : vstart + V] = self[P].uncertainty_representation
@@ -478,16 +486,15 @@ class AutoProf_Model(object):
         image=None,
         parameters=None,
         as_representation=True,
-        override_locked=False,
         parameters_identity=None,
+        window=None,
         **kwargs,
     ):
         if parameters is not None:
             self.set_parameters(
                 parameters,
-                override_locked=override_locked,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             )
 
-        return self.sample(image, **kwargs)
+        return self.sample(image=image, window=window, **kwargs)

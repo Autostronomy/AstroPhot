@@ -58,8 +58,10 @@ class Jacobian_Image(BaseImage):
         ), "Jacobian images can only add with each other"
 
         # exclude null jacobian images
-        if self.data is None or other.data is None:
+        if other.data is None:
             return self
+        if self.data is None:
+            return other
         
         full_window = self.window | other.window
         if full_window > self.window:

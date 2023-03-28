@@ -261,9 +261,9 @@ class Parameter(object):
                 uncertainty >= 0
             ), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
             if as_representation and not self.cyclic and self.limits is not None:
-                self.uncertainty[index] = uncertainty * d_inv_boundaries_dval(
+                self.uncertainty[index] = uncertainty * torch.abs(d_inv_boundaries_dval(
                     self.representation[index], self.limits
-                )
+                ))
             else:
                 self.uncertainty[index] = uncertainty
             return

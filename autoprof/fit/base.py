@@ -30,6 +30,7 @@ class BaseOptimizer(object):
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
         fit_parameters_identity: Optional[tuple] = None,
+        fit_window: Optional["Window"] = None,
         **kwargs,
     ) -> None:
         """
@@ -59,6 +60,10 @@ class BaseOptimizer(object):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         self.fit_parameters_identity = fit_parameters_identity
+        if fit_window is None:
+            self.fit_window = self.model.window
+        else:
+            self.fit_window = fit_window & self.model.window
 
         if initial_state is None:
             try:
@@ -126,9 +131,15 @@ class BaseOptimizer(object):
         Returns: ndarray which is the Value of lambda at which minimum chi^2 loss was achieved.
         """
         N = np.isfinite(self.loss_history)
+        if np.sum(N) == 0:
+            AP_config.ap_logger.warn("Getting optimizer res with no real loss history, using current state")
+            return self.current_state.detach().cpu().numpy()
         return np.array(self.lambda_history)[N][
             np.argmin(np.array(self.loss_history)[N])
         ]
+    def res_loss(self):
+        N = np.isfinite(self.loss_history)
+        return np.min(np.array(self.loss_history)[N])
 
     @staticmethod
     def chi2contour(n_params: int, confidence: float = 0.682689492137) -> float:

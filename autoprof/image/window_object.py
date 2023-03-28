@@ -501,7 +501,7 @@ class Window_List(Window):
             window.to(dtype, device)
 
     def get_state(self):
-        return list(window.get_state() for window in self.window_list)
+        return list(window.get_state() for window in self)
 
     def update_state(self, state):
         self.window_list = list(Window(state=st) for st in state)
@@ -509,7 +509,7 @@ class Window_List(Window):
     # Window interaction operators
     @torch.no_grad()
     def __or__(self, other):
-        new_windows = list(sw | ow for sw, ow in zip(self, other))
+        new_windows = list((sw | ow) for sw, ow in zip(self, other))
         return Window_List(new_windows)
 
     @torch.no_grad()
@@ -520,7 +520,7 @@ class Window_List(Window):
 
     @torch.no_grad()
     def __and__(self, other):
-        new_windows = list(sw & ow for sw, ow in zip(self, other))
+        new_windows = list((sw & ow) for sw, ow in zip(self, other))
         return Window_List(new_windows)
 
     @torch.no_grad()
@@ -636,15 +636,7 @@ class Window_List(Window):
         return len(self.window_list)
 
     def __iter__(self):
-        self.index = 0
-        return self
-
-    def __next__(self):
-        if self.index >= len(self.window_list):
-            raise StopIteration
-        img = self.window_list[self.index]
-        self.index += 1
-        return img
+        return (win for win in self.window_list)
 
     def __str__(self):
         return "\n".join(list(str(window) for window in self.window_list)) + "\n"

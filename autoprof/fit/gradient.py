@@ -71,7 +71,7 @@ class Grad(BaseOptimizer):
 
     def compute_loss(self) -> torch.Tensor:
         Ym = self.model(
-            parameters=self.current_state, as_representation=True, override_locked=False
+            parameters=self.current_state, as_representation=True
         ).flatten("data")
         Yt = self.model.target[self.model.window].flatten("data")
         W = (
@@ -147,10 +147,10 @@ class Grad(BaseOptimizer):
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
         self.model.set_parameters(
-            torch.tensor(self.res()), as_representation=True, override_locked=False
+            torch.tensor(self.res()), as_representation=True
         )
         if self.verbose > 1:
             AP_config.ap_logger.info(
-                "Grad Fitting complete in {time() - start_fit} sec with message: self.message"
+                f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
         return self

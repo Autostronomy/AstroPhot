@@ -83,10 +83,10 @@ class LM(BaseOptimizer):
         self.use_broyden = kwargs.get("use_broyden", False)
 
         # Initialize optimizer atributes
-        self.Y = self.model.target[self.model.window].flatten("data")
+        self.Y = self.model.target[self.fit_window].flatten("data")
         #        1 / sigma^2
         self.W = (
-            1.0 / self.model.target[self.model.window].flatten("variance")
+            1.0 / self.model.target[self.fit_window].flatten("variance")
             if model.target.has_variance
             else 1.0
         )
@@ -97,7 +97,7 @@ class LM(BaseOptimizer):
         self.current_Y = None
         self.prev_Y = [None, None]
         if self.model.target.has_mask:
-            self.mask = self.model.target[self.model.window].flatten("mask")
+            self.mask = self.model.target[self.fit_window].flatten("mask")
             # subtract masked pixels from degrees of freedom
             self.ndf -= torch.sum(self.mask)
         self.L_history = []
@@ -105,6 +105,7 @@ class LM(BaseOptimizer):
         self.rho_history = []
         self._count_grad_step = 0
         self._count_converged = 0
+        self.ndf = kwargs.get("ndf", self.ndf)
 
         # update attributes with constraints
         self.constraints = kwargs.get("constraints", None)
@@ -210,7 +211,7 @@ class LM(BaseOptimizer):
 
         h = self.update_h()
         if self.verbose > 1:
-            AP_config.ap_logger.debug(f"h: {h.detach().cpu().numpy()}")
+            AP_config.ap_logger.info(f"h: {h.detach().cpu().numpy()}")
 
         self.update_Yp(h)
         loss = self.update_chi2()
@@ -261,12 +262,12 @@ class LM(BaseOptimizer):
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
-            elif self._count_reject == 4:
-                if self.verbose > 0:
-                    AP_config.ap_logger.info("reject, resetting jacobian")
-                self.decision_history.append("reject")
-                self.L = min(1e-2, self.L / self.Lup**4)
-                self._count_reject += 1
+            # elif self._count_reject == 4:
+            #     if self.verbose > 0:
+            #         AP_config.ap_logger.info("reject, resetting jacobian")
+            #     self.decision_history.append("reject")
+            #     self.L = min(1e-2, self.L / self.Lup**4)
+            #     self._count_reject += 1
             else:
                 if self.verbose > 0:
                     AP_config.ap_logger.info("reject")
@@ -391,23 +392,23 @@ class LM(BaseOptimizer):
                 + ". possibly converged to numerical precision and could not make a better step."
             )
         self.model.set_parameters(
-            self.res(), as_representation=True, override_locked=False, parameters_identity=self.fit_parameters_identity,
+            self.res(), as_representation=True, parameters_identity=self.fit_parameters_identity,
         )
         if self.verbose > 1:
             AP_config.ap_logger.info(
-                "LM Fitting complete in {time() - start_fit} sec with message: self.message"
+                f"LM Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
         # set the uncertainty for each parameter
         if self.use_broyden:
             self.update_J_AD()
             self.update_hess()
         cov = self.covariance_matrix()
-        self.model.set_uncertainty(
-            torch.sqrt(2 * torch.abs(torch.diag(cov))),
-            as_representation=True,
-            override_locked=False,
-            parameters_identity=self.fit_parameters_identity,
-        )
+        if torch.all(torch.isfinite(cov)):
+            self.model.set_uncertainty(
+                torch.sqrt(2 * torch.abs(torch.diag(cov))),
+                as_representation=True,
+                parameters_identity=self.fit_parameters_identity,
+            )
 
         return self
 
@@ -488,8 +489,7 @@ class LM(BaseOptimizer):
                 )
             )
             * (
-                1
-                + self.L
+                1 + self.L
                 * torch.eye(
                     len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
@@ -509,8 +509,8 @@ class LM(BaseOptimizer):
         self.current_Y = self.model(
             parameters=self.current_state + h,
             as_representation=True,
-            override_locked=False,
             parameters_identity=self.fit_parameters_identity,
+            window=self.fit_window,
         ).flatten("data")
 
         # Add constraint evaluations
@@ -551,8 +551,8 @@ class LM(BaseOptimizer):
         self.J = self.model.jacobian(
             torch.clone(self.current_state).detach(),
             as_representation=True,
-            override_locked=False,
             parameters_identity=self.fit_parameters_identity,
+            window=self.fit_window,
         ).flatten("data")
 
         # compute the constraint jacobian if needed

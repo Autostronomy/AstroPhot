@@ -116,7 +116,7 @@ class HMC(BaseOptimizer):
 
         # Sample model
         Y = self.model(
-            parameters=gradstate, as_representation=True, override_locked=False
+            parameters=gradstate, as_representation=True
         ).flatten("data")
 
         # Compute Chi^2
