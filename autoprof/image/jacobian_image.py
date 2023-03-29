@@ -67,8 +67,9 @@ class Jacobian_Image(BaseImage):
         if full_window > self.window:
             warnings.warn("Jacobian image addition without full coverage")
 
+        self_indices = other.window.get_indices(self)
+        other_indices = self.window.get_indices(other)
         for i, other_identity in enumerate(other.parameters):
-            indices = other.window._get_indices(self.window, self.pixelscale)
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)
             else:
@@ -84,9 +85,7 @@ class Jacobian_Image(BaseImage):
                 )
                 self.parameters.append(other_identity)
                 other_loc = -1
-            #print(other_identity, indices, other_loc, self.data.shape, other.data.shape)
-            # fixme match indices for other as well
-            self.data[indices[0], indices[1], other_loc] += other.data[:, :, i]
+            self.data[self_indices[0], self_indices[1], other_loc] += other.data[other_indices[0], other_indices[1], i]
         return self
 
 

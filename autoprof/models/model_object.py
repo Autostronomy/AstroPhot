@@ -5,6 +5,7 @@ import io
 from torch.autograd.functional import jacobian
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
@@ -359,14 +360,13 @@ class Component_Model(AutoProf_Model):
                 parameters_identity=parameters_identity,
             )
 
-        # idea, include mode to break up the image into chunks and evaluate jacobian on those
+        if parameters_identity is None:
+            pids = None
+        else:
+            pids = self.get_parameter_identity_vector(
+                parameters_identity=parameters_identity,
+            )
         if self.jacobian_mode == "full":
-            if parameters_identity is None:
-                pids = None
-            else:
-                pids = self.get_parameter_identity_vector(
-                    parameters_identity=parameters_identity,
-                )
             full_jac = jacobian(
                 lambda P: self(
                     image=None,
@@ -375,10 +375,10 @@ class Component_Model(AutoProf_Model):
                     parameters_identity=pids,
                     window=window
                 ).data,
-                self.get_parameter_vector(# fixme this does not necessariy get the parameters in the same order as the jacobian if there are many shared parameters!!!!
+                self.get_parameter_vector(
                     as_representation=as_representation,
                     parameters_identity=parameters_identity,
-                ),
+                ).detach(),
                 strategy="forward-mode",
                 vectorize=True,
                 create_graph=False,

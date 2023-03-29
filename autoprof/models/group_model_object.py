@@ -303,12 +303,20 @@ class Group_Model(AutoProf_Model):
             jac_img = pass_jacobian
 
         for model in self.model_list:
-            jac_img += model.jacobian(
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-                pass_jacobian=jac_img,
-                window=window,
-            )
+            if isinstance(model, Group_Model):
+                model.jacobian(
+                    as_representation=as_representation,
+                    parameters_identity=parameters_identity,
+                    pass_jacobian=jac_img,
+                    window=window,
+                )
+            else: # fixme, maybe make pass_jacobian be filled internally to each model
+                jac_img += model.jacobian(
+                    as_representation=as_representation,
+                    parameters_identity=parameters_identity,
+                    pass_jacobian=jac_img,
+                    window=window,
+                )            
 
         return jac_img
 

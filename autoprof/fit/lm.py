@@ -6,6 +6,7 @@ from typing import List, Callable, Optional, Union, Sequence, Any
 import torch
 from torch.autograd.functional import jacobian
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .base import BaseOptimizer
 from .. import AP_config
@@ -554,7 +555,7 @@ class LM(BaseOptimizer):
             parameters_identity=self.fit_parameters_identity,
             window=self.fit_window,
         ).flatten("data")
-
+        
         # compute the constraint jacobian if needed
         if self.constraints is not None:
             for con in self.constraints:
