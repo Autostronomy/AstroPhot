@@ -1,5 +1,6 @@
 from time import time
-from typing import Any, Union, Sequence
+from typing import Any, Union, Sequence, Optional
+
 import numpy as np
 import torch
 from scipy.optimize import minimize
@@ -28,6 +29,8 @@ class BaseOptimizer(object):
         model: "Autorof_Model",
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
+        fit_parameters_identity: Optional[tuple] = None,
+        fit_window: Optional["Window"] = None,
         **kwargs,
     ) -> None:
         """
@@ -38,6 +41,7 @@ class BaseOptimizer(object):
             initial_state (Optional[Sequence]): The initial state of the model could be any tensor.
                            If `None`, the model's default initial state will be used.
             relative_tolerance (float): The relative tolerance for the optimization.
+            fit_parameters_identity (Optiona[tuple]): a tuple of parameter identity strings which tell the LM optimizer which parameters of the model to fit.
             **kwargs (dict): Additional keyword arguments.
 
         Attributes:
@@ -55,13 +59,24 @@ class BaseOptimizer(object):
 
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
+        self.fit_parameters_identity = fit_parameters_identity
+        if fit_window is None:
+            self.fit_window = self.model.window
+        else:
+            self.fit_window = fit_window & self.model.window
 
         if initial_state is None:
             try:
-                initial_state = self.model.get_parameter_vector(as_representation=True)
+                initial_state = self.model.get_parameter_vector(
+                    as_representation=True,
+                    parameters_identity=self.fit_parameters_identity,
+                )
             except AssertionError:
                 self.model.initialize()
-                initial_state = self.model.get_parameter_vector(as_representation=True)
+                initial_state = self.model.get_parameter_vector(
+                    as_representation=True,
+                    parameters_identity=self.fit_parameters_identity,
+                )
         else:
             initial_state = torch.as_tensor(
                 initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -116,11 +131,21 @@ class BaseOptimizer(object):
         Returns: ndarray which is the Value of lambda at which minimum chi^2 loss was achieved.
         """
         N = np.isfinite(self.loss_history)
+        if np.sum(N) == 0:
+            AP_config.ap_logger.warn(
+                "Getting optimizer res with no real loss history, using current state"
+            )
+            return self.current_state.detach().cpu().numpy()
         return np.array(self.lambda_history)[N][
             np.argmin(np.array(self.loss_history)[N])
         ]
 
-    def chi2contour(self, n_params: int, confidence: float = 0.682689492137) -> float:
+    def res_loss(self):
+        N = np.isfinite(self.loss_history)
+        return np.min(np.array(self.loss_history)[N])
+
+    @staticmethod
+    def chi2contour(n_params: int, confidence: float = 0.682689492137) -> float:
         """
         Calculates the chi^2 contour for the given number of parameters.
 

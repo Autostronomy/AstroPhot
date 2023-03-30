@@ -6,7 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window_List
+from ..image import (
+    Model_Image,
+    Model_Image_List,
+    Target_Image,
+    Image_List,
+    Window,
+    Window_List,
+)
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -70,6 +77,17 @@ class Group_Model(AutoProf_Model):
         self.model_list.append(model)
         self.update_window()
 
+    @property
+    def equality_constraints(self):
+        try:
+            return self._equality_constraints
+        except AttributeError:
+            return []
+
+    @equality_constraints.setter
+    def equality_constraints(self, val):
+        pass
+
     def pop_model(self, model):
         """Removes the specified model from the group model list. Returns the
         model object if it is found.
@@ -128,12 +146,13 @@ class Group_Model(AutoProf_Model):
                     new_window |= model.window
         self.window = new_window
 
-    def parameter_tuples_order(self, override_locked: bool = False):
+    def parameter_tuples_order(self, override_locked: bool = True):
         """Constructs a list where each entry is a tuple with a unique name
         for the parameter and the parameter object itself.
 
         """
         params = []
+        self._equality_constraints = []
         for model in self.model_list:
             if model.locked and not override_locked:
                 continue
@@ -143,15 +162,22 @@ class Group_Model(AutoProf_Model):
                 if p in model.equality_constraints:
                     for k in range(len(params)):
                         if params[k][1] is model.parameters[p]:
+                            self._equality_constraints.pop(
+                                self.equality_constraints.index(params[k][0])
+                            )
                             params[k] = (f"{model.name}:{params[k][0]}", params[k][1])
+                            self._equality_constraints.append(params[k][0])
                             break
                     else:
                         params.append((f"{model.name}|{p}", model.parameters[p]))
+                        self._equality_constraints.append(f"{model.name}|{p}")
                 else:
                     params.append((f"{model.name}|{p}", model.parameters[p]))
         return params
 
-    def parameter_order(self, override_locked: bool = True):
+    def parameter_order(
+        self, override_locked: bool = False, parameters_identity: Optional[tuple] = None
+    ):
         """Gives the unique parameter names for this model in a repeatable
         order. By default, locked parameters are excluded from the
         tuple. The order of parameters will of course not be the same
@@ -159,7 +185,15 @@ class Group_Model(AutoProf_Model):
 
         """
         param_tuples = self.parameter_tuples_order(override_locked=override_locked)
-        return tuple(P[0] for P in param_tuples)
+        param_order = []
+        for P, M in param_tuples:
+            if parameters_identity is not None and not any(
+                pid in parameters_identity for pid in self[P].identities
+            ):
+                continue
+            param_order.append(P)
+
+        return tuple(param_order)
 
     @property
     def param_tuple(self):
@@ -206,7 +240,13 @@ class Group_Model(AutoProf_Model):
             model.initialize(target_copy)
             target_copy -= model()
 
-    def sample(self, image: Optional["Model_Image"] = None, *args, **kwargs):
+    def sample(
+        self,
+        image: Optional["Model_Image"] = None,
+        window: Optional[Window] = None,
+        *args,
+        **kwargs,
+    ):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
         model is called individually and the results are added
@@ -217,20 +257,29 @@ class Group_Model(AutoProf_Model):
 
         """
         self._param_tuple = None
-
         if image is None:
             sample_window = True
-            image = self.make_model_image()
+            image = self.make_model_image(window=window)
         else:
             sample_window = False
 
         for model in self.model_list:
+            if window is not None and isinstance(window, Window_List):
+                indices = self.target.match_indices(model.target)
+                if isinstance(indices, (tuple, list)):
+                    use_window = Window_List(
+                        window_list=list(window.window_list[ind] for ind in indices)
+                    )
+                else:
+                    use_window = window.window_list[indices]
+            else:
+                use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model()
+                image += model(window=use_window)
             else:
                 # Will sample the entire image
-                model(image)
+                model(image, window=use_window)
 
         return image
 
@@ -238,8 +287,9 @@ class Group_Model(AutoProf_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        override_locked: bool = False,
+        parameters_identity: Optional[tuple] = None,
         pass_jacobian: Optional["Jacobian_Image"] = None,
+        window: Optional[Window] = None,
         **kwargs,
     ):
         """Compute the jacobian for this model. Done by first constructing a
@@ -249,30 +299,44 @@ class Group_Model(AutoProf_Model):
         Args:
           parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
           as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
-          override_locked (bool): If True, will compute jacobian for locked parameters as well. If False, will ignore locked parameters. Default False
           pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
+        if window is None:
+            window = self.window
+        self._param_tuple = None
+
         if parameters is not None:
             self.set_parameters(
                 parameters,
-                override_locked=override_locked,
                 as_representation=as_representation,
+                parameters_identity=parameters_identity,
             )
 
         if pass_jacobian is None:
-            jac_img = self.target[self.window].jacobian_image(
-                parameters=self.get_parameter_identity_vector()
+            jac_img = self.target[window].jacobian_image(
+                parameters=self.get_parameter_identity_vector(
+                    parameters_identity=parameters_identity,
+                )
             )
         else:
             jac_img = pass_jacobian
 
         for model in self.model_list:
-            jac_img += model.jacobian(
-                as_representation=as_representation,
-                override_locked=override_locked,
-                pass_jacobian=jac_img,
-            )
+            if isinstance(model, Group_Model):
+                model.jacobian(
+                    as_representation=as_representation,
+                    parameters_identity=parameters_identity,
+                    pass_jacobian=jac_img,
+                    window=window,
+                )
+            else:  # fixme, maybe make pass_jacobian be filled internally to each model
+                jac_img += model.jacobian(
+                    as_representation=as_representation,
+                    parameters_identity=parameters_identity,
+                    pass_jacobian=jac_img,
+                    window=window,
+                )
 
         return jac_img
 
@@ -293,6 +357,9 @@ class Group_Model(AutoProf_Model):
                     return model
 
         raise KeyError(f"{key} not in {self.name}. {str(self)}")
+
+    def __iter__(self):
+        return (mod for mod in self.model_list)
 
     @property
     def psf_mode(self):

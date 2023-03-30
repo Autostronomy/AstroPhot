@@ -5,6 +5,7 @@ import torch
 import numpy as np
 
 from .base import BaseOptimizer
+from .. import AP_config
 
 __all__ = ["Grad"]
 
@@ -69,17 +70,23 @@ class Grad(BaseOptimizer):
         )
 
     def compute_loss(self) -> torch.Tensor:
-        Ym = self.model(
-            parameters=self.current_state, as_representation=True, override_locked=False
-        ).flatten()
-        Yt = self.model.target.flatten("data")
+        Ym = self.model(parameters=self.current_state, as_representation=True).flatten(
+            "data"
+        )
+        Yt = self.model.target[self.model.window].flatten("data")
         W = (
-            self.model.target.flatten("variance")
+            self.model.target[self.model.window].flatten("variance")
             if self.model.target.has_variance
             else 1.0
         )
-
-        loss = torch.sum((Ym - Yt) ** 2 / W)
+        ndf = len(Yt) - len(self.current_state)
+        if self.model.target.has_mask:
+            mask = self.model.target[self.model.window].flatten("mask")
+            ndf -= torch.sum(mask)
+            mask = torch.logical_not(mask)
+            loss = torch.sum((Ym[mask] - Yt[mask]) ** 2 / W[mask]) / ndf
+        else:
+            loss = torch.sum((Ym - Yt) ** 2 / W) / ndf
         return loss
 
     def step(self) -> None:
@@ -139,11 +146,9 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.set_parameters(
-            torch.tensor(self.res()), as_representation=True, override_locked=False
-        )
+        self.model.set_parameters(torch.tensor(self.res()), as_representation=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
-                "Grad Fitting complete in {time() - start_fit} sec with message: self.message"
+                f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
         return self

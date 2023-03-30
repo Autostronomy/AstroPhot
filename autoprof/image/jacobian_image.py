@@ -38,6 +38,11 @@ class Jacobian_Image(BaseImage):
     def flatten(self, attribute: str = "data"):
         return getattr(self, attribute).reshape((-1, len(self.parameters)))
 
+    def copy(self, **kwargs):
+        return super().copy(
+            parameters=self.parameters, target_identity=self.target_identity, **kwargs
+        )
+
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
 
@@ -51,12 +56,20 @@ class Jacobian_Image(BaseImage):
         assert isinstance(
             other, Jacobian_Image
         ), "Jacobian images can only add with each other"
+
+        # exclude null jacobian images
+        if other.data is None:
+            return self
+        if self.data is None:
+            return other
+
         full_window = self.window | other.window
         if full_window > self.window:
             warnings.warn("Jacobian image addition without full coverage")
 
+        self_indices = other.window.get_indices(self)
+        other_indices = self.window.get_indices(other)
         for i, other_identity in enumerate(other.parameters):
-            indices = other.window._get_indices(self.window, self.pixelscale)
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)
             else:
@@ -72,7 +85,9 @@ class Jacobian_Image(BaseImage):
                 )
                 self.parameters.append(other_identity)
                 other_loc = -1
-            self.data[indices[0], indices[1], other_loc] += other.data[:, :, i]
+            self.data[self_indices[0], self_indices[1], other_loc] += other.data[
+                other_indices[0], other_indices[1], i
+            ]
         return self
 
 
@@ -92,6 +107,14 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
 
     def __init__(self, image_list):
         super().__init__(image_list)
+
+    def flatten(self, attribute="data"):
+        if len(self.image_list) > 1:
+            for image in self.image_list[1:]:
+                assert (
+                    self.image_list[0].parameters == image.parameters
+                ), "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used"
+        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
 
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")

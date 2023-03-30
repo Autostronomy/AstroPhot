@@ -4,6 +4,7 @@ import torch
 from astropy.visualization import HistEqStretch, ImageNormalize, LogStretch, SqrtStretch
 from matplotlib.patches import Rectangle
 from matplotlib import pyplot as plt
+import matplotlib
 from scipy.stats import iqr
 
 from ..models import Group_Model, Sky_Model
@@ -51,7 +52,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
         origin="lower",
         cmap=cmap_grad,
         extent=window.plt_extent,
-        norm=ImageNormalize(stretch=LogStretch(), clip=False),
+        norm=matplotlib.colors.LogNorm(),
         clim=[sky + 3 * noise, None],
         interpolation="none",
     )
@@ -86,28 +87,12 @@ def model_image(
         "cmap": cmap_grad,
         "origin": "lower",
         "interpolation": "none",
+        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
-    sky_level = 0.0
-    if isinstance(model, Group_Model):
-        for M in model.model_list:
-            if isinstance(M, Sky_Model):
-                try:
-                    sky_level = (
-                        (
-                            10 ** (M["sky"].value)
-                            * (1 - 1e-6)
-                            * model.target.pixelscale**2
-                        )
-                        .detach()
-                        .cpu()
-                        .item()
-                    )
-                    break
-                except Exception as e:
-                    AP_config.ap_logger.warning(e)
+
     im = ax.imshow(
-        np.log10(sample_image - sky_level),
+        sample_image,
         **imshow_kwargs,
     )
     if showcbar:

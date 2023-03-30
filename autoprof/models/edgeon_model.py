@@ -121,7 +121,7 @@ class Edgeon_Sech(Edgeon_Model):
                             int(icenter[1]) - 2 : int(icenter[1]) + 2,
                         ]
                     )
-                    / target.pixelscale**2
+                    / target.pixelscale ** 2
                 ),
                 override_locked=True,
             )
@@ -132,7 +132,7 @@ class Edgeon_Sech(Edgeon_Model):
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
                 )
-                / (torch.abs(self["I0"].value) * target.pixelscale**2),
+                / (torch.abs(self["I0"].value) * target.pixelscale ** 2),
                 override_locked=True,
             )
         if self["hs"].value is None:
@@ -143,7 +143,7 @@ class Edgeon_Sech(Edgeon_Model):
 
     def brightness_model(self, X, Y, image):
         return (
-            (image.pixelscale**2)
+            (image.pixelscale ** 2)
             * (10 ** self["I0"].value)
             * self.radial_model(X)
             / (torch.cosh(Y / self["hs"].value) ** 2)

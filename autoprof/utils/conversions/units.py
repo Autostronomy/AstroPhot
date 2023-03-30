@@ -19,7 +19,7 @@ def flux_to_mag(flux, zeropoint, fluxe=None):
 
 def sb_to_flux(sb, pixscale, zeropoint):
     """Converts logarithmic surface brightness units into flux units."""
-    return (pixscale**2) * 10 ** (-(sb - zeropoint) / 2.5)
+    return (pixscale ** 2) * 10 ** (-(sb - zeropoint) / 2.5)
 
 
 def mag_to_flux(mag, zeropoint, mage=None):
@@ -59,7 +59,7 @@ def mag_to_magperarcsec2(m, a=None, b=None, R=None, A=None):
     """
     assert (not A is None) or (not a is None and not b is None) or (not R is None)
     if not R is None:
-        A = np.pi * (R**2)
+        A = np.pi * (R ** 2)
     elif A is None:
         A = np.pi * a * b
     return m + 2.5 * np.log10(

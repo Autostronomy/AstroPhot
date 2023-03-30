@@ -24,6 +24,7 @@ setup(
                       "tqdm",
                       "requests",
                       "h5py",
+                      "pyyaml",
                       ],
     entry_points = {
         'console_scripts': [

@@ -40,7 +40,7 @@ def _x0_func(model_params, R, F):
 
 
 def _wrap_exp(R, re, ie):
-    return exponential_np(R, re, 10**ie)
+    return exponential_np(R, re, 10 ** ie)
 
 
 class Exponential_Galaxy(Galaxy_Model):

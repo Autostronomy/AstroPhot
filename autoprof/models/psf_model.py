@@ -52,7 +52,7 @@ class PSF_Star(Star_Model):
         if self["flux"].value is None:
             self["flux"].set_value(
                 torch.log10(
-                    torch.abs(torch.sum(target_area.data)) / target_area.pixelscale**2
+                    torch.abs(torch.sum(target_area.data)) / target_area.pixelscale ** 2
                 ),
                 override_locked=True,
             )
@@ -78,7 +78,7 @@ class PSF_Star(Star_Model):
             data=torch.nn.functional.conv2d(
                 (
                     torch.clone(self.psf_model.data)
-                    * ((10 ** self["flux"].value) * image.pixelscale**2)
+                    * ((10 ** self["flux"].value) * image.pixelscale ** 2)
                 ).view(1, 1, *self.psf_model.data.shape),
                 LL.view(1, 1, *LL.shape),
                 padding="same",

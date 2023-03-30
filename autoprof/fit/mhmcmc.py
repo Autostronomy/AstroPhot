@@ -100,9 +100,7 @@ class MHMCMC(BaseOptimizer):
         """
         Samples the model at the proposed state vector values
         """
-        Y = self.model(
-            parameters=state, as_representation=True, override_locked=False
-        ).flatten("data")
+        Y = self.model(parameters=state, as_representation=True).flatten("data")
         # Compute Chi^2
         if self.model.target.has_mask:
             loss = (

@@ -70,7 +70,7 @@ def GaussianDensity_Peak(center, image, window=10, std=0.5):
             np.arange(r[0] - window / 2, r[0] + window / 2 + 1) - c[0],
             np.arange(r[1] - window / 2, r[1] + window / 2 + 1) - c[1],
         )
-        rr2 = xx**2 + yy**2
+        rr2 = xx ** 2 + yy ** 2
         f = image[
             int(r[1] - window / 2) : int(r[1] + window / 2 + 1),
             int(r[0] - window / 2) : int(r[0] + window / 2 + 1),

@@ -31,7 +31,7 @@ def _x0_func(model_params, R, F):
 
 
 def _wrap_gauss(R, sig, flu):
-    return gaussian_np(R, sig, 10**flu)
+    return gaussian_np(R, sig, 10 ** flu)
 
 
 class Gaussian_Galaxy(Galaxy_Model):
@@ -53,7 +53,7 @@ class Gaussian_Galaxy(Galaxy_Model):
     model_type = f"gaussian {Galaxy_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("sigma", "flux")
     useable = True
@@ -87,7 +87,7 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     model_type = f"gaussian {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
@@ -121,7 +121,7 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     model_type = f"gaussian {SuperEllipse_Warp.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("sigma", "flux")
     useable = True
@@ -156,7 +156,7 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     model_type = f"gaussian {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
@@ -191,7 +191,7 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     model_type = f"gaussian {FourierEllipse_Warp.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("sigma", "flux")
     useable = True
@@ -225,7 +225,7 @@ class Gaussian_Warp(Warp_Galaxy):
     model_type = f"gaussian {Warp_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
@@ -259,7 +259,7 @@ class Gaussian_Star(Star_Model):
     model_type = f"gaussian {Star_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
     useable = True
@@ -277,7 +277,7 @@ class Gaussian_Star(Star_Model):
         X, Y = image.get_coordinate_meshgrid_torch(
             self["center"].value[0], self["center"].value[1]
         )
-        return self.radial_model(torch.sqrt(X**2 + Y**2), image)
+        return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image)
 
 
 class Gaussian_Ray(Ray_Galaxy):
@@ -299,7 +299,7 @@ class Gaussian_Ray(Ray_Galaxy):
     model_type = f"gaussian {Ray_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("sigma", "flux")
     useable = True
@@ -335,7 +335,7 @@ class Gaussian_Wedge(Wedge_Galaxy):
     model_type = f"gaussian {Wedge_Galaxy.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "limits": (0, None)},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("sigma", "flux")
     useable = True

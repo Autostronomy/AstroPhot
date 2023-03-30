@@ -19,7 +19,7 @@ def gaussian_psf(sigma, img_width, pixelscale):
             img_width,
         ),
     )
-    ZZ = np.exp(-0.5 * (XX**2 + YY**2) / sigma**2)
+    ZZ = np.exp(-0.5 * (XX ** 2 + YY ** 2) / sigma ** 2)
 
     return ZZ / np.sum(ZZ)
 
