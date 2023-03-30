@@ -131,11 +131,7 @@ def parametric_initialize(
         return np.mean(residual[:-3])
 
     res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
-    # plt.scatter(R, flux, label = "data")
-    # plt.plot(R, np.log10(prof_func(R, *x0)), label = "init")
-    # plt.plot(R, np.log10(prof_func(R, *res.x)), label = "fit")
-    # plt.legend()
-    # plt.show()
+    
     if force_uncertainty is None:
         reses = []
         for i in range(10):

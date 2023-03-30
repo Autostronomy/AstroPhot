@@ -5,7 +5,6 @@ import io
 from torch.autograd.functional import jacobian
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Window

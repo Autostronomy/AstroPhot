@@ -161,9 +161,7 @@ class TestJacobianImageList(unittest.TestCase):
         test_image = ap.image.Jacobian_Image_List((base_image1, base_image2))
 
         second_image = test_image.copy()
-
-        print(test_image[0].target_identity, test_image[0].data.shape, test_image[1].target_identity, test_image[1].data.shape)
-        print(second_image[0].target_identity, second_image[0].data.shape, second_image[1].target_identity, second_image[1].data.shape)
+        
         test_image += second_image
 
         self.assertEqual(test_image.flatten("data").shape, (300,3), "flattened jacobian should include all pixels and merge parameters")
