@@ -144,9 +144,7 @@ class Iter(BaseOptimizer):
         """
 
         self.iteration = 0
-        self.Y = self.model(
-            parameters=self.current_state, as_representation=True
-        )
+        self.Y = self.model(parameters=self.current_state, as_representation=True)
         start_fit = time()
         try:
             while True:
@@ -170,15 +168,14 @@ class Iter(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.set_parameters(
-            self.res(), as_representation=True
-        )
+        self.model.set_parameters(self.res(), as_representation=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
 
         return self
+
 
 class Iter_LM(BaseOptimizer):
     """Optimization wrapper that call LM optimizer on subsets of variables.
@@ -218,7 +215,7 @@ class Iter_LM(BaseOptimizer):
         self.chunks = chunks
         self.method = method
         self.LM_kwargs = LM_kwargs
-        
+
         #          # pixels      # parameters
         self.ndf = self.model.target[self.model.window].flatten("data").numel() - len(
             self.current_state
@@ -235,10 +232,10 @@ class Iter_LM(BaseOptimizer):
         _chunk_index = 0
         _chunk_choices = None
         res = None
-        
+
         if self.verbose > 0:
             AP_config.ap_logger.info("--------iter-------")
-            
+
         # Loop through all the chunks
         while True:
             if isinstance(self.chunks, int):
@@ -248,13 +245,15 @@ class Iter_LM(BaseOptimizer):
                     # Draw a random chunk of ids
                     if len(param_ids) >= self.chunks:
                         chunk = random.sample(param_ids, self.chunks)
-                        N = np.argsort(np.array(list(param_ids.index(c) for c in chunk)))
+                        N = np.argsort(
+                            np.array(list(param_ids.index(c) for c in chunk))
+                        )
                         chunk = np.array(chunk)[N]
                     else:
                         chunk = copy(param_ids)
                 else:
                     # Draw the next chunk of ids
-                    chunk = param_ids[:self.chunks]
+                    chunk = param_ids[: self.chunks]
                 # Remove the selected ids from the list
                 for p in chunk:
                     param_ids.pop(param_ids.index(p))
@@ -278,22 +277,32 @@ class Iter_LM(BaseOptimizer):
             if self.verbose > 0:
                 AP_config.ap_logger.info(str(chunk))
             del res
-            res = LM(self.model, fit_parameters_identity=chunk, ndf = self.ndf, **self.LM_kwargs).fit()
+            res = LM(
+                self.model,
+                fit_parameters_identity=chunk,
+                ndf=self.ndf,
+                **self.LM_kwargs,
+            ).fit()
             if self.verbose > 0:
                 AP_config.ap_logger.info(f"chunk loss: {res.res_loss()}")
             if self.verbose > 1:
                 AP_config.ap_logger.info(f"chunk message: {res.message}")
-                
+
         self.loss_history.append(res.res_loss())
-        self.lambda_history.append(self.model.get_parameter_vector(as_representation=True).detach().cpu().numpy())
+        self.lambda_history.append(
+            self.model.get_parameter_vector(as_representation=True)
+            .detach()
+            .cpu()
+            .numpy()
+        )
         if self.verbose > 0:
             AP_config.ap_logger.info(f"Loss: {self.loss_history[-1]}")
 
         # test for convergence
         if self.iteration >= 2 and (
-                (-self.relative_tolerance * 1e-3)
-                < ((self.loss_history[-2] - self.loss_history[-1]) / self.loss_history[-1])
-                < (self.relative_tolerance / 10)
+            (-self.relative_tolerance * 1e-3)
+            < ((self.loss_history[-2] - self.loss_history[-1]) / self.loss_history[-1])
+            < (self.relative_tolerance / 10)
         ):
             self._count_finish += 1
         else:
@@ -327,13 +336,10 @@ class Iter_LM(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.set_parameters(
-            self.res(), as_representation=True
-        )
+        self.model.set_parameters(self.res(), as_representation=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
 
         return self
-        

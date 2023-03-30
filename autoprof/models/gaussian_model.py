@@ -31,7 +31,7 @@ def _x0_func(model_params, R, F):
 
 
 def _wrap_gauss(R, sig, flu):
-    return gaussian_np(R, sig, 10**flu)
+    return gaussian_np(R, sig, 10 ** flu)
 
 
 class Gaussian_Galaxy(Galaxy_Model):
@@ -277,7 +277,7 @@ class Gaussian_Star(Star_Model):
         X, Y = image.get_coordinate_meshgrid_torch(
             self["center"].value[0], self["center"].value[1]
         )
-        return self.radial_model(torch.sqrt(X**2 + Y**2), image)
+        return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image)
 
 
 class Gaussian_Ray(Ray_Galaxy):

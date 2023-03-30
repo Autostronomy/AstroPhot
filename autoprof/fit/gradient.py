@@ -70,9 +70,9 @@ class Grad(BaseOptimizer):
         )
 
     def compute_loss(self) -> torch.Tensor:
-        Ym = self.model(
-            parameters=self.current_state, as_representation=True
-        ).flatten("data")
+        Ym = self.model(parameters=self.current_state, as_representation=True).flatten(
+            "data"
+        )
         Yt = self.model.target[self.model.window].flatten("data")
         W = (
             self.model.target[self.model.window].flatten("variance")
@@ -146,9 +146,7 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.set_parameters(
-            torch.tensor(self.res()), as_representation=True
-        )
+        self.model.set_parameters(torch.tensor(self.res()), as_representation=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"

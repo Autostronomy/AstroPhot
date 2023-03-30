@@ -87,10 +87,10 @@ def model_image(
         "cmap": cmap_grad,
         "origin": "lower",
         "interpolation": "none",
-        "norm": matplotlib.colors.LogNorm(),        #"norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
-    
+
     im = ax.imshow(
         sample_image,
         **imshow_kwargs,

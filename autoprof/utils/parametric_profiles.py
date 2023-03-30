@@ -47,7 +47,7 @@ def gaussian_torch(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / torch.sqrt(2 * np.pi * sigma**2)) * torch.exp(
+    return (I0 / torch.sqrt(2 * np.pi * sigma ** 2)) * torch.exp(
         -0.5 * torch.pow(R / sigma, 2)
     )
 
@@ -61,7 +61,7 @@ def gaussian_np(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5 * ((R / sigma) ** 2))
+    return (I0 / np.sqrt(2 * np.pi * sigma ** 2)) * np.exp(-0.5 * ((R / sigma) ** 2))
 
 
 def exponential_torch(R, Re, Ie):

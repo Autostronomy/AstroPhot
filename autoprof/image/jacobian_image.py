@@ -62,7 +62,7 @@ class Jacobian_Image(BaseImage):
             return self
         if self.data is None:
             return other
-        
+
         full_window = self.window | other.window
         if full_window > self.window:
             warnings.warn("Jacobian image addition without full coverage")
@@ -85,7 +85,9 @@ class Jacobian_Image(BaseImage):
                 )
                 self.parameters.append(other_identity)
                 other_loc = -1
-            self.data[self_indices[0], self_indices[1], other_loc] += other.data[other_indices[0], other_indices[1], i]
+            self.data[self_indices[0], self_indices[1], other_loc] += other.data[
+                other_indices[0], other_indices[1], i
+            ]
         return self
 
 

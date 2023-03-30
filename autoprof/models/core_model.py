@@ -152,16 +152,14 @@ class AutoProf_Model(object):
                     if pid in parameters_identity:
                         if as_representation:
                             self[P].set_representation(
-                                parameters[parameters_identity.index(pid)],
-                                identity = pid
+                                parameters[parameters_identity.index(pid)], identity=pid
                             )
                         else:
                             self[P].set_value(
-                                parameters[parameters_identity.index(pid)],
-                                identity = pid
+                                parameters[parameters_identity.index(pid)], identity=pid
                             )
             return
-        
+
         # If parameters are provided as the full vector, they are added in bulk
         start = 0
         for P, V in zip(
@@ -179,7 +177,10 @@ class AutoProf_Model(object):
             start += V
 
     def set_uncertainty(
-            self, uncertainty, as_representation=False, parameters_identity=None,
+        self,
+        uncertainty,
+        as_representation=False,
+        parameters_identity=None,
     ):
         if isinstance(uncertainty, dict):
             for P in uncertainty:
@@ -204,11 +205,11 @@ class AutoProf_Model(object):
                     if pid in parameters_identity:
                         self[P].set_uncertainty(
                             uncertainty[parameters_identity.index(pid)],
-                            as_representation = as_representation,
-                            identity = pid
+                            as_representation=as_representation,
+                            identity=pid,
                         )
             return
-        
+
         # If uncertainty is provided as the full vector, they are added in bulk
         start = 0
         for P, V in zip(
@@ -319,7 +320,9 @@ class AutoProf_Model(object):
             if parameters_identity is None:
                 param_vec_len.append(int(np.prod(self[P].value.shape)))
             else:
-                param_vec_len.append(sum(pid in parameters_identity for pid in self[P].identities))
+                param_vec_len.append(
+                    sum(pid in parameters_identity for pid in self[P].identities)
+                )
         return param_vec_len
 
     def get_parameter_vector(self, as_representation=False, parameters_identity=None):
@@ -336,12 +339,14 @@ class AutoProf_Model(object):
                 for pid in self[P].identities:
                     if pid in parameters_identity:
                         if as_representation:
-                            parameters[pindex] = self[P].get_representation(identity = pid)
+                            parameters[pindex] = self[P].get_representation(
+                                identity=pid
+                            )
                         else:
-                            parameters[pindex] = self[P].get_value(identity = pid)
+                            parameters[pindex] = self[P].get_value(identity=pid)
                         pindex += 1
             return parameters
-        
+
         # If the full vector is requested, they are added in bulk
         vstart = 0
         for P, V in zip(
@@ -366,7 +371,7 @@ class AutoProf_Model(object):
                     if pid in parameters_identity:
                         parameters.append(nid)
             return parameters
-        
+
         # If the full vector is requested, they are added in bulk
         for P in porder:
             parameters += list(self[P].names)

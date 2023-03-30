@@ -62,6 +62,7 @@ def galaxy_light_profile(
     ax.set_xlim([R0, None])
     return fig, ax
 
+
 def radial_median_profile(
     fig,
     ax,
@@ -93,13 +94,11 @@ def radial_median_profile(
     Rlast_phys = torch.max(model.window.shape / 2).item()
     Rlast_pix = Rlast_phys / model.target.pixelscale.item()
 
-    Rbins = [0.]
+    Rbins = [0.0]
     while Rbins[-1] < Rlast_pix:
-        Rbins.append(
-            Rbins[-1] + max(2, Rbins[-1]*0.1)
-        )
+        Rbins.append(Rbins[-1] + max(2, Rbins[-1] * 0.1))
     Rbins = np.array(Rbins)
-        
+
     with torch.no_grad():
         image = model.target[model.window]
         X, Y = image.get_coordinate_meshgrid_torch(
@@ -112,23 +111,23 @@ def radial_median_profile(
     count, bins, binnum = binned_statistic(
         R.ravel(),
         image.data.detach().cpu().numpy().ravel(),
-        statistic = "count",
-        bins = Rbins,
+        statistic="count",
+        bins=Rbins,
     )
-    
+
     stat, bins, binnum = binned_statistic(
         R.ravel(),
         image.data.detach().cpu().numpy().ravel(),
-        statistic = "median",
-        bins = Rbins,
+        statistic="median",
+        bins=Rbins,
     )
     stat[count == 0] = np.nan
 
     scat, bins, binnum = binned_statistic(
         R.ravel(),
         image.data.detach().cpu().numpy().ravel(),
-        statistic = partial(iqr, rng = (16,84)),
-        bins = Rbins,
+        statistic=partial(iqr, rng=(16, 84)),
+        bins=Rbins,
     )
     scat[count > count_limit] /= 2 * np.sqrt(count[count > count_limit])
     scat[count <= count_limit] = 0
@@ -143,14 +142,14 @@ def radial_median_profile(
     else:
         stat = np.log10(stat)
         ax.set_ylabel("log$_{10}$(flux/arcsec^2)")
-    
+
     ax.errorbar(
-        (Rbins[:-1]+Rbins[1:])/2,
+        (Rbins[:-1] + Rbins[1:]) / 2,
         stat,
-        yerr = scat,
-        fmt = ".",
-        linewidth = 0,
-        elinewidth = 1,
+        yerr=scat,
+        fmt=".",
+        linewidth=0,
+        elinewidth=1,
         color=main_pallet["primary2"],
         label=f"data profile",
     )
@@ -159,7 +158,6 @@ def radial_median_profile(
     if return_profile:
         return Rbins, stat, scat, count
     return fig, ax
-    
 
 
 def ray_light_profile(

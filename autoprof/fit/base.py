@@ -69,7 +69,7 @@ class BaseOptimizer(object):
             try:
                 initial_state = self.model.get_parameter_vector(
                     as_representation=True,
-                    parameters_identity = self.fit_parameters_identity,
+                    parameters_identity=self.fit_parameters_identity,
                 )
             except AssertionError:
                 self.model.initialize()
@@ -132,11 +132,14 @@ class BaseOptimizer(object):
         """
         N = np.isfinite(self.loss_history)
         if np.sum(N) == 0:
-            AP_config.ap_logger.warn("Getting optimizer res with no real loss history, using current state")
+            AP_config.ap_logger.warn(
+                "Getting optimizer res with no real loss history, using current state"
+            )
             return self.current_state.detach().cpu().numpy()
         return np.array(self.lambda_history)[N][
             np.argmin(np.array(self.loss_history)[N])
         ]
+
     def res_loss(self):
         N = np.isfinite(self.loss_history)
         return np.min(np.array(self.loss_history)[N])

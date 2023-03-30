@@ -90,14 +90,14 @@ class Component_Model(AutoProf_Model):
         self._parameters = val
 
     def parameter_order(self, parameters_identity: Optional[tuple] = None):
-        """Returns a tuple of names of the parameters in their set order.
-
-        """
+        """Returns a tuple of names of the parameters in their set order."""
         param_order = tuple()
         for P in self.__class__._parameter_order:
             if self[P].locked:
                 continue
-            if parameters_identity is not None and not any(pid in parameters_identity for pid in self[P].identities):
+            if parameters_identity is not None and not any(
+                pid in parameters_identity for pid in self[P].identities
+            ):
                 continue
             param_order = param_order + (P,)
         return param_order
@@ -119,7 +119,7 @@ class Component_Model(AutoProf_Model):
         super().initialize(target)
         # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
-        
+
         # Use center of window if a center hasn't been set yet
         if self["center"].value is None:
             self["center"].set_value(self.window.center, override_locked=True)
@@ -351,7 +351,7 @@ class Component_Model(AutoProf_Model):
         porder = self.parameter_order(parameters_identity=parameters_identity)
         if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
-        
+
         if parameters is not None:
             self.set_parameters(
                 parameters,
@@ -372,7 +372,7 @@ class Component_Model(AutoProf_Model):
                     parameters=P,
                     as_representation=as_representation,
                     parameters_identity=pids,
-                    window=window
+                    window=window,
                 ).data,
                 self.get_parameter_vector(
                     as_representation=as_representation,

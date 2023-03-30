@@ -120,7 +120,7 @@ def parametric_initialize(
         AP_config.ap_logger.debug("fixing flux")
         flux -= np.min(flux) - np.abs(np.min(flux) * 0.1)
     flux = np.log10(flux)
-    
+
     x0 = list(x0_func(model, R, flux))
     for i, param in enumerate(params):
         x0[i] = x0[i] if model[param].value is None else model[param].value.item()
@@ -131,7 +131,7 @@ def parametric_initialize(
         return np.mean(residual[:-3])
 
     res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
-    
+
     if force_uncertainty is None:
         reses = []
         for i in range(10):
@@ -260,7 +260,7 @@ def exponential_radial_model(self, R, sample_image=None):
     if sample_image is None:
         sample_image = self.target
     return exponential_torch(
-        R, self["Re"].value, (10 ** self["Ie"].value) * sample_image.pixelscale**2
+        R, self["Re"].value, (10 ** self["Ie"].value) * sample_image.pixelscale ** 2
     )
 
 
@@ -270,7 +270,7 @@ def exponential_iradial_model(self, i, R, sample_image=None):
     return exponential_torch(
         R,
         self["Re"].value[i],
-        (10 ** self["Ie"].value[i]) * sample_image.pixelscale**2,
+        (10 ** self["Ie"].value[i]) * sample_image.pixelscale ** 2,
     )
 
 
@@ -283,7 +283,7 @@ def sersic_radial_model(self, R, sample_image=None):
         R,
         self["n"].value,
         self["Re"].value,
-        (10 ** self["Ie"].value) * sample_image.pixelscale**2,
+        (10 ** self["Ie"].value) * sample_image.pixelscale ** 2,
     )
 
 
@@ -294,7 +294,7 @@ def sersic_iradial_model(self, i, R, sample_image=None):
         R,
         self["n"].value[i],
         self["Re"].value[i],
-        (10 ** self["Ie"].value[i]) * sample_image.pixelscale**2,
+        (10 ** self["Ie"].value[i]) * sample_image.pixelscale ** 2,
     )
 
 
@@ -307,7 +307,7 @@ def moffat_radial_model(self, R, sample_image=None):
         R,
         self["n"].value,
         self["Rd"].value,
-        (10 ** self["I0"].value) * sample_image.pixelscale**2,
+        (10 ** self["I0"].value) * sample_image.pixelscale ** 2,
     )
 
 
@@ -318,7 +318,7 @@ def moffat_iradial_model(self, i, R, sample_image=None):
         R,
         self["n"].value[i],
         self["Rd"].value[i],
-        (10 ** self["I0"].value[i]) * sample_image.pixelscale**2,
+        (10 ** self["I0"].value[i]) * sample_image.pixelscale ** 2,
     )
 
 
@@ -330,7 +330,7 @@ def nuker_radial_model(self, R, sample_image=None):
     return nuker_torch(
         R,
         self["Rb"].value,
-        (10 ** self["Ib"].value) * sample_image.pixelscale**2,
+        (10 ** self["Ib"].value) * sample_image.pixelscale ** 2,
         self["alpha"].value,
         self["beta"].value,
         self["gamma"].value,
@@ -343,7 +343,7 @@ def nuker_iradial_model(self, i, R, sample_image=None):
     return nuker_torch(
         R,
         self["Rb"].value[i],
-        (10 ** self["Ib"].value[i]) * sample_image.pixelscale**2,
+        (10 ** self["Ib"].value[i]) * sample_image.pixelscale ** 2,
         self["alpha"].value[i],
         self["beta"].value[i],
         self["gamma"].value[i],
@@ -358,7 +358,7 @@ def gaussian_radial_model(self, R, sample_image=None):
     return gaussian_torch(
         R,
         self["sigma"].value,
-        (10 ** self["flux"].value) * sample_image.pixelscale**2,
+        (10 ** self["flux"].value) * sample_image.pixelscale ** 2,
     )
 
 
@@ -368,7 +368,7 @@ def gaussian_iradial_model(self, i, R, sample_image=None):
     return gaussian_torch(
         R,
         self["sigma"].value[i],
-        (10 ** self["flux"].value[i]) * sample_image.pixelscale**2,
+        (10 ** self["flux"].value[i]) * sample_image.pixelscale ** 2,
     )
 
 
@@ -549,7 +549,7 @@ def nonparametric_radial_model(self, R, sample_image=None):
         R,
         self["I(R)"].prof,
         self["I(R)"].value,
-        sample_image.pixelscale**2,
+        sample_image.pixelscale ** 2,
         extend=self.extend_profile,
     )
 
@@ -561,6 +561,6 @@ def nonparametric_iradial_model(self, i, R, sample_image=None):
         R,
         self["I(R)"].prof,
         self["I(R)"].value[i],
-        sample_image.pixelscale**2,
+        sample_image.pixelscale ** 2,
         extend=self.extend_profile,
     )

@@ -115,9 +115,7 @@ class HMC(BaseOptimizer):
         gradstate.requires_grad = True
 
         # Sample model
-        Y = self.model(
-            parameters=gradstate, as_representation=True
-        ).flatten("data")
+        Y = self.model(parameters=gradstate, as_representation=True).flatten("data")
 
         # Compute Chi^2
         if self.model.target.has_mask:

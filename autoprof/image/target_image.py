@@ -208,7 +208,10 @@ class Target_Image(BaseImage):
         )
 
     def jacobian_image(
-        self, parameters: Optional[List[str]] = None, data: Optional[torch.Tensor] = None, **kwargs
+        self,
+        parameters: Optional[List[str]] = None,
+        data: Optional[torch.Tensor] = None,
+        **kwargs,
     ):
         if parameters is None:
             data = None
@@ -368,7 +371,7 @@ class Target_Image_List(Image_List, Target_Image):
                     indices = isi
                     break
             else:
-                indices = None    
+                indices = None
         return indices
 
     def __isub__(self, other):

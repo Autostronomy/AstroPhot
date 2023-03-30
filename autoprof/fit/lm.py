@@ -73,7 +73,13 @@ class LM(BaseOptimizer):
         fit_parameters_identity: Optional[tuple] = None,
         **kwargs,
     ):
-        super().__init__(model, initial_state, max_iter=max_iter, fit_parameters_identity=fit_parameters_identity, **kwargs)
+        super().__init__(
+            model,
+            initial_state,
+            max_iter=max_iter,
+            fit_parameters_identity=fit_parameters_identity,
+            **kwargs,
+        )
 
         # Set optimizer parameters
         self.epsilon4 = kwargs.get("epsilon4", 0.1)
@@ -393,7 +399,9 @@ class LM(BaseOptimizer):
                 + ". possibly converged to numerical precision and could not make a better step."
             )
         self.model.set_parameters(
-            self.res(), as_representation=True, parameters_identity=self.fit_parameters_identity,
+            self.res(),
+            as_representation=True,
+            parameters_identity=self.fit_parameters_identity,
         )
         if self.verbose > 1:
             AP_config.ap_logger.info(
@@ -490,7 +498,8 @@ class LM(BaseOptimizer):
                 )
             )
             * (
-                1 + self.L
+                1
+                + self.L
                 * torch.eye(
                     len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
@@ -555,7 +564,7 @@ class LM(BaseOptimizer):
             parameters_identity=self.fit_parameters_identity,
             window=self.fit_window,
         ).flatten("data")
-        
+
         # compute the constraint jacobian if needed
         if self.constraints is not None:
             for con in self.constraints:

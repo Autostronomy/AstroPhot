@@ -121,15 +121,25 @@ class Parameter(object):
             return self._limits
         except AttributeError:
             return None
+
     @limits.setter
     def limits(self, val):
         if val is None:
             self._limits = None
         else:
             self._limits = (
-                None if val[0] is None else torch.as_tensor(val[0], dtype = AP_config.ap_dtype, device = AP_config.ap_device),
-                None if val[1] is None else torch.as_tensor(val[1], dtype = AP_config.ap_dtype, device = AP_config.ap_device),
+                None
+                if val[0] is None
+                else torch.as_tensor(
+                    val[0], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                ),
+                None
+                if val[1] is None
+                else torch.as_tensor(
+                    val[1], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                ),
             )
+
     @property
     def uncertainty(self):
         """The uncertainty for the parameter is stored here, the uncertainty
@@ -204,42 +214,57 @@ class Parameter(object):
     def get_representation(self, index=None, identity=None):
         if self._representation is None:
             return None
-        
+
         if identity is not None and self._representation.numel() > 1:
-            index = int(identity[identity.find(":")+1:])
+            index = int(identity[identity.find(":") + 1 :])
 
         if index is not None:
             return self._representation[index]
-        
+
         return self._representation
 
     def get_value(self, index=None, identity=None):
         if self._representation is None:
             return None
         if self.cyclic:
-            return cyclic_boundaries(self.get_representation(index=index,identity=identity), self.limits)
+            return cyclic_boundaries(
+                self.get_representation(index=index, identity=identity), self.limits
+            )
         if self.limits is None:
-            return self.get_representation(index=index,identity=identity)
-        return inv_boundaries(self.get_representation(index=index,identity=identity), self.limits)
+            return self.get_representation(index=index, identity=identity)
+        return inv_boundaries(
+            self.get_representation(index=index, identity=identity), self.limits
+        )
 
     def get_uncertainty(self, index=None, identity=None):
         if self._uncertainty is None:
             return None
 
-        # Ensure the shape of uncertinty matches the value 
-        if self._uncertainty.numel() == 1 and self._representation is not None and self._representation.numel() > 1:
-            self._uncertainty = self._uncertainty * torch.ones_like(self._representation)
-            
+        # Ensure the shape of uncertinty matches the value
+        if (
+            self._uncertainty.numel() == 1
+            and self._representation is not None
+            and self._representation.numel() > 1
+        ):
+            self._uncertainty = self._uncertainty * torch.ones_like(
+                self._representation
+            )
+
         if identity is not None and self._uncertainty.numel() > 1:
-            index = int(identity[identity.find(":")+1:])
+            index = int(identity[identity.find(":") + 1 :])
 
         if index is not None:
             return self._uncertainty[index]
-        
+
         return self._uncertainty
 
     def set_uncertainty(
-            self, uncertainty, override_locked=False, as_representation=False, index=None, identity=None,
+        self,
+        uncertainty,
+        override_locked=False,
+        as_representation=False,
+        index=None,
+        identity=None,
     ):
         """Updates the the uncertainty of the value of the parameter. Only
         updates if the parameter is not locked.
@@ -253,7 +278,7 @@ class Parameter(object):
 
         # Choose correct index if setting by identity
         if identity is not None and self._representation.numel() > 1:
-            index = int(identity[identity.find(":")+1:])
+            index = int(identity[identity.find(":") + 1 :])
 
         # Ensure uncertainty is a tensor
         uncertainty = torch.as_tensor(
@@ -265,9 +290,9 @@ class Parameter(object):
                 uncertainty >= 0
             ), f"{self.name} Uncertainty should be a positive real value, not {uncertainty.item()}"
             if as_representation and not self.cyclic and self.limits is not None:
-                self.uncertainty[index] = uncertainty * torch.abs(d_inv_boundaries_dval(
-                    self.representation[index], self.limits
-                ))
+                self.uncertainty[index] = uncertainty * torch.abs(
+                    d_inv_boundaries_dval(self.representation[index], self.limits)
+                )
             else:
                 self.uncertainty[index] = uncertainty
             return
@@ -283,7 +308,13 @@ class Parameter(object):
         else:
             self._uncertainty = uncertainty
 
-    def set_value(self, val, override_locked: bool =False, index: Optional[int] = None, identity: Optional[str] = None):
+    def set_value(
+        self,
+        val,
+        override_locked: bool = False,
+        index: Optional[int] = None,
+        identity: Optional[str] = None,
+    ):
         """Set the value of the parameter. In fact this indirectly updates the
         representation for the parameter accoutning for any limits or
         cyclic boundaries are applied for this parameter.
@@ -292,7 +323,7 @@ class Parameter(object):
         if self.locked and not override_locked:
             return
         if identity is not None and self._representation.numel() > 1:
-            index = int(identity[identity.find(":")+1:])
+            index = int(identity[identity.find(":") + 1 :])
         if val is None:
             self._representation = None
         elif self.cyclic:
@@ -315,8 +346,10 @@ class Parameter(object):
                 rng = self.limits[1] - self.limits[0]
                 val = torch.clamp(
                     val,
-                    min=self.limits[0] + torch.min(1e-3 * torch.ones_like(rng), 1e-3 * rng),
-                    max=self.limits[1] - torch.min(1e-3 * torch.ones_like(rng), 1e-3 * rng),
+                    min=self.limits[0]
+                    + torch.min(1e-3 * torch.ones_like(rng), 1e-3 * rng),
+                    max=self.limits[1]
+                    - torch.min(1e-3 * torch.ones_like(rng), 1e-3 * rng),
                 )
             self.set_representation(
                 boundaries(val, self.limits),
@@ -324,7 +357,13 @@ class Parameter(object):
                 index=index,
             )
 
-    def set_representation(self, rep, override_locked: bool =False, index: Optional[int] = None, identity: Optional[str] = None):
+    def set_representation(
+        self,
+        rep,
+        override_locked: bool = False,
+        index: Optional[int] = None,
+        identity: Optional[str] = None,
+    ):
         """Update the representation for this parameter. Ensures that the
         representation is a pytorch tensor for optimization purposes.
 
@@ -332,7 +371,7 @@ class Parameter(object):
         if self.locked and not override_locked:
             return
         if identity is not None and self._representation.numel() > 1:
-            index = int(identity[identity.find(":")+1:])
+            index = int(identity[identity.find(":") + 1 :])
         if rep is None:
             self._representation = None
         elif index is None:
@@ -366,7 +405,7 @@ class Parameter(object):
             state["locked"] = self.locked
         if self.limits is not None:
             save_lim = []
-            for i in [0,1]:
+            for i in [0, 1]:
                 if self.limits[i] is None:
                     save_lim.append(None)
                 elif self.limits[i].numel() == 1:

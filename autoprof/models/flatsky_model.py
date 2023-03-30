@@ -32,7 +32,7 @@ class Flat_Sky(Sky_Model):
         if self["sky"].value is None:
             self["sky"].set_representation(
                 np.log10(
-                    torch.median(target[self.window].data) / target.pixelscale**2
+                    torch.median(target[self.window].data) / target.pixelscale ** 2
                 ),
                 override_locked=True,
             )
@@ -54,5 +54,5 @@ class Flat_Sky(Sky_Model):
 
     def evaluate_model(self, image):
         return torch.ones_like(image.data) * (
-            (10 ** self["sky"].value) * image.pixelscale**2
+            (10 ** self["sky"].value) * image.pixelscale ** 2
         )

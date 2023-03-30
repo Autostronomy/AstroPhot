@@ -48,7 +48,7 @@ def d_inv_boundaries_dval(val, limits):
         return 0.5 + 0.5 * (tval - limits[0]) / torch.sqrt(
             torch.pow(tval - limits[0], 2) + 4
         )
-    return (limits[1] - limits[0]) / (np.pi * (tval**2 + 1))
+    return (limits[1] - limits[0]) / (np.pi * (tval ** 2 + 1))
 
 
 def cyclic_boundaries(val, limits):

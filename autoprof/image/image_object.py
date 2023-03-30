@@ -216,7 +216,9 @@ class BaseImage(object):
         if self._data is not None and require_shape:
             assert data.shape == self._data.shape
         if data is None:
-            self.data = torch.tensor((), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            self.data = torch.tensor(
+                (), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
         elif isinstance(data, torch.Tensor):
             self._data = data.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         else:
@@ -632,9 +634,10 @@ class Image_List(BaseImage):
 
     def save(self, filename=None, overwrite=True):
         raise NotImplementedError("Save/load not yet available for image lists")
+
     def load(self, filename):
         raise NotImplementedError("Save/load not yet available for image lists")
-    
+
     def __getitem__(self, *args):
         if len(args) == 1 and isinstance(args[0], Window):
             return self.get_window(args[0])
@@ -651,6 +654,7 @@ class Image_List(BaseImage):
 
     def __iter__(self):
         return (img for img in self.image_list)
+
     #     self._index = 0
     #     return self
 

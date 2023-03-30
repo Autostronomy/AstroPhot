@@ -6,7 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Model_Image_List, Target_Image, Image_List, Window, Window_List
+from ..image import (
+    Model_Image,
+    Model_Image_List,
+    Target_Image,
+    Image_List,
+    Window,
+    Window_List,
+)
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -80,8 +87,7 @@ class Group_Model(AutoProf_Model):
     @equality_constraints.setter
     def equality_constraints(self, val):
         pass
-        
-        
+
     def pop_model(self, model):
         """Removes the specified model from the group model list. Returns the
         model object if it is found.
@@ -156,7 +162,9 @@ class Group_Model(AutoProf_Model):
                 if p in model.equality_constraints:
                     for k in range(len(params)):
                         if params[k][1] is model.parameters[p]:
-                            self._equality_constraints.pop(self.equality_constraints.index(params[k][0]))
+                            self._equality_constraints.pop(
+                                self.equality_constraints.index(params[k][0])
+                            )
                             params[k] = (f"{model.name}:{params[k][0]}", params[k][1])
                             self._equality_constraints.append(params[k][0])
                             break
@@ -167,7 +175,9 @@ class Group_Model(AutoProf_Model):
                     params.append((f"{model.name}|{p}", model.parameters[p]))
         return params
 
-    def parameter_order(self, override_locked: bool = False, parameters_identity: Optional[tuple] = None):
+    def parameter_order(
+        self, override_locked: bool = False, parameters_identity: Optional[tuple] = None
+    ):
         """Gives the unique parameter names for this model in a repeatable
         order. By default, locked parameters are excluded from the
         tuple. The order of parameters will of course not be the same
@@ -177,10 +187,12 @@ class Group_Model(AutoProf_Model):
         param_tuples = self.parameter_tuples_order(override_locked=override_locked)
         param_order = []
         for P, M in param_tuples:
-            if parameters_identity is not None and not any(pid in parameters_identity for pid in self[P].identities):
+            if parameters_identity is not None and not any(
+                pid in parameters_identity for pid in self[P].identities
+            ):
                 continue
             param_order.append(P)
-            
+
         return tuple(param_order)
 
     @property
@@ -228,7 +240,13 @@ class Group_Model(AutoProf_Model):
             model.initialize(target_copy)
             target_copy -= model()
 
-    def sample(self, image: Optional["Model_Image"] = None, window: Optional[Window] = None, *args, **kwargs):
+    def sample(
+        self,
+        image: Optional["Model_Image"] = None,
+        window: Optional[Window] = None,
+        *args,
+        **kwargs,
+    ):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
         model is called individually and the results are added
@@ -249,7 +267,9 @@ class Group_Model(AutoProf_Model):
             if window is not None and isinstance(window, Window_List):
                 indices = self.target.match_indices(model.target)
                 if isinstance(indices, (tuple, list)):
-                    use_window = Window_List(window_list = list(window.window_list[ind] for ind in indices))
+                    use_window = Window_List(
+                        window_list=list(window.window_list[ind] for ind in indices)
+                    )
                 else:
                     use_window = window.window_list[indices]
             else:
@@ -292,7 +312,7 @@ class Group_Model(AutoProf_Model):
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             )
-            
+
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
                 parameters=self.get_parameter_identity_vector(
@@ -310,13 +330,13 @@ class Group_Model(AutoProf_Model):
                     pass_jacobian=jac_img,
                     window=window,
                 )
-            else: # fixme, maybe make pass_jacobian be filled internally to each model
+            else:  # fixme, maybe make pass_jacobian be filled internally to each model
                 jac_img += model.jacobian(
                     as_representation=as_representation,
                     parameters_identity=parameters_identity,
                     pass_jacobian=jac_img,
                     window=window,
-                )            
+                )
 
         return jac_img
 

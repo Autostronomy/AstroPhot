@@ -5,7 +5,13 @@ import numpy as np
 from astropy.io import fits
 
 
-def centroids_from_segmentation_map(seg_map: Union[np.ndarray, str], image: Union[np.ndarray, str], hdul_index_seg: int = 0, hdul_index_img: int = 0, skip_index: tuple=(0,)):
+def centroids_from_segmentation_map(
+    seg_map: Union[np.ndarray, str],
+    image: Union[np.ndarray, str],
+    hdul_index_seg: int = 0,
+    hdul_index_img: int = 0,
+    skip_index: tuple = (0,),
+):
     """identify centroid centers for all segments in a segmentation map
 
     For each segment in the map, computes a flux weighted centroid in
@@ -17,7 +23,7 @@ def centroids_from_segmentation_map(seg_map: Union[np.ndarray, str], image: Unio
       image (Union[np.ndarray, str]): An Image which will be used in the light weighted center of mass calculation
       hdul_index_seg (int): If reading from a fits file this is the hdu list index at which the map is found. Default: 0
       hdul_index_img (int): If reading from a fits file this is the hdu list index at which the image is found. Default: 0
-      skip_index (tuple): Lists which identities (if any) in the segmentation map should be ignored. Default (0,) 
+      skip_index (tuple): Lists which identities (if any) in the segmentation map should be ignored. Default (0,)
 
     Returns:
       centroids (dict): dictionary of centroid positions matched to each segment ID. The centroids are in pixel coordinates
@@ -48,7 +54,7 @@ def centroids_from_segmentation_map(seg_map: Union[np.ndarray, str], image: Unio
     centroids = {}
 
     XX, YY = np.meshgrid(np.arange(seg_map.shape[0]), np.arange(seg_map.shape[1]))
-    
+
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
@@ -58,8 +64,8 @@ def centroids_from_segmentation_map(seg_map: Union[np.ndarray, str], image: Unio
         centroids[index] = [xcentroid, ycentroid]
 
     return centroids
-    
-    
+
+
 def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
     """Convert a segmentation map into boinding boxes
 

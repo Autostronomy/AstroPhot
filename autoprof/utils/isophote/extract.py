@@ -62,7 +62,7 @@ def _iso_between(
         + float(ranges[1][0]),
     )
     theta = np.arctan(YY / XX) + np.pi * (XX < 0)
-    RR = np.sqrt(XX**2 + YY**2)
+    RR = np.sqrt(XX ** 2 + YY ** 2)
     Fmode_Rscale = (
         1.0
         if PARAMS["m"] is None
