@@ -29,7 +29,6 @@ class TestModel(unittest.TestCase):
 
         state = model.get_state()
 
-        
     def test_model_creation(self):
         np.random.seed(12345)
         shape = (10,15)
@@ -102,6 +101,29 @@ class TestSersic(unittest.TestCase):
         self.assertFalse(mod.locked, "default model should not be locked")
         
         mod.initialize()
+
+        mod.get_parameter_name_vector()
+
+    def test_sersic_save_load(self):
+
+        target = make_basic_sersic()
+        model = ap.models.AutoProf_Model(
+            name = "test sersic",
+            model_type = "sersic galaxy model",
+            parameters = {"center": [20,20], "PA": 60*np.pi/180, "q": 0.5, "n": 2, "Re": 5, "Ie": 1},
+            target = target,
+        )
+        
+        model.initialize()
+
+        model.save("test_AutoProf_sersic.yaml")
+        model2 = ap.models.AutoProf_Model(
+            name = "load model",
+            filename = "test_AutoProf_sersic.yaml",
+        )
+
+        for P in model.parameter_order():
+            self.assertEqual(model[P].value.detach().cpu().tolist(), model2[P].value.detach().cpu().tolist(), "loaded model should have same parameters")
             
 class TestGroup(unittest.TestCase):
 
@@ -125,6 +147,8 @@ class TestGroup(unittest.TestCase):
 
         self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
 
+        smod.get_parameter_name_vector()
+        
 
 if __name__ == "__main__":
     unittest.main()

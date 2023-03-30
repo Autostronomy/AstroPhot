@@ -10,6 +10,7 @@ autoprof.egg-info
 **.coverage
 **.xml
 tests/*.fits
+tests/*.yaml
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg

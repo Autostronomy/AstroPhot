@@ -194,6 +194,70 @@ class TestLM(unittest.TestCase):
         self.assertTrue(torch.all(torch.isfinite(jac)), "Constraint Jacobian should produce real numbers")
         self.assertTrue(torch.all(torch.isclose(jac, torch.ones_like(jac))), "Constraint Jacobian should produce correct derivatives")
         self.assertTrue(torch.all(torch.isfinite(samp)), "Constraint sample should produce real numbers")
+
+class TestIter(unittest.TestCase):
+
+    def test_iter_basic(self):
+        target = make_basic_sersic()
+        model_list = []
+        model_list.append(ap.models.AutoProf_Model(
+            name = "basic sersic",
+            model_type = "sersic galaxy model",
+            parameters = {"center": [20,20], "PA": 60*np.pi/180, "q": 0.5, "n": 2, "Re": 5, "Ie": 1},
+            target = target,
+        ))
+        model_list.append(ap.models.AutoProf_Model(
+            name = "basic sky",
+            model_type = "flat sky model",
+            parameters = {"sky": -1},
+            target = target,
+        ))
+
+        MODEL = ap.models.AutoProf_Model(
+            name = "model",
+            model_type = "group model",
+            target = target,
+            model_list = model_list,
+        )
+
+        MODEL.initialize()
+
+        res = ap.fit.Iter(MODEL, method = ap.fit.LM)
+
+        res.fit()
+
+class TestIterLM(unittest.TestCase):
+
+    def test_iter_basic(self):
+        target = make_basic_sersic()
+        model_list = []
+        model_list.append(ap.models.AutoProf_Model(
+            name = "basic sersic",
+            model_type = "sersic galaxy model",
+            parameters = {"center": [20,20], "PA": 60*np.pi/180, "q": 0.5, "n": 2, "Re": 5, "Ie": 1},
+            target = target,
+        ))
+        model_list.append(ap.models.AutoProf_Model(
+            name = "basic sky",
+            model_type = "flat sky model",
+            parameters = {"sky": -1},
+            target = target,
+        ))
+
+        MODEL = ap.models.AutoProf_Model(
+            name = "model",
+            model_type = "group model",
+            target = target,
+            model_list = model_list,
+        )
+
+        MODEL.initialize()
+        
+        res = ap.fit.Iter_LM(MODEL)
+
+        res.fit()
+        
+
         
 class TestHMC(unittest.TestCase):
 
