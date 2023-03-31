@@ -28,6 +28,7 @@ def galaxy_light_profile(
     R0=0.0,
     resolution=1000,
     doassert=True,
+    plot_kwargs = {},
 ):
     xx = torch.linspace(
         R0,
@@ -36,6 +37,7 @@ def galaxy_light_profile(
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
     )
+    print(xx)
     flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
         yy = flux_to_sb(
@@ -43,13 +45,18 @@ def galaxy_light_profile(
         )
     else:
         yy = np.log10(flux)
+
+    kwargs = {
+        "linewidth": 2,
+        "color": main_pallet["primary1"],
+        "label": f"{model.name} profile",
+    }
+    kwargs.update(plot_kwargs)
     with torch.no_grad():
         ax.plot(
             xx.detach().cpu().numpy(),
             yy,
-            linewidth=2,
-            color=main_pallet["primary1"],
-            label=f"{model.name} profile",
+            **kwargs,
         )
 
     if model.target.zeropoint is not None:
@@ -71,6 +78,7 @@ def radial_median_profile(
     return_profile: bool = False,
     rad_unit: str = "arcsec",
     doassert: bool = True,
+    plot_kwargs: dict = {},
 ):
     """Plot an SB profile by taking flux median at each radius.
 
@@ -143,15 +151,19 @@ def radial_median_profile(
         stat = np.log10(stat)
         ax.set_ylabel("log$_{10}$(flux/arcsec^2)")
 
+    kwargs = {
+        "linewidth": 0,
+        "elinewidth": 1,
+        "color": main_pallet["primary2"],
+        "label": f"data profile",
+    }
+    kwargs.update(plot_kwargs)
     ax.errorbar(
         (Rbins[:-1] + Rbins[1:]) / 2,
         stat,
         yerr=scat,
         fmt=".",
-        linewidth=0,
-        elinewidth=1,
-        color=main_pallet["primary2"],
-        label=f"data profile",
+        **kwargs,
     )
     ax.set_xlabel(f"Radius [{rad_unit}]")
 

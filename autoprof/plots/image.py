@@ -9,6 +9,7 @@ from scipy.stats import iqr
 
 from ..models import Group_Model, Sky_Model
 from ..image import Image_List, Window_List
+from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
 
@@ -90,13 +91,23 @@ def model_image(
         "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
+    if model.target.zeropoint is not None:
+        sample_image = flux_to_sb(
+            sample_image, model.target.pixelscale.item(), model.target.zeropoint.item()
+        )
+        del imshow_kwargs["norm"]
+        imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
 
     im = ax.imshow(
         sample_image,
         **imshow_kwargs,
     )
     if showcbar:
-        clb = fig.colorbar(im, ax=ax, label=f"log$_{{10}}$(flux)")
+        if model.target.zeropoint is not None:
+            clb = fig.colorbar(im, ax=ax, label="Surface Brightness")
+            clb.ax.invert_yaxis()
+        else:
+            clb = fig.colorbar(im, ax=ax, label=f"log$_{{10}}$(flux)")
 
     return fig, ax
 

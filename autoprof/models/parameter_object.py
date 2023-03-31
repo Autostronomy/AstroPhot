@@ -46,6 +46,7 @@ class Parameter(object):
     def __init__(self, name, value=None, **kwargs):
         self.name = name
         self.identity = str(id(self))
+        self._prof = None
         self._representation = None
         self.limits = kwargs.get("limits", None)
         self.cyclic = kwargs.get("cyclic", False)
@@ -56,7 +57,6 @@ class Parameter(object):
         self.units = kwargs.get("units", "none")
         self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
-        self.prof = None
         self.set_profile(kwargs.get("prof", None))
         self.to()
 
@@ -172,6 +172,13 @@ class Parameter(object):
         """
         self.set_uncertainty(unc, as_representation=True)
 
+    @property
+    def prof(self):
+        return self._prof
+    @prof.setter
+    def prof(self, val):
+        self.set_profile(val)
+        
     @property
     def requires_grad(self):
         if self._representation is None:
@@ -424,9 +431,9 @@ class Parameter(object):
         if self.locked and not override_locked:
             return
         if prof is None:
-            self.prof = None
+            self._prof = None
             return
-        self.prof = torch.as_tensor(
+        self._prof = torch.as_tensor(
             prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
