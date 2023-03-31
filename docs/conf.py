@@ -56,6 +56,8 @@ html_sidebars = {
     ]
 }
 
+html_favicon = "media/AP_logo_favicon.ico"
+
 # Output file base name for HTML help builder
 htmlhelp_basename = "AutoProfdocs"
 
