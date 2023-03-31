@@ -426,6 +426,8 @@ def nonparametric_initialize(self, target=None):
     N = np.isfinite(I)
     if not np.all(N):
         I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
+    if I[-1] >= I[-2]:
+        I[-1] = I[-2]/2
     S = binned_statistic(
         R.ravel(), raveldat, statistic=lambda d: iqr(d, rng=[16, 84]) / 2, bins=rad_bins
     )[0]

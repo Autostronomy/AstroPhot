@@ -63,21 +63,23 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
 @torch.no_grad()
 def model_image(
-        fig, ax, model, sample_image=None, window=None, target=None, showcbar=True, **kwargs
+        fig, ax, model, sample_image=None, window=None, target=None, showcbar=True, target_mask=False, **kwargs
 ):
     if sample_image is None:
         sample_image = model.make_model_image()
         sample_image = model(sample_image)
     if target is None:
         target = model.target
+    if window is None:
+        window = model.window
     if isinstance(sample_image, Image_List):
-        for i, images in enumerate(zip(sample_image, target)):
+        for i, images in enumerate(zip(sample_image, target, window)):
             model_image(
                 fig,
                 ax[i],
                 model,
                 sample_image=images[0],
-                window=window,
+                window=images[2],
                 target=images[1],
                 showcbar=showcbar,
                 **kwargs,
@@ -86,7 +88,7 @@ def model_image(
 
     sample_image = sample_image.data.detach().cpu().numpy()
     imshow_kwargs = {
-        "extent": model.window.plt_extent,
+        "extent": window.plt_extent,
         "cmap": cmap_grad,
         "origin": "lower",
         "interpolation": "none",
@@ -100,6 +102,8 @@ def model_image(
         del imshow_kwargs["norm"]
         imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
 
+    if target_mask and target.has_mask:
+        sample_image[target.mask] = np.nan
     im = ax.imshow(
         sample_image,
         **imshow_kwargs,
