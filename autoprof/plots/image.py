@@ -63,20 +63,22 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
 @torch.no_grad()
 def model_image(
-    fig, ax, model, sample_image=None, window=None, showcbar=True, **kwargs
+        fig, ax, model, sample_image=None, window=None, target=None, showcbar=True, **kwargs
 ):
     if sample_image is None:
         sample_image = model.make_model_image()
         sample_image = model(sample_image)
-
+    if target is None:
+        target = model.target
     if isinstance(sample_image, Image_List):
-        for i, image in enumerate(sample_image):
+        for i, images in enumerate(zip(sample_image, target)):
             model_image(
                 fig,
                 ax[i],
                 model,
-                sample_image=image,
+                sample_image=images[0],
                 window=window,
+                target=images[1],
                 showcbar=showcbar,
                 **kwargs,
             )
@@ -91,9 +93,9 @@ def model_image(
         "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
-    if model.target.zeropoint is not None:
+    if target.zeropoint is not None:
         sample_image = flux_to_sb(
-            sample_image, model.target.pixelscale.item(), model.target.zeropoint.item()
+            sample_image, target.pixelscale.item(), target.zeropoint.item()
         )
         del imshow_kwargs["norm"]
         imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
@@ -103,7 +105,7 @@ def model_image(
         **imshow_kwargs,
     )
     if showcbar:
-        if model.target.zeropoint is not None:
+        if target.zeropoint is not None:
             clb = fig.colorbar(im, ax=ax, label="Surface Brightness")
             clb.ax.invert_yaxis()
         else:

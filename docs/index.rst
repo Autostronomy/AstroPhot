@@ -1,3 +1,8 @@
+.. raw:: html
+
+   <link rel="shortcut icon" type="image/png" 
+      href="{{ "/media/AP_Logo_favicon.png"  | absolute_url }}">
+   
 .. the "raw" directive below is used to hide the title in favor of
    just the logo being visible
 .. raw:: html

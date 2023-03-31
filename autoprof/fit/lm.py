@@ -625,7 +625,7 @@ class LM(BaseOptimizer):
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
             ) * (torch.diag(self.hess) == 0)
-            return torch.linalg.inv(self.hess)
+            return torch.linalg.inv(self.hess) * self.res_loss()
 
     @torch.no_grad()
     def update_grad(self, Yph) -> None:
