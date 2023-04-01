@@ -160,8 +160,8 @@ def nuker_np(R, Rb, Ib, alpha, beta, gamma):
     )
 
 
-def nonparametric_torch(R, profR, profI, pixelscale2, extend):
-    """Nonparametric 1d profile function, cubic spline between points up
+def spline_torch(R, profR, profI, pixelscale2, extend):
+    """Spline 1d profile function, cubic spline between points up
     to second last point beyond which is linear, specifically designed
     for pytorch.
 

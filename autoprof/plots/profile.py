@@ -37,7 +37,6 @@ def galaxy_light_profile(
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
     )
-    print(xx)
     flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
         yy = flux_to_sb(

@@ -34,7 +34,7 @@ class Iter(BaseOptimizer):
 
     Attributes:
         ndf: Degrees of freedom of the data.
-        method: The optimizer class to apply at each iteration step.
+        method: The optimizer class to apply at each iteration step. Default: Levenberg-Marquardt
         method_kwargs: Keyword arguments to pass to `method`.
         iteration: The number of iterations performed.
         lambda_history: A list of the states at each iteration step.
@@ -44,7 +44,7 @@ class Iter(BaseOptimizer):
     def __init__(
         self,
         model: "AutoProf_Model",
-        method: "BaseOptimizer",
+        method: "BaseOptimizer" = LM,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
         method_kwargs: Dict[str, Any] = {},

@@ -283,6 +283,7 @@ class Group_Model(AutoProf_Model):
 
         return image
 
+    @torch.no_grad()
     def jacobian(
         self,
         parameters: Optional[torch.Tensor] = None,

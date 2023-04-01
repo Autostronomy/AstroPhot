@@ -22,10 +22,30 @@ __all__ = ["Component_Model"]
 class Component_Model(AutoProf_Model):
     """Component_Model(name, target, window, locked, **kwargs)
 
-    This is the basis for almost any model which represents a single
-    object, or parametric form.  Subclassing models must define their
-    parameters, initialization, and model evaluation
-    functions. See individual models for their behaviour.
+    Component_Model is a base class for models that represent single
+    objects or parametric forms. It provides the basis for subclassing
+    models and requires the definition of parameters, initialization,
+    and model evaluation functions. This class also handles
+    integration, PSF convolution, and computing the Jacobian matrix.
+
+    Attributes:
+      parameter_specs (dict): Specifications for the model parameters.
+      _parameter_order (tuple): Fixed order of parameters.
+      psf_mode (str): Technique and scope for PSF convolution.
+      psf_window_size (int): Size in pixels of the PSF convolution box.
+      integrate_mode (str): Integration scope for the model.
+      integrate_window_size (int): Size of the window in which to perform integration.
+      integrate_factor (int): Factor by which to upscale each dimension when integrating.
+      integrate_recursion_factor (int): Relative size of windows between recursion levels.
+      integrate_recursion_depth (int): Number of recursion cycles to apply when integrating.
+      jacobian_chunksize (int): Maximum size of parameter list before jacobian will be broken into smaller chunks.
+      special_kwargs (list): Parameters which are treated specially by the model object and should not be updated directly.
+      useable (bool): Indicates if the model is useable.
+
+    Methods:
+      initialize: Determine initial values for the center coordinates.
+      sample: Evaluate the model on the space covered by an image object.
+      jacobian: Compute the Jacobian matrix for this model.
 
     """
 
@@ -50,7 +70,7 @@ class Component_Model(AutoProf_Model):
     integrate_recursion_depth = (
         2  # number of recursion cycles to apply when integrating
     )
-    jacobian_mode = "full"  # method to compute jacobian. "full" means full jacobian for all parameters at once (faster), "single" means one parameter at a time (less memory), "finite" means to use finite difference (minimum memory)
+    jacobian_chunksize = 10 # maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
@@ -174,9 +194,24 @@ class Component_Model(AutoProf_Model):
         convolution. This should not be overloaded except in special
         cases.
 
-        Parameters:
-            image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) on which to evaluate the model values.
-            window (Optional[Window]): A window within which to evaluate the model. Should only be used if a subset of the full image is needed.
+        This function is designed to compute the model on a given
+        image or within a specified window. It takes care of sub-pixel
+        sampling, recursive integration for high curvature regions,
+        PSF convolution, and proper alignment of the computed model
+        with the original pixel grid. The final model is then added to
+        the requested image.
+
+        Args:
+          image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) 
+                                     on which to evaluate the model values. If not 
+                                     provided, a new Model_Image object will be created.
+          window (Optional[Window]): A window within which to evaluate the model. 
+                                   Should only be used if a subset of the full image 
+                                   is needed. If not provided, the entire image will 
+                                   be used.
+
+        Returns:
+          BaseImage: The image with the computed model values.
 
         """
         # Image on which to evaluate model
@@ -264,13 +299,27 @@ class Component_Model(AutoProf_Model):
         self, working_image: "BaseImage", window: Window, depth: int = 2
     ):
         """Sample the model at a higher resolution than the given image, then
-        integrate the super resolution up to the image
-        resolution.
+        integrate the super resolution up to the image resolution.
 
-        Parameters:
-            working_image (BaseImage): the image on which to perform the model integration. Pixels in this image will be replaced with the integrated values
-            window (Window): A Window object within which to perform the integration.
-            depth (int): recursion depth tracker. When called with depth = n, this function will call itself again with depth = n-1 until depth is 0 at which point it will exit without integrating.
+        This method improves the accuracy of the model evaluation by
+        evaluating it at a finer resolution and integrating the
+        results back to the original resolution. It recursively
+        evaluates smaller windows in regions of high curvature until
+        the specified recursion depth is reached.
+
+        Args:
+          working_image (BaseImage): The image on which to perform the model
+                                     integration. Pixels in this image will be
+                                     replaced with the integrated values.
+          window (Window): A Window object within which to perform the integration.
+                           Specifies the region of interest for integration.
+          depth (int, optional): Recursion depth tracker. When called with depth = n,
+                                 this function will call itself again with depth = n-1
+                                 until depth is 0, at which point it will exit without
+                                 integrating further. Default value is 2.
+
+        Returns:
+          None: This method modifies the `working_image` in-place.
 
         """
         if depth <= 0 or "none" in self.integrate_mode:
@@ -325,6 +374,7 @@ class Component_Model(AutoProf_Model):
         # Replace the image data where the integration has been done
         working_image.replace(integrate_image.reduce(self.integrate_factor))
 
+    @torch.no_grad()
     def jacobian(
         self,
         parameters: Optional[torch.Tensor] = None,
@@ -333,64 +383,90 @@ class Component_Model(AutoProf_Model):
         window: Optional[Window] = None,
         **kwargs,
     ):
-        """Compute the jacobian for this model. Done by first constructing a
-        full jacobian (Npixels * Nparameters) of zeros then call the
-        jacobian method of each sub model and add it in to the total.
+        """Compute the Jacobian matrix for this model.
+
+        The Jacobian matrix represents the partial derivatives of the
+        model's output with respect to its input parameters. It is
+        useful in optimization and model fitting processes. This
+        method simplifies the process of computing the Jacobian matrix
+        for astronomical image models and is primarily used by the
+        Levenberg-Marquardt algorithm for model fitting tasks.
 
         Args:
-          parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
-          as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
-          pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+          parameters (Optional[torch.Tensor]): A 1D parameter tensor to override the
+                                               current model's parameters.
+          as_representation (bool): Indicates if the parameters argument is
+                                    provided as real values or representations
+                                    in the (-inf, inf) range. Default is False.
+          parameters_identity (Optional[tuple]): Specifies which parameters are to be
+                                                 considered in the computation.
+          window (Optional[Window]): A window object specifying the region of interest
+                                     in the image.
+          **kwargs: Additional keyword arguments.
+
+        Returns:
+          Jacobian_Image: A Jacobian_Image object containing the computed Jacobian matrix.
 
         """
         if window is None:
             window = self.window
         else:
             window = self.window & window
+            
         # skip jacobian calculation if no parameters match criteria
         porder = self.parameter_order(parameters_identity=parameters_identity)
         if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
 
+        # Set the parameters if provided and check the size of the parameter list
+        dochunk = False
         if parameters is not None:
+            if len(parameters) > self.jacobian_chunksize:
+                dochunk = True
             self.set_parameters(
                 parameters,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             )
+        else:
+            if len(self.get_parameter_identity_vector(parameters_identity=parameters_identity)) > self.jacobian_chunksize:
+                dochunk = True
 
+        # If the parameter list is too large, apply the chunk jacobian analysis
+        if dochunk:
+            return self._chunk_jacobian(
+                as_representation = as_representation,
+                parameters_identity = parameters_identity,
+                window = window,
+                **kwargs,
+            )            
+
+        # Store the parameter identities
         if parameters_identity is None:
             pids = None
         else:
             pids = self.get_parameter_identity_vector(
                 parameters_identity=parameters_identity,
             )
-        if self.jacobian_mode == "full":
-            full_jac = jacobian(
-                lambda P: self(
-                    image=None,
-                    parameters=P,
-                    as_representation=as_representation,
-                    parameters_identity=pids,
-                    window=window,
-                ).data,
-                self.get_parameter_vector(
-                    as_representation=as_representation,
-                    parameters_identity=parameters_identity,
-                ).detach(),
-                strategy="forward-mode",
-                vectorize=True,
-                create_graph=False,
-            )
-        elif self.jacobian_mode == "single":
-            raise NotImplementedError("single jacobian not avaialble yet")
-        elif self.jacobian_mode == "chunk":
-            raise NotImplementedError("chunk jacobian not avaialble yet")
-        else:
-            raise ValueError(
-                f"Unrecognized jacobian mode for {self.name}: {self.jacobian_mode}"
-            )
+        # Compute the jacobian
+        full_jac = jacobian(
+            lambda P: self(
+                image=None,
+                parameters=P,
+                as_representation=as_representation,
+                parameters_identity=pids,
+                window=window,
+            ).data,
+            self.get_parameter_vector(
+                as_representation=as_representation,
+                parameters_identity=parameters_identity,
+            ).detach(),
+            strategy="forward-mode",
+            vectorize=True,
+            create_graph=False,
+        )
 
+        # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
             parameters=self.get_parameter_identity_vector(
                 parameters_identity=parameters_identity,
@@ -398,6 +474,45 @@ class Component_Model(AutoProf_Model):
             data=full_jac,
         )
         return jac_img
+
+    @torch.no_grad()
+    def _chunk_jacobian(
+        self,
+        as_representation: bool = False,
+        parameters_identity: Optional[tuple] = None,
+        window: Optional[Window] = None,
+        **kwargs,
+    ):
+        """Evaluates the Jacobian in small chunks to reduce memory usage.
+
+        For models with many parameters it can be prohibitive to build
+        the full Jacobian in a single pass. Instead this function
+        breaks the list of parameters into chunks as determined by
+        `self.jacobian_chunksize` evaluates the Jacobian only for
+        those, it then builds up the full Jacobian as a separate
+        tensor. This is for internal use and should be called by the
+        `self.jacobian` function when appropriate.
+
+        """
+
+        pids = self.get_parameter_identity_vector(
+            parameters_identity=parameters_identity,
+        )
+        jac_img = self.target[window].jacobian_image(
+            parameters=pids,
+        )
+        
+        for ichunk in range(0,len(pids),self.jacobian_chunksize):
+            jac_img += self.jacobian(
+                parameters = None,
+                as_representation = as_representation,
+                parameters_identity = pids[ichunk:ichunk + self.jacobian_chunksize],
+                window = window,
+                **kwargs,
+            )
+            
+        return jac_img
+        
 
     def get_state(self):
         """Returns a dictionary with a record of the current state of the

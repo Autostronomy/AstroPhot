@@ -16,7 +16,7 @@ from ..utils.parametric_profiles import (
     gaussian_np,
     exponential_torch,
     exponential_np,
-    nonparametric_torch,
+    spline_torch,
     moffat_torch,
     moffat_np,
     nuker_torch,
@@ -372,11 +372,11 @@ def gaussian_iradial_model(self, i, R, sample_image=None):
     )
 
 
-# NonParametric
+# Spline
 ######################################################################
 @torch.no_grad()
 @select_target
-def nonparametric_initialize(self, target=None):
+def spline_initialize(self, target=None):
     super(self.__class__, self).initialize(target)
 
     if self["I(R)"].value is not None:
@@ -440,7 +440,7 @@ def nonparametric_initialize(self, target=None):
 
 @torch.no_grad()
 @select_target
-def nonparametric_segment_initialize(self, target=None, segments=1, symmetric=True):
+def spline_segment_initialize(self, target=None, segments=1, symmetric=True):
     super(self.__class__, self).initialize(target)
 
     if self["I(R)"].value is not None:
@@ -544,10 +544,10 @@ def nonparametric_segment_initialize(self, target=None, segments=1, symmetric=Tr
         )
 
 
-def nonparametric_radial_model(self, R, sample_image=None):
+def spline_radial_model(self, R, sample_image=None):
     if sample_image is None:
         sample_image = self.target
-    return nonparametric_torch(
+    return spline_torch(
         R,
         self["I(R)"].prof,
         self["I(R)"].value,
@@ -556,10 +556,10 @@ def nonparametric_radial_model(self, R, sample_image=None):
     )
 
 
-def nonparametric_iradial_model(self, i, R, sample_image=None):
+def spline_iradial_model(self, i, R, sample_image=None):
     if sample_image is None:
         sample_image = self.target
-    return nonparametric_torch(
+    return spline_torch(
         R,
         self["I(R)"].prof,
         self["I(R)"].value[i],
