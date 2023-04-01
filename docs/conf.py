@@ -32,7 +32,7 @@ author = "Connor Stone"
 
 # Version information
 version = "0.6"
-release = "0.6.0"
+release = "0.6.1"
 
 # Patterns of files and directories to exclude
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
