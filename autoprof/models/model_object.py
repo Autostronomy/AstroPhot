@@ -377,7 +377,7 @@ class Component_Model(AutoProf_Model):
                 select = select.view(-1,1,1).repeat(1,3,3)
                 
         # compute the subpixel coordinate shifts for even integration within a pixel 
-        shiftsx, shiftsy = displacement_grid(3, 3)
+        shiftsx, shiftsy = displacement_grid(3, 3, device = data.device, dtype = data.dtype)
         
         # Reshape coordinates to add two dimensions with the super-resolved coordiantes
         Xs = X[select].view(-1,1,1).repeat(1,3,3) + shiftsx
