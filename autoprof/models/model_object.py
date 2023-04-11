@@ -70,6 +70,7 @@ class Component_Model(AutoProf_Model):
     integrate_recursion_depth = (
         2  # number of recursion cycles to apply when integrating
     )
+    integrate_threshold = 2e-3
     jacobian_chunksize = 10 # maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
@@ -173,7 +174,7 @@ class Component_Model(AutoProf_Model):
 
     # Fit loop functions
     ######################################################################
-    def evaluate_model(self, image: "BaseImage"):
+    def evaluate_model(self, image: "BaseImage", X: torch.Tensor = None, Y: torch.Tensor = None, **kwargs):
         """Evaluate the model on every pixel in the given image. The
         basemodel object simply returns zeros, this function should be
         overloaded by subclasses.
@@ -248,7 +249,7 @@ class Component_Model(AutoProf_Model):
                 pixelscale=working_pixelscale, window=working_window
             )
             # Evaluate the model at the current resolution
-            working_image.data += self.evaluate_model(working_image)
+            working_image.data += self.evaluate_model(image = working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             self.integrate_model(
                 working_image,
@@ -295,6 +296,79 @@ class Component_Model(AutoProf_Model):
 
         return image
 
+    def selective_integrate(
+            self, X: torch.tensor, Y: torch.tensor, data: torch.tensor, image_header: "Image_Header", divisions: int = 2, _depth: int = 1, max_depth: int = 3
+    ):
+        """Sample the model at higher resolution than the input image.
+
+        This function selectively refines the integration of an input
+        image based on the differences between adjacent pixels.  It
+        recursively evaluates the model at higher resolutions in areas
+        where the pixel differences exceed the specified
+        threshold. With each level of recursion, the number of
+        divisions for pixel refinement increases, leading to a finer
+        sampling of the affected areas.
+
+        Args:
+          X (torch.tensor): A tensor representing the X coordinates of the input image.
+          Y (torch.tensor): A tensor representing the Y coordinates of the input image.
+          data (torch.tensor): A tensor containing the input image data.
+          image_header (Image_Header): An instance of the Image_Header class containing the image's header information.
+          divisions (int, optional): The number of divisions to use for super-resolution. Default is 2.
+                                     This value increases with each level of recursion for a finer sampling.
+          _depth (int, optional): The current recursion depth. Default is 1.
+          max_depth (int, optional): The maximum recursion depth allowed. Default is 3.
+
+        Returns:
+          None. The function updates the input data tensor in-place with the selectively integrated values.
+        
+        """
+        # check recursion depth, exit if too deep
+        if depth > max_depth:
+            return
+
+        with torch.no_grad():
+            # compare pixels horizontally for large differences
+            hcompare = (
+                torch.select(data, -2, slice(1,None)) - torch.select(data, -2, slice(None, -1))
+            ) / (
+                torch.select(data, -2, slice(1,None)) + torch.select(data, -2, slice(None, -1))
+            ) > (self.integrate_threshold / 2)
+
+            # compare pixels vertically for large differences
+            vcompare = (
+                torch.select(data, -1, slice(1,None)) - torch.select(data, -1, slice(None, -1))
+            ) / (
+                torch.select(data, -1, slice(1,None)) + torch.select(data, -1, slice(None, -1))
+            ) > (self.integrate_threshold / 2)
+            
+            # collect these together to select which pixels need further integration
+            select = torch.zeros_like(data, dtype = torch.bool)
+            torch.select(select,-2, slice(1, None))[hcomapre] = True 
+            torch.select(select,-2, slice(None,-1))[hcomapre] = True 
+            torch.select(select,-1, slice(1, None))[vcomapre] = True 
+            torch.select(select,-1, slice(None,-1))[vcomapre] = True
+
+            # Check if all pixels are at acceptable resolution
+            if not torch.any(select):
+                return
+            
+            # compute the subpixel coordinate shifts for even integration within a pixel 
+            shiftsx, shiftsy = displacement_grid(divisions, divisions)
+
+        # Reshape coordinates to add two dimensions with the super-resolved coordiantes
+        Xs = X[select].view(-1,1,1).repeat(1,divisions,divisions) + shiftsx
+        Ys = Y[select].view(-1,1,1).repeat(1,divisions,divisions) + shiftsy
+
+        # evaluate the model on the new smaller coordinate grid in each pixel
+        res = self.evaluate_model(Xs, Ys, image_header.super_resolve(divisions))
+
+        # Apply recursion to integrate any further pixels as needed
+        self.selective_integrate(Xs, Ys, res, image_header.super_resolve(divisions), divisions = divisions + 1, _depth = _depth+1, max_depth = max_depth)
+
+        # Update the pixels with the new integrated values
+        data[select] = res.sum(axis = (1,2))
+        
     def integrate_model(
         self, working_image: "BaseImage", window: Window, depth: int = 2
     ):

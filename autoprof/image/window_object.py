@@ -60,7 +60,7 @@ class Window(object):
             )
         )
 
-    def make_copy(self):
+    def copy(self):
         return Window(origin=torch.clone(self.origin), shape=torch.clone(self.shape))
 
     def to(self, dtype=None, device=None):

@@ -13,7 +13,6 @@ from ..utils.conversions.coordinates import (
     index_to_coord,
 )
 
-
 __all__ = ["Edgeon_Model"]
 
 
@@ -79,10 +78,11 @@ class Edgeon_Model(Component_Model):
     def transform_coordinates(self, X, Y):
         return Rotate_Cartesian(-self["PA"].value, X, Y)
 
-    def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
-        )
+    def evaluate_model(self, image, X = None, Y = None, **kwargs):
+        if X is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                self["center"].value[0], self["center"].value[1]
+            )
         XX, YY = self.transform_coordinates(X, Y)
 
         return self.brightness_model(torch.abs(XX), torch.abs(YY), image)

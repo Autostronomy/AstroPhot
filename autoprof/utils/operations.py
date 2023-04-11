@@ -68,3 +68,7 @@ def fft_convolve_multi_torch(
         ),
         dims=(0, 1),
     )[: img.size()[0], : img.size()[1]]
+
+def displacement_grid(*N):
+    return torch.meshgrid(*tuple(displacement_grid(n) for n in N), indexing = "xy")
+    

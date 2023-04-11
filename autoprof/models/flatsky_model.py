@@ -52,7 +52,12 @@ class Flat_Sky(Sky_Model):
                 override_locked=True,
             )
 
-    def evaluate_model(self, image):
-        return torch.ones_like(image.data) * (
+    def evaluate_model(self, image, X = None, Y = None, **kwargs):
+        if X is None:
+            ref = image.data
+        else:
+            ref = X
+        return torch.ones_like(ref) * (
             (10 ** self["sky"].value) * image.pixelscale ** 2
         )
+            
