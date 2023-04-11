@@ -15,6 +15,7 @@ class Image_Header(object):
 
     def __init__(
         self,
+        data_shape: Optional[torch.Tensor] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
@@ -84,7 +85,7 @@ class Image_Header(object):
             shape = (
                 torch.flip(
                     torch.tensor(
-                        data.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                        data_shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                     ),
                     (0,),
                 )
@@ -111,7 +112,7 @@ class Image_Header(object):
             # When The Window object is provided
             self.window = window
             if pixelscale is None:
-                self.pixelscale = self.window.shape[0] / self.data.shape[1]
+                self.pixelscale = self.window.shape[0] / data_shape[1]
             else:
                 self.pixelscale = torch.as_tensor(
                     pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -172,10 +173,10 @@ class Image_Header(object):
 
         """
         return self.__class__(
+            pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
-            origin=self.origin,
             note=self.note,
-            window=self.window,
+            window=self.window.copy(),
             _identity=self.identity,
             **kwargs,
         )
@@ -186,7 +187,7 @@ class Image_Header(object):
             pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
             note=self.note,
-            origin=(self.window & window).origin,
+            window=self.window & window,
             _identity=self.identity,
             **kwargs,
         )
@@ -227,6 +228,21 @@ class Image_Header(object):
     def get_coordinate_meshgrid_torch(self, x=0.0, y=0.0):
         return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
 
+    def super_resolve(self, scale: int, **kwargs):
+        assert isinstance(scale, int) or scale.dtype is torch.int32
+        if scale == 1:
+            return self
+
+        return self.__class__(
+            pixelscale=self.pixelscale / scale,
+            zeropoint=self.zeropoint,
+            note=self.note,
+            window=self.window.copy(),
+            _identity=self.identity,
+            **kwargs,
+        )
+
+        
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
         scale = 2 then 2x2 blocks of pixels will be summed together to
@@ -272,7 +288,7 @@ class Image_Header(object):
             img_header["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
         if not self.note is None:
             img_header["NOTE"] = str(self.note)
-        return image_header
+        return img_header
 
     def save(self, filename=None, overwrite=True):
         image_list = self._save_image_list()

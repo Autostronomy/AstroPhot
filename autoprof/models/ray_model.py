@@ -90,10 +90,11 @@ class Ray_Galaxy(Galaxy_Model):
                 model[indices] += weight * self.iradial_model(r, R[indices], image)
         return model
 
-    def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
-        )
+    def evaluate_model(self, image, X = None, Y = None, **kwargs):
+        if X is None or Y is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                self["center"].value[0], self["center"].value[1]
+            )
         XX, YY = self.transform_coordinates(X, Y)
 
         return self.polar_model(

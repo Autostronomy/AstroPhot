@@ -11,7 +11,7 @@ import torch
 class TestImage(unittest.TestCase):
     def test_image_creation(self):
         arr = torch.zeros((10, 15))
-        base_image = image.BaseImage(
+        base_image = image.Image(
             arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
         )
 
@@ -32,7 +32,7 @@ class TestImage(unittest.TestCase):
             base_image.origin[1], 0, "subimage should not change image origin"
         )
 
-        second_base_image = image.BaseImage(arr, pixelscale=1.0, note="test image")
+        second_base_image = image.Image(arr, pixelscale=1.0, note="test image")
         self.assertEqual(base_image.pixelscale, 1.0, "image should track pixelscale")
         self.assertIsNone(second_base_image.zeropoint, "image should track zeropoint")
         self.assertEqual(second_base_image.origin[0], 0, "image should track origin")
@@ -43,7 +43,7 @@ class TestImage(unittest.TestCase):
 
     def test_alignment(self):
 
-        new_image = image.BaseImage(
+        new_image = image.Image(
             torch.zeros((10, 15)),
             pixelscale=1.0,
             zeropoint=1.0,
@@ -66,7 +66,7 @@ class TestImage(unittest.TestCase):
 
     def test_copy(self):
 
-        new_image = image.BaseImage(
+        new_image = image.Image(
             torch.zeros((10, 15)),
             pixelscale=1.0,
             zeropoint=1.0,
@@ -121,7 +121,7 @@ class TestImage(unittest.TestCase):
     def test_image_arithmetic(self):
 
         arr = torch.zeros((10, 12))
-        base_image = image.BaseImage(
+        base_image = image.Image(
             data=arr,
             pixelscale=1.0,
             zeropoint=1.0,
@@ -137,7 +137,7 @@ class TestImage(unittest.TestCase):
             base_image.data[5][5], 0, "slice should only update its region"
         )
 
-        second_image = image.BaseImage(
+        second_image = image.Image(
             data=torch.ones((5, 5)),
             pixelscale=1.0,
             zeropoint=1.0,
@@ -189,7 +189,7 @@ class TestImage(unittest.TestCase):
 
     def test_image_manipulation(self):
 
-        new_image = image.BaseImage(
+        new_image = image.Image(
             torch.ones((16, 32)),
             pixelscale=1.0,
             zeropoint=1.0,
@@ -242,7 +242,7 @@ class TestImage(unittest.TestCase):
 
     def test_image_save_load(self):
 
-        new_image = image.BaseImage(
+        new_image = image.Image(
             torch.ones((16, 32)),
             pixelscale=0.76,
             zeropoint=21.4,
@@ -252,7 +252,7 @@ class TestImage(unittest.TestCase):
 
         new_image.save("Test_AutoProf.fits")
 
-        loaded_image = ap.image.BaseImage(filename="Test_AutoProf.fits")
+        loaded_image = ap.image.Image(filename="Test_AutoProf.fits")
 
         self.assertTrue(
             torch.all(new_image.data == loaded_image.data),

@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.convolution import convolve, convolve_fft
-
+from scipy.fft import next_fast_len
 
 def fft_convolve_torch(img, psf, psf_fft=False, img_prepadded=False):
     # Ensure everything is tensor
@@ -12,7 +12,7 @@ def fft_convolve_torch(img, psf, psf_fft=False, img_prepadded=False):
     if img_prepadded:
         s = img.size()
     else:
-        s = list(int(d + (p + 1) / 2) for d, p in zip(img.size(), psf.size()))
+        s = tuple(next_fast_len(int(d+(p+1)/2), real = True) for d,p in zip(img.size(), psf.size())) #list(int(d + (p + 1) / 2) for d, p in zip(img.size(), psf.size()))
 
     img_f = torch.fft.rfft2(img, s=s)
 
@@ -69,6 +69,9 @@ def fft_convolve_multi_torch(
         dims=(0, 1),
     )[: img.size()[0], : img.size()[1]]
 
+def displacement_spacing(N):
+    return torch.linspace(-(N - 1)/(2*N), (N - 1)/(2*N), N)
+    
 def displacement_grid(*N):
-    return torch.meshgrid(*tuple(displacement_grid(n) for n in N), indexing = "xy")
+    return torch.meshgrid(*tuple(displacement_spacing(n) for n in N), indexing = "xy")
     

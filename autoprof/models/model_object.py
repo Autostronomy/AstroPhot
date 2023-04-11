@@ -10,7 +10,7 @@ from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
-from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch
+from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch, displacement_grid
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ._shared_methods import select_target
@@ -61,16 +61,16 @@ class Component_Model(AutoProf_Model):
     # size in pixels of the PSF convolution box
     psf_window_size = 50
     # Integration scope for model
-    integrate_mode = "window"  # none, window, full
+    integrate_mode = "threshold"  # none, window, threshold
     # size of the window in which to perform integration
     integrate_window_size = 10
     # Factor by which to upscale each dimension when integrating
     integrate_factor = 3  # number of pixels on one axis by which to supersample
     integrate_recursion_factor = 2  # relative size of windows between recursion levels (2 means each window will be half the size of the previous one)
     integrate_recursion_depth = (
-        2  # number of recursion cycles to apply when integrating
+        3  # number of recursion cycles to apply when integrating
     )
-    integrate_threshold = 2e-3
+    integrate_threshold = 1e-2 # threshold for triggering pixel integration when: integrate_mode = "threshold"
     jacobian_chunksize = 10 # maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
@@ -174,20 +174,24 @@ class Component_Model(AutoProf_Model):
 
     # Fit loop functions
     ######################################################################
-    def evaluate_model(self, image: "BaseImage", X: torch.Tensor = None, Y: torch.Tensor = None, **kwargs):
+    def evaluate_model(self, image: "Image", X: torch.Tensor = None, Y: torch.Tensor = None, **kwargs):
         """Evaluate the model on every pixel in the given image. The
         basemodel object simply returns zeros, this function should be
         overloaded by subclasses.
 
         Args:
-          image (BaseImage): The image defining the set of pixels on which to evaluate the model
+          image (Image): The image defining the set of pixels on which to evaluate the model
 
         """
-        return torch.zeros_like(image.data)  # do nothing in base model
+        if X is None or Y is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                self["center"].value[0], self["center"].value[1]
+            )
+        return torch.zeros_like(X)  # do nothing in base model
 
     def sample(
         self,
-        image: Optional["BaseImage"] = None,
+        image: Optional["Image"] = None,
         window: Optional[Window] = None,
     ):
         """Evaluate the model on the space covered by an image object. This
@@ -203,7 +207,7 @@ class Component_Model(AutoProf_Model):
         the requested image.
 
         Args:
-          image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) 
+          image (Optional[Image]): An AutoProf Image object (likely a Model_Image) 
                                      on which to evaluate the model values. If not 
                                      provided, a new Model_Image object will be created.
           window (Optional[Window]): A window within which to evaluate the model. 
@@ -212,7 +216,7 @@ class Component_Model(AutoProf_Model):
                                    be used.
 
         Returns:
-          BaseImage: The image with the computed model values.
+          Image: The image with the computed model values.
 
         """
         # Image on which to evaluate model
@@ -221,9 +225,9 @@ class Component_Model(AutoProf_Model):
 
         # Window within which to evaluate model
         if window is None:
-            working_window = image.window.make_copy()
+            working_window = image.window.copy()
         else:
-            working_window = window.make_copy() & image.window
+            working_window = window.copy() & image.window
 
         if "window" in self.psf_mode:
             raise NotImplementedError("PSF convolution in sub-window not available yet")
@@ -251,11 +255,25 @@ class Component_Model(AutoProf_Model):
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(image = working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            self.integrate_model(
-                working_image,
-                self.integrate_window(working_image, "center"),
-                self.integrate_recursion_depth,
-            )
+            if self.integrate_mode == "none":
+                pass
+            if self.integrate_mode == "threshold":
+                X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+                self.selective_integrate(
+                    X = X,
+                    Y = Y,
+                    data = working_image.data,
+                    image_header = working_image.header,
+                    max_depth = self.integrate_recursion_depth,
+                )
+            elif self.integrate_mode == "window":                
+                self.window_integrate(
+                    working_image,
+                    self.integrate_window(working_image, "center"),
+                    self.integrate_recursion_depth,
+                )
+            else:
+                raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
             # Convolve the PSF
             LL = _shift_Lanczos_kernel_torch(
                 -center_shift[0] / working_image.pixelscale,
@@ -286,91 +304,95 @@ class Component_Model(AutoProf_Model):
             # Evaluate the model on the image
             working_image.data += self.evaluate_model(working_image)
             # Super-resolve and integrate where needed
-            self.integrate_model(
-                working_image,
-                self.integrate_window(working_image, "pixel"),
-                self.integrate_recursion_depth,
-            )
+            if self.integrate_mode == "none":
+                pass
+            elif self.integrate_mode == "threshold":
+                X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+                self.selective_integrate(
+                    X = X,
+                    Y = Y,
+                    data = working_image.data,
+                    image_header = working_image.header,
+                    max_depth = self.integrate_recursion_depth,
+                )
+            elif self.integrate_mode == "window":
+                self.window_integrate(
+                    working_image,
+                    self.integrate_window(working_image, "pixel"),
+                    self.integrate_recursion_depth,
+                )
+            else:
+                raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
             # Add the sampled/integrated pixels to the requested image
             image += working_image
 
         return image
 
     def selective_integrate(
-            self, X: torch.tensor, Y: torch.tensor, data: torch.tensor, image_header: "Image_Header", divisions: int = 2, _depth: int = 1, max_depth: int = 3
+            self, X: torch.Tensor, Y: torch.Tensor, data: torch.Tensor, image_header: "Image_Header", max_depth: int = 3, _depth: int = 1, _reference_brightness = None
     ):
         """Sample the model at higher resolution than the input image.
 
         This function selectively refines the integration of an input
-        image based on the differences between adjacent pixels.  It
+        image based on the local curvature of the image data.  It
         recursively evaluates the model at higher resolutions in areas
-        where the pixel differences exceed the specified
-        threshold. With each level of recursion, the number of
-        divisions for pixel refinement increases, leading to a finer
-        sampling of the affected areas.
+        where the curvature exceeds the specified threshold.  With
+        each level of recursion, the function refines the affected
+        areas using a 3x3 grid for super-resolution.
 
         Args:
           X (torch.tensor): A tensor representing the X coordinates of the input image.
           Y (torch.tensor): A tensor representing the Y coordinates of the input image.
           data (torch.tensor): A tensor containing the input image data.
           image_header (Image_Header): An instance of the Image_Header class containing the image's header information.
-          divisions (int, optional): The number of divisions to use for super-resolution. Default is 2.
-                                     This value increases with each level of recursion for a finer sampling.
           _depth (int, optional): The current recursion depth. Default is 1.
           max_depth (int, optional): The maximum recursion depth allowed. Default is 3.
+          _reference_brightness (float or None, optional): The reference brightness value used to normalize the curvature
+                                                           values. If None, the maximum value of the input data divided by
+                                                           10 will be used. Default is None.
 
         Returns:
           None. The function updates the input data tensor in-place with the selectively integrated values.
-        
+  
         """
         # check recursion depth, exit if too deep
-        if depth > max_depth:
+        if _depth > max_depth:
             return
-
+        
         with torch.no_grad():
-            # compare pixels horizontally for large differences
-            hcompare = (
-                torch.select(data, -2, slice(1,None)) - torch.select(data, -2, slice(None, -1))
-            ) / (
-                torch.select(data, -2, slice(1,None)) + torch.select(data, -2, slice(None, -1))
-            ) > (self.integrate_threshold / 2)
-
-            # compare pixels vertically for large differences
-            vcompare = (
-                torch.select(data, -1, slice(1,None)) - torch.select(data, -1, slice(None, -1))
-            ) / (
-                torch.select(data, -1, slice(1,None)) + torch.select(data, -1, slice(None, -1))
-            ) > (self.integrate_threshold / 2)
-            
-            # collect these together to select which pixels need further integration
-            select = torch.zeros_like(data, dtype = torch.bool)
-            torch.select(select,-2, slice(1, None))[hcomapre] = True 
-            torch.select(select,-2, slice(None,-1))[hcomapre] = True 
-            torch.select(select,-1, slice(1, None))[vcomapre] = True 
-            torch.select(select,-1, slice(None,-1))[vcomapre] = True
-
-            # Check if all pixels are at acceptable resolution
-            if not torch.any(select):
-                return
-            
-            # compute the subpixel coordinate shifts for even integration within a pixel 
-            shiftsx, shiftsy = displacement_grid(divisions, divisions)
-
+            if _reference_brightness is None:
+                _reference_brightness = torch.max(data)/10
+            curvature_kernel = torch.tensor([[1,-2.,1],[-2.,4,-2],[1,-2,1]], device = data.device, dtype = data.dtype)
+            if _depth == 1:
+                curvature = torch.abs(fft_convolve_torch(data, curvature_kernel))
+                curvature[:,0] = 0
+                curvature[:,-1] = 0
+                curvature[0,:] = 0
+                curvature[-1,:] = 0
+                curvature /= _reference_brightness
+                select = curvature > self.integrate_threshold
+            else:
+                curvature = torch.sum(data * curvature_kernel, axis = (1,2)) / _reference_brightness
+                select = curvature > self.integrate_threshold
+                select = select.view(-1,1,1).repeat(1,3,3)
+                
+        # compute the subpixel coordinate shifts for even integration within a pixel 
+        shiftsx, shiftsy = displacement_grid(3, 3)
+        
         # Reshape coordinates to add two dimensions with the super-resolved coordiantes
-        Xs = X[select].view(-1,1,1).repeat(1,divisions,divisions) + shiftsx
-        Ys = Y[select].view(-1,1,1).repeat(1,divisions,divisions) + shiftsy
-
+        Xs = X[select].view(-1,1,1).repeat(1,3,3) + shiftsx
+        Ys = Y[select].view(-1,1,1).repeat(1,3,3) + shiftsy
         # evaluate the model on the new smaller coordinate grid in each pixel
-        res = self.evaluate_model(Xs, Ys, image_header.super_resolve(divisions))
+        res = self.evaluate_model(image = image_header.super_resolve(3), X = Xs, Y = Ys)
 
         # Apply recursion to integrate any further pixels as needed
-        self.selective_integrate(Xs, Ys, res, image_header.super_resolve(divisions), divisions = divisions + 1, _depth = _depth+1, max_depth = max_depth)
+        self.selective_integrate(Xs, Ys, res, image_header.super_resolve(3), _depth = _depth+1, max_depth = max_depth, _reference_brightness = _reference_brightness)
 
         # Update the pixels with the new integrated values
         data[select] = res.sum(axis = (1,2))
-        
-    def integrate_model(
-        self, working_image: "BaseImage", window: Window, depth: int = 2
+         
+    def window_integrate(
+        self, working_image: "Image", window: Window, depth: int = 2
     ):
         """Sample the model at a higher resolution than the given image, then
         integrate the super resolution up to the image resolution.
@@ -382,7 +404,7 @@ class Component_Model(AutoProf_Model):
         the specified recursion depth is reached.
 
         Args:
-          working_image (BaseImage): The image on which to perform the model
+          working_image (Image): The image on which to perform the model
                                      integration. Pixels in this image will be
                                      replaced with the integrated values.
           window (Window): A Window object within which to perform the integration.

@@ -238,7 +238,7 @@ class TestWindowList(unittest.TestCase):
     def test_windowlist_buffering(self):
 
         subwindow = ap.image.Window((0, 0), (100, 110))
-        window = ap.image.Window_List([subwindow, subwindow.make_copy()])
+        window = ap.image.Window_List([subwindow, subwindow.copy()])
 
         # Multiply
         ######################################################################
@@ -330,7 +330,7 @@ class TestWindowList(unittest.TestCase):
 
         # iAdd
         ######################################################################
-        window_buffer = window.make_copy()
+        window_buffer = window.copy()
         window_buffer += 10
         self.assertEqual(
             window_buffer.origin[0], -10, "Window buffer should remain centered"
@@ -353,7 +353,7 @@ class TestWindowList(unittest.TestCase):
 
         # iSubtract
         ######################################################################
-        window_buffer = window.make_copy()
+        window_buffer = window.copy()
         window_buffer -= 10
         self.assertEqual(
             window_buffer.origin[0], 10, "Window buffer should remain centered"
@@ -382,9 +382,9 @@ class TestWindowList(unittest.TestCase):
         window1 = ap.image.Window(origin=[0.0, 1.0], shape=[10.2, 11.8])
         window2 = ap.image.Window(origin=[0.0, 1.0], shape=[10.2, 11.8])
         window3 = ap.image.Window(origin=[-0.6, 0.4], shape=[15.2, 18.0])
-        windowlist1 = ap.image.Window_List([window1, window1.make_copy()])
-        windowlist2 = ap.image.Window_List([window2, window2.make_copy()])
-        windowlist3 = ap.image.Window_List([window3, window3.make_copy()])
+        windowlist1 = ap.image.Window_List([window1, window1.copy()])
+        windowlist2 = ap.image.Window_List([window2, window2.copy()])
+        windowlist3 = ap.image.Window_List([window3, window3.copy()])
 
         self.assertEqual(
             windowlist1, windowlist2, "same origin, shape windows should evaluate equal"

@@ -71,6 +71,7 @@ class Image(object):
 
         if header is None:
             self.header = Image_Header(
+                data_shape = None if data is None else data.shape,
                 pixelscale = pixelscale,
                 window = window,
                 filename = filename,
@@ -131,6 +132,12 @@ class Image(object):
     @property
     def zeropoint(self):
         return self.header.zeropoint
+    @property
+    def note(self):
+        return self.header.note
+    @property
+    def identity(self):
+        return self.header.identity
 
     def center_alignment(self) -> torch.Tensor:
         """Determine if the center of the image is aligned at a pixel center (True)

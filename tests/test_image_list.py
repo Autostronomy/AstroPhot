@@ -11,7 +11,7 @@ import torch
 class TestImageList(unittest.TestCase):
     def test_image_creation(self):
         arr1 = torch.zeros((10, 15))
-        base_image1 = ap.image.BaseImage(
+        base_image1 = ap.image.Image(
             arr1,
             pixelscale=1.0,
             zeropoint=1.0,
@@ -19,7 +19,7 @@ class TestImageList(unittest.TestCase):
             note="test image 1",
         )
         arr2 = torch.ones((15, 10))
-        base_image2 = ap.image.BaseImage(
+        base_image2 = ap.image.Image(
             arr2,
             pixelscale=0.5,
             zeropoint=2.0,
@@ -67,7 +67,7 @@ class TestImageList(unittest.TestCase):
     def test_copy(self):
 
         arr1 = torch.zeros((10, 15))
-        base_image1 = ap.image.BaseImage(
+        base_image1 = ap.image.Image(
             arr1,
             pixelscale=1.0,
             zeropoint=1.0,
@@ -75,7 +75,7 @@ class TestImageList(unittest.TestCase):
             note="test image 1",
         )
         arr2 = torch.ones((15, 10))
-        base_image2 = ap.image.BaseImage(
+        base_image2 = ap.image.Image(
             arr2,
             pixelscale=0.5,
             zeropoint=2.0,
@@ -126,7 +126,7 @@ class TestImageList(unittest.TestCase):
     def test_image_arithmetic(self):
 
         arr1 = torch.zeros((10, 15))
-        base_image1 = ap.image.BaseImage(
+        base_image1 = ap.image.Image(
             arr1,
             pixelscale=1.0,
             zeropoint=1.0,
@@ -134,7 +134,7 @@ class TestImageList(unittest.TestCase):
             note="test image 1",
         )
         arr2 = torch.ones((15, 10))
-        base_image2 = ap.image.BaseImage(
+        base_image2 = ap.image.Image(
             arr2,
             pixelscale=0.5,
             zeropoint=2.0,
@@ -144,7 +144,7 @@ class TestImageList(unittest.TestCase):
         test_image = ap.image.Image_List((base_image1, base_image2))
 
         arr3 = torch.ones((10, 15))
-        base_image3 = ap.image.BaseImage(
+        base_image3 = ap.image.Image(
             arr3,
             pixelscale=1.0,
             zeropoint=1.0,
@@ -152,7 +152,7 @@ class TestImageList(unittest.TestCase):
             note="test image 3",
         )
         arr4 = torch.zeros((15, 10))
-        base_image4 = ap.image.BaseImage(
+        base_image4 = ap.image.Image(
             arr4,
             pixelscale=0.5,
             zeropoint=2.0,
