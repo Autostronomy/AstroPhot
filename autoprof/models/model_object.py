@@ -61,7 +61,7 @@ class Component_Model(AutoProf_Model):
     # size in pixels of the PSF convolution box
     psf_window_size = 50
     # Integration scope for model
-    integrate_mode = "window"  # none, window, threshold (experimental)
+    integrate_mode = "threshold"  # none, window, threshold (experimental)
     # size of the window in which to perform integration
     integrate_window_size = 10
     # Factor by which to upscale each dimension when integrating
@@ -376,9 +376,9 @@ class Component_Model(AutoProf_Model):
                 select = curvature > self.integrate_threshold
                 select = select.view(-1,1,1).repeat(1,3,3)
                 
-        # compute the subpixel coordinate shifts for even integration within a pixel 
-        shiftsx, shiftsy = displacement_grid(3, 3, device = data.device, dtype = data.dtype)
-        
+            # compute the subpixel coordinate shifts for even integration within a pixel 
+            shiftsx, shiftsy = displacement_grid(3, 3, pixelscale = image_header.pixelscale, device = data.device, dtype = data.dtype)
+                        
         # Reshape coordinates to add two dimensions with the super-resolved coordiantes
         Xs = X[select].view(-1,1,1).repeat(1,3,3) + shiftsx
         Ys = Y[select].view(-1,1,1).repeat(1,3,3) + shiftsy

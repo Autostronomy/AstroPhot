@@ -72,6 +72,6 @@ def fft_convolve_multi_torch(
 def displacement_spacing(N, dtype = torch.float64, device = "cpu"):
     return torch.linspace(-(N - 1)/(2*N), (N - 1)/(2*N), N, dtype = dtype, device = device)
     
-def displacement_grid(*N, dtype = torch.float64, device = "cpu"):
-    return torch.meshgrid(*tuple(displacement_spacing(n, dtype = dtype, device = device) for n in N), indexing = "xy")
+def displacement_grid(*N, pixelscale = 1., dtype = torch.float64, device = "cpu"):
+    return torch.meshgrid(*tuple(displacement_spacing(n, dtype = dtype, device = device)*pixelscale for n in N), indexing = "xy")
     
