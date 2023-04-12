@@ -61,7 +61,7 @@ class Component_Model(AutoProf_Model):
     # size in pixels of the PSF convolution box
     psf_window_size = 50
     # Integration scope for model
-    integrate_mode = "threshold"  # none, window, threshold
+    integrate_mode = "window"  # none, window, threshold (experimental)
     # size of the window in which to perform integration
     integrate_window_size = 10
     # Factor by which to upscale each dimension when integrating
