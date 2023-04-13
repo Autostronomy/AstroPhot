@@ -1,6 +1,6 @@
 # Contributing to AutoProf
 
-Thank you for taking time to help make AutoProf better for everyone! Your contributions are appreciated and once merged with the main branch you will be recognized as a contributor to the project!
+Thank you for taking time to help make AutoProf better for everyone! Your contributions are appreciated and once merged with the main branch you will be officially recognized as a contributor to the project!
 
 In this guide you will get an overview of the contribution workflow from opening an issue, creating a PR, reviewing, and merging the PR. The workflow for contributing to AutoProf is quite standard, nonetheless we include details here for clarity.
 
@@ -24,7 +24,7 @@ If so, consider adding a comment to that issue to expand it's scope, or you can 
 If no issue already exists, then make a new one; make sure to use a descriptive title and include lots of keywords even if it makes the grammar a bit funny.
 Then add a detailed description of what needs to be done; a detailed description is one that someone other than yourself could take and work from to add the new feature.
 Make sure to tag your issue with any tags that are relevant for that issue.
-If you are ready to take on the Issue, then assign yourself explicitly to it.
+If you are ready to take on the Issue, then assign yourself to it.
 Please don't assign other people to an issue unless they have explicitly asked you to.
 
 ### Solving an Issue
@@ -33,13 +33,14 @@ To begin solving an Issue make a new branch with a concise name that reflects th
 Once you have created the new branch, go to the `Issues` tab and add a comment to the issue specifying the branch name that you have created.
 You may then begin making changes in the new branch to solve the Issue.
 Please regularly commit your code and include helpful messages so that someone reading through the git log will have a good sense of what has been done.
-Please also try to format your code in a similar manner to the rest of the code.
+Please also try to format your code in a similar manner to the rest of the code. For docstrings we use google format, for code formatting we use black.
 
 You are not alone in solving the Issue! 
 Feel free to contact other contributors (especially Connor Stone) and ask for advice.
 You may also wish to add comments to the Issue as you progress since this is the most visible way that others can see your progress and comment on any ideas/modifications.
 
 Finally, when you are nearing completion of the issue, please add unit tests which reach the newly added/modified code.
+These should live in the `tests` directory, and you can run all the unit tests by simply calling `pytest` from the command prompt while in that directory.
 Also, make sure to update any relevant documentation if you have changed/added a feature that is public facing.
 
 ### Commit the Solution

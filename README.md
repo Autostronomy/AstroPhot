@@ -22,7 +22,7 @@ AutoProf can be installed with pip:
 pip install autoprof
 ```
 
-However, for AutoProf to run you will need to install pytorch as well. Installing pytorch is very user specific, though also not very hard. Follow the instructions on the [pytorch website](https://pytorch.org/) to install a version for your system.
+If PyTorch gives you any trouble on your system, just follow the instructions on the [pytorch website](https://pytorch.org/) to install a version for your system.
 
 Also note that AutoProf is only available for python3.
 
