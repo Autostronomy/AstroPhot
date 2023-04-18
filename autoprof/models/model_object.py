@@ -362,7 +362,7 @@ class Component_Model(AutoProf_Model):
         with torch.no_grad():
             if _reference_brightness is None:
                 _reference_brightness = torch.max(data)/10
-            curvature_kernel = torch.tensor([[1,-2.,1],[-2.,4,-2],[1,-2,1]], device = data.device, dtype = data.dtype)
+            curvature_kernel = torch.tensor([[0,1.,0],[1.,-4,1.],[0,1.,0]], device = data.device, dtype = data.dtype)
             if _depth == 1:
                 curvature = torch.abs(fft_convolve_torch(data, curvature_kernel))
                 curvature[:,0] = 0
