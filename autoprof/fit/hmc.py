@@ -44,6 +44,7 @@ class HMC(BaseOptimizer):
         self.mass = kwargs.get("mass", None)
         self.temperature = torch.tensor(kwargs.get("temperature", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         self.temper = torch.tensor(kwargs.get("temper", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        self.progress_bar = kwargs.get("progress_bar", True)
 
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
@@ -83,7 +84,7 @@ class HMC(BaseOptimizer):
             self.reset_chain()
         else:
             self.chain = list(self.chain)
-        for _ in tqdm(range(nsamples)):
+        for _ in self.iter_generator(nsamples):
             while (
                 True
             ):  # rerun step function if it encounters a numerical error. Note that many such re-runs will bias the final posterior
@@ -91,10 +92,10 @@ class HMC(BaseOptimizer):
                     state, score, chi2 = self.step(state, score, chi2)
                     break
                 except RuntimeError as e:
-                    print(e)
+                    print("Error encountered. Reducing step size epsilon by factor 10")
                     self.epsilon /= 10.
                     warnings.warn(
-                        "HMC numerical integration error, infinite momentum, reducing step size epsilon by factor 10. Perhaps rerun with smaller step size.",
+                        "HMC numerical integration error, infinite momentum. Perhaps rerun with smaller step size.",
                         RuntimeWarning,
                     )
 
@@ -124,12 +125,13 @@ class HMC(BaseOptimizer):
 
         # Compute Chi^2
         if self.model.target.has_mask:
-            loss = (
-                torch.sum(((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)])
-                # / self.ndf
-            )
+            loss = torch.sum(
+                ((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)]
+            ) / 2.
         else:
-            loss = torch.sum((self.Y - Y) ** 2 * self.W) #/ self.ndf
+            loss = torch.sum(
+                (self.Y - Y) ** 2 * self.W
+            ) / 2.
 
         # Compute score
         loss.backward()
@@ -190,10 +192,8 @@ class HMC(BaseOptimizer):
 
         # Evaluate the Hamiltonian likelihood
         DU = chi2 - proposal_chi2
-        DP = (
-            0.5
-            * ((momentum_0 @ self._inv_mass @ momentum_0) - (momentum_t @ self._inv_mass @ momentum_t))#(torch.dot(momentum_0, momentum_0) - torch.dot(momentum_t, momentum_t))
-            #/ self.mass
+        DP = 0.5 * (
+            (momentum_0 @ self._inv_mass @ momentum_0) - (momentum_t @ self._inv_mass @ momentum_t)
         )
         log_alpha = (DU + DP) / self.temperature
 
@@ -231,6 +231,10 @@ class HMC(BaseOptimizer):
         self._inv_mass = torch.linalg.inv(self._mass)
         self._det_mass = torch.linalg.det(self._mass)
 
+    def iter_generator(self, N):
+        if self.progress_bar:
+            return tqdm(range(N))
+        return range(N)
         
     def estimate_mass(self, chain = None):
         if chain is None:
