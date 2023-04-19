@@ -45,6 +45,7 @@ class HMC(BaseOptimizer):
         self.temperature = torch.tensor(kwargs.get("temperature", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         self.temper = torch.tensor(kwargs.get("temper", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         self.progress_bar = kwargs.get("progress_bar", True)
+        self.min_accept = kwargs.get("min_accept", 0.1)
 
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
@@ -95,7 +96,7 @@ class HMC(BaseOptimizer):
                     print("Error encountered. Reducing step size epsilon by factor 10")
                     self.epsilon /= 10.
                     warnings.warn(
-                        "HMC numerical integration error, infinite momentum. Perhaps rerun with smaller step size.",
+                        "HMC numerical integration error. Perhaps rerun with smaller step size.",
                         RuntimeWarning,
                     )
 
@@ -203,6 +204,10 @@ class HMC(BaseOptimizer):
         # Record result
         self._accepted += accept
         self._sampled += 1
+
+        if len(self.chain) > 100 and self.acceptance() < self.min_accept:
+            raise RuntimeError("HMC acceptance too low, consider smaller step size.")
+        
         return (
             (proposal_state, proposal_score, proposal_chi2)
             if accept
@@ -221,6 +226,17 @@ class HMC(BaseOptimizer):
         return self._mass
     @mass.setter
     def mass(self, value):
+        """Set the mass matrix for the HMC sampler
+
+        A note when setting the mass matrix it is often a good idea to
+        set it to `mass / mean(mass)` to normalize the matrix.
+        Otherise it is possible for the numerical stability to be off
+        if there is a huge discrepancy between the parameters and the
+        momentum. This can show up as requring a very small epsilon
+        for the chain to run, which then leaves a high
+        autocorrelation.
+
+        """
         if value is None:
             value = torch.eye(
                 len(self.current_state),
