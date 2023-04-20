@@ -456,7 +456,7 @@ class TestHMC(unittest.TestCase):
         )
         target.variance = torch.Tensor(0.1 ** 2 + img / 100)
 
-        HMC = ap.fit.HMC(MODEL, epsilon=1e-2, max_iter=10)
+        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=10)
         HMC.fit()
 
         self.assertGreater(
