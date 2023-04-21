@@ -39,11 +39,13 @@ class HMC(BaseOptimizer):
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.epsilon = kwargs.get("epsilon", 1e-2)
+        self.epsilon = kwargs.get("epsilon", 1e-5)
         self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
-        self.mass = torch.tensor(kwargs.get("mass", 1.0))
-        self.temperature = torch.tensor(kwargs.get("temperature", 1.0))
-        self.temper = torch.tensor(kwargs.get("temper", 1.0))
+        self.mass = kwargs.get("mass", None)
+        self.temperature = torch.tensor(kwargs.get("temperature", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        self.temper = torch.tensor(kwargs.get("temper", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        self.progress_bar = kwargs.get("progress_bar", True)
+        self.min_accept = kwargs.get("min_accept", 0.1)
 
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
@@ -52,13 +54,14 @@ class HMC(BaseOptimizer):
             if model.target.has_variance
             else 1.0
         )
-        #          # pixels      # parameters
-        self.ndf = len(self.Y) - len(self.current_state)
 
+        self.reset_chain()
+
+    def reset_chain(self):
         self.chain = []
         self._accepted = 0
         self._sampled = 0
-
+        
     def fit(
         self,
         state: Optional[torch.Tensor] = None,
@@ -77,19 +80,21 @@ class HMC(BaseOptimizer):
         score, chi2 = self.score_fn(state)
 
         if restart_chain:
-            self.chain = []
+            self.reset_chain()
         else:
             self.chain = list(self.chain)
-        for _ in tqdm(range(nsamples)):
+        for _ in self.iter_generator(nsamples):
             while (
                 True
             ):  # rerun step function if it encounters a numerical error. Note that many such re-runs will bias the final posterior
                 try:
                     state, score, chi2 = self.step(state, score, chi2)
                     break
-                except RuntimeError:
+                except RuntimeError as e:
+                    print("Error encountered. Reducing step size epsilon by factor 10")
+                    self.epsilon /= 10.
                     warnings.warn(
-                        "HMC numerical integration error, infinite momentum, consider smaller step size epsilon",
+                        "HMC numerical integration error. Perhaps rerun with smaller step size.",
                         RuntimeWarning,
                     )
 
@@ -119,12 +124,13 @@ class HMC(BaseOptimizer):
 
         # Compute Chi^2
         if self.model.target.has_mask:
-            loss = (
-                torch.sum(((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)])
-                / self.ndf
-            )
+            loss = torch.sum(
+                ((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)]
+            ) / 2.
         else:
-            loss = torch.sum((self.Y - Y) ** 2 * self.W) / self.ndf
+            loss = torch.sum(
+                (self.Y - Y) ** 2 * self.W
+            ) / 2.
 
         # Compute score
         loss.backward()
@@ -144,9 +150,10 @@ class HMC(BaseOptimizer):
         """
         Takes one step of the HMC sampler by integrating along a path initiated with a random momentum.
         """
-        momentum_0 = torch.normal(
-            mean=torch.zeros_like(state), std=self.temperature * self.mass
-        )
+        momentum_0 = torch.distributions.MultivariateNormal(
+            loc = torch.zeros_like(state),
+            covariance_matrix = self.mass
+        ).sample()
         momentum_t = torch.clone(momentum_0)
         x_t = torch.clone(state)
         score_t = torch.clone(score)
@@ -156,7 +163,7 @@ class HMC(BaseOptimizer):
             momentum_tp = (
                 temper if leap < self.leapfrog_steps / 2 else (1 / temper)
             ) * (momentum_t + self.epsilon * score_t / 2)
-            x_tp1 = x_t + self.epsilon * momentum_tp / self.mass
+            x_tp1 = x_t + self.epsilon * (self._inv_mass @ momentum_tp)
             score_tp1, chi2_tp1 = self.score_fn(x_tp1)
             momentum_tp1 = (
                 temper if leap < self.leapfrog_steps // 2 else (1 / temper)
@@ -172,6 +179,7 @@ class HMC(BaseOptimizer):
                 raise RuntimeError(
                     "HMC numerical integration error, infinite momentum, consider smaller step size epsilon"
                 )
+            
 
         # Set the proposed values as the end of the leapfrog integration
         proposal_state = x_t
@@ -180,10 +188,8 @@ class HMC(BaseOptimizer):
 
         # Evaluate the Hamiltonian likelihood
         DU = chi2 - proposal_chi2
-        DP = (
-            0.5
-            * (torch.dot(momentum_0, momentum_0) - torch.dot(momentum_t, momentum_t))
-            / self.mass
+        DP = 0.5 * (
+            (momentum_0 @ self._inv_mass @ momentum_0) - (momentum_t @ self._inv_mass @ momentum_t)
         )
         log_alpha = (DU + DP) / self.temperature
 
@@ -193,6 +199,10 @@ class HMC(BaseOptimizer):
         # Record result
         self._accepted += accept
         self._sampled += 1
+
+        if len(self.chain) > 100 and self.acceptance() < self.min_accept:
+            raise RuntimeError("HMC acceptance too low, consider smaller step size.")
+        
         return (
             (proposal_state, proposal_score, proposal_chi2)
             if accept
@@ -205,3 +215,40 @@ class HMC(BaseOptimizer):
         Returns the ratio of accepted states to total states sampled.
         """
         return self._accepted / self._sampled
+
+    @property
+    def mass(self):
+        return self._mass
+    @mass.setter
+    def mass(self, value):
+        """Set the mass matrix for the HMC sampler
+
+        A note when setting the mass matrix it is often a good idea to
+        set it to `mass / mean(mass)` to normalize the matrix.
+        Otherise it is possible for the numerical stability to be off
+        if there is a huge discrepancy between the parameters and the
+        momentum. This can show up as requring a very small epsilon
+        for the chain to run, which then leaves a high
+        autocorrelation.
+
+        """
+        if value is None:
+            value = torch.eye(
+                len(self.current_state),
+                dtype = AP_config.ap_dtype,
+                device = AP_config.ap_device
+            )
+        self._mass = torch.as_tensor(value, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        self._inv_mass = torch.linalg.inv(self._mass)
+        self._det_mass = torch.linalg.det(self._mass)
+
+    def iter_generator(self, N):
+        if self.progress_bar:
+            return tqdm(range(N))
+        return range(N)
+        
+    def estimate_mass(self, chain = None):
+        if chain is None:
+            chain = self.chain
+
+        return np.cov(chain, rowvar = False)

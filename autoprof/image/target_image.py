@@ -4,17 +4,16 @@ import torch
 import numpy as np
 from torch.nn.functional import avg_pool2d
 
-from .image_object import BaseImage, Image_List
+from .image_object import Image, Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .model_image import Model_Image, Model_Image_List
 from astropy.io import fits
-from .image_object import BaseImage, Image_List
 from .. import AP_config
 
 __all__ = ["Target_Image", "Target_Image_List"]
 
 
-class Target_Image(BaseImage):
+class Target_Image(Image):
     """Image object which represents the data to be fit by a model. It can
     include a variance image, mask, and PSF as anciliary data which
     describes the target image.
@@ -199,7 +198,7 @@ class Target_Image(BaseImage):
         """Get a sub-region of the image as defined by a window on the sky."""
         indices = window.get_indices(self)
         return super().get_window(
-            window,
+            window=window,
             variance=self._variance[indices] if self.has_variance else None,
             mask=self._mask[indices] if self.has_mask else None,
             psf=self._psf,
@@ -226,19 +225,15 @@ class Target_Image(BaseImage):
             parameters=parameters,
             target_identity=self.identity,
             data=data,
-            pixelscale=self.pixelscale,
-            zeropoint=self.zeropoint,
-            window=self.window,
+            header=self.header,
             **kwargs,
         )
 
     def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
         return Model_Image(
             data=torch.zeros_like(self.data) if data is None else data,
-            pixelscale=self.pixelscale,
+            header=self.header,
             target_identity=self.identity,
-            zeropoint=self.zeropoint,
-            window=self.window,
             **kwargs,
         )
 

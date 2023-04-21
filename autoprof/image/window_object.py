@@ -60,7 +60,7 @@ class Window(object):
             )
         )
 
-    def make_copy(self):
+    def copy(self):
         return Window(origin=torch.clone(self.origin), shape=torch.clone(self.shape))
 
     def to(self, dtype=None, device=None):
@@ -489,8 +489,8 @@ class Window_List(Window):
             window.shift_origin(sub_shift)
         return self
 
-    def make_copy(self):
-        return Window_List(list(w.make_copy() for w in self.window_list))
+    def copy(self):
+        return Window_List(list(w.copy() for w in self.window_list))
 
     def to(self, dtype=None, device=None):
         if dtype is None:

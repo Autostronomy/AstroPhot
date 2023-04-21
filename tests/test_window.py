@@ -461,7 +461,7 @@ class TestWindow(unittest.TestCase):
 
         # iAdd
         ######################################################################
-        window_buffer = window.make_copy()
+        window_buffer = window.copy()
         window_buffer += 10
         self.assertEqual(
             window_buffer.origin[0], -10, "Window buffer should remain centered"
@@ -481,7 +481,7 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(
             window.shape[0], 100, "Window buffering should not affect initial images"
         )
-        window_buffer = window.make_copy()
+        window_buffer = window.copy()
         window_buffer += (10.0, 5.0)
         self.assertEqual(
             window_buffer.origin[0], -10, "Window buffer should remain centered"
@@ -504,7 +504,7 @@ class TestWindow(unittest.TestCase):
 
         # iSubtract
         ######################################################################
-        window_buffer = window.make_copy()
+        window_buffer = window.copy()
         window_buffer -= 10
         self.assertEqual(
             window_buffer.origin[0], 10, "Window buffer should remain centered"
@@ -524,7 +524,7 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(
             window.shape[0], 100, "Window buffering should not affect initial images"
         )
-        window_buffer = window.make_copy()
+        window_buffer = window.copy()
         window_buffer -= (10.0, 5.0)
         self.assertEqual(
             window_buffer.origin[0], 10, "Window buffer should remain centered"

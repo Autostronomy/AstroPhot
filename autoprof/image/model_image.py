@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from .. import AP_config
-from .image_object import BaseImage, Image_List
+from .image_object import Image, Image_List
 from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
 
@@ -10,7 +10,7 @@ __all__ = ["Model_Image", "Model_Image_List"]
 
 
 ######################################################################
-class Model_Image(BaseImage):
+class Model_Image(Image):
     """Image object which represents the sampling of a model at the given
     coordinates of the image. Extra arithmetic operations are
     available which can update model values in the image. The whole
@@ -57,7 +57,7 @@ class Model_Image(BaseImage):
         return super().reduce(scale, target_identity=self.target_identity, **kwargs)
 
     def replace(self, other, data=None):
-        if isinstance(other, BaseImage):
+        if isinstance(other, Image):
             if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
             if torch.any((self.origin + self.shape) < other.origin) or torch.any(

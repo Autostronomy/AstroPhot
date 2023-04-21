@@ -10,7 +10,7 @@ from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
-from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch
+from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch, selective_integrate
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ._shared_methods import select_target
@@ -61,16 +61,21 @@ class Component_Model(AutoProf_Model):
     # size in pixels of the PSF convolution box
     psf_window_size = 50
     # Integration scope for model
-    integrate_mode = "window"  # none, window, full
-    # size of the window in which to perform integration
-    integrate_window_size = 10
-    # Factor by which to upscale each dimension when integrating
-    integrate_factor = 3  # number of pixels on one axis by which to supersample
-    integrate_recursion_factor = 2  # relative size of windows between recursion levels (2 means each window will be half the size of the previous one)
-    integrate_recursion_depth = (
-        2  # number of recursion cycles to apply when integrating
-    )
-    jacobian_chunksize = 10 # maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
+    integrate_mode = "threshold"  # none, window, threshold
+
+    # Size of the window in which to perform integration (window mode)
+    integrate_window_size = 10 
+    # Number of pixels on one axis by which to supersample (window mode)
+    integrate_factor = 3  
+    # Relative size of windows between recursion levels (2 means each window will be half the size of the previous one, window mode)
+    integrate_recursion_factor = 2  
+    # Number of recursion cycles to apply when integrating (window or threshold mode)
+    integrate_recursion_depth = 3  
+    # Threshold for triggering pixel integration (threshold mode)
+    integrate_threshold = 1e-2 
+
+    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
+    jacobian_chunksize = 10 
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
@@ -173,20 +178,24 @@ class Component_Model(AutoProf_Model):
 
     # Fit loop functions
     ######################################################################
-    def evaluate_model(self, image: "BaseImage"):
+    def evaluate_model(self, image: Union["Image", "Image_Header"], X: Optional[torch.Tensor] = None, Y: Optional[torch.Tensor] = None, **kwargs):
         """Evaluate the model on every pixel in the given image. The
         basemodel object simply returns zeros, this function should be
         overloaded by subclasses.
 
         Args:
-          image (BaseImage): The image defining the set of pixels on which to evaluate the model
+          image (Image): The image defining the set of pixels on which to evaluate the model
 
         """
-        return torch.zeros_like(image.data)  # do nothing in base model
+        if X is None or Y is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                self["center"].value[0], self["center"].value[1]
+            )
+        return torch.zeros_like(X)  # do nothing in base model
 
     def sample(
         self,
-        image: Optional["BaseImage"] = None,
+        image: Optional["Image"] = None,
         window: Optional[Window] = None,
     ):
         """Evaluate the model on the space covered by an image object. This
@@ -202,7 +211,7 @@ class Component_Model(AutoProf_Model):
         the requested image.
 
         Args:
-          image (Optional[BaseImage]): An AutoProf Image object (likely a Model_Image) 
+          image (Optional[Image]): An AutoProf Image object (likely a Model_Image) 
                                      on which to evaluate the model values. If not 
                                      provided, a new Model_Image object will be created.
           window (Optional[Window]): A window within which to evaluate the model. 
@@ -211,7 +220,7 @@ class Component_Model(AutoProf_Model):
                                    be used.
 
         Returns:
-          BaseImage: The image with the computed model values.
+          Image: The image with the computed model values.
 
         """
         # Image on which to evaluate model
@@ -220,9 +229,9 @@ class Component_Model(AutoProf_Model):
 
         # Window within which to evaluate model
         if window is None:
-            working_window = image.window.make_copy()
+            working_window = image.window.copy()
         else:
-            working_window = window.make_copy() & image.window
+            working_window = window.copy() & image.window
 
         if "window" in self.psf_mode:
             raise NotImplementedError("PSF convolution in sub-window not available yet")
@@ -248,13 +257,29 @@ class Component_Model(AutoProf_Model):
                 pixelscale=working_pixelscale, window=working_window
             )
             # Evaluate the model at the current resolution
-            working_image.data += self.evaluate_model(working_image)
+            working_image.data += self.evaluate_model(image = working_image)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            self.integrate_model(
-                working_image,
-                self.integrate_window(working_image, "center"),
-                self.integrate_recursion_depth,
-            )
+            if self.integrate_mode == "none":
+                pass
+            if self.integrate_mode == "threshold":
+                X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+                selective_integrate(
+                    X = X,
+                    Y = Y,
+                    data = working_image.data,
+                    image_header = working_image.header,
+                    eval_brightness = self.evaluate_model,
+                    max_depth = self.integrate_recursion_depth,
+                    integrate_threshold = self.integrate_threshold,
+                )
+            elif self.integrate_mode == "window":                
+                self.window_integrate(
+                    working_image,
+                    self.integrate_window(working_image, "center"),
+                    self.integrate_recursion_depth,
+                )
+            else:
+                raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
             # Convolve the PSF
             LL = _shift_Lanczos_kernel_torch(
                 -center_shift[0] / working_image.pixelscale,
@@ -285,18 +310,34 @@ class Component_Model(AutoProf_Model):
             # Evaluate the model on the image
             working_image.data += self.evaluate_model(working_image)
             # Super-resolve and integrate where needed
-            self.integrate_model(
-                working_image,
-                self.integrate_window(working_image, "pixel"),
-                self.integrate_recursion_depth,
-            )
+            if self.integrate_mode == "none":
+                pass
+            elif self.integrate_mode == "threshold":
+                X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+                selective_integrate(
+                    X = X,
+                    Y = Y,
+                    data = working_image.data,
+                    image_header = working_image.header,
+                    eval_brightness = self.evaluate_model,
+                    max_depth = self.integrate_recursion_depth,
+                    integrate_threshold = self.integrate_threshold,
+                )
+            elif self.integrate_mode == "window":
+                self.window_integrate(
+                    working_image,
+                    self.integrate_window(working_image, "pixel"),
+                    self.integrate_recursion_depth,
+                )
+            else:
+                raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
             # Add the sampled/integrated pixels to the requested image
             image += working_image
 
         return image
 
-    def integrate_model(
-        self, working_image: "BaseImage", window: Window, depth: int = 2
+    def window_integrate(
+        self, working_image: "Image", window: Window, depth: int = 2
     ):
         """Sample the model at a higher resolution than the given image, then
         integrate the super resolution up to the image resolution.
@@ -308,7 +349,7 @@ class Component_Model(AutoProf_Model):
         the specified recursion depth is reached.
 
         Args:
-          working_image (BaseImage): The image on which to perform the model
+          working_image (Image): The image on which to perform the model
                                      integration. Pixels in this image will be
                                      replaced with the integrated values.
           window (Window): A Window object within which to perform the integration.

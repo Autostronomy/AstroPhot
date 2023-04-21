@@ -61,7 +61,7 @@ class PSF_Star(Star_Model):
                 torch.abs(self["flux"].value) * 1e-2, override_locked=True
             )
 
-    def evaluate_model(self, image):
+    def evaluate_model(self, image, X = None, Y = None, **kwargs):
         new_origin = self["center"].value - self.psf_model.shape / 2
         pixel_origin = torch.round(new_origin / image.pixelscale) * image.pixelscale
         pixel_shift = (
@@ -86,6 +86,8 @@ class PSF_Star(Star_Model):
             origin=pixel_origin - pixel_shift,
             pixelscale=self.psf_model.pixelscale,
         )
+
+        # fixme pick nearest neighbor for each X, Y? interpolate?
         img = image.blank_copy()
         img += psf
         return img.data

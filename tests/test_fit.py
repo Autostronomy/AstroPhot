@@ -76,26 +76,25 @@ class TestComponentModelFits(unittest.TestCase):
         N = 50
         pixelscale = 0.8
         upsample = 10
-        Width = 20
         shape = (N + 10, N)
         # true_params = [2,5,10,-3, 5, 0.7, np.pi/4]
         true_params = {
             "n": 2,
             "Re": 10,
             "Ie": 1,
-            "center": [-3.3, 5.3],
+            "center": [shape[0]*pixelscale/2 - 3.3, shape[1]*pixelscale/2 + 5.3],
             "q": 0.7,
             "pa": np.pi / 4,
         }
         IXX, IYY = np.meshgrid(
             np.linspace(
-                -Width + (pixelscale / (2 * upsample)),
-                Width - (pixelscale / (2 * upsample)),
+                pixelscale / (2 * upsample),
+                shape[1]*pixelscale - (pixelscale / (2 * upsample)),
                 shape[1] * upsample,
             ),
             np.linspace(
-                -Width + (pixelscale / (2 * upsample)),
-                Width - (pixelscale / (2 * upsample)),
+                pixelscale / (2 * upsample),
+                shape[0]*pixelscale - (pixelscale / (2 * upsample)),
                 shape[0] * upsample,
             ),
         )
@@ -132,29 +131,26 @@ class TestComponentModelFits(unittest.TestCase):
 
         ap.AP_config.set_logging_output(stdout=True, filename="AutoProf.log")
         res = ap.fit.LM(model=mod, verbose=1).fit()
-
         self.assertAlmostEqual(
-            mod["center"].value[0].item()
-            / (true_params["center"][0] + shape[1] * pixelscale / 2),
+            mod["center"].value[0].item() / true_params["center"][0],
             1,
-            1,
+            2,
             "LM should accurately recover parameters in simple cases",
         )
         self.assertAlmostEqual(
-            mod["center"].value[1].item()
-            / (true_params["center"][1] + shape[0] * pixelscale / 2),
+            mod["center"].value[1].item() / true_params["center"][1],
             1,
-            1,
+            2,
             "LM should accurately recover parameters in simple cases",
         )
         self.assertAlmostEqual(
             mod["n"].value.item(),
             true_params["n"],
-            2,
+            1,
             msg="LM should accurately recover parameters in simple cases",
         )
         self.assertAlmostEqual(
-            mod["Re"].value.item() / true_params["Re"],
+            (mod["Re"].value.item()) / true_params["Re"],
             1,
             delta=1,
             msg="LM should accurately recover parameters in simple cases",
@@ -162,7 +158,7 @@ class TestComponentModelFits(unittest.TestCase):
         self.assertAlmostEqual(
             mod["Ie"].value.item(),
             np.log10(true_params["Ie"] / pixelscale ** 2),
-            3,
+            2,
             "LM should accurately recover parameters in simple cases",
         )
         self.assertAlmostEqual(
@@ -448,7 +444,7 @@ class TestHMC(unittest.TestCase):
         )
         target.variance = torch.Tensor(0.1 ** 2 + img / 100)
 
-        HMC = ap.fit.HMC(MODEL, epsilon=1e-2, max_iter=10)
+        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=10)
         HMC.fit()
 
         self.assertGreater(

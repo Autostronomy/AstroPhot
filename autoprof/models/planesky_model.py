@@ -54,10 +54,11 @@ class Plane_Sky(Sky_Model):
             self["delta"].set_value([0.0, 0.0], override_locked=True)
             self["delta"].set_uncertainty([0.1, 0.1], override_locked=True)
 
-    def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
-        )
+    def evaluate_model(self, image, X = None, Y = None, **kwargs):
+        if X is None or Y is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                self["center"].value[0], self["center"].value[1]
+            )
         return (
             (self["sky"].value * image.pixelscale ** 2)
             + X * self["delta"].value[0]

@@ -121,13 +121,13 @@ class Group_Model(AutoProf_Model):
                     for target, window in zip(model.target, model.window):
                         index = self.target.index(target)
                         if new_window[index] is None:
-                            new_window[index] = window.make_copy()
+                            new_window[index] = window.copy()
                         else:
                             new_window[index] |= window
                 elif isinstance(model.target, Target_Image):
                     index = self.target.index(model.target)
                     if new_window[index] is None:
-                        new_window[index] = model.window.make_copy()
+                        new_window[index] = model.window.copy()
                     else:
                         new_window[index] |= model.window
                 else:
@@ -141,7 +141,7 @@ class Group_Model(AutoProf_Model):
                 if model.locked and not include_locked:
                     continue
                 if new_window is None:
-                    new_window = model.window.make_copy()
+                    new_window = model.window.copy()
                 else:
                     new_window |= model.window
         self.window = new_window

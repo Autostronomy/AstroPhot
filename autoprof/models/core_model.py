@@ -234,14 +234,14 @@ class AutoProf_Model(object):
     def window(self):
         try:
             if self._window is None:
-                return self.target.window.make_copy()
+                return self.target.window.copy()
             return self._window
         except AttributeError:
             if self.target is None:
                 raise ValueError(
                     "This model has no target or window, these must be provided by the user"
                 )
-            return self.target.window.make_copy()
+            return self.target.window.copy()
 
     def set_window(self, window):
         # If no window given, dont go any further

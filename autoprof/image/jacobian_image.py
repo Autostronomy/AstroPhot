@@ -4,14 +4,14 @@ from typing import Optional, Union, List
 import torch
 from torch.nn.functional import pad
 
-from .image_object import BaseImage, Image_List
+from .image_object import Image, Image_List
 from .. import AP_config
 
 __all__ = ["Jacobian_Image", "Jacobian_Image_List"]
 
 
 ######################################################################
-class Jacobian_Image(BaseImage):
+class Jacobian_Image(Image):
     """Jacobian of a model evaluated in an image.
 
     Image object which represents the evaluation of a jacobian on an
