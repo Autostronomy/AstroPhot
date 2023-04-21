@@ -336,69 +336,6 @@ class Component_Model(AutoProf_Model):
 
         return image
 
-    # def selective_integrate(
-    #         self, X: torch.Tensor, Y: torch.Tensor, data: torch.Tensor, image_header: "Image_Header", max_depth: int = 3, _depth: int = 1, _reference_brightness = None
-    # ):
-    #     """Sample the model at higher resolution than the input image.
-
-    #     This function selectively refines the integration of an input
-    #     image based on the local curvature of the image data.  It
-    #     recursively evaluates the model at higher resolutions in areas
-    #     where the curvature exceeds the specified threshold.  With
-    #     each level of recursion, the function refines the affected
-    #     areas using a 3x3 grid for super-resolution.
-
-    #     Args:
-    #       X (torch.tensor): A tensor representing the X coordinates of the input image.
-    #       Y (torch.tensor): A tensor representing the Y coordinates of the input image.
-    #       data (torch.tensor): A tensor containing the input image data.
-    #       image_header (Image_Header): An instance of the Image_Header class containing the image's header information.
-    #       _depth (int, optional): The current recursion depth. Default is 1.
-    #       max_depth (int, optional): The maximum recursion depth allowed. Default is 3.
-    #       _reference_brightness (float or None, optional): The reference brightness value used to normalize the curvature
-    #                                                        values. If None, the maximum value of the input data divided by
-    #                                                        10 will be used. Default is None.
-
-    #     Returns:
-    #       None. The function updates the input data tensor in-place with the selectively integrated values.
-  
-    #     """
-    #     # check recursion depth, exit if too deep
-    #     if _depth > max_depth:
-    #         return
-        
-    #     with torch.no_grad():
-    #         if _reference_brightness is None:
-    #             _reference_brightness = torch.max(data)/10
-    #         curvature_kernel = torch.tensor([[0,1.,0],[1.,-4,1.],[0,1.,0]], device = data.device, dtype = data.dtype)
-    #         if _depth == 1:
-    #             curvature = torch.abs(fft_convolve_torch(data, curvature_kernel))
-    #             curvature[:,0] = 0
-    #             curvature[:,-1] = 0
-    #             curvature[0,:] = 0
-    #             curvature[-1,:] = 0
-    #             curvature /= _reference_brightness
-    #             select = curvature > self.integrate_threshold
-    #         else:
-    #             curvature = torch.sum(data * curvature_kernel, axis = (1,2)) / _reference_brightness
-    #             select = curvature > self.integrate_threshold
-    #             select = select.view(-1,1,1).repeat(1,3,3)
-                
-    #         # compute the subpixel coordinate shifts for even integration within a pixel 
-    #         shiftsx, shiftsy = displacement_grid(3, 3, pixelscale = image_header.pixelscale, device = data.device, dtype = data.dtype)
-                        
-    #     # Reshape coordinates to add two dimensions with the super-resolved coordiantes
-    #     Xs = X[select].view(-1,1,1).repeat(1,3,3) + shiftsx
-    #     Ys = Y[select].view(-1,1,1).repeat(1,3,3) + shiftsy
-    #     # evaluate the model on the new smaller coordinate grid in each pixel
-    #     res = self.evaluate_model(image = image_header.super_resolve(3), X = Xs, Y = Ys)
-
-    #     # Apply recursion to integrate any further pixels as needed
-    #     self.selective_integrate(Xs, Ys, res, image_header.super_resolve(3), _depth = _depth+1, max_depth = max_depth, _reference_brightness = _reference_brightness)
-
-    #     # Update the pixels with the new integrated values
-    #     data[select] = res.sum(axis = (1,2))
-         
     def window_integrate(
         self, working_image: "Image", window: Window, depth: int = 2
     ):
