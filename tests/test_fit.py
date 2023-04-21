@@ -125,24 +125,12 @@ class TestComponentModelFits(unittest.TestCase):
         mod = ap.models.Sersic_Galaxy(
             name="sersic model",
             target=tar,
-            integrate_mode = "threshold",
-            integrate_threshold = 1e-2,
         )
 
         mod.initialize()
 
         ap.AP_config.set_logging_output(stdout=True, filename="AutoProf.log")
         res = ap.fit.LM(model=mod, verbose=1).fit()
-        print("center 0 compare ", mod["center"].value[0].item()
-            / true_params["center"][0])
-        print("center 1 compare", mod["center"].value[1].item()
-            / true_params["center"][1])
-        print("n compare", mod["n"].value.item(), true_params["n"])
-        print("Re compare", (mod["Re"].value.item()) / true_params["Re"])
-        print("Ie compare", mod["Ie"].value.item(),
-            np.log10(true_params["Ie"] / pixelscale ** 2))
-        print("PA comapre", mod["PA"].value.item() / true_params["pa"])
-        print("q comapre", mod["q"].value.item(),  true_params["q"])
         self.assertAlmostEqual(
             mod["center"].value[0].item() / true_params["center"][0],
             1,

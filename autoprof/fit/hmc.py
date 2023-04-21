@@ -54,8 +54,6 @@ class HMC(BaseOptimizer):
             if model.target.has_variance
             else 1.0
         )
-        #          # pixels      # parameters
-        self.ndf = len(self.Y) - len(self.current_state)
 
         self.reset_chain()
 
@@ -152,9 +150,6 @@ class HMC(BaseOptimizer):
         """
         Takes one step of the HMC sampler by integrating along a path initiated with a random momentum.
         """
-        # momentum_0 = torch.normal(
-        #     mean=torch.zeros_like(state), std=self.temperature * self.mass
-        # )
         momentum_0 = torch.distributions.MultivariateNormal(
             loc = torch.zeros_like(state),
             covariance_matrix = self.mass
