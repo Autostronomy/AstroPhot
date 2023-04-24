@@ -404,7 +404,7 @@ class Component_Model(AutoProf_Model):
             + 1
             - window_align.to(dtype=torch.int32)
         ) * integrate_pixelscale  # ensure shape pairity is matched during recursion
-        self.integrate_model(
+        self.window_integrate(
             integrate_image,
             Window(
                 center=window.center,
