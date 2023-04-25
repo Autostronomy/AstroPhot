@@ -200,7 +200,7 @@ class HMC(BaseOptimizer):
         self._accepted += accept
         self._sampled += 1
 
-        if len(self.chain) > 100 and self.acceptance() < self.min_accept:
+        if len(self.chain) > 100 and self.acceptance < self.min_accept:
             raise RuntimeError("HMC acceptance too low, consider smaller step size.")
         
         return (
