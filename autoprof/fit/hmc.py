@@ -46,6 +46,7 @@ class HMC(BaseOptimizer):
         self.temper = torch.tensor(kwargs.get("temper", 1.0), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.min_accept = kwargs.get("min_accept", 0.1)
+        self.max_accept = kwargs.get("max_accept", 0.9)
 
         self.Y = self.model.target[self.model.window].flatten("data")
         #        1 / sigma^2
@@ -61,6 +62,7 @@ class HMC(BaseOptimizer):
         self.chain = []
         self._accepted = 0
         self._sampled = 0
+        self.last_accept_check = 0
         
     def fit(
         self,
@@ -91,12 +93,20 @@ class HMC(BaseOptimizer):
                     state, score, chi2 = self.step(state, score, chi2)
                     break
                 except RuntimeError as e:
-                    print("Error encountered. Reducing step size epsilon by factor 10")
-                    self.epsilon /= 10.
+                    print("Error encountered. Reducing step size epsilon by factor 3")
+                    self.epsilon /= 3.
                     warnings.warn(
                         "HMC numerical integration error. Perhaps rerun with smaller step size.",
                         RuntimeWarning,
                     )
+            if len(self.chain) > (100+self.last_accept_check) and self.acceptance < self.min_accept:
+                self.last_accept_check = len(self.chain)
+                print(f"Acceptance too low (accept < {self.min_accept}). Reducing step size epsilon by factor 3")
+                self.epsilon /= 3.
+            if len(self.chain) > (100+self.last_accept_check) and self.acceptance > self.max_accept:
+                self.last_accept_check = len(self.chain)
+                print("Acceptance too high (accept > {self.max_accept}). Increasing step size epsilon by factor 2")
+                self.epsilon *= 2.
 
             self.append_chain(state)
         self.current_state = state
@@ -200,9 +210,6 @@ class HMC(BaseOptimizer):
         self._accepted += accept
         self._sampled += 1
 
-        if len(self.chain) > 100 and self.acceptance < self.min_accept:
-            raise RuntimeError("HMC acceptance too low, consider smaller step size.")
-        
         return (
             (proposal_state, proposal_score, proposal_chi2)
             if accept

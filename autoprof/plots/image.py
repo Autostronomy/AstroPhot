@@ -128,6 +128,7 @@ def residual_image(
     showcbar=True,
     window=None,
     center_residuals=False,
+    clb_label=None,
     **kwargs,
 ):
     if window is None:
@@ -176,7 +177,7 @@ def residual_image(
         **imshow_kwargs,
     )
     if showcbar:
-        clb = fig.colorbar(im, ax=ax, label=f"Target - {model.name} [arb.]")
+        clb = fig.colorbar(im, ax=ax, label=f"tan$^{{-1}}$(Target - {model.name})" if clb_label is None else clb_label)
         clb.ax.set_yticks([])
         clb.ax.set_yticklabels([])
     return fig, ax
