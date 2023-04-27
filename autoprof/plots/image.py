@@ -155,7 +155,7 @@ def residual_image(
     residuals = (target[window] - sample_image[window]).data.detach().cpu().numpy()
 
     if target.has_mask:
-        residuals[target[window].mask] = np.nan
+        residuals[target[window].mask.detach().cpu().numpy()] = np.nan
     if center_residuals:
         residuals -= np.nanmedian(residuals)
     residuals = np.arctan(
