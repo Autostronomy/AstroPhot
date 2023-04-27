@@ -413,11 +413,14 @@ class LM(BaseOptimizer):
             self.update_hess()
         cov = self.covariance_matrix()
         if torch.all(torch.isfinite(cov)):
-            self.model.set_uncertainty(
-                torch.sqrt(torch.abs(torch.diag(cov))),
-                as_representation=True,
-                parameters_identity=self.fit_parameters_identity,
-            )
+            try:
+                self.model.set_uncertainty(
+                    torch.sqrt(torch.abs(torch.diag(cov))),
+                    as_representation=True,
+                    parameters_identity=self.fit_parameters_identity,
+                )
+            except RuntimeError as e:
+                AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
 
         return self
 
