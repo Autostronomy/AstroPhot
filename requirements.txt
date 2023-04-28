@@ -7,3 +7,4 @@ tqdm
 requests
 h5py
 pyyaml
+pyro-ppl

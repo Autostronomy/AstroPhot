@@ -250,7 +250,7 @@ class Component_Model(AutoProf_Model):
                     + align
                 )
                 * working_pixelscale
-            )
+            ).detach()
             working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(
@@ -261,7 +261,7 @@ class Component_Model(AutoProf_Model):
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             if self.integrate_mode == "none":
                 pass
-            if self.integrate_mode == "threshold":
+            elif self.integrate_mode == "threshold":
                 X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
                 selective_integrate(
                     X = X,
@@ -308,7 +308,7 @@ class Component_Model(AutoProf_Model):
                 pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
-            working_image.data += self.evaluate_model(working_image)
+            working_image.data += self.evaluate_model(image = working_image)
             # Super-resolve and integrate where needed
             if self.integrate_mode == "none":
                 pass

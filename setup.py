@@ -25,6 +25,7 @@ setup(
                       "requests",
                       "h5py",
                       "pyyaml",
+                      "pyro-ppl",
                       ],
     entry_points = {
         'console_scripts': [

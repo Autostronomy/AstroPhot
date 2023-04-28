@@ -114,6 +114,31 @@ class AutoProf_Model(object):
         """
         pass
 
+    def negative_log_likelihood(
+        self,
+        parameters=None,
+        as_representation=True,
+        parameters_identity=None,
+    ):
+        if parameters is not None:
+            self.set_parameters(parameters, as_representation, parameters_identity)
+
+        model = self.sample()
+        data = self.target[self.window]
+        variance = data.variance
+        if self.target.has_mask:
+            mask = torch.logical_not(data.mask)
+            chi2 = torch.sum(
+                ((model - data).data ** 2 / variance)[mask]
+            ) / 2.
+        else:
+            chi2 = torch.sum(
+                ((model - data).data ** 2 / variance)
+            ) / 2.
+            
+        return chi2
+        
+
     def set_parameters(
         self,
         parameters,

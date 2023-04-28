@@ -3,9 +3,11 @@ import os
 from time import time
 from typing import Optional, Sequence
 import warnings
+
 import torch
 from tqdm import tqdm
 import numpy as np
+
 from .base import BaseOptimizer
 from .. import AP_config
 
@@ -19,6 +21,8 @@ class HMC(BaseOptimizer):
     http://www.mcmchandbook.net/HandbookChapter5.pdf. This MCMC
     algorithm uses gradients of the Chi^2 to more efficiently explore
     the probability distribution.
+
+    Consider using the NUTS sampler instead of HMC, its pretty much better in every way.
 
     Args:
       model (AutoProf_Model): The model which will be sampled.
@@ -38,6 +42,11 @@ class HMC(BaseOptimizer):
         **kwargs
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
+
+        warnings.warn(
+            "consider using NUTS sampler instead, this version is currently outdated and will be improved soon.",
+            RuntimeWarning,
+        )
 
         self.epsilon = kwargs.get("epsilon", 1e-5)
         self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
