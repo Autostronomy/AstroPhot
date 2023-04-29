@@ -107,6 +107,7 @@ class HMC(BaseOptimizer):
             "full_mass": True,
             "step_size": self.epsilon,
             "num_steps": self.leapfrog_steps,
+            "adapt_step_size": False,
         }
         hmc_kwargs.update(self.hmc_kwargs)
         hmc_kernel = pyro_HMC(step, **hmc_kwargs)

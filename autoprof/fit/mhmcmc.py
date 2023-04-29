@@ -36,16 +36,8 @@ class MHMCMC(BaseOptimizer):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         self.epsilon = kwargs.get("epsilon", 1e-2)
-
-        self.Y = self.model.target[self.model.window].flatten("data")
-        #        1 / sigma^2
-        self.W = (
-            1.0 / self.model.target[self.model.window].flatten("variance")
-            if model.target.has_variance
-            else 1.0
-        )
-        #          # pixels      # parameters
-        self.ndf = len(self.Y) - len(self.current_state)
+        self.progress_bar = kwargs.get("progress_bar", True)
+        self.report_after = kwargs.get("report_after", self.max_iter / 10)
 
         self.chain = []
         self._accepted = 0
@@ -72,9 +64,15 @@ class MHMCMC(BaseOptimizer):
             self.chain = []
         else:
             self.chain = list(self.chain)
-        for _ in tqdm(range(nsamples)):
+
+        iterator = tqdm(range(nsamples)) if self.progress_bar else range(nsamples)
+        for i in iterator:
             state, chi2 = self.step(state, chi2)
             self.append_chain(state)
+            if i % self.report_after == 0 and i > 0 and self.verbose > 0:
+                AP_config.ap_logger.info(f"Acceptance: {self.acceptance}")
+        if self.verbose > 0:
+            AP_config.ap_logger.info(f"Acceptance: {self.acceptance}")
         self.current_state = state
         self.chain = np.stack(self.chain)
         return self
@@ -84,9 +82,12 @@ class MHMCMC(BaseOptimizer):
         Add a state vector to the MCMC chain
         """
 
-        self.model.set_parameters(state, as_representation=True)
-        chain_state = self.model.get_parameter_vector(as_representation=False)
-        self.chain.append(chain_state.detach().cpu().clone().numpy())
+        self.chain.append(
+            self.model.transform(
+                state,
+                to_representation=False,
+            ).detach().cpu().clone().numpy()
+        )
 
     @staticmethod
     def accept(log_alpha):
@@ -100,17 +101,9 @@ class MHMCMC(BaseOptimizer):
         """
         Samples the model at the proposed state vector values
         """
-        Y = self.model(parameters=state, as_representation=True).flatten("data")
-        # Compute Chi^2
-        if self.model.target.has_mask:
-            loss = (
-                torch.sum(((self.Y - Y) ** 2 * self.W)[torch.logical_not(self.mask)])
-                / self.ndf
-            )
-        else:
-            loss = torch.sum((self.Y - Y) ** 2 * self.W) / self.ndf
-
-        return loss
+        return self.model.negative_log_likelihood(
+            parameters=state, as_representation=True
+        )
 
     @torch.no_grad()
     def step(self, state: torch.Tensor, chi2: torch.Tensor) -> torch.Tensor:
@@ -120,7 +113,7 @@ class MHMCMC(BaseOptimizer):
 
         proposal_state = torch.normal(mean=state, std=self.epsilon)
         proposal_chi2 = self.sample(proposal_state)
-        log_alpha = (chi2 - proposal_chi2) / 2
+        log_alpha = chi2 - proposal_chi2
         accept = self.accept(log_alpha)
         self._accepted += accept
         self._sampled += 1
