@@ -7,7 +7,8 @@ import warnings
 import torch
 import pyro
 import pyro.distributions as dist
-from pyro.infer import MCMC, NUTS
+from pyro.infer import MCMC as pyro_MCMC
+from pyro.infer import NUTS as pyro_NUTS
 
 from .base import BaseOptimizer
 from .. import AP_config
@@ -60,14 +61,14 @@ class NUTS(BaseOptimizer):
         **kwargs
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
-
+        
         self.mass = kwargs.get("mass", None)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.prior = kwargs.get("prior", None)
         self.warmup = kwargs.get("warmup", 100)
         self.nuts_kwargs = kwargs.get("nuts_kwargs", {})
         self.mcmc_kwargs = kwargs.get("mcmc_kwargs", {})
-
+        
     def fit(
         self,
         state: Optional[torch.Tensor] = None,
@@ -101,7 +102,7 @@ class NUTS(BaseOptimizer):
             "full_mass": True,
         }
         nuts_kwargs.update(self.nuts_kwargs)
-        nuts_kernel = NUTS(step, **nuts_kwargs)
+        nuts_kernel = pyro_NUTS(step, **nuts_kwargs)
 
         # Provide an initial guess for the parameters
         init_params = {"x": self.model.get_parameter_vector(as_representation=True)}
@@ -114,12 +115,17 @@ class NUTS(BaseOptimizer):
             "disable_progbar": not self.progress_bar,
         }
         mcmc_kwargs.update(self.mcmc_kwargs)
-        mcmc = MCMC(nuts_kernel, **mcmc_kwargs)
-
+        mcmc = pyro_MCMC(nuts_kernel, **mcmc_kwargs)
+        
         mcmc.run(self.model, self.prior)
         self.iteration += self.max_iter
 
         # Extract posterior samples
-        self.chain = mcmc.get_samples()["x"]
+        chain = mcmc.get_samples()["x"]
 
+        with torch.no_grad():
+            for i in range(len(chain)):
+                chain[i] = self.model.transform(chain[i], to_representation = False)
+        self.chain = chain
+        
         return self

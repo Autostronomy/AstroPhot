@@ -415,6 +415,26 @@ class AutoProf_Model(object):
             vstart += V
         return parameters
 
+    def transform(self, in_parameters, to_representation = True):
+        out_parameters = torch.zeros(
+            np.sum(self.parameter_vector_len()),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        porder = self.parameter_order()
+        # If the full vector is requested, they are added in bulk
+        vstart = 0
+        for P, V in zip(
+            porder,
+            self.parameter_vector_len(),
+        ):
+            if to_representation:
+                out_parameters[vstart : vstart + V] = self[P].val_to_rep(in_parameters[vstart : vstart + V])
+            else:
+                out_parameters[vstart : vstart + V] = self[P].rep_to_val(in_parameters[vstart : vstart + V])
+            vstart += V
+        return out_parameters
+
     def get_uncertainty_vector(self, as_representation=False):
         uncertanty = torch.zeros(
             np.sum(self.parameter_vector_len()),
