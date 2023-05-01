@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
+import matplotlib
+import os
 
 __all__ = ["main_pallet", "cmap_grad", "cmap_div"]
 
@@ -13,31 +15,35 @@ main_pallet = {
     "pop": "#391463",
 }
 
-grad_list = [
-    "#000000",
-    "#1A1F16",
-    "#1E3F20",
-    "#335E31",  # "#294C28",
-    "#477641",  # "#345830",
-    "#5D986D",  # "#4A7856",
-    "#88BF9E",  # "#6FB28A",
-    "#94ECBE",
-    "#FFFFFF",
-]
-# grad_list = ["#000000", "#1A1F16", "#1E3F20", "#294C28", "#345830", "#4A7856", "#6FB28A", "#94ECBE", "#FFFFFF"]
-grad_cdict = {"red": [], "green": [], "blue": []}
-cpoints = np.linspace(0, 1, len(grad_list))
-for i in range(len(grad_list)):
-    grad_cdict["red"].append(
-        [cpoints[i], int(grad_list[i][1:3], 16) / 256, int(grad_list[i][1:3], 16) / 256]
-    )
-    grad_cdict["green"].append(
-        [cpoints[i], int(grad_list[i][3:5], 16) / 256, int(grad_list[i][3:5], 16) / 256]
-    )
-    grad_cdict["blue"].append(
-        [cpoints[i], int(grad_list[i][5:7], 16) / 256, int(grad_list[i][5:7], 16) / 256]
-    )
-cmap_grad = LinearSegmentedColormap("cmap_grad", grad_cdict)
+# grad_list = [
+#     "#000000",
+#     "#1A1F16",
+#     "#1E3F20",
+#     "#335E31",  # "#294C28",
+#     "#477641",  # "#345830",
+#     "#5D986D",  # "#4A7856",
+#     "#88BF9E",  # "#6FB28A",
+#     "#94ECBE",
+#     "#FFFFFF",
+# ]
+
+grad_list = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "rgb_colours.npy"))
+cmap_grad = LinearSegmentedColormap.from_list("cmap_grad", grad_list)
+
+# # grad_list = ["#000000", "#1A1F16", "#1E3F20", "#294C28", "#345830", "#4A7856", "#6FB28A", "#94ECBE", "#FFFFFF"]
+# grad_cdict = {"red": [], "green": [], "blue": []}
+# cpoints = np.linspace(0, 1, len(grad_list))
+# for i in range(len(grad_list)):
+#     grad_cdict["red"].append(
+#         [cpoints[i], int(grad_list[i][1:3], 16) / 256, int(grad_list[i][1:3], 16) / 256]
+#     )
+#     grad_cdict["green"].append(
+#         [cpoints[i], int(grad_list[i][3:5], 16) / 256, int(grad_list[i][3:5], 16) / 256]
+#     )
+#     grad_cdict["blue"].append(
+#         [cpoints[i], int(grad_list[i][5:7], 16) / 256, int(grad_list[i][5:7], 16) / 256]
+#     )
+# cmap_grad = LinearSegmentedColormap("cmap_grad", grad_cdict)
 
 div_list = [
     "#332A1F",
