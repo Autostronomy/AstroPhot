@@ -63,6 +63,7 @@ class NUTS(BaseOptimizer):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
         
         self.mass = kwargs.get("mass", None)
+        self.epsilon = kwargs.get("epsilon", 1e-3)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.prior = kwargs.get("prior", None)
         self.warmup = kwargs.get("warmup", 100)
@@ -99,7 +100,9 @@ class NUTS(BaseOptimizer):
         nuts_kwargs = {
             "jit_compile": True,
             "ignore_jit_warnings": True,
+            "step_size": self.epsilon,
             "full_mass": True,
+            "adapt_step_size": True,
         }
         nuts_kwargs.update(self.nuts_kwargs)
         nuts_kernel = pyro_NUTS(step, **nuts_kwargs)

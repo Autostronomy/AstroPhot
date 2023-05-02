@@ -113,6 +113,7 @@ class LM(BaseOptimizer):
         self._count_grad_step = 0
         self._count_converged = 0
         self.ndf = kwargs.get("ndf", self.ndf)
+        self._covariance_matrix = None
 
         # update attributes with constraints
         self.constraints = kwargs.get("constraints", None)
@@ -407,23 +408,22 @@ class LM(BaseOptimizer):
             AP_config.ap_logger.info(
                 f"LM Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
+
+        return self
+
+    def update_uncertainty(self):
         # set the uncertainty for each parameter
-        if self.use_broyden:
-            self.update_J_AD()
-            self.update_hess()
-        cov = self.covariance_matrix()
+        cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):
             try:
                 self.model.set_uncertainty(
                     torch.sqrt(torch.abs(torch.diag(cov))),
-                    as_representation=True,
+                    as_representation=False,
                     parameters_identity=self.fit_parameters_identity,
                 )
             except RuntimeError as e:
                 AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
-
-        return self
-
+        
     @torch.no_grad()
     def undo_step(self) -> None:
         AP_config.ap_logger.info("undoing step, trying to recover")
@@ -579,6 +579,39 @@ class LM(BaseOptimizer):
 
         # Note that the most recent jacobian was a full autograd jacobian
         self.full_jac = True
+        
+    def update_J_natural(self) -> None:
+        """
+        Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state. Use this method to get the jacobian in the parameter space instead of representation space.
+        """
+        # Free up memory
+        del self.J
+        if "cpu" not in AP_config.ap_device:
+            torch.cuda.empty_cache()
+
+        # Compute jacobian on image
+        self.J = self.model.jacobian(
+            torch.clone(self.model.transform(
+                self.current_state,
+                to_representation=False,
+                parameters_identity=self.fit_parameters_identity,
+            )).detach(),
+            as_representation=False,
+            parameters_identity=self.fit_parameters_identity,
+            window=self.fit_window,
+        ).flatten("data")
+
+        # compute the constraint jacobian if needed
+        if self.constraints is not None:
+            for con in self.constraints:
+                self.J = torch.cat((self.J, con.jacobian(self.model)))
+
+        # Apply mask if needed
+        if self.model.target.has_mask:
+            self.J[self.mask] = 0.0
+
+        # Note that the most recent jacobian was a full autograd jacobian
+        self.full_jac = False
 
     @torch.no_grad()
     def update_J_Broyden(self, h, Yp, Yph) -> None:
@@ -617,10 +650,15 @@ class LM(BaseOptimizer):
             device=AP_config.ap_device,
         )
 
+    @property
     @torch.no_grad()
     def covariance_matrix(self) -> torch.Tensor:
+        if self._covariance_matrix is not None:
+            return self._covariance_matrix
+        self.update_J_natural()
+        self.update_hess()        
         try:
-            return torch.linalg.inv(-self.hess)
+            self._covariance_matrix = torch.linalg.inv(self.hess)
         except:
             AP_config.ap_logger.warning(
                 "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
@@ -628,7 +666,8 @@ class LM(BaseOptimizer):
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
             ) * (torch.diag(self.hess) == 0)
-            return torch.linalg.inv(-self.hess) # * self.res_loss()
+            self._covariance_matrix = torch.linalg.inv(self.hess)
+        return self._covariance_matrix
 
     @torch.no_grad()
     def update_grad(self, Yph) -> None:

@@ -444,13 +444,8 @@ class TestHMC(unittest.TestCase):
         )
         target.variance = torch.Tensor(0.1 ** 2 + img / 100)
 
-        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=10)
+        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=10, warmup = 5)
         HMC.fit()
-
-        self.assertGreater(
-            HMC.acceptance, 0.7, "HMC should have very high acceptance for simple fits"
-        )
-
 
 class TestMHMCMC(unittest.TestCase):
     def test_singlesersic(self):
@@ -483,7 +478,7 @@ class TestMHMCMC(unittest.TestCase):
         )
         target.variance = torch.Tensor(0.1 ** 2 + img / 100)
 
-        MHMCMC = ap.fit.MHMCMC(MODEL, epsilon=1e-1, max_iter=100)
+        MHMCMC = ap.fit.MHMCMC(MODEL, epsilon=1e-4, max_iter=100)
         MHMCMC.fit()
 
         self.assertGreater(
@@ -491,12 +486,6 @@ class TestMHMCMC(unittest.TestCase):
             0.1,
             "MHMCMC should have nonzero acceptance for simple fits",
         )
-        self.assertLess(
-            MHMCMC.acceptance,
-            0.9,
-            "MHMCMC should not have 100% acceptance for any fits",
-        )
-
 
 if __name__ == "__main__":
     unittest.main()

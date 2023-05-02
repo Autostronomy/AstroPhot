@@ -57,13 +57,14 @@ class HMC(BaseOptimizer):
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.epsilon = kwargs.get("epsilon", 1e-5)
+        self.epsilon = kwargs.get("epsilon", 1e-3)
         self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.prior = kwargs.get("prior", None)
         self.warmup = kwargs.get("warmup", 100)
         self.hmc_kwargs = kwargs.get("hmc_kwargs", {})
         self.mcmc_kwargs = kwargs.get("mcmc_kwargs", {})
+        self.acceptance = None
         
         if "mass_matrix" not in self.hmc_kwargs and "mass_matrix" in kwargs:
             self.hmc_kwargs["mass_matrix"] = kwargs.get("mass_matrix")

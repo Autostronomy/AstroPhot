@@ -415,13 +415,27 @@ class AutoProf_Model(object):
             vstart += V
         return parameters
 
-    def transform(self, in_parameters, to_representation = True):
+    def transform(self, in_parameters, to_representation = True, parameters_identity = None):
         out_parameters = torch.zeros(
-            np.sum(self.parameter_vector_len()),
+            np.sum(self.parameter_vector_len(parameters_identity = parameters_identity)),
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
-        porder = self.parameter_order()
+        porder = self.parameter_order(parameters_identity = parameters_identity)
+        
+        # If vector is requested by identity, they are individually updated
+        if parameters_identity is not None:
+            pindex = 0
+            for P in porder:
+                for pid in self[P].identities:
+                    if pid in parameters_identity:
+                        if to_representation:
+                            out_parameters[pindex] = self[P].val_to_rep(in_parameters[pindex])
+                        else:
+                            out_parameters[pindex] = self[P].rep_to_val(in_parameters[pindex])
+                        pindex += 1
+            return out_parameters
+        
         # If the full vector is requested, they are added in bulk
         vstart = 0
         for P, V in zip(
