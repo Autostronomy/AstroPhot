@@ -416,7 +416,7 @@ class TestIterLM(unittest.TestCase):
 
 
 class TestHMC(unittest.TestCase):
-    def test_singlesersic(self):
+    def test_hmc_sample(self):
         np.random.seed(12345)
         N = 50
         pixelscale = 0.8
@@ -450,7 +450,7 @@ class TestHMC(unittest.TestCase):
         HMC.fit()
 
 class TestNUTS(unittest.TestCase):
-    def test_singlesersic(self):
+    def test_nuts_sample(self):
         np.random.seed(12345)
         N = 50
         pixelscale = 0.8

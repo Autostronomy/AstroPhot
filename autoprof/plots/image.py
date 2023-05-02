@@ -156,7 +156,7 @@ def residual_image(
 
     residuals = (target[window] - sample_image[window]).data
     if normalize_residuals:
-        residuals = residuals / torch.sqrt(sample_image[window].data)
+        residuals = residuals / torch.sqrt(target[window].variance)
     residuals = residuals.detach().cpu().numpy()
 
     if target.has_mask:
@@ -182,7 +182,7 @@ def residual_image(
     )
     if showcbar:
         if normalize_residuals:
-            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sqrt{{{model.name}}})$"
+            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
         else:
             default_label = f"tan$^{{-1}}$(Target - {model.name})"
         clb = fig.colorbar(im, ax=ax, label=default_label if clb_label is None else clb_label)
