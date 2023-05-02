@@ -29,6 +29,27 @@ class TestModel(unittest.TestCase):
 
         state = model.get_state()
 
+    def test_basic_model_methods(self):
+
+        target = make_basic_sersic()
+        model = ap.models.AutoProf_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+        rep = model.get_parameter_vector(as_representation = True)
+        nat = model.get_parameter_vector(as_representation = False)
+        self.assertTrue(torch.all(rep == model.transform(nat, to_representation = True)), "transform should map between parameter natural and representation")
+        self.assertTrue(torch.all(nat == model.transform(rep, to_representation = False)), "transform should map between parameter representation and natural")
+
     def test_model_creation(self):
         np.random.seed(12345)
         shape = (10, 15)

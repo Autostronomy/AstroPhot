@@ -114,6 +114,31 @@ class AutoProf_Model(object):
         """
         pass
 
+    def negative_log_likelihood(
+        self,
+        parameters=None,
+        as_representation=True,
+        parameters_identity=None,
+    ):
+        if parameters is not None:
+            self.set_parameters(parameters, as_representation, parameters_identity)
+
+        model = self.sample()
+        data = self.target[self.window]
+        variance = data.variance
+        if self.target.has_mask:
+            mask = torch.logical_not(data.mask)
+            chi2 = torch.sum(
+                ((model - data).data ** 2 / variance)[mask]
+            ) / 2.
+        else:
+            chi2 = torch.sum(
+                ((model - data).data ** 2 / variance)
+            ) / 2.
+            
+        return chi2
+        
+
     def set_parameters(
         self,
         parameters,
@@ -389,6 +414,40 @@ class AutoProf_Model(object):
                     parameters.append(pid)
             vstart += V
         return parameters
+
+    def transform(self, in_parameters, to_representation = True, parameters_identity = None):
+        out_parameters = torch.zeros(
+            np.sum(self.parameter_vector_len(parameters_identity = parameters_identity)),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        porder = self.parameter_order(parameters_identity = parameters_identity)
+        
+        # If vector is requested by identity, they are individually updated
+        if parameters_identity is not None:
+            pindex = 0
+            for P in porder:
+                for pid in self[P].identities:
+                    if pid in parameters_identity:
+                        if to_representation:
+                            out_parameters[pindex] = self[P].val_to_rep(in_parameters[pindex])
+                        else:
+                            out_parameters[pindex] = self[P].rep_to_val(in_parameters[pindex])
+                        pindex += 1
+            return out_parameters
+        
+        # If the full vector is requested, they are added in bulk
+        vstart = 0
+        for P, V in zip(
+            porder,
+            self.parameter_vector_len(),
+        ):
+            if to_representation:
+                out_parameters[vstart : vstart + V] = self[P].val_to_rep(in_parameters[vstart : vstart + V])
+            else:
+                out_parameters[vstart : vstart + V] = self[P].rep_to_val(in_parameters[vstart : vstart + V])
+            vstart += V
+        return out_parameters
 
     def get_uncertainty_vector(self, as_representation=False):
         uncertanty = torch.zeros(

@@ -19,9 +19,10 @@ command to download the AutoProf tutorials. If you run into difficulty with this
 
 #. GettingStarted
 #. GroupModels
+#. FittingMethods
 #. ModelZoo
 #. JointModels
-#. CustomModels (if you're feeling bold)
+#. CustomModels
 
 When downloading the tutorials, you will also get a file called ``simple_config.py``, this is an example AutoProf config file. Configuration files are an alternate interface to the AutoProf functionality. They are somewhat more limited in capacity, but very easy to interface with. See the guide on configuration files here: :doc:`configfile_interface` .
 

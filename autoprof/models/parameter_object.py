@@ -243,6 +243,20 @@ class Parameter(object):
             self.get_representation(index=index, identity=identity), self.limits
         )
 
+    def rep_to_val(self, rep):
+        if self.cyclic:
+            return cyclic_boundaries(rep, self.limits)
+        if self.limits is None:
+            return rep
+        return inv_boundaries(rep, self.limits)
+    
+    def val_to_rep(self, val):
+        if self.cyclic:
+            return cyclic_boundaries(val, self.limits)
+        if self.limits is None:
+            return val
+        return boundaries(val, self.limits)    
+
     def get_uncertainty(self, index=None, identity=None):
         if self._uncertainty is None:
             return None

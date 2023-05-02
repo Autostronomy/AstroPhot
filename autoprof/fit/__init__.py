@@ -4,6 +4,7 @@ from .gradient import *
 from .iterative import *
 from .hmc import *
 from .mhmcmc import *
+from .nuts import *
 
 """
 base: This module defines the base class BaseOptimizer, 

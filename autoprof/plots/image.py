@@ -129,6 +129,7 @@ def residual_image(
     window=None,
     center_residuals=False,
     clb_label=None,
+    normalize_residuals=False,
     **kwargs,
 ):
     if window is None:
@@ -153,7 +154,10 @@ def residual_image(
             )
         return fig, ax
 
-    residuals = (target[window] - sample_image[window]).data.detach().cpu().numpy()
+    residuals = (target[window] - sample_image[window]).data
+    if normalize_residuals:
+        residuals = residuals / torch.sqrt(target[window].variance)
+    residuals = residuals.detach().cpu().numpy()
 
     if target.has_mask:
         residuals[target[window].mask.detach().cpu().numpy()] = np.nan
@@ -177,7 +181,11 @@ def residual_image(
         **imshow_kwargs,
     )
     if showcbar:
-        clb = fig.colorbar(im, ax=ax, label=f"tan$^{{-1}}$(Target - {model.name})" if clb_label is None else clb_label)
+        if normalize_residuals:
+            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
+        else:
+            default_label = f"tan$^{{-1}}$(Target - {model.name})"
+        clb = fig.colorbar(im, ax=ax, label=default_label if clb_label is None else clb_label)
         clb.ax.set_yticks([])
         clb.ax.set_yticklabels([])
     return fig, ax

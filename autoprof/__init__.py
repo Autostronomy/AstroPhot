@@ -116,6 +116,7 @@ def run_from_terminal() -> None:
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/GroupModels.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/ModelZoo.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/JointModels.ipynb",
+            "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/FittingMethods.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/CustomModels.ipynb",
             "https://raw.github.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/simple_config.py",
         ]
