@@ -37,7 +37,7 @@ class MHMCMC(BaseOptimizer):
 
         self.epsilon = kwargs.get("epsilon", 1e-2)
         self.progress_bar = kwargs.get("progress_bar", True)
-        self.report_after = kwargs.get("report_after", self.max_iter / 10)
+        self.report_after = kwargs.get("report_after", int(self.max_iter / 10))
 
         self.chain = []
         self._accepted = 0
