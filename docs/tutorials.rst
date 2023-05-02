@@ -14,6 +14,11 @@ Group Models
 
 This tutorial explains how to combine component models into larger more complete representations of an astronomical image. `Click here for the pdf <https://raw.githubusercontent.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/GroupModels.pdf?raw=true>`_
 
+Fitting Methods
+---------------
+
+This tutorial explains how to run the various fitting methods in AutoProf, each one is suited to a different class of problems. `Click here for the pdf <https://raw.githubusercontent.com/ConnorStoneAstro/AutoProf/main/docs/tutorials/FittingMethods.pdf?raw=true>`_
+
 Model Zoo
 ---------
 
