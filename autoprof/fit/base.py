@@ -50,7 +50,7 @@ class BaseOptimizer(object):
             current_state (Tensor): The current state of the model.
             max_iter (int): The maximum number of iterations.
             iteration (int): The current iteration number.
-            save_steps (Union[None, int]): The frequency at which to save intermediate results.
+            save_steps (Optional[str]): Save intermediate results to this path.
             relative_tolerance (float): The relative tolerance for the optimization.
             lambda_history (List[ndarray]): A list of the optimization steps.
             loss_history (List[float]): A list of the optimization losses.
