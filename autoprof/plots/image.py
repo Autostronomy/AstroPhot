@@ -26,7 +26,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
         window = target.window
     dat = np.copy(target[window].data.detach().cpu().numpy())
     if target.has_mask:
-        dat[target[window].mask] = np.nan
+        dat[target[window].mask.detach().cpu().numpy()] = np.nan
 
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)]) / 2
@@ -103,7 +103,7 @@ def model_image(
         imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
 
     if target_mask and target.has_mask:
-        sample_image[target.mask] = np.nan
+        sample_image[target.mask.detach().cpu().numpy()] = np.nan
     im = ax.imshow(
         sample_image,
         **imshow_kwargs,
