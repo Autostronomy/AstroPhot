@@ -7,6 +7,17 @@ from .operations import fft_convolve_torch
 
 
 def _h_poly(t):
+    """Helper function to compute the 'h' polynomial matrix used in the
+    cubic spline.
+    
+    Args:
+        t (Tensor): A 1D tensor representing the normalized x values.
+    
+    Returns:
+        Tensor: A 2D tensor of size (4, len(t)) representing the 'h' polynomial matrix.
+
+    """
+
     tt = t[None, :] ** (torch.arange(4, device=t.device)[:, None])
     A = torch.tensor(
         [[1, 0, -3, 2], [0, 1, -2, 1], [0, 0, 3, -2], [0, 0, -1, 1]],
@@ -15,10 +26,23 @@ def _h_poly(t):
     )
     return A @ tt
 
+def cubic_spline_torch(x: torch.Tensor, y: torch.Tensor, xs: torch.Tensor, extend: str = "const") -> torch.Tensor:
+    """Compute the 1D cubic spline interpolation for the given data points
+    using PyTorch.
 
-def cubic_spline_torch(x, y, xs, extend="const"):
-    """
-    1d Cubic spline function implimented for pytorch
+    Args:
+        x (Tensor): A 1D tensor representing the x-coordinates of the known data points.
+        y (Tensor): A 1D tensor representing the y-coordinates of the known data points.
+        xs (Tensor): A 1D tensor representing the x-coordinates of the positions where
+                     the cubic spline function should be evaluated.
+        extend (str, optional): The method for handling extrapolation, either "const" or "linear".
+                                Default is "const".
+                                "const": Use the value of the last known data point for extrapolation.
+                                "linear": Use linear extrapolation based on the last two known data points.
+    
+    Returns:
+        Tensor: A 1D tensor representing the interpolated values at the specified positions (xs).
+
     """
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
     m = torch.cat([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
