@@ -13,6 +13,7 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.parametric_profiles import gaussian_torch, gaussian_np
 
 __all__ = [
@@ -59,6 +60,7 @@ class Gaussian_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -93,6 +95,7 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -127,6 +130,7 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -162,6 +166,7 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -197,6 +202,7 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -231,6 +237,7 @@ class Gaussian_Warp(Warp_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -265,6 +272,7 @@ class Gaussian_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -305,6 +313,7 @@ class Gaussian_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -341,6 +350,7 @@ class Gaussian_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

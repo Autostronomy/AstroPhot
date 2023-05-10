@@ -17,6 +17,7 @@ from ._shared_methods import (
     select_target,
 )
 from ..utils.initialize import isophotes
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.parametric_profiles import exponential_torch, exponential_np
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
@@ -69,6 +70,7 @@ class Exponential_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -104,6 +106,7 @@ class Exponential_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -145,6 +148,7 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -180,6 +184,7 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -215,7 +220,8 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
-    @select_target
+    @ignore_numpy_warnings
+    @select_target    
     def initialize(self, target=None):
         super().initialize(target)
 
@@ -250,6 +256,7 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -285,7 +292,8 @@ class Exponential_Warp(Warp_Galaxy):
     useable = True
 
     @torch.no_grad()
-    @select_target
+    @ignore_numpy_warnings
+    @select_target   
     def initialize(self, target=None):
         super().initialize(target)
 
@@ -320,6 +328,7 @@ class Exponential_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -357,6 +366,7 @@ class Exponential_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

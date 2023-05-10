@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import iqr
 import torch
 
+from ..utils.decorators import ignore_numpy_warnings
 from .sky_model_object import Sky_Model
 from ._shared_methods import select_target
 
@@ -25,6 +26,7 @@ class Flat_Sky(Sky_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

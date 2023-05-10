@@ -13,6 +13,7 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.parametric_profiles import nuker_np
 
 __all__ = [
@@ -74,6 +75,7 @@ class Nuker_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -126,6 +128,7 @@ class Nuker_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -182,6 +185,7 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -234,6 +238,7 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -285,6 +290,7 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -336,6 +342,7 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -387,6 +394,7 @@ class Nuker_Warp(Warp_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -437,6 +445,7 @@ class Nuker_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -492,6 +501,7 @@ class Nuker_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

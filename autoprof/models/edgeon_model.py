@@ -6,6 +6,7 @@ from .model_object import Component_Model
 from ._shared_methods import select_target
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
@@ -37,6 +38,7 @@ class Edgeon_Model(Component_Model):
     useable = False
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -103,6 +105,7 @@ class Edgeon_Sech(Edgeon_Model):
     useable = False
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -164,6 +167,7 @@ class Edgeon_Isothermal(Edgeon_Sech):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

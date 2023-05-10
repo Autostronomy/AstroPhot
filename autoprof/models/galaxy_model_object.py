@@ -3,6 +3,7 @@ import numpy as np
 from scipy.stats import iqr
 
 from ..utils.initialize import isophotes
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
@@ -53,6 +54,7 @@ class Galaxy_Model(Component_Model):
     useable = False
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

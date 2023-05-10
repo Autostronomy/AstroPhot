@@ -10,6 +10,7 @@ from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch, selective_integrate
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
@@ -130,6 +131,7 @@ class Component_Model(AutoProf_Model):
     # Initialization functions
     ######################################################################
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target: Optional["Target_Image"] = None):
         """Determine initial values for the center coordinates. This is done
