@@ -9,12 +9,45 @@ import pyro
 import pyro.distributions as dist
 from pyro.infer import MCMC as pyro_MCMC
 from pyro.infer import NUTS as pyro_NUTS
+from pyro.infer.mcmc.adaptation import WarmupAdapter, BlockMassMatrix
+from pyro.ops.welford import WelfordCovariance
 
 from .base import BaseOptimizer
 from .. import AP_config
 
 __all__ = ["NUTS"]
 
+###########################################
+# !Overwrite pyro configuration behavior!
+# currently this is the only way to provide
+# mass matrix manually
+###########################################
+def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
+    """
+    Sets up an initial mass matrix.
+    
+    :param dict mass_matrix_shape: a dict that maps tuples of site names to the shape of
+        the corresponding mass matrix. Each tuple of site names corresponds to a block.
+    :param bool adapt_mass_matrix: a flag to decide whether an adaptation scheme will be used.
+    :param dict options: tensor options to construct the initial mass matrix.
+    """
+    inverse_mass_matrix = {}
+    for site_names, shape in mass_matrix_shape.items():
+        self._mass_matrix_size[site_names] = shape[0]
+        diagonal = len(shape) == 1
+        inverse_mass_matrix[site_names] = (
+            torch.full(shape, self._init_scale, **options)
+            if diagonal
+            else torch.eye(*shape, **options) * self._init_scale
+        )
+        if adapt_mass_matrix:
+            adapt_scheme = WelfordCovariance(diagonal=diagonal)
+            self._adapt_scheme[site_names] = adapt_scheme
+
+    if len(self.inverse_mass_matrix.keys()) == 0:
+        self.inverse_mass_matrix = inverse_mass_matrix
+BlockMassMatrix.configure = new_configure
+############################################
 
 class NUTS(BaseOptimizer):
     """No U-Turn Sampler (NUTS) implementation for Hamiltonian Monte Carlo
@@ -37,10 +70,10 @@ class NUTS(BaseOptimizer):
 
     Args:
         model (AutoProf_Model): The model which will be sampled.
-        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model.
-            Note that these values should be in the form of "as_representation" in the model. Defaults to None.
+        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of "as_representation" in the model. Defaults to None.
         max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.
-        mass (Optional[Tensor], optional): Mass matrix for the Hamiltonian system. Defaults to None.
+        epsilon (float, optional): The step size for the NUTS sampler. Defaults to 1e-3.
+        inv_mass (Optional[Tensor], optional): Inverse Mass matrix (covariance matrix) for the Hamiltonian system. Defaults to None.
         progress_bar (bool, optional): If True, display a progress bar during sampling. Defaults to True.
         prior (Optional[Distribution], optional): Prior distribution for the model parameters. Defaults to None.
         warmup (int, optional): Number of warmup (or burn-in) steps to perform before sampling. Defaults to 100.
@@ -62,7 +95,7 @@ class NUTS(BaseOptimizer):
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
         
-        self.mass = kwargs.get("mass", None)
+        self.inv_mass = kwargs.get("inv_mass", None)
         self.epsilon = kwargs.get("epsilon", 1e-3)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.prior = kwargs.get("prior", None)
@@ -103,9 +136,12 @@ class NUTS(BaseOptimizer):
             "step_size": self.epsilon,
             "full_mass": True,
             "adapt_step_size": True,
+            "adapt_mass_matrix": self.inv_mass is None,
         }
         nuts_kwargs.update(self.nuts_kwargs)
         nuts_kernel = pyro_NUTS(step, **nuts_kwargs)
+        if self.inv_mass is not None:
+            nuts_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
         init_params = {"x": self.model.get_parameter_vector(as_representation=True)}
