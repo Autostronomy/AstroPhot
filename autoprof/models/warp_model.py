@@ -5,6 +5,7 @@ from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 from .galaxy_model_object import Galaxy_Model
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
+from ..utils.decorators import ignore_numpy_warnings
 from ._shared_methods import select_target
 
 __all__ = ["Warp_Galaxy"]
@@ -50,6 +51,7 @@ class Warp_Galaxy(Galaxy_Model):
     useable = False
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

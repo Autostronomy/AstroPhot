@@ -15,13 +15,9 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.initialize import isophotes
-from ..utils.parametric_profiles import (
-    sersic_torch,
-    sersic_np,
-    gaussian_torch,
-    gaussian_np,
-)
+from ..utils.parametric_profiles import sersic_torch, sersic_np
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     coord_to_index,
@@ -78,6 +74,7 @@ class Sersic_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -116,6 +113,7 @@ class Sersic_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -160,6 +158,7 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -199,6 +198,7 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -238,6 +238,7 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -277,6 +278,7 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -316,6 +318,7 @@ class Sersic_Warp(Warp_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -354,6 +357,7 @@ class Sersic_Ray(Ray_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -394,6 +398,7 @@ class Sersic_Wedge(Wedge_Galaxy):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

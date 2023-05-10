@@ -9,6 +9,7 @@ from .star_model_object import Star_Model
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from ._shared_methods import spline_segment_initialize, select_target
+from ..utils.decorators import ignore_numpy_warnings
 
 __all__ = [
     "Spline_Galaxy",
@@ -198,6 +199,7 @@ class Spline_Ray(Ray_Galaxy):
     extend_profile = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -235,6 +237,7 @@ class Spline_Wedge(Wedge_Galaxy):
     extend_profile = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

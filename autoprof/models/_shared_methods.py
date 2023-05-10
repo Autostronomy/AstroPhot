@@ -22,6 +22,7 @@ from ..utils.parametric_profiles import (
     nuker_torch,
     nuker_np,
 )
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     coord_to_index,
@@ -81,6 +82,7 @@ def select_sample(func):
 # General parametric
 ######################################################################
 @torch.no_grad()
+@ignore_numpy_warnings
 def parametric_initialize(
     model, target, prof_func, params, x0_func, force_uncertainty=None
 ):
@@ -154,6 +156,7 @@ def parametric_initialize(
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def parametric_segment_initialize(
     model, target, prof_func, params, x0_func, segments, force_uncertainty=None
 ):
@@ -375,6 +378,7 @@ def gaussian_iradial_model(self, i, R, sample_image=None):
 # Spline
 ######################################################################
 @torch.no_grad()
+@ignore_numpy_warnings
 @select_target
 def spline_initialize(self, target=None):
     super(self.__class__, self).initialize(target)
@@ -439,6 +443,7 @@ def spline_initialize(self, target=None):
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 @select_target
 def spline_segment_initialize(self, target=None, segments=1, symmetric=True):
     super(self.__class__, self).initialize(target)

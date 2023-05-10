@@ -4,6 +4,7 @@ import numpy as np
 from .galaxy_model_object import Galaxy_Model
 from .star_model_object import Star_Model
 from ._shared_methods import parametric_initialize, select_target
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.parametric_profiles import moffat_np
 
 __all__ = ["Moffat_Galaxy", "Moffat_Star"]
@@ -45,6 +46,7 @@ class Moffat_Galaxy(Galaxy_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -82,6 +84,7 @@ class Moffat_Star(Star_Model):
     useable = True
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

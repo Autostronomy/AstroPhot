@@ -4,6 +4,7 @@ import torch
 from .galaxy_model_object import Galaxy_Model
 from .parameter_object import Parameter
 from ..utils.interpolate import cubic_spline_torch
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
 
 __all__ = ["Ray_Galaxy"]

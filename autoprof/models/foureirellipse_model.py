@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+from ..utils.decorators import ignore_numpy_warnings
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from ._shared_methods import select_target
@@ -79,6 +80,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
         )
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)
@@ -169,6 +171,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
         )
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

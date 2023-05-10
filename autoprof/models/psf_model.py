@@ -2,6 +2,7 @@ import torch
 
 from .star_model_object import Star_Model
 from ..image import Model_Image
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ._shared_methods import select_target
 from .. import AP_config
@@ -45,6 +46,7 @@ class PSF_Star(Star_Model):
             )
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target=None):
         super().initialize(target)

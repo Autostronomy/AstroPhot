@@ -14,6 +14,7 @@ from ..image import (
     Window,
     Window_List,
 )
+from ..utils.decorators import ignore_numpy_warnings
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -225,6 +226,7 @@ class Group_Model(AutoProf_Model):
         pass
 
     @torch.no_grad()
+    @ignore_numpy_warnings
     @select_target
     def initialize(self, target: Optional["Target_Image"] = None):
         """
