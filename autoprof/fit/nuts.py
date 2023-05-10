@@ -70,10 +70,10 @@ class NUTS(BaseOptimizer):
 
     Args:
         model (AutoProf_Model): The model which will be sampled.
-        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model.
-            Note that these values should be in the form of "as_representation" in the model. Defaults to None.
+        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of "as_representation" in the model. Defaults to None.
         max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.
-        mass (Optional[Tensor], optional): Mass matrix for the Hamiltonian system. Defaults to None.
+        epsilon (float, optional): The step size for the NUTS sampler. Defaults to 1e-3.
+        inv_mass (Optional[Tensor], optional): Inverse Mass matrix (covariance matrix) for the Hamiltonian system. Defaults to None.
         progress_bar (bool, optional): If True, display a progress bar during sampling. Defaults to True.
         prior (Optional[Distribution], optional): Prior distribution for the model parameters. Defaults to None.
         warmup (int, optional): Number of warmup (or burn-in) steps to perform before sampling. Defaults to 100.

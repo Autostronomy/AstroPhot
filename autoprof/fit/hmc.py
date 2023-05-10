@@ -64,19 +64,16 @@ class HMC(BaseOptimizer):
 
     Args:
         model (AutoProf_Model): The model which will be sampled.
-        initial_state (Optional[Sequence]): A 1D array with the values for each
-            parameter in the model. Note that these values should be in the form
-            of "as_representation" in the model.
-        max_iter (int, optional): The number of sampling steps to perform.
-            Default is 1000.
-        epsilon (float, optional): The length of the integration step to perform
-            for each leapfrog iteration. The momentum update will be of order
-            elipson * score. Default is 1e-5.
-        leapfrog_steps (int, optional): Number of steps to perform with leapfrog
-            integrator per sample of the HMC. Default is 20.
-        mass_matrix (float or array, optional): Mass matrix which can tune the
-            behavior in each dimension to ensure better mixing when sampling.
-            Default is the identity.
+        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of "as_representation" in the model. Defaults to None.
+        max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.
+        epsilon (float, optional): The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
+        leapfrog_steps (int, optional): Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 20.
+        inv_mass (float or array, optional): Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.
+        progress_bar (bool, optional): Whether to display a progress bar during sampling. Defaults to True.
+        prior (distribution, optional): Prior distribution for the parameters. Defaults to None.
+        warmup (int, optional): Number of warmup steps before actual sampling begins. Defaults to 100.
+        hmc_kwargs (dict, optional): Additional keyword arguments for the HMC sampler. Defaults to {}.
+        mcmc_kwargs (dict, optional): Additional keyword arguments for the MCMC process. Defaults to {}.
 
     """
     
