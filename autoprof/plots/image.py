@@ -198,7 +198,7 @@ def model_window(fig, ax, model, rectangle_linewidth=2, **kwargs):
         return fig, ax
 
     if isinstance(model, Group_Model):
-        for m in model.model_list:
+        for m in model.models.values():
             ax.add_patch(
                 Rectangle(
                     xy=(m.window.origin[0], m.window.origin[1]),

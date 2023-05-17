@@ -88,12 +88,12 @@ class Iter(BaseOptimizer):
             AP_config.ap_logger.info("--------iter-------")
 
         # Fit each model individually
-        for model in self.model.model_list:
+        for model in self.model.models.values():
             if self.verbose > 0:
                 AP_config.ap_logger.info(model.name)
             self.sub_step(model)
         # Update the current state
-        self.current_state = self.model.get_parameter_vector(as_representation=True)
+        self.current_state = self.model.parameters.get_parameter_vector(as_representation=True)
 
         # Update the loss value
         with torch.no_grad():
@@ -168,7 +168,7 @@ class Iter(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.set_parameters(self.res(), as_representation=True)
+        self.model.parameters.set_values(self.res(), as_representation=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
@@ -228,7 +228,7 @@ class Iter_LM(BaseOptimizer):
 
     def step(self):
         # These store the chunking information depending on which chunk mode is selected
-        param_ids = list(self.model.get_parameter_identity_vector())
+        param_ids = list(self.model.parameters.get_parameter_identity_vector())
         _chunk_index = 0
         _chunk_choices = None
         res = None
@@ -274,6 +274,8 @@ class Iter_LM(BaseOptimizer):
                     # Select the next chunk in order
                     chunk = self.chunks[_chunk_index]
                     _chunk_index += 1
+            else:
+                raise ValueError("Unrecognized chunks value, should be one of int, tuple. not: {type(self.chunks)}")
             if self.verbose > 0:
                 AP_config.ap_logger.info(str(chunk))
             del res
@@ -290,7 +292,7 @@ class Iter_LM(BaseOptimizer):
 
         self.loss_history.append(res.res_loss())
         self.lambda_history.append(
-            self.model.get_parameter_vector(as_representation=True)
+            self.model.parameters.get_parameter_vector(as_representation=True)
             .detach()
             .cpu()
             .numpy()
@@ -336,7 +338,7 @@ class Iter_LM(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.set_parameters(self.res(), as_representation=True)
+        self.model.parameters.set_values(self.res(), as_representation=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"

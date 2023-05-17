@@ -68,13 +68,13 @@ class BaseOptimizer(object):
 
         if initial_state is None:
             try:
-                initial_state = self.model.get_parameter_vector(
+                initial_state = self.model.parameters.get_parameter_vector(
                     as_representation=True,
                     parameters_identity=self.fit_parameters_identity,
                 )
             except AssertionError:
                 self.model.initialize()
-                initial_state = self.model.get_parameter_vector(
+                initial_state = self.model.parameters.get_parameter_vector(
                     as_representation=True,
                     parameters_identity=self.fit_parameters_identity,
                 )

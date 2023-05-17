@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import Optional, Sequence
+from collections import OrderedDict
 
 import torch
 import numpy as np
@@ -32,7 +33,7 @@ class Group_Model(AutoProf_Model):
     Args:
         name (str): unique name for the full group model
         target (Target_Image): the target image that this group model is trying to fit to
-        model_list (Optional[Sequence[AutoProf_Model]]): list of AutoProf_Model objects which will combine for the group model
+        models (Optional[Sequence[AutoProf_Model]]): list of AutoProf_Model objects which will combine for the group model
         locked (bool): if the whole group of models should be locked
 
     """
@@ -44,14 +45,14 @@ class Group_Model(AutoProf_Model):
         self,
         name: str,
         *args,
-        model_list: Optional[Sequence[AutoProf_Model]] = None,
+        models: Optional[Sequence[AutoProf_Model]] = None,
         **kwargs,
     ):
-        super().__init__(name, *args, model_list=model_list, **kwargs)
+        super().__init__(name, *args, models=models, **kwargs)
         self._param_tuple = None
-        self.model_list = []
-        if model_list is not None:
-            self.add_model(model_list)
+        self.models = OrderedDict()
+        if models is not None:
+            self.add_model(models)
         self._psf_mode = "none"
         self.update_window()
         if "filename" in kwargs:
@@ -69,13 +70,13 @@ class Group_Model(AutoProf_Model):
             for mod in model:
                 self.add_model(mod)
             return
-        for mod in self.model_list:
-            if model.name == mod.name:
-                raise KeyError(
-                    f"{self.name} already has model with name {model.name}, every model must have a unique name."
-                )
+        if model.name in self.models and model is not self.models[model.name]:
+            raise KeyError(
+                f"{self.name} already has model with name {model.name}, every model must have a unique name."
+            )
 
-        self.model_list.append(model)
+        self.models[model.name] = model
+        self.parameters.add_group(model.parameters)
         self.update_window()
 
     @property
@@ -89,23 +90,6 @@ class Group_Model(AutoProf_Model):
     def equality_constraints(self, val):
         pass
 
-    def pop_model(self, model):
-        """Removes the specified model from the group model list. Returns the
-        model object if it is found.
-
-        """
-        if isinstance(model, (tuple, list)):
-            return tuple(self.remove_model(mod) for mod in model)
-        if isinstance(model, str):
-            for sub_model in self.model_list:
-                if sub_model.name == model:
-                    model = sub_model
-                    break
-            else:
-                raise KeyError(f"Could not find {model} in {self.name} model list")
-
-        return self.model_list.pop(self.model_list.index(model))
-
     def update_window(self, include_locked: bool = False):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.
@@ -115,7 +99,7 @@ class Group_Model(AutoProf_Model):
             self.target, Image_List
         ):  # Window_List if target is a Target_Image_List
             new_window = [None] * len(self.target.image_list)
-            for model in self.model_list:
+            for model in self.models.values():
                 if model.locked and not include_locked:
                     continue
                 if isinstance(model.target, Image_List):
@@ -138,7 +122,7 @@ class Group_Model(AutoProf_Model):
             new_window = Window_List(new_window)
         else:
             new_window = None
-            for model in self.model_list:
+            for model in self.models.values():
                 if model.locked and not include_locked:
                     continue
                 if new_window is None:
@@ -146,84 +130,6 @@ class Group_Model(AutoProf_Model):
                 else:
                     new_window |= model.window
         self.window = new_window
-
-    def parameter_tuples_order(self, override_locked: bool = True):
-        """Constructs a list where each entry is a tuple with a unique name
-        for the parameter and the parameter object itself.
-
-        """
-        params = []
-        self._equality_constraints = []
-        for model in self.model_list:
-            if model.locked and not override_locked:
-                continue
-            for p in model.parameters:
-                if model[p].locked and not override_locked:
-                    continue
-                if p in model.equality_constraints:
-                    for k in range(len(params)):
-                        if params[k][1] is model.parameters[p]:
-                            self._equality_constraints.pop(
-                                self.equality_constraints.index(params[k][0])
-                            )
-                            params[k] = (f"{model.name}:{params[k][0]}", params[k][1])
-                            self._equality_constraints.append(params[k][0])
-                            break
-                    else:
-                        params.append((f"{model.name}|{p}", model.parameters[p]))
-                        self._equality_constraints.append(f"{model.name}|{p}")
-                else:
-                    params.append((f"{model.name}|{p}", model.parameters[p]))
-        return params
-
-    def parameter_order(
-        self, override_locked: bool = False, parameters_identity: Optional[tuple] = None
-    ):
-        """Gives the unique parameter names for this model in a repeatable
-        order. By default, locked parameters are excluded from the
-        tuple. The order of parameters will of course not be the same
-        when called with override_locked True/False.
-
-        """
-        param_tuples = self.parameter_tuples_order(override_locked=override_locked)
-        param_order = []
-        for P, M in param_tuples:
-            if parameters_identity is not None and not any(
-                pid in parameters_identity for pid in self[P].identities
-            ):
-                continue
-            param_order.append(P)
-
-        return tuple(param_order)
-
-    @property
-    def param_tuple(self):
-        """A tuple with the name of every parameter in the group model"""
-        if self._param_tuple is None:
-            self._param_tuple = self.parameter_tuples_order(override_locked=True)
-        return self._param_tuple
-
-    @property
-    def parameters(self):
-        """A dictionary in which every unique parameter appears once. This
-        includes locked parameters. For constrained parameters across
-        several models, the parameter will only appear once where the
-        names of the models are connected by ":" characters.
-
-        """
-        try:
-            return dict(P for P in self.param_tuple)
-        except AttributeError:
-            return {}
-
-    @parameters.setter
-    def parameters(self, val):
-        """You cannot set the parameters at the group model level, this
-        function exists simply to avoid raising errors when
-        intializing models.
-
-        """
-        pass
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -238,7 +144,7 @@ class Group_Model(AutoProf_Model):
         self._param_tuple = None
 
         target_copy = target.copy()
-        for model in self.model_list:
+        for model in self.models.values():
             model.initialize(target_copy)
             target_copy -= model()
 
@@ -265,7 +171,7 @@ class Group_Model(AutoProf_Model):
         else:
             sample_window = False
 
-        for model in self.model_list:
+        for model in self.models.values():
             if window is not None and isinstance(window, Window_List):
                 indices = self.target.match_indices(model.target)
                 if isinstance(indices, (tuple, list)):
@@ -310,7 +216,7 @@ class Group_Model(AutoProf_Model):
         self._param_tuple = None
 
         if parameters is not None:
-            self.set_parameters(
+            self.parameters.set_values(
                 parameters,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
@@ -318,14 +224,14 @@ class Group_Model(AutoProf_Model):
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
-                parameters=self.get_parameter_identity_vector(
+                parameters=self.parameters.get_parameter_identity_vector(
                     parameters_identity=parameters_identity,
                 )
             )
         else:
             jac_img = pass_jacobian
 
-        for model in self.model_list:
+        for model in self.models.values():
             if isinstance(model, Group_Model):
                 model.jacobian(
                     as_representation=as_representation,
@@ -343,26 +249,8 @@ class Group_Model(AutoProf_Model):
 
         return jac_img
 
-    def __getitem__(self, key):
-        try:
-            return self.parameters[key]
-        except KeyError:
-            pass
-
-        if isinstance(key, str) and "|" in key:
-            model_name = key[: key.find("|")].split(":")
-            for model in self.model_list:
-                if model.name in model_name:
-                    return model[key[key.find("|") + 1 :]]
-        elif isinstance(key, str):
-            for model in self.model_list:
-                if model.name == key:
-                    return model
-
-        raise KeyError(f"{key} not in {self.name}. {str(self)}")
-
     def __iter__(self):
-        return (mod for mod in self.model_list)
+        return (mod for mod in self.models.values())
 
     @property
     def psf_mode(self):
@@ -371,7 +259,7 @@ class Group_Model(AutoProf_Model):
     @psf_mode.setter
     def psf_mode(self, value):
         self._psf_mode = value
-        for model in self.model_list:
+        for model in self.models.values():
             model.psf_mode = value
 
     def get_state(self):
@@ -382,7 +270,7 @@ class Group_Model(AutoProf_Model):
         state = super().get_state()
         if "models" not in state:
             state["models"] = {}
-        for model in self.model_list:
+        for model in self.models.values():
             state["models"][model.name] = model.get_state()
         return state
 
@@ -394,7 +282,7 @@ class Group_Model(AutoProf_Model):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
         for model in state["models"]:
-            for own_model in self.model_list:
+            for own_model in self.models.values():
                 if model == own_model.name:
                     own_model.load(state["models"][model])
                     break

@@ -9,6 +9,7 @@ import torch
 from .core_model import AutoProf_Model
 from ..image import Model_Image, Window
 from .parameter_object import Parameter
+from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
 from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch, selective_integrate
@@ -99,34 +100,10 @@ class Component_Model(AutoProf_Model):
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
-                self.set_parameters(kwargs["parameters"])
+                self.parameters.set_values(kwargs["parameters"])
 
         if "filename" in kwargs:
             self.load(kwargs["filename"])
-
-    @property
-    def parameters(self):
-        try:
-            return self._parameters
-        except AttributeError:
-            return {}
-
-    @parameters.setter
-    def parameters(self, val):
-        self._parameters = val
-
-    def parameter_order(self, parameters_identity: Optional[tuple] = None):
-        """Returns a tuple of names of the parameters in their set order."""
-        param_order = tuple()
-        for P in self.__class__._parameter_order:
-            if self[P].locked:
-                continue
-            if parameters_identity is not None and not any(
-                pid in parameters_identity for pid in self[P].identities
-            ):
-                continue
-            param_order = param_order + (P,)
-        return param_order
 
     # Initialization functions
     ######################################################################
@@ -457,7 +434,7 @@ class Component_Model(AutoProf_Model):
             window = self.window & window
             
         # skip jacobian calculation if no parameters match criteria
-        porder = self.parameter_order(parameters_identity=parameters_identity)
+        porder = self.parameters.parameter_order(parameters_identity=parameters_identity)
         if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
 
@@ -466,13 +443,13 @@ class Component_Model(AutoProf_Model):
         if parameters is not None:
             if len(parameters) > self.jacobian_chunksize:
                 dochunk = True
-            self.set_parameters(
+            self.parameters.set_values(
                 parameters,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             )
         else:
-            if len(self.get_parameter_identity_vector(parameters_identity=parameters_identity)) > self.jacobian_chunksize:
+            if len(self.parameters.get_parameter_identity_vector(parameters_identity=parameters_identity)) > self.jacobian_chunksize:
                 dochunk = True
 
         # If the parameter list is too large, apply the chunk jacobian analysis
@@ -488,7 +465,7 @@ class Component_Model(AutoProf_Model):
         if parameters_identity is None:
             pids = None
         else:
-            pids = self.get_parameter_identity_vector(
+            pids = self.parameters.get_parameter_identity_vector(
                 parameters_identity=parameters_identity,
             )
         # Compute the jacobian
@@ -500,7 +477,7 @@ class Component_Model(AutoProf_Model):
                 parameters_identity=pids,
                 window=window,
             ).data,
-            self.get_parameter_vector(
+            self.parameters.get_parameter_vector(
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             ).detach(),
@@ -511,7 +488,7 @@ class Component_Model(AutoProf_Model):
 
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
-            parameters=self.get_parameter_identity_vector(
+            parameters=self.parameters.get_parameter_identity_vector(
                 parameters_identity=parameters_identity,
             ),
             data=full_jac,
@@ -538,7 +515,7 @@ class Component_Model(AutoProf_Model):
 
         """
 
-        pids = self.get_parameter_identity_vector(
+        pids = self.parameters.get_parameter_identity_vector(
             parameters_identity=parameters_identity,
         )
         jac_img = self.target[window].jacobian_image(
@@ -573,7 +550,7 @@ class Component_Model(AutoProf_Model):
         if "parameters" not in state:
             state["parameters"] = {}
         for P in self.parameters:
-            state["parameters"][P] = self[P].get_state()
+            state["parameters"][P.name] = P.get_state()
         return state
 
     def load(self, filename: Union[str, dict, io.TextIOBase] = "AutoProf.yaml"):
@@ -600,6 +577,3 @@ class Component_Model(AutoProf_Model):
     from ._model_methods import integrate_window
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
-    from ._model_methods import __getitem__
-    from ._model_methods import __contains__
-    from ._model_methods import __str__

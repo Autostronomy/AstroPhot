@@ -83,7 +83,7 @@ class MHMCMC(BaseOptimizer):
         """
 
         self.chain.append(
-            self.model.transform(
+            self.model.parameters.transform(
                 state,
                 to_representation=False,
             ).detach().cpu().clone().numpy()

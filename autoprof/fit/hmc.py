@@ -144,7 +144,7 @@ class HMC(BaseOptimizer):
             hmc_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.get_parameter_vector(as_representation=True)}
+        init_params = {"x": self.model.parameters.get_parameter_vector(as_representation=True)}
 
         # Run MCMC with the HMC sampler and the initial guess
         mcmc_kwargs = {
@@ -164,7 +164,7 @@ class HMC(BaseOptimizer):
 
         with torch.no_grad():
             for i in range(len(chain)):
-                chain[i] = self.model.transform(chain[i], to_representation = False)
+                chain[i] = self.model.parameters.transform(chain[i], to_representation = False)
         self.chain = chain
         
         return self

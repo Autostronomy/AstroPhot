@@ -12,7 +12,7 @@ from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
 from ..utils.decorators import ignore_numpy_warnings
 from ..image import Model_Image, Window, Target_Image
-from .parameter_object import Parameter
+from .parameter_group import Parameter_Group
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
 
@@ -76,7 +76,7 @@ class AutoProf_Model(object):
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
         self.equality_constraints = []
-        self.parameters = {}
+        self.parameters = Parameter_Group(self.name)
         self.requires_grad = kwargs.get("requires_grad", False)
         self.target = target
         self.window = window
@@ -87,7 +87,13 @@ class AutoProf_Model(object):
             for P in parameter:
                 self.add_equality_constraint(model, P)
             return
-        self.parameters[parameter] = model[parameter]
+        del_param = self.parameters.get_name(parameter)
+        use_param = model.parameters.get_name(parameter)
+        old_groups = del_param.groups
+        for group in old_groups:
+            group.pop_id(del_param.identity)
+            group.add_parameter(use_param)
+            
         self.equality_constraints.append(parameter)
         model.equality_constraints.append(parameter)
 
@@ -123,7 +129,7 @@ class AutoProf_Model(object):
         parameters_identity=None,
     ):
         if parameters is not None:
-            self.set_parameters(parameters, as_representation, parameters_identity)
+            self.parameters.set_values(parameters, as_representation, parameters_identity)
 
         model = self.sample()
         data = self.target[self.window]
@@ -139,115 +145,6 @@ class AutoProf_Model(object):
             ) / 2.
             
         return chi2
-        
-
-    def set_parameters(
-        self,
-        parameters,
-        as_representation=True,
-        parameters_identity=None,
-    ):
-        """
-        Set the parameter values for this model with a given object.
-
-        Parameters:
-            parameters: updated values for the parameters. Either as a dictionary of parameter_name: tensor pairs, or as a 1D tensor.
-            as_representation: if true the parameters are given as a representation form, if false then the parameters are given as values (see parameters for difference between representation and value)
-            parameters_identity: iterable of parameter identities if "parameters" is some subset of the full parameter tensor. The identity can be found with `parameter.identity` where `parameter` is a parameter object
-        """
-        if isinstance(parameters, dict):
-            for P in parameters:
-                if self[P].locked:
-                    continue
-                if as_representation:
-                    self[P].representation = parameters[P]
-                else:
-                    self[P].value = parameters[P]
-            return
-        # ensure parameters are a tensor
-        parameters = torch.as_tensor(
-            parameters, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        # track the order of the parameters
-        porder = self.parameter_order(parameters_identity=parameters_identity)
-
-        # If parameters are provided by identity, they are individually updated
-        if parameters_identity is not None:
-            parameters_identity = list(parameters_identity)
-            for P in porder:
-                for pid in self[P].identities:
-                    if pid in parameters_identity:
-                        if as_representation:
-                            self[P].set_representation(
-                                parameters[parameters_identity.index(pid)], identity=pid
-                            )
-                        else:
-                            self[P].set_value(
-                                parameters[parameters_identity.index(pid)], identity=pid
-                            )
-            return
-
-        # If parameters are provided as the full vector, they are added in bulk
-        start = 0
-        for P, V in zip(
-            porder,
-            self.parameter_vector_len(),
-        ):
-            if as_representation:
-                self[P].representation = parameters[start : start + V].reshape(
-                    self[P].representation.shape
-                )
-            else:
-                self[P].value = parameters[start : start + V].reshape(
-                    self[P].value.shape
-                )
-            start += V
-
-    def set_uncertainty(
-        self,
-        uncertainty,
-        as_representation=False,
-        parameters_identity=None,
-    ):
-        if isinstance(uncertainty, dict):
-            for P in uncertainty:
-                if self[P].locked:
-                    continue
-                self[P].set_uncertainty(
-                    uncertainty[P],
-                    as_representation=as_representation,
-                )
-            return
-        uncertainty = torch.as_tensor(
-            uncertainty, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        # track the order of the parameters
-        porder = self.parameter_order(parameters_identity=parameters_identity)
-
-        # If uncertainty is provided by identity, they are individually updated
-        if parameters_identity is not None:
-            parameters_identity = list(parameters_identity)
-            for P in porder:
-                for pid in self[P].identities:
-                    if pid in parameters_identity:
-                        self[P].set_uncertainty(
-                            uncertainty[parameters_identity.index(pid)],
-                            as_representation=as_representation,
-                            identity=pid,
-                        )
-            return
-
-        # If uncertainty is provided as the full vector, they are added in bulk
-        start = 0
-        for P, V in zip(
-            porder,
-            self.parameter_vector_len(),
-        ):
-            self[P].set_uncertainty(
-                uncertainty[start : start + V].reshape(self[P].representation.shape),
-                as_representation=as_representation,
-            )
-            start += V
 
     def jacobian(
         self,
@@ -341,133 +238,9 @@ class AutoProf_Model(object):
         assert isinstance(val, bool)
         self._locked = val
 
-    def parameter_vector_len(self, parameters_identity=None):
-        param_vec_len = []
-        for P in self.parameter_order(parameters_identity=parameters_identity):
-            if parameters_identity is None:
-                param_vec_len.append(int(np.prod(self[P].value.shape)))
-            else:
-                param_vec_len.append(
-                    sum(pid in parameters_identity for pid in self[P].identities)
-                )
-        return param_vec_len
-
-    def get_parameter_vector(self, as_representation=False, parameters_identity=None):
-        parameters = torch.zeros(
-            np.sum(self.parameter_vector_len(parameters_identity=parameters_identity)),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-        )
-        porder = self.parameter_order(parameters_identity=parameters_identity)
-        # If vector is requested by identity, they are individually updated
-        if parameters_identity is not None:
-            pindex = 0
-            for P in porder:
-                for pid in self[P].identities:
-                    if pid in parameters_identity:
-                        if as_representation:
-                            parameters[pindex] = self[P].get_representation(
-                                identity=pid
-                            )
-                        else:
-                            parameters[pindex] = self[P].get_value(identity=pid)
-                        pindex += 1
-            return parameters
-
-        # If the full vector is requested, they are added in bulk
-        vstart = 0
-        for P, V in zip(
-            porder,
-            self.parameter_vector_len(),
-        ):
-            if as_representation:
-                parameters[vstart : vstart + V] = self[P].representation
-            else:
-                parameters[vstart : vstart + V] = self[P].value
-            vstart += V
-        return parameters
-
-    def get_parameter_name_vector(self, parameters_identity=None):
-        parameters = []
-        porder = self.parameter_order(parameters_identity=parameters_identity)
-        # If vector is requested by identity, they are individually updated
-        if parameters_identity is not None:
-            pindex = 0
-            for P in porder:
-                for pid, nid in zip(self[P].identities, self[P].names):
-                    if pid in parameters_identity:
-                        parameters.append(nid)
-            return parameters
-
-        # If the full vector is requested, they are added in bulk
-        for P in porder:
-            parameters += list(self[P].names)
-        return parameters
-
-    def get_parameter_identity_vector(self, parameters_identity=None):
-        parameters = []
-        vstart = 0
-        for P, V in zip(
-            self.parameter_order(),
-            self.parameter_vector_len(),
-        ):
-            for pid in self[P].identities:
-                if parameters_identity is None or pid in parameters_identity:
-                    parameters.append(pid)
-            vstart += V
-        return parameters
-
-    def transform(self, in_parameters, to_representation = True, parameters_identity = None):
-        out_parameters = torch.zeros(
-            np.sum(self.parameter_vector_len(parameters_identity = parameters_identity)),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-        )
-        porder = self.parameter_order(parameters_identity = parameters_identity)
-        
-        # If vector is requested by identity, they are individually updated
-        if parameters_identity is not None:
-            pindex = 0
-            for P in porder:
-                for pid in self[P].identities:
-                    if pid in parameters_identity:
-                        if to_representation:
-                            out_parameters[pindex] = self[P].val_to_rep(in_parameters[pindex])
-                        else:
-                            out_parameters[pindex] = self[P].rep_to_val(in_parameters[pindex])
-                        pindex += 1
-            return out_parameters
-        
-        # If the full vector is requested, they are added in bulk
-        vstart = 0
-        for P, V in zip(
-            porder,
-            self.parameter_vector_len(),
-        ):
-            if to_representation:
-                out_parameters[vstart : vstart + V] = self[P].val_to_rep(in_parameters[vstart : vstart + V])
-            else:
-                out_parameters[vstart : vstart + V] = self[P].rep_to_val(in_parameters[vstart : vstart + V])
-            vstart += V
-        return out_parameters
-
-    def get_uncertainty_vector(self, as_representation=False):
-        uncertanty = torch.zeros(
-            np.sum(self.parameter_vector_len()),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-        )
-        vstart = 0
-        for P, V in zip(
-            self.parameter_order(),
-            self.parameter_vector_len(),
-        ):
-            if as_representation:
-                uncertanty[vstart : vstart + V] = self[P].uncertainty_representation
-            else:
-                uncertanty[vstart : vstart + V] = self[P].uncertainty
-            vstart += V
-        return uncertanty
+    @property
+    def parameter_order(self):
+        return tuple(P.name for P in self.parameters)
 
     def __str__(self):
         """String representation for the model."""
@@ -563,6 +336,19 @@ class AutoProf_Model(object):
     def __eq__(self, other):
         return self is other
 
+    def __getitem__(self, key):
+        return self.parameters[key]
+
+    def __contains__(self, key):
+        return self.parameters.__contains__(key)
+    
+    def __str__(self):
+        state = self.get_state()
+        presentation = ""
+        for key in state:
+            presentation = presentation + f"{key}: {state[key]}\n"
+        return presentation
+    
     @select_sample
     def __call__(
         self,
@@ -574,7 +360,7 @@ class AutoProf_Model(object):
         **kwargs,
     ):
         if parameters is not None:
-            self.set_parameters(
+            self.parameters.set_values(
                 parameters,
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,

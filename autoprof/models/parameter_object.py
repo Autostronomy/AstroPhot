@@ -1,7 +1,6 @@
 from typing import Optional
 
 import torch
-import numpy as np
 
 from ..utils.conversions.optimization import (
     boundaries,
@@ -58,6 +57,7 @@ class Parameter(object):
         self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
         self.set_profile(kwargs.get("prof", None))
+        self.groups = set()
         self.to()
 
     @property
