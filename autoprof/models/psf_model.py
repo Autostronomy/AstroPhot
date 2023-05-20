@@ -38,11 +38,12 @@ class PSF_Star(Star_Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # fixme, model already has PSF interface, those can just be merged
         if "psf" in kwargs:
             self.psf_model = kwargs["psf"]
         else:
             self.psf_model = Model_Image(
-                data=torch.clone(self.target.psf), pixelscale=self.target.pixelscale
+                data=torch.clone(self.psf.data), pixelscale=self.psf.pixelscale,
             )
 
     @torch.no_grad()

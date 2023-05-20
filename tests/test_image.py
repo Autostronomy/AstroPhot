@@ -329,19 +329,19 @@ class TestTargetImage(unittest.TestCase):
         )
         self.assertTrue(new_image.has_psf, "target image should store variance")
         self.assertEqual(
-            new_image.psf_border_int[0],
+            new_image.psf.psf_border_int[0],
             5,
             "psf border should be half psf size, rounded up ",
         )
         self.assertEqual(
-            new_image.psf_border[0],
+            new_image.psf.psf_border[0],
             5,
             "psf border should be half psf size, rounded up ",
         )
 
         reduced_image = new_image.reduce(3)
         self.assertEqual(
-            reduced_image.psf[0][0], 9, "reduced image should sum sub pixels in psf"
+            reduced_image.psf.data[0][0], 9, "reduced image should sum sub pixels in psf"
         )
 
         new_image.psf = None
@@ -367,7 +367,7 @@ class TestTargetImage(unittest.TestCase):
             "Loaded image should have same variance",
         )
         self.assertTrue(
-            torch.all(new_image.psf == loaded_image.psf),
+            torch.all(new_image.psf.data == loaded_image.psf.data),
             "Loaded image should have same psf",
         )
 

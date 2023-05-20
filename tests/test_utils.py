@@ -21,11 +21,11 @@ class TestFFT(unittest.TestCase):
 
         convolved = ap.utils.operations.fft_convolve_torch(
             target.data,
-            target.psf,
+            target.psf.data,
         )
         scipy_convolve = fftconvolve(
             target.data.detach().numpy(),
-            target.psf.detach().numpy(),
+            target.psf.data.detach().numpy(),
             mode="same",
         )
         self.assertLess(
@@ -44,7 +44,7 @@ class TestFFT(unittest.TestCase):
         target = make_basic_sersic()
 
         convolved = ap.utils.operations.fft_convolve_multi_torch(
-            target.data, [target.psf, target.psf]
+            target.data, [target.psf.data, target.psf.data]
         )
         self.assertLess(
             torch.std(convolved),
