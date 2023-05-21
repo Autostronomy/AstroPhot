@@ -86,6 +86,7 @@ class Component_Model(AutoProf_Model):
         super().__init__(name, *args, **kwargs)
 
         self.psf = None
+        
         # Set any user defined attributes for the model
         for kwarg in kwargs:  # fixme move to core model?
             # Skip parameters with special behaviour
@@ -321,9 +322,13 @@ class Component_Model(AutoProf_Model):
             # Shift image back to align with original pixel grid
             working_image.window.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            image += working_image.reduce(self.psf.psf_upscale).crop(
+            working_image = working_image.reduce(self.psf.psf_upscale).crop(
                 self.psf.psf_border_int
             )
+            if self.mask is not None:
+                working_image.data = working_image.data * torch.logical_not(self.mask)
+            image += working_image
+            
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(
@@ -354,6 +359,8 @@ class Component_Model(AutoProf_Model):
             else:
                 raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
             # Add the sampled/integrated pixels to the requested image
+            if self.mask is not None:
+                working_image.data = working_image.data * torch.logical_not(self.mask)
             image += working_image
 
         return image

@@ -100,6 +100,67 @@ class PSF_Image(Image):
         image_list.append(
             fits.ImageHDU(self.data.detach().cpu().numpy(), header=psf_header)
         )
+
+    def copy(self, **kwargs):
+        """Creates a copy of the PSF_Image instance.
+        
+        This method generates a copy of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
+        
+        Args:
+            **kwargs: Arbitrary keyword arguments.
+        
+        Returns:
+            PSF_Image: A copy of the current PSF_Image instance.
+        """
+        return super().copy(
+            psf_upscale = self.psf_upscale,
+            band = self.band,
+        )
+    def blank_copy(self, **kwargs):
+        """Creates a blank copy of the PSF_Image instance.
+        
+        This method generates a blank copy of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
+        
+        Args:
+            **kwargs: Arbitrary keyword arguments.
+        
+        Returns:
+            PSF_Image: A blank copy of the current PSF_Image instance with the same properties but no data.
+        """
+        return super().blank_copy(
+            psf_upscale = self.psf_upscale,
+            band = self.band,
+        )
+    def get_window(self, **kwargs):
+        """Returns the window of the PSF_Image instance.
+        
+        This method returns the window of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
+        
+        Args:
+            **kwargs: Arbitrary keyword arguments.
+        
+        Returns:
+            Window: The window associated with the PSF_Image instance.
+        """
+        return super().get_window(
+            psf_upscale = self.psf_upscale,
+            band = self.band,            
+        )
+
+    def to(self, dtype = None, device = None):
+        """Transfers the PSF_Image instance to the specified device and modifies its data type.
+        
+        This method changes the data type of the PSF_Image object and moves it to a specified device. 
+        If no device is provided, it defaults to 'AP_config.ap_device'.
+        
+        Args:
+            dtype (torch.dtype, optional): The desired data type to which the PSF_Image instance should be converted.
+            device (torch.device, optional): The desired device to which the PSF_Image instance should be moved.
+        """
+        if device is None:
+            device = AP_config.ap_device
+        self.psf_upscale = self.psf_upscale.to(device = device)
+        super().to(dtype=dtype, device=device)
         
     def reduce(self, scale, **kwargs):
         """Reduces the size of the image using a given scale factor.
@@ -114,4 +175,12 @@ class PSF_Image(Image):
         Returns:
             PSF_Image: A new instance of PSF_Image class with the reduced image size.
         """
-        return super().reduce(scale, psf_upscale = self.psf_upscale / scale, **kwargs)
+        return super().reduce(
+            scale,
+            psf_upscale = self.psf_upscale / scale,
+            band = self.band,
+            **kwargs
+        )
+
+    def expand(self, padding):
+        raise NotImplementedError("expand not available for PSF_Image")
