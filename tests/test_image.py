@@ -386,7 +386,43 @@ class TestTargetImage(unittest.TestCase):
             "Loaded image should have same psf",
         )
 
+class TestPSFImage(unittest.TestCase):
+    def test_copying(self):
+        psf_image = image.PSF_Image(
+            data = torch.ones((15,15)),
+            pixelscale = 1.,
+            psf_upscale = 2,
+        )
 
+        copy_psf = psf_image.copy()
+        self.assertEqual(psf_image.data[0][0], copy_psf.data[0][0], "copied image should have same data")
+        self.assertEqual(psf_image.psf_upscale, copy_psf.psf_upscale, "Copied image should have same upscale tracer")
+        blank_psf = psf_image.blank_copy()
+        self.assertNotEqual(psf_image.data[0][0], blank_psf.data[0][0], "blank copied image should not have same data")
+        self.assertEqual(psf_image.psf_upscale, copy_psf.psf_upscale, "blank copied image should have same upscale tracer")
+
+        psf_image.to(dtype = torch.float32)
+
+    def test_reducing(self):
+        psf_image = image.PSF_Image(
+            data = torch.ones((15,15)),
+            pixelscale = 1.,
+            psf_upscale = 3,
+        )
+        new_image = image.Target_Image(
+            data=torch.ones((36, 45)),
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+            psf = psf_image,
+        )
+
+        reduce_image = new_image.reduce(3)
+        self.assertEqual(tuple(reduce_image.psf.data.shape), (5,5), "reducing image should reduce psf")
+        self.assertEqual(reduce_image.psf.psf_upscale, 1, "reducing image should update upscale factor")
+        
+        
 class TestModelImage(unittest.TestCase):
     def test_replace(self):
         new_image = image.Model_Image(
@@ -432,7 +468,6 @@ class TestModelImage(unittest.TestCase):
             delta=1,
             msg="Shifting field of ones should give field of ones",
         )
-
 
 class TestJacobianImage(unittest.TestCase):
     def test_jacobian_add(self):
