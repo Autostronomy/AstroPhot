@@ -347,6 +347,21 @@ class TestTargetImage(unittest.TestCase):
         new_image.psf = None
         self.assertFalse(new_image.has_psf, "target image update to no variance")
 
+    def test_reduce(self):
+        new_image = image.Target_Image(
+            data=torch.ones((30, 36)),
+            psf=torch.ones((9, 9)),
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+        )
+        smaller_image = new_image.reduce(3)
+        self.assertEqual(smaller_image.data[0][0], 9, "reduction should sum flux")
+        self.assertEqual(tuple(smaller_image.data.shape), (10,12), "reduction should decrease image size")
+        self.assertEqual(smaller_image.psf.data[0][0], 9, "reduction should sum psf flux")
+        self.assertEqual(tuple(smaller_image.psf.data.shape), (3,3), "reduction should decrease psf image size")
+        
     def test_target_save_load(self):
         new_image = image.Target_Image(
             data=torch.ones((16, 32)),
