@@ -73,6 +73,30 @@ class TestModel(unittest.TestCase):
         self.assertTrue(
             torch.all(mod().data == 0), "Component_Model model_image should be zeros"
         )
+    
+    def test_mask(self):
+
+        target = make_basic_sersic()
+        mask = torch.zeros_like(target.data)
+        mask[10,13] = 1
+        model = ap.models.AutoProf_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+            mask = mask
+        )
+
+        sample = model()
+        self.assertEqual(sample.data[10,13], 0., "masked values should be zero")
+        self.assertNotEqual(sample.data[11,12], 0., "unmasked values should NOT be zero")
 
 
 class TestAllModelBasics(unittest.TestCase):
