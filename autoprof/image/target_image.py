@@ -7,6 +7,7 @@ from torch.nn.functional import avg_pool2d
 from .image_object import Image, Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .model_image import Model_Image, Model_Image_List
+from .psf_image import PSF_Image
 from astropy.io import fits
 from .. import AP_config
 
@@ -24,19 +25,25 @@ class Target_Image(Image):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # set the band
+        self.band = kwargs.get("band", None)
+        
         if not self.has_variance:
             self.set_variance(kwargs.get("variance", None))
         if not self.has_mask:
             self.set_mask(kwargs.get("mask", None))
         if not self.has_psf:
-            self.set_psf(kwargs.get("psf", None))
-        self.psf_upscale = torch.as_tensor(
-            kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
-        )
+            self.set_psf(kwargs.get("psf", None), kwargs.get("psf_upscale", 1))
 
-        # set the band
-        self.band = kwargs.get("band", str(Target_Image.image_count))
-        Target_Image.image_count += 1
+    @property
+    def band(self):
+        if self._band is None:
+            self._band = str(Target_Image.image_count)
+            Target_Image.image_count += 1
+        return self._band
+    @band.setter
+    def band(self, val):
+        self._band = val
 
     @property
     def variance(self):
@@ -83,28 +90,6 @@ class Target_Image(Image):
         self.set_psf(psf)
 
     @property
-    def psf_border_int(self):
-        return torch.ceil(
-            (
-                1
-                + torch.flip(
-                    torch.tensor(
-                        self.psf.shape,
-                        dtype=AP_config.ap_dtype,
-                        device=AP_config.ap_device,
-                    ),
-                    (0,),
-                )
-                / self.psf_upscale
-            )
-            / 2
-        ).int()
-
-    @property
-    def psf_border(self):
-        return self.pixelscale * self.psf_border_int
-
-    @property
     def has_psf(self):
         try:
             return self._psf is not None
@@ -126,17 +111,19 @@ class Target_Image(Image):
             )
         )
 
-    def set_psf(self, psf):
+    def set_psf(self, psf, psf_upscale = 1):
         if psf is None:
             self._psf = None
             return
-        assert torch.all((torch.tensor(psf.shape) % 2) == 1), "psf must have odd shape"
-        self._psf = (
-            psf.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-            if isinstance(psf, torch.Tensor)
-            else torch.as_tensor(
-                psf, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+        if isinstance(psf, PSF_Image):
+            self._psf = psf
+            return
+        
+        self._psf = PSF_Image(
+            psf,
+            psf_upscale = psf_upscale,
+            pixelscale = self.pixelscale / psf_upscale,
+            band = self.band,
         )
 
     def set_mask(self, mask):
@@ -180,7 +167,6 @@ class Target_Image(Image):
         return super().copy(
             mask=self._mask,
             psf=self._psf,
-            psf_upscale=self.psf_upscale,
             variance=self._variance,
             **kwargs,
         )
@@ -191,7 +177,7 @@ class Target_Image(Image):
 
         """
         return super().blank_copy(
-            mask=self._mask, psf=self._psf, psf_upscale=self.psf_upscale, **kwargs
+            mask=self._mask, psf=self._psf, **kwargs
         )
 
     def get_window(self, window, **kwargs):
@@ -202,7 +188,6 @@ class Target_Image(Image):
             variance=self._variance[indices] if self.has_variance else None,
             mask=self._mask[indices] if self.has_mask else None,
             psf=self._psf,
-            psf_upscale=self.psf_upscale,
             **kwargs,
         )
 
@@ -240,9 +225,6 @@ class Target_Image(Image):
     def reduce(self, scale, **kwargs):
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
-        if self.has_psf:
-            PMS = self.psf.shape[0] // scale
-            PNS = self.psf.shape[1] // scale
 
         return super().reduce(
             scale=scale,
@@ -256,12 +238,7 @@ class Target_Image(Image):
             .amax(axis=(1, 3))
             if self.has_mask
             else None,
-            psf=self.psf[: PMS * scale, : PNS * scale]
-            .reshape(PMS, scale, PNS, scale)
-            .sum(axis=(1, 3))
-            if self.has_psf
-            else None,
-            psf_upscale=self.psf_upscale,  # should psf_upscale change with reduce?
+            psf=self.psf.reduce(scale) if self.has_psf else None,
             **kwargs,
         )
 
@@ -272,11 +249,7 @@ class Target_Image(Image):
         image_list = super()._save_image_list()
         if self._psf is not None:
             psf_header = fits.Header()
-            psf_header["IMAGE"] = "PSF"
-            psf_header["UPSCALE"] = int(self.psf_upscale.detach().cpu().item())
-            image_list.append(
-                fits.ImageHDU(self._psf.detach().cpu().numpy(), header=psf_header)
-            )
+            self.psf._save_image_list(image_list, psf_header)
         if self._variance is not None:
             var_header = fits.Header()
             var_header["IMAGE"] = "VARIANCE"
@@ -298,10 +271,7 @@ class Target_Image(Image):
 
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.set_psf(np.array(hdu.data, dtype=np.float64))
-                self.psf_upscale = torch.tensor(
-                    hdu.header["UPSCALE"], dtype=torch.int32, device=AP_config.ap_device
-                )
+                self.set_psf(PSF_Image(np.array(hdu.data, dtype=np.float64), psf_upscale = hdu.header["UPSCALE"], pixelscale = self.pixelscale / hdu.header["UPSCALE"]))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
                 self.set_variance(np.array(hdu.data, dtype=np.float64))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":

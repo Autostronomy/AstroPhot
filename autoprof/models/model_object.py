@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Window
+from ..image import Model_Image, Window, PSF_Image
 from .parameter_object import Parameter
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
@@ -85,6 +85,8 @@ class Component_Model(AutoProf_Model):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
 
+        self.psf = None
+        
         # Set any user defined attributes for the model
         for kwarg in kwargs:  # fixme move to core model?
             # Skip parameters with special behaviour
@@ -114,6 +116,25 @@ class Component_Model(AutoProf_Model):
     @parameters.setter
     def parameters(self, val):
         self._parameters = val
+
+    @property
+    def psf(self):
+        if self._psf is None:
+            return self.target.psf
+        return self._psf
+
+    @psf.setter
+    def psf(self, val):
+        if val is None:
+            self._psf = None
+        elif isinstance(val, PSF_Image):
+            self._psf = val
+        else:
+            self._psf = PSF_Image(
+                val,
+                pixelscale = self.target.pixelscale,
+                band = self.target.band,
+            )
 
     def parameter_order(self, parameters_identity: Optional[tuple] = None):
         """Returns a tuple of names of the parameters in their set order."""
@@ -240,9 +261,9 @@ class Component_Model(AutoProf_Model):
 
         if "full" in self.psf_mode:
             # Add border for psf convolution edge effects, will be cropped out later
-            working_window += self.target.psf_border
+            working_window += self.psf.psf_border
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
-            working_pixelscale = image.pixelscale / self.target.psf_upscale
+            working_pixelscale = image.pixelscale / self.psf.psf_upscale
             # Sub pixel shift to align the model with the center of a pixel
             align = self.target.pixel_center_alignment()
             center_shift = (
@@ -291,7 +312,7 @@ class Component_Model(AutoProf_Model):
                 AP_config.ap_device,
             )
             shift_psf = torch.nn.functional.conv2d(
-                self.target.psf.view(1, 1, *self.target.psf.shape),
+                self.psf.data.view(1, 1, *self.psf.data.shape),
                 LL.view(1, 1, *LL.shape),
                 padding="same",
             )[0][0]
@@ -301,9 +322,13 @@ class Component_Model(AutoProf_Model):
             # Shift image back to align with original pixel grid
             working_image.window.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            image += working_image.reduce(self.target.psf_upscale).crop(
-                self.target.psf_border_int
+            working_image = working_image.reduce(self.psf.psf_upscale).crop(
+                self.psf.psf_border_int
             )
+            if self.mask is not None:
+                working_image.data = working_image.data * torch.logical_not(self.mask)
+            image += working_image
+            
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(
@@ -334,6 +359,8 @@ class Component_Model(AutoProf_Model):
             else:
                 raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
             # Add the sampled/integrated pixels to the requested image
+            if self.mask is not None:
+                working_image.data = working_image.data * torch.logical_not(self.mask)
             image += working_image
 
         return image

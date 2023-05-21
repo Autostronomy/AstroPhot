@@ -81,6 +81,7 @@ class AutoProf_Model(object):
         self.target = target
         self.window = window
         self._locked = locked
+        self.mask = kwargs.get("mask", None)
 
     def add_equality_constraint(self, model, parameter):
         if isinstance(parameter, (tuple, list)):
