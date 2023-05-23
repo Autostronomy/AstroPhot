@@ -2,7 +2,7 @@ import torch
 
 from .star_model_object import Star_Model
 from ..image import Model_Image
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ._shared_methods import select_target
 from .. import AP_config
@@ -49,23 +49,25 @@ class PSF_Star(Star_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
         target_area = target[self.window]
-        if self["flux"].value is None:
-            self["flux"].set_value(
+        if parameters["flux"].value is None:
+            parameters["flux"].set_value(
                 torch.log10(
                     torch.abs(torch.sum(target_area.data)) / target_area.pixelscale ** 2
                 ),
                 override_locked=True,
             )
-        if self["flux"].uncertainty is None:
-            self["flux"].set_uncertainty(
-                torch.abs(self["flux"].value) * 1e-2, override_locked=True
+        if parameters["flux"].uncertainty is None:
+            parameters["flux"].set_uncertainty(
+                torch.abs(parameters["flux"].value) * 1e-2, override_locked=True
             )
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
-        new_origin = self["center"].value - self.psf_model.shape / 2
+    @default_internal
+    def evaluate_model(self, X = None, Y = None, image=None, parameters=None, **kwargs):
+        new_origin = parameters["center"].value - self.psf_model.shape / 2
         pixel_origin = torch.round(new_origin / image.pixelscale) * image.pixelscale
         pixel_shift = (
             new_origin / image.pixelscale - pixel_origin / image.pixelscale
@@ -81,7 +83,7 @@ class PSF_Star(Star_Model):
             data=torch.nn.functional.conv2d(
                 (
                     torch.clone(self.psf_model.data)
-                    * ((10 ** self["flux"].value) * image.pixelscale ** 2)
+                    * ((10 ** parameters["flux"].value) * image.pixelscale ** 2)
                 ).view(1, 1, *self.psf_model.data.shape),
                 LL.view(1, 1, *LL.shape),
                 padding="same",

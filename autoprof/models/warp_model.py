@@ -5,7 +5,7 @@ from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 from .galaxy_model_object import Galaxy_Model
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 
 __all__ = ["Warp_Galaxy"]
@@ -53,13 +53,14 @@ class Warp_Galaxy(Galaxy_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
         # create the PA(R) and q(R) profile radii if needed
         for prof_param in ["PA(R)", "q(R)"]:
-            if self[prof_param].prof is None:
-                if self[prof_param].value is None:  # from scratch
+            if parameters[prof_param].prof is None:
+                if parameters[prof_param].value is None:  # from scratch
                     new_prof = [0, 2 * target.pixelscale]
                     while new_prof[-1] < torch.min(self.window.shape / 2):
                         new_prof.append(
@@ -69,42 +70,43 @@ class Warp_Galaxy(Galaxy_Model):
                     new_prof.pop()
                     new_prof.pop()
                     new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-                    self[prof_param].set_profile(new_prof)
+                    parameters[prof_param].set_profile(new_prof)
                 else:  # matching length of a provided profile
                     # create logarithmically spaced profile radii
                     new_prof = [0] + list(
                         np.logspace(
                             np.log10(2 * target.pixelscale),
                             np.log10(torch.max(self.window.shape / 2).item()),
-                            len(self[prof_param].value) - 1,
+                            len(parameters[prof_param].value) - 1,
                         )
                     )
                     # ensure no step is smaller than a pixelscale
                     for i in range(1, len(new_prof)):
                         if new_prof[i] - new_prof[i - 1] < target.pixelscale.item():
                             new_prof[i] = new_prof[i - 1] + target.pixelscale.item()
-                    self[prof_param].set_profile(new_prof)
+                    parameters[prof_param].set_profile(new_prof)
 
-        if not (self["PA(R)"].value is None or self["q(R)"].value is None):
+        if not (parameters["PA(R)"].value is None or parameters["q(R)"].value is None):
             return
 
-        if self["PA(R)"].value is None:
-            self["PA(R)"].set_value(
-                np.zeros(len(self["PA(R)"].prof)), override_locked=True
+        if parameters["PA(R)"].value is None:
+            parameters["PA(R)"].set_value(
+                np.zeros(len(parameters["PA(R)"].prof)), override_locked=True
             )
 
-        if self["q(R)"].value is None:
-            self["q(R)"].set_value(
-                np.ones(len(self["q(R)"].prof)) * 0.9, override_locked=True
+        if parameters["q(R)"].value is None:
+            parameters["q(R)"].set_value(
+                np.ones(len(parameters["q(R)"].prof)) * 0.9, override_locked=True
             )
 
-    def transform_coordinates(self, X, Y):
-        X, Y = super().transform_coordinates(X, Y)
-        R = self.radius_metric(X, Y)
+    @default_internal
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
+        X, Y = super().transform_coordinates(X, Y, image, parameters)
+        R = self.radius_metric(X, Y, image, parameters)
         PA = cubic_spline_torch(
-            self["PA(R)"].prof, -self["PA(R)"].value, R.view(-1)
+            parameters["PA(R)"].prof, -parameters["PA(R)"].value, R.view(-1)
         ).view(*R.shape)
-        q = cubic_spline_torch(self["q(R)"].prof, self["q(R)"].value, R.view(-1)).view(
+        q = cubic_spline_torch(parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)).view(
             *R.shape
         )
         X, Y = Rotate_Cartesian(PA, X, Y)

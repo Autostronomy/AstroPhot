@@ -1,4 +1,5 @@
 from typing import Optional
+from copy import deepcopy
 
 import torch
 
@@ -44,7 +45,7 @@ class Parameter(object):
 
     def __init__(self, name, value=None, **kwargs):
         self.name = name
-        self.identity = str(id(self))
+        self.identity = kwargs.get("identity", str(id(self)))
         self._prof = None
         self._representation = None
         self.limits = kwargs.get("limits", None)
@@ -52,13 +53,26 @@ class Parameter(object):
         self.locked = kwargs.get("locked", False)
         self._representation = None
         self.set_value(value, override_locked=True)
-        self.requires_grad = kwargs.get("requires_grad", False)
         self.units = kwargs.get("units", "none")
         self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
         self.set_profile(kwargs.get("prof", None))
-        self.groups = set()
+        self.groups = kwargs.get("groups", set())
         self.to()
+
+    def copy(self):
+        return Parameter(
+            name = self.name,
+            value = self.value.clone(),
+            identity = self.identity,
+            limits = self.limits,
+            cyclic = self.cyclic,
+            locked = self.locked,
+            units = self.units,
+            uncertainty = self.uncertainty,
+            prof = self.prof,
+            groups = self.groups,
+        )
 
     @property
     def representation(self):
@@ -178,21 +192,6 @@ class Parameter(object):
     @prof.setter
     def prof(self, val):
         self.set_profile(val)
-        
-    @property
-    def requires_grad(self):
-        if self._representation is None:
-            return False
-        return self._representation.requires_grad
-
-    @requires_grad.setter
-    def requires_grad(self, val):
-        assert isinstance(val, bool)
-        if self._representation is not None and not (
-            self._representation.requires_grad is val
-        ):
-            self._representation = self._representation.detach()
-            self._representation.requires_grad = val
 
     @property
     def grad(self):

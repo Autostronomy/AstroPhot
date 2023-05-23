@@ -4,7 +4,7 @@ import numpy as np
 from .galaxy_model_object import Galaxy_Model
 from .star_model_object import Star_Model
 from ._shared_methods import parametric_initialize, select_target
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import moffat_np
 
 __all__ = ["Moffat_Galaxy", "Moffat_Star"]
@@ -48,10 +48,11 @@ class Moffat_Galaxy(Galaxy_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
 
     from ._shared_methods import moffat_radial_model as radial_model
 
@@ -86,15 +87,17 @@ class Moffat_Star(Star_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
 
     from ._shared_methods import moffat_radial_model as radial_model
 
-    def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
-        )
-        return self.radial_model(self.radius_metric(X, Y), image)
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
+        if X is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                parameters["center"].value[0], parameters["center"].value[1]
+            )
+        return self.radial_model(self.radius_metric(X, Y, image=image, parameters=parameters), image=image, parameters=parameters)

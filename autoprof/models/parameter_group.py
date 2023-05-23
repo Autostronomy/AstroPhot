@@ -28,6 +28,13 @@ class Parameter_Group(object):
             for P in parameters:
                 self.add_parameter(P)
 
+    def copy(self):
+        return Parameter_Group(
+            name = self.name,
+            groups = list(group.copy() for group in self.groups.values()),
+            parameters = list(parameter.copy() for parameter in self.parameters.values()),
+        )
+    
     def add_group(self, group):
         self.groups[group.name] = group
         for P in group.parameters.values():
@@ -226,6 +233,28 @@ class Parameter_Group(object):
                     self.get_id(P).value.shape
                 )
             start += V
+
+    def get_values_as_tuple(
+            self,
+            as_representation = False,
+            parameters_identity = None
+    ):
+        if as_representation:
+            return tuple(self.parameters[identity].representation for identity in self.parameter_order(parameters_identity = parameters_identity))
+        return tuple(self.parameters[identity].value for identity in self.parameter_order(parameters_identity = parameters_identity))
+    
+    def set_values_from_tuple(
+            self,
+            values,
+            as_representation = False,
+            parameters_identity = None
+    ):
+        if as_representation:
+            for value, identity in zip(values, self.parameter_order(parameters_identity = parameters_identity)):
+                self.parameters[identity].set_representation(value)
+            return
+        for value, identity in zip(values, self.parameter_order(parameters_identity = parameters_identity)):
+            self.parameters[identity].set_value(value)
 
     def set_uncertainty(
         self,

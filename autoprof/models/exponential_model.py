@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import numpy as np
 from scipy.stats import iqr
@@ -17,7 +19,7 @@ from ._shared_methods import (
     select_target,
 )
 from ..utils.initialize import isophotes
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import exponential_torch, exponential_np
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
@@ -72,10 +74,11 @@ class Exponential_Galaxy(Galaxy_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -108,18 +111,20 @@ class Exponential_Star(Star_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
-    def evaluate_model(self, image):
+    @default_internal
+    def evaluate_model(self, image = None, parameters = None):
         X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
+            parameters["center"].value[0], parameters["center"].value[1]
         )
-        return self.radial_model(self.radius_metric(X, Y), image)
+        return self.radial_model(self.radius_metric(X, Y, image=image, parameters=parameters), image=image, parameters=parameters)
 
 
 class Exponential_SuperEllipse(SuperEllipse_Galaxy):
@@ -150,10 +155,11 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -186,10 +192,11 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters = None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -221,11 +228,12 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target    
-    def initialize(self, target=None):
-        super().initialize(target)
+    @select_target
+    @default_internal
+    def initialize(self, target=None, parameters = None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -258,10 +266,11 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -293,11 +302,12 @@ class Exponential_Warp(Warp_Galaxy):
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target   
-    def initialize(self, target=None):
-        super().initialize(target)
+    @select_target
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_exp, ("Re", "Ie"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -330,11 +340,12 @@ class Exponential_Ray(Ray_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
         parametric_segment_initialize(
-            self, target, _wrap_exp, ("Re", "Ie"), _x0_func, self.rays
+            model=self, parameters=parameters, target=target, prof_func=_wrap_exp, params=("Re", "Ie"), x0_func=_x0_func, segments=self.rays
         )
 
     from ._shared_methods import exponential_iradial_model as iradial_model
@@ -368,11 +379,12 @@ class Exponential_Wedge(Wedge_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
         parametric_segment_initialize(
-            self, target, _wrap_exp, ("Re", "Ie"), _x0_func, self.wedges
+            model=self, parameters=parameters, target=target, prof_func=_wrap_exp, params=("Re", "Ie"), x0_func=_x0_func, segments=self.wedges,
         )
 
     from ._shared_methods import exponential_iradial_model as iradial_model

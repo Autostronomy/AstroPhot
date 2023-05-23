@@ -39,10 +39,6 @@ class Window(object):
             raise ValueError(
                 "One of center or origin must be provided to create window"
             )
-        with torch.no_grad():
-            assert torch.all(
-                self.shape > 0
-            ), f"Window must have non-negative size: {self.origin.detach().cpu().numpy()}, {self.shape.detach().cpu().numpy()}"
 
     @property
     def center(self):

@@ -2,6 +2,7 @@ from copy import copy
 from time import time
 import io
 from typing import Optional
+from functools import partial
 
 import torch
 import numpy as np
@@ -10,7 +11,7 @@ import matplotlib.pyplot as plt
 from ..utils.conversions.optimization import cyclic_difference_np
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import Model_Image, Window, Target_Image
 from .parameter_group import Parameter_Group
 from ._shared_methods import select_target, select_sample
@@ -81,6 +82,7 @@ class AutoProf_Model(object):
         self.target = target
         self.window = window
         self._locked = locked
+        self.batched = kwargs.get("batched", False)
         self.mask = kwargs.get("mask", None)
 
     def add_equality_constraint(self, model, parameter):
@@ -101,7 +103,8 @@ class AutoProf_Model(object):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target, *args, **kwargs):
+    @default_internal
+    def initialize(self, target = None, parameters=None, **kwargs):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
@@ -116,7 +119,7 @@ class AutoProf_Model(object):
             window = self.window & window
         return self.target[window].model_image()
 
-    def sample(self, image=None, window=None, *args, **kwargs):
+    def sample(self, image=None, window=None, parameters=None, *args, **kwargs):
         """Calling this function should fill the given image with values
         sampled from the given model.
 
@@ -349,6 +352,15 @@ class AutoProf_Model(object):
         for key in state:
             presentation = presentation + f"{key}: {state[key]}\n"
         return presentation
+
+    def _batch_sample(self, image_header, window_shape, as_representation, parameters_identity, window_origin, *args):
+        parameters = self.parameters.copy()
+        parameters.set_values_from_tuple(args, as_representation = as_representation, parameters_identity = parameters_identity)
+        return self.sample(
+            image_header,
+            window = Window(shape = window_shape, origin = window_origin),
+            parameters = parameters
+        )
     
     @select_sample
     def __call__(
@@ -360,11 +372,18 @@ class AutoProf_Model(object):
         window=None,
         **kwargs,
     ):
-        if parameters is not None:
+        if parameters is None:
+            parameters = self.parameters
+        elif isinstance(parameters, torch.Tensor):
             self.parameters.set_values(
                 parameters,
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
+                as_representation = as_representation,
+                parameters_identity = parameters_identity
             )
+            parameters = self.parameters
 
-        return self.sample(image=image, window=window, **kwargs)
+        if self.batched:
+            if window is None:
+                window = self.window
+            return torch.vmap(partial(self._batch_sample, image, window.shape, True, parameters_identity))(window.origin, *parameters.get_values_as_tuple(as_representation=True, parameters_identity=parameters_identity))
+        return self.sample(image=image, window=window, parameters=parameters, **kwargs)

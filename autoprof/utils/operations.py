@@ -83,6 +83,7 @@ def selective_integrate(
         data: torch.Tensor,
         image_header: "Image_Header",
         eval_brightness: Callable,
+        eval_parameters: "Parameter_Group",
         max_depth: int = 3,
         _depth: int = 1,
         _reference_brightness: Optional[float] = None,
@@ -141,7 +142,7 @@ def selective_integrate(
     Xs = X[select].view(-1,1,1).repeat(1,3,3) + shiftsx
     Ys = Y[select].view(-1,1,1).repeat(1,3,3) + shiftsy
     # evaluate the model on the new smaller coordinate grid in each pixel
-    res = eval_brightness(image = image_header.super_resolve(3), X = Xs, Y = Ys)
+    res = eval_brightness(image = image_header.super_resolve(3), parameters = eval_parameters, X = Xs, Y = Ys)
     
     # Apply recursion to integrate any further pixels as needed
     selective_integrate(
@@ -150,6 +151,7 @@ def selective_integrate(
         data = res,
         image_header = image_header.super_resolve(3),
         eval_brightness = eval_brightness,
+        eval_parameters = eval_parameters,
         _depth = _depth+1,
         max_depth = max_depth,
         _reference_brightness = _reference_brightness,
@@ -158,3 +160,39 @@ def selective_integrate(
     
     # Update the pixels with the new integrated values
     data[select] = res.sum(axis = (1,2))
+
+@torch.jit.script
+def linspace(start: torch.Tensor, stop: torch.Tensor, num: int):
+    """
+    Creates a tensor of shape [num, *start.shape] whose values are evenly spaced from start to end, inclusive.
+    Replicates but the multi-dimensional bahaviour of numpy.linspace in PyTorch.
+    """
+    # create a tensor of 'num' steps from 0 to 1
+    steps = torch.arange(num, dtype=start.dtype, device=start.device) / (num - 1)
+    
+    # reshape the 'steps' tensor to [-1, *([1]*start.ndim)] to allow for broadcastings
+    # - using 'steps.reshape([-1, *([1]*start.ndim)])' would be nice here but torchscript
+    #   "cannot statically infer the expected size of a list in this contex", hence the code below
+    for i in range(start.ndim):
+        steps = steps.unsqueeze(-1)
+    
+    # the output starts at 'start' and increments until 'stop' in each dimension
+    out = start[None] + steps*(stop - start)[None]
+    
+    return out
+
+def ensure_dimensions(tensor: torch.Tensor, desired_dim: int, dim_loc: int = -1):
+    """Addes extra dimensions to a tensor to ensure it is at a specific
+    number of dims. Note that it will only add dimensions, not take
+    any away.
+
+    Args:
+      tensor: The tensor to operate on
+      desired_dim: the number of dimensions that are wanted
+      dim_loc: where to add the dimensions. Probably should be one of 0 or -1 for the beginning or end of the tensor.
+
+    returns: the tensor with the new shape
+    """
+    while tensor.dim() < desired_dim:
+        tensor = tensor.unsqueeze(dim_loc)
+    return tensor

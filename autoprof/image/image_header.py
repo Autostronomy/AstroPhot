@@ -279,6 +279,16 @@ class Image_Header(object):
         pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
         self.window += tuple(padding)
 
+    def get_state(self):
+        state = {}
+        state["pixelscale"] = self.pixelscale.item()
+        if self.zeropoint is not None:
+            state["zeropoint"] = self.zeropoint.item()
+        state["window"] = self.window.get_state()
+        if self.note is not None:
+            state["note"] = self.note
+        return state
+
     def _save_image_list(self):
         img_header = fits.Header()
         img_header["IMAGE"] = "PRIMARY"
@@ -308,4 +318,5 @@ class Image_Header(object):
                 break
         return hdul
     def __str__(self):
-        return f"image pixelscale: {self.pixelscale} origin: {self.origin}\ndata: {self.data}"
+        state = self.get_state()
+        return "\n".join(f"{key}: {state[key]}" for key in state)

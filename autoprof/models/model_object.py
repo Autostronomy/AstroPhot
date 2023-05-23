@@ -131,7 +131,7 @@ class Component_Model(AutoProf_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target: Optional["Target_Image"] = None):
+    def initialize(self, target: Optional["Target_Image"] = None, parameters: Optional[Parameter_Group] = None, **kwargs):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
@@ -141,22 +141,25 @@ class Component_Model(AutoProf_Model):
           target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
 
         """
-        super().initialize(target)
+        if parameters is None:
+            parameters = self.parameters
+            
+        super().initialize(target = target, parameters = parameters)
         # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
 
         # Use center of window if a center hasn't been set yet
-        if self["center"].value is None:
-            self["center"].set_value(self.window.center, override_locked=True)
+        if parameters["center"].value is None:
+            parameters["center"].set_value(self.window.center, override_locked=True)
         else:
             return
 
-        if self["center"].locked:
+        if parameters["center"].locked:
             return
 
         # Convert center coordinates to target area array indices
         init_icenter = coord_to_index(
-            self["center"].value[0], self["center"].value[1], target_area
+            parameters["center"].value[0], parameters["center"].value[1], target_area
         )
         # Compute center of mass in window
         COM = center_of_mass(
@@ -174,11 +177,11 @@ class Component_Model(AutoProf_Model):
         # Convert center of mass indices to coordinates
         COM_center = index_to_coord(COM[0], COM[1], target_area)
         # Set the new coordinates as the model center
-        self["center"].value = COM_center
+        parameters["center"].value = COM_center
 
     # Fit loop functions
     ######################################################################
-    def evaluate_model(self, image: Union["Image", "Image_Header"], X: Optional[torch.Tensor] = None, Y: Optional[torch.Tensor] = None, **kwargs):
+    def evaluate_model(self, image: Union["Image", "Image_Header"], parameters: Parameter_Group, X: Optional[torch.Tensor] = None, Y: Optional[torch.Tensor] = None, **kwargs):
         """Evaluate the model on every pixel in the given image. The
         basemodel object simply returns zeros, this function should be
         overloaded by subclasses.
@@ -189,7 +192,7 @@ class Component_Model(AutoProf_Model):
         """
         if X is None or Y is None:
             X, Y = image.get_coordinate_meshgrid_torch(
-                self["center"].value[0], self["center"].value[1]
+                parameters["center"].value[0], parameters["center"].value[1]
             )
         return torch.zeros_like(X)  # do nothing in base model
 
@@ -197,6 +200,7 @@ class Component_Model(AutoProf_Model):
         self,
         image: Optional["Image"] = None,
         window: Optional[Window] = None,
+        parameters: Optional[Parameter_Group] = None,
     ):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
@@ -233,6 +237,10 @@ class Component_Model(AutoProf_Model):
         else:
             working_window = window.copy() & image.window
 
+        # Parameters with which to evaluate the model
+        if parameters is None:
+            parameters = self.parameters
+
         if "window" in self.psf_mode:
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
@@ -244,9 +252,9 @@ class Component_Model(AutoProf_Model):
             # Sub pixel shift to align the model with the center of a pixel
             align = self.target.pixel_center_alignment()
             center_shift = (
-                self["center"].value
+                parameters["center"].value
                 - (
-                    torch.round(self["center"].value / working_pixelscale - align)
+                    torch.round(parameters["center"].value / working_pixelscale - align)
                     + align
                 )
                 * working_pixelscale
@@ -257,24 +265,26 @@ class Component_Model(AutoProf_Model):
                 pixelscale=working_pixelscale, window=working_window
             )
             # Evaluate the model at the current resolution
-            working_image.data += self.evaluate_model(image = working_image)
+            working_image.data += self.evaluate_model(image = working_image, parameters = parameters)
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+                X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value[0], parameters["center"].value[1])
                 selective_integrate(
                     X = X,
                     Y = Y,
                     data = working_image.data,
                     image_header = working_image.header,
                     eval_brightness = self.evaluate_model,
+                    eval_parameters = parameters,
                     max_depth = self.integrate_recursion_depth,
                     integrate_threshold = self.integrate_threshold,
                 )
             elif self.integrate_mode == "window":                
                 self.window_integrate(
                     working_image,
+                    parameters,
                     self.integrate_window(working_image, "center"),
                     self.integrate_recursion_depth,
                 )
@@ -312,24 +322,26 @@ class Component_Model(AutoProf_Model):
                 pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
-            working_image.data += self.evaluate_model(image = working_image)
+            working_image.data += self.evaluate_model(image = working_image, parameters = parameters)
             # Super-resolve and integrate where needed
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(self["center"].value[0], self["center"].value[1])
+                X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value[0], parameters["center"].value[1])
                 selective_integrate(
                     X = X,
                     Y = Y,
                     data = working_image.data,
                     image_header = working_image.header,
                     eval_brightness = self.evaluate_model,
+                    eval_parameters = parameters,
                     max_depth = self.integrate_recursion_depth,
                     integrate_threshold = self.integrate_threshold,
                 )
             elif self.integrate_mode == "window":
                 self.window_integrate(
                     working_image,
+                    parameters,
                     self.integrate_window(working_image, "pixel"),
                     self.integrate_recursion_depth,
                 )
@@ -343,7 +355,7 @@ class Component_Model(AutoProf_Model):
         return image
 
     def window_integrate(
-        self, working_image: "Image", window: Window, depth: int = 2
+            self, working_image: "Image", parameters: Parameter_Group, window: Window, depth: int = 2
     ):
         """Sample the model at a higher resolution than the given image, then
         integrate the super resolution up to the image resolution.
@@ -386,7 +398,7 @@ class Component_Model(AutoProf_Model):
             pixelscale=integrate_pixelscale, window=working_window
         )
         # Evaluate the model at the fine sampling points
-        integrate_image.data = self.evaluate_model(integrate_image)
+        integrate_image.data = self.evaluate_model(integrate_image, parameters)
 
         # If needed, recursively evaluates smaller windows
         recursive_shape = (
@@ -412,6 +424,7 @@ class Component_Model(AutoProf_Model):
         ) * integrate_pixelscale  # ensure shape pairity is matched during recursion
         self.window_integrate(
             integrate_image,
+            parameters,
             Window(
                 center=window.center,
                 shape=recursive_shape,

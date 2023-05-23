@@ -1,5 +1,8 @@
-from .model_object import Component_Model
 import torch
+
+from .model_object import Component_Model
+from ..utils.decorators import default_internal
+
 
 __all__ = ["Star_Model"]
 
@@ -18,7 +21,8 @@ class Star_Model(Component_Model):
     model_type = f"star {Component_Model.model_type}"
     useable = False
 
-    def radius_metric(self, X, Y):
+    @default_internal
+    def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.sqrt(
             (torch.abs(X) + 1e-8) ** 2 + (torch.abs(Y) + 1e-8) ** 2
         )  # epsilon added for numerical stability of gradient

@@ -13,7 +13,7 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import gaussian_torch, gaussian_np
 
 __all__ = [
@@ -62,10 +62,11 @@ class Gaussian_Galaxy(Galaxy_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -97,10 +98,11 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -132,10 +134,11 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -168,10 +171,11 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -204,10 +208,11 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -239,10 +244,11 @@ class Gaussian_Warp(Warp_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -274,18 +280,21 @@ class Gaussian_Star(Star_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
-        parametric_initialize(self, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
-    def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
-        )
-        return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image)
+    @default_internal
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
+        if X is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                parameters["center"].value[0], parameters["center"].value[1]
+            )
+        return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image, parameters)
 
 
 class Gaussian_Ray(Ray_Galaxy):
@@ -315,11 +324,12 @@ class Gaussian_Ray(Ray_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
         parametric_segment_initialize(
-            self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.rays
+            model=self, parameters=parameters, target=target, prof_func=_wrap_gauss, params=("sigma", "flux"), x0_func=_x0_func, segments=self.rays
         )
 
     from ._shared_methods import gaussian_iradial_model as iradial_model
@@ -352,11 +362,12 @@ class Gaussian_Wedge(Wedge_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target = target, parameters = parameters)
 
         parametric_segment_initialize(
-            self, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.wedges
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.wedges
         )
 
     from ._shared_methods import gaussian_iradial_model as iradial_model

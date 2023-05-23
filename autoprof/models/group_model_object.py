@@ -15,7 +15,7 @@ from ..image import (
     Window,
     Window_List,
 )
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -134,7 +134,8 @@ class Group_Model(AutoProf_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target: Optional["Target_Image"] = None):
+    @default_internal
+    def initialize(self, target: Optional["Target_Image"] = None, parameters=None, **kwargs):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
 
@@ -142,18 +143,18 @@ class Group_Model(AutoProf_Model):
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
         self._param_tuple = None
+        super().initialize(target = target, parameters = parameters)
 
         target_copy = target.copy()
         for model in self.models.values():
-            model.initialize(target_copy)
-            target_copy -= model()
+            model.initialize(target = target_copy, parameters = parameters.groups[model.name])
+            target_copy -= model(parameters = parameters.groups[model.name])
 
     def sample(
         self,
-        image: Optional["Model_Image"] = None,
+        image: Optional["Image"] = None,
         window: Optional[Window] = None,
-        *args,
-        **kwargs,
+        parameters: Optional["Parameter_Group"] = None,
     ):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
@@ -170,6 +171,8 @@ class Group_Model(AutoProf_Model):
             image = self.make_model_image(window=window)
         else:
             sample_window = False
+        if parameters is None:
+            parameters = self.parameters
 
         for model in self.models.values():
             if window is not None and isinstance(window, Window_List):
@@ -184,10 +187,10 @@ class Group_Model(AutoProf_Model):
                 use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model(window=use_window)
+                image += model(window=use_window, parameters=parameters.groups[model.name])
             else:
                 # Will sample the entire image
-                model(image, window=use_window)
+                model(image, window=use_window, parameters=parameters.groups[model.name])
 
         return image
 
