@@ -3,7 +3,6 @@ import numpy as np
 from .conversions.functions import sersic_n_to_b
 from .interpolate import cubic_spline_torch, interp1d_torch
 
-
 def sersic_torch(R, n, Re, Ie):
     """Seric 1d profile function, specifically designed for pytorch
     operations

@@ -235,7 +235,7 @@ class Component_Model(AutoProf_Model):
         if window is None:
             working_window = image.window.copy()
         else:
-            working_window = window.copy() & image.window
+            working_window = window.copy()# & image.window
 
         # Parameters with which to evaluate the model
         if parameters is None:
@@ -302,7 +302,7 @@ class Component_Model(AutoProf_Model):
                 self.psf.data.view(1, 1, *self.psf.data.shape),
                 LL.view(1, 1, *LL.shape),
                 padding="same",
-            )[0][0]
+            ).squeeze()
             working_image.data = fft_convolve_torch(
                 working_image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
             )

@@ -353,13 +353,64 @@ class AutoProf_Model(object):
             presentation = presentation + f"{key}: {state[key]}\n"
         return presentation
 
-    def _batch_sample(self, image_header, window_shape, as_representation, parameters_identity, window_origin, *args):
+    def _batch_sample(self, image_header, window_shape, window_origin, model_data, *args):
         parameters = self.parameters.copy()
-        parameters.set_values_from_tuple(args, as_representation = as_representation, parameters_identity = parameters_identity)
-        return self.sample(
-            image_header,
-            window = Window(shape = window_shape, origin = window_origin),
+        parameters.set_values_from_tuple(args, as_representation = True)
+        model_window = Window(shape = window_shape, origin = window_origin)
+        model_img = Model_Image(
+            data = model_data,
+            window = model_window,
+            pixelscale = image_header.pixelscale,
+        )
+        img = self.sample(
+            image = model_img,
+            window = model_window,
             parameters = parameters
+        )
+        return img.data
+
+    def _batch_target_image(self, image, window):
+        subimgs = torch.zeros((window.origin.shape[0], *window.get_shape(image.pixelscale)))
+        if image.has_variance:
+            subvar = torch.zeros((window.origin.shape[0], *window.get_shape(image.pixelscale)))
+        else:
+            subvar = None
+        if image.has_mask:
+            submask = torch.zeros((window.origin.shape[0], *window.get_shape(image.pixelscale)))
+        else:
+            submask = None
+        for i, suborigin in enumerate(window.origin):
+            subimg = image[Window(origin = suborigin, shape = window.shape)]
+            subimgs[i] = subimg.data
+            if image.has_variance:
+                subvar[i] = subimg.variance
+            if image.has_mask:
+                submask[i] = subimg.mask
+        return Target_Image(
+            data = subimgs,
+            window = window,
+            pixelscale = image.pixelscale,
+            variance = subvar,
+            mask = submask,
+            psf = image.psf,
+        )
+    
+    def _batch_model_image(self, image_header, window):
+        subimgs = torch.zeros((window.origin.shape[0], *window.get_shape(image_header.pixelscale)))
+        return Model_Image(
+            data = subimgs,
+            window = window,
+            pixelscale = image_header.pixelscale,
+        )
+    
+    def _call_batch_sample(self, image_header, parameters, window):
+        mod_img = self._batch_model_image(image_header, window)
+        return torch.vmap(
+            partial(self._batch_sample, mod_img.header, window.shape)
+        )(
+            window.origin,
+            mod_img.data,
+            *parameters.get_values_as_tuple(as_representation=True),
         )
     
     @select_sample
@@ -385,5 +436,10 @@ class AutoProf_Model(object):
         if self.batched:
             if window is None:
                 window = self.window
-            return torch.vmap(partial(self._batch_sample, image, window.shape, True, parameters_identity))(window.origin, *parameters.get_values_as_tuple(as_representation=True, parameters_identity=parameters_identity))
+            if image is None:
+                image = self.target.header
+            return torch.sum(
+                self._call_batch_sample(image, parameters, window),
+                dim=0
+            )
         return self.sample(image=image, window=window, parameters=parameters, **kwargs)
