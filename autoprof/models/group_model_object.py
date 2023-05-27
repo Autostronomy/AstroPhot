@@ -117,7 +117,7 @@ class Group_Model(AutoProf_Model):
                         new_window[index] |= model.window
                 else:
                     raise NotImplementedError(
-                        "Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image"
+                        f"Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image"
                     )
             new_window = Window_List(new_window)
         else:

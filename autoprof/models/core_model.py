@@ -7,6 +7,7 @@ from functools import partial
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import yaml
 
 from ..utils.conversions.optimization import cyclic_difference_np
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
@@ -82,7 +83,6 @@ class AutoProf_Model(object):
         self.target = target
         self.window = window
         self._locked = locked
-        self.batched = kwargs.get("batched", False)
         self.mask = kwargs.get("mask", None)
 
     def add_equality_constraint(self, model, parameter):
@@ -248,7 +248,7 @@ class AutoProf_Model(object):
 
     def __str__(self):
         """String representation for the model."""
-        return str(self.get_state())
+        return yaml.dump(self.get_state(), indent=2)
 
     def get_state(self):
         state = {
@@ -259,8 +259,6 @@ class AutoProf_Model(object):
 
     def save(self, filename="AutoProf.yaml"):
         if filename.endswith(".yaml"):
-            import yaml
-
             state = self.get_state()
             with open(filename, "w") as f:
                 yaml.dump(state, f, indent=2)
@@ -291,12 +289,8 @@ class AutoProf_Model(object):
         if isinstance(filename, dict):
             state = filename
         elif isinstance(filename, io.TextIOBase):
-            import yaml
-
             state = yaml.load(filename, Loader=yaml.FullLoader)
         elif filename.endswith(".yaml"):
-            import yaml
-
             with open(filename, "r") as f:
                 state = yaml.load(f, Loader=yaml.FullLoader)
         elif filename.endswith(".json"):
@@ -346,73 +340,6 @@ class AutoProf_Model(object):
     def __contains__(self, key):
         return self.parameters.__contains__(key)
     
-    def __str__(self):
-        state = self.get_state()
-        presentation = ""
-        for key in state:
-            presentation = presentation + f"{key}: {state[key]}\n"
-        return presentation
-
-    def _batch_sample(self, image_header, window_shape, window_origin, model_data, *args):
-        parameters = self.parameters.copy()
-        parameters.set_values_from_tuple(args, as_representation = True)
-        model_window = Window(shape = window_shape, origin = window_origin)
-        model_img = Model_Image(
-            data = model_data,
-            window = model_window,
-            pixelscale = image_header.pixelscale,
-        )
-        img = self.sample(
-            image = model_img,
-            window = model_window,
-            parameters = parameters
-        )
-        return img.data
-
-    def _batch_target_image(self, image, window):
-        subimgs = torch.zeros((window.origin.shape[0], *window.get_shape(image.pixelscale)))
-        if image.has_variance:
-            subvar = torch.zeros((window.origin.shape[0], *window.get_shape(image.pixelscale)))
-        else:
-            subvar = None
-        if image.has_mask:
-            submask = torch.zeros((window.origin.shape[0], *window.get_shape(image.pixelscale)))
-        else:
-            submask = None
-        for i, suborigin in enumerate(window.origin):
-            subimg = image[Window(origin = suborigin, shape = window.shape)]
-            subimgs[i] = subimg.data
-            if image.has_variance:
-                subvar[i] = subimg.variance
-            if image.has_mask:
-                submask[i] = subimg.mask
-        return Target_Image(
-            data = subimgs,
-            window = window,
-            pixelscale = image.pixelscale,
-            variance = subvar,
-            mask = submask,
-            psf = image.psf,
-        )
-    
-    def _batch_model_image(self, image_header, window):
-        subimgs = torch.zeros((window.origin.shape[0], *window.get_shape(image_header.pixelscale)))
-        return Model_Image(
-            data = subimgs,
-            window = window,
-            pixelscale = image_header.pixelscale,
-        )
-    
-    def _call_batch_sample(self, image_header, parameters, window):
-        mod_img = self._batch_model_image(image_header, window)
-        return torch.vmap(
-            partial(self._batch_sample, mod_img.header, window.shape)
-        )(
-            window.origin,
-            mod_img.data,
-            *parameters.get_values_as_tuple(as_representation=True),
-        )
-    
     @select_sample
     def __call__(
         self,
@@ -433,13 +360,4 @@ class AutoProf_Model(object):
             )
             parameters = self.parameters
 
-        if self.batched:
-            if window is None:
-                window = self.window
-            if image is None:
-                image = self.target.header
-            return torch.sum(
-                self._call_batch_sample(image, parameters, window),
-                dim=0
-            )
         return self.sample(image=image, window=window, parameters=parameters, **kwargs)

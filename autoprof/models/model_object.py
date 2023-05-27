@@ -81,6 +81,7 @@ class Component_Model(AutoProf_Model):
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
+    track_attrs = ["psf_mode", "psf_window_size", "integrate_mode", "integrate_window_size", "integrate_factor", "integrate_recursion_factor", "integrate_recursion_depth", "integrate_threshold", "jacobian_chunksize"]
     useable = False
 
     def __init__(self, name, *args, **kwargs):
@@ -96,6 +97,11 @@ class Component_Model(AutoProf_Model):
             # Set the model parameter
             setattr(self, kwarg, kwargs[kwarg])
 
+        # If loading from a file, get model configuration then exit __init__
+        if "filename" in kwargs:
+            self.load(kwargs["filename"])
+            return
+        
         self.parameter_specs = self.build_parameter_specs(
             kwargs.get("parameters", None)
         )
@@ -104,8 +110,6 @@ class Component_Model(AutoProf_Model):
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.set_values(kwargs["parameters"])
 
-        if "filename" in kwargs:
-            self.load(kwargs["filename"])
 
     @property
     def psf(self):
@@ -227,6 +231,7 @@ class Component_Model(AutoProf_Model):
           Image: The image with the computed model values.
 
         """
+        
         # Image on which to evaluate model
         if image is None:
             image = self.make_model_image(window=window)
@@ -235,7 +240,7 @@ class Component_Model(AutoProf_Model):
         if window is None:
             working_window = image.window.copy()
         else:
-            working_window = window.copy()# & image.window
+            working_window = window.copy()
 
         # Parameters with which to evaluate the model
         if parameters is None:
@@ -587,10 +592,14 @@ class Component_Model(AutoProf_Model):
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
+        state["parameter_order"] = list(self.parameter_order)
         if "parameters" not in state:
             state["parameters"] = {}
         for P in self.parameters:
             state["parameters"][P.name] = P.get_state()
+        for key in self.track_attrs:
+            if getattr(self, key) != getattr(self.__class__, key):
+                state[key] = getattr(self, key)
         return state
 
     def load(self, filename: Union[str, dict, io.TextIOBase] = "AutoProf.yaml"):
@@ -607,9 +616,13 @@ class Component_Model(AutoProf_Model):
         state = AutoProf_Model.load(filename)
         self.name = state["name"]
         self.window = Window(**state["window"])
-        for key in state["parameters"]:
-            self[key].update_state(state["parameters"][key])
-            self[key].to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        for key in self.track_attrs:
+            if key in state:
+                setattr(self, key, state[key])
+        self.parameters = Parameter_Group(self.name)
+        for P in state["parameter_order"]:
+            self.parameters.add_parameter(Parameter(**state["parameters"][P]))
+        self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         return state
 
     # Extra background methods for the basemodel

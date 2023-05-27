@@ -43,6 +43,9 @@ class Parameter_Group(object):
     def add_parameter(self, parameter):
         self.parameters[parameter.identity] = parameter
         parameter.groups.add(self)
+        for group in self.groups.values():
+            if parameter.identity in group.parameters:
+                group.add_parameter(parameter)
         
     def get_identities(self):
         return sum((list(param.identities) for param in self), [])
@@ -331,6 +334,11 @@ class Parameter_Group(object):
                 group.pop_id(key)
             except KeyError:
                 pass
+
+    def to(self, dtype=None, device=None):
+        for P in self.parameters.values():
+            P.to(dtype=dtype, device=device)
+        return self
             
     def __getitem__(self, key):
         return self.get_name(key)

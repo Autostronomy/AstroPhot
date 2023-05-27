@@ -43,9 +43,14 @@ class Parameter(object):
         units: units for the value of the parameter. [str]
     """
 
+    identity_list = []
+
     def __init__(self, name, value=None, **kwargs):
         self.name = name
-        self.identity = kwargs.get("identity", str(id(self)))
+        if "identity" in kwargs:
+            self._identity = kwargs["identity"]
+        else:
+            self.identity = str(id(self))
         self._prof = None
         self._representation = None
         self.limits = kwargs.get("limits", None)
@@ -60,11 +65,24 @@ class Parameter(object):
         self.groups = kwargs.get("groups", set())
         self.to()
 
+    @property
+    def identity(self):
+        return self._identity
+    
+    @identity.setter
+    def identity(self, val):
+        if val in Parameter.identity_list:
+            c = 1
+            while f"{val}c{c}" in Parameter.identity_list:
+                c += 1
+            val = f"{val}c{c}"
+        self._identity = val
+        Parameter.identity_list.append(val)
+        
     def copy(self):
         return Parameter(
             name = self.name,
             value = self.value.clone(),
-            identity = self.identity,
             limits = self.limits,
             cyclic = self.cyclic,
             locked = self.locked,
@@ -414,6 +432,7 @@ class Parameter(object):
         """
         state = {
             "name": self.name,
+            "identity": self.identity,
         }
         if self.value is not None:
             state["value"] = self.value.detach().cpu().numpy().tolist()
@@ -450,12 +469,13 @@ class Parameter(object):
             prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
-    def update_state(self, state):
+    def set_state(self, state):
         """Update the state of the parameter given a state variable whcih
         holds all information about a variable.
 
         """
         self.name = state["name"]
+        self._identity = state["identity"]
         self.units = state.get("units", None)
         self.limits = state.get("limits", None)
         self.cyclic = state.get("cyclic", False)
