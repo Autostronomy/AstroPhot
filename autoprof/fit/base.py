@@ -60,7 +60,7 @@ class BaseOptimizer(object):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
         self.fit_parameters_identity = fit_parameters_identity
-        
+
         if fit_window is None:
             self.fit_window = self.model.window
         else:

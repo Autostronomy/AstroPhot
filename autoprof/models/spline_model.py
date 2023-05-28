@@ -80,7 +80,7 @@ class Spline_Star(Star_Model):
     extend_profile = True
 
     @default_internal
-    def transform_coordinates(self, X = None, Y = None, image = None, parameters = None):
+    def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y
 
     from ._shared_methods import spline_initialize as initialize
@@ -204,10 +204,14 @@ class Spline_Ray(Ray_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         spline_segment_initialize(
-            self, target=target, parameters=parameters, segments=self.rays, symmetric=self.symmetric_rays,
+            self,
+            target=target,
+            parameters=parameters,
+            segments=self.rays,
+            symmetric=self.symmetric_rays,
         )
 
     from ._shared_methods import spline_iradial_model as iradial_model
@@ -243,10 +247,14 @@ class Spline_Wedge(Wedge_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         spline_segment_initialize(
-            self, target=target, parameters=parameters, segments=self.wedges, symmetric=self.symmetric_wedges
+            self,
+            target=target,
+            parameters=parameters,
+            segments=self.wedges,
+            symmetric=self.symmetric_wedges,
         )
 
     from ._shared_methods import spline_iradial_model as iradial_model

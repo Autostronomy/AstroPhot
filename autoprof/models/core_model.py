@@ -96,7 +96,7 @@ class AutoProf_Model(object):
         for group in old_groups:
             group.pop_id(del_param.identity)
             group.add_parameter(use_param)
-            
+
         self.equality_constraints.append(parameter)
         model.equality_constraints.append(parameter)
 
@@ -104,7 +104,7 @@ class AutoProf_Model(object):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target = None, parameters=None, **kwargs):
+    def initialize(self, target=None, parameters=None, **kwargs):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
@@ -133,21 +133,19 @@ class AutoProf_Model(object):
         parameters_identity=None,
     ):
         if parameters is not None:
-            self.parameters.set_values(parameters, as_representation, parameters_identity)
+            self.parameters.set_values(
+                parameters, as_representation, parameters_identity
+            )
 
         model = self.sample()
         data = self.target[self.window]
         variance = data.variance
         if self.target.has_mask:
             mask = torch.logical_not(data.mask)
-            chi2 = torch.sum(
-                ((model - data).data ** 2 / variance)[mask]
-            ) / 2.
+            chi2 = torch.sum(((model - data).data ** 2 / variance)[mask]) / 2.0
         else:
-            chi2 = torch.sum(
-                ((model - data).data ** 2 / variance)
-            ) / 2.
-            
+            chi2 = torch.sum(((model - data).data ** 2 / variance)) / 2.0
+
         return chi2
 
     def jacobian(
@@ -339,7 +337,7 @@ class AutoProf_Model(object):
 
     def __contains__(self, key):
         return self.parameters.__contains__(key)
-    
+
     @select_sample
     def __call__(
         self,
@@ -355,8 +353,8 @@ class AutoProf_Model(object):
         elif isinstance(parameters, torch.Tensor):
             self.parameters.set_values(
                 parameters,
-                as_representation = as_representation,
-                parameters_identity = parameters_identity
+                as_representation=as_representation,
+                parameters_identity=parameters_identity,
             )
             parameters = self.parameters
 

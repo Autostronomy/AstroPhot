@@ -27,7 +27,7 @@ class Target_Image(Image):
         super().__init__(*args, **kwargs)
         # set the band
         self.band = kwargs.get("band", None)
-        
+
         if not self.has_variance:
             self.set_variance(kwargs.get("variance", None))
         if not self.has_mask:
@@ -41,6 +41,7 @@ class Target_Image(Image):
             self._band = str(Target_Image.image_count)
             Target_Image.image_count += 1
         return self._band
+
     @band.setter
     def band(self, val):
         self._band = val
@@ -111,19 +112,19 @@ class Target_Image(Image):
             )
         )
 
-    def set_psf(self, psf, psf_upscale = 1):
+    def set_psf(self, psf, psf_upscale=1):
         if psf is None:
             self._psf = None
             return
         if isinstance(psf, PSF_Image):
             self._psf = psf
             return
-        
+
         self._psf = PSF_Image(
             psf,
-            psf_upscale = psf_upscale,
-            pixelscale = self.pixelscale / psf_upscale,
-            band = self.band,
+            psf_upscale=psf_upscale,
+            pixelscale=self.pixelscale / psf_upscale,
+            band=self.band,
         )
 
     def set_mask(self, mask):
@@ -176,9 +177,7 @@ class Target_Image(Image):
         except that its data is not filled with zeros.
 
         """
-        return super().blank_copy(
-            mask=self._mask, psf=self._psf, **kwargs
-        )
+        return super().blank_copy(mask=self._mask, psf=self._psf, **kwargs)
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
@@ -271,7 +270,13 @@ class Target_Image(Image):
 
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.set_psf(PSF_Image(np.array(hdu.data, dtype=np.float64), psf_upscale = hdu.header["UPSCALE"], pixelscale = self.pixelscale / hdu.header["UPSCALE"]))
+                self.set_psf(
+                    PSF_Image(
+                        np.array(hdu.data, dtype=np.float64),
+                        psf_upscale=hdu.header["UPSCALE"],
+                        pixelscale=self.pixelscale / hdu.header["UPSCALE"],
+                    )
+                )
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
                 self.set_variance(np.array(hdu.data, dtype=np.float64))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":

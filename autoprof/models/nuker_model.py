@@ -78,14 +78,20 @@ class Nuker_Galaxy(Galaxy_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
+
 
 class Nuker_Star(Star_Model):
     """basic star model with a Nuker profile for the radial light
@@ -129,11 +135,16 @@ class Nuker_Star(Star_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
@@ -144,7 +155,11 @@ class Nuker_Star(Star_Model):
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]
             )
-        return self.radial_model(self.radius_metric(X, Y, image=image, parameters=parameters), image=image, parameters=parameters)
+        return self.radial_model(
+            self.radius_metric(X, Y, image=image, parameters=parameters),
+            image=image,
+            parameters=parameters,
+        )
 
 
 class Nuker_SuperEllipse(SuperEllipse_Galaxy):
@@ -189,11 +204,16 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
@@ -243,11 +263,16 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
@@ -296,11 +321,16 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
@@ -349,11 +379,16 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
@@ -402,11 +437,16 @@ class Nuker_Warp(Warp_Galaxy):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_nuker, ("Rb", "Ib", "alpha", "beta", "gamma"), _x0_func
+            self,
+            parameters,
+            target,
+            _wrap_nuker,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
@@ -454,12 +494,12 @@ class Nuker_Ray(Ray_Galaxy):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_segment_initialize(
             model=self,
-            parameters=parameters, 
+            parameters=parameters,
             target=target,
             prof_func=_wrap_nuker,
             params=("Rb", "Ib", "alpha", "beta", "gamma"),
@@ -512,12 +552,12 @@ class Nuker_Wedge(Wedge_Galaxy):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None,parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_segment_initialize(
             model=self,
-            parameters=parameters, 
+            parameters=parameters,
             target=target,
             prof_func=_wrap_nuker,
             params=("Rb", "Ib", "alpha", "beta", "gamma"),

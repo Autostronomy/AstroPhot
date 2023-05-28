@@ -135,7 +135,9 @@ class Group_Model(AutoProf_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target: Optional["Target_Image"] = None, parameters=None, **kwargs):
+    def initialize(
+        self, target: Optional["Target_Image"] = None, parameters=None, **kwargs
+    ):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
 
@@ -143,12 +145,14 @@ class Group_Model(AutoProf_Model):
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
         self._param_tuple = None
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         target_copy = target.copy()
         for model in self.models.values():
-            model.initialize(target = target_copy, parameters = parameters.groups[model.name])
-            target_copy -= model(parameters = parameters.groups[model.name])
+            model.initialize(
+                target=target_copy, parameters=parameters.groups[model.name]
+            )
+            target_copy -= model(parameters=parameters.groups[model.name])
 
     def sample(
         self,
@@ -187,10 +191,14 @@ class Group_Model(AutoProf_Model):
                 use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model(window=use_window, parameters=parameters.groups[model.name])
+                image += model(
+                    window=use_window, parameters=parameters.groups[model.name]
+                )
             else:
                 # Will sample the entire image
-                model(image, window=use_window, parameters=parameters.groups[model.name])
+                model(
+                    image, window=use_window, parameters=parameters.groups[model.name]
+                )
 
         return image
 

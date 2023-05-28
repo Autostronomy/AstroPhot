@@ -28,6 +28,8 @@ class Wedge_Galaxy(Galaxy_Model):
 
     model_type = f"wedge {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]
+    wedges = 2
+    track_attrs = Galaxy_Model.track_attrs + ["wedges"]
     useable = False
 
     def __init__(self, *args, **kwargs):
@@ -75,7 +77,7 @@ class Wedge_Galaxy(Galaxy_Model):
         return model
 
     @default_internal
-    def evaluate_model(self, X = None, Y = None, image=None, parameters=None, **kwargs):
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]
@@ -85,5 +87,6 @@ class Wedge_Galaxy(Galaxy_Model):
         return self.polar_model(
             self.radius_metric(XX, YY, image=image, parameters=parameters),
             self.angular_metric(XX, YY, image=image, parameters=parameters),
-            image=image, parameters=parameters,
+            image=image,
+            parameters=parameters,
         )

@@ -37,7 +37,7 @@ class Plane_Sky(Sky_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         if parameters["sky"].value is None:
             parameters["sky"].set_value(
@@ -58,7 +58,7 @@ class Plane_Sky(Sky_Model):
             parameters["delta"].set_uncertainty([0.1, 0.1], override_locked=True)
 
     @default_internal
-    def evaluate_model(self, X = None, Y = None, image=None, parameters=None, **kwargs):
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]

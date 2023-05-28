@@ -11,8 +11,8 @@ from .. import AP_config
 
 __all__ = ["Image_Header"]
 
-class Image_Header(object):
 
+class Image_Header(object):
     def __init__(
         self,
         data_shape: Optional[torch.Tensor] = None,
@@ -242,7 +242,6 @@ class Image_Header(object):
             **kwargs,
         )
 
-        
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
         scale = 2 then 2x2 blocks of pixels will be summed together to
@@ -317,6 +316,7 @@ class Image_Header(object):
                 self.window = Window(**eval(hdu.header.get("WINDOW")))
                 break
         return hdul
+
     def __str__(self):
         state = self.get_state()
         return "\n".join(f"{key}: {state[key]}" for key in state)

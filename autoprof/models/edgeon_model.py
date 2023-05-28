@@ -1,7 +1,8 @@
+from typing import Optional
+
 from scipy.stats import iqr
 import torch
 import numpy as np
-from typing import Optional
 
 from .model_object import Component_Model
 from ._shared_methods import select_target
@@ -42,8 +43,10 @@ class Edgeon_Model(Component_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
         if parameters["PA"].value is not None:
             return
         target_area = target[self.window]
@@ -80,18 +83,27 @@ class Edgeon_Model(Component_Model):
         )
 
     @default_internal
-    def transform_coordinates(self, X, Y, image = None, parameters = None):
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
         return Rotate_Cartesian(-parameters["PA"].value, X, Y)
 
     @default_internal
-    def evaluate_model(self, X = None, Y = None, image: "Image" = None, parameters: "Parameter_Group" = None, **kwargs):
+    def evaluate_model(
+        self,
+        X=None,
+        Y=None,
+        image: "Image" = None,
+        parameters: "Parameter_Group" = None,
+        **kwargs,
+    ):
         if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]
             )
         XX, YY = self.transform_coordinates(X, Y, image=image, parameters=parameters)
 
-        return self.brightness_model(torch.abs(XX), torch.abs(YY), image=image, parameters=parameters)
+        return self.brightness_model(
+            torch.abs(XX), torch.abs(YY), image=image, parameters=parameters
+        )
 
 
 class Edgeon_Sech(Edgeon_Model):
@@ -112,9 +124,13 @@ class Edgeon_Sech(Edgeon_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
-        if (parameters["I0"].value is not None) and (parameters["hs"].value is not None):
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
+        if (parameters["I0"].value is not None) and (
+            parameters["hs"].value is not None
+        ):
             return
         target_area = target[self.window]
         icenter = coord_to_index(
@@ -176,11 +192,15 @@ class Edgeon_Isothermal(Edgeon_Sech):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
         if parameters["rs"].value is not None:
             return
-        parameters["rs"].set_value(torch.max(self.window.shape) * 0.4, override_locked=True)
+        parameters["rs"].set_value(
+            torch.max(self.window.shape) * 0.4, override_locked=True
+        )
         parameters["rs"].set_value(parameters["rs"].value / 2, override_locked=True)
 
     @default_internal

@@ -68,7 +68,7 @@ class Parameter(object):
     @property
     def identity(self):
         return self._identity
-    
+
     @identity.setter
     def identity(self, val):
         if val in Parameter.identity_list:
@@ -78,18 +78,18 @@ class Parameter(object):
             val = f"{val}c{c}"
         self._identity = val
         Parameter.identity_list.append(val)
-        
+
     def copy(self):
         return Parameter(
-            name = self.name,
-            value = self.value.clone(),
-            limits = self.limits,
-            cyclic = self.cyclic,
-            locked = self.locked,
-            units = self.units,
-            uncertainty = self.uncertainty,
-            prof = self.prof,
-            groups = self.groups,
+            name=self.name,
+            value=self.value.clone(),
+            limits=self.limits,
+            cyclic=self.cyclic,
+            locked=self.locked,
+            units=self.units,
+            uncertainty=self.uncertainty,
+            prof=self.prof,
+            groups=self.groups,
         )
 
     @property
@@ -207,6 +207,7 @@ class Parameter(object):
     @property
     def prof(self):
         return self._prof
+
     @prof.setter
     def prof(self, val):
         self.set_profile(val)
@@ -266,13 +267,13 @@ class Parameter(object):
         if self.limits is None:
             return rep
         return inv_boundaries(rep, self.limits)
-    
+
     def val_to_rep(self, val):
         if self.cyclic:
             return cyclic_boundaries(val, self.limits)
         if self.limits is None:
             return val
-        return boundaries(val, self.limits)    
+        return boundaries(val, self.limits)
 
     def get_uncertainty(self, index=None, identity=None):
         if self._uncertainty is None:

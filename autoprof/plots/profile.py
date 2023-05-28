@@ -28,7 +28,7 @@ def galaxy_light_profile(
     R0=0.0,
     resolution=1000,
     doassert=True,
-    plot_kwargs = {},
+    plot_kwargs={},
 ):
     xx = torch.linspace(
         R0,

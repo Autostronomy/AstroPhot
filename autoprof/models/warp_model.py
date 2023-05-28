@@ -55,7 +55,7 @@ class Warp_Galaxy(Galaxy_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         # create the PA(R) and q(R) profile radii if needed
         for prof_param in ["PA(R)", "q(R)"]:
@@ -106,8 +106,8 @@ class Warp_Galaxy(Galaxy_Model):
         PA = cubic_spline_torch(
             parameters["PA(R)"].prof, -parameters["PA(R)"].value, R.view(-1)
         ).view(*R.shape)
-        q = cubic_spline_torch(parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)).view(
-            *R.shape
-        )
+        q = cubic_spline_torch(
+            parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)
+        ).view(*R.shape)
         X, Y = Rotate_Cartesian(PA, X, Y)
         return X, Y / q

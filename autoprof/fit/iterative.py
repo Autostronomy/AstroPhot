@@ -275,7 +275,9 @@ class Iter_LM(BaseOptimizer):
                     chunk = self.chunks[_chunk_index]
                     _chunk_index += 1
             else:
-                raise ValueError("Unrecognized chunks value, should be one of int, tuple. not: {type(self.chunks)}")
+                raise ValueError(
+                    "Unrecognized chunks value, should be one of int, tuple. not: {type(self.chunks)}"
+                )
             if self.verbose > 0:
                 AP_config.ap_logger.info(str(chunk))
             del res

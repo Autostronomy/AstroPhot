@@ -30,7 +30,7 @@ class Flat_Sky(Sky_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         if parameters["sky"].value is None:
             parameters["sky"].set_representation(
@@ -55,9 +55,8 @@ class Flat_Sky(Sky_Model):
                 override_locked=True,
             )
 
-    def evaluate_model(self, X = None, Y = None, image = None, parameters = None, **kwargs):
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         ref = image.data if X is None else X
         return torch.ones_like(ref) * (
             (10 ** parameters["sky"].value) * image.pixelscale ** 2
         )
-            

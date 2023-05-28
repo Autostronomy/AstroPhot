@@ -109,7 +109,9 @@ class Grad(BaseOptimizer):
 
         self.loss_history.append(loss.detach().cpu().item())
         self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
-        if (self.iteration % int(self.max_iter / self.report_freq) == 0) or self.iteration == self.max_iter:
+        if (
+            self.iteration % int(self.max_iter / self.report_freq) == 0
+        ) or self.iteration == self.max_iter:
             if self.verbose > 0:
                 AP_config.ap_logger.info(f"iter: {self.iteration}, loss: {loss.item()}")
             if self.verbose > 1:
@@ -148,7 +150,9 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.parameters.set_values(torch.tensor(self.res()), as_representation=True)
+        self.model.parameters.set_values(
+            torch.tensor(self.res()), as_representation=True
+        )
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"

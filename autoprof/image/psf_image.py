@@ -30,7 +30,7 @@ class PSF_Image(Image):
         _save_image_list: Saves the image list to the PSF HDU header.
         reduce: Reduces the size of the image using a given scale factor.
     """
-    
+
     def __init__(self, *args, **kwargs):
         """
         Initializes the PSF_Image class.
@@ -42,7 +42,9 @@ class PSF_Image(Image):
                 band (str, optional): The band of the image. Default is None.
         """
         super().__init__(*args, **kwargs)
-        assert torch.all((torch.tensor(self.data.shape) % 2) == 1), "psf must have odd shape"
+        assert torch.all(
+            (torch.tensor(self.data.shape) % 2) == 1
+        ), "psf must have odd shape"
 
         self.psf_upscale = torch.as_tensor(
             kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
@@ -103,65 +105,67 @@ class PSF_Image(Image):
 
     def copy(self, **kwargs):
         """Creates a copy of the PSF_Image instance.
-        
+
         This method generates a copy of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
-        
+
         Args:
             **kwargs: Arbitrary keyword arguments.
-        
+
         Returns:
             PSF_Image: A copy of the current PSF_Image instance.
         """
         return super().copy(
-            psf_upscale = self.psf_upscale,
-            band = self.band,
+            psf_upscale=self.psf_upscale,
+            band=self.band,
         )
+
     def blank_copy(self, **kwargs):
         """Creates a blank copy of the PSF_Image instance.
-        
+
         This method generates a blank copy of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
-        
+
         Args:
             **kwargs: Arbitrary keyword arguments.
-        
+
         Returns:
             PSF_Image: A blank copy of the current PSF_Image instance with the same properties but no data.
         """
         return super().blank_copy(
-            psf_upscale = self.psf_upscale,
-            band = self.band,
+            psf_upscale=self.psf_upscale,
+            band=self.band,
         )
+
     def get_window(self, **kwargs):
         """Returns the window of the PSF_Image instance.
-        
+
         This method returns the window of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
-        
+
         Args:
             **kwargs: Arbitrary keyword arguments.
-        
+
         Returns:
             Window: The window associated with the PSF_Image instance.
         """
         return super().get_window(
-            psf_upscale = self.psf_upscale,
-            band = self.band,            
+            psf_upscale=self.psf_upscale,
+            band=self.band,
         )
 
-    def to(self, dtype = None, device = None):
+    def to(self, dtype=None, device=None):
         """Transfers the PSF_Image instance to the specified device and modifies its data type.
-        
-        This method changes the data type of the PSF_Image object and moves it to a specified device. 
+
+        This method changes the data type of the PSF_Image object and moves it to a specified device.
         If no device is provided, it defaults to 'AP_config.ap_device'.
-        
+
         Args:
             dtype (torch.dtype, optional): The desired data type to which the PSF_Image instance should be converted.
             device (torch.device, optional): The desired device to which the PSF_Image instance should be moved.
         """
         if device is None:
             device = AP_config.ap_device
-        self.psf_upscale = self.psf_upscale.to(device = device)
+        self.psf_upscale = self.psf_upscale.to(device=device)
         super().to(dtype=dtype, device=device)
-        
+
     def reduce(self, scale, **kwargs):
         """Reduces the size of the image using a given scale factor.
 
@@ -176,10 +180,7 @@ class PSF_Image(Image):
             PSF_Image: A new instance of PSF_Image class with the reduced image size.
         """
         return super().reduce(
-            scale,
-            psf_upscale = self.psf_upscale / scale,
-            band = self.band,
-            **kwargs
+            scale, psf_upscale=self.psf_upscale / scale, band=self.band, **kwargs
         )
 
     def expand(self, padding):

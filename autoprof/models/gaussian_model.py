@@ -64,9 +64,11 @@ class Gaussian_Galaxy(Galaxy_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -100,9 +102,11 @@ class Gaussian_SuperEllipse(SuperEllipse_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -136,9 +140,11 @@ class Gaussian_SuperEllipse_Warp(SuperEllipse_Warp):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -173,9 +179,11 @@ class Gaussian_FourierEllipse(FourierEllipse_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -210,9 +218,11 @@ class Gaussian_FourierEllipse_Warp(FourierEllipse_Warp):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -246,9 +256,11 @@ class Gaussian_Warp(Warp_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -282,9 +294,11 @@ class Gaussian_Star(Star_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func
+        )
 
     from ._shared_methods import gaussian_radial_model as radial_model
 
@@ -326,10 +340,16 @@ class Gaussian_Ray(Ray_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         parametric_segment_initialize(
-            model=self, parameters=parameters, target=target, prof_func=_wrap_gauss, params=("sigma", "flux"), x0_func=_x0_func, segments=self.rays
+            model=self,
+            parameters=parameters,
+            target=target,
+            prof_func=_wrap_gauss,
+            params=("sigma", "flux"),
+            x0_func=_x0_func,
+            segments=self.rays,
         )
 
     from ._shared_methods import gaussian_iradial_model as iradial_model
@@ -364,10 +384,16 @@ class Gaussian_Wedge(Wedge_Galaxy):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
         parametric_segment_initialize(
-            self, parameters, target, _wrap_gauss, ("sigma", "flux"), _x0_func, self.wedges
+            self,
+            parameters,
+            target,
+            _wrap_gauss,
+            ("sigma", "flux"),
+            _x0_func,
+            self.wedges,
         )
 
     from ._shared_methods import gaussian_iradial_model as iradial_model

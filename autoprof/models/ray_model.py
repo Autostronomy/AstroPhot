@@ -34,12 +34,14 @@ class Ray_Galaxy(Galaxy_Model):
 
     model_type = f"ray {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["rays"]
+    rays = 2
+    track_attrs = Galaxy_Model.track_attrs + ["rays"]
     useable = False
 
     def __init__(self, *args, **kwargs):
         self.symmetric_rays = True
         super().__init__(*args, **kwargs)
-        self.rays = kwargs.get("rays", 2)
+        self.rays = kwargs.get("rays", Ray_Galaxy.rays)
 
     @default_internal
     def angular_metric(self, X, Y, image=None, parameters=None):
@@ -93,7 +95,7 @@ class Ray_Galaxy(Galaxy_Model):
                 model[indices] += weight * self.iradial_model(r, R[indices], image)
         return model
 
-    def evaluate_model(self, X = None, Y = None, image=None, parameters=None, **kwargs):
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]
@@ -103,7 +105,8 @@ class Ray_Galaxy(Galaxy_Model):
         return self.polar_model(
             self.radius_metric(XX, YY, image=image, parameters=parameters),
             self.angular_metric(XX, YY, image=image, parameters=parameters),
-            image=image, parameters=parameters,
+            image=image,
+            parameters=parameters,
         )
 
 

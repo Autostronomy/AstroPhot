@@ -10,7 +10,8 @@ from .window_object import Window, Window_List
 from .image_header import Image_Header
 from .. import AP_config
 
-__all__ = ["Image", "Image_List"]    
+__all__ = ["Image", "Image_List"]
+
 
 class Image(object):
     """Core class to represent images with pixel values, pixel scale,
@@ -71,16 +72,16 @@ class Image(object):
 
         if header is None:
             self.header = Image_Header(
-                data_shape = None if data is None else data.shape,
-                pixelscale = pixelscale,
-                window = window,
-                filename = filename,
-                zeropoint = zeropoint,
-                note = note,
-                origin = origin,
-                center = center,
-                _identity = _identity,
-                **kwargs
+                data_shape=None if data is None else data.shape,
+                pixelscale=pixelscale,
+                window=window,
+                filename=filename,
+                zeropoint=zeropoint,
+                note=note,
+                origin=origin,
+                center=center,
+                _identity=_identity,
+                **kwargs,
             )
         else:
             self.header = header
@@ -91,7 +92,6 @@ class Image(object):
 
         # set the data
         self.data = data
-
 
     @property
     def origin(self) -> torch.Tensor:
@@ -126,15 +126,19 @@ class Image(object):
     @property
     def window(self):
         return self.header.window
+
     @property
     def pixelscale(self):
         return self.header.pixelscale
+
     @property
     def zeropoint(self):
         return self.header.zeropoint
+
     @property
     def note(self):
         return self.header.note
+
     @property
     def identity(self):
         return self.header.identity
@@ -199,7 +203,7 @@ class Image(object):
         """
         return self.__class__(
             data=torch.clone(self.data),
-            header = self.header.copy(**kwargs),
+            header=self.header.copy(**kwargs),
             **kwargs,
         )
 

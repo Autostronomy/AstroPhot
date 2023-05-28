@@ -50,9 +50,11 @@ class Moffat_Galaxy(Galaxy_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func
+        )
 
     from ._shared_methods import moffat_radial_model as radial_model
 
@@ -89,9 +91,11 @@ class Moffat_Star(Star_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func
+        )
 
     from ._shared_methods import moffat_radial_model as radial_model
 
@@ -100,4 +104,8 @@ class Moffat_Star(Star_Model):
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]
             )
-        return self.radial_model(self.radius_metric(X, Y, image=image, parameters=parameters), image=image, parameters=parameters)
+        return self.radial_model(
+            self.radius_metric(X, Y, image=image, parameters=parameters),
+            image=image,
+            parameters=parameters,
+        )

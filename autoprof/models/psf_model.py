@@ -43,7 +43,8 @@ class PSF_Star(Star_Model):
             self.psf_model = kwargs["psf"]
         else:
             self.psf_model = Model_Image(
-                data=torch.clone(self.psf.data), pixelscale=self.psf.pixelscale,
+                data=torch.clone(self.psf.data),
+                pixelscale=self.psf.pixelscale,
             )
 
     @torch.no_grad()
@@ -51,7 +52,7 @@ class PSF_Star(Star_Model):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
         target_area = target[self.window]
         if parameters["flux"].value is None:
             parameters["flux"].set_value(
@@ -66,7 +67,7 @@ class PSF_Star(Star_Model):
             )
 
     @default_internal
-    def evaluate_model(self, X = None, Y = None, image=None, parameters=None, **kwargs):
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         new_origin = parameters["center"].value - self.psf_model.shape / 2
         pixel_origin = torch.round(new_origin / image.pixelscale) * image.pixelscale
         pixel_shift = (

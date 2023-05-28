@@ -1,7 +1,8 @@
+from typing import Optional
+
 import torch
 import numpy as np
 from scipy.stats import iqr
-from typing import Optional
 
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
@@ -58,8 +59,10 @@ class Galaxy_Model(Component_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs):
-        super().initialize(target = target, parameters = parameters)
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
         if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]
@@ -112,13 +115,13 @@ class Galaxy_Model(Component_Model):
             )
 
     @default_internal
-    def radius_metric(self, X, Y, image = None, parameters = None):
+    def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.sqrt(
             (torch.abs(X) + 1e-8) ** 2 + (torch.abs(Y) + 1e-8) ** 2
         )  # epsilon added for numerical stability of gradient
 
     @default_internal
-    def transform_coordinates(self, X, Y, image = None, parameters = None):
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
         X, Y = Rotate_Cartesian(-parameters["PA"].value, X, Y)
         return (
             X,
@@ -126,10 +129,16 @@ class Galaxy_Model(Component_Model):
         )
 
     @default_internal
-    def evaluate_model(self, X = None, Y = None, image = None, parameters: "Parameter_Group" = None, **kwargs):
+    def evaluate_model(
+        self, X=None, Y=None, image=None, parameters: "Parameter_Group" = None, **kwargs
+    ):
         if X is None or Y is None:
             X, Y = image.get_coordinate_meshgrid_torch(
                 parameters["center"].value[0], parameters["center"].value[1]
             )
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
-        return self.radial_model(self.radius_metric(XX, YY, image, parameters), image=image, parameters=parameters)
+        return self.radial_model(
+            self.radius_metric(XX, YY, image, parameters),
+            image=image,
+            parameters=parameters,
+        )

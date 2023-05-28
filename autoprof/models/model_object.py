@@ -11,8 +11,12 @@ from ..image import Model_Image, Window, PSF_Image
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
-from ..utils.decorators import ignore_numpy_warnings
-from ..utils.operations import fft_convolve_torch, fft_convolve_multi_torch, selective_integrate
+from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..utils.operations import (
+    fft_convolve_torch,
+    fft_convolve_multi_torch,
+    selective_integrate,
+)
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ._shared_methods import select_target
@@ -66,29 +70,39 @@ class Component_Model(AutoProf_Model):
     integrate_mode = "threshold"  # none, window, threshold
 
     # Size of the window in which to perform integration (window mode)
-    integrate_window_size = 10 
+    integrate_window_size = 10
     # Number of pixels on one axis by which to supersample (window mode)
-    integrate_factor = 3  
+    integrate_factor = 3
     # Relative size of windows between recursion levels (2 means each window will be half the size of the previous one, window mode)
-    integrate_recursion_factor = 2  
+    integrate_recursion_factor = 2
     # Number of recursion cycles to apply when integrating (window or threshold mode)
-    integrate_recursion_depth = 3  
+    integrate_recursion_depth = 3
     # Threshold for triggering pixel integration (threshold mode)
-    integrate_threshold = 1e-2 
+    integrate_threshold = 1e-2
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
-    jacobian_chunksize = 10 
+    jacobian_chunksize = 10
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
-    track_attrs = ["psf_mode", "psf_window_size", "integrate_mode", "integrate_window_size", "integrate_factor", "integrate_recursion_factor", "integrate_recursion_depth", "integrate_threshold", "jacobian_chunksize"]
+    track_attrs = [
+        "psf_mode",
+        "psf_window_size",
+        "integrate_mode",
+        "integrate_window_size",
+        "integrate_factor",
+        "integrate_recursion_factor",
+        "integrate_recursion_depth",
+        "integrate_threshold",
+        "jacobian_chunksize",
+    ]
     useable = False
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
 
         self.psf = None
-        
+
         # Set any user defined attributes for the model
         for kwarg in kwargs:  # fixme move to core model?
             # Skip parameters with special behaviour
@@ -101,7 +115,7 @@ class Component_Model(AutoProf_Model):
         if "filename" in kwargs:
             self.load(kwargs["filename"])
             return
-        
+
         self.parameter_specs = self.build_parameter_specs(
             kwargs.get("parameters", None)
         )
@@ -109,7 +123,6 @@ class Component_Model(AutoProf_Model):
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.set_values(kwargs["parameters"])
-
 
     @property
     def psf(self):
@@ -126,8 +139,8 @@ class Component_Model(AutoProf_Model):
         else:
             self._psf = PSF_Image(
                 val,
-                pixelscale = self.target.pixelscale,
-                band = self.target.band,
+                pixelscale=self.target.pixelscale,
+                band=self.target.band,
             )
 
     # Initialization functions
@@ -135,7 +148,13 @@ class Component_Model(AutoProf_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target: Optional["Target_Image"] = None, parameters: Optional[Parameter_Group] = None, **kwargs):
+    @default_internal
+    def initialize(
+        self,
+        target: Optional["Target_Image"] = None,
+        parameters: Optional[Parameter_Group] = None,
+        **kwargs,
+    ):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
@@ -145,10 +164,7 @@ class Component_Model(AutoProf_Model):
           target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
 
         """
-        if parameters is None:
-            parameters = self.parameters
-            
-        super().initialize(target = target, parameters = parameters)
+        super().initialize(target=target, parameters=parameters)
         # Get the sub-image area corresponding to the model image
         target_area = target[self.window]
 
@@ -185,7 +201,14 @@ class Component_Model(AutoProf_Model):
 
     # Fit loop functions
     ######################################################################
-    def evaluate_model(self, image: Union["Image", "Image_Header"], parameters: Parameter_Group, X: Optional[torch.Tensor] = None, Y: Optional[torch.Tensor] = None, **kwargs):
+    def evaluate_model(
+        self,
+        X: Optional[torch.Tensor] = None,
+        Y: Optional[torch.Tensor] = None,
+        image: Optional["Image"] = None,
+        parameters: "Parameter_Group" = None,
+        **kwargs,
+    ):
         """Evaluate the model on every pixel in the given image. The
         basemodel object simply returns zeros, this function should be
         overloaded by subclasses.
@@ -219,19 +242,19 @@ class Component_Model(AutoProf_Model):
         the requested image.
 
         Args:
-          image (Optional[Image]): An AutoProf Image object (likely a Model_Image) 
-                                     on which to evaluate the model values. If not 
+          image (Optional[Image]): An AutoProf Image object (likely a Model_Image)
+                                     on which to evaluate the model values. If not
                                      provided, a new Model_Image object will be created.
-          window (Optional[Window]): A window within which to evaluate the model. 
-                                   Should only be used if a subset of the full image 
-                                   is needed. If not provided, the entire image will 
+          window (Optional[Window]): A window within which to evaluate the model.
+                                   Should only be used if a subset of the full image
+                                   is needed. If not provided, the entire image will
                                    be used.
 
         Returns:
           Image: The image with the computed model values.
 
         """
-        
+
         # Image on which to evaluate model
         if image is None:
             image = self.make_model_image(window=window)
@@ -270,23 +293,27 @@ class Component_Model(AutoProf_Model):
                 pixelscale=working_pixelscale, window=working_window
             )
             # Evaluate the model at the current resolution
-            working_image.data += self.evaluate_model(image = working_image, parameters = parameters)
+            working_image.data += self.evaluate_model(
+                image=working_image, parameters=parameters
+            )
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value[0], parameters["center"].value[1])
-                selective_integrate(
-                    X = X,
-                    Y = Y,
-                    data = working_image.data,
-                    image_header = working_image.header,
-                    eval_brightness = self.evaluate_model,
-                    eval_parameters = parameters,
-                    max_depth = self.integrate_recursion_depth,
-                    integrate_threshold = self.integrate_threshold,
+                X, Y = working_image.get_coordinate_meshgrid_torch(
+                    parameters["center"].value[0], parameters["center"].value[1]
                 )
-            elif self.integrate_mode == "window":                
+                selective_integrate(
+                    X=X,
+                    Y=Y,
+                    data=working_image.data,
+                    image_header=working_image.header,
+                    eval_brightness=self.evaluate_model,
+                    eval_parameters=parameters,
+                    max_depth=self.integrate_recursion_depth,
+                    integrate_threshold=self.integrate_threshold,
+                )
+            elif self.integrate_mode == "window":
                 self.window_integrate(
                     working_image,
                     parameters,
@@ -294,7 +321,9 @@ class Component_Model(AutoProf_Model):
                     self.integrate_recursion_depth,
                 )
             else:
-                raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
+                raise ValueError(
+                    f"{self.name} has unknown integration mode: {self.integrate_mode}"
+                )
             # Convolve the PSF
             LL = _shift_Lanczos_kernel_torch(
                 -center_shift[0] / working_image.pixelscale,
@@ -320,28 +349,32 @@ class Component_Model(AutoProf_Model):
             if self.mask is not None:
                 working_image.data = working_image.data * torch.logical_not(self.mask)
             image += working_image
-            
+
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(
                 pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
-            working_image.data += self.evaluate_model(image = working_image, parameters = parameters)
+            working_image.data += self.evaluate_model(
+                image=working_image, parameters=parameters
+            )
             # Super-resolve and integrate where needed
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value[0], parameters["center"].value[1])
+                X, Y = working_image.get_coordinate_meshgrid_torch(
+                    parameters["center"].value[0], parameters["center"].value[1]
+                )
                 selective_integrate(
-                    X = X,
-                    Y = Y,
-                    data = working_image.data,
-                    image_header = working_image.header,
-                    eval_brightness = self.evaluate_model,
-                    eval_parameters = parameters,
-                    max_depth = self.integrate_recursion_depth,
-                    integrate_threshold = self.integrate_threshold,
+                    X=X,
+                    Y=Y,
+                    data=working_image.data,
+                    image_header=working_image.header,
+                    eval_brightness=self.evaluate_model,
+                    eval_parameters=parameters,
+                    max_depth=self.integrate_recursion_depth,
+                    integrate_threshold=self.integrate_threshold,
                 )
             elif self.integrate_mode == "window":
                 self.window_integrate(
@@ -351,7 +384,9 @@ class Component_Model(AutoProf_Model):
                     self.integrate_recursion_depth,
                 )
             else:
-                raise ValueError(f"{self.name} has unknown integration mode: {self.integrate_mode}")
+                raise ValueError(
+                    f"{self.name} has unknown integration mode: {self.integrate_mode}"
+                )
             # Add the sampled/integrated pixels to the requested image
             if self.mask is not None:
                 working_image.data = working_image.data * torch.logical_not(self.mask)
@@ -360,7 +395,11 @@ class Component_Model(AutoProf_Model):
         return image
 
     def window_integrate(
-            self, working_image: "Image", parameters: Parameter_Group, window: Window, depth: int = 2
+        self,
+        working_image: "Image",
+        parameters: Parameter_Group,
+        window: Window,
+        depth: int = 2,
     ):
         """Sample the model at a higher resolution than the given image, then
         integrate the super resolution up to the image resolution.
@@ -477,7 +516,7 @@ class Component_Model(AutoProf_Model):
             window = self.window
         else:
             window = self.window & window
-            
+
         # skip jacobian calculation if no parameters match criteria
         porder = self.parameters.order(parameters_identity=parameters_identity)
         if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
@@ -494,17 +533,24 @@ class Component_Model(AutoProf_Model):
                 parameters_identity=parameters_identity,
             )
         else:
-            if len(self.parameters.get_identity_vector(parameters_identity=parameters_identity)) > self.jacobian_chunksize:
+            if (
+                len(
+                    self.parameters.get_identity_vector(
+                        parameters_identity=parameters_identity
+                    )
+                )
+                > self.jacobian_chunksize
+            ):
                 dochunk = True
 
         # If the parameter list is too large, apply the chunk jacobian analysis
         if dochunk:
             return self._chunk_jacobian(
-                as_representation = as_representation,
-                parameters_identity = parameters_identity,
-                window = window,
+                as_representation=as_representation,
+                parameters_identity=parameters_identity,
+                window=window,
                 **kwargs,
-            )            
+            )
 
         # Store the parameter identities
         if parameters_identity is None:
@@ -566,18 +612,17 @@ class Component_Model(AutoProf_Model):
         jac_img = self.target[window].jacobian_image(
             parameters=pids,
         )
-        
-        for ichunk in range(0,len(pids),self.jacobian_chunksize):
+
+        for ichunk in range(0, len(pids), self.jacobian_chunksize):
             jac_img += self.jacobian(
-                parameters = None,
-                as_representation = as_representation,
-                parameters_identity = pids[ichunk:ichunk + self.jacobian_chunksize],
-                window = window,
+                parameters=None,
+                as_representation=as_representation,
+                parameters_identity=pids[ichunk : ichunk + self.jacobian_chunksize],
+                window=window,
                 **kwargs,
             )
-            
+
         return jac_img
-        
 
     def get_state(self):
         """Returns a dictionary with a record of the current state of the

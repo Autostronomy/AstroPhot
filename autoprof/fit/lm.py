@@ -423,7 +423,7 @@ class LM(BaseOptimizer):
                 )
             except RuntimeError as e:
                 AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
-        
+
     @torch.no_grad()
     def undo_step(self) -> None:
         AP_config.ap_logger.info("undoing step, trying to recover")
@@ -579,7 +579,7 @@ class LM(BaseOptimizer):
 
         # Note that the most recent jacobian was a full autograd jacobian
         self.full_jac = True
-        
+
     def update_J_natural(self) -> None:
         """
         Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state. Use this method to get the jacobian in the parameter space instead of representation space.
@@ -591,11 +591,13 @@ class LM(BaseOptimizer):
 
         # Compute jacobian on image
         self.J = self.model.jacobian(
-            torch.clone(self.model.parameters.transform(
-                self.current_state,
-                to_representation=False,
-                parameters_identity=self.fit_parameters_identity,
-            )).detach(),
+            torch.clone(
+                self.model.parameters.transform(
+                    self.current_state,
+                    to_representation=False,
+                    parameters_identity=self.fit_parameters_identity,
+                )
+            ).detach(),
             as_representation=False,
             parameters_identity=self.fit_parameters_identity,
             window=self.fit_window,
@@ -656,7 +658,7 @@ class LM(BaseOptimizer):
         if self._covariance_matrix is not None:
             return self._covariance_matrix
         self.update_J_natural()
-        self.update_hess()        
+        self.update_hess()
         try:
             self._covariance_matrix = torch.linalg.inv(self.hess)
         except:
