@@ -31,8 +31,8 @@ copyright = "2023, Connor Stone"
 author = "Connor Stone"
 
 # Version information
-version = "0.7"
-release = "0.7.3"
+version = "0.8"
+release = "0.8.0"
 
 # Patterns of files and directories to exclude
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
