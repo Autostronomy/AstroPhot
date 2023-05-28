@@ -1,9 +1,11 @@
+from typing import Optional
+
 import torch
 import numpy as np
 from scipy.stats import iqr
 
 from ..utils.initialize import isophotes
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
@@ -56,9 +58,12 @@ class Galaxy_Model(Component_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
-        if not (self["PA"].value is None or self["q"].value is None):
+    @default_internal
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
+        if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]
         edge = np.concatenate(
@@ -72,9 +77,9 @@ class Galaxy_Model(Component_Model):
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
         icenter = coord_to_index(
-            self["center"].value[0], self["center"].value[1], target_area
+            parameters["center"].value[0], parameters["center"].value[1], target_area
         )
-        if self["PA"].value is None:
+        if parameters["PA"].value is None:
             iso_info = isophotes(
                 target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
@@ -83,7 +88,7 @@ class Galaxy_Model(Component_Model):
                 q=1.0,
                 n_isophotes=15,
             )
-            self["PA"].set_value(
+            parameters["PA"].set_value(
                 (
                     -Angle_Average(
                         list(
@@ -95,36 +100,45 @@ class Galaxy_Model(Component_Model):
                 % np.pi,
                 override_locked=True,
             )
-        if self["q"].value is None:
+        if parameters["q"].value is None:
             q_samples = np.linspace(0.1, 0.9, 15)
             iso_info = isophotes(
                 target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
                 threshold=3 * edge_scatter,
-                pa=self["PA"].value.detach().cpu().item(),
+                pa=parameters["PA"].value.detach().cpu().item(),
                 q=q_samples,
             )
-            self["q"].set_value(
+            parameters["q"].set_value(
                 q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))],
                 override_locked=True,
             )
 
-    def radius_metric(self, X, Y):
+    @default_internal
+    def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.sqrt(
             (torch.abs(X) + 1e-8) ** 2 + (torch.abs(Y) + 1e-8) ** 2
         )  # epsilon added for numerical stability of gradient
 
-    def transform_coordinates(self, X, Y):
-        X, Y = Rotate_Cartesian(-self["PA"].value, X, Y)
+    @default_internal
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
+        X, Y = Rotate_Cartesian(-parameters["PA"].value, X, Y)
         return (
             X,
-            Y / self["q"].value,
-        )  # Axis_Ratio_Cartesian(self["q"].value, X, Y, self["PA"].value, inv_scale = True)
+            Y / parameters["q"].value,
+        )
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
+    @default_internal
+    def evaluate_model(
+        self, X=None, Y=None, image=None, parameters: "Parameter_Group" = None, **kwargs
+    ):
         if X is None or Y is None:
             X, Y = image.get_coordinate_meshgrid_torch(
-                self["center"].value[0], self["center"].value[1]
+                parameters["center"].value[0], parameters["center"].value[1]
             )
-        XX, YY = self.transform_coordinates(X, Y)
-        return self.radial_model(self.radius_metric(XX, YY), image)
+        XX, YY = self.transform_coordinates(X, Y, image, parameters)
+        return self.radial_model(
+            self.radius_metric(XX, YY, image, parameters),
+            image=image,
+            parameters=parameters,
+        )

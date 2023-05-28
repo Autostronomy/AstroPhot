@@ -4,7 +4,7 @@ import torch
 
 from .sky_model_object import Sky_Model
 from ._shared_methods import select_target
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 
 __all__ = ["Plane_Sky"]
 
@@ -35,16 +35,17 @@ class Plane_Sky(Sky_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        if self["sky"].value is None:
-            self["sky"].set_value(
+        if parameters["sky"].value is None:
+            parameters["sky"].set_value(
                 np.median(target[self.window].data) / target.pixelscale ** 2,
                 override_locked=True,
             )
-        if self["sky"].uncertainty is None:
-            self["sky"].set_uncertainty(
+        if parameters["sky"].uncertainty is None:
+            parameters["sky"].set_uncertainty(
                 (
                     iqr(target[self.window].data, rng=(31.731 / 2, 100 - 31.731 / 2))
                     / (2.0 * target.pixelscale ** 2)
@@ -52,17 +53,18 @@ class Plane_Sky(Sky_Model):
                 / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy())),
                 override_locked=True,
             )
-        if self["delta"].value is None:
-            self["delta"].set_value([0.0, 0.0], override_locked=True)
-            self["delta"].set_uncertainty([0.1, 0.1], override_locked=True)
+        if parameters["delta"].value is None:
+            parameters["delta"].set_value([0.0, 0.0], override_locked=True)
+            parameters["delta"].set_uncertainty([0.1, 0.1], override_locked=True)
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
-        if X is None or Y is None:
+    @default_internal
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
+        if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
-                self["center"].value[0], self["center"].value[1]
+                parameters["center"].value[0], parameters["center"].value[1]
             )
         return (
-            (self["sky"].value * image.pixelscale ** 2)
-            + X * self["delta"].value[0]
-            + Y * self["delta"].value[1]
+            (parameters["sky"].value * image.pixelscale ** 2)
+            + X * parameters["delta"].value[0]
+            + Y * parameters["delta"].value[1]
         )

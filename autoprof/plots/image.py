@@ -63,7 +63,15 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
 @torch.no_grad()
 def model_image(
-        fig, ax, model, sample_image=None, window=None, target=None, showcbar=True, target_mask=False, **kwargs
+    fig,
+    ax,
+    model,
+    sample_image=None,
+    window=None,
+    target=None,
+    showcbar=True,
+    target_mask=False,
+    **kwargs,
 ):
     if sample_image is None:
         sample_image = model.make_model_image()
@@ -185,7 +193,9 @@ def residual_image(
             default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
         else:
             default_label = f"tan$^{{-1}}$(Target - {model.name})"
-        clb = fig.colorbar(im, ax=ax, label=default_label if clb_label is None else clb_label)
+        clb = fig.colorbar(
+            im, ax=ax, label=default_label if clb_label is None else clb_label
+        )
         clb.ax.set_yticks([])
         clb.ax.set_yticklabels([])
     return fig, ax
@@ -198,7 +208,7 @@ def model_window(fig, ax, model, rectangle_linewidth=2, **kwargs):
         return fig, ax
 
     if isinstance(model, Group_Model):
-        for m in model.model_list:
+        for m in model.models.values():
             ax.add_patch(
                 Rectangle(
                     xy=(m.window.origin[0], m.window.origin[1]),

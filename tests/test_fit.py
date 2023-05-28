@@ -58,14 +58,14 @@ class TestComponentModelFits(unittest.TestCase):
 
         mod_initparams = {}
         for p in mod.parameters:
-            mod_initparams[p] = np.copy(mod[p].representation.detach().numpy())
+            mod_initparams[p.name] = np.copy(p.representation.detach().numpy())
 
         res = ap.fit.Grad(model=mod, max_iter=10).fit()
 
         for p in mod.parameters:
             self.assertFalse(
-                np.any(mod[p].representation.detach().numpy() == mod_initparams[p]),
-                f"parameter {p} should update with optimization",
+                np.any(p.representation.detach().numpy() == mod_initparams[p.name]),
+                f"parameter {p.name} should update with optimization",
             )
 
     def test_sersic_fit_lm(self):
@@ -234,7 +234,7 @@ class TestGroupModelFits(unittest.TestCase):
         )
 
         smod = ap.models.Group_Model(
-            name="group model", model_list=[mod1, mod2], target=tar
+            name="group model", models=[mod1, mod2], target=tar
         )
 
         self.assertFalse(smod.locked, "default model should not be locked")
@@ -243,22 +243,22 @@ class TestGroupModelFits(unittest.TestCase):
 
         mod1_initparams = {}
         for p in mod1.parameters:
-            mod1_initparams[p] = np.copy(mod1[p].representation.detach().numpy())
+            mod1_initparams[p.name] = np.copy(p.representation.detach().numpy())
         mod2_initparams = {}
         for p in mod2.parameters:
-            mod2_initparams[p] = np.copy(mod2[p].representation.detach().numpy())
+            mod2_initparams[p.name] = np.copy(p.representation.detach().numpy())
 
         res = ap.fit.Grad(model=smod, max_iter=10).fit()
 
         for p in mod1.parameters:
             self.assertFalse(
-                np.any(mod1[p].representation.detach().numpy() == mod1_initparams[p]),
-                f"mod1 parameter {p} should update with optimization",
+                np.any(p.representation.detach().numpy() == mod1_initparams[p.name]),
+                f"mod1 parameter {p.name} should update with optimization",
             )
         for p in mod2.parameters:
             self.assertFalse(
-                np.any(mod2[p].representation.detach().numpy() == mod2_initparams[p]),
-                f"mod2 parameter {p} should update with optimization",
+                np.any(p.representation.detach().numpy() == mod2_initparams[p.name]),
+                f"mod2 parameter {p.name} should update with optimization",
             )
 
 
@@ -363,7 +363,7 @@ class TestIter(unittest.TestCase):
             name="model",
             model_type="group model",
             target=target,
-            model_list=model_list,
+            models=model_list,
         )
 
         MODEL.initialize()
@@ -405,7 +405,7 @@ class TestIterLM(unittest.TestCase):
             name="model",
             model_type="group model",
             target=target,
-            model_list=model_list,
+            models=model_list,
         )
 
         MODEL.initialize()

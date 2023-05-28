@@ -399,7 +399,7 @@ class LM(BaseOptimizer):
                 self.message
                 + ". possibly converged to numerical precision and could not make a better step."
             )
-        self.model.set_parameters(
+        self.model.parameters.set_values(
             self.res(),
             as_representation=True,
             parameters_identity=self.fit_parameters_identity,
@@ -416,14 +416,14 @@ class LM(BaseOptimizer):
         cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):
             try:
-                self.model.set_uncertainty(
+                self.model.parameters.set_uncertainty(
                     torch.sqrt(torch.abs(torch.diag(cov))),
                     as_representation=False,
                     parameters_identity=self.fit_parameters_identity,
                 )
             except RuntimeError as e:
                 AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
-        
+
     @torch.no_grad()
     def undo_step(self) -> None:
         AP_config.ap_logger.info("undoing step, trying to recover")
@@ -579,7 +579,7 @@ class LM(BaseOptimizer):
 
         # Note that the most recent jacobian was a full autograd jacobian
         self.full_jac = True
-        
+
     def update_J_natural(self) -> None:
         """
         Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state. Use this method to get the jacobian in the parameter space instead of representation space.
@@ -591,11 +591,13 @@ class LM(BaseOptimizer):
 
         # Compute jacobian on image
         self.J = self.model.jacobian(
-            torch.clone(self.model.transform(
-                self.current_state,
-                to_representation=False,
-                parameters_identity=self.fit_parameters_identity,
-            )).detach(),
+            torch.clone(
+                self.model.parameters.transform(
+                    self.current_state,
+                    to_representation=False,
+                    parameters_identity=self.fit_parameters_identity,
+                )
+            ).detach(),
             as_representation=False,
             parameters_identity=self.fit_parameters_identity,
             window=self.fit_window,
@@ -656,7 +658,7 @@ class LM(BaseOptimizer):
         if self._covariance_matrix is not None:
             return self._covariance_matrix
         self.update_J_natural()
-        self.update_hess()        
+        self.update_hess()
         try:
             self._covariance_matrix = torch.linalg.inv(self.hess)
         except:
@@ -790,7 +792,7 @@ class LM_Constraint:
     def jacobian(self, model: "AutoProf_Model"):
         jac = jacobian(
             lambda P: self.constraint_func(P, *self.constraint_args),
-            model.get_parameter_vector(
+            model.parameters.get_vector(
                 as_representation=self.representation_parameters
             ),
             strategy="forward-mode",
@@ -798,11 +800,11 @@ class LM_Constraint:
             create_graph=False,
         )
 
-        return jac.reshape(-1, np.sum(model.parameter_vector_len()))
+        return jac.reshape(-1, np.sum(model.parameters.vector_len()))
 
     def __call__(self, model: "AutoProf_Model"):
         return self.constraint_func(
-            model.get_parameter_vector(
+            model.parameters.get_vector(
                 as_representation=self.representation_parameters
             ),
             *self.constraint_args,

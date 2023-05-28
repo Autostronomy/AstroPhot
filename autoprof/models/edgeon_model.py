@@ -1,3 +1,5 @@
+from typing import Optional
+
 from scipy.stats import iqr
 import torch
 import numpy as np
@@ -6,7 +8,7 @@ from .model_object import Component_Model
 from ._shared_methods import select_target
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
@@ -40,9 +42,12 @@ class Edgeon_Model(Component_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
-        if self["PA"].value is not None:
+    @default_internal
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
+        if parameters["PA"].value is not None:
             return
         target_area = target[self.window]
         edge = np.concatenate(
@@ -56,7 +61,7 @@ class Edgeon_Model(Component_Model):
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
         icenter = coord_to_index(
-            self["center"].value[0], self["center"].value[1], target_area
+            parameters["center"].value[0], parameters["center"].value[1], target_area
         )
         iso_info = isophotes(
             target_area.data.detach().cpu().numpy() - edge_average,
@@ -66,7 +71,7 @@ class Edgeon_Model(Component_Model):
             q=1.0,
             n_isophotes=15,
         )
-        self["PA"].set_value(
+        parameters["PA"].set_value(
             (
                 -Angle_Average(
                     list(iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :])
@@ -77,17 +82,28 @@ class Edgeon_Model(Component_Model):
             override_locked=True,
         )
 
-    def transform_coordinates(self, X, Y):
-        return Rotate_Cartesian(-self["PA"].value, X, Y)
+    @default_internal
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
+        return Rotate_Cartesian(-parameters["PA"].value, X, Y)
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
+    @default_internal
+    def evaluate_model(
+        self,
+        X=None,
+        Y=None,
+        image: "Image" = None,
+        parameters: "Parameter_Group" = None,
+        **kwargs,
+    ):
         if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
-                self["center"].value[0], self["center"].value[1]
+                parameters["center"].value[0], parameters["center"].value[1]
             )
-        XX, YY = self.transform_coordinates(X, Y)
+        XX, YY = self.transform_coordinates(X, Y, image=image, parameters=parameters)
 
-        return self.brightness_model(torch.abs(XX), torch.abs(YY), image)
+        return self.brightness_model(
+            torch.abs(XX), torch.abs(YY), image=image, parameters=parameters
+        )
 
 
 class Edgeon_Sech(Edgeon_Model):
@@ -107,16 +123,21 @@ class Edgeon_Sech(Edgeon_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
-        if (self["I0"].value is not None) and (self["hs"].value is not None):
+    @default_internal
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
+        if (parameters["I0"].value is not None) and (
+            parameters["hs"].value is not None
+        ):
             return
         target_area = target[self.window]
         icenter = coord_to_index(
-            self["center"].value[0], self["center"].value[1], target_area
+            parameters["center"].value[0], parameters["center"].value[1], target_area
         )
-        if self["I0"].value is None:
-            self["I0"].set_value(
+        if parameters["I0"].value is None:
+            parameters["I0"].set_value(
                 torch.log10(
                     torch.mean(
                         target_area.data[
@@ -128,28 +149,29 @@ class Edgeon_Sech(Edgeon_Model):
                 ),
                 override_locked=True,
             )
-            self["I0"].set_uncertainty(
+            parameters["I0"].set_uncertainty(
                 torch.std(
                     target_area.data[
                         int(icenter[0]) - 2 : int(icenter[0]) + 2,
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
                 )
-                / (torch.abs(self["I0"].value) * target.pixelscale ** 2),
+                / (torch.abs(parameters["I0"].value) * target.pixelscale ** 2),
                 override_locked=True,
             )
-        if self["hs"].value is None:
-            self["hs"].set_value(
+        if parameters["hs"].value is None:
+            parameters["hs"].set_value(
                 torch.max(self.window.shape) * 0.1, override_locked=True
             )
-            self["hs"].set_value(self["hs"].value / 2, override_locked=True)
+            parameters["hs"].set_value(parameters["hs"].value / 2, override_locked=True)
 
-    def brightness_model(self, X, Y, image):
+    @default_internal
+    def brightness_model(self, X, Y, image=None, parameters=None):
         return (
             (image.pixelscale ** 2)
-            * (10 ** self["I0"].value)
-            * self.radial_model(X)
-            / (torch.cosh(Y / self["hs"].value) ** 2)
+            * (10 ** parameters["I0"].value)
+            * self.radial_model(X, image=image, parameters=parameters)
+            / (torch.cosh(Y / parameters["hs"].value) ** 2)
         )
 
 
@@ -169,15 +191,21 @@ class Edgeon_Isothermal(Edgeon_Sech):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
-        if self["rs"].value is not None:
+    @default_internal
+    def initialize(
+        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+    ):
+        super().initialize(target=target, parameters=parameters)
+        if parameters["rs"].value is not None:
             return
-        self["rs"].set_value(torch.max(self.window.shape) * 0.4, override_locked=True)
-        self["rs"].set_value(self["rs"].value / 2, override_locked=True)
+        parameters["rs"].set_value(
+            torch.max(self.window.shape) * 0.4, override_locked=True
+        )
+        parameters["rs"].set_value(parameters["rs"].value / 2, override_locked=True)
 
-    def radial_model(self, R):
-        Rscaled = torch.abs(R / self["rs"].value)
+    @default_internal
+    def radial_model(self, R, image=None, parameters=None):
+        Rscaled = torch.abs(R / parameters["rs"].value)
         return (
             Rscaled
             * torch.exp(-Rscaled)

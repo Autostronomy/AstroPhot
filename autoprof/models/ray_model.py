@@ -4,7 +4,7 @@ import torch
 from .galaxy_model_object import Galaxy_Model
 from .parameter_object import Parameter
 from ..utils.interpolate import cubic_spline_torch
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
 
 __all__ = ["Ray_Galaxy"]
@@ -34,17 +34,21 @@ class Ray_Galaxy(Galaxy_Model):
 
     model_type = f"ray {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["rays"]
+    rays = 2
+    track_attrs = Galaxy_Model.track_attrs + ["rays"]
     useable = False
 
     def __init__(self, *args, **kwargs):
         self.symmetric_rays = True
         super().__init__(*args, **kwargs)
-        self.rays = kwargs.get("rays", 2)
+        self.rays = kwargs.get("rays", Ray_Galaxy.rays)
 
-    def angular_metric(self, X, Y):
+    @default_internal
+    def angular_metric(self, X, Y, image=None, parameters=None):
         return torch.atan2(Y, X)
 
-    def polar_model(self, R, T, image):
+    @default_internal
+    def polar_model(self, R, T, image=None, parameters=None):
         model = torch.zeros_like(R)
         if self.rays % 2 == 0 and self.symmetric_rays:
             for r in range(self.rays):
@@ -91,15 +95,18 @@ class Ray_Galaxy(Galaxy_Model):
                 model[indices] += weight * self.iradial_model(r, R[indices], image)
         return model
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
-        if X is None or Y is None:
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
+        if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
-                self["center"].value[0], self["center"].value[1]
+                parameters["center"].value[0], parameters["center"].value[1]
             )
-        XX, YY = self.transform_coordinates(X, Y)
+        XX, YY = self.transform_coordinates(X, Y, image, parameters)
 
         return self.polar_model(
-            self.radius_metric(XX, YY), self.angular_metric(XX, YY), image
+            self.radius_metric(XX, YY, image=image, parameters=parameters),
+            self.angular_metric(XX, YY, image=image, parameters=parameters),
+            image=image,
+            parameters=parameters,
         )
 
 

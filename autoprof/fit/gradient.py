@@ -59,6 +59,7 @@ class Grad(BaseOptimizer):
         self.patience = kwargs.get("patience", None)
         self.method = kwargs.get("method", "NAdam").strip()
         self.optim_kwargs = kwargs.get("optim_kwargs", {})
+        self.report_freq = kwargs.get("report_freq", 10)
 
         # Default learning rate if none given. Equalt to 1 / sqrt(parames)
         if not "lr" in self.optim_kwargs:
@@ -108,10 +109,13 @@ class Grad(BaseOptimizer):
 
         self.loss_history.append(loss.detach().cpu().item())
         self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
-        if self.verbose > 0:
-            AP_config.ap_logger.info(f"loss: {loss.item()}")
-        if self.verbose > 1:
-            AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
+        if (
+            self.iteration % int(self.max_iter / self.report_freq) == 0
+        ) or self.iteration == self.max_iter:
+            if self.verbose > 0:
+                AP_config.ap_logger.info(f"iter: {self.iteration}, loss: {loss.item()}")
+            if self.verbose > 1:
+                AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
 
     def fit(self) -> "BaseOptimizer":
@@ -146,7 +150,9 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.set_parameters(torch.tensor(self.res()), as_representation=True)
+        self.model.parameters.set_values(
+            torch.tensor(self.res()), as_representation=True
+        )
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"

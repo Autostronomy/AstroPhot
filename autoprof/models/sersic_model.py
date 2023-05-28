@@ -15,7 +15,7 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import sersic_torch, sersic_np
 from ..utils.conversions.coordinates import (
@@ -76,10 +76,13 @@ class Sersic_Galaxy(Galaxy_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -115,18 +118,27 @@ class Sersic_Star(Star_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
-    def evaluate_model(self, image):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            self["center"].value[0], self["center"].value[1]
+    @default_internal
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
+        if X is None:
+            X, Y = image.get_coordinate_meshgrid_torch(
+                parameters["center"].value[0], parameters["center"].value[1]
+            )
+        return self.radial_model(
+            self.radius_metric(X, Y, image=image, parameters=parameters),
+            image=image,
+            parameters=parameters,
         )
-        return self.radial_model(self.radius_metric(X, Y), image)
 
 
 class Sersic_SuperEllipse(SuperEllipse_Galaxy):
@@ -160,10 +172,13 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -200,10 +215,13 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -240,10 +258,13 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -280,10 +301,13 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -320,10 +344,13 @@ class Sersic_Warp(Warp_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -359,11 +386,18 @@ class Sersic_Ray(Ray_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_segment_initialize(
-            self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func, self.rays
+            model=self,
+            target=target,
+            parameters=parameters,
+            prof_func=_wrap_sersic,
+            params=("n", "Re", "Ie"),
+            x0_func=_x0_func,
+            segments=self.rays,
         )
 
     from ._shared_methods import sersic_iradial_model as iradial_model
@@ -400,11 +434,18 @@ class Sersic_Wedge(Wedge_Galaxy):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
         parametric_segment_initialize(
-            self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func, self.wedges
+            model=self,
+            parameters=parameters,
+            target=target,
+            prof_func=_wrap_sersic,
+            params=("n", "Re", "Ie"),
+            x0_func=_x0_func,
+            segments=self.wedges,
         )
 
     from ._shared_methods import sersic_iradial_model as iradial_model

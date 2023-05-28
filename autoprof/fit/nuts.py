@@ -25,7 +25,7 @@ __all__ = ["NUTS"]
 def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
     """
     Sets up an initial mass matrix.
-    
+
     :param dict mass_matrix_shape: a dict that maps tuples of site names to the shape of
         the corresponding mass matrix. Each tuple of site names corresponds to a block.
     :param bool adapt_mass_matrix: a flag to decide whether an adaptation scheme will be used.
@@ -46,8 +46,11 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
 
     if len(self.inverse_mass_matrix.keys()) == 0:
         self.inverse_mass_matrix = inverse_mass_matrix
+
+
 BlockMassMatrix.configure = new_configure
 ############################################
+
 
 class NUTS(BaseOptimizer):
     """No U-Turn Sampler (NUTS) implementation for Hamiltonian Monte Carlo
@@ -62,7 +65,7 @@ class NUTS(BaseOptimizer):
     sampling. The NUTS algorithm utilizes gradients of the target
     distribution to more efficiently explore the probability
     distribution of the model.
-    
+
     More information on HMC and NUTS can be found at:
     https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo,
     https://arxiv.org/abs/1701.02434, and
@@ -94,7 +97,7 @@ class NUTS(BaseOptimizer):
         **kwargs
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
-        
+
         self.inv_mass = kwargs.get("inv_mass", None)
         self.epsilon = kwargs.get("epsilon", 1e-3)
         self.progress_bar = kwargs.get("progress_bar", True)
@@ -102,7 +105,7 @@ class NUTS(BaseOptimizer):
         self.warmup = kwargs.get("warmup", 100)
         self.nuts_kwargs = kwargs.get("nuts_kwargs", {})
         self.mcmc_kwargs = kwargs.get("mcmc_kwargs", {})
-        
+
     def fit(
         self,
         state: Optional[torch.Tensor] = None,
@@ -141,10 +144,12 @@ class NUTS(BaseOptimizer):
         nuts_kwargs.update(self.nuts_kwargs)
         nuts_kernel = pyro_NUTS(step, **nuts_kwargs)
         if self.inv_mass is not None:
-            nuts_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
+            nuts_kernel.mass_matrix_adapter.inverse_mass_matrix = {
+                ("x",): self.inv_mass
+            }
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.get_parameter_vector(as_representation=True)}
+        init_params = {"x": self.model.parameters.get_vector(as_representation=True)}
 
         # Run MCMC with the NUTS sampler and the initial guess
         mcmc_kwargs = {
@@ -155,7 +160,7 @@ class NUTS(BaseOptimizer):
         }
         mcmc_kwargs.update(self.mcmc_kwargs)
         mcmc = pyro_MCMC(nuts_kernel, **mcmc_kwargs)
-        
+
         mcmc.run(self.model, self.prior)
         self.iteration += self.max_iter
 
@@ -164,7 +169,9 @@ class NUTS(BaseOptimizer):
 
         with torch.no_grad():
             for i in range(len(chain)):
-                chain[i] = self.model.transform(chain[i], to_representation = False)
+                chain[i] = self.model.parameters.transform(
+                    chain[i], to_representation=False
+                )
         self.chain = chain
-        
+
         return self

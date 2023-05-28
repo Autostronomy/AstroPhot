@@ -22,7 +22,7 @@ from ..utils.parametric_profiles import (
     nuker_torch,
     nuker_np,
 )
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     coord_to_index,
@@ -84,9 +84,9 @@ def select_sample(func):
 @torch.no_grad()
 @ignore_numpy_warnings
 def parametric_initialize(
-    model, target, prof_func, params, x0_func, force_uncertainty=None
+    model, parameters, target, prof_func, params, x0_func, force_uncertainty=None
 ):
-    if all(list(model[param].value is not None for param in params)):
+    if all(list(parameters[param].value is not None for param in params)):
         return
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
@@ -102,15 +102,15 @@ def parametric_initialize(
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
     icenter = coord_to_index(
-        model["center"].value[0], model["center"].value[1], target_area
+        parameters["center"].value[0], parameters["center"].value[1], target_area
     )
     # Collect isophotes for 1D fit
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
-        pa=model["PA"].value.detach().cpu().item() if "PA" in model else 0.0,
-        q=model["q"].value.detach().cpu().item() if "q" in model else 1.0,
+        pa=parameters["PA"].value.detach().cpu().item() if "PA" in parameters else 0.0,
+        q=parameters["q"].value.detach().cpu().item() if "q" in parameters else 1.0,
         n_isophotes=15,
     )
     R = np.array(list(iso["R"] for iso in iso_info)) * target.pixelscale.item()
@@ -125,7 +125,9 @@ def parametric_initialize(
 
     x0 = list(x0_func(model, R, flux))
     for i, param in enumerate(params):
-        x0[i] = x0[i] if model[param].value is None else model[param].value.item()
+        x0[i] = (
+            x0[i] if parameters[param].value is None else parameters[param].value.item()
+        )
 
     def optim(x, r, f):
         residual = (f - np.log10(prof_func(r, *x))) ** 2
@@ -142,15 +144,17 @@ def parametric_initialize(
                 minimize(optim, x0=x0, args=(R[N], flux[N]), method="Nelder-Mead")
             )
     for param, resx, x0x in zip(params, res.x, x0):
-        if model[param].value is None:
-            model[param].set_value(resx if res.success else x0x, override_locked=True)
-        if force_uncertainty is None and model[param].uncertainty is None:
-            model[param].set_uncertainty(
+        if parameters[param].value is None:
+            parameters[param].set_value(
+                resx if res.success else x0x, override_locked=True
+            )
+        if force_uncertainty is None and parameters[param].uncertainty is None:
+            parameters[param].set_uncertainty(
                 np.std(list(subres.x[params.index(param)] for subres in reses)),
                 override_locked=True,
             )
         elif force_uncertainty is not None:
-            model[param].set_uncertainty(
+            parameters[param].set_uncertainty(
                 force_uncertainty[params.index(param)], override_locked=True
             )
 
@@ -158,7 +162,14 @@ def parametric_initialize(
 @torch.no_grad()
 @ignore_numpy_warnings
 def parametric_segment_initialize(
-    model, target, prof_func, params, x0_func, segments, force_uncertainty=None
+    model=None,
+    parameters=None,
+    target=None,
+    prof_func=None,
+    params=None,
+    x0_func=None,
+    segments=None,
+    force_uncertainty=None,
 ):
     if all(list(model[param].value is not None for param in params)):
         return
@@ -259,119 +270,111 @@ def parametric_segment_initialize(
 
 # Exponential
 ######################################################################
-def exponential_radial_model(self, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def exponential_radial_model(self, R, image=None, parameters=None):
     return exponential_torch(
-        R, self["Re"].value, (10 ** self["Ie"].value) * sample_image.pixelscale ** 2
+        R,
+        parameters["Re"].value,
+        (10 ** parameters["Ie"].value) * image.pixelscale ** 2,
     )
 
 
-def exponential_iradial_model(self, i, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def exponential_iradial_model(self, i, R, image=None, parameters=None):
     return exponential_torch(
         R,
-        self["Re"].value[i],
-        (10 ** self["Ie"].value[i]) * sample_image.pixelscale ** 2,
+        parameters["Re"].value[i],
+        (10 ** parameters["Ie"].value[i]) * image.pixelscale ** 2,
     )
 
 
 # Sersic
 ######################################################################
-def sersic_radial_model(self, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def sersic_radial_model(self, R, image=None, parameters=None):
     return sersic_torch(
         R,
-        self["n"].value,
-        self["Re"].value,
-        (10 ** self["Ie"].value) * sample_image.pixelscale ** 2,
+        parameters["n"].value,
+        parameters["Re"].value,
+        (10 ** parameters["Ie"].value) * image.pixelscale ** 2,
     )
 
 
-def sersic_iradial_model(self, i, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def sersic_iradial_model(self, i, R, image=None, parameters=None):
     return sersic_torch(
         R,
-        self["n"].value[i],
-        self["Re"].value[i],
-        (10 ** self["Ie"].value[i]) * sample_image.pixelscale ** 2,
+        parameters["n"].value[i],
+        parameters["Re"].value[i],
+        (10 ** parameters["Ie"].value[i]) * image.pixelscale ** 2,
     )
 
 
 # Moffat
 ######################################################################
-def moffat_radial_model(self, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def moffat_radial_model(self, R, image=None, parameters=None):
     return moffat_torch(
         R,
-        self["n"].value,
-        self["Rd"].value,
-        (10 ** self["I0"].value) * sample_image.pixelscale ** 2,
+        parameters["n"].value,
+        parameters["Rd"].value,
+        (10 ** parameters["I0"].value) * image.pixelscale ** 2,
     )
 
 
-def moffat_iradial_model(self, i, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def moffat_iradial_model(self, i, R, image=None, parameters=None):
     return moffat_torch(
         R,
-        self["n"].value[i],
-        self["Rd"].value[i],
-        (10 ** self["I0"].value[i]) * sample_image.pixelscale ** 2,
+        parameters["n"].value[i],
+        parameters["Rd"].value[i],
+        (10 ** parameters["I0"].value[i]) * image.pixelscale ** 2,
     )
 
 
 # Nuker Profile
 ######################################################################
-def nuker_radial_model(self, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def nuker_radial_model(self, R, image=None, parameters=None):
     return nuker_torch(
         R,
-        self["Rb"].value,
-        (10 ** self["Ib"].value) * sample_image.pixelscale ** 2,
-        self["alpha"].value,
-        self["beta"].value,
-        self["gamma"].value,
+        parameters["Rb"].value,
+        (10 ** parameters["Ib"].value) * image.pixelscale ** 2,
+        parameters["alpha"].value,
+        parameters["beta"].value,
+        parameters["gamma"].value,
     )
 
 
-def nuker_iradial_model(self, i, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def nuker_iradial_model(self, i, R, image=None, parameters=None):
     return nuker_torch(
         R,
-        self["Rb"].value[i],
-        (10 ** self["Ib"].value[i]) * sample_image.pixelscale ** 2,
-        self["alpha"].value[i],
-        self["beta"].value[i],
-        self["gamma"].value[i],
+        parameters["Rb"].value[i],
+        (10 ** parameters["Ib"].value[i]) * image.pixelscale ** 2,
+        parameters["alpha"].value[i],
+        parameters["beta"].value[i],
+        parameters["gamma"].value[i],
     )
 
 
 # Gaussian
 ######################################################################
-def gaussian_radial_model(self, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def gaussian_radial_model(self, R, image=None, parameters=None):
     return gaussian_torch(
         R,
-        self["sigma"].value,
-        (10 ** self["flux"].value) * sample_image.pixelscale ** 2,
+        parameters["sigma"].value,
+        (10 ** parameters["flux"].value) * image.pixelscale ** 2,
     )
 
 
-def gaussian_iradial_model(self, i, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def gaussian_iradial_model(self, i, R, image=None, parameters=None):
     return gaussian_torch(
         R,
-        self["sigma"].value[i],
-        (10 ** self["flux"].value[i]) * sample_image.pixelscale ** 2,
+        parameters["sigma"].value[i],
+        (10 ** parameters["flux"].value[i]) * image.pixelscale ** 2,
     )
 
 
@@ -380,30 +383,15 @@ def gaussian_iradial_model(self, i, R, sample_image=None):
 @torch.no_grad()
 @ignore_numpy_warnings
 @select_target
-def spline_initialize(self, target=None):
-    super(self.__class__, self).initialize(target)
+@default_internal
+def spline_initialize(self, target=None, parameters=None, **kwargs):
+    super(self.__class__, self).initialize(target=target, parameters=parameters)
 
-    if self["I(R)"].value is not None:
-        # Create the I(R) profile radii to match the input profile intensity values
-        if self["I(R)"].prof is None:
-            # create logarithmically spaced profile radii
-            new_prof = [0] + list(
-                np.logspace(
-                    np.log10(2 * target.pixelscale),
-                    np.log10(np.sqrt(torch.sum((self.window.shape / 2) ** 2).item())),
-                    len(self["I(R)"].value),
-                )
-            )
-            new_prof.pop(-2)
-            # ensure no step is smaller than a pixelscale
-            for i in range(1, len(new_prof)):
-                if new_prof[i] - new_prof[i - 1] < target.pixelscale.item():
-                    new_prof[i] = new_prof[i - 1] + target.pixelscale.item()
-            self["I(R)"].set_profile(new_prof)
+    if parameters["I(R)"].value is not None and parameters["I(R)"].prof is not None:
         return
 
     # Create the I(R) profile radii if needed
-    if self["I(R)"].prof is None:
+    if parameters["I(R)"].prof is None:
         new_prof = [0, 2 * target.pixelscale]
         while new_prof[-1] < torch.max(self.window.shape / 2):
             new_prof.append(
@@ -412,15 +400,15 @@ def spline_initialize(self, target=None):
         new_prof.pop()
         new_prof.pop()
         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-        self["I(R)"].set_profile(new_prof)
+        parameters["I(R)"].set_profile(new_prof)
 
-    profR = self["I(R)"].prof.detach().cpu().numpy()
+    profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     X, Y = target_area.get_coordinate_meshgrid_torch(
-        self["center"].value[0], self["center"].value[1]
+        parameters["center"].value[0], parameters["center"].value[1]
     )
-    X, Y = self.transform_coordinates(X, Y)
-    R = self.radius_metric(X, Y).detach().cpu().numpy()
+    X, Y = self.transform_coordinates(X, Y, target, parameters)
+    R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
     raveldat = target_area.data.detach().cpu().numpy().ravel()
     I = (
@@ -431,44 +419,33 @@ def spline_initialize(self, target=None):
     if not np.all(N):
         I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
     if I[-1] >= I[-2]:
-        I[-1] = I[-2]/2
+        I[-1] = I[-2] / 2
     S = binned_statistic(
         R.ravel(), raveldat, statistic=lambda d: iqr(d, rng=[16, 84]) / 2, bins=rad_bins
     )[0]
     N = np.isfinite(S)
     if not np.all(N):
         S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-    self["I(R)"].set_value(np.log10(np.abs(I)), override_locked=True)
-    self["I(R)"].set_uncertainty(S / (np.abs(I) * np.log(10)), override_locked=True)
+    parameters["I(R)"].set_value(np.log10(np.abs(I)), override_locked=True)
+    parameters["I(R)"].set_uncertainty(
+        S / (np.abs(I) * np.log(10)), override_locked=True
+    )
 
 
 @torch.no_grad()
 @ignore_numpy_warnings
 @select_target
-def spline_segment_initialize(self, target=None, segments=1, symmetric=True):
-    super(self.__class__, self).initialize(target)
+@default_internal
+def spline_segment_initialize(
+    self, target=None, parameters=None, segments=1, symmetric=True, **kwargs
+):
+    super(self.__class__, self).initialize(target=target, parameters=parameters)
 
-    if self["I(R)"].value is not None:
-        # Create the I(R) profile radii to match the input profile intensity values
-        if self["I(R)"].prof is None:
-            # create logarithmically spaced profile radii
-            new_prof = [0] + list(
-                np.logspace(
-                    np.log10(2 * target.pixelscale),
-                    np.log10(np.sqrt(torch.sum((self.window.shape / 2) ** 2).item())),
-                    len(self["I(R)"].value),
-                )
-            )
-            new_prof.pop(-2)
-            # ensure no step is smaller than a pixelscale
-            for i in range(1, len(new_prof)):
-                if new_prof[i] - new_prof[i - 1] < target.pixelscale.item():
-                    new_prof[i] = new_prof[i - 1] + target.pixelscale.item()
-            self["I(R)"].set_profile(new_prof)
+    if parameters["I(R)"].value is not None and parameters["I(R)"].prof is not None:
         return
 
     # Create the I(R) profile radii if needed
-    if self["I(R)"].prof is None:
+    if parameters["I(R)"].prof is None:
         new_prof = [0, 2 * target.pixelscale]
         while new_prof[-1] < torch.max(self.window.shape / 2):
             new_prof.append(
@@ -477,22 +454,22 @@ def spline_segment_initialize(self, target=None, segments=1, symmetric=True):
         new_prof.pop()
         new_prof.pop()
         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-        self["I(R)"].set_profile(new_prof)
+        parameters["I(R)"].set_profile(new_prof)
 
-    self["I(R)"].set_value(
-        np.zeros((segments, len(self["I(R)"].prof))), override_locked=True
+    parameters["I(R)"].set_value(
+        np.zeros((segments, len(parameters["I(R)"].prof))), override_locked=True
     )
-    self["I(R)"].set_uncertainty(
-        np.zeros((segments, len(self["I(R)"].prof))), override_locked=True
+    parameters["I(R)"].set_uncertainty(
+        np.zeros((segments, len(parameters["I(R)"].prof))), override_locked=True
     )
-    profR = self["I(R)"].prof.detach().cpu().numpy()
+    profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     X, Y = target_area.get_coordinate_meshgrid_torch(
-        self["center"].value[0], self["center"].value[1]
+        parameters["center"].value[0], parameters["center"].value[1]
     )
-    X, Y = self.transform_coordinates(X, Y)
-    R = self.radius_metric(X, Y).detach().cpu().numpy()
-    T = self.angular_metric(X, Y).detach().cpu().numpy()
+    X, Y = self.transform_coordinates(X, Y, target, parameters)
+    R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
+    T = self.angular_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
     raveldat = target_area.data.detach().cpu().numpy().ravel()
     for s in range(segments):
@@ -543,31 +520,29 @@ def spline_segment_initialize(self, target=None, segments=1, symmetric=True):
         N = np.isfinite(S)
         if not np.all(N):
             S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-        self["I(R)"].set_value(np.log10(np.abs(I)), override_locked=True, index=s)
-        self["I(R)"].set_uncertainty(
+        parameters["I(R)"].set_value(np.log10(np.abs(I)), override_locked=True, index=s)
+        parameters["I(R)"].set_uncertainty(
             S / (np.abs(I) * np.log(10)), override_locked=True, index=s
         )
 
 
-def spline_radial_model(self, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def spline_radial_model(self, R, image=None, parameters=None):
     return spline_torch(
         R,
-        self["I(R)"].prof,
-        self["I(R)"].value,
-        sample_image.pixelscale ** 2,
+        parameters["I(R)"].prof,
+        parameters["I(R)"].value,
+        image.pixelscale ** 2,
         extend=self.extend_profile,
     )
 
 
-def spline_iradial_model(self, i, R, sample_image=None):
-    if sample_image is None:
-        sample_image = self.target
+@default_internal
+def spline_iradial_model(self, i, R, image=None, parameters=None):
     return spline_torch(
         R,
-        self["I(R)"].prof,
-        self["I(R)"].value[i],
-        sample_image.pixelscale ** 2,
+        parameters["I(R)"].prof,
+        parameters["I(R)"].value[i],
+        image.pixelscale ** 2,
         extend=self.extend_profile,
     )

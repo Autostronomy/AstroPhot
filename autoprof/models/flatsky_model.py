@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import iqr
 import torch
 
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from .sky_model_object import Sky_Model
 from ._shared_methods import select_target
 
@@ -28,18 +28,19 @@ class Flat_Sky(Sky_Model):
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
-    def initialize(self, target=None):
-        super().initialize(target)
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        super().initialize(target=target, parameters=parameters)
 
-        if self["sky"].value is None:
-            self["sky"].set_representation(
+        if parameters["sky"].value is None:
+            parameters["sky"].set_representation(
                 np.log10(
                     torch.median(target[self.window].data) / target.pixelscale ** 2
                 ),
                 override_locked=True,
             )
-        if self["sky"].uncertainty is None:
-            self["sky"].set_uncertainty(
+        if parameters["sky"].uncertainty is None:
+            parameters["sky"].set_uncertainty(
                 (
                     (
                         iqr(
@@ -50,16 +51,12 @@ class Flat_Sky(Sky_Model):
                     )
                     / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
                 )
-                / (10 ** self["sky"].value * np.log(10)),
+                / (10 ** parameters["sky"].value * np.log(10)),
                 override_locked=True,
             )
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
-        if X is None:
-            ref = image.data
-        else:
-            ref = X
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
+        ref = image.data if X is None else X
         return torch.ones_like(ref) * (
-            (10 ** self["sky"].value) * image.pixelscale ** 2
+            (10 ** parameters["sky"].value) * image.pixelscale ** 2
         )
-            

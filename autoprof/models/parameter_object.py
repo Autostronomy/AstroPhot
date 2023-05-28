@@ -1,7 +1,7 @@
 from typing import Optional
+from copy import deepcopy
 
 import torch
-import numpy as np
 
 from ..utils.conversions.optimization import (
     boundaries,
@@ -43,9 +43,14 @@ class Parameter(object):
         units: units for the value of the parameter. [str]
     """
 
+    identity_list = []
+
     def __init__(self, name, value=None, **kwargs):
         self.name = name
-        self.identity = str(id(self))
+        if "identity" in kwargs:
+            self._identity = kwargs["identity"]
+        else:
+            self.identity = str(id(self))
         self._prof = None
         self._representation = None
         self.limits = kwargs.get("limits", None)
@@ -53,12 +58,39 @@ class Parameter(object):
         self.locked = kwargs.get("locked", False)
         self._representation = None
         self.set_value(value, override_locked=True)
-        self.requires_grad = kwargs.get("requires_grad", False)
         self.units = kwargs.get("units", "none")
         self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
         self.set_profile(kwargs.get("prof", None))
+        self.groups = kwargs.get("groups", set())
         self.to()
+
+    @property
+    def identity(self):
+        return self._identity
+
+    @identity.setter
+    def identity(self, val):
+        if val in Parameter.identity_list:
+            c = 1
+            while f"{val}c{c}" in Parameter.identity_list:
+                c += 1
+            val = f"{val}c{c}"
+        self._identity = val
+        Parameter.identity_list.append(val)
+
+    def copy(self):
+        return Parameter(
+            name=self.name,
+            value=self.value.clone(),
+            limits=self.limits,
+            cyclic=self.cyclic,
+            locked=self.locked,
+            units=self.units,
+            uncertainty=self.uncertainty,
+            prof=self.prof,
+            groups=self.groups,
+        )
 
     @property
     def representation(self):
@@ -175,24 +207,10 @@ class Parameter(object):
     @property
     def prof(self):
         return self._prof
+
     @prof.setter
     def prof(self, val):
         self.set_profile(val)
-        
-    @property
-    def requires_grad(self):
-        if self._representation is None:
-            return False
-        return self._representation.requires_grad
-
-    @requires_grad.setter
-    def requires_grad(self, val):
-        assert isinstance(val, bool)
-        if self._representation is not None and not (
-            self._representation.requires_grad is val
-        ):
-            self._representation = self._representation.detach()
-            self._representation.requires_grad = val
 
     @property
     def grad(self):
@@ -249,13 +267,13 @@ class Parameter(object):
         if self.limits is None:
             return rep
         return inv_boundaries(rep, self.limits)
-    
+
     def val_to_rep(self, val):
         if self.cyclic:
             return cyclic_boundaries(val, self.limits)
         if self.limits is None:
             return val
-        return boundaries(val, self.limits)    
+        return boundaries(val, self.limits)
 
     def get_uncertainty(self, index=None, identity=None):
         if self._uncertainty is None:
@@ -415,6 +433,7 @@ class Parameter(object):
         """
         state = {
             "name": self.name,
+            "identity": self.identity,
         }
         if self.value is not None:
             state["value"] = self.value.detach().cpu().numpy().tolist()
@@ -451,12 +470,13 @@ class Parameter(object):
             prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
-    def update_state(self, state):
+    def set_state(self, state):
         """Update the state of the parameter given a state variable whcih
         holds all information about a variable.
 
         """
         self.name = state["name"]
+        self._identity = state["identity"]
         self.units = state.get("units", None)
         self.limits = state.get("limits", None)
         self.cyclic = state.get("cyclic", False)

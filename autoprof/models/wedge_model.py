@@ -5,6 +5,7 @@ from .galaxy_model_object import Galaxy_Model
 from .parameter_object import Parameter
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
+from ..utils.decorators import default_internal
 
 __all__ = ["Wedge_Galaxy"]
 
@@ -27,6 +28,8 @@ class Wedge_Galaxy(Galaxy_Model):
 
     model_type = f"wedge {Galaxy_Model.model_type}"
     special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]
+    wedges = 2
+    track_attrs = Galaxy_Model.track_attrs + ["wedges"]
     useable = False
 
     def __init__(self, *args, **kwargs):
@@ -34,10 +37,12 @@ class Wedge_Galaxy(Galaxy_Model):
         super().__init__(*args, **kwargs)
         self.wedges = kwargs.get("wedges", 2)
 
-    def angular_metric(self, X, Y):
+    @default_internal
+    def angular_metric(self, X, Y, image=None, parameters=None):
         return torch.atan2(Y, X)
 
-    def polar_model(self, R, T, image):
+    @default_internal
+    def polar_model(self, R, T, image=None, parameters=None):
         model = torch.zeros_like(R)
         if self.wedges % 2 == 0 and self.symmetric_wedges:
             for w in range(self.wedges):
@@ -46,7 +51,7 @@ class Wedge_Galaxy(Galaxy_Model):
                     angles < (np.pi / (2 * self.wedges)),
                     angles >= (np.pi * (1 - 1 / (2 * self.wedges))),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image)
+                model[indices] += self.iradial_model(w, R[indices], image, parameters)
         elif self.wedges % 2 == 1 and self.symmetric_wedges:
             for w in range(self.wedges):
                 angles = (T - (w * np.pi / self.wedges)) % (2 * np.pi)
@@ -54,13 +59,13 @@ class Wedge_Galaxy(Galaxy_Model):
                     angles < (np.pi / (2 * self.wedges)),
                     angles >= (np.pi * (2 - 1 / (2 * self.wedges))),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image)
+                model[indices] += self.iradial_model(w, R[indices], image, parameters)
                 angles = (T - (np.pi + w * np.pi / self.wedges)) % (2 * np.pi)
                 indices = torch.logical_or(
                     angles < (np.pi / (2 * self.wedges)),
                     angles >= (np.pi * (2 - 1 / (2 * self.wedges))),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image)
+                model[indices] += self.iradial_model(w, R[indices], image, parameters)
         else:
             for w in range(self.wedges):
                 angles = (T - (w * 2 * np.pi / self.wedges)) % (2 * np.pi)
@@ -68,16 +73,20 @@ class Wedge_Galaxy(Galaxy_Model):
                     angles < (np.pi / self.wedges),
                     angles >= (np.pi * (2 - 1 / self.wedges)),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image)
+                model[indices] += self.iradial_model(w, R[indices], image, parameters)
         return model
 
-    def evaluate_model(self, image, X = None, Y = None, **kwargs):
-        if X is None or Y is None:
+    @default_internal
+    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
+        if X is None:
             X, Y = image.get_coordinate_meshgrid_torch(
-                self["center"].value[0], self["center"].value[1]
+                parameters["center"].value[0], parameters["center"].value[1]
             )
-        XX, YY = self.transform_coordinates(X, Y)
+        XX, YY = self.transform_coordinates(X, Y, image, parameters)
 
         return self.polar_model(
-            self.radius_metric(XX, YY), self.angular_metric(XX, YY), image
+            self.radius_metric(XX, YY, image=image, parameters=parameters),
+            self.angular_metric(XX, YY, image=image, parameters=parameters),
+            image=image,
+            parameters=parameters,
         )

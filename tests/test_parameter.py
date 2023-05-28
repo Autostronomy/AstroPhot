@@ -132,10 +132,12 @@ class TestParameter(unittest.TestCase):
         )
 
     def test_parameter_gradients(self):
-        params = Parameter("input params", value=torch.ones(3), requires_grad=True)
+        V = torch.ones(3)
+        V.requires_grad = True
+        params = Parameter("input params", value=V)
         X = torch.sum(params.value * 3)
         X.backward()
-        self.assertTrue(torch.all(params.grad == 3), "Parameters should track gradient")
+        self.assertTrue(torch.all(V.grad == 3), "Parameters should track gradient")
 
 
 if __name__ == "__main__":

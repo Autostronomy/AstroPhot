@@ -31,7 +31,7 @@ class MHMCMC(BaseOptimizer):
         model: "AutoProf_Model",
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
@@ -83,10 +83,14 @@ class MHMCMC(BaseOptimizer):
         """
 
         self.chain.append(
-            self.model.transform(
+            self.model.parameters.transform(
                 state,
                 to_representation=False,
-            ).detach().cpu().clone().numpy()
+            )
+            .detach()
+            .cpu()
+            .clone()
+            .numpy()
         )
 
     @staticmethod

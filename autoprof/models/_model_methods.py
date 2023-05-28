@@ -78,49 +78,14 @@ def build_parameter_specs(cls, user_specs=None):
 
 
 def build_parameters(self):
-    for p in self.parameter_specs:
-        # skip special parameters, these must be handled by the model child
-        if "|" in p:
-            continue
+    for p in self.__class__._parameter_order:
         # skip if the parameter already exists
         if p in self.parameters:
             continue
         # If a parameter object is provided, simply use as-is
         if isinstance(self.parameter_specs[p], Parameter):
-            self.parameters[p] = self.parameter_specs[p].to()
+            self.parameters.add_parameter(self.parameter_specs[p].to())
         elif isinstance(self.parameter_specs[p], dict):
-            self.parameters[p] = Parameter(p, **self.parameter_specs[p])
+            self.parameters.add_parameter(Parameter(p, **self.parameter_specs[p]))
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
-
-
-def __str__(self):
-    state = self.get_state()
-    presentation = ""
-    for key in state:
-        presentation = presentation + f"{key}: {state[key]}\n"
-    return presentation
-
-
-def __getitem__(self, key):
-    # Access an element from an array parameter
-    if isinstance(key, tuple):
-        return self.parameters[key[0]][key[1]]
-
-    # Try to access the parameter by name
-    if key in self.parameters:
-        return self.parameters[key]
-
-    # Try to get a particular element from an array parameter
-    if "|" in key and key[: key.find("|")] in self.parameters:
-        return self.parameters[key[: key.find("|")]][int(key[key.find("|") + 1 :])]
-
-    raise KeyError(f"{key} not in {self.name}. {str(self)}")
-
-
-def __contains__(self, key):
-    try:
-        self[key]
-        return True
-    except:
-        return False

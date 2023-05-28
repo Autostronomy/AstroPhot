@@ -45,10 +45,10 @@ class TestModel(unittest.TestCase):
             },
             target=target,
         )
-        rep = model.get_parameter_vector(as_representation = True)
-        nat = model.get_parameter_vector(as_representation = False)
-        self.assertTrue(torch.all(rep == model.transform(nat, to_representation = True)), "transform should map between parameter natural and representation")
-        self.assertTrue(torch.all(nat == model.transform(rep, to_representation = False)), "transform should map between parameter representation and natural")
+        rep = model.parameters.get_vector(as_representation = True)
+        nat = model.parameters.get_vector(as_representation = False)
+        self.assertTrue(torch.all(rep == model.parameters.transform(nat, to_representation = True)), "transform should map between parameter natural and representation")
+        self.assertTrue(torch.all(nat == model.parameters.transform(rep, to_representation = False)), "transform should map between parameter representation and natural")
 
     def test_model_creation(self):
         np.random.seed(12345)
@@ -110,7 +110,7 @@ class TestAllModelBasics(unittest.TestCase):
                 target=target,
             )
             MODEL.initialize()
-            for P in MODEL.parameter_order():
+            for P in MODEL.parameter_order:
                 self.assertIsNotNone(
                     MODEL[P].value,
                     f"Model type {model_type} parameter {P} should not be None after initialization",
@@ -169,8 +169,6 @@ class TestSersic(unittest.TestCase):
 
         mod.initialize()
 
-        mod.get_parameter_name_vector()
-
     def test_sersic_save_load(self):
 
         target = make_basic_sersic()
@@ -196,7 +194,7 @@ class TestSersic(unittest.TestCase):
             filename="test_AutoProf_sersic.yaml",
         )
 
-        for P in model.parameter_order():
+        for P in model.parameter_order:
             self.assertEqual(
                 model[P].value.detach().cpu().tolist(),
                 model2[P].value.detach().cpu().tolist(),
@@ -237,8 +235,6 @@ class TestGroup(unittest.TestCase):
         smod.initialize()
 
         self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
-
-        smod.get_parameter_name_vector()
 
 
 if __name__ == "__main__":
