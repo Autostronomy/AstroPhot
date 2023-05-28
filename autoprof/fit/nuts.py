@@ -144,7 +144,7 @@ class NUTS(BaseOptimizer):
             nuts_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.parameters.get_parameter_vector(as_representation=True)}
+        init_params = {"x": self.model.parameters.get_vector(as_representation=True)}
 
         # Run MCMC with the NUTS sampler and the initial guess
         mcmc_kwargs = {

@@ -45,8 +45,8 @@ class TestModel(unittest.TestCase):
             },
             target=target,
         )
-        rep = model.parameters.get_parameter_vector(as_representation = True)
-        nat = model.parameters.get_parameter_vector(as_representation = False)
+        rep = model.parameters.get_vector(as_representation = True)
+        nat = model.parameters.get_vector(as_representation = False)
         self.assertTrue(torch.all(rep == model.parameters.transform(nat, to_representation = True)), "transform should map between parameter natural and representation")
         self.assertTrue(torch.all(nat == model.parameters.transform(rep, to_representation = False)), "transform should map between parameter representation and natural")
 
@@ -169,8 +169,6 @@ class TestSersic(unittest.TestCase):
 
         mod.initialize()
 
-        mod.parameters.get_parameter_name_vector()
-
     def test_sersic_save_load(self):
 
         target = make_basic_sersic()
@@ -237,8 +235,6 @@ class TestGroup(unittest.TestCase):
         smod.initialize()
 
         self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
-
-        smod.parameters.get_parameter_name_vector()
 
 
 if __name__ == "__main__":

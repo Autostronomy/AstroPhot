@@ -227,7 +227,7 @@ class Group_Model(AutoProf_Model):
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
-                parameters=self.parameters.get_parameter_identity_vector(
+                parameters=self.parameters.get_identity_vector(
                     parameters_identity=parameters_identity,
                 )
             )

@@ -790,7 +790,7 @@ class LM_Constraint:
     def jacobian(self, model: "AutoProf_Model"):
         jac = jacobian(
             lambda P: self.constraint_func(P, *self.constraint_args),
-            model.parameters.get_parameter_vector(
+            model.parameters.get_vector(
                 as_representation=self.representation_parameters
             ),
             strategy="forward-mode",
@@ -798,11 +798,11 @@ class LM_Constraint:
             create_graph=False,
         )
 
-        return jac.reshape(-1, np.sum(model.parameters.parameter_vector_len()))
+        return jac.reshape(-1, np.sum(model.parameters.vector_len()))
 
     def __call__(self, model: "AutoProf_Model"):
         return self.constraint_func(
-            model.parameters.get_parameter_vector(
+            model.parameters.get_vector(
                 as_representation=self.representation_parameters
             ),
             *self.constraint_args,

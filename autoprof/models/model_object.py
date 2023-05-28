@@ -479,7 +479,7 @@ class Component_Model(AutoProf_Model):
             window = self.window & window
             
         # skip jacobian calculation if no parameters match criteria
-        porder = self.parameters.parameter_order(parameters_identity=parameters_identity)
+        porder = self.parameters.order(parameters_identity=parameters_identity)
         if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
 
@@ -494,7 +494,7 @@ class Component_Model(AutoProf_Model):
                 parameters_identity=parameters_identity,
             )
         else:
-            if len(self.parameters.get_parameter_identity_vector(parameters_identity=parameters_identity)) > self.jacobian_chunksize:
+            if len(self.parameters.get_identity_vector(parameters_identity=parameters_identity)) > self.jacobian_chunksize:
                 dochunk = True
 
         # If the parameter list is too large, apply the chunk jacobian analysis
@@ -510,7 +510,7 @@ class Component_Model(AutoProf_Model):
         if parameters_identity is None:
             pids = None
         else:
-            pids = self.parameters.get_parameter_identity_vector(
+            pids = self.parameters.get_identity_vector(
                 parameters_identity=parameters_identity,
             )
         # Compute the jacobian
@@ -522,7 +522,7 @@ class Component_Model(AutoProf_Model):
                 parameters_identity=pids,
                 window=window,
             ).data,
-            self.parameters.get_parameter_vector(
+            self.parameters.get_vector(
                 as_representation=as_representation,
                 parameters_identity=parameters_identity,
             ).detach(),
@@ -533,7 +533,7 @@ class Component_Model(AutoProf_Model):
 
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
-            parameters=self.parameters.get_parameter_identity_vector(
+            parameters=self.parameters.get_identity_vector(
                 parameters_identity=parameters_identity,
             ),
             data=full_jac,
@@ -560,7 +560,7 @@ class Component_Model(AutoProf_Model):
 
         """
 
-        pids = self.parameters.get_parameter_identity_vector(
+        pids = self.parameters.get_identity_vector(
             parameters_identity=parameters_identity,
         )
         jac_img = self.target[window].jacobian_image(

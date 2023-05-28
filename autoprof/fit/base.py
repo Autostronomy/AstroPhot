@@ -67,17 +67,11 @@ class BaseOptimizer(object):
             self.fit_window = fit_window & self.model.window
 
         if initial_state is None:
-            try:
-                initial_state = self.model.parameters.get_parameter_vector(
-                    as_representation=True,
-                    parameters_identity=self.fit_parameters_identity,
-                )
-            except AssertionError:
-                self.model.initialize()
-                initial_state = self.model.parameters.get_parameter_vector(
-                    as_representation=True,
-                    parameters_identity=self.fit_parameters_identity,
-                )
+            self.model.initialize()
+            initial_state = self.model.parameters.get_vector(
+                as_representation=True,
+                parameters_identity=self.fit_parameters_identity,
+            )
         else:
             initial_state = torch.as_tensor(
                 initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device

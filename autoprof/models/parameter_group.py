@@ -50,7 +50,7 @@ class Parameter_Group(object):
     def get_identities(self):
         return sum((list(param.identities) for param in self), [])
     
-    def parameter_order(self, parameters_identity=None):
+    def order(self, parameters_identity=None):
         if parameters_identity is None:
             return list(param.identity for param in self)
         else:
@@ -61,9 +61,9 @@ class Parameter_Group(object):
                     ret_list.append(param.identity)
             return ret_list
         
-    def parameter_vector_len(self, parameters_identity=None):
+    def vector_len(self, parameters_identity=None):
         param_vec_len = []
-        for P in self.parameter_order(parameters_identity=parameters_identity):
+        for P in self.order(parameters_identity=parameters_identity):
             if parameters_identity is None:
                 param_vec_len.append(int(np.prod(self.get_id(P).value.shape)))
             else:
@@ -72,14 +72,14 @@ class Parameter_Group(object):
                 )
         return param_vec_len
 
-    def get_parameter_vector(self, as_representation=False, parameters_identity=None):
-        PVL = self.parameter_vector_len(parameters_identity=parameters_identity)
+    def get_vector(self, as_representation=False, parameters_identity=None):
+        PVL = self.vector_len(parameters_identity=parameters_identity)
         parameters = torch.zeros(
             int(np.sum(PVL)),
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
-        porder = self.parameter_order(parameters_identity=parameters_identity)
+        porder = self.order(parameters_identity=parameters_identity)
 
         # If vector is requested by identity, they are individually updated
         if parameters_identity is not None:
@@ -105,27 +105,10 @@ class Parameter_Group(object):
                 parameters[vstart : vstart + V] = self.get_id(P).value
             vstart += V
         return parameters
-
-    def get_parameter_name_vector(self, parameters_identity=None):
-        parameters = []
-        porder = self.parameter_order(parameters_identity=parameters_identity)
-        # If vector is requested by identity, they are individually updated
-        if parameters_identity is not None:
-            pindex = 0
-            for P in porder:
-                for pid, nid in zip(self.get_id(P).identities, self.get_id(P).names):
-                    if pid in parameters_identity:
-                        parameters.append(nid)
-            return parameters
-
-        # If the full vector is requested, they are added in bulk
-        for P in porder:
-            parameters += list(self.get_id(P).names)
-        return parameters
     
-    def get_parameter_identity_vector(self, parameters_identity=None):
+    def get_identity_vector(self, parameters_identity=None):
         parameters = []
-        porder = self.parameter_order(parameters_identity=parameters_identity)
+        porder = self.order(parameters_identity=parameters_identity)
         
         # If vector is requested by identity, they are individually updated
         if parameters_identity is not None:
@@ -142,13 +125,13 @@ class Parameter_Group(object):
         return parameters
 
     def transform(self, in_parameters, to_representation = True, parameters_identity = None):
-        PVL = self.parameter_vector_len(parameters_identity = parameters_identity)
+        PVL = self.vector_len(parameters_identity = parameters_identity)
         out_parameters = torch.zeros(
             int(np.sum(PVL)),
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
-        porder = self.parameter_order(parameters_identity = parameters_identity)
+        porder = self.order(parameters_identity = parameters_identity)
         
         # If vector is requested by identity, they are individually updated
         if parameters_identity is not None:
@@ -174,7 +157,7 @@ class Parameter_Group(object):
         return out_parameters
     
     def get_uncertainty_vector(self, as_representation=False):
-        PVL = self.parameter_vector_len()
+        PVL = self.vector_len()
         uncertanty = torch.zeros(
             int(np.sum(PVL)),
             dtype=AP_config.ap_dtype,
@@ -182,7 +165,7 @@ class Parameter_Group(object):
         )
         vstart = 0
         for P, V in zip(
-            self.parameter_order(),
+            self.order(),
             PVL,
         ):
             if as_representation:
@@ -203,7 +186,7 @@ class Parameter_Group(object):
             values, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         # track the order of the parameters
-        porder = self.parameter_order(parameters_identity=parameters_identity)
+        porder = self.order(parameters_identity=parameters_identity)
 
         # If parameters are provided by identity, they are individually updated
         if parameters_identity is not None:
@@ -225,7 +208,7 @@ class Parameter_Group(object):
         start = 0
         for P, V in zip(
             porder,
-            self.parameter_vector_len(),
+            self.vector_len(),
         ):
             if as_representation:
                 self.get_id(P).representation = values[start : start + V].reshape(
@@ -243,8 +226,8 @@ class Parameter_Group(object):
             parameters_identity = None
     ):
         if as_representation:
-            return tuple(self.parameters[identity].representation for identity in self.parameter_order(parameters_identity = parameters_identity))
-        return tuple(self.parameters[identity].value for identity in self.parameter_order(parameters_identity = parameters_identity))
+            return tuple(self.parameters[identity].representation for identity in self.order(parameters_identity = parameters_identity))
+        return tuple(self.parameters[identity].value for identity in self.order(parameters_identity = parameters_identity))
     
     def set_values_from_tuple(
             self,
@@ -253,10 +236,10 @@ class Parameter_Group(object):
             parameters_identity = None
     ):
         if as_representation:
-            for value, identity in zip(values, self.parameter_order(parameters_identity = parameters_identity)):
+            for value, identity in zip(values, self.order(parameters_identity = parameters_identity)):
                 self.parameters[identity].set_representation(value)
             return
-        for value, identity in zip(values, self.parameter_order(parameters_identity = parameters_identity)):
+        for value, identity in zip(values, self.order(parameters_identity = parameters_identity)):
             self.parameters[identity].set_value(value)
 
     def set_uncertainty(
@@ -269,7 +252,7 @@ class Parameter_Group(object):
             uncertainty, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         # track the order of the parameters
-        porder = self.parameter_order(parameters_identity=parameters_identity)
+        porder = self.order(parameters_identity=parameters_identity)
 
         # If uncertainty is provided by identity, they are individually updated
         if parameters_identity is not None:
@@ -288,7 +271,7 @@ class Parameter_Group(object):
         start = 0
         for P, V in zip(
             porder,
-            self.parameter_vector_len(),
+            self.vector_len(),
         ):
             self.get_id(P).set_uncertainty(
                 uncertainty[start : start + V].reshape(self.get_id(P).representation.shape),

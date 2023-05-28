@@ -93,7 +93,7 @@ class Iter(BaseOptimizer):
                 AP_config.ap_logger.info(model.name)
             self.sub_step(model)
         # Update the current state
-        self.current_state = self.model.parameters.get_parameter_vector(as_representation=True)
+        self.current_state = self.model.parameters.get_vector(as_representation=True)
 
         # Update the loss value
         with torch.no_grad():
@@ -228,7 +228,7 @@ class Iter_LM(BaseOptimizer):
 
     def step(self):
         # These store the chunking information depending on which chunk mode is selected
-        param_ids = list(self.model.parameters.get_parameter_identity_vector())
+        param_ids = list(self.model.parameters.get_identity_vector())
         _chunk_index = 0
         _chunk_choices = None
         res = None
@@ -292,7 +292,7 @@ class Iter_LM(BaseOptimizer):
 
         self.loss_history.append(res.res_loss())
         self.lambda_history.append(
-            self.model.parameters.get_parameter_vector(as_representation=True)
+            self.model.parameters.get_vector(as_representation=True)
             .detach()
             .cpu()
             .numpy()
