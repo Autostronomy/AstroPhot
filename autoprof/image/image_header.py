@@ -7,12 +7,25 @@ import numpy as np
 from astropy.io import fits
 
 from .window_object import Window, Window_List
+from .window_batch import Window_Batch
 from .. import AP_config
 
-__all__ = ["Image_Header"]
+__all__ = ["Image_Header", "Image_Header_Batch"]
 
 
 class Image_Header(object):
+
+    subclasses = {}
+
+    def __init_subclass__(cls):
+        if hasattr(cls, "subname"):
+            Image_Header.subclasses[cls.subname] = cls
+        
+    def __new__(cls, *args, **kwargs):
+        if isinstance(kwargs.get("window", None), Window_Batch) or (isinstance(kwargs.get("origin", None), torch.Tensor) and kwargs["origin"].dim() == 2):
+            return super().__new__(Image_Header.subclasses["batch"])
+        return super().__new__(cls)    
+    
     def __init__(
         self,
         data_shape: Optional[torch.Tensor] = None,
@@ -183,6 +196,15 @@ class Image_Header(object):
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
+        if isinstance(window, Window_Batch):
+            return self.__class__.subclasses["batch"](
+                pixelscale=self.pixelscale,
+                zeropoint=self.zeropoint,
+                note=self.note,
+                window=self.window & window,
+                _identity=self.identity,
+                **kwargs,
+            )
         return self.__class__(
             pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
@@ -225,8 +247,8 @@ class Image_Header(object):
     def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:
         return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
 
-    def get_coordinate_meshgrid_torch(self, x=0.0, y=0.0):
-        return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
+    def get_coordinate_meshgrid_torch(self, c):
+        return self.window.get_coordinate_meshgrid_torch(self.pixelscale, c)
 
     def super_resolve(self, scale: int, **kwargs):
         assert isinstance(scale, int) or scale.dtype is torch.int32
@@ -320,3 +342,113 @@ class Image_Header(object):
     def __str__(self):
         state = self.get_state()
         return "\n".join(f"{key}: {state[key]}" for key in state)
+
+
+
+class Image_Header_Batch(Image_Header):
+    subname = "batch"
+    
+    def __init__(
+        self,
+        data_shape: Optional[torch.Tensor] = None,
+        pixelscale: Optional[Union[float, torch.Tensor]] = None,
+        window: Optional[Window] = None,
+        filename: Optional[str] = None,
+        zeropoint: Optional[Union[float, torch.Tensor]] = None,
+        note: Optional[str] = None,
+        origin: Optional[Sequence] = None,
+        center: Optional[Sequence] = None,
+        _identity: str = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize an instance of the APImage class.
+
+        Parameters:
+        -----------
+        pixelscale : float or None, optional
+            The physical scale of the pixels in the image, in units of arcseconds. Default is None.
+        window : Window_Batch or None, optional
+            A Window object defining the area of the image to use. Default is None.
+        filename : str or None, optional
+            The name of a file containing the image data. Default is None.
+        zeropoint : float or None, optional
+            The image's zeropoint, used for flux calibration. Default is None.
+        note : str or None, optional
+            A note describing the image. Default is None.
+        origin : numpy.ndarray or None, optional
+            The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
+        center : numpy.ndarray or None, optional
+            The center of the image in the coordinate system, as a 1D array of length 2. Default is None.
+
+        Returns:
+        --------
+        None
+        """
+        # Record identity
+        if _identity is None:
+            self.identity = str(id(self))
+        else:
+            self.identity = _identity
+
+        if filename is not None:
+            self.load(filename)
+            return
+
+        assert not (pixelscale is None and window is None)
+
+        # set Zeropoint
+        if zeropoint is None:
+            self.zeropoint = None
+        else:
+            self.zeropoint = torch.as_tensor(
+                zeropoint, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+
+        # set a note for the image
+        self.note = note
+
+        # Set Window
+        if window is None:
+            # If window is not provided, create one based on pixelscale and data shape
+            assert (
+                pixelscale is not None
+            ), "pixelscale cannot be None if window is not provided"
+
+            self.pixelscale = torch.as_tensor(
+                pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+            shape = (
+                torch.flip(
+                    torch.tensor(
+                        data_shape[1:], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                    ),
+                    (0,),
+                )
+                * self.pixelscale
+            )
+            if origin is None and center is None:
+                origin = torch.zeros(
+                    (data_shape[0], 2), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            elif center is None:
+                origin = torch.as_tensor(
+                    origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            else:
+                origin = (
+                    torch.as_tensor(
+                        center, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                    )
+                    - shape / 2
+                )
+
+            self.window = Window_Batch(origin=origin, shape=shape)
+        else:
+            # When The Window_Batch object is provided
+            self.window = window
+            if pixelscale is None:
+                self.pixelscale = self.window.shape[0] / data_shape[1]
+            else:
+                self.pixelscale = torch.as_tensor(
+                    pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )

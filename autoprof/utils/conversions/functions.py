@@ -3,7 +3,6 @@ import torch
 from scipy.special import gamma
 from torch.special import gammaln
 
-
 def sersic_n_to_b(n):
     return (
         2 * n

@@ -7,10 +7,11 @@ import numpy as np
 from astropy.io import fits
 
 from .window_object import Window, Window_List
-from .image_header import Image_Header
+from .window_batch import Window_Batch
+from .image_header import Image_Header, Image_Header_Batch
 from .. import AP_config
 
-__all__ = ["Image", "Image_List"]
+__all__ = ["Image", "Image_List", "Image_Batch"]
 
 
 class Image(object):
@@ -28,7 +29,7 @@ class Image(object):
         note: a note about this image if any
         origin: The origin of the image in the coordinate system.
     """
-
+    
     def __init__(
         self,
         data: Optional[Union[torch.Tensor]] = None,
@@ -220,6 +221,12 @@ class Image(object):
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
+        if isinstance(window, Window_Batch):
+            return self.__class__.subclasses["batch"](
+                data=torch.stack(tuple(self.data[indice] for indice in window.get_indices(self))),
+                header=self.header.get_window(window, **kwargs),
+                **kwargs,
+            )
         return self.__class__(
             data=self.data[window.get_indices(self)],
             header=self.header.get_window(window, **kwargs),
@@ -271,8 +278,8 @@ class Image(object):
     def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:
         return self.header.get_coordinate_meshgrid_np(x, y)
 
-    def get_coordinate_meshgrid_torch(self, x=0.0, y=0.0):
-        return self.header.get_coordinate_meshgrid_torch(x, y)
+    def get_coordinate_meshgrid_torch(self, c: torch.Tensor):
+        return self.header.get_coordinate_meshgrid_torch(c)
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
@@ -367,40 +374,20 @@ class Image(object):
             new_img.data += other
             return new_img
 
-    def __sub__(self, other):
-        if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot subtract images with different pixelscale!")
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                raise IndexError("images have no overlap, cannot subtract!")
-            new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_indices(self)].copy()
-            new_img.data -= other
-            return new_img
-
-    def __add__(self, other):
-        if isinstance(other, Image):
+    def __iadd__(self, other):
+        if isinstance(other, Image) and isinstance(other.window, Window_Batch):
             if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):
                 return self
-            new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_indices(self)].copy()
-            new_img.data += other
-            return new_img
 
-    def __iadd__(self, other):
-        if isinstance(other, Image):
+            self_indices = other.window.get_indices(self)
+            other_indices = self.window.get_indices(other)
+            for i, si, oi in zip(range(len(other.window)), self_indices, other_indices):
+                self.data[si] += other.data[i][oi]
+        elif isinstance(other, Image):
             if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot add images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
@@ -415,7 +402,19 @@ class Image(object):
         return self
 
     def __isub__(self, other):
-        if isinstance(other, Image):
+        if isinstance(other, Image) and isinstance(other.window, Window_Batch):
+            if not torch.isclose(self.pixelscale, other.pixelscale):
+                raise IndexError("Cannot add images with different pixelscale!")
+            if torch.any(self.origin + self.shape < other.origin) or torch.any(
+                other.origin + other.shape < self.origin
+            ):
+                return self
+
+            self_indices = other.window.get_indices(self)
+            other_indices = self.window.get_indices(other)
+            for i, si, oi in zip(range(len(other.window)), self_indices, other_indices):
+                self.data[si] -= other.data[i][oi]
+        elif isinstance(other, Image):
             if not torch.isclose(self.pixelscale, other.pixelscale):
                 raise IndexError("Cannot subtract images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
@@ -437,10 +436,11 @@ class Image(object):
         raise ValueError("Unrecognized Image getitem request!")
 
     def __str__(self):
-        return f"image pixelscale: {self.pixelscale} origin: {self.origin}\ndata: {self.data}"
+        return f"image pixelscale: {self.pixelscale.detach().cpu().tolist()} origin: {self.origin.detach().cpu().tolist()}\ndata: {self.data.detach().cpu().numpy()}"
 
 
 class Image_List(Image):
+    
     def __init__(self, image_list):
         self.image_list = list(image_list)
 
@@ -586,12 +586,13 @@ class Image_List(Image):
     def __iter__(self):
         return (img for img in self.image_list)
 
-    #     self._index = 0
-    #     return self
+    
+class Image_Batch(Image):
+    """This class acts as a general identifier for batch image objects. It adds minimal functionality on it's own, just encorporating batch specific functions.
+    """
 
-    # def __next__(self):
-    #     if self._index >= len(self.image_list):
-    #         raise StopIteration
-    #     img = self.image_list[self._index]
-    #     self._index += 1
-    #     return img
+    def squish(self):
+        """
+        Converts the batch version of an image into the flat version by projecting all of the images into one grid.
+        """
+        raise NotImplementedError("Please use a subclass of Image_Batch")

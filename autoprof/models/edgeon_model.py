@@ -96,9 +96,7 @@ class Edgeon_Model(Component_Model):
         **kwargs,
     ):
         if X is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            X, Y = image.get_coordinate_meshgrid_torch(parameters["center"].value)
         XX, YY = self.transform_coordinates(X, Y, image=image, parameters=parameters)
 
         return self.brightness_model(

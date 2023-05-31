@@ -4,14 +4,16 @@ import torch
 import numpy as np
 from torch.nn.functional import avg_pool2d
 
-from .image_object import Image, Image_List
+from .image_object import Image, Image_List, Image_Batch
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .model_image import Model_Image, Model_Image_List
 from .psf_image import PSF_Image
+from .window_batch import Window_Batch
+from .image_header import Image_Header_Batch
 from astropy.io import fits
 from .. import AP_config
 
-__all__ = ["Target_Image", "Target_Image_List"]
+__all__ = ["Target_Image", "Target_Image_List", "Target_Image_Batch"]
 
 
 class Target_Image(Image):
@@ -22,6 +24,18 @@ class Target_Image(Image):
     """
 
     image_count = 0
+    subclasses = {}
+
+    def __init_subclass__(cls):
+        if hasattr(cls, "subname"):
+            Target_Image.subclasses[cls.subname] = cls
+        
+    def __new__(cls, *args, **kwargs):
+        if isinstance(kwargs.get("window", None), Window_Batch) or isinstance(kwargs.get("header", None), Image_Header_Batch) or (isinstance(kwargs.get("origin", None), torch.Tensor) and kwargs["origin"].dim() == 2):
+            return super().__new__(Target_Image.subclasses["batch"])
+        if kwargs.get("window_list", None) is not None:
+            return super().__new__(Target_Image.subclasses["list"])
+        return super().__new__(cls)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -181,14 +195,24 @@ class Target_Image(Image):
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
-        indices = window.get_indices(self)
-        return super().get_window(
-            window=window,
-            variance=self._variance[indices] if self.has_variance else None,
-            mask=self._mask[indices] if self.has_mask else None,
-            psf=self._psf,
-            **kwargs,
-        )
+        if isinstance(window, Window_Batch):
+            indices = window.get_indices(self)
+            return super().get_window(
+                window=window,
+                variance=torch.stack(tuple(self._variance[indice] for indice in indices)) if self.has_variance else None,
+                mask=torch.stack(tuple(self._mask[indice] for indice in indices)) if self.has_mask else None,
+                psf=self._psf,
+                **kwargs,
+            )
+        else:
+            indices = window.get_indices(self)
+            return super().get_window(
+                window=window,
+                variance=self._variance[indices] if self.has_variance else None,
+                mask=self._mask[indices] if self.has_mask else None,
+                psf=self._psf,
+                **kwargs,
+            )
 
     def jacobian_image(
         self,
@@ -285,6 +309,8 @@ class Target_Image(Image):
 
 
 class Target_Image_List(Image_List, Target_Image):
+    subname = "list"
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert all(
@@ -449,3 +475,47 @@ class Target_Image_List(Image_List, Target_Image):
 
     def and_mask(self, mask):
         raise NotImplementedError()
+
+
+class Target_Image_Batch(Target_Image, Image_Batch):
+    """Image object which represents the data to be fit by a model. It can
+    include a variance image, mask, and PSF as anciliary data which
+    describes the target image.
+
+    """
+    subname = "batch"
+    image_count = 0
+
+    def get_window(self, window, **kwargs):
+        """Get a sub-region of the image as defined by a window on the sky."""
+        if isinstance(window, Window_Batch):
+            indices = window.get_indices(self)
+            return self.__class__.subclasses["batch"](
+                data=torch.stack(tuple(self.data[i][indice] for i, indice in enumerate(window.get_indices(self)))),
+                header=self.header.get_window(window, **kwargs),
+                variance=torch.stack(tuple(self._variance[i][indice] for i, indice in enumerate(indices))) if self.has_variance else None,
+                mask=torch.stack(tuple(self._mask[i][indice] for i, indice in enumerate(indices))) if self.has_mask else None,
+                psf=self._psf,
+                **kwargs,
+            )
+        raise ValueError(f"Unrecognized window type for Target_Image_Batch: {type(window)}")
+
+    def reduce(self, scale, **kwargs):
+        MS = self.data.shape[1] // scale
+        NS = self.data.shape[2] // scale
+
+        return super().reduce(
+            scale=scale,
+            variance=self.variance[:,: MS * scale, : NS * scale]
+            .reshape(self.data.shape[0], MS, scale, NS, scale)
+            .sum(axis=(2, 4))
+            if self.has_variance
+            else None,
+            mask=self.mask[:, : MS * scale, : NS * scale]
+            .reshape(self.data.shape[0], MS, scale, NS, scale)
+            .amax(axis=(2, 4))
+            if self.has_mask
+            else None,
+            psf=self.psf.reduce(scale) if self.has_psf else None,
+            **kwargs,
+        )

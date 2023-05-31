@@ -1,9 +1,11 @@
+from functools import partial
+
 import numpy as np
 import torch
+
 from .. import AP_config
 
 __all__ = ["Window", "Window_List"]
-
 
 class Window(object):
     """class to define a window on the sky in coordinate space. These
@@ -12,6 +14,18 @@ class Window(object):
     appropriate subsection of their data.
 
     """
+    subclasses = {}
+
+    def __init_subclass__(cls):
+        if hasattr(cls, "subname"):
+            Window.subclasses[cls.subname] = cls
+        
+    def __new__(cls, *args, **kwargs):
+        if isinstance(kwargs.get("origin", None), torch.Tensor) and kwargs["origin"].dim() == 2:
+            return super().__new__(Window.subclasses["batch"])
+        if kwargs.get("window_list", None) is not None:
+            return super().__new__(Window.subclasses["list"])
+        return super().__new__(cls)
 
     def __init__(self, origin=None, shape=None, center=None, state=None):
         # If loading from a previous state, simply update values and end init
@@ -73,74 +87,44 @@ class Window(object):
     def get_shape_flip(self, pixelscale):
         return (torch.round(torch.flip(self.shape, (0,)) / pixelscale)).int()
 
-    @torch.no_grad()
-    def pad_to(self, window, pixelscale=None):
-        """Assuming the input window is greater than the self window,
-        determines how much padding is needed to expand to the new
-        size.
-
-        """
-        pad_edges = (
-            window.origin[0] - self.window.origin[0],
-            window.origin[1] - self.window.origin[1],
-            window.origin[0]
-            + window.shape[0]
-            - (self.window.origin[0] + self.window.shape[0]),
-            window.origin[1]
-            + window.shape[1]
-            - (self.window.origin[1] + self.window.shape[1]),
+    @staticmethod
+    def _indices(origin_in, shape_in, origin_out, shape_out, pixelscale):
+        return torch.max(
+            torch.tensor(0, dtype=torch.int, device=AP_config.ap_device),
+            (
+                torch.round((origin_in[1] - origin_out[1]) / pixelscale)
+            ).int(),
+        ), torch.min(
+            (torch.round(shape_out[1] / pixelscale)).int(),
+            (
+                torch.round((origin_in[1] + shape_in[1] - origin_out[1]) / pixelscale)
+            ).int(),
+        ), torch.max(
+            torch.tensor(0, dtype=torch.int, device=AP_config.ap_device),
+            (
+                torch.round((origin_in[0] - origin_out[0]) / pixelscale)
+            ).int(),
+        ), torch.min(
+            (torch.round(shape_out[0] / pixelscale)).int(),
+            (
+                torch.round((origin_in[0] + shape_in[0] - origin_out[0]) / pixelscale)
+            ).int(),
         )
-        if pixelscale is not None:
-            pad_edges = tuple(np.int64(np.round(np.array(pad_edges) / pixelscale)))
-        return pad_edges
-
+        
     def _get_indices(self, obj_window, obj_pixelscale):
         """
         Return an index slicing tuple for obj corresponding to this window
         """
-        # alignment = ((self.origin + self.shape - obj.origin) / obj.pixelscale)
-        # if not np.allclose(alignment/np.round(alignment), 1.):
-        #     print(alignment, self.origin, self.shape, obj.origin, obj.pixelscale)
-        #     raise ValueError("Cannot determine indices for misaligned windows")
+        if isinstance(obj_window, self.__class__.subclasses["batch"]):
+            indices = tuple(self._indices(self.origin, self.shape, OO, obj_window.shape, obj_pixelscale) for OO in obj_window.origin)
+            return tuple((
+                slice(subindices[0], subindices[1]),
+                slice(subindices[2], subindices[3]),
+            ) for subindices in indices)
+        indices = self._indices(self.origin, self.shape, obj_window.origin, obj_window.shape, obj_pixelscale)
         return (
-            slice(
-                torch.max(
-                    torch.tensor(0, dtype=torch.int, device=AP_config.ap_device),
-                    (
-                        torch.round(
-                            (self.origin[1] - obj_window.origin[1]) / obj_pixelscale
-                        )
-                    ).int(),
-                ),
-                torch.min(
-                    (torch.round(obj_window.shape[1] / obj_pixelscale)).int(),
-                    (
-                        torch.round(
-                            (self.origin[1] + self.shape[1] - obj_window.origin[1])
-                            / obj_pixelscale
-                        )
-                    ).int(),
-                ),
-            ),
-            slice(
-                torch.max(
-                    torch.tensor(0, dtype=torch.int, device=AP_config.ap_device),
-                    (
-                        torch.round(
-                            (self.origin[0] - obj_window.origin[0]) / obj_pixelscale
-                        )
-                    ).int(),
-                ),
-                torch.min(
-                    (torch.round(obj_window.shape[0] / obj_pixelscale)).int(),
-                    (
-                        torch.round(
-                            (self.origin[0] + self.shape[0] - obj_window.origin[0])
-                            / obj_pixelscale
-                        )
-                    ).int(),
-                ),
-            ),
+            slice(indices[0], indices[1]),
+            slice(indices[2], indices[3]),
         )
 
     def get_indices(self, obj):
@@ -169,26 +153,53 @@ class Window(object):
             ),
         )
 
-    def get_coordinate_meshgrid_torch(self, pixelscale, x=0.0, y=0.0):
-        return torch.meshgrid(
-            torch.linspace(
-                (self.origin[0] + pixelscale / 2).detach(),
-                (self.origin[0] + self.shape[0] - pixelscale / 2).detach(),
-                torch.round((self.shape[0] / pixelscale).detach()).int(),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
+    def get_coordinate_meshgrid_torch(self, pixelscale, c):
+        if c is None or c.dim() == 1:
+            return torch.meshgrid(
+                torch.linspace(
+                    (self.origin[0] + pixelscale / 2).detach(),
+                    (self.origin[0] + self.shape[0] - pixelscale / 2).detach(),
+                    torch.round((self.shape[0] / pixelscale).detach()).int(),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                - c[0],
+                torch.linspace(
+                    (self.origin[1] + pixelscale / 2).detach(),
+                    (self.origin[1] + self.shape[1] - pixelscale / 2).detach(),
+                    torch.round((self.shape[1] / pixelscale).detach()).int(),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                - c[1],
+                indexing="xy",
             )
-            - x,
-            torch.linspace(
-                (self.origin[1] + pixelscale / 2).detach(),
-                (self.origin[1] + self.shape[1] - pixelscale / 2).detach(),
-                torch.round((self.shape[1] / pixelscale).detach()).int(),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
+        elif c.dim() == 2:
+            X = torch.stack(
+                tuple(torch.linspace(
+                    (O[0] + pixelscale / 2).detach(),
+                    (O[0] + self.shape[0] - pixelscale / 2).detach(),
+                    torch.round((self.shape[0] / pixelscale).detach()).int(),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                - C[0]
+                for O, C in zip(self.origin, c))
             )
-            - y,
-            indexing="xy",
-        )
+            Y = torch.stack(
+                tuple(torch.linspace(
+                    (O[1] + pixelscale / 2).detach(),
+                    (O[1] + self.shape[1] - pixelscale / 2).detach(),
+                    torch.round((self.shape[1] / pixelscale).detach()).int(),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                - C[1]
+                for O, C in zip(self.origin, c))
+            )
+            return torch.vmap(partial(torch.meshgrid, indexing = "xy"))(X, Y)
+        else:
+            raise ValueError(f"Center 'c' should have 1 or 2 dimensions")
 
     def overlap_frac(self, other):
         overlap = self & other
@@ -221,17 +232,15 @@ class Window(object):
         if isinstance(other, (float, int, torch.dtype)):
             new_origin = self.origin - other
             new_shape = self.shape + 2 * other
-            return Window(new_origin, new_shape)
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
+            return self.__class__(new_origin, new_shape)
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
             new_origin = self.origin - torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             new_shape = self.shape + 2 * torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            return Window(new_origin, new_shape)
+            return self.__class__(new_origin, new_shape)
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
     @torch.no_grad()
@@ -240,9 +249,7 @@ class Window(object):
             self.origin -= other
             self.shape += 2 * other
             return self
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
             self.origin -= torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
@@ -250,9 +257,7 @@ class Window(object):
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             return self
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (
-            2 * len(self.origin)
-        ):
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (2 * self.origin.shape[-1]):
             self.origin -= torch.as_tensor(
                 other[::2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
@@ -269,18 +274,16 @@ class Window(object):
         if isinstance(other, (float, int, torch.dtype)):
             new_origin = self.origin + other
             new_shape = self.shape - 2 * other
-            return Window(new_origin, new_shape)
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
+            return self.__class__(new_origin, new_shape)
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
             new_origin = self.origin + torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             new_shape = self.shape - 2 * torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            return Window(new_origin, new_shape)
-        raise ValueError(f"Window object cannot be added with {type(other)}")
+            return self.__class__(new_origin, new_shape)
+        raise ValueError(f"Window object cannot be subtracted with {type(other)}")
 
     @torch.no_grad()
     def __isub__(self, other):
@@ -290,9 +293,7 @@ class Window(object):
             self.origin += other
             self.shape -= 2 * other
             return self
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
             self.origin += torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
@@ -300,9 +301,7 @@ class Window(object):
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             return self
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (
-            2 * len(self.origin)
-        ):
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (2 * self.origin.shape[-1]):
             self.origin += torch.as_tensor(
                 other[::2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
@@ -312,37 +311,35 @@ class Window(object):
                 device=AP_config.ap_device,
             )
             return self
-        raise ValueError(f"Window object cannot be added with {type(other)}")
+        raise ValueError(f"Window object cannot be subtracted with {type(other)}")
 
     @torch.no_grad()
     def __mul__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape * other
             new_origin = self.center - new_shape / 2
-            return Window(new_origin, new_shape)
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
+            return self.__class__(new_origin, new_shape)
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
             new_shape = self.shape * torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             new_origin = self.center - new_shape / 2
-            return Window(new_origin, new_shape)
+            return self.__class__(new_origin, new_shape)
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
     @torch.no_grad()
     def __imul__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
-            self.shape *= other
-            self.origin = self.center - new_window_shape / 2
+            new_shape = self.shape * other
+            self.origin = self.center - new_shape / 2
+            self.shape = new_shape
             return self
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
-            self.shape *= torch.as_tensor(
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
+            new_shape = self.shape * torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            self.origin = self.center - new_window_shape / 2
+            self.origin = self.center - new_shape / 2
+            self.shape = new_shape
             return self
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
@@ -351,30 +348,28 @@ class Window(object):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape / other
             new_origin = self.center - new_shape / 2
-            return Window(new_origin, new_shape)
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
+            return self.__class__(new_origin, new_shape)
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
             new_shape = self.shape / torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             new_origin = self.center - new_shape / 2
-            return Window(new_origin, new_shape)
+            return self.__class__(new_origin, new_shape)
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
     @torch.no_grad()
     def __itruediv__(self, other):
         if isinstance(other, (float, int, torch.dtype)):
-            self.shape /= other
-            self.origin = self.center - new_window_shape / 2
+            new_shape = self.shape / other
+            self.origin = self.center - new_shape / 2
+            self.shape = new_shape
             return self
-        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-            self.origin
-        ):
-            self.shape /= torch.as_tensor(
+        elif isinstance(other, (tuple, torch.Tensor)) and len(other) == self.origin.shape[-1]:
+            new_shape = self.shape / torch.as_tensor(
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            self.origin = self.center - new_window_shape / 2
+            self.origin = self.center - new_shape / 2
+            self.shape = new_shape
             return self
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
@@ -434,6 +429,12 @@ class Window(object):
 
     @torch.no_grad()
     def __and__(self, other):
+        if isinstance(other, self.__class__.subclasses["batch"]):
+            new_origin = torch.maximum(self.origin.clone(), other.origin)
+            new_end = torch.minimum(
+                self.origin[0].clone() + self.shape.clone(), other.origin[0] + other.shape
+            )
+            return self.__class__.subclasses["batch"](new_origin, new_end - new_origin[0])            
         new_origin = torch.maximum(self.origin.clone(), other.origin)
         new_end = torch.minimum(
             self.origin.clone() + self.shape.clone(), other.origin + other.shape
@@ -451,10 +452,12 @@ class Window(object):
         return self
 
     def __str__(self):
-        return f"window origin: {list(self.origin.detach().cpu().numpy())}, shape: {list(self.shape.detach().cpu().numpy())}, center: {list(self.center.detach().cpu().numpy())}"
+        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}"
 
 
 class Window_List(Window):
+    subname = "list"
+    
     def __init__(self, window_list=None, state=None):
         if state is not None:
             self.update_state(state)

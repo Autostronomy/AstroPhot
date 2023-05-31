@@ -108,9 +108,7 @@ def radial_median_profile(
 
     with torch.no_grad():
         image = model.target[model.window]
-        X, Y = image.get_coordinate_meshgrid_torch(
-            model["center"].value[0], model["center"].value[1]
-        )
+        X, Y = image.get_coordinate_meshgrid_torch(model["center"].value)
         X, Y = model.transform_coordinates(X, Y)
         R = model.radius_metric(X, Y)
         R = R.detach().cpu().numpy()

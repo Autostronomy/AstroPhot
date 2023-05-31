@@ -133,9 +133,7 @@ class Galaxy_Model(Component_Model):
         self, X=None, Y=None, image=None, parameters: "Parameter_Group" = None, **kwargs
     ):
         if X is None or Y is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            X, Y = image.get_coordinate_meshgrid_torch(parameters["center"].value)
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
         return self.radial_model(
             self.radius_metric(XX, YY, image, parameters),

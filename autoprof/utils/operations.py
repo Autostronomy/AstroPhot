@@ -91,6 +91,34 @@ def displacement_grid(*N, pixelscale=1.0, dtype=torch.float64, device="cpu"):
     )
 
 
+def all_integrate(
+        X: torch.Tensor,
+        Y: torch.Tensor,
+        image_header: "Image_Header",
+        eval_brightness: Callable,
+        eval_parameters: "Parameter_Group",
+        oversample: int = 9,
+):
+    # compute the subpixel coordinate shifts for even integration within a pixel
+    shiftsx, shiftsy = displacement_grid(
+        oversample,
+        oversample,
+        pixelscale=image_header.pixelscale / oversample,
+        device=X.device,
+        dtype=X.dtype,
+    )
+    
+    # Reshape coordinates to add two dimensions with the super-resolved coordiantes
+    Xs = X.reshape(-1, 1, 1).repeat(1, oversample, oversample) + shiftsx
+    Ys = Y.reshape(-1, 1, 1).repeat(1, oversample, oversample) + shiftsy
+
+    # evaluate the model on the new smaller coordinate grid in each pixel
+    res = eval_brightness(
+        image=image_header.super_resolve(oversample), parameters=eval_parameters, X=Xs, Y=Ys
+    )
+
+    return res.sum(axis=(1, 2)).reshape(X.shape)
+    
 def selective_integrate(
     X: torch.Tensor,
     Y: torch.Tensor,

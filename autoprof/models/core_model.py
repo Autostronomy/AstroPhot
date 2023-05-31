@@ -46,7 +46,7 @@ class AutoProf_Model(object):
     """
 
     model_type = "model"
-    constraint_strength = 10.0
+    batched = False
     useable = False
 
     def __new__(cls, *args, filename=None, model_type=None, **kwargs):
@@ -358,4 +358,6 @@ class AutoProf_Model(object):
             )
             parameters = self.parameters
 
+        if self.batched:
+            return self.batch_sample(image=image, window=window, parameters=parameters, **kwargs)
         return self.sample(image=image, window=window, parameters=parameters, **kwargs)

@@ -16,6 +16,7 @@ from ..utils.operations import (
     fft_convolve_torch,
     fft_convolve_multi_torch,
     selective_integrate,
+    all_integrate,
 )
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
 from ..utils.conversions.coordinates import coord_to_index, index_to_coord
@@ -218,9 +219,7 @@ class Component_Model(AutoProf_Model):
 
         """
         if X is None or Y is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            X, Y = image.get_coordinate_meshgrid_torch(parameters["center"].value)
         return torch.zeros_like(X)  # do nothing in base model
 
     def sample(
@@ -300,9 +299,7 @@ class Component_Model(AutoProf_Model):
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(
-                    parameters["center"].value[0], parameters["center"].value[1]
-                )
+                X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value)
                 selective_integrate(
                     X=X,
                     Y=Y,
@@ -363,9 +360,7 @@ class Component_Model(AutoProf_Model):
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(
-                    parameters["center"].value[0], parameters["center"].value[1]
-                )
+                X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value)
                 selective_integrate(
                     X=X,
                     Y=Y,
@@ -383,6 +378,201 @@ class Component_Model(AutoProf_Model):
                     self.integrate_window(working_image, "pixel"),
                     self.integrate_recursion_depth,
                 )
+            else:
+                raise ValueError(
+                    f"{self.name} has unknown integration mode: {self.integrate_mode}"
+                )
+            # Add the sampled/integrated pixels to the requested image
+            if self.mask is not None:
+                working_image.data = working_image.data * torch.logical_not(self.mask)
+            image += working_image
+
+        return image
+
+    def batch_evaluate_model_stage_2(self, image, parameters_container, X, Y, *parameters):
+        parameters_container.set_values_from_tuple(parameters, as_representation = True)
+        return self.evaluate_model(X = X, Y = Y, image = image, parameters = parameters_container)
+    
+    def batch_evaluate_model_stage_1(self, X, Y, image_header, parameters):
+        return torch.vmap(
+            partial(
+                self.batch_evaluate_model_stage_2,
+                image_header,
+                parameters.copy(),
+            )
+        )(
+            X,
+            Y,
+            *parameters.get_values_as_tuple(as_representation = True),
+        )
+    def batch_all_integrate_stage_2(self, image, parameters_container, X, Y, *parameters):
+        parameters_container.set_values_from_tuple(parameters, as_representation = True)
+        return all_integrate(
+            X = X, Y = Y,
+            image_header = image,
+            eval_brightness = self.evaluate_model,
+            eval_parameters = parameters_container,
+            oversample = self.integrate_factor ** self.integrate_recursion_depth
+        )
+    
+    def batch_all_integrate_stage_1(self, X, Y, image_header, parameters):
+        return torch.vmap(
+            partial(
+                self.batch_all_integrate_stage_2,
+                image_header,
+                parameters.copy(),
+            )
+        )(
+            X,
+            Y,
+            *parameters.get_values_as_tuple(as_representation = True),
+        )
+    
+    def batch_sample(
+        self,
+        image: Optional["Image"] = None,
+        window: Optional[Window] = None,
+        parameters: Optional[Parameter_Group] = None,
+    ):
+        """Evaluate the model on the space covered by an image object. This
+        function properly calls integration methods and PSF
+        convolution. This should not be overloaded except in special
+        cases.
+
+        This function is designed to compute the model on a given
+        image or within a specified window. It takes care of sub-pixel
+        sampling, recursive integration for high curvature regions,
+        PSF convolution, and proper alignment of the computed model
+        with the original pixel grid. The final model is then added to
+        the requested image.
+
+        Args:
+          image (Optional[Image]): An AutoProf Image object (likely a Model_Image)
+                                     on which to evaluate the model values. If not
+                                     provided, a new Model_Image object will be created.
+          window (Optional[Window]): A window within which to evaluate the model.
+                                   Should only be used if a subset of the full image
+                                   is needed. If not provided, the entire image will
+                                   be used.
+
+        Returns:
+          Image: The image with the computed model values.
+
+        """
+        if window is None:
+            window = self.window
+            
+        # Image on which to evaluate model
+        if image is None: # fixme make batch
+            image = self.target[window].model_image()
+
+        # Window within which to evaluate model
+        working_window = window.copy()
+
+        # Parameters with which to evaluate the model
+        if parameters is None:
+            parameters = self.parameters
+
+        if "window" in self.psf_mode:
+            raise NotImplementedError("PSF convolution in sub-window not available yet")
+
+        if "full" in self.psf_mode:
+            # Add border for psf convolution edge effects, will be cropped out later
+            working_window += self.psf.psf_border
+            # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
+            working_pixelscale = image.pixelscale / self.psf.psf_upscale
+            # Sub pixel shift to align the model with the center of a pixel
+            align = self.target.pixel_center_alignment()
+            center_shift = (
+                parameters["center"].value
+                - (
+                    torch.round(parameters["center"].value / working_pixelscale - align)
+                    + align
+                )
+                * working_pixelscale
+            ).detach()
+            working_window.shift_origin(center_shift)
+            # Make the image object to which the samples will be tracked
+            working_image = Model_Image(
+                pixelscale=working_pixelscale, window=working_window
+            )
+            # Evaluate the model at the current resolution
+            X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value)
+            working_image.data += self.batch_evaluate_model_stage_1(
+                X = X, Y = Y,
+                image=working_image,
+                parameters=parameters
+            )
+            # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
+            if self.integrate_mode == "none":
+                pass
+            elif self.integrate_mode == "threshold":
+                selective_integrate(
+                    X=X,
+                    Y=Y,
+                    data=working_image.data,
+                    image_header=working_image.header,
+                    eval_brightness=self.batch_evaluate_model_stage_1,
+                    eval_parameters=parameters,
+                    max_depth=self.integrate_recursion_depth,
+                    integrate_threshold=self.integrate_threshold,
+                )
+            elif self.integrate_mode == "window":
+                raise NotImplementedError("window integrate not available in batch mode")
+            else:
+                raise ValueError(
+                    f"{self.name} has unknown integration mode: {self.integrate_mode}"
+                )
+            # Convolve the PSF
+            LL = _shift_Lanczos_kernel_torch(
+                -center_shift[0] / working_image.pixelscale,
+                -center_shift[1] / working_image.pixelscale,
+                3,
+                AP_config.ap_dtype,
+                AP_config.ap_device,
+            )
+            shift_psf = torch.nn.functional.conv2d(
+                self.psf.data.view(1, 1, *self.psf.data.shape),
+                LL.view(1, 1, *LL.shape),
+                padding="same",
+            ).squeeze()
+            working_image.data = fft_convolve_torch(
+                working_image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
+            )
+            # Shift image back to align with original pixel grid
+            working_image.window.shift_origin(-center_shift)
+            # Add the sampled/integrated/convolved pixels to the requested image
+            working_image = working_image.reduce(self.psf.psf_upscale).crop(
+                self.psf.psf_border_int
+            )
+            if self.mask is not None:
+                working_image.data = working_image.data * torch.logical_not(self.mask)
+            image += working_image
+
+        else:
+            # Create an image to store pixel samples
+            working_image = Model_Image(
+                pixelscale=image.pixelscale, window=working_window
+            )
+            # Evaluate the model on the image
+            X, Y = working_image.get_coordinate_meshgrid_torch(parameters["center"].value)
+            # Super-resolve and integrate where needed
+            if self.integrate_mode == "none":
+                working_image.data += self.batch_evaluate_model_stage_1(
+                    X = X, Y = Y,
+                    image_header=working_image.header,
+                    parameters=parameters
+                )
+            elif self.integrate_mode == "full":
+                working_image.data += self.batch_all_integrate_stage_1(
+                    X = X, Y = Y,
+                    image_header=working_image.header,
+                    parameters = parameters,
+                )
+            elif self.integrate_mode == "threshold":
+                raise NotImplementedError("threshold integration not available for batch models, use 'none' or 'full'")
+            elif self.integrate_mode == "window":
+                raise NotImplementedError("window integration not available for batch models, use 'none' or 'full'")
             else:
                 raise ValueError(
                     f"{self.name} has unknown integration mode: {self.integrate_mode}"

@@ -8,7 +8,7 @@ import matplotlib
 from scipy.stats import iqr
 
 from ..models import Group_Model, Sky_Model
-from ..image import Image_List, Window_List
+from ..image import Image_List, Window_List, Image_Batch, Window_Batch
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
@@ -76,10 +76,14 @@ def model_image(
     if sample_image is None:
         sample_image = model.make_model_image()
         sample_image = model(sample_image)
+    if isinstance(sample_image, Image_Batch):
+        sample_image = sample_image.squish()
     if target is None:
         target = model.target
     if window is None:
         window = model.window
+    if isinstance(window, Window_Batch):
+        window = window.squish()
     if isinstance(sample_image, Image_List):
         for i, images in enumerate(zip(sample_image, target, window)):
             model_image(
@@ -142,11 +146,15 @@ def residual_image(
 ):
     if window is None:
         window = model.window
+    if isinstance(window, Window_Batch):
+        window = window.squish()
     if target is None:
         target = model.target
     if sample_image is None:
         sample_image = model.make_model_image()
         sample_image = model(sample_image)
+    if isinstance(sample_image, Image_Batch):
+        sample_image = sample_image.squish()
     if isinstance(window, Window_List) or isinstance(target, Image_List):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(

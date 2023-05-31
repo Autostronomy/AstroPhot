@@ -99,11 +99,10 @@ class Moffat_Star(Star_Model):
 
     from ._shared_methods import moffat_radial_model as radial_model
 
+    @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            X, Y = image.get_coordinate_meshgrid_torch(parameters["center"].value)
         return self.radial_model(
             self.radius_metric(X, Y, image=image, parameters=parameters),
             image=image,
