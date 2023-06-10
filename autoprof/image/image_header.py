@@ -238,7 +238,9 @@ class Image_Header(object):
 
     def crop(self, pixels):
         if len(pixels) == 1:  # same crop in all dimension
-            self.window -= self.pixelscale @ pixels[0]
+            self.window -= self.pixelscale @ torch.as_tensor(
+                [pixels[0], pixels[0]], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
         elif len(pixels) == 2:  # different crop in each dimension
             self.window -= (self.pixelscale @
                 torch.as_tensor(
@@ -246,10 +248,12 @@ class Image_Header(object):
                 )
             )
         elif len(pixels) == 4:  # different crop on all sides
-            self.window -= (self.pixelscale @ # fixme
-                torch.as_tensor(
-                    pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ))
+            pixels = torch.as_tensor(
+                pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+            low = self.pixelscale @ pixels[:2]
+            high = self.pixelscale @ pixels[2:]
+            self.window -= torch.cat((low,high))
         return self
 
     def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:

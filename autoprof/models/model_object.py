@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Window, PSF_Image
+from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
@@ -19,7 +19,6 @@ from ..utils.operations import (
     selective_integrate,
 )
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
-from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -377,6 +376,7 @@ class Component_Model(AutoProf_Model):
         as_representation: bool = False,
         parameters_identity: Optional[tuple] = None,
         window: Optional[Window] = None,
+        pass_jacobian: Optional[Jacobian_Image] = None,
         **kwargs,
     ):
         """Compute the Jacobian matrix for this model.
@@ -407,6 +407,8 @@ class Component_Model(AutoProf_Model):
         if window is None:
             window = self.window
         else:
+            if isinstance(window, Window_List):
+                window = window.window_list[pass_jacobian.index(self.target)]
             window = self.window & window
 
         # skip jacobian calculation if no parameters match criteria

@@ -194,23 +194,28 @@ def residual_image(
     return fig, ax
 
 
-def model_window(fig, ax, model, rectangle_linewidth=2, **kwargs):
+def model_window(fig, ax, model, target = None, rectangle_linewidth=2, **kwargs):
     if isinstance(ax, np.ndarray):
-        for axitem in ax:
-            model_window(fig, axitem, model, **kwargs)
+        for i, axitem in enumerate(ax):
+            model_window(fig, axitem, model, target = model.target.image_list[i], **kwargs)
         return fig, ax
 
     if isinstance(model, Group_Model):
         for m in model.models.values():
-            lowright = m.window.shape.clone()
+            if isinstance(m.window, Window_List):
+                use_window = m.window.window_list[m.target.index(target)]
+            else:
+                use_window = m.window
+                
+            lowright = use_window.shape.clone()
             lowright[1] = 0.
-            lowright = m.window.origin + m.window.projection @ lowright
-            upleft = m.window.shape.clone()
+            lowright = use_window.origin + use_window.projection @ lowright
+            upleft = use_window.shape.clone()
             upleft[0] = 0.
-            upleft = m.window.origin + m.window.projection @ upleft
-            end = m.window.origin + m.window.end
-            x = [m.window.origin[0], lowright[0], end[0], upleft[0]]
-            y = [m.window.origin[1], lowright[1], end[1], upleft[1]]
+            upleft = use_window.origin + use_window.projection @ upleft
+            end = use_window.origin + use_window.end
+            x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
+            y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
             ax.add_patch(
                 Polygon(
                     xy=list(zip(x,y)),
@@ -218,25 +223,21 @@ def model_window(fig, ax, model, rectangle_linewidth=2, **kwargs):
                     linewidth=rectangle_linewidth,
                     edgecolor=main_pallet["secondary1"],
                 )
-                # Rectangle(
-                #     xy=(m.window.origin[0], m.window.origin[1]),
-                #     width=m.window.shape[0],
-                #     height=m.window.shape[1],
-                #     fill=False,
-                #     linewidth=rectangle_linewidth,
-                #     edgecolor=main_pallet["secondary1"],
-                # )
             )
     else:
-        lowright = model.window.shape.clone()
+        if isinstance(model.window, Window_List):
+            use_window = model.window.window_list[model.target.index(target)]
+        else:
+            use_window = model.window
+        lowright = use_window.shape.clone()
         lowright[1] = 0.
-        lowright = model.window.origin + model.window.projection @ lowright
-        upleft = model.window.shape.clone()
+        lowright = use_window.origin + use_window.projection @ lowright
+        upleft = use_window.shape.clone()
         upleft[0] = 0.
-        upleft = model.window.origin + model.window.projection @ upleft
-        end = model.window.origin + model.window.end
-        x = [model.window.origin[0], lowright[0], end[0], upleft[0]]
-        y = [model.window.origin[1], lowright[1], end[1], upleft[1]]
+        upleft = use_window.origin + use_window.projection @ upleft
+        end = use_window.origin + use_window.end
+        x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
+        y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
         ax.add_patch(
             Polygon(
                 xy=list(zip(x,y)),
@@ -244,14 +245,6 @@ def model_window(fig, ax, model, rectangle_linewidth=2, **kwargs):
                 linewidth=rectangle_linewidth,
                 edgecolor=main_pallet["secondary1"],
             )
-            # Rectangle(
-            #     xy=(model.window.origin[0], model.window.origin[1]),
-            #     width=model.window.shape[0],
-            #     height=model.window.shape[1],
-            #     fill=False,
-            #     linewidth=rectangle_linewidth,
-            #     edgecolor=main_pallet["secondary1"],
-            # )
         )
 
     return fig, ax

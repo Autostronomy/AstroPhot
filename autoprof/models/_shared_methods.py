@@ -23,13 +23,9 @@ from ..utils.parametric_profiles import (
     nuker_np,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.conversions.coordinates import (
-    Rotate_Cartesian,
-    coord_to_index,
-    index_to_coord,
-)
+from ..utils.conversions.coordinates import Rotate_Cartesian
 from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
-from ..image import Image_List, Target_Image, Model_Image_List, Target_Image_List
+from ..image import Image_List, Target_Image, Model_Image_List, Target_Image_List, Window_List
 from .. import AP_config
 
 
@@ -64,9 +60,11 @@ def select_sample(func):
         if isinstance(image, Model_Image_List) and not isinstance(
             self.target, Image_List
         ):
-            for sub_image in image:
+            for i, sub_image in enumerate(image):
                 if sub_image.target_identity == self.target.identity:
                     send_image = sub_image
+                    if "window" in kwargs and isinstance(kwargs["window"], Window_List):
+                        kwargs["window"] = kwargs["window"].window_list[i]
                     break
             else:
                 raise RuntimeError(

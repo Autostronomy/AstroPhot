@@ -61,11 +61,11 @@ class Warp_Galaxy(Galaxy_Model):
         for prof_param in ["PA(R)", "q(R)"]:
             if parameters[prof_param].prof is None:
                 if parameters[prof_param].value is None:  # from scratch
-                    new_prof = [0, 2 * target.pixelscale]
+                    new_prof = [0, 2 * target.pixel_length]
                     while new_prof[-1] < torch.min(self.window.shape / 2):
                         new_prof.append(
                             new_prof[-1]
-                            + torch.max(2 * target.pixelscale, new_prof[-1] * 0.2)
+                            + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
                         )
                     new_prof.pop()
                     new_prof.pop()
@@ -75,15 +75,15 @@ class Warp_Galaxy(Galaxy_Model):
                     # create logarithmically spaced profile radii
                     new_prof = [0] + list(
                         np.logspace(
-                            np.log10(2 * target.pixelscale),
+                            np.log10(2 * target.pixel_length),
                             np.log10(torch.max(self.window.shape / 2).item()),
                             len(parameters[prof_param].value) - 1,
                         )
                     )
                     # ensure no step is smaller than a pixelscale
                     for i in range(1, len(new_prof)):
-                        if new_prof[i] - new_prof[i - 1] < target.pixelscale.item():
-                            new_prof[i] = new_prof[i - 1] + target.pixelscale.item()
+                        if new_prof[i] - new_prof[i - 1] < target.pixel_length.item():
+                            new_prof[i] = new_prof[i - 1] + target.pixel_length.item()
                     parameters[prof_param].set_profile(new_prof)
 
         if not (parameters["PA(R)"].value is None or parameters["q(R)"].value is None):
@@ -91,7 +91,7 @@ class Warp_Galaxy(Galaxy_Model):
 
         if parameters["PA(R)"].value is None:
             parameters["PA(R)"].set_value(
-                np.zeros(len(parameters["PA(R)"].prof)), override_locked=True
+                np.zeros(len(parameters["PA(R)"].prof)) + target.north, override_locked=True
             )
 
         if parameters["q(R)"].value is None:

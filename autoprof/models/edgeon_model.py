@@ -12,8 +12,6 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
-    coord_to_index,
-    index_to_coord,
 )
 
 __all__ = ["Edgeon_Model"]
@@ -60,9 +58,8 @@ class Edgeon_Model(Component_Model):
         )
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
-        icenter = coord_to_index(
-            parameters["center"].value[0], parameters["center"].value[1], target_area
-        )
+        icenter = target_area.world_to_pixel(parameters["center"].value)
+        
         iso_info = isophotes(
             target_area.data.detach().cpu().numpy() - edge_average,
             (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
@@ -132,9 +129,8 @@ class Edgeon_Sech(Edgeon_Model):
         ):
             return
         target_area = target[self.window]
-        icenter = coord_to_index(
-            parameters["center"].value[0], parameters["center"].value[1], target_area
-        )
+        icenter = target_area.world_to_pixel(parameters["center"].value)
+        
         if parameters["I0"].value is None:
             parameters["I0"].set_value(
                 torch.log10(

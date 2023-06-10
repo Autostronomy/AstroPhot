@@ -21,12 +21,8 @@ from ._shared_methods import (
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import exponential_torch, exponential_np
-from ..utils.conversions.coordinates import (
-    Rotate_Cartesian,
-    coord_to_index,
-    index_to_coord,
-)
-
+from ..utils.conversions.coordinates import Rotate_Cartesian
+    
 __all__ = [
     "Exponential_Galaxy",
     "Exponential_Star",

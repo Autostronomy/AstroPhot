@@ -15,7 +15,7 @@ class TestImage(unittest.TestCase):
             arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
         )
 
-        self.assertEqual(base_image.pixelscale, 1.0, "image should track pixelscale")
+        self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
         self.assertEqual(base_image.zeropoint, 1.0, "image should track zeropoint")
         self.assertEqual(base_image.origin[0], 0, "image should track origin")
         self.assertEqual(base_image.origin[1], 0, "image should track origin")
@@ -33,7 +33,7 @@ class TestImage(unittest.TestCase):
         )
 
         second_base_image = image.Image(arr, pixelscale=1.0, note="test image")
-        self.assertEqual(base_image.pixelscale, 1.0, "image should track pixelscale")
+        self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
         self.assertIsNone(second_base_image.zeropoint, "image should track zeropoint")
         self.assertEqual(second_base_image.origin[0], 0, "image should track origin")
         self.assertEqual(second_base_image.origin[1], 0, "image should track origin")
@@ -76,8 +76,8 @@ class TestImage(unittest.TestCase):
 
         copy_image = new_image.copy()
         self.assertEqual(
-            new_image.pixelscale,
-            copy_image.pixelscale,
+            new_image.pixel_length,
+            copy_image.pixel_length,
             "copied image should have same pixelscale",
         )
         self.assertEqual(
@@ -97,8 +97,8 @@ class TestImage(unittest.TestCase):
 
         blank_copy_image = new_image.blank_copy()
         self.assertEqual(
-            new_image.pixelscale,
-            blank_copy_image.pixelscale,
+            new_image.pixel_length,
+            blank_copy_image.pixel_length,
             "copied image should have same pixelscale",
         )
         self.assertEqual(
@@ -207,7 +207,7 @@ class TestImage(unittest.TestCase):
                 "reduced image should sum sub pixels",
             )
             self.assertEqual(
-                reduced_image.pixelscale,
+                reduced_image.pixel_length,
                 scale,
                 "pixelscale should increase with reduced image",
             )
@@ -223,17 +223,17 @@ class TestImage(unittest.TestCase):
             )
 
         # iamge cropping
-        new_image.crop([1])
+        new_image.crop([torch.tensor(1, dtype = ap.AP_config.ap_dtype)])
         self.assertEqual(
             new_image.data.shape[0], 14, "crop should cut 1 pixel from both sides here"
         )
-        new_image.crop([3, 2])
+        new_image.crop(torch.tensor([3, 2], dtype = ap.AP_config.ap_dtype))
         self.assertEqual(
             new_image.data.shape[1],
             24,
             "previous crop and current crop should have cut from this axis",
         )
-        new_image.crop([3, 2, 1, 0])
+        new_image.crop(torch.tensor([3, 2, 1, 0], dtype = ap.AP_config.ap_dtype))
         self.assertEqual(
             new_image.data.shape[0],
             9,
@@ -263,8 +263,8 @@ class TestImage(unittest.TestCase):
             "Loaded image should have same origin",
         )
         self.assertEqual(
-            new_image.pixelscale,
-            loaded_image.pixelscale,
+            new_image.pixel_length,
+            loaded_image.pixel_length,
             "Loaded image should have same pixel scale",
         )
         self.assertEqual(
@@ -460,7 +460,7 @@ class TestModelImage(unittest.TestCase):
             origin=torch.zeros(2) + 0.1,
             note="test image",
         )
-        new_image.shift_origin(torch.tensor((-0.1, -0.1)), is_prepadded=False)
+        new_image.shift_origin(torch.tensor((-0.1, -0.1), dtype = ap.AP_config.ap_dtype), is_prepadded=False)
 
         self.assertAlmostEqual(
             torch.sum(new_image.data).item(),

@@ -264,24 +264,24 @@ class Image(object):
         if len(pixels) == 1:  # same crop in all dimension
             self.set_data(
                 self.data[
-                    pixels[0] : self.data.shape[0] - pixels[0],
-                    pixels[0] : self.data.shape[1] - pixels[0],
+                    pixels[0].int() : (self.data.shape[0] - pixels[0]).int(),
+                    pixels[0].int() : (self.data.shape[1] - pixels[0]).int(),
                 ],
                 require_shape=False,
             )
         elif len(pixels) == 2:  # different crop in each dimension
             self.set_data(
                 self.data[
-                    pixels[1] : self.data.shape[0] - pixels[1],
-                    pixels[0] : self.data.shape[1] - pixels[0],
+                    pixels[1].int() : (self.data.shape[0] - pixels[1]).int(),
+                    pixels[0].int() : (self.data.shape[1] - pixels[0]).int(),
                 ],
                 require_shape=False,
             )
         elif len(pixels) == 4:  # different crop on all sides
             self.set_data(
                 self.data[
-                    pixels[2] : self.data.shape[0] - pixels[3],
-                    pixels[0] : self.data.shape[1] - pixels[1],
+                    pixels[2].int() : (self.data.shape[0] - pixels[3]).int(),
+                    pixels[0].int() : (self.data.shape[1] - pixels[1]).int(),
                 ],
                 require_shape=False,
             )
@@ -498,6 +498,8 @@ class Image_List(Image):
             for i, self_image in enumerate(self.image_list):
                 if other.identity == self_image.identity:
                     return i
+            else:
+                raise ValueError("Could not find identity match between image list and input image")
         raise NotImplementedError(f"Image_List cannot get index for {type(other)}")
 
     def to(self, dtype=None, device=None):

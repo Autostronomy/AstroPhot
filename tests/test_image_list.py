@@ -31,8 +31,8 @@ class TestImageList(unittest.TestCase):
 
         for image, original_image in zip(test_image, (base_image1, base_image2)):
             self.assertEqual(
-                image.pixelscale,
-                original_image.pixelscale,
+                image.pixel_length,
+                original_image.pixel_length,
                 "image should track pixelscale",
             )
             self.assertEqual(
@@ -88,7 +88,7 @@ class TestImageList(unittest.TestCase):
         copy_image = test_image.copy()
         for ti, ci in zip(test_image, copy_image):
             self.assertEqual(
-                ti.pixelscale, ci.pixelscale, "copied image should have same pixelscale"
+                ti.pixel_length, ci.pixel_length, "copied image should have same pixelscale"
             )
             self.assertEqual(
                 ti.zeropoint, ci.zeropoint, "copied image should have same zeropoint"
@@ -107,7 +107,7 @@ class TestImageList(unittest.TestCase):
         blank_copy_image = test_image.blank_copy()
         for ti, ci in zip(test_image, blank_copy_image):
             self.assertEqual(
-                ti.pixelscale, ci.pixelscale, "copied image should have same pixelscale"
+                ti.pixel_length, ci.pixel_length, "copied image should have same pixelscale"
             )
             self.assertEqual(
                 ti.zeropoint, ci.zeropoint, "copied image should have same zeropoint"

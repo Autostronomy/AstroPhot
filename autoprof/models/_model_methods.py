@@ -3,7 +3,6 @@ import torch
 from typing import Optional, Union, Dict, Tuple, Any
 from copy import deepcopy
 from .parameter_object import Parameter
-from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ..image import Model_Image, Target_Image, Window
 from .. import AP_config
 

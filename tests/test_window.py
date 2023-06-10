@@ -20,11 +20,11 @@ class TestWindow(unittest.TestCase):
 
         self.assertRaises(ValueError, ap.image.Window)
 
-        shape = window1.get_shape(torch.tensor(10.0))
+        shape = window1.get_shape(torch.tensor([[10.0,0.],[0.,10.0]], dtype = ap.AP_config.ap_dtype))
         self.assertEqual(
             shape[0].item(), 10, "Window shape in pixels should divide by pixelscale"
         )
-        shape = window1.get_shape_flip(torch.tensor(5.0))
+        shape = window1.get_shape_flip(torch.tensor([[5.0,0.],[0.,5.0]], dtype = ap.AP_config.ap_dtype))
         self.assertEqual(
             shape[0].item(), 22, "Window shape in pixels should divide by pixelscale"
         )
@@ -550,12 +550,15 @@ class TestWindow(unittest.TestCase):
 
     def test_window_state(self):
 
-        window = ap.image.Window(state={"origin": [1.0, 2.0], "shape": [10, 15]})
+        window = ap.image.Window(state={"origin": [1.0, 2.0], "shape": [10, 15], "projection": [[1.,0.],[0.,1.]]})
         self.assertEqual(
             window.origin[0].item(), 1.0, "Window initialization should read state"
         )
         self.assertEqual(
             window.shape[0].item(), 10.0, "Window initialization should read state"
+        )
+        self.assertEqual(
+            window.projection[0][0].item(), 1.0, "Window initialization should read state"
         )
 
         state = window.get_state()
@@ -564,6 +567,9 @@ class TestWindow(unittest.TestCase):
         )
         self.assertEqual(
             state["shape"][1], 15.0, "Window get state should collect values"
+        )
+        self.assertEqual(
+            state["projection"][1][0], 0.0, "Window get state should collect values"
         )
 
     def test_window_logic(self):
