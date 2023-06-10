@@ -40,7 +40,7 @@ def galaxy_light_profile(
     flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
         yy = flux_to_sb(
-            flux, model.target.pixelscale.item(), model.target.zeropoint.item()
+            flux, model.target.pixel_area.item(), model.target.zeropoint.item()
         )
     else:
         yy = np.log10(flux)
@@ -99,7 +99,7 @@ def radial_median_profile(
     """
 
     Rlast_phys = torch.max(model.window.shape / 2).item()
-    Rlast_pix = Rlast_phys / model.target.pixelscale.item()
+    Rlast_pix = Rlast_phys / model.target.pixel_length.item()
 
     Rbins = [0.0]
     while Rbins[-1] < Rlast_pix:
@@ -108,9 +108,7 @@ def radial_median_profile(
 
     with torch.no_grad():
         image = model.target[model.window]
-        X, Y = image.get_coordinate_meshgrid_torch(
-            model["center"].value[0], model["center"].value[1]
-        )
+        X, Y = image.get_coordinate_meshgrid_torch() - model["center"].value[...,None,None]
         X, Y = model.transform_coordinates(X, Y)
         R = model.radius_metric(X, Y)
         R = R.detach().cpu().numpy()
@@ -141,7 +139,7 @@ def radial_median_profile(
 
     if model.target.zeropoint is not None:
         stat = flux_to_sb(
-            stat, model.target.pixelscale.item(), model.target.zeropoint.item()
+            stat, model.target.pixel_area.item(), model.target.zeropoint.item()
         )
         ax.set_ylabel("Surface Brightness")
         if not ax.yaxis_inverted():

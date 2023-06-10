@@ -179,32 +179,33 @@ class AutoProf_Model(object):
             self._window = window
         elif len(window) == 2:
             self._window = Window(
-                origin=self.target.origin
-                + torch.tensor(
+                origin=self.target.pixel_to_world(torch.tensor(
                     (window[0][0], window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                )
-                * self.target.pixelscale,
-                shape=torch.tensor(
+                )),
+                shape=torch.linalg.solve(self.target.window.projection, self.target.pixelscale @ torch.tensor(
                     (window[0][1] - window[0][0], window[1][1] - window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                )
-                * self.target.pixelscale,
+                )),
+                projection = self.target.pixelscale,
             )
         elif len(window) == 4:
+            origin = torch.tensor(
+                (window[0], window[1]),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+            end = torch.tensor(
+                (window[2], window[3]),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
             self._window = Window(
-                origin=torch.tensor(
-                    (window[0], window[2]),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                ),
-                shape=torch.tensor(
-                    (window[1] - window[0], window[3] - window[2]),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                ),
+                origin=origin,
+                shape=torch.linalg.solve(self.target.window.projection, end - origin),
+                projection = self.target.pixelscale,
             )
         else:
             raise ValueError(f"Unrecognized window format: {str(window)}")

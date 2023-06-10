@@ -27,29 +27,29 @@ def integrate_window(self, image: "Image", fix_to: str = "center") -> Window:
         use_center = self["center"].value
     elif fix_to == "pixel":
         align = image.pixel_center_alignment()
-        use_center = (
-            align + torch.round(self["center"].value / image.pixelscale - align)
-        ) * image.pixelscale
+        use_center = image.pixel_to_world(
+            align + torch.round(image.world_to_pixel(self["center"].value) - align)
+        )
     else:
         raise ValueError(
             f"integrate_window fix_to should be one of: center, pixel. not {fix_to}"
         )
     window_align = torch.isclose(
-        ((use_center - image.origin) / image.pixelscale) % 1,
+        image.world_to_pixel(use_center) % 1,
         torch.tensor(0.5, dtype=AP_config.ap_dtype, device=AP_config.ap_device),
         atol=0.25,
     )
     request_pixels = (
-        self.integrate_window_size * self.target.pixelscale / image.pixelscale
+        self.integrate_window_size * self.target.pixel_length / image.pixel_length
     ).to(dtype=torch.int32)
-    use_shape = (
+    use_shape = image.pixelscale @ (
         request_pixels
         + 1
         - (request_pixels % 2)
         + 1
         - window_align.to(dtype=torch.int32)
-    ) * image.pixelscale
-    return Window(center=use_center, shape=use_shape)
+    )
+    return Window(center=use_center, shape=use_shape, projection=self.target.projection)
 
 
 @classmethod

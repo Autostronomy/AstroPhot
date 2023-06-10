@@ -82,13 +82,11 @@ def displacement_spacing(N, dtype=torch.float64, device="cpu"):
     )
 
 
-def displacement_grid(*N, pixelscale=1.0, dtype=torch.float64, device="cpu"):
-    return torch.meshgrid(
-        *tuple(
-            displacement_spacing(n, dtype=dtype, device=device) * pixelscale for n in N
-        ),
-        indexing="xy"
-    )
+def displacement_grid(Nx, Ny, pixelscale=None, dtype=torch.float64, device="cpu"):
+    px = displacement_spacing(Nx, dtype=dtype, device=device)
+    py = displacement_spacing(Ny, dtype=dtype, device=device)
+    PX, PY = torch.meshgrid(px, py, indexing = "xy")
+    return (pixelscale @ torch.stack((PX.reshape(-1), PY.reshape(-1)))).reshape((2, *PX.shape))
 
 
 def selective_integrate(

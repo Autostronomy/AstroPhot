@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from astropy.visualization import HistEqStretch, ImageNormalize, LogStretch, SqrtStretch
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Polygon
 from matplotlib import pyplot as plt
 import matplotlib
 from scipy.stats import iqr
@@ -24,20 +24,20 @@ def target_image(fig, ax, target, window=None, **kwargs):
         return fig, ax
     if window is None:
         window = target.window
-    dat = np.copy(target[window].data.detach().cpu().numpy())
-    if target.has_mask:
-        dat[target[window].mask.detach().cpu().numpy()] = np.nan
+    target_area = target[window]
+    dat = np.copy(target_area.data.detach().cpu().numpy())
+    if target_area.has_mask:
+        dat[target_area.mask.detach().cpu().numpy()] = np.nan
+    X, Y = target_area.get_coordinate_corner_meshgrid_torch()
 
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)]) / 2
     vmin = sky - 5 * noise
     vmax = sky + 5 * noise
 
-    im = ax.imshow(
-        dat,
-        origin="lower",
+    im = ax.pcolormesh(
+        X, Y, dat,
         cmap="Greys",
-        extent=window.plt_extent,
         norm=ImageNormalize(
             stretch=HistEqStretch(
                 dat[np.logical_and(dat <= (sky + 3 * noise), np.isfinite(dat))]
@@ -46,17 +46,16 @@ def target_image(fig, ax, target, window=None, **kwargs):
             vmax=sky + 3 * noise,
             vmin=np.nanmin(dat),
         ),
-        interpolation="none",
     )
-    ax.imshow(
-        np.ma.masked_where(dat < (sky + 3 * noise), dat),
-        origin="lower",
+    
+    im = ax.pcolormesh(
+        X, Y, np.ma.masked_where(dat < (sky + 3 * noise), dat),
         cmap=cmap_grad,
-        extent=window.plt_extent,
         norm=matplotlib.colors.LogNorm(),
         clim=[sky + 3 * noise, None],
-        interpolation="none",
     )
+    
+    ax.axis("equal")
 
     return fig, ax
 
@@ -94,28 +93,25 @@ def model_image(
             )
         return fig, ax
 
+    X, Y = sample_image.get_coordinate_corner_meshgrid_torch()
     sample_image = sample_image.data.detach().cpu().numpy()
     imshow_kwargs = {
-        "extent": window.plt_extent,
         "cmap": cmap_grad,
-        "origin": "lower",
-        "interpolation": "none",
         "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
     }
     imshow_kwargs.update(kwargs)
     if target.zeropoint is not None:
         sample_image = flux_to_sb(
-            sample_image, target.pixelscale.item(), target.zeropoint.item()
+            sample_image, target.pixel_area.item(), target.zeropoint.item()
         )
         del imshow_kwargs["norm"]
         imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
 
     if target_mask and target.has_mask:
         sample_image[target.mask.detach().cpu().numpy()] = np.nan
-    im = ax.imshow(
-        sample_image,
-        **imshow_kwargs,
-    )
+
+    im = ax.pcolormesh(X, Y, sample_image, **imshow_kwargs)
+    ax.axis("equal")
     if showcbar:
         if target.zeropoint is not None:
             clb = fig.colorbar(im, ax=ax, label="Surface Brightness")
@@ -162,6 +158,7 @@ def residual_image(
             )
         return fig, ax
 
+    X, Y = sample_image[window].get_coordinate_corner_meshgrid_torch()
     residuals = (target[window] - sample_image[window]).data
     if normalize_residuals:
         residuals = residuals / torch.sqrt(target[window].variance)
@@ -176,18 +173,14 @@ def residual_image(
     )
     extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
     imshow_kwargs = {
-        "extent": window.plt_extent,
         "cmap": cmap_div,
         "vmin": -extreme,
         "vmax": extreme,
-        "origin": "lower",
-        "interpolation": "none",
     }
     imshow_kwargs.update(kwargs)
-    im = ax.imshow(
-        residuals,
-        **imshow_kwargs,
-    )
+    im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
+    ax.axis("equal")
+
     if showcbar:
         if normalize_residuals:
             default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
@@ -209,26 +202,56 @@ def model_window(fig, ax, model, rectangle_linewidth=2, **kwargs):
 
     if isinstance(model, Group_Model):
         for m in model.models.values():
+            lowright = m.window.shape.clone()
+            lowright[1] = 0.
+            lowright = m.window.origin + m.window.projection @ lowright
+            upleft = m.window.shape.clone()
+            upleft[0] = 0.
+            upleft = m.window.origin + m.window.projection @ upleft
+            end = m.window.origin + m.window.end
+            x = [m.window.origin[0], lowright[0], end[0], upleft[0]]
+            y = [m.window.origin[1], lowright[1], end[1], upleft[1]]
             ax.add_patch(
-                Rectangle(
-                    xy=(m.window.origin[0], m.window.origin[1]),
-                    width=m.window.shape[0],
-                    height=m.window.shape[1],
+                Polygon(
+                    xy=list(zip(x,y)),
                     fill=False,
                     linewidth=rectangle_linewidth,
                     edgecolor=main_pallet["secondary1"],
                 )
+                # Rectangle(
+                #     xy=(m.window.origin[0], m.window.origin[1]),
+                #     width=m.window.shape[0],
+                #     height=m.window.shape[1],
+                #     fill=False,
+                #     linewidth=rectangle_linewidth,
+                #     edgecolor=main_pallet["secondary1"],
+                # )
             )
     else:
+        lowright = model.window.shape.clone()
+        lowright[1] = 0.
+        lowright = model.window.origin + model.window.projection @ lowright
+        upleft = model.window.shape.clone()
+        upleft[0] = 0.
+        upleft = model.window.origin + model.window.projection @ upleft
+        end = model.window.origin + model.window.end
+        x = [model.window.origin[0], lowright[0], end[0], upleft[0]]
+        y = [model.window.origin[1], lowright[1], end[1], upleft[1]]
         ax.add_patch(
-            Rectangle(
-                xy=(model.window.origin[0], model.window.origin[1]),
-                width=model.window.shape[0],
-                height=model.window.shape[1],
+            Polygon(
+                xy=list(zip(x,y)),
                 fill=False,
                 linewidth=rectangle_linewidth,
                 edgecolor=main_pallet["secondary1"],
             )
+            # Rectangle(
+            #     xy=(model.window.origin[0], model.window.origin[1]),
+            #     width=model.window.shape[0],
+            #     height=model.window.shape[1],
+            #     fill=False,
+            #     linewidth=rectangle_linewidth,
+            #     edgecolor=main_pallet["secondary1"],
+            # )
         )
 
     return fig, ax

@@ -5,6 +5,7 @@ import torch
 from torch.nn.functional import pad
 import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS
 
 from .window_object import Window, Window_List
 from .image_header import Image_Header
@@ -33,6 +34,7 @@ class Image(object):
         self,
         data: Optional[Union[torch.Tensor]] = None,
         header: Optional[Image_Header] = None,
+        wcs: Optional['astropy.wcs.wcs.WCS'] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
@@ -49,6 +51,8 @@ class Image(object):
         -----------
         data : numpy.ndarray or None, optional
             The image data. Default is None.
+        wcs : astropy.wcs.wcs.WCS or None, optional
+            A WCS object which defines a coordinate system for the image. Note that AutoProf only handles basic WCS conventions. It will use the WCS object to get `wcs.pixel_to_world(-0.5, -0.5)` to determine the position of the origin in world coordinates. It will also extract the `pixel_scale_matrix` to index pixels going forward.
         pixelscale : float or None, optional
             The physical scale of the pixels in the image, in units of arcseconds. Default is None.
         window : Window or None, optional
@@ -74,6 +78,7 @@ class Image(object):
             self.header = Image_Header(
                 data_shape=None if data is None else data.shape,
                 pixelscale=pixelscale,
+                wcs=wcs,
                 window=window,
                 filename=filename,
                 zeropoint=zeropoint,
@@ -93,6 +98,24 @@ class Image(object):
         # set the data
         self.data = data
 
+    @property
+    def north(self):
+        return self.header.north
+
+    @property
+    def pixel_area(self):
+        return self.header.pixel_area
+
+    @property
+    def pixel_length(self):
+        return self.header.pixel_length
+    
+    def pixel_to_world(self, pixel_coordinate):
+        return self.header.pixel_to_world(pixel_coordinate)
+
+    def world_to_pixel(self, world_coordinate):
+        return self.header.world_to_pixel(world_coordinate)
+    
     @property
     def origin(self) -> torch.Tensor:
         """
@@ -271,8 +294,10 @@ class Image(object):
     def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:
         return self.header.get_coordinate_meshgrid_np(x, y)
 
-    def get_coordinate_meshgrid_torch(self, x=0.0, y=0.0):
-        return self.header.get_coordinate_meshgrid_torch(x, y)
+    def get_coordinate_meshgrid_torch(self):
+        return self.header.get_coordinate_meshgrid_torch()
+    def get_coordinate_corner_meshgrid_torch(self):
+        return self.header.get_coordinate_corner_meshgrid_torch()
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
@@ -337,8 +362,6 @@ class Image(object):
 
     def __sub__(self, other):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot subtract images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):
@@ -353,8 +376,6 @@ class Image(object):
 
     def __add__(self, other):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot add images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):
@@ -369,8 +390,6 @@ class Image(object):
 
     def __sub__(self, other):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot subtract images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):
@@ -385,8 +404,6 @@ class Image(object):
 
     def __add__(self, other):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot add images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):
@@ -401,8 +418,6 @@ class Image(object):
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot add images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):
@@ -416,8 +431,6 @@ class Image(object):
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot subtract images with different pixelscale!")
             if torch.any(self.origin + self.shape < other.origin) or torch.any(
                 other.origin + other.shape < self.origin
             ):

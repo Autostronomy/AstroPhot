@@ -677,6 +677,7 @@ class LM(BaseOptimizer):
         Update the gradient using the model evaluation on all pixels
         """
         self.grad = torch.matmul(self.J.T, self.W * (self.Y - Yph))
+        print("max grad", torch.max(self.grad).detach().item())
 
     @torch.no_grad()
     def rho(self, Xp, Xph, h) -> torch.Tensor:

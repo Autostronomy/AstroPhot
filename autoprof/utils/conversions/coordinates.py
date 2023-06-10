@@ -2,13 +2,15 @@ import torch
 import numpy as np
 
 
-def Rotate_Cartesian(theta, X, Y):
+def Rotate_Cartesian(theta, X, Y=None):
     """
     Applies a rotation matrix to the X,Y coordinates
     """
     s = torch.sin(theta)
     c = torch.cos(theta)
-    return c * X - s * Y, c * Y + s * X
+    if Y is None:
+        return c * X[0] - s * X[1], s * X[0] + c * X[1]
+    return c * X - s * Y, s * X + c * Y
 
 
 def Rotate_Cartesian_np(theta, X, Y):

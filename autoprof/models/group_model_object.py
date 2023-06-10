@@ -183,10 +183,10 @@ class Group_Model(AutoProf_Model):
                 indices = self.target.match_indices(model.target)
                 if isinstance(indices, (tuple, list)):
                     use_window = Window_List(
-                        window_list=list(window.window_list[ind] for ind in indices)
+                        window_list=list(window.windows[ind] for ind in indices)
                     )
                 else:
-                    use_window = window.window_list[indices]
+                    use_window = window.windows[indices]
             else:
                 use_window = window
             if sample_window:

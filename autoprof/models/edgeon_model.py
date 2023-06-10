@@ -73,10 +73,10 @@ class Edgeon_Model(Component_Model):
         )
         parameters["PA"].set_value(
             (
-                -Angle_Average(
+                -((Angle_Average(
                     list(iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :])
                 )
-                / 2
+                   / 2) - target.north)
             )
             % np.pi,
             override_locked=True,
@@ -84,7 +84,7 @@ class Edgeon_Model(Component_Model):
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
-        return Rotate_Cartesian(-parameters["PA"].value, X, Y)
+        return Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
 
     @default_internal
     def evaluate_model(
@@ -96,9 +96,8 @@ class Edgeon_Model(Component_Model):
         **kwargs,
     ):
         if X is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            Coords = image.get_coordinate_meshgrid_torch()
+            X, Y = Coords - parameters["center"].value[...,None, None]
         XX, YY = self.transform_coordinates(X, Y, image=image, parameters=parameters)
 
         return self.brightness_model(
@@ -145,7 +144,7 @@ class Edgeon_Sech(Edgeon_Model):
                             int(icenter[1]) - 2 : int(icenter[1]) + 2,
                         ]
                     )
-                    / target.pixelscale ** 2
+                    / target.pixel_area
                 ),
                 override_locked=True,
             )
@@ -156,7 +155,7 @@ class Edgeon_Sech(Edgeon_Model):
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
                 )
-                / (torch.abs(parameters["I0"].value) * target.pixelscale ** 2),
+                / (torch.abs(parameters["I0"].value) * target.pixel_area),
                 override_locked=True,
             )
         if parameters["hs"].value is None:
@@ -168,7 +167,7 @@ class Edgeon_Sech(Edgeon_Model):
     @default_internal
     def brightness_model(self, X, Y, image=None, parameters=None):
         return (
-            (image.pixelscale ** 2)
+            (image.pixel_area)
             * (10 ** parameters["I0"].value)
             * self.radial_model(X, image=image, parameters=parameters)
             / (torch.cosh(Y / parameters["hs"].value) ** 2)

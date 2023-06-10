@@ -13,10 +13,13 @@ __all__ = ["Image_Header"]
 
 
 class Image_Header(object):
+    north = np.pi/2.
+    
     def __init__(
         self,
         data_shape: Optional[torch.Tensor] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
+        wcs: Optional['astropy.wcs.wcs.WCS'] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
@@ -31,7 +34,7 @@ class Image_Header(object):
         Parameters:
         -----------
         pixelscale : float or None, optional
-            The physical scale of the pixels in the image, in units of arcseconds. Default is None.
+            The physical scale of the pixels in the image, this is represented as a matrix which projects pixel units into sky units: $pixel_vec @ pixelscale = sky_vec$. The pixel scale matrix can be thought of in four components: \vec{s} @ F @ R @ S where \vec{s} is the side length of the pixels, F is a diagonal matrix of {1,-1} which flips the axes orientation, R is a rotation matrix, and S is a shear matrix which turns rectangular pixels into parallelograms. Default is None.
         window : Window or None, optional
             A Window object defining the area of the image to use. Default is None.
         filename : str or None, optional
@@ -72,26 +75,42 @@ class Image_Header(object):
         # set a note for the image
         self.note = note
 
+        if wcs is not None:
+            self.pixelscale = torch.tensor(wcs.pixel_scale_matrix, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        elif pixelscale is not None:
+            if isinstance(pixelscale, (float, int)) or (isinstance(pixelscale, torch.Tensor) and pixelscale.ndim == 1):
+                self.pixelscale = torch.as_tensor(
+                    [[pixelscale, 0.],[0., pixelscale]], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            else:
+                self.pixelscale = torch.as_tensor(
+                    pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+                assert self.pixelscale.shape == (2,2)
+        else:
+            self.pixelscale = None
+            
         # Set Window
         if window is None:
             # If window is not provided, create one based on pixelscale and data shape
             assert (
-                pixelscale is not None
+                self.pixelscale is not None
             ), "pixelscale cannot be None if window is not provided"
-
-            self.pixelscale = torch.as_tensor(
-                pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-            shape = (
+            
+            end = (self.pixelscale @
                 torch.flip(
                     torch.tensor(
                         data_shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                     ),
                     (0,),
                 )
-                * self.pixelscale
             )
-            if origin is None and center is None:
+            shape = torch.linalg.solve(self.pixelscale / torch.linalg.det(self.pixelscale).abs().sqrt(), end)
+            if wcs is not None:
+                origin = torch.as_tensor(
+                    wcs.pixel_to_world(-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+            elif origin is None and center is None:
                 origin = torch.zeros(
                     2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
@@ -106,18 +125,29 @@ class Image_Header(object):
                     )
                     - shape / 2
                 )
-
-            self.window = Window(origin=origin, shape=shape)
+            
+            self.window = Window(origin=origin, shape=shape, projection = self.pixelscale)
         else:
             # When The Window object is provided
             self.window = window
-            if pixelscale is None:
-                self.pixelscale = self.window.shape[0] / data_shape[1]
-            else:
-                self.pixelscale = torch.as_tensor(
-                    pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
+            if self.pixelscale is None:
+                pixelscale = self.window.shape[0] / data_shape[1]
+                self.pixelscale = torch.tensor([[pixelscale, 0.],[0., pixelscale]], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+                
+    @property
+    def pixel_area(self):
+        return torch.linalg.det(self.pixelscale).abs()
+    
+    @property
+    def pixel_length(self):
+        return self.pixel_area.sqrt()
 
+    def pixel_to_world(self, pixel_coordinate):
+        return self.pixelscale @ pixel_coordinate + self.origin
+
+    def world_to_pixel(self, world_coordinate):
+        return torch.linalg.solve(self.pixelscale, world_coordinate - self.origin)
+    
     @property
     def origin(self) -> torch.Tensor:
         """
@@ -154,7 +184,7 @@ class Image_Header(object):
 
         """
         return torch.isclose(
-            ((self.center - self.origin) / self.pixelscale) % 1,
+            self.world_to_pixel(self.center) % 1,
             torch.tensor(0.5, dtype=AP_config.ap_dtype, device=AP_config.ap_device),
             atol=0.25,
         )
@@ -164,7 +194,10 @@ class Image_Header(object):
         """
         Determine the relative position of the center of a pixel with respect to the origin (mod 1)
         """
-        return ((self.origin + 0.5 * self.pixelscale) / self.pixelscale) % 1
+        return torch.linalg.solve(
+            self.pixelscale,
+            self.origin + self.pixelscale @ torch.tensor([0.5,0.5], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        ) % 1
 
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
@@ -205,28 +238,27 @@ class Image_Header(object):
 
     def crop(self, pixels):
         if len(pixels) == 1:  # same crop in all dimension
-            self.window -= pixels[0] * self.pixelscale
+            self.window -= self.pixelscale @ pixels[0]
         elif len(pixels) == 2:  # different crop in each dimension
-            self.window -= (
+            self.window -= (self.pixelscale @
                 torch.as_tensor(
                     pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-                * self.pixelscale
             )
         elif len(pixels) == 4:  # different crop on all sides
-            self.window -= (
+            self.window -= (self.pixelscale @ # fixme
                 torch.as_tensor(
                     pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
-                * self.pixelscale
-            )
+                ))
         return self
 
     def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:
         return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
 
-    def get_coordinate_meshgrid_torch(self, x=0.0, y=0.0):
-        return self.window.get_coordinate_meshgrid_torch(self.pixelscale, x, y)
+    def get_coordinate_meshgrid_torch(self):
+        return self.window.get_coordinate_meshgrid_torch(self.pixelscale)
+    def get_coordinate_corner_meshgrid_torch(self):
+        return self.window.get_coordinate_corner_meshgrid_torch(self.pixelscale)
 
     def super_resolve(self, scale: int, **kwargs):
         assert isinstance(scale, int) or scale.dtype is torch.int32
@@ -273,6 +305,7 @@ class Image_Header(object):
         Args:
           padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
         """
+        # fixme
         padding = np.array(padding)
         assert np.all(padding >= 0), "negative padding not allowed in expand method"
         pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
@@ -280,7 +313,7 @@ class Image_Header(object):
 
     def get_state(self):
         state = {}
-        state["pixelscale"] = self.pixelscale.item()
+        state["pixelscale"] = self.pixelscale.tolist()
         if self.zeropoint is not None:
             state["zeropoint"] = self.zeropoint.item()
         state["window"] = self.window.get_state()
@@ -291,7 +324,7 @@ class Image_Header(object):
     def _save_image_list(self):
         img_header = fits.Header()
         img_header["IMAGE"] = "PRIMARY"
-        img_header["PXLSCALE"] = str(self.pixelscale.detach().cpu().item())
+        img_header["PXLSCALE"] = str(self.pixelscale.detach().cpu().tolist())
         img_header["WINDOW"] = str(self.window.get_state())
         if not self.zeropoint is None:
             img_header["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
@@ -310,10 +343,10 @@ class Image_Header(object):
         hdul = fits.open(filename)
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
-                self.pixelscale = eval(hdu.header.get("PXLSCALE"))
-                self.zeropoint = eval(hdu.header.get("ZEROPNT"))
+                self.pixelscale = torch.tensor(eval(hdu.header.get("PXLSCALE")), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+                self.zeropoint = torch.tensor(eval(hdu.header.get("ZEROPNT")), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
                 self.note = hdu.header.get("NOTE")
-                self.window = Window(**eval(hdu.header.get("WINDOW")))
+                self.window = Window(state = eval(hdu.header.get("WINDOW")))
                 break
         return hdul
 

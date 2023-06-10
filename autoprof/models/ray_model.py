@@ -97,9 +97,8 @@ class Ray_Galaxy(Galaxy_Model):
 
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            Coords = image.get_coordinate_meshgrid_torch()
+            X, Y = Coords - parameters["center"].value[...,None, None]
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
 
         return self.polar_model(
