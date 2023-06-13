@@ -430,14 +430,6 @@ class TestInterpolate(unittest.TestCase):
             msg="Lanczos interpolate returning nonfinite values",
         )
 
-        # fixme
-        # interpolate bicubic - RectBivariateSpline not defined in autoprof/utils/interpolate.py (?)
-        # print(ap.utils.interpolate.interpolate_bicubic(model, 10., 10.))
-
-        # Lanczos interpolation over a grid of values - step not defined
-        # lanczos_interp_grid = ap.utils.interpolate.interpolate_Lanczos_grid(model, np.arange(1.,10.), np.arange(1.,10.), scale=0.8)
-        # print(lanczos_interp_grid)
-
 
 class TestAngleOperations(unittest.TestCase):
     def test_angle_operation_functions(self):

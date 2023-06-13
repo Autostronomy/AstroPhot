@@ -42,7 +42,7 @@ class TestWindowList(unittest.TestCase):
         # Logical or, size
         ######################################################################
         big_or_small = windowlistbs | windowlistsb
-        print(big_or_small.origin)
+        
         self.assertEqual(
             big_or_small.origin[0][0],
             0.,

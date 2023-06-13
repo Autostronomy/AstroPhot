@@ -180,15 +180,15 @@ class AutoProf_Model(object):
         elif len(window) == 2:
             self._window = Window(
                 origin=self.target.pixel_to_world(torch.tensor(
-                    (window[0][0], window[1][0]),
+                    (window[0][0]-0.5, window[1][0]-0.5),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )),
-                shape=torch.linalg.solve(self.target.window.projection, self.target.pixelscale @ torch.tensor(
+                shape=self.target.window.world_to_cartesian(self.target.pixel_to_world_delta(torch.tensor(
                     (window[0][1] - window[0][0], window[1][1] - window[1][0]),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                )),
+                ))),
                 projection = self.target.pixelscale,
             )
         elif len(window) == 4:
@@ -204,8 +204,8 @@ class AutoProf_Model(object):
             )
             self._window = Window(
                 origin=origin,
-                shape=torch.linalg.solve(self.target.window.projection, end - origin),
-                projection = self.target.pixelscale,
+                shape=self.target.window.world_to_cartesian(end - origin),
+                projection=self.target.window.projection,
             )
         else:
             raise ValueError(f"Unrecognized window format: {str(window)}")

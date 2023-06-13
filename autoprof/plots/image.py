@@ -28,7 +28,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
     dat = np.copy(target_area.data.detach().cpu().numpy())
     if target_area.has_mask:
         dat[target_area.mask.detach().cpu().numpy()] = np.nan
-    X, Y = target_area.get_coordinate_corner_meshgrid_torch()
+    X, Y = target_area.get_coordinate_corner_meshgrid()
 
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)]) / 2
@@ -93,7 +93,7 @@ def model_image(
             )
         return fig, ax
 
-    X, Y = sample_image.get_coordinate_corner_meshgrid_torch()
+    X, Y = sample_image.get_coordinate_corner_meshgrid()
     sample_image = sample_image.data.detach().cpu().numpy()
     imshow_kwargs = {
         "cmap": cmap_grad,
@@ -114,7 +114,7 @@ def model_image(
     ax.axis("equal")
     if showcbar:
         if target.zeropoint is not None:
-            clb = fig.colorbar(im, ax=ax, label="Surface Brightness")
+            clb = fig.colorbar(im, ax=ax, label="Surface Brightness [mag/arcsec$^2$]")
             clb.ax.invert_yaxis()
         else:
             clb = fig.colorbar(im, ax=ax, label=f"log$_{{10}}$(flux)")
@@ -158,7 +158,7 @@ def residual_image(
             )
         return fig, ax
 
-    X, Y = sample_image[window].get_coordinate_corner_meshgrid_torch()
+    X, Y = sample_image[window].get_coordinate_corner_meshgrid()
     residuals = (target[window] - sample_image[window]).data
     if normalize_residuals:
         residuals = residuals / torch.sqrt(target[window].variance)
@@ -209,10 +209,10 @@ def model_window(fig, ax, model, target = None, rectangle_linewidth=2, **kwargs)
                 
             lowright = use_window.shape.clone()
             lowright[1] = 0.
-            lowright = use_window.origin + use_window.projection @ lowright
+            lowright = use_window.origin + use_window.cartesian_to_world(lowright)
             upleft = use_window.shape.clone()
             upleft[0] = 0.
-            upleft = use_window.origin + use_window.projection @ upleft
+            upleft = use_window.origin + use_window.cartesian_to_world(upleft)
             end = use_window.origin + use_window.end
             x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
             y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
@@ -231,10 +231,10 @@ def model_window(fig, ax, model, target = None, rectangle_linewidth=2, **kwargs)
             use_window = model.window
         lowright = use_window.shape.clone()
         lowright[1] = 0.
-        lowright = use_window.origin + use_window.projection @ lowright
+        lowright = use_window.origin + use_window.cartesian_to_world(lowright)
         upleft = use_window.shape.clone()
         upleft[0] = 0.
-        upleft = use_window.origin + use_window.projection @ upleft
+        upleft = use_window.origin + use_window.cartesian_to_world(upleft)
         end = use_window.origin + use_window.end
         x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
         y = [use_window.origin[1], lowright[1], end[1], upleft[1]]

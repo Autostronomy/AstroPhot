@@ -110,11 +110,17 @@ class Image(object):
     def pixel_length(self):
         return self.header.pixel_length
     
-    def pixel_to_world(self, pixel_coordinate):
-        return self.header.pixel_to_world(pixel_coordinate)
+    def pixel_to_world(self, pixel_coordinate, internal_transpose = False):
+        return self.header.pixel_to_world(pixel_coordinate, internal_transpose = internal_transpose)
 
     def world_to_pixel(self, world_coordinate):
         return self.header.world_to_pixel(world_coordinate)
+    
+    def pixel_to_world_delta(self, pixel_coordinate):
+        return self.header.pixel_to_world_delta(pixel_coordinate)
+
+    def world_to_pixel_delta(self, world_coordinate):
+        return self.header.world_to_pixel_delta(world_coordinate)
     
     @property
     def origin(self) -> torch.Tensor:
@@ -165,20 +171,6 @@ class Image(object):
     @property
     def identity(self):
         return self.header.identity
-
-    def center_alignment(self) -> torch.Tensor:
-        """Determine if the center of the image is aligned at a pixel center (True)
-        or if it is aligned at a pixel edge (False).
-
-        """
-        return self.header.center_alignment()
-
-    @torch.no_grad()
-    def pixel_center_alignment(self) -> torch.Tensor:
-        """
-        Determine the relative position of the center of a pixel with respect to the origin (mod 1)
-        """
-        return self.header.pixel_center_alignment()
 
     @property
     def data(self) -> torch.Tensor:
@@ -291,13 +283,10 @@ class Image(object):
     def flatten(self, attribute: str = "data") -> np.ndarray:
         return getattr(self, attribute).reshape(-1)
 
-    def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:
-        return self.header.get_coordinate_meshgrid_np(x, y)
-
-    def get_coordinate_meshgrid_torch(self):
-        return self.header.get_coordinate_meshgrid_torch()
-    def get_coordinate_corner_meshgrid_torch(self):
-        return self.header.get_coordinate_corner_meshgrid_torch()
+    def get_coordinate_meshgrid(self):
+        return self.header.get_coordinate_meshgrid()
+    def get_coordinate_corner_meshgrid(self):
+        return self.header.get_coordinate_corner_meshgrid()
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
@@ -362,10 +351,6 @@ class Image(object):
 
     def __sub__(self, other):
         if isinstance(other, Image):
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                raise IndexError("images have no overlap, cannot subtract!")
             new_img = self[other.window].copy()
             new_img.data -= other.data[self.window.get_indices(other)]
             return new_img
@@ -376,10 +361,6 @@ class Image(object):
 
     def __add__(self, other):
         if isinstance(other, Image):
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                return self
             new_img = self[other.window].copy()
             new_img.data += other.data[self.window.get_indices(other)]
             return new_img
@@ -390,10 +371,6 @@ class Image(object):
 
     def __sub__(self, other):
         if isinstance(other, Image):
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                raise IndexError("images have no overlap, cannot subtract!")
             new_img = self[other.window].copy()
             new_img.data -= other.data[self.window.get_indices(other)]
             return new_img
@@ -404,10 +381,6 @@ class Image(object):
 
     def __add__(self, other):
         if isinstance(other, Image):
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                return self
             new_img = self[other.window].copy()
             new_img.data += other.data[self.window.get_indices(other)]
             return new_img
@@ -418,10 +391,6 @@ class Image(object):
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                return self
             self.data[other.window.get_indices(self)] += other.data[
                 self.window.get_indices(other)
             ]
@@ -431,10 +400,6 @@ class Image(object):
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            if torch.any(self.origin + self.shape < other.origin) or torch.any(
-                other.origin + other.shape < self.origin
-            ):
-                return self
             self.data[other.window.get_indices(self)] -= other.data[
                 self.window.get_indices(other)
             ]
@@ -514,14 +479,17 @@ class Image_List(Image):
     def crop(self, *pixels):
         raise NotImplementedError("Crop function not available for Image_List object")
 
-    def get_coordinate_meshgrid_np(self, x=0.0, y=0.0):
+    def get_coordinate_meshgrid(self):
         return tuple(
-            image.get_coordinate_meshgrid_np(x, y) for image in self.image_list
+            image.get_coordinate_meshgrid() for image in self.image_list
         )
-
-    def get_coordinate_meshgrid_torch(self, x=0.0, y=0.0):
+    def get_coordinate_corner_meshgrid(self):
         return tuple(
-            image.get_coordinate_meshgrid_torch(x, y) for image in self.image_list
+            image.get_coordinate_corner_meshgrid() for image in self.image_list
+        )
+    def get_coordinate_simps_meshgrid(self):
+        return tuple(
+            image.get_coordinate_simps_meshgrid() for image in self.image_list
         )
 
     def flatten(self, attribute="data"):

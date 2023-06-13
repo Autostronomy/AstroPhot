@@ -400,7 +400,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
 
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
-    Coords = target_area.get_coordinate_meshgrid_torch()
+    Coords = target_area.get_coordinate_meshgrid()
     X, Y = Coords - parameters["center"].value[...,None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
@@ -460,7 +460,7 @@ def spline_segment_initialize(
     )
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
-    Coords = target_area.get_coordinate_meshgrid_torch()
+    Coords = target_area.get_coordinate_meshgrid()
     X, Y = Coords - parameters["center"].value[...,None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()

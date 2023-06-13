@@ -36,7 +36,7 @@ class Model_Image(Image):
 
     def shift_origin(self, shift, is_prepadded=True):
         self.window.shift_origin(shift)
-        pix_shift = torch.linalg.solve(self.pixelscale, shift)
+        pix_shift = self.world_to_pixel_delta(shift)
         if torch.any(torch.abs(pix_shift) > 1):
             raise NotImplementedError("Shifts larger than 1 pixel are currently not handled")
         self.data = shift_Lanczos_torch(

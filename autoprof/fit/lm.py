@@ -491,6 +491,7 @@ class LM(BaseOptimizer):
         h = torch.zeros_like(self.current_state)
         if self.iteration == 0:
             return h
+
         h = torch.linalg.solve(
             (
                 self.hess

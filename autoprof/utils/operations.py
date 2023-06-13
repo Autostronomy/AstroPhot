@@ -86,7 +86,7 @@ def displacement_grid(Nx, Ny, pixelscale=None, dtype=torch.float64, device="cpu"
     px = displacement_spacing(Nx, dtype=dtype, device=device)
     py = displacement_spacing(Ny, dtype=dtype, device=device)
     PX, PY = torch.meshgrid(px, py, indexing = "xy")
-    return (pixelscale @ torch.stack((PX.reshape(-1), PY.reshape(-1)))).reshape((2, *PX.shape))
+    return (pixelscale @ torch.stack((PX, PY)).view(2,-1)).reshape((2, *PX.shape))
 
 
 def selective_integrate(

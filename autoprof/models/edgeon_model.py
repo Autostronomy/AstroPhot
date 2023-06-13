@@ -73,7 +73,7 @@ class Edgeon_Model(Component_Model):
                 -((Angle_Average(
                     list(iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :])
                 )
-                   / 2) - target.north)
+                   / 2) + target.north)
             )
             % np.pi,
             override_locked=True,
@@ -93,7 +93,7 @@ class Edgeon_Model(Component_Model):
         **kwargs,
     ):
         if X is None:
-            Coords = image.get_coordinate_meshgrid_torch()
+            Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[...,None, None]
         XX, YY = self.transform_coordinates(X, Y, image=image, parameters=parameters)
 

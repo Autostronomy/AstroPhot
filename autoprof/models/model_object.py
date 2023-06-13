@@ -62,10 +62,12 @@ class Component_Model(AutoProf_Model):
     # Fixed order of parameters for all methods that interact with the list of parameters
     _parameter_order = ("center",)
 
-    # Technique and scope for PSF convolution
-    psf_mode = "none"  # none, window/full
-    # size in pixels of the PSF convolution box
-    psf_window_size = 50
+    # Scope for PSF convolution
+    psf_mode = "none"  # none, full
+    # Technique for PSF convolution
+    psf_convolve_mode = "fft" # fft, direct
+    # method for initial sampling of grid before subpixel integration
+    sampling_mode = "midpoint" # midpoint, trapezoid, simpson 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
 
@@ -81,7 +83,8 @@ class Component_Model(AutoProf_Model):
     special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
         "psf_mode",
-        "psf_window_size",
+        "psf_convolve_mode",
+        "sampling_mode",
         "integrate_mode",
         "integrate_recursion_depth",
         "integrate_threshold",
@@ -210,7 +213,7 @@ class Component_Model(AutoProf_Model):
 
         """
         if X is None or Y is None:
-            Coords = image.get_coordinate_meshgrid_torch()
+            Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[...,None, None]
         return torch.zeros_like(X)  # do nothing in base model
 
@@ -268,20 +271,14 @@ class Component_Model(AutoProf_Model):
             working_window += self.psf.psf_border
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = image.pixelscale / self.psf.psf_upscale
-            # Sub pixel shift to align the model with the center of a pixel
-            align = self.target.pixel_center_alignment()
-            center_shift = (
-                parameters["center"].value
-                - working_pixelscale @ (
-                    torch.round(torch.linalg.solve(working_pixelscale, parameters["center"].value) - align)
-                    + align
-                )
-            ).detach()
-            working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(
                 pixelscale=working_pixelscale, window=working_window
-            )
+            )            
+            # Sub pixel shift to align the model with the center of a pixel
+            pixel_center = working_image.world_to_pixel(parameters["center"].value)
+            center_shift = pixel_center - torch.round(pixel_center)
+            working_image.header.pixel_shift_origin(center_shift)
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(
                 image=working_image, parameters=parameters
@@ -290,7 +287,7 @@ class Component_Model(AutoProf_Model):
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                Coords = working_image.get_coordinate_meshgrid_torch()
+                Coords = working_image.get_coordinate_meshgrid()
                 X, Y = Coords - parameters["center"].value[...,None, None]
                 selective_integrate(
                     X=X,
@@ -307,7 +304,7 @@ class Component_Model(AutoProf_Model):
                     f"{self.name} has unknown integration mode: {self.integrate_mode}"
                 )
             # Convolve the PSF
-            pix_center_shift = torch.linalg.solve(working_image.pixelscale, center_shift)
+            pix_center_shift = working_image.world_to_pixel_delta(center_shift)
             LL = _shift_Lanczos_kernel_torch(
                 -pix_center_shift[0],
                 -pix_center_shift[1],
@@ -320,11 +317,23 @@ class Component_Model(AutoProf_Model):
                 LL.view(1, 1, *LL.shape),
                 padding="same",
             ).squeeze()
-            working_image.data = fft_convolve_torch(
-                working_image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
-            )
+            # Remove unphysical negative pixels from Lanczos interpolation
+            shift_psf[shift_psf < 0] = torch.tensor(0., dtype=AP_config.ap_dtype, device = AP_config.ap_device)
+            if self.psf_convolve_mode == "fft":
+                working_image.data = fft_convolve_torch(
+                    working_image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
+                )
+            elif self.psf_convolve_mode == "direct":
+                working_image.data = torch.nn.functional.conv2d(
+                    working_image.data.view(1, 1, *working_image.data.shape),
+                    torch.flip(shift_psf.view(1, 1, *shift_psf.shape) / torch.sum(shift_psf), dims = (2,3)),
+                    padding="same",
+                ).squeeze()
+            else:
+                raise ValueError(f"unrecognized psf_convolve_mode: {self.psf_convolve_mode}")
+                
             # Shift image back to align with original pixel grid
-            working_image.window.shift_origin(-center_shift)
+            working_image.header.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
             working_image = working_image.reduce(self.psf.psf_upscale).crop(
                 self.psf.psf_border_int
@@ -346,7 +355,7 @@ class Component_Model(AutoProf_Model):
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                Coords = working_image.get_coordinate_meshgrid_torch()
+                Coords = working_image.get_coordinate_meshgrid()
                 X, Y = Coords - parameters["center"].value[...,None, None]
                 selective_integrate(
                     X=X,

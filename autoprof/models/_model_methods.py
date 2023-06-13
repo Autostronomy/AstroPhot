@@ -7,50 +7,6 @@ from ..image import Model_Image, Target_Image, Window
 from .. import AP_config
 
 
-def integrate_window(self, image: "Image", fix_to: str = "center") -> Window:
-    """
-    The appropriately sized window in which to perform integration for
-    this model, centered on the model center.
-    Args:
-    image (Model_Image): The image object to integrate.
-
-    fix_to (str): Specifies whether to fix the window to the model center or the nearest pixel center.
-                  Should be one of: center, pixel. Defaults to "center".
-
-    Returns: Window which is The window object to integrate.
-
-    Raises: ValueError -> If the value of fix_to is not valid.
-
-    """
-    if fix_to == "center":
-        use_center = self["center"].value
-    elif fix_to == "pixel":
-        align = image.pixel_center_alignment()
-        use_center = image.pixel_to_world(
-            align + torch.round(image.world_to_pixel(self["center"].value) - align)
-        )
-    else:
-        raise ValueError(
-            f"integrate_window fix_to should be one of: center, pixel. not {fix_to}"
-        )
-    window_align = torch.isclose(
-        image.world_to_pixel(use_center) % 1,
-        torch.tensor(0.5, dtype=AP_config.ap_dtype, device=AP_config.ap_device),
-        atol=0.25,
-    )
-    request_pixels = (
-        self.integrate_window_size * self.target.pixel_length / image.pixel_length
-    ).to(dtype=torch.int32)
-    use_shape = image.pixelscale @ (
-        request_pixels
-        + 1
-        - (request_pixels % 2)
-        + 1
-        - window_align.to(dtype=torch.int32)
-    )
-    return Window(center=use_center, shape=use_shape, projection=self.target.projection)
-
-
 @classmethod
 def build_parameter_specs(cls, user_specs=None):
     parameter_specs = {}

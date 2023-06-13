@@ -88,7 +88,7 @@ class PSF_Image(Image):
             torch.Tensor: The border size of the PSF image in the units of pixelscale.
 
         """
-        return self.pixelscale @ self.psf_border_int.to(dtype=AP_config.ap_dtype)
+        return self.window.world_to_cartesian(self.pixel_to_world_delta(self.psf_border_int.to(dtype=AP_config.ap_dtype)))
 
     def _save_image_list(self, image_list, psf_header):
         """Saves the image list to the PSF HDU header.

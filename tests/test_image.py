@@ -40,30 +40,7 @@ class TestImage(unittest.TestCase):
         self.assertEqual(
             second_base_image.note, "test image", "image should track note"
         )
-
-    def test_alignment(self):
-
-        new_image = image.Image(
-            torch.zeros((10, 15)),
-            pixelscale=1.0,
-            zeropoint=1.0,
-            origin=torch.zeros(2) + 0.1,
-            note="test image",
-        )
-        self.assertTrue(
-            new_image.center_alignment()[0].item(), "pixel alignment has wrong sign"
-        )
-        self.assertFalse(
-            new_image.center_alignment()[1].item(), "pixel alignment has wrong sign"
-        )
-
-        self.assertAlmostEqual(
-            new_image.pixel_center_alignment()[0].item(),
-            0.6,
-            5,
-            "pixel center alignment mismatch",
-        )
-
+        
     def test_copy(self):
 
         new_image = image.Image(

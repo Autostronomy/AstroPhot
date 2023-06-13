@@ -34,7 +34,7 @@ class Image_Header(object):
         Parameters:
         -----------
         pixelscale : float or None, optional
-            The physical scale of the pixels in the image, this is represented as a matrix which projects pixel units into sky units: $pixel_vec @ pixelscale = sky_vec$. The pixel scale matrix can be thought of in four components: \vec{s} @ F @ R @ S where \vec{s} is the side length of the pixels, F is a diagonal matrix of {1,-1} which flips the axes orientation, R is a rotation matrix, and S is a shear matrix which turns rectangular pixels into parallelograms. Default is None.
+            The physical scale of the pixels in the image, this is represented as a matrix which projects pixel units into sky units: $pixelscale @ pixel_vec = sky_vec$. The pixel scale matrix can be thought of in four components: \vec{s} @ F @ R @ S where \vec{s} is the side length of the pixels, F is a diagonal matrix of {1,-1} which flips the axes orientation, R is a rotation matrix, and S is a shear matrix which turns rectangular pixels into parallelograms. Default is None.
         window : Window or None, optional
             A Window object defining the area of the image to use. Default is None.
         filename : str or None, optional
@@ -62,8 +62,7 @@ class Image_Header(object):
             self.load(filename)
             return
 
-        assert not (pixelscale is None and window is None)
-
+        self.data_shape = torch.as_tensor(data_shape, dtype=torch.int32, device=AP_config.ap_device)
         # set Zeropoint
         if zeropoint is None:
             self.zeropoint = None
@@ -75,20 +74,10 @@ class Image_Header(object):
         # set a note for the image
         self.note = note
 
-        if wcs is not None:
-            self.pixelscale = torch.tensor(wcs.pixel_scale_matrix, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        elif pixelscale is not None:
-            if isinstance(pixelscale, (float, int)) or (isinstance(pixelscale, torch.Tensor) and pixelscale.ndim == 1):
-                self.pixelscale = torch.as_tensor(
-                    [[pixelscale, 0.],[0., pixelscale]], dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
-            else:
-                self.pixelscale = torch.as_tensor(
-                    pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
-                assert self.pixelscale.shape == (2,2)
+        if wcs is not None and pixelscale is None:
+            self.pixelscale = wcs.pixel_scale_matrix
         else:
-            self.pixelscale = None
+            self.pixelscale = pixelscale
             
         # Set Window
         if window is None:
@@ -97,15 +86,14 @@ class Image_Header(object):
                 self.pixelscale is not None
             ), "pixelscale cannot be None if window is not provided"
             
-            end = (self.pixelscale @
-                torch.flip(
+            end = (self.pixel_to_world_delta(torch.flip(
                     torch.tensor(
                         data_shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                     ),
                     (0,),
                 )
-            )
-            shape = torch.linalg.solve(self.pixelscale / torch.linalg.det(self.pixelscale).abs().sqrt(), end)
+            ))
+            shape = torch.linalg.solve(self.pixelscale / self.pixel_length, end)
             if wcs is not None:
                 origin = torch.as_tensor(
                     wcs.pixel_to_world(-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -123,7 +111,7 @@ class Image_Header(object):
                     torch.as_tensor(
                         center, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                     )
-                    - shape / 2
+                    - end / 2
                 )
             
             self.window = Window(origin=origin, shape=shape, projection = self.pixelscale)
@@ -133,20 +121,68 @@ class Image_Header(object):
             if self.pixelscale is None:
                 pixelscale = self.window.shape[0] / data_shape[1]
                 self.pixelscale = torch.tensor([[pixelscale, 0.],[0., pixelscale]], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-                
+
+    @property
+    def pixelscale(self):
+        return self._pixelscale
+
+    @pixelscale.setter
+    def pixelscale(self, pix):
+        if pix is None:
+            self._pixelscale = None
+            return
+        
+        self._pixelscale = torch.as_tensor(pix, dtype=AP_config.ap_dtype, device=AP_config.ap_device).clone().detach()
+        if self._pixelscale.numel() == 1:
+            self._pixelscale = torch.tensor([[self._pixelscale.item(), 0.], [0., self._pixelscale.item()]], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        self._pixel_area = torch.linalg.det(self.pixelscale).abs()
+        self._pixel_length = self._pixel_area.sqrt()
+        self._pixel_origin = None
+        
     @property
     def pixel_area(self):
-        return torch.linalg.det(self.pixelscale).abs()
+        return self._pixel_area
     
     @property
     def pixel_length(self):
-        return self.pixel_area.sqrt()
+        return self._pixel_length
 
-    def pixel_to_world(self, pixel_coordinate):
-        return self.pixelscale @ pixel_coordinate + self.origin
+    @property
+    def pixel_origin(self):
+        if self._pixel_origin is None:
+            self._pixel_origin = self.origin + self.pixel_to_world_delta(0.5*torch.ones_like(self.origin))
+        return self._pixel_origin
+
+    def pixel_to_world(self, pixel_coordinate, internal_transpose = False):
+        """Take in a coordinate on the regular cartesian pixel grid, where
+        0,0 is the center of the first pixel. This coordinate is
+        transformed into the world coordiante system based on the
+        pixel scale and origin position for this image. In the world
+        coordinate system the origin is placed with respect to the
+        bottom corner of the 0,0 pixel.
+
+        """
+        if internal_transpose:
+            return (self.pixelscale @ (pixel_coordinate)).T + self.pixel_origin
+        return (self.pixelscale @ (pixel_coordinate)) + self.pixel_origin
 
     def world_to_pixel(self, world_coordinate):
-        return torch.linalg.solve(self.pixelscale, world_coordinate - self.origin)
+        return torch.linalg.solve(self.pixelscale, world_coordinate - self.pixel_origin)
+
+    def pixel_to_world_delta(self, pixel_delta):
+        """Take in a coordinate on the regular cartesian pixel grid, where
+        0,0 is the center of the first pixel. This coordinate is
+        transformed into the world coordiante system based on the
+        pixel scale and origin position for this image. In the world
+        coordinate system the origin is placed with respect to the
+        bottom corner of the 0,0 pixel.
+
+        """
+        return self.pixelscale @ pixel_delta
+
+    def world_to_pixel_delta(self, world_delta):
+        return torch.linalg.solve(self.pixelscale, world_delta)
+    
     
     @property
     def origin(self) -> torch.Tensor:
@@ -178,27 +214,19 @@ class Image_Header(object):
         """
         return self.window.center
 
-    def center_alignment(self) -> torch.Tensor:
-        """Determine if the center of the image is aligned at a pixel center (True)
-        or if it is aligned at a pixel edge (False).
+    def shift_origin(self, shift):
+        """Adjust the origin position of the image header. This will not
+        adjust the data represented by the header, only the
+        coordiantes system that maps pixel coordinates to the world
+        coordinates.
 
         """
-        return torch.isclose(
-            self.world_to_pixel(self.center) % 1,
-            torch.tensor(0.5, dtype=AP_config.ap_dtype, device=AP_config.ap_device),
-            atol=0.25,
-        )
+        self.window.shift_origin(shift)
+        self._pixel_origin = None
 
-    @torch.no_grad()
-    def pixel_center_alignment(self) -> torch.Tensor:
-        """
-        Determine the relative position of the center of a pixel with respect to the origin (mod 1)
-        """
-        return torch.linalg.solve(
-            self.pixelscale,
-            self.origin + self.pixelscale @ torch.tensor([0.5,0.5], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        ) % 1
-
+    def pixel_shift_origin(self, shift):
+        self.shift_origin(self.pixel_to_world_delta(shift))
+        
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
         can be used when one wishes to make temporary modifications to
@@ -206,6 +234,7 @@ class Image_Header(object):
 
         """
         return self.__class__(
+            data_shape=self.data_shape,
             pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
             note=self.note,
@@ -216,7 +245,9 @@ class Image_Header(object):
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
+        indices = window.get_indices(self)
         return self.__class__(
+            data_shape=(indices[0].stop - indices[0].start, indices[1].stop - indices[1].start),
             pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
             note=self.note,
@@ -236,13 +267,15 @@ class Image_Header(object):
             self.zeropoint.to(dtype=dtype, device=device)
         return self
 
-    def crop(self, pixels):
+    def crop(self, pixels):# fixme data_shape
         if len(pixels) == 1:  # same crop in all dimension
-            self.window -= self.pixelscale @ torch.as_tensor(
-                [pixels[0], pixels[0]], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            self.window -= self.pixel_to_world_delta(
+                torch.as_tensor(
+                    [pixels[0], pixels[0]], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
             )
         elif len(pixels) == 2:  # different crop in each dimension
-            self.window -= (self.pixelscale @
+            self.window -= self.pixel_to_world_delta(
                 torch.as_tensor(
                     pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
@@ -251,18 +284,49 @@ class Image_Header(object):
             pixels = torch.as_tensor(
                 pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            low = self.pixelscale @ pixels[:2]
-            high = self.pixelscale @ pixels[2:]
+            low = self.pixel_to_world_delta(pixels[:2])
+            high = self.pixel_to_world_delta(pixels[2:])
             self.window -= torch.cat((low,high))
+        else:
+            raise ValueError(f"Unrecognized pixel crop format: {pixels}")
+        self._pixel_origin = None
         return self
+    
+    @torch.no_grad()
+    def get_coordinate_meshgrid(self):
+        n_pixels = self.data_shape
+        xsteps = torch.arange(n_pixels[1], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        ysteps = torch.arange(n_pixels[0], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        meshx, meshy = torch.meshgrid(
+            xsteps, ysteps,
+            indexing="xy",
+        )
+        Coords = self.pixel_to_world(torch.stack((meshx, meshy)).view(2,-1), internal_transpose = True).T
+        return Coords.reshape((2, *meshx.shape))
 
-    def get_coordinate_meshgrid_np(self, x: float = 0.0, y: float = 0.0) -> np.ndarray:
-        return self.window.get_coordinate_meshgrid_np(self.pixelscale, x, y)
+    @torch.no_grad()
+    def get_coordinate_corner_meshgrid(self):
+        n_pixels = self.data_shape
+        xsteps = torch.arange(n_pixels[1]+1, dtype=AP_config.ap_dtype, device=AP_config.ap_device) - 0.5
+        ysteps = torch.arange(n_pixels[0]+1, dtype=AP_config.ap_dtype, device=AP_config.ap_device) - 0.5
+        meshx, meshy = torch.meshgrid(
+            xsteps, ysteps,
+            indexing="xy",
+        )
+        Coords = self.pixel_to_world(torch.stack((meshx, meshy)).view(2,-1), internal_transpose = True).T
+        return Coords.reshape((2, *meshx.shape))
 
-    def get_coordinate_meshgrid_torch(self):
-        return self.window.get_coordinate_meshgrid_torch(self.pixelscale)
-    def get_coordinate_corner_meshgrid_torch(self):
-        return self.window.get_coordinate_corner_meshgrid_torch(self.pixelscale)
+    @torch.no_grad()
+    def get_coordinate_simps_meshgrid(self):
+        n_pixels = self.data_shape
+        xsteps = 0.5*torch.arange(2*(n_pixels[1])+1, dtype=AP_config.ap_dtype, device=AP_config.ap_device) - 0.5
+        ysteps = 0.5*torch.arange(2*(n_pixels[0])+1, dtype=AP_config.ap_dtype, device=AP_config.ap_device) - 0.5
+        meshx, meshy = torch.meshgrid(
+            xsteps, ysteps,
+            indexing="xy",
+        )
+        Coords = self.pixel_to_world(torch.stack((meshx, meshy)).view(2,-1), internal_transpose = True).T
+        return Coords.reshape((2, *meshx.shape))
 
     def super_resolve(self, scale: int, **kwargs):
         assert isinstance(scale, int) or scale.dtype is torch.int32
@@ -270,6 +334,7 @@ class Image_Header(object):
             return self
 
         return self.__class__(
+            data_shape=self.data_shape,
             pixelscale=self.pixelscale / scale,
             zeropoint=self.zeropoint,
             note=self.note,
@@ -296,6 +361,7 @@ class Image_Header(object):
             return self
 
         return self.__class__(
+            data_shape=self.data_shape,
             pixelscale=self.pixelscale * scale,
             zeropoint=self.zeropoint,
             note=self.note,

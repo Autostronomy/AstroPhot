@@ -63,7 +63,7 @@ class Grad(BaseOptimizer):
 
         # Default learning rate if none given. Equalt to 1 / sqrt(parames)
         if not "lr" in self.optim_kwargs:
-            self.optim_kwargs["lr"] = 1.0 / (len(self.current_state) ** (0.5))
+            self.optim_kwargs["lr"] = 0.1 / (len(self.current_state) ** (0.5))
 
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
         self.optimizer = getattr(torch.optim, self.method)(
