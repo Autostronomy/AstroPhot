@@ -1,0 +1,10 @@
+scipy
+numpy
+astropy
+matplotlib
+torch
+tqdm
+requests
+h5py
+pyyaml
+pyro-ppl

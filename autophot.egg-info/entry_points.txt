@@ -1,0 +1,2 @@
+[console_scripts]
+autophot = autophot:run_from_terminal
