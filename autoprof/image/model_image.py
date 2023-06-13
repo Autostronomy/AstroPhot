@@ -23,7 +23,7 @@ class Model_Image(Image):
         assert not (data is None and window is None)
         if data is None:
             data = torch.zeros(
-                tuple(torch.flip(torch.round(window.shape / pixelscale).int(), (0,))),
+                tuple(window.get_shape_flip(pixelscale)),
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
@@ -36,12 +36,13 @@ class Model_Image(Image):
 
     def shift_origin(self, shift, is_prepadded=True):
         self.window.shift_origin(shift)
-        if torch.any(torch.abs(shift / self.pixelscale) > 1):
-            raise NotImplementedError("Shifts larger than 1 are currently not handled")
+        pix_shift = self.world_to_pixel_delta(shift)
+        if torch.any(torch.abs(pix_shift) > 1):
+            raise NotImplementedError("Shifts larger than 1 pixel are currently not handled")
         self.data = shift_Lanczos_torch(
             self.data,
-            shift[0] / self.pixelscale,
-            shift[1] / self.pixelscale,
+            pix_shift[0],
+            pix_shift[1],
             min(min(self.data.shape), 10),
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
@@ -58,11 +59,7 @@ class Model_Image(Image):
 
     def replace(self, other, data=None):
         if isinstance(other, Image):
-            if not torch.isclose(self.pixelscale, other.pixelscale):
-                raise IndexError("Cannot add images with different pixelscale!")
-            if torch.any((self.origin + self.shape) < other.origin) or torch.any(
-                (other.origin + other.shape) < self.origin
-            ):
+            if self.window.overlap_frac(other.window) == 0.: # fixme control flow
                 return
             other_indices = self.window.get_indices(other)
             self_indices = other.window.get_indices(self)

@@ -57,7 +57,7 @@ class PSF_Star(Star_Model):
         if parameters["flux"].value is None:
             parameters["flux"].set_value(
                 torch.log10(
-                    torch.abs(torch.sum(target_area.data)) / target_area.pixelscale ** 2
+                    torch.abs(torch.sum(target_area.data)) / target_area.pixel_area
                 ),
                 override_locked=True,
             )
@@ -68,14 +68,14 @@ class PSF_Star(Star_Model):
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        new_origin = parameters["center"].value - self.psf_model.shape / 2
-        pixel_origin = torch.round(new_origin / image.pixelscale) * image.pixelscale
+        new_origin = parameters["center"].value - self.psf_model.window.end / 2
+        pixel_origin = image.pixel_to_world(torch.round(image.world_to_pixel(new_origin)))
         pixel_shift = (
-            new_origin / image.pixelscale - pixel_origin / image.pixelscale
-        ) * image.pixelscale
+            image.world_to_pixel(new_origin) - image.world_to_pixel(pixel_origin)
+        )
         LL = _shift_Lanczos_kernel_torch(
-            -pixel_shift[0] / image.pixelscale,
-            -pixel_shift[1] / image.pixelscale,
+            -pixel_shift[0],
+            -pixel_shift[1],
             3,
             AP_config.ap_dtype,
             AP_config.ap_device,
@@ -84,12 +84,12 @@ class PSF_Star(Star_Model):
             data=torch.nn.functional.conv2d(
                 (
                     torch.clone(self.psf_model.data)
-                    * ((10 ** parameters["flux"].value) * image.pixelscale ** 2)
+                    * ((10 ** parameters["flux"].value) * image.pixel_area)
                 ).view(1, 1, *self.psf_model.data.shape),
                 LL.view(1, 1, *LL.shape),
                 padding="same",
             )[0][0],
-            origin=pixel_origin - pixel_shift,
+            origin=new_origin,
             pixelscale=self.psf_model.pixelscale,
         )
 

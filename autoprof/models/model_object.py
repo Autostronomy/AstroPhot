@@ -5,9 +5,10 @@ import io
 from torch.autograd.functional import jacobian
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 from .core_model import AutoProf_Model
-from ..image import Model_Image, Window, PSF_Image
+from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
@@ -18,7 +19,6 @@ from ..utils.operations import (
     selective_integrate,
 )
 from ..utils.interpolate import _shift_Lanczos_kernel_torch
-from ..utils.conversions.coordinates import coord_to_index, index_to_coord
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -62,20 +62,16 @@ class Component_Model(AutoProf_Model):
     # Fixed order of parameters for all methods that interact with the list of parameters
     _parameter_order = ("center",)
 
-    # Technique and scope for PSF convolution
-    psf_mode = "none"  # none, window/full
-    # size in pixels of the PSF convolution box
-    psf_window_size = 50
+    # Scope for PSF convolution
+    psf_mode = "none"  # none, full
+    # Technique for PSF convolution
+    psf_convolve_mode = "fft" # fft, direct
+    # method for initial sampling of grid before subpixel integration
+    sampling_mode = "midpoint" # midpoint, trapezoid, simpson 
     # Integration scope for model
-    integrate_mode = "threshold"  # none, window, threshold
+    integrate_mode = "threshold"  # none, threshold, full*
 
-    # Size of the window in which to perform integration (window mode)
-    integrate_window_size = 10
-    # Number of pixels on one axis by which to supersample (window mode)
-    integrate_factor = 3
-    # Relative size of windows between recursion levels (2 means each window will be half the size of the previous one, window mode)
-    integrate_recursion_factor = 2
-    # Number of recursion cycles to apply when integrating (window or threshold mode)
+    # Number of recursion cycles to apply when integrating (threshold mode)
     integrate_recursion_depth = 3
     # Threshold for triggering pixel integration (threshold mode)
     integrate_threshold = 1e-2
@@ -87,11 +83,9 @@ class Component_Model(AutoProf_Model):
     special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
         "psf_mode",
-        "psf_window_size",
+        "psf_convolve_mode",
+        "sampling_mode",
         "integrate_mode",
-        "integrate_window_size",
-        "integrate_factor",
-        "integrate_recursion_factor",
         "integrate_recursion_depth",
         "integrate_threshold",
         "jacobian_chunksize",
@@ -178,14 +172,13 @@ class Component_Model(AutoProf_Model):
             return
 
         # Convert center coordinates to target area array indices
-        init_icenter = coord_to_index(
-            parameters["center"].value[0], parameters["center"].value[1], target_area
-        )
+        init_icenter = target_area.world_to_pixel(parameters["center"].value)
+        
         # Compute center of mass in window
         COM = center_of_mass(
             (
-                init_icenter[0].detach().cpu().item(),
                 init_icenter[1].detach().cpu().item(),
+                init_icenter[0].detach().cpu().item(),
             ),
             target_area.data.detach().cpu().numpy(),
         )
@@ -194,8 +187,10 @@ class Component_Model(AutoProf_Model):
         ):
             AP_config.ap_logger.warning("center of mass failed, using center of window")
             return
+        COM = (COM[1], COM[0])
         # Convert center of mass indices to coordinates
-        COM_center = index_to_coord(COM[0], COM[1], target_area)
+        COM_center = target_area.pixel_to_world(torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device))
+
         # Set the new coordinates as the model center
         parameters["center"].value = COM_center
 
@@ -218,9 +213,8 @@ class Component_Model(AutoProf_Model):
 
         """
         if X is None or Y is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[...,None, None]
         return torch.zeros_like(X)  # do nothing in base model
 
     def sample(
@@ -277,21 +271,14 @@ class Component_Model(AutoProf_Model):
             working_window += self.psf.psf_border
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = image.pixelscale / self.psf.psf_upscale
-            # Sub pixel shift to align the model with the center of a pixel
-            align = self.target.pixel_center_alignment()
-            center_shift = (
-                parameters["center"].value
-                - (
-                    torch.round(parameters["center"].value / working_pixelscale - align)
-                    + align
-                )
-                * working_pixelscale
-            ).detach()
-            working_window.shift_origin(center_shift)
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(
                 pixelscale=working_pixelscale, window=working_window
-            )
+            )            
+            # Sub pixel shift to align the model with the center of a pixel
+            pixel_center = working_image.world_to_pixel(parameters["center"].value)
+            center_shift = pixel_center - torch.round(pixel_center)
+            working_image.header.pixel_shift_origin(center_shift)
             # Evaluate the model at the current resolution
             working_image.data += self.evaluate_model(
                 image=working_image, parameters=parameters
@@ -300,9 +287,8 @@ class Component_Model(AutoProf_Model):
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(
-                    parameters["center"].value[0], parameters["center"].value[1]
-                )
+                Coords = working_image.get_coordinate_meshgrid()
+                X, Y = Coords - parameters["center"].value[...,None, None]
                 selective_integrate(
                     X=X,
                     Y=Y,
@@ -313,21 +299,15 @@ class Component_Model(AutoProf_Model):
                     max_depth=self.integrate_recursion_depth,
                     integrate_threshold=self.integrate_threshold,
                 )
-            elif self.integrate_mode == "window":
-                self.window_integrate(
-                    working_image,
-                    parameters,
-                    self.integrate_window(working_image, "center"),
-                    self.integrate_recursion_depth,
-                )
             else:
                 raise ValueError(
                     f"{self.name} has unknown integration mode: {self.integrate_mode}"
                 )
             # Convolve the PSF
+            pix_center_shift = working_image.world_to_pixel_delta(center_shift)
             LL = _shift_Lanczos_kernel_torch(
-                -center_shift[0] / working_image.pixelscale,
-                -center_shift[1] / working_image.pixelscale,
+                -pix_center_shift[0],
+                -pix_center_shift[1],
                 3,
                 AP_config.ap_dtype,
                 AP_config.ap_device,
@@ -337,11 +317,23 @@ class Component_Model(AutoProf_Model):
                 LL.view(1, 1, *LL.shape),
                 padding="same",
             ).squeeze()
-            working_image.data = fft_convolve_torch(
-                working_image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
-            )
+            # Remove unphysical negative pixels from Lanczos interpolation
+            shift_psf[shift_psf < 0] = torch.tensor(0., dtype=AP_config.ap_dtype, device = AP_config.ap_device)
+            if self.psf_convolve_mode == "fft":
+                working_image.data = fft_convolve_torch(
+                    working_image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
+                )
+            elif self.psf_convolve_mode == "direct":
+                working_image.data = torch.nn.functional.conv2d(
+                    working_image.data.view(1, 1, *working_image.data.shape),
+                    torch.flip(shift_psf.view(1, 1, *shift_psf.shape) / torch.sum(shift_psf), dims = (2,3)),
+                    padding="same",
+                ).squeeze()
+            else:
+                raise ValueError(f"unrecognized psf_convolve_mode: {self.psf_convolve_mode}")
+                
             # Shift image back to align with original pixel grid
-            working_image.window.shift_origin(-center_shift)
+            working_image.header.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
             working_image = working_image.reduce(self.psf.psf_upscale).crop(
                 self.psf.psf_border_int
@@ -363,9 +355,8 @@ class Component_Model(AutoProf_Model):
             if self.integrate_mode == "none":
                 pass
             elif self.integrate_mode == "threshold":
-                X, Y = working_image.get_coordinate_meshgrid_torch(
-                    parameters["center"].value[0], parameters["center"].value[1]
-                )
+                Coords = working_image.get_coordinate_meshgrid()
+                X, Y = Coords - parameters["center"].value[...,None, None]
                 selective_integrate(
                     X=X,
                     Y=Y,
@@ -375,13 +366,6 @@ class Component_Model(AutoProf_Model):
                     eval_parameters=parameters,
                     max_depth=self.integrate_recursion_depth,
                     integrate_threshold=self.integrate_threshold,
-                )
-            elif self.integrate_mode == "window":
-                self.window_integrate(
-                    working_image,
-                    parameters,
-                    self.integrate_window(working_image, "pixel"),
-                    self.integrate_recursion_depth,
                 )
             else:
                 raise ValueError(
@@ -394,90 +378,6 @@ class Component_Model(AutoProf_Model):
 
         return image
 
-    def window_integrate(
-        self,
-        working_image: "Image",
-        parameters: Parameter_Group,
-        window: Window,
-        depth: int = 2,
-    ):
-        """Sample the model at a higher resolution than the given image, then
-        integrate the super resolution up to the image resolution.
-
-        This method improves the accuracy of the model evaluation by
-        evaluating it at a finer resolution and integrating the
-        results back to the original resolution. It recursively
-        evaluates smaller windows in regions of high curvature until
-        the specified recursion depth is reached.
-
-        Args:
-          working_image (Image): The image on which to perform the model
-                                     integration. Pixels in this image will be
-                                     replaced with the integrated values.
-          window (Window): A Window object within which to perform the integration.
-                           Specifies the region of interest for integration.
-          depth (int, optional): Recursion depth tracker. When called with depth = n,
-                                 this function will call itself again with depth = n-1
-                                 until depth is 0, at which point it will exit without
-                                 integrating further. Default value is 2.
-
-        Returns:
-          None: This method modifies the `working_image` in-place.
-
-        """
-        if depth <= 0 or "none" in self.integrate_mode:
-            return
-        # Determine the on-sky window in which to integrate
-        try:
-            if window.overlap_frac(working_image.window) <= 0.0:
-                return
-        except AssertionError:
-            return
-        # Only need to evaluate integration within working image
-        working_window = window & working_image.window
-        # Determine the upsampled pixelscale
-        integrate_pixelscale = working_image.pixelscale / self.integrate_factor
-        # Build an image to hold the integration data
-        integrate_image = Model_Image(
-            pixelscale=integrate_pixelscale, window=working_window
-        )
-        # Evaluate the model at the fine sampling points
-        integrate_image.data = self.evaluate_model(integrate_image, parameters)
-
-        # If needed, recursively evaluates smaller windows
-        recursive_shape = (
-            window.shape / integrate_pixelscale
-        )  # get the number of pixels across the integrate window
-        recursive_shape = torch.round(
-            recursive_shape / self.integrate_recursion_factor
-        ).int()  # divide window by recursion factor, ensure integer result
-        window_align = torch.isclose(
-            (
-                ((window.center - integrate_image.origin) / integrate_image.pixelscale)
-                % 1
-            ),
-            torch.tensor(0.5, dtype=AP_config.ap_dtype, device=AP_config.ap_device),
-            atol=0.25,
-        )
-        recursive_shape = (
-            recursive_shape
-            + 1
-            - (recursive_shape % 2)
-            + 1
-            - window_align.to(dtype=torch.int32)
-        ) * integrate_pixelscale  # ensure shape pairity is matched during recursion
-        self.window_integrate(
-            integrate_image,
-            parameters,
-            Window(
-                center=window.center,
-                shape=recursive_shape,
-            ),
-            depth=depth - 1,
-        )
-        # Replace the image data where the integration has been done
-        working_image.replace(integrate_image.reduce(self.integrate_factor))
-
     @torch.no_grad()
     def jacobian(
         self,
@@ -485,6 +385,7 @@ class Component_Model(AutoProf_Model):
         as_representation: bool = False,
         parameters_identity: Optional[tuple] = None,
         window: Optional[Window] = None,
+        pass_jacobian: Optional[Jacobian_Image] = None,
         **kwargs,
     ):
         """Compute the Jacobian matrix for this model.
@@ -515,6 +416,8 @@ class Component_Model(AutoProf_Model):
         if window is None:
             window = self.window
         else:
+            if isinstance(window, Window_List):
+                window = window.window_list[pass_jacobian.index(self.target)]
             window = self.window & window
 
         # skip jacobian calculation if no parameters match criteria
@@ -672,6 +575,5 @@ class Component_Model(AutoProf_Model):
 
     # Extra background methods for the basemodel
     ######################################################################
-    from ._model_methods import integrate_window
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters

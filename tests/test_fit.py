@@ -102,7 +102,7 @@ class TestComponentModelFits(unittest.TestCase):
             true_params["q"],
             IXX - true_params["center"][0],
             IYY - true_params["center"][1],
-            -true_params["pa"],
+            -(true_params["pa"] - np.pi/2),
         )
         Z0 = ap.utils.parametric_profiles.sersic_np(
             np.sqrt(QPAXX ** 2 + QPAYY ** 2),

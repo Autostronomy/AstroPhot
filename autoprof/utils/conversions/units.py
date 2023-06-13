@@ -1,12 +1,12 @@
 import numpy as np
 
 
-def flux_to_sb(flux, pixscale, zeropoint):
+def flux_to_sb(flux, pixel_area, zeropoint):
     """Conversion from flux units to logarithmic surface brightness
     units.
 
     """
-    return -2.5 * np.log10(flux) + zeropoint + 5 * np.log10(pixscale)
+    return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
 
 
 def flux_to_mag(flux, zeropoint, fluxe=None):
@@ -17,9 +17,9 @@ def flux_to_mag(flux, zeropoint, fluxe=None):
         return -2.5 * np.log10(flux) + zeropoint, 2.5 * fluxe / (np.log(10) * flux)
 
 
-def sb_to_flux(sb, pixscale, zeropoint):
+def sb_to_flux(sb, pixel_area, zeropoint):
     """Converts logarithmic surface brightness units into flux units."""
-    return (pixscale ** 2) * 10 ** (-(sb - zeropoint) / 2.5)
+    return pixel_area * 10 ** (-(sb - zeropoint) / 2.5)
 
 
 def mag_to_flux(mag, zeropoint, mage=None):

@@ -21,12 +21,8 @@ from ._shared_methods import (
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import exponential_torch, exponential_np
-from ..utils.conversions.coordinates import (
-    Rotate_Cartesian,
-    coord_to_index,
-    index_to_coord,
-)
-
+from ..utils.conversions.coordinates import Rotate_Cartesian
+    
 __all__ = [
     "Exponential_Galaxy",
     "Exponential_Star",
@@ -126,10 +122,10 @@ class Exponential_Star(Star_Model):
     from ._shared_methods import exponential_radial_model as radial_model
 
     @default_internal
-    def evaluate_model(self, image=None, parameters=None):
-        X, Y = image.get_coordinate_meshgrid_torch(
-            parameters["center"].value[0], parameters["center"].value[1]
-        )
+    def evaluate_model(self, X = None, Y = None, image=None, parameters=None):
+        if X is None:
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[...,None, None]
         return self.radial_model(
             self.radius_metric(X, Y, image=image, parameters=parameters),
             image=image,

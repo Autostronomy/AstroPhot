@@ -42,13 +42,19 @@ class TestWindowList(unittest.TestCase):
         # Logical or, size
         ######################################################################
         big_or_small = windowlistbs | windowlistsb
+        
         self.assertEqual(
-            big_or_small.origin[0],
-            0,
+            big_or_small.origin[0][0],
+            0.,
             "logical or of images should take largest bounding box",
         )
         self.assertEqual(
-            big_or_small.shape[0],
+            big_or_small.origin[1][0],
+            0.,
+            "logical or of images should take largest bounding box",
+        )
+        self.assertEqual(
+            big_or_small.shape[0][0],
             100,
             "logical or of images should take largest bounding box",
         )
@@ -77,17 +83,17 @@ class TestWindowList(unittest.TestCase):
         ######################################################################
         big_and_small = windowlistbs & windowlistsb
         self.assertEqual(
-            big_and_small.origin[0],
+            big_and_small.origin[0][0],
             40,
             "logical and of images should take overlap region",
         )
         self.assertEqual(
-            big_and_small.shape[0],
+            big_and_small.shape[0][0],
             20,
             "logical and of images should take overlap region",
         )
         self.assertEqual(
-            big_and_small.shape[1],
+            big_and_small.shape[0][1],
             30,
             "logical and of images should take overlap region",
         )
@@ -118,22 +124,22 @@ class TestWindowList(unittest.TestCase):
         windowlistoffset = ap.image.Window_List([windowoffset, windowoffset])
         big_or_offset = windowlistbb | windowlistoffset
         self.assertEqual(
-            big_or_offset.origin[0],
+            big_or_offset.origin[0][0],
             0,
             "logical or of images should take largest bounding box",
         )
         self.assertEqual(
-            big_or_offset.origin[1],
+            big_or_offset.origin[1][1],
             -20,
             "logical or of images should take largest bounding box",
         )
         self.assertEqual(
-            big_or_offset.shape[0],
+            big_or_offset.shape[0][0],
             140,
             "logical or of images should take largest bounding box",
         )
         self.assertEqual(
-            big_or_offset.shape[1],
+            big_or_offset.shape[1][1],
             130,
             "logical or of images should take largest bounding box",
         )
@@ -162,22 +168,22 @@ class TestWindowList(unittest.TestCase):
         ######################################################################
         big_and_offset = windowlistbb & windowlistoffset
         self.assertEqual(
-            big_and_offset.origin[0],
+            big_and_offset.origin[0][0],
             40,
             "logical and of images should take overlap region",
         )
         self.assertEqual(
-            big_and_offset.origin[1],
+            big_and_offset.origin[0][1],
             0,
             "logical and of images should take overlap region",
         )
         self.assertEqual(
-            big_and_offset.shape[0],
+            big_and_offset.shape[0][0],
             60,
             "logical and of images should take overlap region",
         )
         self.assertEqual(
-            big_and_offset.shape[1],
+            big_and_offset.shape[0][1],
             70,
             "logical and of images should take overlap region",
         )
@@ -244,88 +250,88 @@ class TestWindowList(unittest.TestCase):
         ######################################################################
         window_scaled = window * 2
         self.assertEqual(
-            window_scaled.origin[0], -50, "Window scaling should remain centered"
+            window_scaled.origin[0][0], -50, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window_scaled.shape[0], 200, "Window scaling should remain centered"
+            window_scaled.shape[0][0], 200, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window_scaled.origin[1], -55, "Window scaling should remain centered"
+            window_scaled.origin[0][1], -55, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window_scaled.shape[1], 220, "Window scaling should remain centered"
+            window_scaled.shape[1][1], 220, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window.origin[0], 0, "Window scaling should not affect initial images"
+            window.origin[0][0], 0, "Window scaling should not affect initial images"
         )
         self.assertEqual(
-            window.shape[0], 100, "Window scaling should not affect initial images"
+            window.shape[1][0], 100, "Window scaling should not affect initial images"
         )
 
         # Divide
         ######################################################################
         window_scaled = window / 2
         self.assertEqual(
-            window_scaled.origin[0], 25, "Window scaling should remain centered"
+            window_scaled.origin[0][0], 25, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window_scaled.shape[0], 50, "Window scaling should remain centered"
+            window_scaled.shape[0][0], 50, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window_scaled.origin[1], 27.5, "Window scaling should remain centered"
+            window_scaled.origin[1][1], 27.5, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window_scaled.shape[1], 55, "Window scaling should remain centered"
+            window_scaled.shape[0][1], 55, "Window scaling should remain centered"
         )
         self.assertEqual(
-            window.origin[0], 0, "Window scaling should not affect initial images"
+            window.origin[1][0], 0, "Window scaling should not affect initial images"
         )
         self.assertEqual(
-            window.shape[0], 100, "Window scaling should not affect initial images"
+            window.shape[1][0], 100, "Window scaling should not affect initial images"
         )
 
         # Add
         ######################################################################
         window_buffer = window + 10
         self.assertEqual(
-            window_buffer.origin[0], -10, "Window buffer should remain centered"
+            window_buffer.origin[1][0], -10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[0], 120, "Window buffer should remain centered"
+            window_buffer.shape[0][0], 120, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.origin[1], -10, "Window buffer should remain centered"
+            window_buffer.origin[1][1], -10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[1], 130, "Window buffer should remain centered"
+            window_buffer.shape[1][1], 130, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window.origin[0], 0, "Window buffering should not affect initial images"
+            window.origin[1][0], 0, "Window buffering should not affect initial images"
         )
         self.assertEqual(
-            window.shape[0], 100, "Window buffering should not affect initial images"
+            window.shape[1][0], 100, "Window buffering should not affect initial images"
         )
 
         # Subtract
         ######################################################################
         window_buffer = window - 10
         self.assertEqual(
-            window_buffer.origin[0], 10, "Window buffer should remain centered"
+            window_buffer.origin[0][0], 10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[0], 80, "Window buffer should remain centered"
+            window_buffer.shape[0][0], 80, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.origin[1], 10, "Window buffer should remain centered"
+            window_buffer.origin[0][1], 10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[1], 90, "Window buffer should remain centered"
+            window_buffer.shape[0][1], 90, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window.origin[0], 0, "Window buffering should not affect initial images"
+            window.origin[0][0], 0, "Window buffering should not affect initial images"
         )
         self.assertEqual(
-            window.shape[0], 100, "Window buffering should not affect initial images"
+            window.shape[0][0], 100, "Window buffering should not affect initial images"
         )
 
         # iAdd
@@ -333,22 +339,22 @@ class TestWindowList(unittest.TestCase):
         window_buffer = window.copy()
         window_buffer += 10
         self.assertEqual(
-            window_buffer.origin[0], -10, "Window buffer should remain centered"
+            window_buffer.origin[0][0], -10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[0], 120, "Window buffer should remain centered"
+            window_buffer.shape[0][0], 120, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.origin[1], -10, "Window buffer should remain centered"
+            window_buffer.origin[1][1], -10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[1], 130, "Window buffer should remain centered"
+            window_buffer.shape[1][1], 130, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window.origin[0], 0, "Window buffering should not affect initial images"
+            window.origin[0][0], 0, "Window buffering should not affect initial images"
         )
         self.assertEqual(
-            window.shape[0], 100, "Window buffering should not affect initial images"
+            window.shape[0][0], 100, "Window buffering should not affect initial images"
         )
 
         # iSubtract
@@ -356,26 +362,25 @@ class TestWindowList(unittest.TestCase):
         window_buffer = window.copy()
         window_buffer -= 10
         self.assertEqual(
-            window_buffer.origin[0], 10, "Window buffer should remain centered"
+            window_buffer.origin[1][0], 10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[0], 80, "Window buffer should remain centered"
+            window_buffer.shape[1][0], 80, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.origin[1], 10, "Window buffer should remain centered"
+            window_buffer.origin[0][1], 10, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window_buffer.shape[1], 90, "Window buffer should remain centered"
+            window_buffer.shape[0][1], 90, "Window buffer should remain centered"
         )
         self.assertEqual(
-            window.origin[0], 0, "Window buffering should not affect initial images"
+            window.origin[0][0], 0, "Window buffering should not affect initial images"
         )
         self.assertEqual(
-            window.shape[0], 100, "Window buffering should not affect initial images"
+            window.shape[0][0], 100, "Window buffering should not affect initial images"
         )
 
-        window.shift_origin(torch.tensor([1.0, 1.0]))
-        self.assertEqual(window.origin[0].item(), 1.0, "Origin should be moved")
+        self.assertRaises(NotImplementedError, window.shift_origin, torch.tensor([1.0, 1.0]))
 
     def test_windowlist_logic(self):
 

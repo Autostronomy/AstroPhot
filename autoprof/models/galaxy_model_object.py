@@ -10,8 +10,6 @@ from ..utils.angle_operations import Angle_Average
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
-    coord_to_index,
-    index_to_coord,
 )
 from .model_object import Component_Model
 from ._shared_methods import select_target
@@ -76,9 +74,8 @@ class Galaxy_Model(Component_Model):
         )
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
-        icenter = coord_to_index(
-            parameters["center"].value[0], parameters["center"].value[1], target_area
-        )
+        icenter = target_area.world_to_pixel(parameters["center"].value)
+        
         if parameters["PA"].value is None:
             iso_info = isophotes(
                 target_area.data.detach().cpu().numpy() - edge_average,
@@ -90,12 +87,12 @@ class Galaxy_Model(Component_Model):
             )
             parameters["PA"].set_value(
                 (
-                    -Angle_Average(
+                    -((Angle_Average(
                         list(
                             iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :]
                         )
                     )
-                    / 2
+                       / 2) + target.north)
                 )
                 % np.pi,
                 override_locked=True,
@@ -106,7 +103,7 @@ class Galaxy_Model(Component_Model):
                 target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
                 threshold=3 * edge_scatter,
-                pa=parameters["PA"].value.detach().cpu().item(),
+                pa=(parameters["PA"].value - target.north).detach().cpu().item(),
                 q=q_samples,
             )
             parameters["q"].set_value(
@@ -122,7 +119,7 @@ class Galaxy_Model(Component_Model):
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
-        X, Y = Rotate_Cartesian(-parameters["PA"].value, X, Y)
+        X, Y = Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
         return (
             X,
             Y / parameters["q"].value,
@@ -133,9 +130,8 @@ class Galaxy_Model(Component_Model):
         self, X=None, Y=None, image=None, parameters: "Parameter_Group" = None, **kwargs
     ):
         if X is None or Y is None:
-            X, Y = image.get_coordinate_meshgrid_torch(
-                parameters["center"].value[0], parameters["center"].value[1]
-            )
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[...,None, None]
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
         return self.radial_model(
             self.radius_metric(XX, YY, image, parameters),
