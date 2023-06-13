@@ -34,17 +34,17 @@ jobs:
           pip install wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
-      - name: Install AutoProf
+      - name: Install AutoPhot
         run: |
           cd $GITHUB_WORKSPACE/
           pip install -e .
-          pip show autoprof
+          pip show autophot
         shell: bash
       - name: Test with pytest
         run: |
           cd $GITHUB_WORKSPACE
           pwd
-          pytest --cov-report=xml --cov=autoprof tests/
+          pytest --cov-report=xml --cov=autophot tests/
           cat coverage.xml
         shell: bash
       - name: Upload coverage report to Codecov
