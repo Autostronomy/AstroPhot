@@ -5,7 +5,7 @@ from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, AP_config
 
 # meta data
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 __author__ = "Connor Stone"
 __email__ = "connorstone628@gmail.com"
 
