@@ -14,9 +14,9 @@
 AutoPhot
 *********
 
-.. image:: https://github.com/ConnorStoneAstro/AutoPhot/blob/main/media/AP_logo.png?raw=true
+.. image:: https://github.com/Autostronomy/AutoPhot/blob/main/media/AP_logo.png?raw=true
    :width: 100 %
-   :target: https://github.com/ConnorStoneAstro/AutoPhot
+   :target: https://github.com/Autostronomy/AutoPhot
    
 |br|
 
@@ -66,5 +66,5 @@ This documentation includes all functions available in the AutoPhot package. For
     changes to the interface if it considerably improves things
     going forward. Please contact connorstone628@gmail.com if you experience
     issues. If you would like to be notified of major changes send an email
-    with the subject line "AUTOPROF MAILING LIST".
+    with the subject line "AUTOPHOT MAILING LIST".
 

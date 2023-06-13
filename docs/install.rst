@@ -25,7 +25,7 @@ Developer Install
 
 If you wish to help develop AutoPhot, thank you! You can get started by forking the repository then cloning it to your device::
 
-  git clone https://github.com/ConnorStoneAstro/AutoPhot.git
+  git clone https://github.com/Autostronomy/AutoPhot.git
 
 Then you can locally install the code using::
 

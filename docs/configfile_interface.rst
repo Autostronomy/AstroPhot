@@ -22,7 +22,7 @@ Running ``autophot --help`` will generate the following message::
                 [--dtype datatype] [--device device]
                 [configfile]
 
-  Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/ConnorStoneAstro/AutoPhot-2
+  Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/Autostronomy/AutoPhot
 
   positional arguments:
     configfile         the path to the configuration file. Or just 'tutorial' to download tutorials.

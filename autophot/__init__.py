@@ -42,7 +42,7 @@ def run_from_terminal() -> None:
     )
     parser = argparse.ArgumentParser(
         prog="autophot",
-        description="Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/ConnorStoneAstro/AutoPhot",
+        description="Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/Autostronomy/AutoPhot",
         epilog="Please see the documentation or contact connor stone (connorstone628@gmail.com) for further assistance.",
     )
     parser.add_argument(
@@ -108,17 +108,17 @@ def run_from_terminal() -> None:
 
     if args.filename is None:
         raise RuntimeError(
-            "Please pass a config file to autophot. See 'autophot --help' for more information, or go to https://connorstoneastro.github.io/AutoPhot/getting_started.html"
+            "Please pass a config file to autophot. See 'autophot --help' for more information, or go to https://Autostronomy.github.io/AutoPhot/getting_started.html"
         )
     if args.filename in ["tutorial", "tutorials"]:
         tutorials = [
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/GroupModels.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/JointModels.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/FittingMethods.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/CustomModels.ipynb",
-            "https://raw.github.com/ConnorStoneAstro/AutoPhot/main/docs/tutorials/simple_config.py",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/GettingStarted.ipynb",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/GroupModels.ipynb",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/JointModels.ipynb",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/FittingMethods.ipynb",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
             try:
