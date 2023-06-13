@@ -36,11 +36,11 @@ jobs:
           pip install wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
-      - name: Install AutoProf
+      - name: Install AutoPhot
         run: |
           cd $GITHUB_WORKSPACE/
           pip install .
-          pip show autoprof
+          pip show autophot
         shell: bash
       - name: Test with pytest
         run: |

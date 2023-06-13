@@ -1,5 +1,5 @@
 import unittest
-from autoprof.models import Parameter
+from autophot.models import Parameter
 import torch
 
 

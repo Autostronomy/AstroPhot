@@ -1,6 +1,6 @@
 import unittest
-from autoprof import image
-import autoprof as ap
+from autophot import image
+import autophot as ap
 import torch
 
 ######################################################################
@@ -227,9 +227,9 @@ class TestImage(unittest.TestCase):
             note="test image",
         )
 
-        new_image.save("Test_AutoProf.fits")
+        new_image.save("Test_AutoPhot.fits")
 
-        loaded_image = ap.image.Image(filename="Test_AutoProf.fits")
+        loaded_image = ap.image.Image(filename="Test_AutoPhot.fits")
 
         self.assertTrue(
             torch.all(new_image.data == loaded_image.data),
@@ -350,9 +350,9 @@ class TestTargetImage(unittest.TestCase):
             note="test image",
         )
 
-        new_image.save("Test_target_AutoProf.fits")
+        new_image.save("Test_target_AutoPhot.fits")
 
-        loaded_image = ap.image.Target_Image(filename="Test_target_AutoProf.fits")
+        loaded_image = ap.image.Target_Image(filename="Test_target_AutoPhot.fits")
 
         self.assertTrue(
             torch.all(new_image.variance == loaded_image.variance),

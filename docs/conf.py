@@ -26,13 +26,13 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # Project information
-project = "AutoProf"
+project = "AutoPhot"
 copyright = "2023, Connor Stone"
 author = "Connor Stone"
 
 # Version information
-version = "0.8"
-release = "0.8.0"
+version = "0.9"
+release = "0.9.0"
 
 # Patterns of files and directories to exclude
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -59,7 +59,7 @@ html_sidebars = {
 html_favicon = "media/AP_logo_favicon.ico"
 
 # Output file base name for HTML help builder
-htmlhelp_basename = "AutoProfdocs"
+htmlhelp_basename = "AutoPhotdocs"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -67,13 +67,13 @@ latex_elements = {}
 
 # LaTeX document settings
 latex_documents = [
-    (master_doc, "AutoProf.tex", "AutoProf Documentation", "Connor Stone", "manual"),
+    (master_doc, "AutoPhot.tex", "AutoPhot Documentation", "Connor Stone", "manual"),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 man_pages = [
-    (master_doc, "autoprof", "AutoProf Documentation", [author], 1),
+    (master_doc, "autophot", "AutoPhot Documentation", [author], 1),
 ]
 
 # -- Options for Texinfo output -------------------------------------------
@@ -81,10 +81,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "AutoProf",
-        "AutoProf Documentation",
+        "AutoPhot",
+        "AutoPhot Documentation",
         author,
-        "AutoProf",
+        "AutoPhot",
         "One line description of project.",
         "Miscellaneous",
     ),

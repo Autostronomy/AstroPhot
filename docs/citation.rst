@@ -1,14 +1,14 @@
 ===============
-Citing AutoProf
+Citing AutoPhot
 ===============
 
-If you use AutoProf for a project that leads to a publication,
+If you use AutoPhot for a project that leads to a publication,
 whether directly or as a dependency of another package, please include
 the following acknowledgment:
 
 .. code-block:: text
 
-    This research made use of AutoProf, a package for galaxy image
+    This research made use of AutoPhot, a package for galaxy image
     photometry (Stone et al. 2021b).
 
 The full record can be found here (`ads link <https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.1870S/abstract>`_). And a BibTex entry is
@@ -18,7 +18,7 @@ supplied here:
    
    @ARTICLE{Stone2021b,
    author = {{Stone}, Connor J. and {Arora}, Nikhil and {Courteau}, St{\'e}phane and {Cuillandre}, Jean-Charles},
-   title = "{AutoProf - I. An automated non-parametric light profile pipeline for modern galaxy surveys}",
+   title = "{AutoPhot - I. An automated non-parametric light profile pipeline for modern galaxy surveys}",
    journal = {\mnras},
    keywords = {methods: data analysis, techniques: image processing, techniques: photometric, galaxies: general, galaxies: photometry, Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
    year = 2021,
@@ -34,4 +34,4 @@ supplied here:
    adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }
 
-A newer publication to detail the features of AutoProf-II is in production. For now, citing the original AutoProf paper is sufficient.
+A newer publication to detail the features of AutoPhot-II is in production. For now, citing the original AutoPhot paper is sufficient.
