@@ -2,7 +2,7 @@
 deleteme
 _build
 build
-autoprof.egg-info
+autophot.egg-info
 **.ipynb_checkpoints
 **.#*
 **.log
@@ -14,7 +14,7 @@ tests/*.yaml
 docs/tutorials/*.fits
 docs/tutorials/*.yaml
 docs/tutorials/*.jpg
-docs/autoprof.*rst
+docs/autophot.*rst
 docs/modules.rst
 pip_cheatsheet.txt
 .gitpod.yml
