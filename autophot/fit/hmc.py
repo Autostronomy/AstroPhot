@@ -1,4 +1,4 @@
-# No U-Turn Sampler variant of Hamiltonian Monte-Carlo
+# Hamiltonian Monte-Carlo
 import os
 from time import time
 from typing import Optional, Sequence
@@ -8,14 +8,14 @@ import torch
 import pyro
 import pyro.distributions as dist
 from pyro.infer import MCMC as pyro_MCMC
-from pyro.infer import NUTS as pyro_NUTS
+from pyro.infer import HMC as pyro_HMC
 from pyro.infer.mcmc.adaptation import WarmupAdapter, BlockMassMatrix
 from pyro.ops.welford import WelfordCovariance
 
 from .base import BaseOptimizer
 from .. import AP_config
 
-__all__ = ["NUTS"]
+__all__ = ["HMC"]
 
 ###########################################
 # !Overwrite pyro configuration behavior!
@@ -52,46 +52,37 @@ BlockMassMatrix.configure = new_configure
 ############################################
 
 
-class NUTS(BaseOptimizer):
-    """No U-Turn Sampler (NUTS) implementation for Hamiltonian Monte Carlo
-    (HMC) based MCMC sampling.
+class HMC(BaseOptimizer):
+    """Hamiltonian Monte-Carlo sampler wrapper for the Pyro package.
 
-    This is a wrapper for the Pyro package: https://docs.pyro.ai/en/stable/index.html
+    This MCMC algorithm uses gradients of the Chi^2 to more
+    efficiently explore the probability distribution. Consider using
+    the NUTS sampler instead of HMC, as it is generally better in most
+    aspects.
 
-    The NUTS class provides an implementation of the No-U-Turn Sampler
-    (NUTS) algorithm, which is a variation of the Hamiltonian Monte
-    Carlo (HMC) method for Markov Chain Monte Carlo (MCMC)
-    sampling. This implementation uses the Pyro library to perform the
-    sampling. The NUTS algorithm utilizes gradients of the target
-    distribution to more efficiently explore the probability
-    distribution of the model.
-
-    More information on HMC and NUTS can be found at:
+    More information on HMC can be found at:
     https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo,
     https://arxiv.org/abs/1701.02434, and
     http://www.mcmchandbook.net/HandbookChapter5.pdf
 
     Args:
-        model (AutoProf_Model): The model which will be sampled.
+        model (AutoPhot_Model): The model which will be sampled.
         initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of "as_representation" in the model. Defaults to None.
         max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.
-        epsilon (float, optional): The step size for the NUTS sampler. Defaults to 1e-3.
-        inv_mass (Optional[Tensor], optional): Inverse Mass matrix (covariance matrix) for the Hamiltonian system. Defaults to None.
-        progress_bar (bool, optional): If True, display a progress bar during sampling. Defaults to True.
-        prior (Optional[Distribution], optional): Prior distribution for the model parameters. Defaults to None.
-        warmup (int, optional): Number of warmup (or burn-in) steps to perform before sampling. Defaults to 100.
-        nuts_kwargs (Dict[str, Any], optional): A dictionary of additional keyword arguments to pass to the NUTS sampler. Defaults to {}.
-        mcmc_kwargs (Dict[str, Any], optional): A dictionary of additional keyword arguments to pass to the MCMC function. Defaults to {}.
-
-    Methods:
-        fit(state: Optional[torch.Tensor] = None, nsamples: Optional[int] = None, restart_chain: bool = True) -> 'NUTS':
-            Performs the MCMC sampling using a NUTS HMC and records the chain for later examination.
+        epsilon (float, optional): The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
+        leapfrog_steps (int, optional): Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 20.
+        inv_mass (float or array, optional): Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.
+        progress_bar (bool, optional): Whether to display a progress bar during sampling. Defaults to True.
+        prior (distribution, optional): Prior distribution for the parameters. Defaults to None.
+        warmup (int, optional): Number of warmup steps before actual sampling begins. Defaults to 100.
+        hmc_kwargs (dict, optional): Additional keyword arguments for the HMC sampler. Defaults to {}.
+        mcmc_kwargs (dict, optional): Additional keyword arguments for the MCMC process. Defaults to {}.
 
     """
 
     def __init__(
         self,
-        model: "AutoProf_Model",
+        model: "AutoPhot_Model",
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
         **kwargs
@@ -100,20 +91,28 @@ class NUTS(BaseOptimizer):
 
         self.inv_mass = kwargs.get("inv_mass", None)
         self.epsilon = kwargs.get("epsilon", 1e-3)
+        self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.prior = kwargs.get("prior", None)
         self.warmup = kwargs.get("warmup", 100)
-        self.nuts_kwargs = kwargs.get("nuts_kwargs", {})
+        self.hmc_kwargs = kwargs.get("hmc_kwargs", {})
         self.mcmc_kwargs = kwargs.get("mcmc_kwargs", {})
+        self.acceptance = None
 
     def fit(
         self,
         state: Optional[torch.Tensor] = None,
-        nsamples: Optional[int] = None,
-        restart_chain: bool = True,
     ):
-        """
-        Performs the MCMC sampling using a NUTS HMC and records the chain for later examination.
+        """Performs MCMC sampling using Hamiltonian Monte-Carlo step.
+
+        Records the chain for later examination.
+
+        Args:
+            state (torch.Tensor, optional): Model parameters as a 1D tensor.
+
+        Returns:
+            HMC: An instance of the HMC class with updated chain.
+
         """
 
         def step(model, prior):
@@ -132,26 +131,25 @@ class NUTS(BaseOptimizer):
                 + torch.abs(self.current_state) * 1e2,
             )
 
-        # Set up the NUTS sampler
-        nuts_kwargs = {
+        # Set up the HMC sampler
+        hmc_kwargs = {
             "jit_compile": True,
             "ignore_jit_warnings": True,
-            "step_size": self.epsilon,
             "full_mass": True,
-            "adapt_step_size": True,
+            "step_size": self.epsilon,
+            "num_steps": self.leapfrog_steps,
+            "adapt_step_size": False,
             "adapt_mass_matrix": self.inv_mass is None,
         }
-        nuts_kwargs.update(self.nuts_kwargs)
-        nuts_kernel = pyro_NUTS(step, **nuts_kwargs)
+        hmc_kwargs.update(self.hmc_kwargs)
+        hmc_kernel = pyro_HMC(step, **hmc_kwargs)
         if self.inv_mass is not None:
-            nuts_kernel.mass_matrix_adapter.inverse_mass_matrix = {
-                ("x",): self.inv_mass
-            }
+            hmc_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
         init_params = {"x": self.model.parameters.get_vector(as_representation=True)}
 
-        # Run MCMC with the NUTS sampler and the initial guess
+        # Run MCMC with the HMC sampler and the initial guess
         mcmc_kwargs = {
             "num_samples": self.max_iter,
             "warmup_steps": self.warmup,
@@ -159,7 +157,7 @@ class NUTS(BaseOptimizer):
             "disable_progbar": not self.progress_bar,
         }
         mcmc_kwargs.update(self.mcmc_kwargs)
-        mcmc = pyro_MCMC(nuts_kernel, **mcmc_kwargs)
+        mcmc = pyro_MCMC(hmc_kernel, **mcmc_kwargs)
 
         mcmc.run(self.model, self.prior)
         self.iteration += self.max_iter

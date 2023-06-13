@@ -16,7 +16,7 @@ class PSF_Star(Star_Model):
     within a pixel to accurately represent the center location of a
     point source. There is no funcitonal form for this object type as
     any image can be supplied. Note that as an argument to the model
-    at construction one can provide "psf" as an AutoProf Model_Image
+    at construction one can provide "psf" as an AutoPhot Model_Image
     object. If the supplied image is at a higher resolution than the
     target image then the PSF will be upsampled at the time of
     sampling after the shift has been performed. In this way it is

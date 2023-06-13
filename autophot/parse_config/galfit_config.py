@@ -1,7 +1,7 @@
 import numpy
 from astropy.io import fits
 from ..image import Target_Image
-from ..models import AutoProf_Model
+from ..models import AutoPhot_Model
 from ..fit import LM
 
 __all__ = ["galfit_config"]
@@ -107,13 +107,13 @@ def galfit_config(config_file):
 
     # Format parameters
     for i in range(len(objects)):
-        autoprof_object = {
+        autophot_object = {
             "model_type": objects[i]["model_type"],
         }
 
         # common params
         if "centerpix" in objects[i]:
-            autoprof_object["center"] = {
+            autophot_object["center"] = {
                 "value": [
                     float(objects[i]["centerpix"][0]) * headerinfo["target_pixelscale"],
                     float(objects[i]["centerpix"][1]) * headerinfo["target_pixelscale"],
@@ -121,18 +121,18 @@ def galfit_config(config_file):
                 "locked": bool(objects[i]["centerpix"][2]),
             }
         if "Repix" in objects[i]:
-            autoprof_object["Re"] = {
+            autophot_object["Re"] = {
                 "value": float(objects[i]["Repix"][0])
                 * headerinfo["target_pixelscale"],
                 "locked": bool(objects[i]["Repix"][1]),
             }
         if "q" in objects[i]:
-            autoprof_object["q"] = {
+            autophot_object["q"] = {
                 "value": float(objects[i]["q"][0]),
                 "locked": bool(objects[i]["q"][1]),
             }
         if "PAdeg" in objects[i]:
-            autoprof_object["PA"] = {
+            autophot_object["PA"] = {
                 "value": float(objects[i]["PAdeg"][0]) * np.pi / 180,
                 "locked": bool(objects[i]["PAdeg"][1]),
             }

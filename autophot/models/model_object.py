@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from .core_model import AutoProf_Model
+from .core_model import AutoPhot_Model
 from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
@@ -25,7 +25,7 @@ from .. import AP_config
 __all__ = ["Component_Model"]
 
 
-class Component_Model(AutoProf_Model):
+class Component_Model(AutoPhot_Model):
     """Component_Model(name, target, window, locked, **kwargs)
 
     Component_Model is a base class for models that represent single
@@ -236,7 +236,7 @@ class Component_Model(AutoProf_Model):
         the requested image.
 
         Args:
-          image (Optional[Image]): An AutoProf Image object (likely a Model_Image)
+          image (Optional[Image]): An AutoPhot Image object (likely a Model_Image)
                                      on which to evaluate the model values. If not
                                      provided, a new Model_Image object will be created.
           window (Optional[Window]): A window within which to evaluate the model.
@@ -550,7 +550,7 @@ class Component_Model(AutoProf_Model):
                 state[key] = getattr(self, key)
         return state
 
-    def load(self, filename: Union[str, dict, io.TextIOBase] = "AutoProf.yaml"):
+    def load(self, filename: Union[str, dict, io.TextIOBase] = "AutoPhot.yaml"):
         """Used to load the model from a saved state.
 
         Sets the model window to the saved value and updates all
@@ -561,7 +561,7 @@ class Component_Model(AutoProf_Model):
           filename: The source from which to load the model parameters. Can be a string (the name of the file on disc), a dictionary (formatted as if from self.get_state), or an io.TextIOBase (a file stream to load the file from).
 
         """
-        state = AutoProf_Model.load(filename)
+        state = AutoPhot_Model.load(filename)
         self.name = state["name"]
         self.window = Window(**state["window"])
         for key in self.track_attrs:

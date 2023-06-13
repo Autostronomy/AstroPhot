@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .core_model import AutoProf_Model
+from .core_model import AutoPhot_Model
 from ..image import (
     Model_Image,
     Model_Image_List,
@@ -22,9 +22,9 @@ from .. import AP_config
 __all__ = ["Group_Model"]
 
 
-class Group_Model(AutoProf_Model):
+class Group_Model(AutoPhot_Model):
     """Model object which represents a list of other models. For each
-    general AutoProf model method, this calls all the appropriate
+    general AutoPhot model method, this calls all the appropriate
     models from its list and combines their output into a single
     summed model. This class shoould be used when describing any
     system more comlex than makes sense to represent with a single
@@ -33,19 +33,19 @@ class Group_Model(AutoProf_Model):
     Args:
         name (str): unique name for the full group model
         target (Target_Image): the target image that this group model is trying to fit to
-        models (Optional[Sequence[AutoProf_Model]]): list of AutoProf_Model objects which will combine for the group model
+        models (Optional[Sequence[AutoPhot_Model]]): list of AutoPhot_Model objects which will combine for the group model
         locked (bool): if the whole group of models should be locked
 
     """
 
-    model_type = f"group {AutoProf_Model.model_type}"
+    model_type = f"group {AutoPhot_Model.model_type}"
     useable = True
 
     def __init__(
         self,
         name: str,
         *args,
-        models: Optional[Sequence[AutoProf_Model]] = None,
+        models: Optional[Sequence[AutoPhot_Model]] = None,
         **kwargs,
     ):
         super().__init__(name, *args, models=models, **kwargs)
@@ -285,12 +285,12 @@ class Group_Model(AutoProf_Model):
             state["models"][model.name] = model.get_state()
         return state
 
-    def load(self, filename="AutoProf.yaml"):
-        """Loads an AutoProf state file and updates this model with the
+    def load(self, filename="AutoPhot.yaml"):
+        """Loads an AutoPhot state file and updates this model with the
         loaded parameters.
 
         """
-        state = AutoProf_Model.load(filename)
+        state = AutoPhot_Model.load(filename)
         self.name = state["name"]
         for model in state["models"]:
             for own_model in self.models.values():
@@ -299,7 +299,7 @@ class Group_Model(AutoProf_Model):
                     break
             else:
                 self.add_model(
-                    AutoProf_Model(
+                    AutoPhot_Model(
                         name=model, filename=state["models"][model], target=self.target
                     )
                 )

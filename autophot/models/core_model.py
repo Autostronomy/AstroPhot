@@ -18,7 +18,7 @@ from .parameter_group import Parameter_Group
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
 
-__all__ = ["AutoProf_Model"]
+__all__ = ["AutoPhot_Model"]
 
 
 def all_subclasses(cls):
@@ -28,10 +28,10 @@ def all_subclasses(cls):
 
 
 ######################################################################
-class AutoProf_Model(object):
-    """AutoProf_Model(name, *args, filename = None, model_type = None, **kwargs)
+class AutoPhot_Model(object):
+    """AutoPhot_Model(name, *args, filename = None, model_type = None, **kwargs)
 
-    Core class for all AutoProf models and model like objects. The
+    Core class for all AutoPhot models and model like objects. The
     signature defined for this class includes all expected behaviour
     that will be accessed by some or all optimizers during
     fitting. This base class also handles saving and loading of
@@ -40,9 +40,9 @@ class AutoProf_Model(object):
     functionality.
 
     Parameters:
-        name: every AutoProf model should have a unique name [str]
-        filename: name of a file to load AutoProf parameters, window, and name. The model will still need to be told its target, device, and other information [str]
-        model_type: a model type string can determine which kind of AutoProf model is instantiated [str]
+        name: every AutoPhot model should have a unique name [str]
+        filename: name of a file to load AutoPhot parameters, window, and name. The model will still need to be told its target, device, and other information [str]
+        model_type: a model type string can determine which kind of AutoPhot model is instantiated [str]
     """
 
     model_type = "model"
@@ -51,22 +51,22 @@ class AutoProf_Model(object):
 
     def __new__(cls, *args, filename=None, model_type=None, **kwargs):
         if filename is not None:
-            state = AutoProf_Model.load(filename)
-            MODELS = AutoProf_Model.List_Models()
+            state = AutoPhot_Model.load(filename)
+            MODELS = AutoPhot_Model.List_Models()
             for M in MODELS:
                 if M.model_type == state["model_type"]:
-                    return super(AutoProf_Model, cls).__new__(M)
+                    return super(AutoPhot_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(
-                    f"Unknown AutoProf model type: {state['model_type']}"
+                    f"Unknown AutoPhot model type: {state['model_type']}"
                 )
         elif model_type is not None:
-            MODELS = AutoProf_Model.List_Models()  # all_subclasses(AutoProf_Model)
+            MODELS = AutoPhot_Model.List_Models()  # all_subclasses(AutoPhot_Model)
             for M in MODELS:
                 if M.model_type == model_type:
-                    return super(AutoProf_Model, cls).__new__(M)
+                    return super(AutoPhot_Model, cls).__new__(M)
             else:
-                raise ModuleNotFoundError(f"Unknown AutoProf model type: {model_type}")
+                raise ModuleNotFoundError(f"Unknown AutoPhot model type: {model_type}")
 
         return super().__new__(cls)
 
@@ -154,7 +154,7 @@ class AutoProf_Model(object):
         as_representation=False,
         **kwargs,
     ):
-        raise NotImplementedError("please use a subclass of AutoProf_Model")
+        raise NotImplementedError("please use a subclass of AutoPhot_Model")
 
     @property
     def window(self):
@@ -256,7 +256,7 @@ class AutoProf_Model(object):
         }
         return state
 
-    def save(self, filename="AutoProf.yaml"):
+    def save(self, filename="AutoPhot.yaml"):
         if filename.endswith(".yaml"):
             state = self.get_state()
             with open(filename, "w") as f:
@@ -284,7 +284,7 @@ class AutoProf_Model(object):
                 )
 
     @classmethod
-    def load(cls, filename="AutoProf.yaml"):
+    def load(cls, filename="AutoPhot.yaml"):
         if isinstance(filename, dict):
             state = filename
         elif isinstance(filename, io.TextIOBase):

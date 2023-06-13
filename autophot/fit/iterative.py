@@ -25,7 +25,7 @@ class Iter(BaseOptimizer):
     It can be used for complex fits or when the number of models to fit is too large to fit in memory.
 
     Args:
-        model: An `AutoProf_Model` object to perform optimization on.
+        model: An `AutoPhot_Model` object to perform optimization on.
         method: The optimizer class to apply at each iteration step.
         initial_state: Optional initial state for optimization, defaults to None.
         max_iter: Maximum number of iterations, defaults to 100.
@@ -43,7 +43,7 @@ class Iter(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AutoProf_Model",
+        model: "AutoPhot_Model",
         method: "BaseOptimizer" = LM,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
@@ -64,7 +64,7 @@ class Iter(BaseOptimizer):
                 self.model.target[self.model.window].flatten("mask")
             ).item()
 
-    def sub_step(self, model: "AutoProf_Model") -> None:
+    def sub_step(self, model: "AutoPhot_Model") -> None:
         """
         Perform optimization for a single model.
 
@@ -202,7 +202,7 @@ class Iter_LM(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AutoProf_Model",
+        model: "AutoPhot_Model",
         initial_state: Sequence = None,
         chunks: Union[int, tuple] = 50,
         max_iter: int = 100,

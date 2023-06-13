@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-import autoprof as ap
+import autophot as ap
 
 
 def make_basic_sersic(

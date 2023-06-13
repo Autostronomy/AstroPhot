@@ -19,7 +19,7 @@ class MHMCMC(BaseOptimizer):
     scenarios.
 
     Args:
-      model (AutoProf_Model): The model which will be sampled.
+      model (AutoPhot_Model): The model which will be sampled.
       initial_state (Optional[Sequence]): A 1D array with the values for each parameter in the model. Note that these values should be in the form of "as_representation" in the model.
       max_iter (int): The number of sampling steps to perform. Default 1000
       epsilon (float or array): The random step length to take at each iteration. This is the standard deviation for the normal distribution sampling. Default 1e-2
@@ -28,7 +28,7 @@ class MHMCMC(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AutoProf_Model",
+        model: "AutoPhot_Model",
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
         **kwargs,

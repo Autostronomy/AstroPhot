@@ -1,17 +1,17 @@
 from setuptools import setup, find_packages
-import autoprof.__init__ as ap
+import autophot.__init__ as ap
 import os
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name="autoprof",
+    name="autophot",
     version=ap.__version__,    
     description="A fast, flexible, differentiable, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry",
     long_description=read("README.md"),
     long_description_content_type='text/markdown',
-    url="https://github.com/ConnorStoneAstro/AutoProf",
+    url="https://github.com/Autostronomy/AutoPhot",
     author=ap.__author__,
     author_email=ap.__email__,
     license="GPL-3.0 license",
@@ -29,7 +29,7 @@ setup(
                       ],
     entry_points = {
         'console_scripts': [
-            'autoprof = autoprof:run_from_terminal',
+            'autophot = autophot:run_from_terminal',
         ],
     },
     classifiers=[

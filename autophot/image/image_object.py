@@ -23,7 +23,7 @@ class Image(object):
     Parameters:
         data: the matrix of pixel values for the image
         pixelscale: the length of one side of a pixel in arcsec/pixel
-        window: an AutoProf Window object which defines the spatial cooridnates on the sky
+        window: an AutoPhot Window object which defines the spatial cooridnates on the sky
         filename: a filename from which to load the image.
         zeropoint: photometric zero point for converting from pixel flux to magnitude
         note: a note about this image if any
@@ -52,7 +52,7 @@ class Image(object):
         data : numpy.ndarray or None, optional
             The image data. Default is None.
         wcs : astropy.wcs.wcs.WCS or None, optional
-            A WCS object which defines a coordinate system for the image. Note that AutoProf only handles basic WCS conventions. It will use the WCS object to get `wcs.pixel_to_world(-0.5, -0.5)` to determine the position of the origin in world coordinates. It will also extract the `pixel_scale_matrix` to index pixels going forward.
+            A WCS object which defines a coordinate system for the image. Note that AutoPhot only handles basic WCS conventions. It will use the WCS object to get `wcs.pixel_to_world(-0.5, -0.5)` to determine the position of the origin in world coordinates. It will also extract the `pixel_scale_matrix` to index pixels going forward.
         pixelscale : float or None, optional
             The physical scale of the pixels in the image, in units of arcseconds. Default is None.
         window : Window or None, optional

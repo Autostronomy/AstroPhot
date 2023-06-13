@@ -1,5 +1,5 @@
 import unittest
-import autoprof as ap
+import autophot as ap
 import torch
 import numpy as np
 from utils import make_basic_sersic
@@ -10,11 +10,11 @@ from utils import make_basic_sersic
 
 
 class TestModel(unittest.TestCase):
-    def test_AutoProf_Model(self):
+    def test_AutoPhot_Model(self):
 
-        self.assertRaises(AssertionError, ap.models.AutoProf_Model, "my|model")
+        self.assertRaises(AssertionError, ap.models.AutoPhot_Model, "my|model")
 
-        model = ap.models.AutoProf_Model("test model")
+        model = ap.models.AutoPhot_Model("test model")
 
         self.assertIsNone(model.target, "model should not have a target at this point")
 
@@ -32,7 +32,7 @@ class TestModel(unittest.TestCase):
     def test_basic_model_methods(self):
 
         target = make_basic_sersic()
-        model = ap.models.AutoProf_Model(
+        model = ap.models.AutoPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -79,7 +79,7 @@ class TestModel(unittest.TestCase):
         target = make_basic_sersic()
         mask = torch.zeros_like(target.data)
         mask[10,13] = 1
-        model = ap.models.AutoProf_Model(
+        model = ap.models.AutoPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -104,7 +104,7 @@ class TestAllModelBasics(unittest.TestCase):
 
         target = make_basic_sersic()
         for model_type in ap.models.Component_Model.List_Model_Names(useable=True):
-            MODEL = ap.models.AutoProf_Model(
+            MODEL = ap.models.AutoPhot_Model(
                 name="test model",
                 model_type=model_type,
                 target=target,
@@ -121,7 +121,7 @@ class TestAllModelBasics(unittest.TestCase):
 
         target = make_basic_sersic()
         for model_type in ap.models.Component_Model.List_Model_Names(useable=True):
-            MODEL = ap.models.AutoProf_Model(
+            MODEL = ap.models.AutoPhot_Model(
                 name="test model",
                 model_type=model_type,
                 target=target,
@@ -172,7 +172,7 @@ class TestSersic(unittest.TestCase):
     def test_sersic_save_load(self):
 
         target = make_basic_sersic()
-        model = ap.models.AutoProf_Model(
+        model = ap.models.AutoPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -188,10 +188,10 @@ class TestSersic(unittest.TestCase):
 
         model.initialize()
 
-        model.save("test_AutoProf_sersic.yaml")
-        model2 = ap.models.AutoProf_Model(
+        model.save("test_AutoPhot_sersic.yaml")
+        model2 = ap.models.AutoPhot_Model(
             name="load model",
-            filename="test_AutoProf_sersic.yaml",
+            filename="test_AutoPhot_sersic.yaml",
         )
 
         for P in model.parameter_order:
@@ -223,7 +223,7 @@ class TestGroup(unittest.TestCase):
             parameters={"center": {"value": [5, 5], "locked": True}},
         )
 
-        smod = ap.models.AutoProf_Model(
+        smod = ap.models.AutoPhot_Model(
             name="group model",
             model_type="group model",
             model_list=[mod1, mod2],

@@ -54,7 +54,7 @@ class LM(BaseOptimizer):
     h = grad/L). The method implimented is modified from Gavin 2019.
 
     Args:
-        model (AutoProf_Model): object with which to perform optimization
+        model (AutoPhot_Model): object with which to perform optimization
         initial_state (Optional[Sequence]): an initial state for optimization
         epsilon4 (Optional[float]): approximation accuracy requirement, for any rho < epsilon4 the step will be rejected. Default 0.1
         epsilon5 (Optional[float]): numerical stability factor, added to the diagonal of the Hessian. Default 1e-8
@@ -67,7 +67,7 @@ class LM(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AutoProf_Model",
+        model: "AutoPhot_Model",
         initial_state: Sequence = None,
         max_iter: int = 100,
         fit_parameters_identity: Optional[tuple] = None,
@@ -790,7 +790,7 @@ class LM_Constraint:
             device=AP_config.ap_device,
         )
 
-    def jacobian(self, model: "AutoProf_Model"):
+    def jacobian(self, model: "AutoPhot_Model"):
         jac = jacobian(
             lambda P: self.constraint_func(P, *self.constraint_args),
             model.parameters.get_vector(
@@ -803,7 +803,7 @@ class LM_Constraint:
 
         return jac.reshape(-1, np.sum(model.parameters.vector_len()))
 
-    def __call__(self, model: "AutoProf_Model"):
+    def __call__(self, model: "AutoPhot_Model"):
         return self.constraint_func(
             model.parameters.get_vector(
                 as_representation=self.representation_parameters

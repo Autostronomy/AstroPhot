@@ -1,5 +1,5 @@
 import unittest
-import autoprof as ap
+import autophot as ap
 import numpy as np
 import torch
 

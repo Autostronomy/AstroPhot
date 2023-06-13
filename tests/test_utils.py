@@ -6,7 +6,7 @@ from scipy.signal import fftconvolve
 from scipy.special import gamma
 from torch.special import gammaln
 from scipy.interpolate import RectBivariateSpline
-import autoprof as ap
+import autophot as ap
 from utils import make_basic_sersic, make_basic_gaussian
 
 ######################################################################

@@ -1,17 +1,17 @@
-# Contributing to AutoProf
+# Contributing to AutoPhot
 
-Thank you for taking time to help make AutoProf better for everyone! Your contributions are appreciated and once merged with the main branch you will be officially recognized as a contributor to the project!
+Thank you for taking time to help make AutoPhot better for everyone! Your contributions are appreciated and once merged with the main branch you will be officially recognized as a contributor to the project!
 
-In this guide you will get an overview of the contribution workflow from opening an issue, creating a PR, reviewing, and merging the PR. The workflow for contributing to AutoProf is quite standard, nonetheless we include details here for clarity.
+In this guide you will get an overview of the contribution workflow from opening an issue, creating a PR, reviewing, and merging the PR. The workflow for contributing to AutoPhot is quite standard, nonetheless we include details here for clarity.
 
 ## Setup
 
-To begin working on the development of AutoProf, you will need to install the developer version of the code. 
+To begin working on the development of AutoPhot, you will need to install the developer version of the code. 
 Instead of simply using `pip install autoprof` you will instead fork and clone the main branch.
-Follow the instructions [at this link](https://docs.github.com/en/get-started/quickstart/fork-a-repo) to fork AutoProf, once this is done you will have a version of the code that you can modify freely.
+Follow the instructions [at this link](https://docs.github.com/en/get-started/quickstart/fork-a-repo) to fork AutoPhot, once this is done you will have a version of the code that you can modify freely.
 Next clone the forked repo to your machine, if you are unfamiliar with this process, the instructions are also in the fork-a-repo link.
-Once you have cloned to a suitable location, cd into the root folder and run `pip install -e .` this tells pip to install AutoProf in an editable format.
-Any changes you make to the AutoProf code base will be reflected the next time you use `import autoprof as ap` or however you interact with the code.
+Once you have cloned to a suitable location, cd into the root folder and run `pip install -e .` this tells pip to install AutoPhot in an editable format.
+Any changes you make to the AutoPhot code base will be reflected the next time you use `import autoprof as ap` or however you interact with the code.
 
 ## Main Workflow
 

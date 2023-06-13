@@ -8,7 +8,7 @@ from .nuts import *
 
 """
 base: This module defines the base class BaseOptimizer, 
-      which is used as the parent class for all optimization algorithms in AutoProf. 
+      which is used as the parent class for all optimization algorithms in AutoPhot. 
       This module contains helper functions used across multiple optimization algorithms, 
       such as computing gradients and making copies of models.
 

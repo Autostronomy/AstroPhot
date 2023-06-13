@@ -8,7 +8,7 @@ ap_dtype = torch.float64
 ap_device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 logging.basicConfig(
-    filename="AutoProf.log",
+    filename="AutoPhot.log",
     level=logging.INFO,
     format="%(asctime)s:%(levelname)s: %(message)s",
 )
@@ -21,7 +21,7 @@ ap_logger.addHandler(out_handler)
 
 def set_logging_output(stdout=True, filename=None, **kwargs):
     """
-    Change the logging system for AutoProf.
+    Change the logging system for AutoPhot.
     Here you can set whether output prints to screen or to a logging file.
     This function will remove all handlers from the current logger in ap_logger,
     then add new handlers based on the input to the function.

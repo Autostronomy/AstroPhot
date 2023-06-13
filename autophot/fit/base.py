@@ -17,7 +17,7 @@ class BaseOptimizer(object):
     Base optimizer object that other optimizers inherit from. Ensures consistent signature for the classes.
 
     Parameters:
-        model: an AutoProf_Model object that will have it's (unlocked) parameters optimized [AutoProf_Model]
+        model: an AutoPhot_Model object that will have it's (unlocked) parameters optimized [AutoPhot_Model]
         initial_state: optional initialization for the parameters as a 1D tensor [tensor]
         max_iter: maximum allowed number of iterations [int]
         relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]

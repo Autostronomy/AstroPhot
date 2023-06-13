@@ -7,22 +7,22 @@ Basic usage
 
 While the scripting interface is the most versatile, a configuration file interface is included for more striaghtforward workflows. Once a configuration file is created, it can be run simply with::
 
-  ~$ autoprof configfile.py
+  ~$ autophot configfile.py
 
 In this way it can be very easy to pass configuration file between researchers.
 
 Optional flags
 --------------
 
-Here we list the optional flags that can be passed at the command line to alter the runtime behaviour of AutoProf.
+Here we list the optional flags that can be passed at the command line to alter the runtime behaviour of AutoPhot.
 
-Running ``autoprof --help`` will generate the following message::
+Running ``autophot --help`` will generate the following message::
 
-  usage: autoprof [-h] [--config format] [-v] [--log logfile.log] [-q]
+  usage: autophot [-h] [--config format] [-v] [--log logfile.log] [-q]
                 [--dtype datatype] [--device device]
                 [configfile]
 
-  Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/ConnorStoneAstro/AutoProf-2
+  Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/ConnorStoneAstro/AutoPhot-2
 
   positional arguments:
     configfile         the path to the configuration file. Or just 'tutorial' to download tutorials.
@@ -30,15 +30,15 @@ Running ``autoprof --help`` will generate the following message::
   optional arguments:
     -h, --help         show this help message and exit
     --config format    The type of configuration file being being provided. One
-                       of: autoprof, galfit.
-    -v, --version      print the current AutoProf version to screen
-    --log logfile.log  set the log file name for AutoProf. use 'none' to
+                       of: autophot, galfit.
+    -v, --version      print the current AutoPhot version to screen
+    --log logfile.log  set the log file name for AutoPhot. use 'none' to
                        suppress the log file.
     -q                 quiet flag to stop command line output, only print to log
                        file
     --dtype datatype   set the float point precision. Must be one of: float64,
                        float32
-    --device device    set the device for AutoProf to use for computations. Must
+    --device device    set the device for AutoPhot to use for computations. Must
                        be one of: cpu, gpu
 
   Please see the documentation or contact connor stone
