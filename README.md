@@ -6,7 +6,7 @@
 
 
 [![unittests](https://github.com/Autostronomy/AutoPhot/actions/workflows/testing.yaml/badge.svg?branch=main)](https://github.com/Autostronomy/AutoPhot/actions/workflows/testing.yaml)
-[![docs](https://github.com/Autostronomy/AutoPhot/actions/workflows/documentation.yaml/badge.svg?branch=main)](https://connorstoneastro.github.io/AutoPhot/)
+[![docs](https://github.com/Autostronomy/AutoPhot/actions/workflows/documentation.yaml/badge.svg?branch=main)](https://autostronomy.github.io/AutoPhot/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pypi](https://img.shields.io/pypi/v/autophot.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/autophot/)
 [![downloads](https://img.shields.io/pypi/dm/autophot?label=PyPI%20Downloads)](https://libraries.io/pypi/autophot)
@@ -26,12 +26,12 @@ If PyTorch gives you any trouble on your system, just follow the instructions on
 
 Also note that AutoPhot is only available for python3.
 
-See [the documentation](https://connorstoneastro.github.io/AutoPhot/) for more details.
+See [the documentation](https://autostronomy.github.io/AutoPhot/) for more details.
 
 ## Documentation
 
-You can find the documentation at the [GitHub Pages site connected with the AutoPhot project](https://connorstoneastro.github.io/AutoPhot/) which covers many of the main use cases for AutoPhot. It is still in development, but lots of useful information is there. Feel free to contact the author, [Connor Stone](https://connorjstone.com/), for any questions not answered by the documentation or tutorials.
+You can find the documentation at the [GitHub Pages site connected with the AutoPhot project](https://autostronomy.github.io/AutoPhot/) which covers many of the main use cases for AutoPhot. It is still in development, but lots of useful information is there. Feel free to contact the author, [Connor Stone](https://connorjstone.com/), for any questions not answered by the documentation or tutorials.
 
 ## Credit / Citation
 
-If you use AutoPhot in your research, please follow the [citation instructions here](https://connorstoneastro.github.io/AutoPhot/citation.html). A new paper for the updated AutoPhot code is in the works.
+If you use AutoPhot in your research, please follow the [citation instructions here](https://autostronomy.github.io/AutoPhot/citation.html). A new paper for the updated AutoPhot code is in the works.
