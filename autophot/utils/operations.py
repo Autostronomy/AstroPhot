@@ -139,7 +139,12 @@ def selective_integrate(
             dtype=data.dtype,
         )
         if _depth == 1:
-            curvature = torch.abs(fft_convolve_torch(data, curvature_kernel))
+            curvature = torch.abs(torch.nn.functional.conv2d(
+                data.view(1, 1, *data.shape),
+                curvature_kernel.view(1, 1, *curvature_kernel.shape),
+                padding="same",
+            )).squeeze()
+            #curvature = torch.abs(fft_convolve_torch(data, curvature_kernel))
             curvature[:, 0] = 0
             curvature[:, -1] = 0
             curvature[0, :] = 0

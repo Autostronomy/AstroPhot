@@ -287,6 +287,8 @@ class Image(object):
         return self.header.get_coordinate_meshgrid()
     def get_coordinate_corner_meshgrid(self):
         return self.header.get_coordinate_corner_meshgrid()
+    def get_coordinate_simps_meshgrid(self):
+        return self.header.get_coordinate_simps_meshgrid()
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If

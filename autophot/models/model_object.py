@@ -67,7 +67,7 @@ class Component_Model(AutoPhot_Model):
     # Technique for PSF convolution
     psf_convolve_mode = "fft" # fft, direct
     # method for initial sampling of grid before subpixel integration
-    sampling_mode = "midpoint" # midpoint, trapezoid, simpson 
+    sampling_mode = "simpson" # midpoint, trapezoid, simpson 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
 
@@ -217,6 +217,40 @@ class Component_Model(AutoPhot_Model):
             X, Y = Coords - parameters["center"].value[...,None, None]
         return torch.zeros_like(X)  # do nothing in base model
 
+    def _sample_init(self, image, parameters):
+
+        if self.sampling_mode == "midpoint":
+            result = self.evaluate_model(
+                image=image, parameters=parameters
+            )
+        elif self.sampling_mode == "trapezoid":
+            Coords = image.get_coordinate_corner_meshgrid()
+            X, Y = Coords - parameters["center"].value[...,None,None]
+            dens = self.evaluate_model(
+                X = X, Y = Y,
+                image=image, parameters=parameters
+            )
+            kernel = torch.ones(1,1,2,2, dtype = AP_config.ap_dtype, device = AP_config.ap_device)/4.
+            result = torch.nn.functional.conv2d(dens.view(1,1,*dens.shape), kernel, padding="valid")
+        elif self.sampling_mode == "simpson":
+            Coords = image.get_coordinate_simps_meshgrid()
+            X, Y = Coords - parameters["center"].value[...,None,None]
+            dens = self.evaluate_model(
+                X = X, Y = Y,
+                image=image, parameters=parameters
+            )
+            kernel = torch.ones(1,1,3,3, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            kernel[0,0,1,1] = 16.
+            kernel[0,0,1,0] = 4.
+            kernel[0,0,0,1] = 4.
+            kernel[0,0,1,2] = 4.
+            kernel[0,0,2,1] = 4.
+            kernel = kernel / 36.
+            result = torch.nn.functional.conv2d(dens.view(1,1,*dens.shape), kernel, stride = 2, padding="valid")
+        else:
+            raise ValueError(f"unrecognized sampling_mode: {self.sampling_mode}")
+        return result.squeeze()
+        
     def sample(
         self,
         image: Optional["Image"] = None,
@@ -280,7 +314,7 @@ class Component_Model(AutoPhot_Model):
             center_shift = pixel_center - torch.round(pixel_center)
             working_image.header.pixel_shift_origin(center_shift)
             # Evaluate the model at the current resolution
-            working_image.data += self.evaluate_model(
+            working_image.data += self._sample_init(
                 image=working_image, parameters=parameters
             )
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
@@ -348,7 +382,7 @@ class Component_Model(AutoPhot_Model):
                 pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
-            working_image.data += self.evaluate_model(
+            working_image.data += self._sample_init(
                 image=working_image, parameters=parameters
             )
             # Super-resolve and integrate where needed
