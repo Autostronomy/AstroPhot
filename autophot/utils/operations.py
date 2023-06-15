@@ -90,7 +90,7 @@ def displacement_grid(Nx, Ny, pixelscale=None, dtype=torch.float64, device="cpu"
     return (pixelscale @ torch.stack((PX, PY)).view(2,-1)).reshape((2, *PX.shape))
 
 
-@lru_cache
+@lru_cache(maxsize=32)
 def quad_table(n, p, dtype, device):
     """
     from: https://pomax.github.io/bezierinfo/legendre-gauss.html

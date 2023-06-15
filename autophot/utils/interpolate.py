@@ -348,7 +348,7 @@ def interp2d(
 
     return result.view(*start_shape)
 
-@lru_cache
+@lru_cache(maxsize=32)
 def curvature_kernel(dtype, device):
     kernel = torch.tensor(
         [[0., 1.0, 0.], [1.0, -4, 1.0], [0.0, 1.0, 0.0]], #[[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
@@ -357,7 +357,7 @@ def curvature_kernel(dtype, device):
     ) / 8
     return kernel
     
-@lru_cache
+@lru_cache(maxsize=32)
 def simpsons_kernel(dtype, device):
     kernel = torch.ones(1,1,3,3, dtype = dtype, device = device)
     kernel[0,0,1,1] = 16.
