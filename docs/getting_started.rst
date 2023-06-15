@@ -6,7 +6,9 @@ Getting Started
 Basic AutoPhot code philosophy
 ------------------------------
 
-in development.
+AutoPhot is a modular and object oriented astronomical image modelling package. Modularity means that it is relatively simple to change or replace one aspect of the code without breaking everything else. A modular framework makes the code extensible to a wide range of photometry applications, though it comes with a small performance penalty (which is made up for by the powerful pytorch backend). As an object oriented package that means the code can be interfaced more intuitively. For example if you have two image objects `image1` and `image2` it is possible to combine them with a plus sign: `image3 = image1 + image2` and the behaviour should be as expected. Most interfaces to AutoPhot functionality have relatively intuitive names and try to behave the way you would expect. This makes the experience more user friendly hopefully meaning that you can quickly take advantage of the powerful features avaialable.
+
+One of the core components of AutoPhot is the model objects, these are organized in a class hierarchy with several layers of inheritance. While this is not considered best programming practice for many situations, in AutoPhot it is very intentional and we think helpful to users. With this hierarchy it is very easy to customize a model to suit your needs without needing to rewrite a great deal of code. Simply access the point in the hierarcy which most closely matches your desired result and make minor modifications. In the tutorials you can see how detailed models can be implemented with only a few lines of code even though the user has complete freedom to change any aspect of the model.
 
 Using the Tutorials
 -------------------
