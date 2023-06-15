@@ -95,8 +95,9 @@ class Image_Header(object):
             ))
             shape = torch.linalg.solve(self.pixelscale / self.pixel_length, end)
             if wcs is not None:
+                wcs_origin = wcs.pixel_to_world(-0.5, -0.5)
                 origin = torch.as_tensor(
-                    wcs.pixel_to_world(-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                   [wcs_origin.ra.arcsec, wcs_origin.dec.arcsec] , dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
             elif origin is None and center is None:
                 origin = torch.zeros(

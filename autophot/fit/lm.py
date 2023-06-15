@@ -388,8 +388,14 @@ class LM(BaseOptimizer):
                     if np.all(
                         np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
                         < self.relative_tolerance
-                    ):
+                    ) and L[-1] < 0.1:
                         self.message = self.message + "success"
+                        break
+                    if np.all(
+                        np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
+                        < self.relative_tolerance
+                    ) and L[-1] >= 0.1:
+                        self.message = self.message + "fail by immobility, possible bad area of parameter space."
                         break
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
@@ -496,20 +502,20 @@ class LM(BaseOptimizer):
             (
                 self.hess
                 + 1e-3
-                * self.L
+                * self.L**2
                 * torch.eye(
                     len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
             )
             * (
                 1
-                + self.L
+                + self.L**2
                 * torch.eye(
                     len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
             )
             ** 2
-            / (1 + self.L),
+            / (1 + self.L**2),
             self.grad,
         )
         return h

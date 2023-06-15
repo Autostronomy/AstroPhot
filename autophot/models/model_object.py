@@ -401,9 +401,6 @@ class Component_Model(AutoPhot_Model):
             working_image = working_image.reduce(self.psf.psf_upscale).crop(
                 self.psf.psf_border_int
             )
-            if self.mask is not None:
-                working_image.data = working_image.data * torch.logical_not(self.mask)
-            image += working_image
 
         else:
             
@@ -417,12 +414,13 @@ class Component_Model(AutoPhot_Model):
             )
             # Super-resolve and integrate where needed
             deep = self._sample_integrate(deep, reference, working_image, parameters)
-            
             # Add the sampled/integrated pixels to the requested image
-            if self.mask is not None:
-                deep = deep * torch.logical_not(self.mask)
+            working_image.data += deep
+            
+        if self.mask is not None:
+            working_image.data = working_image.data * torch.logical_not(self.mask)
                 
-            image.data += deep
+        image += working_image
 
         return image
 
