@@ -38,8 +38,8 @@ class SuperEllipse_Galaxy(Galaxy_Model):
     @default_internal
     def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.pow(
-            torch.pow(torch.abs(X) + 1e-8, parameters["C0"].value + 2.0)
-            + torch.pow(torch.abs(Y) + 1e-8, parameters["C0"].value + 2.0),
+            torch.pow(torch.abs(X), parameters["C0"].value + 2.0)
+            + torch.pow(torch.abs(Y), parameters["C0"].value + 2.0),
             1.0 / (parameters["C0"].value + 2.0),
         )  # epsilon added for numerical stability of gradient
 
@@ -75,7 +75,7 @@ class SuperEllipse_Warp(Warp_Galaxy):
     @default_internal
     def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.pow(
-            torch.pow(torch.abs(X) + 1e-8, parameters["C0"].value + 2.0)
-            + torch.pow(torch.abs(Y) + 1e-8, parameters["C0"].value + 2.0),
+            torch.pow(torch.abs(X), parameters["C0"].value + 2.0)
+            + torch.pow(torch.abs(Y), parameters["C0"].value + 2.0),
             1.0 / (parameters["C0"].value + 2.0),
         )  # epsilon added for numerical stability of gradient

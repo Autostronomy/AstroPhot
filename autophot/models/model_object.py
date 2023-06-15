@@ -38,12 +38,10 @@ class Component_Model(AutoPhot_Model):
       parameter_specs (dict): Specifications for the model parameters.
       _parameter_order (tuple): Fixed order of parameters.
       psf_mode (str): Technique and scope for PSF convolution.
-      psf_window_size (int): Size in pixels of the PSF convolution box.
-      integrate_mode (str): Integration scope for the model.
-      integrate_window_size (int): Size of the window in which to perform integration.
-      integrate_factor (int): Factor by which to upscale each dimension when integrating.
-      integrate_recursion_factor (int): Relative size of windows between recursion levels.
-      integrate_recursion_depth (int): Number of recursion cycles to apply when integrating.
+      sampling_mode (str): Method for initial sampling of model. Can be one of midpoint, trapezoid, simpson. Default: midpoint
+      sampling_tolerance (float): accuracy to which each pixel should be evaluated. Default: 1e-2
+      integrate_mode (str): Integration scope for the model. One of none, threshold, full where threshold will select which pixels to integrate while full (in development) will integrate all pixels. Default: threshold
+      softening (float): Softening length used for numerical stability and integration stability to avoid discontinuities (near R=0). Effectively has units of arcsec. Default: 1e-5
       jacobian_chunksize (int): Maximum size of parameter list before jacobian will be broken into smaller chunks.
       special_kwargs (list): Parameters which are treated specially by the model object and should not be updated directly.
       useable (bool): Indicates if the model is useable.
@@ -76,22 +74,22 @@ class Component_Model(AutoPhot_Model):
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
 
-    # Number of recursion cycles to apply when integrating
-    max_quad_level = 50
-
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
 
+    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-5
+    
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
         "psf_mode",
         "psf_convolve_mode",
+        "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
-        "max_quad_level",
         "jacobian_chunksize",
+        "softening",
     ]
     useable = False
 

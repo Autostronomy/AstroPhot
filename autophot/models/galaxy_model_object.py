@@ -114,8 +114,8 @@ class Galaxy_Model(Component_Model):
     @default_internal
     def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.sqrt(
-            (torch.abs(X) + 1e-8) ** 2 + (torch.abs(Y) + 1e-8) ** 2
-        )  # epsilon added for numerical stability of gradient
+            (torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2
+        )
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):

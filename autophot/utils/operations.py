@@ -126,29 +126,7 @@ def single_quad_integrate(X, Y, image_header, eval_brightness, eval_parameters, 
     res = (res*weight).sum(axis=-1)
     
     return res, ref
-    
-def quad_integrate(X, Y, value, compare, image_header, eval_brightness, eval_parameters, dtype, device, tolerance = 1e-2, quad_level = 3, max_level = 50):
-    if quad_level > max_level:
-        return
-
-    # TODO: subdivide the region instead of only going to higher order quad. use only odd quadrature divisions so there is always a 0,0 point to compare with.
-    # Compute pixel level error under assumption that value is sufficiently more accurate than compare.
-    error = torch.abs((value - compare)/value)
-    select = error > tolerance
-    
-    if not torch.any(select):
-        return
-    
-    # Evaluate the quadrature integration of each pixel
-    res, ref = single_quad_integrate(X[select], Y[select], image_header, eval_brightness, eval_parameters, dtype, device, quad_level = quad_level)
-
-    # Recursively apply gaussian quadrature
-    quad_integrate(X[select], Y[select], res, value[select], image_header, eval_brightness, eval_parameters, dtype, device, quad_level = quad_level + int(quad_level//2))
-
-    # Update the values in the image
-    value[select] = res
-
-    
+        
 def grid_integrate(X, Y, value, compare, image_header, eval_brightness, eval_parameters, dtype, device, tolerance = 1e-2, quad_level = 3, gridding = 5, grid_level = 0, max_level = 2, reference = None):
     if grid_level >= max_level:
         return value
