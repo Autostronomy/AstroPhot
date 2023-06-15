@@ -163,11 +163,15 @@ class Image_Header(object):
 
         """
         if internal_transpose:
-            return (self.pixelscale @ (pixel_coordinate)).T + self.pixel_origin
-        return (self.pixelscale @ (pixel_coordinate)) + self.pixel_origin
+            return (self.pixelscale @ pixel_coordinate).T + self.pixel_origin
+        return (self.pixelscale @ pixel_coordinate) + self.pixel_origin
 
-    def world_to_pixel(self, world_coordinate):
-        return torch.linalg.solve(self.pixelscale, world_coordinate - self.pixel_origin)
+    def world_to_pixel(self, world_coordinate, unsqueeze_origin = False):
+        if unsqueeze_origin:
+            O = self.pixel_origin.unsqueeze(-1)
+        else:
+            O = self.pixel_origin
+        return torch.linalg.solve(self.pixelscale, world_coordinate - O)
 
     def pixel_to_world_delta(self, pixel_delta):
         """Take in a coordinate on the regular cartesian pixel grid, where

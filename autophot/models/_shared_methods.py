@@ -289,7 +289,7 @@ def exponential_iradial_model(self, i, R, image=None, parameters=None):
 @default_internal
 def sersic_radial_model(self, R, image=None, parameters=None):
     return sersic_torch(
-        R,
+        R + self.softening,
         parameters["n"].value,
         parameters["Re"].value,
         (10 ** parameters["Ie"].value) * image.pixel_area,

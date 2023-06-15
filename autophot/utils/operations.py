@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Callable, Optional
 
 import torch
@@ -5,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.convolution import convolve, convolve_fft
 from scipy.fft import next_fast_len
-
+from scipy.special import roots_legendre
 
 def fft_convolve_torch(img, psf, psf_fft=False, img_prepadded=False):
     # Ensure everything is tensor
@@ -89,105 +90,90 @@ def displacement_grid(Nx, Ny, pixelscale=None, dtype=torch.float64, device="cpu"
     return (pixelscale @ torch.stack((PX, PY)).view(2,-1)).reshape((2, *PX.shape))
 
 
-def selective_integrate(
-    X: torch.Tensor,
-    Y: torch.Tensor,
-    data: torch.Tensor,
-    image_header: "Image_Header",
-    eval_brightness: Callable,
-    eval_parameters: "Parameter_Group",
-    max_depth: int = 3,
-    _depth: int = 1,
-    _reference_brightness: Optional[float] = None,
-    integrate_threshold: float = 1e-2,
-):
-    """Sample the model at higher resolution than the input image.
-
-    This function selectively refines the integration of an input
-    image based on the local curvature of the image data.  It
-    recursively evaluates the model at higher resolutions in areas
-    where the curvature exceeds the specified threshold.  With
-    each level of recursion, the function refines the affected
-    areas using a 3x3 grid for super-resolution.
-
-    Args:
-      X (torch.tensor): A tensor representing the X coordinates of the input image.
-      Y (torch.tensor): A tensor representing the Y coordinates of the input image.
-      data (torch.tensor): A tensor containing the input image data.
-      image_header (Image_Header): An instance of the Image_Header class containing the image's header information.
-      eval_brightness (Callable): Function which evaluates the brightness at a given coordinate.
-      _depth (int, optional): The current recursion depth. Default is 1.
-      max_depth (int, optional): The maximum recursion depth allowed. Default is 3.
-      _reference_brightness (float or None, optional): The reference brightness value used to normalize the curvature
-                                                       values. If None, the maximum value of the input data divided by
-                                                       10 will be used. Default is None.
-
-    Returns:
-        None. The function updates the input data tensor in-place with the selectively integrated values.
-
+@lru_cache
+def quad_table(n, p, dtype, device):
     """
-    # check recursion depth, exit if too deep
-    if _depth > max_depth:
+    from: https://pomax.github.io/bezierinfo/legendre-gauss.html
+    """
+    abscissa, weights = roots_legendre(n)
+
+    w = torch.tensor(weights, dtype = dtype, device = device)
+    a = torch.tensor(abscissa, dtype = dtype, device = device)
+    X, Y = torch.meshgrid(a, a, indexing = "xy")
+
+    W = torch.outer(w,w) / 4.
+
+    X, Y = p @ (torch.stack((X, Y)).view(2,-1) / 2.)
+    
+    return X, Y, W.reshape(-1) 
+
+def single_quad_integrate(X, Y, image_header, eval_brightness, eval_parameters, dtype, device, quad_level = 3):
+    
+    # collect gaussian quadrature weights
+    abscissaX, abscissaY, weight = quad_table(quad_level, image_header.pixelscale, dtype, device)
+    
+    # Specify coordinates at which to evaluate function
+    Xs = torch.repeat_interleave(X[...,None], quad_level**2, -1) + abscissaX
+    Ys = torch.repeat_interleave(Y[...,None], quad_level**2, -1) + abscissaY
+
+    # Evaluate the model at the quadrature points
+    res = eval_brightness(
+        X=Xs, Y=Ys, image=image_header, parameters=eval_parameters,
+    )
+
+    ref = res.mean(axis = -1)
+    # Apply the weights and reduce to original pixel space
+    res = (res*weight).sum(axis=-1)
+    
+    return res, ref
+    
+def quad_integrate(X, Y, value, compare, image_header, eval_brightness, eval_parameters, dtype, device, tolerance = 1e-2, quad_level = 3, max_level = 50):
+    if quad_level > max_level:
         return
 
-    with torch.no_grad():
-        if _reference_brightness is None:
-            _reference_brightness = torch.max(data) / 10
-        curvature_kernel = torch.tensor(
-            [[0, 1.0, 0], [1.0, -4, 1.0], [0, 1.0, 0]],
-            device=data.device,
-            dtype=data.dtype,
-        )
-        if _depth == 1:
-            curvature = torch.abs(torch.nn.functional.conv2d(
-                data.view(1, 1, *data.shape),
-                curvature_kernel.view(1, 1, *curvature_kernel.shape),
-                padding="same",
-            )).squeeze()
-            #curvature = torch.abs(fft_convolve_torch(data, curvature_kernel))
-            curvature[:, 0] = 0
-            curvature[:, -1] = 0
-            curvature[0, :] = 0
-            curvature[-1, :] = 0
-            curvature /= _reference_brightness
-            select = curvature > integrate_threshold
-        else:
-            curvature = (
-                torch.sum(data * curvature_kernel, axis=(1, 2)) / _reference_brightness
-            )
-            select = curvature > integrate_threshold
-            select = select.view(-1, 1, 1).repeat(1, 3, 3)
+    # TODO: subdivide the region instead of only going to higher order quad. use only odd quadrature divisions so there is always a 0,0 point to compare with.
+    # Compute pixel level error under assumption that value is sufficiently more accurate than compare.
+    error = torch.abs((value - compare)/value)
+    select = error > tolerance
+    
+    if not torch.any(select):
+        return
+    
+    # Evaluate the quadrature integration of each pixel
+    res, ref = single_quad_integrate(X[select], Y[select], image_header, eval_brightness, eval_parameters, dtype, device, quad_level = quad_level)
 
-        # compute the subpixel coordinate shifts for even integration within a pixel
-        shiftsx, shiftsy = displacement_grid(
-            3,
-            3,
-            pixelscale=image_header.pixelscale,
-            device=data.device,
-            dtype=data.dtype,
-        )
+    # Recursively apply gaussian quadrature
+    quad_integrate(X[select], Y[select], res, value[select], image_header, eval_brightness, eval_parameters, dtype, device, quad_level = quad_level + int(quad_level//2))
 
-    # Reshape coordinates to add two dimensions with the super-resolved coordiantes
-    Xs = X[select].view(-1, 1, 1).repeat(1, 3, 3) + shiftsx
-    Ys = Y[select].view(-1, 1, 1).repeat(1, 3, 3) + shiftsy
-    # evaluate the model on the new smaller coordinate grid in each pixel
-    res = eval_brightness(
-        image=image_header.super_resolve(3), parameters=eval_parameters, X=Xs, Y=Ys
-    )
+    # Update the values in the image
+    value[select] = res
 
-    # Apply recursion to integrate any further pixels as needed
-    selective_integrate(
-        X=Xs,
-        Y=Ys,
-        data=res,
-        image_header=image_header.super_resolve(3),
-        eval_brightness=eval_brightness,
-        eval_parameters=eval_parameters,
-        _depth=_depth + 1,
-        max_depth=max_depth,
-        _reference_brightness=_reference_brightness,
-        integrate_threshold=integrate_threshold,
-    )
+    
+def grid_integrate(X, Y, value, compare, image_header, eval_brightness, eval_parameters, dtype, device, tolerance = 1e-2, quad_level = 3, gridding = 5, grid_level = 0, max_level = 2, reference = None):
+    if grid_level >= max_level:
+        return value
 
-    # Update the pixels with the new integrated values
-    data[select] = res.sum(axis=(1, 2))
+    # Evaluate gaussian quadrature on the specified pixels
+    res, ref = single_quad_integrate(X, Y, image_header, eval_brightness, eval_parameters, dtype, device, quad_level = quad_level)
+
+    # Determine which pixels are now converged to sufficient degree
+    error = torch.abs((res - ref))
+    select = error > (tolerance*reference)
+
+    # Update converged pixels with new value
+    value[torch.logical_not(select)] = res[torch.logical_not(select)]
+
+    # Set up sub-gridding to super resolve problem pixels
+    stepx, stepy = displacement_grid(gridding,gridding,image_header.pixelscale, dtype, device)
+    # Write out the coordinates for the super resolved pixels
+    Xs = torch.repeat_interleave(X[select][...,None], gridding**2, -1) + stepx.reshape(-1)
+    Ys = torch.repeat_interleave(Y[select][...,None], gridding**2, -1) + stepy.reshape(-1)
+    # Copy the current pixel values into new shape with super resolved pixels
+    deep_res = torch.repeat_interleave(res[select][...,None], gridding**2, -1)
+
+    # Recursively evaluate the pixels at the higher gridding
+    deep_res = grid_integrate(Xs, Ys, deep_res/gridding**2, None, image_header.super_resolve(gridding), eval_brightness, eval_parameters, dtype, device, tolerance, quad_level + 1, gridding, grid_level + 1, max_level, reference = reference*gridding**2)
+
+    # Update the pixels that have been sub-integrated
+    value[select] = deep_res.sum(axis=(-1,))
+    return value
