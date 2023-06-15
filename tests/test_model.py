@@ -52,7 +52,7 @@ class TestModel(unittest.TestCase):
 
     def test_model_sampling_modes(self):
 
-        target = make_basic_sersic()
+        target = make_basic_sersic(100,100)
         model = ap.models.AutoPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
