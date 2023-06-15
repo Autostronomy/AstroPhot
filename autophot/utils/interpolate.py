@@ -1,8 +1,11 @@
+from functools import lru_cache
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from astropy.convolution import convolve, convolve_fft
 from torch.nn.functional import conv2d
+
 from .operations import fft_convolve_torch
 
 
@@ -295,3 +298,72 @@ def interp1d_torch(x_in, y_in, x_out):
     indices = torch.searchsorted(x_in[:-1], x_out) - 1
     weights = (y_in[1:] - y_in[:-1]) / (x_in[1:] - x_in[:-1])
     return y_in[indices] + weights[indices] * (x_out - x_in[indices])
+
+def interp2d(
+    im: torch.Tensor,
+    x: torch.Tensor,
+    y: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Interpolates a 2D image at specified coordinates.
+    Similar to `torch.nn.functional.grid_sample` with `align_corners=False`.
+
+    Args:
+        im (Tensor): A 2D tensor representing the image.
+        x (Tensor): A tensor of x coordinates (in pixel space) at which to interpolate.
+        y (Tensor): A tensor of y coordinates (in pixel space) at which to interpolate.
+    
+    Returns:
+        Tensor: Tensor with the same shape as `x` and `y` containing the interpolated values.
+    """
+
+    # Convert coordinates to pixel indices
+    h, w = im.shape
+
+    # reshape for indexing purposes
+    start_shape = x.shape
+    x = x.view(-1)
+    y = y.view(-1)
+    
+    x0 = x.floor().long()
+    y0 = y.floor().long()
+    x1 = x0 + 1
+    y1 = y0 + 1
+    x0 = x0.clamp(0, w - 2)
+    x1 = x1.clamp(1, w - 1)
+    y0 = y0.clamp(0, h - 2)
+    y1 = y1.clamp(1, h - 1)
+    
+    fa = im[y0, x0]
+    fb = im[y1, x0]
+    fc = im[y0, x1]
+    fd = im[y1, x1]
+    
+    wa = (x1 - x) * (y1 - y)
+    wb = (x1 - x) * (y - y0)
+    wc = (x - x0) * (y1 - y)
+    wd = (x - x0) * (y - y0)
+
+    result = fa * wa + fb * wb + fc * wc + fd * wd
+
+    return result.view(*start_shape)
+
+@lru_cache(maxsize=32)
+def curvature_kernel(dtype, device):
+    kernel = torch.tensor(
+        [[0., 1.0, 0.], [1.0, -4, 1.0], [0.0, 1.0, 0.0]], #[[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
+        device=device,
+        dtype=dtype,
+    ) / 8
+    return kernel
+    
+@lru_cache(maxsize=32)
+def simpsons_kernel(dtype, device):
+    kernel = torch.ones(1,1,3,3, dtype = dtype, device = device)
+    kernel[0,0,1,1] = 16.
+    kernel[0,0,1,0] = 4.
+    kernel[0,0,0,1] = 4.
+    kernel[0,0,1,2] = 4.
+    kernel[0,0,2,1] = 4.
+    kernel = kernel / 36.
+    return kernel

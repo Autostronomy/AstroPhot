@@ -358,5 +358,4 @@ class AutoPhot_Model(object):
                 parameters_identity=parameters_identity,
             )
             parameters = self.parameters
-
         return self.sample(image=image, window=window, parameters=parameters, **kwargs)

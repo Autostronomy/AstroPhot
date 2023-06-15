@@ -50,6 +50,40 @@ class TestModel(unittest.TestCase):
         self.assertTrue(torch.all(rep == model.parameters.transform(nat, to_representation = True)), "transform should map between parameter natural and representation")
         self.assertTrue(torch.all(nat == model.parameters.transform(rep, to_representation = False)), "transform should map between parameter representation and natural")
 
+    def test_model_sampling_modes(self):
+
+        target = make_basic_sersic(100,100)
+        model = ap.models.AutoPhot_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+        res = model()
+        model.sampling_mode = "trapezoid"
+        res = model()
+        model.sampling_mode = "simpson"
+        res = model()
+        model.integrate_mode = "none"
+        res = model()
+        model.integrate_mode = "should raise"
+        self.assertRaises(ValueError, model)
+
+        # test PSF modes
+        target.psf = np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]])
+        model.integrate_mode = "none"
+        model.psf_mode = "direct"
+        res = model()
+        model.psf_mode = "fft"
+        res = model()
+
     def test_model_creation(self):
         np.random.seed(12345)
         shape = (10, 15)

@@ -3,7 +3,7 @@ import torch
 from .star_model_object import Star_Model
 from ..image import Model_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.interpolate import _shift_Lanczos_kernel_torch
+from ..utils.interpolate import interp2d
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -12,18 +12,24 @@ __all__ = ["PSF_Star"]
 
 class PSF_Star(Star_Model):
     """Star model which uses an image of the PSF as it's representation
-    for stars. Using Lanczos interpolation it will shift the PSF
+    for stars. Using bilinear interpolation it will shift the PSF
     within a pixel to accurately represent the center location of a
     point source. There is no funcitonal form for this object type as
     any image can be supplied. Note that as an argument to the model
     at construction one can provide "psf" as an AutoPhot Model_Image
-    object. If the supplied image is at a higher resolution than the
-    target image then the PSF will be upsampled at the time of
-    sampling after the shift has been performed. In this way it is
-    possible to get a more accurate representation of the PSF.
+    object. Since only bilinear interpolation is performed, it is
+    recommended to provide the PSF at a higher resolution than the
+    image if it is near the nyquist sampling limit. Bilinear
+    interpolation is very fast and accurate for smooth models, so this
+    way it is possible to do the expensive interpolation before
+    optimization and save time. Note that if you do this you must
+    provide the PSF as a Model_Image object with the correct PSF
+    (essentially just divide the PSF by the upsampling factor you
+    used).
 
     Parameters:
         flux: the total flux of the star model, represented as the log of the total flux.
+
     """
 
     model_type = f"psf {Star_Model.model_type}"
@@ -32,9 +38,6 @@ class PSF_Star(Star_Model):
     }
     _parameter_order = Star_Model._parameter_order + ("flux",)
     useable = True
-
-    lanczos_kernel_size = 5
-    clip_lanczos_kernel = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,6 +49,7 @@ class PSF_Star(Star_Model):
                 data=torch.clone(self.psf.data),
                 pixelscale=self.psf.pixelscale,
             )
+        self.psf_model.header.shift_origin(self.psf_model.origin - self.psf_model.center)
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -68,32 +72,25 @@ class PSF_Star(Star_Model):
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        new_origin = parameters["center"].value - self.psf_model.window.end / 2
-        pixel_origin = image.pixel_to_world(torch.round(image.world_to_pixel(new_origin)))
-        pixel_shift = (
-            image.world_to_pixel(new_origin) - image.world_to_pixel(pixel_origin)
-        )
-        LL = _shift_Lanczos_kernel_torch(
-            -pixel_shift[0],
-            -pixel_shift[1],
-            3,
-            AP_config.ap_dtype,
-            AP_config.ap_device,
-        )
-        psf = Model_Image(
-            data=torch.nn.functional.conv2d(
-                (
-                    torch.clone(self.psf_model.data)
-                    * ((10 ** parameters["flux"].value) * image.pixel_area)
-                ).view(1, 1, *self.psf_model.data.shape),
-                LL.view(1, 1, *LL.shape),
-                padding="same",
-            )[0][0],
-            origin=new_origin,
-            pixelscale=self.psf_model.pixelscale,
+        if X is None:
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[...,None, None]
+
+        # Convert coordinates into pixel locations in the psf image
+        pX, pY = self.psf_model.world_to_pixel(torch.stack((X, Y)).view(2,-1), unsqueeze_origin = True)
+        pX = pX.reshape(X.shape)
+        pY = pY.reshape(Y.shape)
+
+        # Select only the pixels where the PSF image is defined
+        select = torch.logical_and(
+            torch.logical_and(pX > -0.5, pX < self.psf_model.data.shape[1]),
+            torch.logical_and(pY > -0.5, pY < self.psf_model.data.shape[0]),
         )
 
-        # fixme pick nearest neighbor for each X, Y? interpolate?
-        img = image.blank_copy()
-        img += psf
-        return img.data
+        # Zero everywhere outside the psf
+        result = torch.zeros_like(X)
+
+        # Use bilinear interpolation of the PSF at the requested coordinates
+        result[select] = interp2d(self.psf_model.data, pX[select], pY[select])
+
+        return result * ((10**parameters["flux"].value) * image.pixel_area)

@@ -113,8 +113,8 @@ class Image(object):
     def pixel_to_world(self, pixel_coordinate, internal_transpose = False):
         return self.header.pixel_to_world(pixel_coordinate, internal_transpose = internal_transpose)
 
-    def world_to_pixel(self, world_coordinate):
-        return self.header.world_to_pixel(world_coordinate)
+    def world_to_pixel(self, world_coordinate, unsqueeze_origin = False):
+        return self.header.world_to_pixel(world_coordinate, unsqueeze_origin)
     
     def pixel_to_world_delta(self, pixel_coordinate):
         return self.header.pixel_to_world_delta(pixel_coordinate)
@@ -287,6 +287,8 @@ class Image(object):
         return self.header.get_coordinate_meshgrid()
     def get_coordinate_corner_meshgrid(self):
         return self.header.get_coordinate_corner_meshgrid()
+    def get_coordinate_simps_meshgrid(self):
+        return self.header.get_coordinate_simps_meshgrid()
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
