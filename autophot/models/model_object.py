@@ -124,16 +124,22 @@ class Component_Model(AutoPhot_Model):
         for P in self.parameters:
             assert P.name[-1] != "*", "parameter names cannot have '*' at the end, this is reserved for auxiliary models"
 
-    def set_aux_psf(self, aux_psf, reference_parameter = None):
-        self.psf = aux_psf
-        
-        for P in aux_psf.parameters.iter_all():
-            self.parameters.add_parameter(P)
+    def set_aux_psf(self, aux_psf, add_parameters = True):
+        """Set the PSF for this model as an auxiliary psf model. This psf
+        model will be resampled as part of the model sampling step to
+        track changes made during fitting.
 
-            if reference_parameter is not None:
-                groups = self.parameters.get_name(reference_parameter).groups
-                for group in groups:
-                    group.add_parameter(P)
+        Args:
+          aux_psf: The auxiliary psf model
+          add_parameters: if true, the parameters of the auxiliary psf model will become model parameters for this model as well. 
+
+        """
+        
+        self.psf = aux_psf
+
+        if add_parameters:
+            for P in aux_psf.parameters.iter_all():
+                self.parameters.add_parameter(P)
                             
     @property
     def psf(self):
