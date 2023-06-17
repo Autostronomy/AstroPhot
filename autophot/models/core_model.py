@@ -79,26 +79,22 @@ class AutoPhot_Model(object):
         self.constraints = kwargs.get("constraints", None)
         self.equality_constraints = []
         self.parameters = Parameter_Group(self.name)
-        self.requires_grad = kwargs.get("requires_grad", False)
         self.target = target
         self.window = window
         self._locked = locked
         self.mask = kwargs.get("mask", None)
-
-    def add_equality_constraint(self, model, parameter):
+        
+    def add_equality_constraint(self, model, parameter, catch_key_error = False):
         if isinstance(parameter, (tuple, list)):
             for P in parameter:
                 self.add_equality_constraint(model, P)
             return
         del_param = self.parameters.get_name(parameter)
-        use_param = model.parameters.get_name(parameter)
         old_groups = del_param.groups
+        use_param = model.parameters.get_name(parameter)
         for group in old_groups:
             group.pop_id(del_param.identity)
             group.add_parameter(use_param)
-
-        self.equality_constraints.append(parameter)
-        model.equality_constraints.append(parameter)
 
     @torch.no_grad()
     @ignore_numpy_warnings

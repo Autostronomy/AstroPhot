@@ -8,6 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 
 from .core_model import AutoPhot_Model
+from .psf_aux_model import PSF_Aux
 from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
@@ -97,6 +98,7 @@ class Component_Model(AutoPhot_Model):
         super().__init__(name, *args, **kwargs)
 
         self.psf = None
+        self.psf_aux_image = None
 
         # Set any user defined attributes for the model
         for kwarg in kwargs:  # fixme move to core model?
@@ -118,7 +120,21 @@ class Component_Model(AutoPhot_Model):
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.set_values(kwargs["parameters"])
+                
+        for P in self.parameters:
+            assert P.name[-1] != "*", "parameter names cannot have '*' at the end, this is reserved for auxiliary models"
 
+    def set_aux_psf(self, aux_psf, reference_parameter = None):
+        self.psf = aux_psf
+        
+        for P in aux_psf.parameters.iter_all():
+            self.parameters.add_parameter(P)
+
+            if reference_parameter is not None:
+                groups = self.parameters.get_name(reference_parameter).groups
+                for group in groups:
+                    group.add_parameter(P)
+                            
     @property
     def psf(self):
         if self._psf is None:
@@ -130,6 +146,8 @@ class Component_Model(AutoPhot_Model):
         if val is None:
             self._psf = None
         elif isinstance(val, PSF_Image):
+            self._psf = val
+        elif isinstance(val, PSF_Aux):
             self._psf = val
         else:
             self._psf = PSF_Image(
@@ -217,108 +235,6 @@ class Component_Model(AutoPhot_Model):
             Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[...,None, None]
         return torch.zeros_like(X)  # do nothing in base model
-
-    def _sample_init(self, image, parameters):
-        if self.sampling_mode == "midpoint" and max(image.data.shape) >= 100:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None,None]
-            mid = self.evaluate_model(
-                X = X, Y = Y,
-                image=image, parameters=parameters
-            )
-            kernel = curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
-            curvature = torch.nn.functional.pad(torch.nn.functional.conv2d(
-                mid.view(1, 1, *mid.shape),
-                kernel.view(1, 1, *kernel.shape),
-                padding="valid",
-            ), (1,1,1,1), mode = "replicate").squeeze()
-            return mid + curvature, mid            
-        elif self.sampling_mode == "trapezoid" and max(image.data.shape) >= 100:
-            Coords = image.get_coordinate_corner_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None,None]
-            dens = self.evaluate_model(
-                X = X, Y = Y,
-                image=image, parameters=parameters
-            )
-            kernel = torch.ones((1,1,2,2), dtype = AP_config.ap_dtype, device = AP_config.ap_device) / 4.
-            trapz = torch.nn.functional.conv2d(dens.view(1,1,*dens.shape), kernel, padding="valid")
-            trapz = trapz.squeeze()
-            kernel = curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
-            curvature = torch.nn.functional.pad(torch.nn.functional.conv2d(
-                trapz.view(1, 1, *trapz.shape),
-                kernel.view(1, 1, *kernel.shape),
-                padding="valid",
-            ), (1,1,1,1), mode = "replicate").squeeze()
-            return trapz + curvature, trapz
-            
-        Coords = image.get_coordinate_simps_meshgrid()
-        X, Y = Coords - parameters["center"].value[...,None,None]
-        dens = self.evaluate_model(
-            X = X, Y = Y,
-            image=image, parameters=parameters
-        )
-        kernel = simpsons_kernel(dtype = AP_config.ap_dtype, device = AP_config.ap_device)
-        mid = torch.nn.functional.conv2d(dens.view(1,1,*dens.shape), torch.ones_like(kernel) / 9, stride = 2, padding="valid") #dens[1::2,1::2]
-        simps = torch.nn.functional.conv2d(dens.view(1,1,*dens.shape), kernel, stride = 2, padding="valid")
-        return mid.squeeze(), simps.squeeze()
-
-    def _sample_integrate(self, deep, reference, image, parameters):
-        if self.integrate_mode == "none":
-            pass
-        elif self.integrate_mode == "threshold":
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
-            ref = torch.sum(deep) / deep.numel()
-            error = torch.abs((deep - reference))
-            select = error > (self.sampling_tolerance*ref)
-            intdeep = grid_integrate(
-                X=X[select],
-                Y=Y[select],
-                value = deep[select],
-                compare = reference[select],
-                image_header=image.header,
-                eval_brightness=self.evaluate_model,
-                eval_parameters=parameters,
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-                tolerance=self.sampling_tolerance,
-                reference=ref,
-            )
-            deep[select] = intdeep
-        else:
-            raise ValueError(
-                f"{self.name} has unknown integration mode: {self.integrate_mode}"
-            )
-        return deep
-
-    def _sample_convolve(self,image, shift):
-        pix_center_shift = image.world_to_pixel_delta(shift)
-        LL = _shift_Lanczos_kernel_torch(
-            -pix_center_shift[0],
-            -pix_center_shift[1],
-            3,
-            AP_config.ap_dtype,
-            AP_config.ap_device,
-        )
-        shift_psf = torch.nn.functional.conv2d(
-            self.psf.data.view(1, 1, *self.psf.data.shape),
-            LL.view(1, 1, *LL.shape),
-            padding="same",
-        ).squeeze()
-        # Remove unphysical negative pixels from Lanczos interpolation
-        shift_psf[shift_psf < 0] = torch.tensor(0., dtype=AP_config.ap_dtype, device = AP_config.ap_device)
-        if self.psf_convolve_mode == "fft":
-            image.data = fft_convolve_torch(
-                image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
-            )
-        elif self.psf_convolve_mode == "direct":
-            image.data = torch.nn.functional.conv2d(
-                image.data.view(1, 1, *image.data.shape),
-                torch.flip(shift_psf.view(1, 1, *shift_psf.shape) / torch.sum(shift_psf), dims = (2,3)),
-                padding="same",
-            ).squeeze()
-        else:
-            raise ValueError(f"unrecognized psf_convolve_mode: {self.psf_convolve_mode}")
                 
     def sample(
         self,
@@ -370,10 +286,14 @@ class Component_Model(AutoPhot_Model):
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
+            if isinstance(self.psf, PSF_Aux):
+                psf = self.psf.sample(image = self.psf_aux_image, parameters = parameters)
+            else:
+                psf = self.psf
             # Add border for psf convolution edge effects, will be cropped out later
-            working_window += self.psf.psf_border
+            working_window += psf.psf_border
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
-            working_pixelscale = image.pixelscale / self.psf.psf_upscale
+            working_pixelscale = image.pixelscale / psf.psf_upscale
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(
                 pixelscale=working_pixelscale, window=working_window
@@ -384,22 +304,22 @@ class Component_Model(AutoPhot_Model):
             working_image.header.pixel_shift_origin(center_shift)
             # Evaluate the model at the current resolution
             reference, deep = self._sample_init(
-                image=working_image, parameters=parameters
+                image=working_image, parameters=parameters, center = parameters["center"].value,
             )
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            deep = self._sample_integrate(deep, reference, working_image, parameters)
+            deep = self._sample_integrate(deep, reference, working_image, parameters, parameters["center"].value)
 
             # update the image with the integrated pixels
             working_image.data += deep
             
             # Convolve the PSF
-            self._sample_convolve(working_image, center_shift)
+            self._sample_convolve(working_image, center_shift, psf)
                 
             # Shift image back to align with original pixel grid
             working_image.header.shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            working_image = working_image.reduce(self.psf.psf_upscale).crop(
-                self.psf.psf_border_int
+            working_image = working_image.reduce(psf.psf_upscale).crop(
+                psf.psf_border_int
             )
 
         else:
@@ -410,10 +330,10 @@ class Component_Model(AutoPhot_Model):
             )
             # Evaluate the model on the image
             reference, deep = self._sample_init(
-                image=working_image, parameters=parameters
+                image=working_image, parameters=parameters, center = parameters["center"].value,
             )
             # Super-resolve and integrate where needed
-            deep = self._sample_integrate(deep, reference, working_image, parameters)
+            deep = self._sample_integrate(deep, reference, working_image, parameters, center = parameters["center"].value)
             # Add the sampled/integrated pixels to the requested image
             working_image.data += deep
             
@@ -621,5 +541,8 @@ class Component_Model(AutoPhot_Model):
 
     # Extra background methods for the basemodel
     ######################################################################
+    from ._model_methods import _sample_init
+    from ._model_methods import _sample_integrate
+    from ._model_methods import _sample_convolve
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters

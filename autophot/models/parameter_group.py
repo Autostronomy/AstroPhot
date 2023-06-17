@@ -299,6 +299,9 @@ class Parameter_Group(object):
     def __iter__(self):
         return filter(lambda p: not p.locked, self.parameters.values())
 
+    def iter_all(self):
+        return self.parameters.values()
+        
     def get_id(self, key):
         if ":" in key:
             return self.parameters[key[: key.find(":")]]
