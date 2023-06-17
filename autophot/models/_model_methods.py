@@ -128,21 +128,23 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
     return deep
 
 def _sample_convolve(self, image, shift, psf):
-    pix_center_shift = image.world_to_pixel_delta(shift)
-    LL = _shift_Lanczos_kernel_torch(
-        -pix_center_shift[0],
-        -pix_center_shift[1],
-        3,
-        AP_config.ap_dtype,
-        AP_config.ap_device,
-    )
-    shift_psf = torch.nn.functional.conv2d(
-        psf.data.view(1, 1, *psf.data.shape),
-        LL.view(1, 1, *LL.shape),
-        padding="same",
-    ).squeeze()
-    # Remove unphysical negative pixels from Lanczos interpolation
-    #shift_psf[shift_psf < 0] = torch.tensor(0., dtype=AP_config.ap_dtype, device = AP_config.ap_device)
+    if shift is not None:
+        pix_center_shift = image.world_to_pixel_delta(shift)
+        LL = _shift_Lanczos_kernel_torch(
+            -pix_center_shift[0],
+            -pix_center_shift[1],
+            3,
+            AP_config.ap_dtype,
+            AP_config.ap_device,
+        )
+        shift_psf = torch.nn.functional.conv2d(
+            psf.data.view(1, 1, *psf.data.shape),
+            LL.view(1, 1, *LL.shape),
+            padding="valid",
+        ).squeeze()
+    else:
+        shift_psf = psf.data
+        
     if self.psf_convolve_mode == "fft":
         image.data = fft_convolve_torch(
             image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
