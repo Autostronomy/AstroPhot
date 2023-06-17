@@ -142,7 +142,7 @@ def _sample_convolve(self, image, shift, psf):
         padding="same",
     ).squeeze()
     # Remove unphysical negative pixels from Lanczos interpolation
-    shift_psf[shift_psf < 0] = torch.tensor(0., dtype=AP_config.ap_dtype, device = AP_config.ap_device)
+    #shift_psf[shift_psf < 0] = torch.tensor(0., dtype=AP_config.ap_dtype, device = AP_config.ap_device)
     if self.psf_convolve_mode == "fft":
         image.data = fft_convolve_torch(
             image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True

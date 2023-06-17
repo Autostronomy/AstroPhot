@@ -367,3 +367,6 @@ class Parameter_Group(object):
 
     def __len__(self):
         return len(self.parameters)
+
+    def __str__(self):
+        return f"Parameter Group: {self.name}\n" + "\n".join(list(str(P) for P in self.iter_all()))

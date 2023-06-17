@@ -20,4 +20,3 @@ from .wedge_model import *
 from .warp_model import *
 from .moffat_model import *
 from .nuker_model import *
-from .psf_aux_model import *

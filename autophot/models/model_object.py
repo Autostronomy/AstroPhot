@@ -8,7 +8,6 @@ import torch
 import matplotlib.pyplot as plt
 
 from .core_model import AutoPhot_Model
-from .psf_aux_model import PSF_Aux
 from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
@@ -121,9 +120,6 @@ class Component_Model(AutoPhot_Model):
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.set_values(kwargs["parameters"])
                 
-        for P in self.parameters:
-            assert P.name[-1] != "*", "parameter names cannot have '*' at the end, this is reserved for auxiliary models"
-
     def set_aux_psf(self, aux_psf, add_parameters = True):
         """Set the PSF for this model as an auxiliary psf model. This psf
         model will be resampled as part of the model sampling step to
@@ -138,8 +134,7 @@ class Component_Model(AutoPhot_Model):
         self.psf = aux_psf
 
         if add_parameters:
-            for P in aux_psf.parameters.iter_all():
-                self.parameters.add_parameter(P)
+            self.parameters.add_group(aux_psf.parameters)
                             
     @property
     def psf(self):
@@ -153,7 +148,7 @@ class Component_Model(AutoPhot_Model):
             self._psf = None
         elif isinstance(val, PSF_Image):
             self._psf = val
-        elif isinstance(val, PSF_Aux):
+        elif isinstance(val, AutoPhot_Model):
             self._psf = val
         else:
             self._psf = PSF_Image(
@@ -292,8 +287,10 @@ class Component_Model(AutoPhot_Model):
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
-            if isinstance(self.psf, PSF_Aux):
-                psf = self.psf.sample(image = self.psf_aux_image, parameters = parameters)
+            if isinstance(self.psf, AutoPhot_Model):
+                psf = self.psf.sample(image = self.psf_aux_image, parameters = parameters.groups[self.psf.name])
+                upscale = self.psf_aux_image.psf_upscale if self.psf_aux_image is not None else self.psf.psf_upscale
+                psf = PSF_Image(data = psf.data, pixelscale = psf.pixelscale, psf_upscale = upscale)
             else:
                 psf = self.psf
             # Add border for psf convolution edge effects, will be cropped out later
