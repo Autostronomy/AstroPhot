@@ -183,7 +183,8 @@ class LM(BaseOptimizer):
             self.L_up()
             return
         elif self.iteration > 0:
-            rho = self.rho(np.nanmin(self.loss_history[:-1]), loss, h)
+            lossmin = np.nanmin(self.loss_history[:-1])
+            rho = self.rho(lossmin, loss, h)
             if self.verbose > 1:
                 AP_config.ap_logger.debug(
                     f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}"
@@ -192,7 +193,7 @@ class LM(BaseOptimizer):
             if self.verbose > 1:
                 AP_config.ap_logger.debug(f"rho: {rho.item()}")
 
-            if rho > self.epsilon4 or (all(torch.abs(self.grad).detach().cpu().numpy() < self.relative_tolerance) and torch.abs(np.nanmin(self.loss_history[:-1]) - loss).item() < self.relative_tolerance):
+            if rho > self.epsilon4 or (all(torch.abs(self.grad).detach().cpu().numpy() < self.relative_tolerance) and np.abs((lossmin - loss.item()) / lossmin) < self.relative_tolerance):
                 if self.verbose > 0:
                     AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
@@ -203,18 +204,12 @@ class LM(BaseOptimizer):
                 self._count_reject = 0
                 if (
                     0
-                    < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss)
+                    < (self.ndf * (lossmin - loss) / loss)
                     < self.relative_tolerance
                 ):
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
-            # elif self._count_reject == 4:
-            #     if self.verbose > 0:
-            #         AP_config.ap_logger.info("reject, resetting jacobian")
-            #     self.decision_history.append("reject")
-            #     self.L = min(1e-2, self.L / self.Lup**4)
-            #     self._count_reject += 1
             else:
                 if self.verbose > 0:
                     AP_config.ap_logger.info("reject")

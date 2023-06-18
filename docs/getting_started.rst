@@ -2,6 +2,7 @@
 Getting Started
 ===============
 
+First follow the installation instructions, then come here to learn how to use AutoPhot for the first time.
 
 Basic AutoPhot code philosophy
 ------------------------------
@@ -17,7 +18,7 @@ The easiest way to get started using AutoPhot is to try running the jupyter note
 
   autophot tutorials
 
-command to download the AutoPhot tutorials. If you run into difficulty with this, you can also access the tutorials directly at `this link <https://github.com/Autostronomy/AutoPhot/tree/main/docs/tutorials>`_ to download. Once you have the tutorials, start a jupyter session and run through them. The recommended order is:
+command to download the AutoPhot tutorials. If you run into difficulty with this, you can also access the tutorials directly at :doc:`tutorials` to download as PDFs. Once you have the tutorials, start a jupyter session and run through them. The recommended order is:
 
 #. GettingStarted
 #. GroupModels
@@ -25,6 +26,7 @@ command to download the AutoPhot tutorials. If you run into difficulty with this
 #. ModelZoo
 #. JointModels
 #. CustomModels
+#. AdvancedPSFModels
 
 When downloading the tutorials, you will also get a file called ``simple_config.py``, this is an example AutoPhot config file. Configuration files are an alternate interface to the AutoPhot functionality. They are somewhat more limited in capacity, but very easy to interface with. See the guide on configuration files here: :doc:`configfile_interface` .
 

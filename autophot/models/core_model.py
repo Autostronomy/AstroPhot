@@ -77,14 +77,13 @@ class AutoPhot_Model(object):
         self.name = name
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
-        self.equality_constraints = []
         self.parameters = Parameter_Group(self.name)
         self.target = target
         self.window = window
         self._locked = locked
         self.mask = kwargs.get("mask", None)
         
-    def add_equality_constraint(self, model, parameter, catch_key_error = False):
+    def add_equality_constraint(self, model, parameter):
         if isinstance(parameter, (tuple, list)):
             for P in parameter:
                 self.add_equality_constraint(model, P)
