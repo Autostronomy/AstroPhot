@@ -110,7 +110,7 @@ class Edgeon_Sech(Edgeon_Model):
 
     model_type = f"sech2 {Edgeon_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)"},
+        "I0": {"units": "log10(flux)"},
         "hs": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Edgeon_Model._parameter_order + ("I0", "hs")
@@ -140,7 +140,6 @@ class Edgeon_Sech(Edgeon_Model):
                             int(icenter[1]) - 2 : int(icenter[1]) + 2,
                         ]
                     )
-                    / target.pixel_area
                 ),
                 override_locked=True,
             )
@@ -151,7 +150,7 @@ class Edgeon_Sech(Edgeon_Model):
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
                 )
-                / (torch.abs(parameters["I0"].value) * target.pixel_area),
+                / (torch.abs(parameters["I0"].value)),
                 override_locked=True,
             )
         if parameters["hs"].value is None:
@@ -163,8 +162,7 @@ class Edgeon_Sech(Edgeon_Model):
     @default_internal
     def brightness_model(self, X, Y, image=None, parameters=None):
         return (
-            (image.pixel_area)
-            * (10 ** parameters["I0"].value)
+            (10 ** parameters["I0"].value)
             * self.radial_model(X, image=image, parameters=parameters)
             / (torch.cosh(Y / parameters["hs"].value) ** 2)
         )

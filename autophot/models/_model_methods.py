@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from .parameter_object import Parameter
+from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import _shift_Lanczos_kernel_torch, simpsons_kernel, curvature_kernel
 from ..image import Model_Image, Target_Image, Window
 from ..utils.operations import (
@@ -121,7 +122,6 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
             X=X[select],
             Y=Y[select],
             value = deep[select],
-            compare = reference[select],
             image_header=image.header,
             eval_brightness=self.evaluate_model,
             eval_parameters=parameters,

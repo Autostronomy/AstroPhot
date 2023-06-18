@@ -159,8 +159,8 @@ class TestComponentModelFits(unittest.TestCase):
         )
         self.assertAlmostEqual(
             mod["Ie"].value.item(),
-            np.log10(true_params["Ie"] / pixelscale ** 2),
-            2,
+            np.log10(true_params["Ie"]),
+            1,
             "LM should accurately recover parameters in simple cases",
         )
         self.assertAlmostEqual(

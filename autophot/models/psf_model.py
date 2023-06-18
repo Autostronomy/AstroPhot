@@ -34,7 +34,7 @@ class PSF_Star(Star_Model):
 
     model_type = f"psf {Star_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux/arcsec^2)"},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Star_Model._parameter_order + ("flux",)
     useable = True
@@ -61,7 +61,7 @@ class PSF_Star(Star_Model):
         if parameters["flux"].value is None:
             parameters["flux"].set_value(
                 torch.log10(
-                    torch.abs(torch.sum(target_area.data)) / target_area.pixel_area
+                    torch.abs(torch.sum(target_area.data))
                 ),
                 override_locked=True,
             )
@@ -93,4 +93,4 @@ class PSF_Star(Star_Model):
         # Use bilinear interpolation of the PSF at the requested coordinates
         result[select] = interp2d(self.psf_model.data, pX[select], pY[select])
 
-        return result * ((10**parameters["flux"].value) * image.pixel_area)
+        return result * (10**parameters["flux"].value)

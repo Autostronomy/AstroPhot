@@ -61,7 +61,7 @@ class Exponential_Galaxy(Galaxy_Model):
 
     model_type = f"exponential {Galaxy_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("Re", "Ie")
@@ -102,7 +102,7 @@ class Exponential_Star(Star_Model):
 
     model_type = f"exponential {Star_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Star_Model._parameter_order + ("Re", "Ie")
@@ -152,7 +152,7 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
 
     model_type = f"exponential {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Re", "Ie")
@@ -191,7 +191,7 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
 
     model_type = f"exponential {SuperEllipse_Warp.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("Re", "Ie")
@@ -230,7 +230,7 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
 
     model_type = f"exponential {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Re", "Ie")
@@ -269,7 +269,7 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
 
     model_type = f"exponential {FourierEllipse_Warp.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("Re", "Ie")
@@ -308,7 +308,7 @@ class Exponential_Warp(Warp_Galaxy):
 
     model_type = f"exponential {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("Re", "Ie")
@@ -347,7 +347,7 @@ class Exponential_Ray(Ray_Galaxy):
 
     model_type = f"exponential {Ray_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("Re", "Ie")
@@ -392,7 +392,7 @@ class Exponential_Wedge(Wedge_Galaxy):
 
     model_type = f"exponential {Wedge_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("Re", "Ie")

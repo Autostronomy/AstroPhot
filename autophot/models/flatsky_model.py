@@ -20,7 +20,7 @@ class Flat_Sky(Sky_Model):
 
     model_type = f"flat {Sky_Model.model_type}"
     parameter_specs = {
-        "sky": {"units": "log10(flux/arcsec^2)"},
+        "sky": {"units": "log10(flux)"},
     }
     _parameter_order = Sky_Model._parameter_order + ("sky",)
     useable = True
@@ -35,7 +35,7 @@ class Flat_Sky(Sky_Model):
         if parameters["sky"].value is None:
             parameters["sky"].set_representation(
                 np.log10(
-                    torch.median(target[self.window].data) / target.pixel_area
+                    torch.median(target[self.window].data)
                 ),
                 override_locked=True,
             )
@@ -47,7 +47,7 @@ class Flat_Sky(Sky_Model):
                             target[self.window].data.detach().cpu().numpy(),
                             rng=(31.731 / 2, 100 - 31.731 / 2),
                         )
-                        / (2.0 * target.pixel_area.item())
+                        / (2.0)
                     )
                     / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
                 )
@@ -57,6 +57,4 @@ class Flat_Sky(Sky_Model):
 
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         ref = image.data if X is None else X
-        return torch.ones_like(ref) * (
-            (10 ** parameters["sky"].value) * image.pixel_area
-        )
+        return torch.ones_like(ref) * (10 ** parameters["sky"].value)

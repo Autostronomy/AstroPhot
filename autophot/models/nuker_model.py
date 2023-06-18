@@ -60,7 +60,7 @@ class Nuker_Galaxy(Galaxy_Model):
     model_type = f"nuker {Galaxy_Model.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -117,7 +117,7 @@ class Nuker_Star(Star_Model):
     model_type = f"nuker {Star_Model.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -185,7 +185,7 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
     model_type = f"nuker {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -244,7 +244,7 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
     model_type = f"nuker {SuperEllipse_Warp.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -302,7 +302,7 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
     model_type = f"nuker {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -360,7 +360,7 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
     model_type = f"nuker {FourierEllipse_Warp.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -418,7 +418,7 @@ class Nuker_Warp(Warp_Galaxy):
     model_type = f"nuker {Warp_Galaxy.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -475,7 +475,7 @@ class Nuker_Ray(Ray_Galaxy):
     model_type = f"nuker {Ray_Galaxy.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -533,7 +533,7 @@ class Nuker_Wedge(Wedge_Galaxy):
     model_type = f"nuker {Wedge_Galaxy.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux)"},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},

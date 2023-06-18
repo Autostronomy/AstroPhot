@@ -61,6 +61,7 @@ class Galaxy_Model(Component_Model):
         self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
+        
         if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]

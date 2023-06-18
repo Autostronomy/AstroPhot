@@ -127,7 +127,7 @@ def single_quad_integrate(X, Y, image_header, eval_brightness, eval_parameters, 
     
     return res, ref
         
-def grid_integrate(X, Y, value, compare, image_header, eval_brightness, eval_parameters, dtype, device, tolerance = 1e-2, quad_level = 3, gridding = 5, grid_level = 0, max_level = 2, reference = None):
+def grid_integrate(X, Y, value, image_header, eval_brightness, eval_parameters, dtype, device, tolerance = 1e-2, quad_level = 3, gridding = 5, grid_level = 0, max_level = 2, reference = None):
     if grid_level >= max_level:
         return value
 
@@ -146,12 +146,19 @@ def grid_integrate(X, Y, value, compare, image_header, eval_brightness, eval_par
     # Write out the coordinates for the super resolved pixels
     Xs = torch.repeat_interleave(X[select][...,None], gridding**2, -1) + stepx.reshape(-1)
     Ys = torch.repeat_interleave(Y[select][...,None], gridding**2, -1) + stepy.reshape(-1)
-    # Copy the current pixel values into new shape with super resolved pixels
-    deep_res = torch.repeat_interleave(res[select][...,None], gridding**2, -1)
 
     # Recursively evaluate the pixels at the higher gridding
-    deep_res = grid_integrate(Xs, Ys, deep_res/gridding**2, None, image_header.super_resolve(gridding), eval_brightness, eval_parameters, dtype, device, tolerance, quad_level + 1, gridding, grid_level + 1, max_level, reference = reference*gridding**2)
+    deep_res = grid_integrate(
+        Xs, Ys,
+        torch.zeros_like(Xs),
+        image_header.super_resolve(gridding),
+        eval_brightness, eval_parameters,
+        dtype, device,
+        tolerance,
+        quad_level + 1, gridding, grid_level + 1, max_level,
+        reference = reference*gridding**2,
+    )
 
     # Update the pixels that have been sub-integrated
-    value[select] = deep_res.sum(axis=(-1,))
+    value[select] = deep_res.mean(axis=(-1,))
     return value
