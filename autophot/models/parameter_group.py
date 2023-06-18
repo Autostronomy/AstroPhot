@@ -299,6 +299,9 @@ class Parameter_Group(object):
     def __iter__(self):
         return filter(lambda p: not p.locked, self.parameters.values())
 
+    def iter_all(self):
+        return self.parameters.values()
+        
     def get_id(self, key):
         if ":" in key:
             return self.parameters[key[: key.find(":")]]
@@ -306,14 +309,16 @@ class Parameter_Group(object):
             return self.parameters[key]
 
     def get_name(self, key):
+        # The : character is used for nested parameter group names
         if ":" in key:
             return self.groups[key[: key.find(":")]].get_name(key[key.find(":") + 1 :])
-        else:
-            for P in self.parameters.values():
-                if P.name == key:
-                    return P
-            else:
-                raise KeyError()
+
+        # Attempt to find the parameter with that key name
+        for P in self.parameters.values():
+            if P.name == key:
+                return P
+        # If the key cannot be found, raise an error
+        raise KeyError()
 
     def pop_id(self, key):
         try:
@@ -352,3 +357,6 @@ class Parameter_Group(object):
 
     def __len__(self):
         return len(self.parameters)
+
+    def __str__(self):
+        return f"Parameter Group: {self.name}\n" + "\n".join(list(str(P) for P in self.iter_all()))

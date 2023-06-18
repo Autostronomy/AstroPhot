@@ -4,46 +4,45 @@ import torch
 
 
 class TestParameter(unittest.TestCase):
+    @ torch.no_grad()
     def test_parameter_setting(self):
+        base_param = Parameter("base param")
+        base_param.set_value(1.0)
+        self.assertEqual(base_param.value, 1, msg="Value should be set to 1")
+        self.assertEqual(
+            base_param.representation, 1, msg="Representation should be set to 1"
+        )
+        
+        base_param.value = 2.0
+        self.assertEqual(base_param.value, 2, msg="Value should be set to 2")
+        self.assertEqual(
+            base_param.representation, 2, msg="Representation should be set to 2"
+        )
+        
+        base_param.value += 2.0
+        self.assertEqual(base_param.value, 4, msg="Value should be set to 4")
+        self.assertEqual(
+            base_param.representation, 4, msg="Representation should be set to 4"
+        )
 
-        with torch.no_grad():
-            base_param = Parameter("base param")
-            base_param.set_value(1.0)
-            self.assertEqual(base_param.value, 1, msg="Value should be set to 1")
-            self.assertEqual(
-                base_param.representation, 1, msg="Representation should be set to 1"
-            )
+        # Test a locked parameter that it does not change
+        locked_param = Parameter("locked param", value=1.0, locked=True)
+        locked_param.set_value(2.0)
+        self.assertEqual(
+            locked_param.value, 1, msg="Locked value should remain at 1"
+        )
 
-            base_param.value = 2.0
-            self.assertEqual(base_param.value, 2, msg="Value should be set to 2")
-            self.assertEqual(
-                base_param.representation, 2, msg="Representation should be set to 2"
-            )
-
-            base_param.value += 2.0
-            self.assertEqual(base_param.value, 4, msg="Value should be set to 4")
-            self.assertEqual(
-                base_param.representation, 4, msg="Representation should be set to 4"
-            )
-
-            # Test a locked parameter that it does not change
-            locked_param = Parameter("locked param", value=1.0, locked=True)
-            locked_param.set_value(2.0)
-            self.assertEqual(
-                locked_param.value, 1, msg="Locked value should remain at 1"
-            )
-
-            locked_param.value = 2.0
-            self.assertEqual(
-                locked_param.value, 1, msg="Locked value should remain at 1"
-            )
-
-            locked_param.set_value(2.0, override_locked=True)
-            self.assertEqual(
-                locked_param.value,
-                2,
-                msg="Locked value should be forced to update to 2",
-            )
+        locked_param.value = 2.0
+        self.assertEqual(
+            locked_param.value, 1, msg="Locked value should remain at 1"
+        )
+        
+        locked_param.set_value(2.0, override_locked=True)
+        self.assertEqual(
+            locked_param.value,
+            2,
+            msg="Locked value should be forced to update to 2",
+        )
 
     def test_parameter_limits(self):
 
@@ -138,6 +137,22 @@ class TestParameter(unittest.TestCase):
         X = torch.sum(params.value * 3)
         X.backward()
         self.assertTrue(torch.all(V.grad == 3), "Parameters should track gradient")
+
+    def test_parameter_state(self):
+
+        P = Parameter("state", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = True, prof = 1.)
+
+        P2 = Parameter("v2")
+        P2.set_state(P.get_state())
+
+        self.assertEqual(P.value, P2.value, "state should preserve value")
+        self.assertEqual(P.uncertainty, P2.uncertainty, "state should preserve uncertainty")
+        self.assertEqual(P.prof, P2.prof, "state should preserve prof")
+        self.assertEqual(P.locked, P2.locked, "state should preserve locked")
+        self.assertEqual(P.limits[0].tolist(), P2.limits[0].tolist(), "state should preserve limits")
+        self.assertEqual(P.limits[1].tolist(), P2.limits[1].tolist(), "state should preserve limits")
+
+        S = str(P)
 
 
 if __name__ == "__main__":

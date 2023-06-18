@@ -25,7 +25,7 @@ class Star_Model(Component_Model):
     def radius_metric(self, X, Y, image=None, parameters=None):
         return torch.sqrt(
             (torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2
-        )  # epsilon added for numerical stability of gradient
+        )
 
     @property
     def psf_mode(self):

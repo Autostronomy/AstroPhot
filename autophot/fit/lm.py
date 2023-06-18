@@ -110,7 +110,6 @@ class LM(BaseOptimizer):
         self.L_history = []
         self.decision_history = []
         self.rho_history = []
-        self._count_grad_step = 0
         self._count_converged = 0
         self.ndf = kwargs.get("ndf", self.ndf)
         self._covariance_matrix = None
@@ -142,66 +141,6 @@ class LM(BaseOptimizer):
         if Ldn is None:
             Ldn = self.Ldn
         self.L = max(1e-9, self.L / Ldn)
-
-    @torch.no_grad()
-    def grad_step(self) -> None:
-        L = 0.1
-        self.iteration += 1
-        self._count_grad_step += 1
-        if self.verbose > 1:
-            AP_config.ap_logger.info(
-                f"taking grad step. Loss to beat: {np.nanmin(self.loss_history[:-1])}"
-            )
-        for count in range(20):
-            self.update_Yp(self.grad * L)
-            loss = self.update_chi2()
-
-            if not torch.isfinite(loss):
-                L /= 10
-                continue
-            if self.verbose > 1:
-                AP_config.ap_logger.info(f"grad step loss: {loss.item()}, L: {L}")
-            if np.nanmin(self.loss_history[:-1]) > loss.item():
-                self.loss_history.append(loss.detach().cpu().item())
-                self.L = 1.0
-                self.L_history.append(self.L)
-                self.current_state += self.grad * L
-                self.lambda_history.append(
-                    np.copy(self.current_state.detach().cpu().numpy())
-                )
-                self.decision_history.append("accept grad")
-                if self.verbose > 0:
-                    AP_config.ap_logger.info("accept grad")
-                self.rho_history.append(1.0)
-                self.prev_Y[0] = self.prev_Y[1]
-                self.prev_Y[1] = torch.clone(self.current_Y)
-                break
-            elif (
-                np.abs(np.nanmin(self.loss_history[:-1]) - loss.item())
-                < (self.relative_tolerance * 1e-3)
-                and L < 1e-5
-            ):
-                self.loss_history.append(loss.detach().cpu().item())
-                self.L = 1.0
-                self.L_history.append(self.L)
-                self.current_state += self.grad * L
-                self.lambda_history.append(
-                    np.copy(self.current_state.detach().cpu().numpy())
-                )
-                self.decision_history.append("accept bad grad")
-                if self.verbose > 0:
-                    AP_config.ap_logger.info("accept bad grad")
-                self.rho_history.append(1.0)
-                self.prev_Y[0] = self.prev_Y[1]
-                self.prev_Y[1] = torch.clone(self.current_Y)
-                break
-            else:
-                L /= 10
-                continue
-        else:
-            raise RuntimeError(
-                "Unable to take gradient step! LM has found itself in a very bad place of parameter space, try adjusting initial parameters"
-            )
 
     def step(self, current_state=None) -> None:
         """
@@ -244,7 +183,8 @@ class LM(BaseOptimizer):
             self.L_up()
             return
         elif self.iteration > 0:
-            rho = self.rho(np.nanmin(self.loss_history[:-1]), loss, h)
+            lossmin = np.nanmin(self.loss_history[:-1])
+            rho = self.rho(lossmin, loss, h)
             if self.verbose > 1:
                 AP_config.ap_logger.debug(
                     f"LM loss: {loss.item()}, best loss: {np.nanmin(self.loss_history[:-1])}, loss diff: {np.nanmin(self.loss_history[:-1]) - loss.item()}, L: {self.L}"
@@ -253,7 +193,7 @@ class LM(BaseOptimizer):
             if self.verbose > 1:
                 AP_config.ap_logger.debug(f"rho: {rho.item()}")
 
-            if rho > self.epsilon4:
+            if rho > self.epsilon4 or (all(torch.abs(self.grad).detach().cpu().numpy() < self.relative_tolerance) and np.abs((lossmin - loss.item()) / lossmin) < self.relative_tolerance):
                 if self.verbose > 0:
                     AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
@@ -264,18 +204,12 @@ class LM(BaseOptimizer):
                 self._count_reject = 0
                 if (
                     0
-                    < (self.ndf * (np.nanmin(self.loss_history[:-1]) - loss) / loss)
+                    < (self.ndf * (lossmin - loss) / loss)
                     < self.relative_tolerance
                 ):
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
-            # elif self._count_reject == 4:
-            #     if self.verbose > 0:
-            #         AP_config.ap_logger.info("reject, resetting jacobian")
-            #     self.decision_history.append("reject")
-            #     self.L = min(1e-2, self.L / self.Lup**4)
-            #     self._count_reject += 1
             else:
                 if self.verbose > 0:
                     AP_config.ap_logger.info("reject")
@@ -346,14 +280,7 @@ class LM(BaseOptimizer):
                     and ((loss[-2] - loss[-1]) / loss[-1])
                     < (self.relative_tolerance / 10)
                 ):
-                    self._count_grad_step = 0
                     self._count_converged += 1
-                elif self._count_grad_step >= 5:
-                    self.message = (
-                        self.message
-                        + "success by immobility, unable to find improvement either converged or bad area of parameter space."
-                    )
-                    break
                 elif self.iteration >= self.max_iter:
                     self.message = (
                         self.message + f"fail max iterations reached: {self.iteration}"
@@ -364,21 +291,14 @@ class LM(BaseOptimizer):
                     break
                 elif (
                     self.L >= (1e9 - 1)
-                    and self._count_reject >= 12
+                    and self._count_reject >= 8
                     and not self.take_low_rho_step()
                 ):
-                    if not self.full_jac:
-                        self.update_J_AD()
-                        self.update_hess()
-                        self.update_grad(self.prev_Y[1])
-                    try:
-                        self.grad_step()
-                    except RuntimeError:
-                        self.message = (
-                            self.message
-                            + "fail by immobility, unable to find improvement or even small bad step"
-                        )
-                        break
+                    self.message = (
+                        self.message
+                        + "fail by immobility, unable to find improvement or even small bad step"
+                    )
+                    break
                 if self._count_converged >= 2:
                     self.message = self.message + "success"
                     break
@@ -386,13 +306,13 @@ class LM(BaseOptimizer):
                 if len(loss) >= 10:
                     loss10 = np.array(loss[-10:])
                     if np.all(
-                        np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
+                        np.abs((loss10[0] - loss10[-1]) / loss10[-1])
                         < self.relative_tolerance
                     ) and L[-1] < 0.1:
                         self.message = self.message + "success"
                         break
                     if np.all(
-                        np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
+                        np.abs((loss10[0] - loss10[-1]) / loss10[-1])
                         < self.relative_tolerance
                     ) and L[-1] >= 0.1:
                         self.message = self.message + "fail by immobility, possible bad area of parameter space."
@@ -423,7 +343,7 @@ class LM(BaseOptimizer):
         if torch.all(torch.isfinite(cov)):
             try:
                 self.model.parameters.set_uncertainty(
-                    torch.sqrt(torch.abs(torch.diag(cov))),
+                    2*torch.sqrt(torch.abs(torch.diag(cov))), # fixme, is factor "2" too conservative?
                     as_representation=False,
                     parameters_identity=self.fit_parameters_identity,
                 )

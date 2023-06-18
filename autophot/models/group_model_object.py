@@ -79,17 +79,6 @@ class Group_Model(AutoPhot_Model):
         self.parameters.add_group(model.parameters)
         self.update_window()
 
-    @property
-    def equality_constraints(self):
-        try:
-            return self._equality_constraints
-        except AttributeError:
-            return []
-
-    @equality_constraints.setter
-    def equality_constraints(self, val):
-        pass
-
     def update_window(self, include_locked: bool = False):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.

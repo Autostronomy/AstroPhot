@@ -35,3 +35,9 @@ Custom Models
 -------------
 
 This tutorial explains how to create your own model object with unique properties. `Click here for the pdf <https://raw.githubusercontent.com/Autostronomy/AutoPhot/main/docs/tutorials/CustomModels.pdf?raw=true>`_
+
+
+Advanced PSF Fitting
+--------------------
+
+This tutorial explains how to fit a PSF model under challenging conditions (like if there aren't any stars in the image). `Click here for the pdf <https://raw.githubusercontent.com/Autostronomy/AutoPhot/main/docs/tutorials/AdvancedPSFModels.pdf?raw=true>`_

@@ -283,8 +283,6 @@ class TestLM(unittest.TestCase):
 
         LM.fit()
 
-        LM.grad_step()
-
         LM.undo_step()
 
         LM.take_low_rho_step()

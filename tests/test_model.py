@@ -79,9 +79,10 @@ class TestModel(unittest.TestCase):
         # test PSF modes
         target.psf = np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]])
         model.integrate_mode = "none"
-        model.psf_mode = "direct"
+        model.psf_mode = "full"
+        model.psf_convolve_mode = "direct"
         res = model()
-        model.psf_mode = "fft"
+        model.psf_convolve_mode = "fft"
         res = model()
 
     def test_model_creation(self):
