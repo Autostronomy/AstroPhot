@@ -15,6 +15,16 @@ from ..utils.operations import (
 from .. import AP_config
 
 
+@default_internal
+def angular_metric(self, X, Y, image=None, parameters=None):
+    return torch.atan2(Y, X)
+@default_internal
+def radius_metric(self, X, Y, image=None, parameters=None):
+    return torch.sqrt(
+        (torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2
+    )
+
+
 @classmethod
 def build_parameter_specs(cls, user_specs=None):
     parameter_specs = {}

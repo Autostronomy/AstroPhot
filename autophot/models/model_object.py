@@ -549,6 +549,8 @@ class Component_Model(AutoPhot_Model):
 
     # Extra background methods for the basemodel
     ######################################################################
+    from ._model_methods import radius_metric
+    from ._model_methods import angular_metric
     from ._model_methods import _sample_init
     from ._model_methods import _sample_integrate
     from ._model_methods import _sample_convolve

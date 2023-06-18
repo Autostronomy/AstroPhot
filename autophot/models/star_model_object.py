@@ -21,12 +21,6 @@ class Star_Model(Component_Model):
     model_type = f"star {Component_Model.model_type}"
     useable = False
 
-    @default_internal
-    def radius_metric(self, X, Y, image=None, parameters=None):
-        return torch.sqrt(
-            (torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2
-        )
-
     @property
     def psf_mode(self):
         return "none"

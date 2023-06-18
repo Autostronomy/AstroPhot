@@ -112,12 +112,6 @@ class Galaxy_Model(Component_Model):
             )
 
     @default_internal
-    def radius_metric(self, X, Y, image=None, parameters=None):
-        return torch.sqrt(
-            (torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2
-        )
-
-    @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
         X, Y = Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
         return (

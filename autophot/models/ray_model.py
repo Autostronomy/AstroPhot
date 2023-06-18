@@ -42,11 +42,7 @@ class Ray_Galaxy(Galaxy_Model):
         self.symmetric_rays = True
         super().__init__(*args, **kwargs)
         self.rays = kwargs.get("rays", Ray_Galaxy.rays)
-
-    @default_internal
-    def angular_metric(self, X, Y, image=None, parameters=None):
-        return torch.atan2(Y, X)
-
+        
     @default_internal
     def polar_model(self, R, T, image=None, parameters=None):
         model = torch.zeros_like(R)
