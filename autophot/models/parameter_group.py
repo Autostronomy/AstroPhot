@@ -317,16 +317,6 @@ class Parameter_Group(object):
         for P in self.parameters.values():
             if P.name == key:
                 return P
-        # If the key contains a * character at the end, search for the version of the parameter without the aux character
-        if key[-1] == "*":
-            for P in self.parameters.values():
-                if P.name == key[:-1]:
-                    return P
-        # Alternatively, search for a version of the key with the aux character * at the end
-        key = key + "*"
-        for P in self.parameters.values():
-            if P.name == key:
-                return P
         # If the key cannot be found, raise an error
         raise KeyError()
 

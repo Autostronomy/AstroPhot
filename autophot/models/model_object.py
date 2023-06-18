@@ -305,7 +305,7 @@ class Component_Model(AutoPhot_Model):
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift:
                 pixel_center = working_image.world_to_pixel(parameters["center"].value)
-                center_shift = torch.clamp(pixel_center - torch.round(pixel_center), -0.49, 0.49) # shifts smaller than 1/100th of a pixel are not allowed for numerical stability
+                center_shift = pixel_center - torch.round(pixel_center) # torch.clamp(pixel_center - torch.round(pixel_center), -0.49, 0.49) # shifts smaller than 1/100th of a pixel are not allowed for numerical stability
                 working_image.header.pixel_shift_origin(center_shift)
             else:
                 center_shift = None

@@ -306,13 +306,13 @@ class LM(BaseOptimizer):
                 if len(loss) >= 10:
                     loss10 = np.array(loss[-10:])
                     if np.all(
-                        np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
+                        np.abs((loss10[0] - loss10[-1]) / loss10[-1])
                         < self.relative_tolerance
                     ) and L[-1] < 0.1:
                         self.message = self.message + "success"
                         break
                     if np.all(
-                        np.abs((loss10[1:] - loss10[:-1]) / loss10[:-1])
+                        np.abs((loss10[0] - loss10[-1]) / loss10[-1])
                         < self.relative_tolerance
                     ) and L[-1] >= 0.1:
                         self.message = self.message + "fail by immobility, possible bad area of parameter space."
