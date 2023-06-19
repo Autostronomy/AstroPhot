@@ -26,7 +26,7 @@ class Plane_Sky(Sky_Model):
 
     model_type = f"plane {Sky_Model.model_type}"
     parameter_specs = {
-        "sky": {"units": "flux"},
+        "sky": {"units": "flux/arcsec^2"},
         "delta": {"units": "flux/arcsec"},
     }
     _parameter_order = Sky_Model._parameter_order + ("sky", "delta")
@@ -41,7 +41,7 @@ class Plane_Sky(Sky_Model):
 
         if parameters["sky"].value is None:
             parameters["sky"].set_value(
-                np.median(target[self.window].data),
+                np.median(target[self.window].data) / target.pixel_area.item(),
                 override_locked=True,
             )
         if parameters["sky"].uncertainty is None:
@@ -63,7 +63,7 @@ class Plane_Sky(Sky_Model):
             Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[...,None, None]
         return (
-            parameters["sky"].value
+            image.pixel_area * parameters["sky"].value
             + X * parameters["delta"].value[0]
             + Y * parameters["delta"].value[1]
         )

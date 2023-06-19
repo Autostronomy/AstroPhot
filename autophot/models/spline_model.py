@@ -44,7 +44,7 @@ class Spline_Galaxy(Galaxy_Model):
 
     model_type = f"spline {Galaxy_Model.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("I(R)",)
     useable = True
@@ -73,7 +73,7 @@ class Spline_Star(Star_Model):
 
     model_type = f"spline {Star_Model.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Star_Model._parameter_order + ("I(R)",)
     useable = True
@@ -110,7 +110,7 @@ class Spline_Warp(Warp_Galaxy):
 
     model_type = f"spline {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("I(R)",)
     useable = True
@@ -140,7 +140,7 @@ class Spline_SuperEllipse(SuperEllipse_Galaxy):
 
     model_type = f"spline {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("I(R)",)
     useable = True
@@ -168,7 +168,7 @@ class Spline_FourierEllipse(FourierEllipse_Galaxy):
 
     model_type = f"spline {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("I(R)",)
     useable = True
@@ -197,7 +197,7 @@ class Spline_Ray(Ray_Galaxy):
 
     model_type = f"spline {Ray_Galaxy.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("I(R)",)
     useable = True
@@ -240,7 +240,7 @@ class Spline_Wedge(Wedge_Galaxy):
 
     model_type = f"spline {Wedge_Galaxy.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("I(R)",)
     useable = True
@@ -284,7 +284,7 @@ class Spline_SuperEllipse_Warp(SuperEllipse_Warp):
 
     model_type = f"spline {SuperEllipse_Warp.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("I(R)",)
     useable = True
@@ -312,7 +312,7 @@ class Spline_FourierEllipse_Warp(FourierEllipse_Warp):
 
     model_type = f"spline {FourierEllipse_Warp.model_type}"
     parameter_specs = {
-        "I(R)": {"units": "log10(flux)"},
+        "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("I(R)",)
     useable = True

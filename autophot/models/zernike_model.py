@@ -15,7 +15,7 @@ class Zernike_Star(Star_Model):
 
     model_type = f"zernike {Star_Model.model_type}"
     parameter_specs = {
-        "Anm": {"units": "flux"},
+        "Anm": {"units": "flux/arcsec^2"},
     }
     _parameter_order = Star_Model._parameter_order + ("Anm", )
     useable = True
@@ -50,7 +50,7 @@ class Zernike_Star(Star_Model):
 
         # Set the zero order zernike polynomial to the average in the image
         if self.nm_list[0] == (0,0):
-            parameters["Anm"].value[0] = torch.median(target[self.window].data)
+            parameters["Anm"].value[0] = torch.median(target[self.window].data) / target.pixel_area
         
     def iter_nm(self, n):
         nm = []
@@ -112,8 +112,9 @@ class Zernike_Star(Star_Model):
         G = torch.zeros_like(X)
 
         i = 0
+        A = image.pixel_area * parameters["Anm"].value
         for n, m in self.nm_list:
-            G += parameters["Anm"].value[i] * self.Z_n_m(r, phi, n, m)
+            G += A[i] * self.Z_n_m(r, phi, n, m)
             i += 1
                 
         G[r > 1] = 0.

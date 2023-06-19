@@ -64,7 +64,7 @@ class Sersic_Galaxy(Galaxy_Model):
     parameter_specs = {
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("n", "Re", "Ie")
     useable = True
@@ -104,7 +104,7 @@ class Sersic_Star(Star_Model):
 
     model_type = f"sersic {Star_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -157,7 +157,7 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
 
     model_type = f"sersic {SuperEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -200,7 +200,7 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
 
     model_type = f"sersic {SuperEllipse_Warp.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -243,7 +243,7 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
 
     model_type = f"sersic {FourierEllipse_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -286,7 +286,7 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
 
     model_type = f"sersic {FourierEllipse_Warp.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -329,7 +329,7 @@ class Sersic_Warp(Warp_Galaxy):
 
     model_type = f"sersic {Warp_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -371,7 +371,7 @@ class Sersic_Ray(Ray_Galaxy):
 
     model_type = f"sersic {Ray_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
@@ -419,7 +419,7 @@ class Sersic_Wedge(Wedge_Galaxy):
 
     model_type = f"sersic {Wedge_Galaxy.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux)"},
+        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }

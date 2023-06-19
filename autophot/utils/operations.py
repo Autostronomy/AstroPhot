@@ -160,5 +160,5 @@ def grid_integrate(X, Y, value, image_header, eval_brightness, eval_parameters, 
     )
 
     # Update the pixels that have been sub-integrated
-    value[select] = deep_res.mean(axis=(-1,))
+    value[select] = deep_res.sum(axis=(-1,))
     return value
