@@ -49,7 +49,9 @@ class PSF_Star(Star_Model):
                 data=torch.clone(self.psf.data),
                 pixelscale=self.psf.pixelscale,
             )
-        self.psf_model.header.shift_origin(self.psf_model.origin - self.psf_model.center)
+        self.psf_model.header.shift_origin(
+            self.psf_model.origin - self.psf_model.center
+        )
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -60,9 +62,7 @@ class PSF_Star(Star_Model):
         target_area = target[self.window]
         if parameters["flux"].value is None:
             parameters["flux"].set_value(
-                torch.log10(
-                    torch.abs(torch.sum(target_area.data)) / target_area.pixel_area
-                ),
+                torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area),
                 override_locked=True,
             )
         if parameters["flux"].uncertainty is None:
@@ -74,10 +74,12 @@ class PSF_Star(Star_Model):
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
 
         # Convert coordinates into pixel locations in the psf image
-        pX, pY = self.psf_model.world_to_pixel(torch.stack((X, Y)).view(2,-1), unsqueeze_origin = True)
+        pX, pY = self.psf_model.world_to_pixel(
+            torch.stack((X, Y)).view(2, -1), unsqueeze_origin=True
+        )
         pX = pX.reshape(X.shape)
         pY = pY.reshape(Y.shape)
 
@@ -93,4 +95,4 @@ class PSF_Star(Star_Model):
         # Use bilinear interpolation of the PSF at the requested coordinates
         result[select] = interp2d(self.psf_model.data, pX[select], pY[select])
 
-        return result * ((10**parameters["flux"].value) * image.pixel_area)
+        return result * (image.pixel_area * 10 ** parameters["flux"].value)

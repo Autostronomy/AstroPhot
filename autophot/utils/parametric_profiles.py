@@ -15,9 +15,7 @@ def sersic_torch(R, n, Re, Ie):
         Ie: Effective surface density
     """
     bn = sersic_n_to_b(n)
-    return Ie * torch.exp(
-        -bn * (torch.pow(R / Re, 1 / n) - 1)
-    ) 
+    return Ie * torch.exp(-bn * (torch.pow(R / Re, 1 / n) - 1))
 
 
 def sersic_np(R, n, Re, Ie):
@@ -159,7 +157,7 @@ def nuker_np(R, Rb, Ib, alpha, beta, gamma):
     )
 
 
-def spline_torch(R, profR, profI, pixelscale2, extend):
+def spline_torch(R, profR, profI, extend):
     """Spline 1d profile function, cubic spline between points up
     to second last point beyond which is linear, specifically designed
     for pytorch.
@@ -168,7 +166,6 @@ def spline_torch(R, profR, profI, pixelscale2, extend):
         R: Radii tensor at which to evaluate the sersic function
         profR: radius values for the surface density profile in the same units as R
         profI: surface density values for the surface density profile
-        pixelscale2: squared pixelscale. Just use 1 if not needed
     """
     I = cubic_spline_torch(profR, profI, R.view(-1), extend="none").view(*R.shape)
     res = torch.zeros_like(I)
@@ -181,4 +178,4 @@ def spline_torch(R, profR, profI, pixelscale2, extend):
         )
     else:
         res[R > profR[-1]] = 0
-    return res * pixelscale2
+    return res

@@ -34,7 +34,7 @@ class Image(object):
         self,
         data: Optional[Union[torch.Tensor]] = None,
         header: Optional[Image_Header] = None,
-        wcs: Optional['astropy.wcs.wcs.WCS'] = None,
+        wcs: Optional["astropy.wcs.wcs.WCS"] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
@@ -109,19 +109,21 @@ class Image(object):
     @property
     def pixel_length(self):
         return self.header.pixel_length
-    
-    def pixel_to_world(self, pixel_coordinate, internal_transpose = False):
-        return self.header.pixel_to_world(pixel_coordinate, internal_transpose = internal_transpose)
 
-    def world_to_pixel(self, world_coordinate, unsqueeze_origin = False):
+    def pixel_to_world(self, pixel_coordinate, internal_transpose=False):
+        return self.header.pixel_to_world(
+            pixel_coordinate, internal_transpose=internal_transpose
+        )
+
+    def world_to_pixel(self, world_coordinate, unsqueeze_origin=False):
         return self.header.world_to_pixel(world_coordinate, unsqueeze_origin)
-    
+
     def pixel_to_world_delta(self, pixel_coordinate):
         return self.header.pixel_to_world_delta(pixel_coordinate)
 
     def world_to_pixel_delta(self, world_coordinate):
         return self.header.world_to_pixel_delta(world_coordinate)
-    
+
     @property
     def origin(self) -> torch.Tensor:
         """
@@ -285,8 +287,10 @@ class Image(object):
 
     def get_coordinate_meshgrid(self):
         return self.header.get_coordinate_meshgrid()
+
     def get_coordinate_corner_meshgrid(self):
         return self.header.get_coordinate_corner_meshgrid()
+
     def get_coordinate_simps_meshgrid(self):
         return self.header.get_coordinate_simps_meshgrid()
 
@@ -466,7 +470,9 @@ class Image_List(Image):
                 if other.identity == self_image.identity:
                     return i
             else:
-                raise ValueError("Could not find identity match between image list and input image")
+                raise ValueError(
+                    "Could not find identity match between image list and input image"
+                )
         raise NotImplementedError(f"Image_List cannot get index for {type(other)}")
 
     def to(self, dtype=None, device=None):
@@ -482,17 +488,15 @@ class Image_List(Image):
         raise NotImplementedError("Crop function not available for Image_List object")
 
     def get_coordinate_meshgrid(self):
-        return tuple(
-            image.get_coordinate_meshgrid() for image in self.image_list
-        )
+        return tuple(image.get_coordinate_meshgrid() for image in self.image_list)
+
     def get_coordinate_corner_meshgrid(self):
         return tuple(
             image.get_coordinate_corner_meshgrid() for image in self.image_list
         )
+
     def get_coordinate_simps_meshgrid(self):
-        return tuple(
-            image.get_coordinate_simps_meshgrid() for image in self.image_list
-        )
+        return tuple(image.get_coordinate_simps_meshgrid() for image in self.image_list)
 
     def flatten(self, attribute="data"):
         return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))

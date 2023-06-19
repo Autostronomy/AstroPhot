@@ -299,6 +299,7 @@ def interp1d_torch(x_in, y_in, x_out):
     weights = (y_in[1:] - y_in[:-1]) / (x_in[1:] - x_in[:-1])
     return y_in[indices] + weights[indices] * (x_out - x_in[indices])
 
+
 def interp2d(
     im: torch.Tensor,
     x: torch.Tensor,
@@ -312,7 +313,7 @@ def interp2d(
         im (Tensor): A 2D tensor representing the image.
         x (Tensor): A tensor of x coordinates (in pixel space) at which to interpolate.
         y (Tensor): A tensor of y coordinates (in pixel space) at which to interpolate.
-    
+
     Returns:
         Tensor: Tensor with the same shape as `x` and `y` containing the interpolated values.
     """
@@ -324,7 +325,7 @@ def interp2d(
     start_shape = x.shape
     x = x.view(-1)
     y = y.view(-1)
-    
+
     x0 = x.floor().long()
     y0 = y.floor().long()
     x1 = x0 + 1
@@ -333,12 +334,12 @@ def interp2d(
     x1 = x1.clamp(1, w - 1)
     y0 = y0.clamp(0, h - 2)
     y1 = y1.clamp(1, h - 1)
-    
+
     fa = im[y0, x0]
     fb = im[y1, x0]
     fc = im[y0, x1]
     fd = im[y1, x1]
-    
+
     wa = (x1 - x) * (y1 - y)
     wb = (x1 - x) * (y - y0)
     wc = (x - x0) * (y1 - y)
@@ -348,22 +349,31 @@ def interp2d(
 
     return result.view(*start_shape)
 
+
 @lru_cache(maxsize=32)
 def curvature_kernel(dtype, device):
-    kernel = torch.tensor(
-        [[0., 1.0, 0.], [1.0, -4, 1.0], [0.0, 1.0, 0.0]], #[[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
-        device=device,
-        dtype=dtype,
-    ) / 8
+    kernel = (
+        torch.tensor(
+            [
+                [0.0, 1.0, 0.0],
+                [1.0, -4, 1.0],
+                [0.0, 1.0, 0.0],
+            ],  # [[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
+            device=device,
+            dtype=dtype,
+        )
+        / 8
+    )
     return kernel
-    
+
+
 @lru_cache(maxsize=32)
 def simpsons_kernel(dtype, device):
-    kernel = torch.ones(1,1,3,3, dtype = dtype, device = device)
-    kernel[0,0,1,1] = 16.
-    kernel[0,0,1,0] = 4.
-    kernel[0,0,0,1] = 4.
-    kernel[0,0,1,2] = 4.
-    kernel[0,0,2,1] = 4.
-    kernel = kernel / 36.
+    kernel = torch.ones(1, 1, 3, 3, dtype=dtype, device=device)
+    kernel[0, 0, 1, 1] = 16.0
+    kernel[0, 0, 1, 0] = 4.0
+    kernel[0, 0, 0, 1] = 4.0
+    kernel[0, 0, 1, 2] = 4.0
+    kernel[0, 0, 2, 1] = 4.0
+    kernel = kernel / 36.0
     return kernel

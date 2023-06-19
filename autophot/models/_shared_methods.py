@@ -25,7 +25,13 @@ from ..utils.parametric_profiles import (
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.conversions.coordinates import Rotate_Cartesian
 from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
-from ..image import Image_List, Target_Image, Model_Image_List, Target_Image_List, Window_List
+from ..image import (
+    Image_List,
+    Target_Image,
+    Model_Image_List,
+    Target_Image_List,
+    Window_List,
+)
 from .. import AP_config
 
 
@@ -100,20 +106,20 @@ def parametric_initialize(
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
     icenter = target_area.world_to_pixel(parameters["center"].value)
-    
+
     # Collect isophotes for 1D fit
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
-        pa=(parameters["PA"].value - target.north).detach().cpu().item() if "PA" in parameters else 0.0,
+        pa=(parameters["PA"].value - target.north).detach().cpu().item()
+        if "PA" in parameters
+        else 0.0,
         q=parameters["q"].value.detach().cpu().item() if "q" in parameters else 1.0,
         n_isophotes=15,
     )
     R = np.array(list(iso["R"] for iso in iso_info)) * target.pixel_length.item()
-    flux = (
-        np.array(list(iso["flux"] for iso in iso_info)) / target.pixel_area.item()
-    )
+    flux = np.array(list(iso["flux"] for iso in iso_info)) / target.pixel_area.item()
     # Correct the flux if values are negative, so fit can be done in log space
     if np.sum(flux < 0) > 0:
         AP_config.ap_logger.debug("fixing flux")
@@ -184,12 +190,14 @@ def parametric_segment_initialize(
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
     icenter = target_area.world_to_pixel(model["center"].value)
-    
+
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
-        pa=(model["PA"].value - target.north).detach().cpu().item() if "PA" in model else 0.0,
+        pa=(model["PA"].value - target.north).detach().cpu().item()
+        if "PA" in model
+        else 0.0,
         q=model["q"].value.detach().cpu().item() if "q" in model else 1.0,
         n_isophotes=15,
         more=True,
@@ -206,7 +214,10 @@ def parametric_segment_initialize(
         for iso in iso_info:
             modangles = (
                 iso["angles"]
-                - ((model["PA"].value - target.north).detach().cpu().item() + r * np.pi / segments)
+                - (
+                    (model["PA"].value - target.north).detach().cpu().item()
+                    + r * np.pi / segments
+                )
             ) % np.pi
             flux.append(
                 np.median(
@@ -217,9 +228,8 @@ def parametric_segment_initialize(
                         )
                     ]
                 )
-                / target.pixel_area.item()
             )
-        flux = np.array(flux)
+        flux = np.array(flux) / target.pixel_area.item()
         if np.sum(flux < 0) >= 1:
             flux -= np.min(flux) - np.abs(np.min(flux) * 0.1)
         flux = np.log10(flux)
@@ -271,7 +281,7 @@ def exponential_radial_model(self, R, image=None, parameters=None):
     return exponential_torch(
         R + self.softening,
         parameters["Re"].value,
-        (10 ** parameters["Ie"].value) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["Ie"].value,
     )
 
 
@@ -280,7 +290,7 @@ def exponential_iradial_model(self, i, R, image=None, parameters=None):
     return exponential_torch(
         R,
         parameters["Re"].value[i],
-        (10 ** parameters["Ie"].value[i]) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["Ie"].value[i],
     )
 
 
@@ -292,7 +302,7 @@ def sersic_radial_model(self, R, image=None, parameters=None):
         R + self.softening,
         parameters["n"].value,
         parameters["Re"].value,
-        (10 ** parameters["Ie"].value) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["Ie"].value,
     )
 
 
@@ -302,7 +312,7 @@ def sersic_iradial_model(self, i, R, image=None, parameters=None):
         R + self.softening,
         parameters["n"].value[i],
         parameters["Re"].value[i],
-        (10 ** parameters["Ie"].value[i]) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["Ie"].value[i],
     )
 
 
@@ -314,7 +324,7 @@ def moffat_radial_model(self, R, image=None, parameters=None):
         R + self.softening,
         parameters["n"].value,
         parameters["Rd"].value,
-        (10 ** parameters["I0"].value) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["I0"].value,
     )
 
 
@@ -324,7 +334,7 @@ def moffat_iradial_model(self, i, R, image=None, parameters=None):
         R + self.softening,
         parameters["n"].value[i],
         parameters["Rd"].value[i],
-        (10 ** parameters["I0"].value[i]) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["I0"].value[i],
     )
 
 
@@ -335,7 +345,7 @@ def nuker_radial_model(self, R, image=None, parameters=None):
     return nuker_torch(
         R + self.softening,
         parameters["Rb"].value,
-        (10 ** parameters["Ib"].value) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["Ib"].value,
         parameters["alpha"].value,
         parameters["beta"].value,
         parameters["gamma"].value,
@@ -347,7 +357,7 @@ def nuker_iradial_model(self, i, R, image=None, parameters=None):
     return nuker_torch(
         R + self.softening,
         parameters["Rb"].value[i],
-        (10 ** parameters["Ib"].value[i]) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["Ib"].value[i],
         parameters["alpha"].value[i],
         parameters["beta"].value[i],
         parameters["gamma"].value[i],
@@ -361,7 +371,7 @@ def gaussian_radial_model(self, R, image=None, parameters=None):
     return gaussian_torch(
         R + self.softening,
         parameters["sigma"].value,
-        (10 ** parameters["flux"].value) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["flux"].value,
     )
 
 
@@ -370,7 +380,7 @@ def gaussian_iradial_model(self, i, R, image=None, parameters=None):
     return gaussian_torch(
         R + self.softening,
         parameters["sigma"].value[i],
-        (10 ** parameters["flux"].value[i]) * image.pixel_area,
+        image.pixel_area * 10 ** parameters["flux"].value[i],
     )
 
 
@@ -391,7 +401,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
         new_prof = [0, 2 * target.pixel_length]
         while new_prof[-1] < torch.max(self.window.shape / 2):
             new_prof.append(
-                new_prof[-1] + torch.max(2 * target.pixel_area, new_prof[-1] * 0.2)
+                new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
             )
         new_prof.pop()
         new_prof.pop()
@@ -401,16 +411,15 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     Coords = target_area.get_coordinate_meshgrid()
-    X, Y = Coords - parameters["center"].value[...,None, None]
+    X, Y = Coords - parameters["center"].value[..., None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
     raveldat = target_area.data.detach().cpu().numpy().ravel()
-    
+
     I = (
         binned_statistic(R.ravel(), raveldat, statistic="median", bins=rad_bins)[0]
-        / target_area.pixel_area.item()
-    )
+    ) / target.pixel_area.item()
     N = np.isfinite(I)
     if not np.all(N):
         I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
@@ -461,7 +470,7 @@ def spline_segment_initialize(
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     Coords = target_area.get_coordinate_meshgrid()
-    X, Y = Coords - parameters["center"].value[...,None, None]
+    X, Y = Coords - parameters["center"].value[..., None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
     T = self.angular_metric(X, Y, target, parameters).detach().cpu().numpy()
@@ -501,8 +510,7 @@ def spline_segment_initialize(
             binned_statistic(
                 R.ravel()[TCHOOSE], raveldat[TCHOOSE], statistic="median", bins=rad_bins
             )[0]
-            / target_area.pixel_area.item()
-        )
+        ) / target.pixel_area.item()
         N = np.isfinite(I)
         if not np.all(N):
             I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
@@ -523,21 +531,25 @@ def spline_segment_initialize(
 
 @default_internal
 def spline_radial_model(self, R, image=None, parameters=None):
-    return spline_torch(
-        R + self.softening,
-        parameters["I(R)"].prof,
-        parameters["I(R)"].value,
-        image.pixel_area,
-        extend=self.extend_profile,
+    return (
+        spline_torch(
+            R + self.softening,
+            parameters["I(R)"].prof,
+            parameters["I(R)"].value,
+            extend=self.extend_profile,
+        )
+        * image.pixel_area
     )
 
 
 @default_internal
 def spline_iradial_model(self, i, R, image=None, parameters=None):
-    return spline_torch(
-        R + self.softening,
-        parameters["I(R)"].prof,
-        parameters["I(R)"].value[i],
-        image.pixel_area,
-        extend=self.extend_profile,
+    return (
+        spline_torch(
+            R + self.softening,
+            parameters["I(R)"].prof,
+            parameters["I(R)"].value[i],
+            extend=self.extend_profile,
+        )
+        * image.pixel_area
     )

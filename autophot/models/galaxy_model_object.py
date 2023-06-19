@@ -61,6 +61,7 @@ class Galaxy_Model(Component_Model):
         self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
+
         if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]
@@ -75,7 +76,7 @@ class Galaxy_Model(Component_Model):
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
         icenter = target_area.world_to_pixel(parameters["center"].value)
-        
+
         if parameters["PA"].value is None:
             iso_info = isophotes(
                 target_area.data.detach().cpu().numpy() - edge_average,
@@ -87,12 +88,18 @@ class Galaxy_Model(Component_Model):
             )
             parameters["PA"].set_value(
                 (
-                    -((Angle_Average(
-                        list(
-                            iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :]
+                    -(
+                        (
+                            Angle_Average(
+                                list(
+                                    iso["phase2"]
+                                    for iso in iso_info[-int(len(iso_info) / 3) :]
+                                )
+                            )
+                            / 2
                         )
+                        + target.north
                     )
-                       / 2) + target.north)
                 )
                 % np.pi,
                 override_locked=True,
@@ -112,12 +119,6 @@ class Galaxy_Model(Component_Model):
             )
 
     @default_internal
-    def radius_metric(self, X, Y, image=None, parameters=None):
-        return torch.sqrt(
-            (torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2
-        )
-
-    @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
         X, Y = Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
         return (
@@ -131,7 +132,7 @@ class Galaxy_Model(Component_Model):
     ):
         if X is None or Y is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
         return self.radial_model(
             self.radius_metric(XX, YY, image, parameters),

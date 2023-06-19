@@ -38,10 +38,6 @@ class Wedge_Galaxy(Galaxy_Model):
         self.wedges = kwargs.get("wedges", 2)
 
     @default_internal
-    def angular_metric(self, X, Y, image=None, parameters=None):
-        return torch.atan2(Y, X)
-
-    @default_internal
     def polar_model(self, R, T, image=None, parameters=None):
         model = torch.zeros_like(R)
         if self.wedges % 2 == 0 and self.symmetric_wedges:
@@ -80,7 +76,7 @@ class Wedge_Galaxy(Galaxy_Model):
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
 
         return self.polar_model(

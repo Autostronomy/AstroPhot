@@ -20,3 +20,4 @@ from .wedge_model import *
 from .warp_model import *
 from .moffat_model import *
 from .nuker_model import *
+from .zernike_model import *

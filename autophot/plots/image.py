@@ -23,8 +23,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
     Args:
         fig (matplotlib.figure.Figure): The figure object in which the target image will be displayed.
         ax (matplotlib.axes.Axes): The axes object on which the target image will be plotted.
-        target (Image or Image_List): The image or list of images to be displayed. 
-        window (Window, optional): The window through which the image is viewed. If `None`, the window of the 
+        target (Image or Image_List): The image or list of images to be displayed.
+        window (Window, optional): The window through which the image is viewed. If `None`, the window of the
             provided `target` is used. Defaults to `None`.
         **kwargs: Arbitrary keyword arguments.
 
@@ -33,10 +33,10 @@ def target_image(fig, ax, target, window=None, **kwargs):
         ax (matplotlib.axes.Axes): The axes object containing the displayed target image.
 
     Note:
-        If the `target` is an `Image_List`, this function will recursively call itself for each image in the list. 
+        If the `target` is an `Image_List`, this function will recursively call itself for each image in the list.
         The `window` parameter and `kwargs` are passed unchanged to each recursive call.
     """
-    
+
     # recursive call for target image list
     if isinstance(target, Image_List):
         for i in range(len(target.image_list)):
@@ -56,7 +56,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
     vmax = sky + 5 * noise
 
     im = ax.pcolormesh(
-        X, Y, dat,
+        X,
+        Y,
+        dat,
         cmap="Greys",
         norm=ImageNormalize(
             stretch=HistEqStretch(
@@ -67,14 +69,16 @@ def target_image(fig, ax, target, window=None, **kwargs):
             vmin=np.nanmin(dat),
         ),
     )
-    
+
     im = ax.pcolormesh(
-        X, Y, np.ma.masked_where(dat < (sky + 3 * noise), dat),
+        X,
+        Y,
+        np.ma.masked_where(dat < (sky + 3 * noise), dat),
         cmap=cmap_grad,
         norm=matplotlib.colors.LogNorm(),
         clim=[sky + 3 * noise, None],
     )
-    
+
     ax.axis("equal")
 
     return fig, ax
@@ -100,17 +104,17 @@ def model_image(
         fig (matplotlib.figure.Figure): The figure object in which the image will be displayed.
         ax (matplotlib.axes.Axes): The axes object on which the image will be plotted.
         model (Model): The model object used to generate a model image if `sample_image` is not provided.
-        sample_image (Image or Image_List, optional): The image or list of images to be displayed. 
+        sample_image (Image or Image_List, optional): The image or list of images to be displayed.
             If `None`, a model image is generated using the provided `model`. Defaults to `None`.
-        window (Window, optional): The window through which the image is viewed. If `None`, the window of the 
+        window (Window, optional): The window through which the image is viewed. If `None`, the window of the
             provided `model` is used. Defaults to `None`.
-        target (Target, optional): The target or list of targets for the image or image list. 
+        target (Target, optional): The target or list of targets for the image or image list.
             If `None`, the target of the `model` is used. Defaults to `None`.
         showcbar (bool, optional): Whether to show the color bar. Defaults to `True`.
         target_mask (bool, optional): Whether to apply the mask of the target. If `True` and if the target has a mask,
             the mask is applied to the image. Defaults to `False`.
-        cmap_levels (int, optional): The number of discrete levels to convert the continuous color map to. 
-            If not `None`, the color map is converted to a ListedColormap with the specified number of levels. 
+        cmap_levels (int, optional): The number of discrete levels to convert the continuous color map to.
+            If not `None`, the color map is converted to a ListedColormap with the specified number of levels.
             Defaults to `None`.
         **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
@@ -122,7 +126,7 @@ def model_image(
         If the `sample_image` is an `Image_List`, this function will recursively call itself for each image in the list,
         with the corresponding target and window. The `showcbar` parameter and `kwargs` are passed unchanged to each recursive call.
     """
-    
+
     if sample_image is None:
         sample_image = model.make_model_image()
         sample_image = model(sample_image)
@@ -162,11 +166,13 @@ def model_image(
 
     # Update with user provided kwargs
     imshow_kwargs.update(kwargs)
-    
+
     # if requested, convert the continuous colourmap into discrete levels
     if cmap_levels is not None:
-        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(list(imshow_kwargs["cmap"](c) for c in np.linspace(0.,1.,cmap_levels)))
-        
+        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(
+            list(imshow_kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
+        )
+
     # If zeropoint is available, convert to surface brightness units
     if target.zeropoint is not None:
         sample_image = flux_to_sb(
@@ -218,18 +224,18 @@ def residual_image(
         fig (matplotlib.figure.Figure): The figure object in which the residuals will be displayed.
         ax (matplotlib.axes.Axes): The axes object on which the residuals will be plotted.
         model (Model): The model object used to generate a model image if `sample_image` is not provided.
-        target (Target or Image_List, optional): The target or list of targets for the image or image list. 
+        target (Target or Image_List, optional): The target or list of targets for the image or image list.
             If `None`, the target of the `model` is used. Defaults to `None`.
         sample_image (Image or Image_List, optional): The image or list of images from which residuals will be calculated.
             If `None`, a model image is generated using the provided `model`. Defaults to `None`.
         showcbar (bool, optional): Whether to show the color bar. Defaults to `True`.
-        window (Window or Window_List, optional): The window through which the image is viewed. If `None`, the window of the 
+        window (Window or Window_List, optional): The window through which the image is viewed. If `None`, the window of the
             provided `model` is used. Defaults to `None`.
-        center_residuals (bool, optional): Whether to subtract the median of the residuals. If `True`, the median is subtracted 
+        center_residuals (bool, optional): Whether to subtract the median of the residuals. If `True`, the median is subtracted
             from the residuals. Defaults to `False`.
-        clb_label (str, optional): The label for the colorbar. If `None`, a default label is used based on the normalization of the 
+        clb_label (str, optional): The label for the colorbar. If `None`, a default label is used based on the normalization of the
             residuals. Defaults to `None`.
-        normalize_residuals (bool, optional): Whether to normalize the residuals. If `True`, residuals are divided by the square root 
+        normalize_residuals (bool, optional): Whether to normalize the residuals. If `True`, residuals are divided by the square root
             of the variance of the target. Defaults to `False`.
         **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
@@ -239,10 +245,10 @@ def residual_image(
 
     Note:
         If the `window`, `target`, or `sample_image` are lists, this function will recursively call itself for each element in the list,
-        with the corresponding window, target, and sample image. The `showcbar`, `center_residuals`, and `kwargs` are passed unchanged to 
+        with the corresponding window, target, and sample image. The `showcbar`, `center_residuals`, and `kwargs` are passed unchanged to
         each recursive call.
     """
-    
+
     if window is None:
         window = model.window
     if target is None:
@@ -301,10 +307,12 @@ def residual_image(
     return fig, ax
 
 
-def model_window(fig, ax, model, target = None, rectangle_linewidth=2, **kwargs):
+def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
     if isinstance(ax, np.ndarray):
         for i, axitem in enumerate(ax):
-            model_window(fig, axitem, model, target = model.target.image_list[i], **kwargs)
+            model_window(
+                fig, axitem, model, target=model.target.image_list[i], **kwargs
+            )
         return fig, ax
 
     if isinstance(model, Group_Model):
@@ -313,19 +321,19 @@ def model_window(fig, ax, model, target = None, rectangle_linewidth=2, **kwargs)
                 use_window = m.window.window_list[m.target.index(target)]
             else:
                 use_window = m.window
-                
+
             lowright = use_window.shape.clone()
-            lowright[1] = 0.
+            lowright[1] = 0.0
             lowright = use_window.origin + use_window.cartesian_to_world(lowright)
             upleft = use_window.shape.clone()
-            upleft[0] = 0.
+            upleft[0] = 0.0
             upleft = use_window.origin + use_window.cartesian_to_world(upleft)
             end = use_window.origin + use_window.end
             x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
             y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
             ax.add_patch(
                 Polygon(
-                    xy=list(zip(x,y)),
+                    xy=list(zip(x, y)),
                     fill=False,
                     linewidth=rectangle_linewidth,
                     edgecolor=main_pallet["secondary1"],
@@ -337,17 +345,17 @@ def model_window(fig, ax, model, target = None, rectangle_linewidth=2, **kwargs)
         else:
             use_window = model.window
         lowright = use_window.shape.clone()
-        lowright[1] = 0.
+        lowright[1] = 0.0
         lowright = use_window.origin + use_window.cartesian_to_world(lowright)
         upleft = use_window.shape.clone()
-        upleft[0] = 0.
+        upleft[0] = 0.0
         upleft = use_window.origin + use_window.cartesian_to_world(upleft)
         end = use_window.origin + use_window.end
         x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
         y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
         ax.add_patch(
             Polygon(
-                xy=list(zip(x,y)),
+                xy=list(zip(x, y)),
                 fill=False,
                 linewidth=rectangle_linewidth,
                 edgecolor=main_pallet["secondary1"],

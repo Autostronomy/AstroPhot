@@ -108,7 +108,7 @@ class TestComponentModelFits(unittest.TestCase):
             np.sqrt(QPAXX ** 2 + QPAYY ** 2),
             true_params["n"],
             true_params["Re"],
-            true_params["Ie"],
+            pixelscale**2 * 10**true_params["Ie"],
         ) + np.random.normal(
             loc=0, scale=0.1, size=(shape[0] * upsample, shape[1] * upsample)
         )
@@ -159,8 +159,8 @@ class TestComponentModelFits(unittest.TestCase):
         )
         self.assertAlmostEqual(
             mod["Ie"].value.item(),
-            np.log10(true_params["Ie"] / pixelscale ** 2),
-            2,
+            true_params["Ie"],
+            1,
             "LM should accurately recover parameters in simple cases",
         )
         self.assertAlmostEqual(
