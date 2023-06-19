@@ -10,6 +10,7 @@ from ..utils.interpolate import (
     _shift_Lanczos_kernel_torch,
     simpsons_kernel,
     curvature_kernel,
+    interp2d,
 )
 from ..image import Model_Image, Target_Image, Window
 from ..utils.operations import (
@@ -156,30 +157,38 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
     return deep
 
 
-def _sample_convolve(self, image, shift, psf):
+def _sample_convolve(self, image, shift, psf, shift_method = "bilinear"):
     """
     image: Image object with image.data pixel matrix
     shift: the amount of shifting to do in pixel units
     psf: a PSF_Image object
     """
-    
     if shift is not None:
-        if any(np.array(psf.data.shape) < 15):
-            psf_data = torch.nn.functional.pad(psf.data, (3, 3, 3, 3))
+        if shift_method == "bilinear":
+            psf_data = torch.nn.functional.pad(psf.data, (1, 1, 1, 1))
+            X, Y = torch.meshgrid(
+                torch.arange(psf_data.shape[1], dtype = AP_config.ap_dtype, device = AP_config.ap_device) - shift[0],
+                torch.arange(psf_data.shape[0], dtype = AP_config.ap_dtype, device = AP_config.ap_device) - shift[1],
+                indexing = "xy"
+            )
+            shift_psf = interp2d(psf_data, X.clone(), Y.clone())
+        elif "lanczos" in shift_method:
+            lanczos_order = int(shift_method[shift_method.find(":")+1:])
+            psf_data = torch.nn.functional.pad(psf.data, (lanczos_order, lanczos_order, lanczos_order, lanczos_order))
+            LL = _shift_Lanczos_kernel_torch(
+                -shift[0],
+                -shift[1],
+                lanczos_order,
+                AP_config.ap_dtype,
+                AP_config.ap_device,
+            )
+            shift_psf = torch.nn.functional.conv2d(
+                psf_data.view(1, 1, *psf_data.shape),
+                LL.view(1, 1, *LL.shape),
+                padding="same",
+            ).squeeze()
         else:
-            psf_data = psf.data
-        LL = _shift_Lanczos_kernel_torch(
-            -shift[0],
-            -shift[1],
-            3,
-            AP_config.ap_dtype,
-            AP_config.ap_device,
-        )
-        shift_psf = torch.nn.functional.conv2d(
-            psf_data.view(1, 1, *psf_data.shape),
-            LL.view(1, 1, *LL.shape),
-            padding="valid",
-        ).squeeze()
+            raise ValueError(f"unrecognized subpixel shift method: {shift_method}")
     else:
         shift_psf = psf.data
     shift_psf = shift_psf / torch.sum(shift_psf) 

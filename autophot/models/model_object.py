@@ -68,7 +68,8 @@ class Component_Model(AutoPhot_Model):
     psf_mode = "none"  # none, full
     # Technique for PSF convolution
     psf_convolve_mode = "fft"  # fft, direct
-    psf_subpixel_shift = True
+    # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
+    psf_subpixel_shift = "bilinear" # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
@@ -318,7 +319,7 @@ class Component_Model(AutoPhot_Model):
                 pixelscale=working_pixelscale, window=working_window
             )
             # Sub pixel shift to align the model with the center of a pixel
-            if self.psf_subpixel_shift:
+            if self.psf_subpixel_shift != "none":
                 pixel_center = working_image.world_to_pixel(parameters["center"].value)
                 center_shift = pixel_center - torch.round(
                     pixel_center
@@ -341,10 +342,10 @@ class Component_Model(AutoPhot_Model):
             working_image.data += deep
 
             # Convolve the PSF
-            self._sample_convolve(working_image, center_shift, psf)
+            self._sample_convolve(working_image, center_shift, psf, self.psf_subpixel_shift)
 
             # Shift image back to align with original pixel grid
-            if self.psf_subpixel_shift:
+            if self.psf_subpixel_shift != "none":
                 working_image.header.pixel_shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
             working_image = working_image.reduce(psf.psf_upscale).crop(
