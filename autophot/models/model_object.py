@@ -322,7 +322,7 @@ class Component_Model(AutoPhot_Model):
                 pixel_center = working_image.world_to_pixel(parameters["center"].value)
                 center_shift = pixel_center - torch.round(
                     pixel_center
-                )  # torch.clamp(pixel_center - torch.round(pixel_center), -0.49, 0.49) # shifts smaller than 1/100th of a pixel are not allowed for numerical stability
+                )
                 working_image.header.pixel_shift_origin(center_shift)
             else:
                 center_shift = None
@@ -345,7 +345,7 @@ class Component_Model(AutoPhot_Model):
 
             # Shift image back to align with original pixel grid
             if self.psf_subpixel_shift:
-                working_image.header.shift_origin(-center_shift)
+                working_image.header.pixel_shift_origin(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
             working_image = working_image.reduce(psf.psf_upscale).crop(
                 psf.psf_border_int

@@ -157,16 +157,21 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
 
 
 def _sample_convolve(self, image, shift, psf):
+    """
+    image: Image object with image.data pixel matrix
+    shift: the amount of shifting to do in pixel units
+    psf: a PSF_Image object
+    """
+    
     if shift is not None:
         if any(np.array(psf.data.shape) < 10):
             psf_data = torch.nn.functional.pad(psf.data, (2, 2, 2, 2))
         else:
             psf_data = psf.data
-        pix_center_shift = image.world_to_pixel_delta(shift)
         LL = _shift_Lanczos_kernel_torch(
-            -pix_center_shift[0],
-            -pix_center_shift[1],
-            2,
+            -shift[0],
+            -shift[1],
+            3,
             AP_config.ap_dtype,
             AP_config.ap_device,
         )
