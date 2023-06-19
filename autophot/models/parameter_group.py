@@ -301,7 +301,7 @@ class Parameter_Group(object):
 
     def iter_all(self):
         return self.parameters.values()
-        
+
     def get_id(self, key):
         if ":" in key:
             return self.parameters[key[: key.find(":")]]
@@ -359,4 +359,6 @@ class Parameter_Group(object):
         return len(self.parameters)
 
     def __str__(self):
-        return f"Parameter Group: {self.name}\n" + "\n".join(list(str(P) for P in self.iter_all()))
+        return f"Parameter Group: {self.name}\n" + "\n".join(
+            list(str(P) for P in self.iter_all())
+        )

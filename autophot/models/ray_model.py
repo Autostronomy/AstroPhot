@@ -42,7 +42,7 @@ class Ray_Galaxy(Galaxy_Model):
         self.symmetric_rays = True
         super().__init__(*args, **kwargs)
         self.rays = kwargs.get("rays", Ray_Galaxy.rays)
-        
+
     @default_internal
     def polar_model(self, R, T, image=None, parameters=None):
         model = torch.zeros_like(R)
@@ -94,7 +94,7 @@ class Ray_Galaxy(Galaxy_Model):
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         XX, YY = self.transform_coordinates(X, Y, image, parameters)
 
         return self.polar_model(

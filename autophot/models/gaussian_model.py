@@ -306,7 +306,7 @@ class Gaussian_Star(Star_Model):
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image, parameters)
 
 

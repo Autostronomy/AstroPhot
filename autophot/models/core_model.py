@@ -82,7 +82,7 @@ class AutoPhot_Model(object):
         self.window = window
         self._locked = locked
         self.mask = kwargs.get("mask", None)
-        
+
     def add_equality_constraint(self, model, parameter):
         if isinstance(parameter, (tuple, list)):
             for P in parameter:
@@ -174,17 +174,23 @@ class AutoPhot_Model(object):
             self._window = window
         elif len(window) == 2:
             self._window = Window(
-                origin=self.target.pixel_to_world(torch.tensor(
-                    (window[0][0]-0.5, window[1][0]-0.5),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )),
-                shape=self.target.window.world_to_cartesian(self.target.pixel_to_world_delta(torch.tensor(
-                    (window[0][1] - window[0][0], window[1][1] - window[1][0]),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                ))),
-                projection = self.target.pixelscale,
+                origin=self.target.pixel_to_world(
+                    torch.tensor(
+                        (window[0][0] - 0.5, window[1][0] - 0.5),
+                        dtype=AP_config.ap_dtype,
+                        device=AP_config.ap_device,
+                    )
+                ),
+                shape=self.target.window.world_to_cartesian(
+                    self.target.pixel_to_world_delta(
+                        torch.tensor(
+                            (window[0][1] - window[0][0], window[1][1] - window[1][0]),
+                            dtype=AP_config.ap_dtype,
+                            device=AP_config.ap_device,
+                        )
+                    )
+                ),
+                projection=self.target.pixelscale,
             )
         elif len(window) == 4:
             origin = torch.tensor(

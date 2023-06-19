@@ -34,9 +34,7 @@ class Flat_Sky(Sky_Model):
 
         if parameters["sky"].value is None:
             parameters["sky"].set_value(
-                torch.log10(
-                    torch.median(target[self.window].data) / target.pixel_area
-                ),
+                torch.log10(torch.median(target[self.window].data) / target.pixel_area),
                 override_locked=True,
             )
         if parameters["sky"].uncertainty is None:
@@ -47,7 +45,7 @@ class Flat_Sky(Sky_Model):
                             target[self.window].data.detach().cpu().numpy(),
                             rng=(31.731 / 2, 100 - 31.731 / 2),
                         )
-                        / (2.0)
+                        / (2.0 * target.pixel_area.item())
                     )
                     / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
                 )

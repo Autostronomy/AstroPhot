@@ -15,9 +15,7 @@ def sersic_torch(R, n, Re, Ie):
         Ie: Effective surface density
     """
     bn = sersic_n_to_b(n)
-    return Ie * torch.exp(
-        -bn * (torch.pow(R / Re, 1 / n) - 1)
-    ) 
+    return Ie * torch.exp(-bn * (torch.pow(R / Re, 1 / n) - 1))
 
 
 def sersic_np(R, n, Re, Ie):

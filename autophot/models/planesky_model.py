@@ -61,7 +61,7 @@ class Plane_Sky(Sky_Model):
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         return (
             image.pixel_area * parameters["sky"].value
             + X * parameters["delta"].value[0]

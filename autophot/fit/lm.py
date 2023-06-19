@@ -193,7 +193,13 @@ class LM(BaseOptimizer):
             if self.verbose > 1:
                 AP_config.ap_logger.debug(f"rho: {rho.item()}")
 
-            if rho > self.epsilon4 or (all(torch.abs(self.grad).detach().cpu().numpy() < self.relative_tolerance) and np.abs((lossmin - loss.item()) / lossmin) < self.relative_tolerance):
+            if rho > self.epsilon4 or (
+                all(
+                    torch.abs(self.grad).detach().cpu().numpy()
+                    < self.relative_tolerance
+                )
+                and np.abs((lossmin - loss.item()) / lossmin) < self.relative_tolerance
+            ):
                 if self.verbose > 0:
                     AP_config.ap_logger.info("accept")
                 self.decision_history.append("accept")
@@ -202,11 +208,7 @@ class LM(BaseOptimizer):
                 self.current_state += h
                 self.L_dn()
                 self._count_reject = 0
-                if (
-                    0
-                    < (self.ndf * (lossmin - loss) / loss)
-                    < self.relative_tolerance
-                ):
+                if 0 < (self.ndf * (lossmin - loss) / loss) < self.relative_tolerance:
                     self._count_finish += 1
                 else:
                     self._count_finish = 0
@@ -305,17 +307,26 @@ class LM(BaseOptimizer):
                 lam, L, loss = self.accept_history()
                 if len(loss) >= 10:
                     loss10 = np.array(loss[-10:])
-                    if np.all(
-                        np.abs((loss10[0] - loss10[-1]) / loss10[-1])
-                        < self.relative_tolerance
-                    ) and L[-1] < 0.1:
+                    if (
+                        np.all(
+                            np.abs((loss10[0] - loss10[-1]) / loss10[-1])
+                            < self.relative_tolerance
+                        )
+                        and L[-1] < 0.1
+                    ):
                         self.message = self.message + "success"
                         break
-                    if np.all(
-                        np.abs((loss10[0] - loss10[-1]) / loss10[-1])
-                        < self.relative_tolerance
-                    ) and L[-1] >= 0.1:
-                        self.message = self.message + "fail by immobility, possible bad area of parameter space."
+                    if (
+                        np.all(
+                            np.abs((loss10[0] - loss10[-1]) / loss10[-1])
+                            < self.relative_tolerance
+                        )
+                        and L[-1] >= 0.1
+                    ):
+                        self.message = (
+                            self.message
+                            + "fail by immobility, possible bad area of parameter space."
+                        )
                         break
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
@@ -343,7 +354,10 @@ class LM(BaseOptimizer):
         if torch.all(torch.isfinite(cov)):
             try:
                 self.model.parameters.set_uncertainty(
-                    2*torch.sqrt(torch.abs(torch.diag(cov))), # fixme, is factor "2" too conservative?
+                    2
+                    * torch.sqrt(
+                        torch.abs(torch.diag(cov))
+                    ),  # fixme, is factor "2" too conservative?
                     as_representation=False,
                     parameters_identity=self.fit_parameters_identity,
                 )
@@ -422,20 +436,20 @@ class LM(BaseOptimizer):
             (
                 self.hess
                 + 1e-3
-                * self.L**2
+                * self.L ** 2
                 * torch.eye(
                     len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
             )
             * (
                 1
-                + self.L**2
+                + self.L ** 2
                 * torch.eye(
                     len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
             )
             ** 2
-            / (1 + self.L**2),
+            / (1 + self.L ** 2),
             self.grad,
         )
         return h

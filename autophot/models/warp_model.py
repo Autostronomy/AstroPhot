@@ -91,7 +91,8 @@ class Warp_Galaxy(Galaxy_Model):
 
         if parameters["PA(R)"].value is None:
             parameters["PA(R)"].set_value(
-                np.zeros(len(parameters["PA(R)"].prof)) + target.north, override_locked=True
+                np.zeros(len(parameters["PA(R)"].prof)) + target.north,
+                override_locked=True,
             )
 
         if parameters["q(R)"].value is None:
@@ -104,7 +105,9 @@ class Warp_Galaxy(Galaxy_Model):
         X, Y = super().transform_coordinates(X, Y, image, parameters)
         R = self.radius_metric(X, Y, image, parameters)
         PA = cubic_spline_torch(
-            parameters["PA(R)"].prof, -(parameters["PA(R)"].value - image.north), R.view(-1)
+            parameters["PA(R)"].prof,
+            -(parameters["PA(R)"].value - image.north),
+            R.view(-1),
         ).view(*R.shape)
         q = cubic_spline_torch(
             parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)

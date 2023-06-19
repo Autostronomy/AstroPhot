@@ -18,7 +18,11 @@ from ..utils.operations import (
     fft_convolve_multi_torch,
     grid_integrate,
 )
-from ..utils.interpolate import _shift_Lanczos_kernel_torch, simpsons_kernel, curvature_kernel
+from ..utils.interpolate import (
+    _shift_Lanczos_kernel_torch,
+    simpsons_kernel,
+    curvature_kernel,
+)
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -63,15 +67,15 @@ class Component_Model(AutoPhot_Model):
     # Scope for PSF convolution
     psf_mode = "none"  # none, full
     # Technique for PSF convolution
-    psf_convolve_mode = "fft" # fft, direct
+    psf_convolve_mode = "fft"  # fft, direct
     psf_subpixel_shift = True
 
     # Method for initial sampling of model
-    sampling_mode = "midpoint" # midpoint, trapezoid, simpson
-    
+    sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
+
     # Level to which each pixel should be evaluated
     sampling_tolerance = 1e-2
-    
+
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
 
@@ -80,7 +84,7 @@ class Component_Model(AutoPhot_Model):
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-5
-    
+
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
@@ -120,23 +124,23 @@ class Component_Model(AutoPhot_Model):
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.set_values(kwargs["parameters"])
-                
-    def set_aux_psf(self, aux_psf, add_parameters = True):
+
+    def set_aux_psf(self, aux_psf, add_parameters=True):
         """Set the PSF for this model as an auxiliary psf model. This psf
         model will be resampled as part of the model sampling step to
         track changes made during fitting.
 
         Args:
           aux_psf: The auxiliary psf model
-          add_parameters: if true, the parameters of the auxiliary psf model will become model parameters for this model as well. 
+          add_parameters: if true, the parameters of the auxiliary psf model will become model parameters for this model as well.
 
         """
-        
+
         self.psf = aux_psf
 
         if add_parameters:
             self.parameters.add_group(aux_psf.parameters)
-                            
+
     @property
     def psf(self):
         if self._psf is None:
@@ -194,7 +198,7 @@ class Component_Model(AutoPhot_Model):
 
         # Convert center coordinates to target area array indices
         init_icenter = target_area.world_to_pixel(parameters["center"].value)
-        
+
         # Compute center of mass in window
         COM = center_of_mass(
             (
@@ -210,7 +214,9 @@ class Component_Model(AutoPhot_Model):
             return
         COM = (COM[1], COM[0])
         # Convert center of mass indices to coordinates
-        COM_center = target_area.pixel_to_world(torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device))
+        COM_center = target_area.pixel_to_world(
+            torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        )
 
         # Set the new coordinates as the model center
         parameters["center"].value = COM_center
@@ -235,9 +241,9 @@ class Component_Model(AutoPhot_Model):
         """
         if X is None or Y is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         return torch.zeros_like(X)  # do nothing in base model
-                
+
     def sample(
         self,
         image: Optional["Image"] = None,
@@ -289,9 +295,18 @@ class Component_Model(AutoPhot_Model):
 
         if "full" in self.psf_mode:
             if isinstance(self.psf, AutoPhot_Model):
-                psf = self.psf.sample(image = self.psf_aux_image, parameters = parameters.groups[self.psf.name])
-                upscale = self.psf_aux_image.psf_upscale if self.psf_aux_image is not None else self.psf.psf_upscale
-                psf = PSF_Image(data = psf.data, pixelscale = psf.pixelscale, psf_upscale = upscale)
+                psf = self.psf.sample(
+                    image=self.psf_aux_image,
+                    parameters=parameters.groups[self.psf.name],
+                )
+                upscale = (
+                    self.psf_aux_image.psf_upscale
+                    if self.psf_aux_image is not None
+                    else self.psf.psf_upscale
+                )
+                psf = PSF_Image(
+                    data=psf.data, pixelscale=psf.pixelscale, psf_upscale=upscale
+                )
             else:
                 psf = self.psf
             # Add border for psf convolution edge effects, will be cropped out later
@@ -301,27 +316,33 @@ class Component_Model(AutoPhot_Model):
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(
                 pixelscale=working_pixelscale, window=working_window
-            )            
+            )
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift:
                 pixel_center = working_image.world_to_pixel(parameters["center"].value)
-                center_shift = pixel_center - torch.round(pixel_center) # torch.clamp(pixel_center - torch.round(pixel_center), -0.49, 0.49) # shifts smaller than 1/100th of a pixel are not allowed for numerical stability
+                center_shift = pixel_center - torch.round(
+                    pixel_center
+                )  # torch.clamp(pixel_center - torch.round(pixel_center), -0.49, 0.49) # shifts smaller than 1/100th of a pixel are not allowed for numerical stability
                 working_image.header.pixel_shift_origin(center_shift)
             else:
                 center_shift = None
             # Evaluate the model at the current resolution
             reference, deep = self._sample_init(
-                image=working_image, parameters=parameters, center = parameters["center"].value,
+                image=working_image,
+                parameters=parameters,
+                center=parameters["center"].value,
             )
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            deep = self._sample_integrate(deep, reference, working_image, parameters, parameters["center"].value)
+            deep = self._sample_integrate(
+                deep, reference, working_image, parameters, parameters["center"].value
+            )
 
             # update the image with the integrated pixels
             working_image.data += deep
-            
+
             # Convolve the PSF
             self._sample_convolve(working_image, center_shift, psf)
-                
+
             # Shift image back to align with original pixel grid
             if self.psf_subpixel_shift:
                 working_image.header.shift_origin(-center_shift)
@@ -331,23 +352,31 @@ class Component_Model(AutoPhot_Model):
             )
 
         else:
-            
+
             # Create an image to store pixel samples
             working_image = Model_Image(
                 pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
             reference, deep = self._sample_init(
-                image=working_image, parameters=parameters, center = parameters["center"].value,
+                image=working_image,
+                parameters=parameters,
+                center=parameters["center"].value,
             )
             # Super-resolve and integrate where needed
-            deep = self._sample_integrate(deep, reference, working_image, parameters, center = parameters["center"].value)
+            deep = self._sample_integrate(
+                deep,
+                reference,
+                working_image,
+                parameters,
+                center=parameters["center"].value,
+            )
             # Add the sampled/integrated pixels to the requested image
             working_image.data += deep
-            
+
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
-                
+
         image += working_image
 
         return image

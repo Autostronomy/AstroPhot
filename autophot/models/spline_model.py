@@ -80,12 +80,14 @@ class Spline_Star(Star_Model):
     extend_profile = True
 
     @default_internal
-    def transform_coordinates(self, X, Y, image=None, parameters=None):
+    def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y
-    
+
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        return self.radial_model(self.radius_metric(X, Y, image, parameters), image, parameters)
+        return self.radial_model(
+            self.radius_metric(X, Y, image, parameters), image, parameters
+        )
 
     from ._shared_methods import spline_initialize as initialize
     from ._shared_methods import spline_radial_model as radial_model

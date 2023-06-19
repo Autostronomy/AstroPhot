@@ -59,7 +59,7 @@ class Edgeon_Model(Component_Model):
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
         icenter = target_area.world_to_pixel(parameters["center"].value)
-        
+
         iso_info = isophotes(
             target_area.data.detach().cpu().numpy() - edge_average,
             (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
@@ -70,10 +70,18 @@ class Edgeon_Model(Component_Model):
         )
         parameters["PA"].set_value(
             (
-                -((Angle_Average(
-                    list(iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :])
+                -(
+                    (
+                        Angle_Average(
+                            list(
+                                iso["phase2"]
+                                for iso in iso_info[-int(len(iso_info) / 3) :]
+                            )
+                        )
+                        / 2
+                    )
+                    + target.north
                 )
-                   / 2) + target.north)
             )
             % np.pi,
             override_locked=True,
@@ -94,7 +102,7 @@ class Edgeon_Model(Component_Model):
     ):
         if X is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[...,None, None]
+            X, Y = Coords - parameters["center"].value[..., None, None]
         XX, YY = self.transform_coordinates(X, Y, image=image, parameters=parameters)
 
         return self.brightness_model(
@@ -130,7 +138,7 @@ class Edgeon_Sech(Edgeon_Model):
             return
         target_area = target[self.window]
         icenter = target_area.world_to_pixel(parameters["center"].value)
-        
+
         if parameters["I0"].value is None:
             parameters["I0"].set_value(
                 torch.log10(
@@ -139,7 +147,8 @@ class Edgeon_Sech(Edgeon_Model):
                             int(icenter[0]) - 2 : int(icenter[0]) + 2,
                             int(icenter[1]) - 2 : int(icenter[1]) + 2,
                         ]
-                    ) / target.pixel_area.item()
+                    )
+                    / target.pixel_area.item()
                 ),
                 override_locked=True,
             )
@@ -150,7 +159,7 @@ class Edgeon_Sech(Edgeon_Model):
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
                 )
-                / (torch.abs(parameters["I0"].value)),
+                / (torch.abs(parameters["I0"].value) * target.pixel_area),
                 override_locked=True,
             )
         if parameters["hs"].value is None:

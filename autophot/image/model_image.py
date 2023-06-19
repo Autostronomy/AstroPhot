@@ -38,7 +38,9 @@ class Model_Image(Image):
         self.window.shift_origin(shift)
         pix_shift = self.world_to_pixel_delta(shift)
         if torch.any(torch.abs(pix_shift) > 1):
-            raise NotImplementedError("Shifts larger than 1 pixel are currently not handled")
+            raise NotImplementedError(
+                "Shifts larger than 1 pixel are currently not handled"
+            )
         self.data = shift_Lanczos_torch(
             self.data,
             pix_shift[0],
@@ -59,7 +61,7 @@ class Model_Image(Image):
 
     def replace(self, other, data=None):
         if isinstance(other, Image):
-            if self.window.overlap_frac(other.window) == 0.: # fixme control flow
+            if self.window.overlap_frac(other.window) == 0.0:  # fixme control flow
                 return
             other_indices = self.window.get_indices(other)
             self_indices = other.window.get_indices(self)

@@ -492,13 +492,25 @@ class Parameter(object):
         """
 
         value = self.value.detach().cpu().tolist() if self.value is not None else "None"
-        uncertainty = self.uncertainty.detach().cpu().tolist() if self.uncertainty is not None else "None"
+        uncertainty = (
+            self.uncertainty.detach().cpu().tolist()
+            if self.uncertainty is not None
+            else "None"
+        )
         if self.limits is None:
             limits = None
         else:
-            limits0 = self.limits[0].detach().cpu().tolist() if self.limits[0] is not None else "None"
-            limits1 = self.limits[1].detach().cpu().tolist() if self.limits[1] is not None else "None"
-            limits = (limits0,limits1)
+            limits0 = (
+                self.limits[0].detach().cpu().tolist()
+                if self.limits[0] is not None
+                else "None"
+            )
+            limits1 = (
+                self.limits[1].detach().cpu().tolist()
+                if self.limits[1] is not None
+                else "None"
+            )
+            limits = (limits0, limits1)
         return f"{self.name}: {value} +- {uncertainty} [{self.units}{'' if self.locked is False else ', locked'}{'' if limits is None else (', ' + str(limits))}{'' if self.cyclic is False else ', cyclic'}]"
 
     def __iter__(self):
