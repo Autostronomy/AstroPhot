@@ -360,7 +360,7 @@ def gaussian_radial_model(self, R, image=None, parameters=None):
     return gaussian_torch(
         R + self.softening,
         parameters["sigma"].value,
-        10 ** parameters["flux"].value,
+        image.pixel_area * 10 ** parameters["flux"].value,
     )
 
 
@@ -369,7 +369,7 @@ def gaussian_iradial_model(self, i, R, image=None, parameters=None):
     return gaussian_torch(
         R + self.softening,
         parameters["sigma"].value[i],
-        10 ** parameters["flux"].value[i],
+        image.pixel_area * 10 ** parameters["flux"].value[i],
     )
 
 
