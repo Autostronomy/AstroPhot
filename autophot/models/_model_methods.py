@@ -157,16 +157,21 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
 
 
 def _sample_convolve(self, image, shift, psf):
+    """
+    image: Image object with image.data pixel matrix
+    shift: the amount of shifting to do in pixel units
+    psf: a PSF_Image object
+    """
+    
     if shift is not None:
-        if any(np.array(psf.data.shape) < 10):
-            psf_data = torch.nn.functional.pad(psf.data, (2, 2, 2, 2))
+        if any(np.array(psf.data.shape) < 15):
+            psf_data = torch.nn.functional.pad(psf.data, (3, 3, 3, 3))
         else:
             psf_data = psf.data
-        pix_center_shift = image.world_to_pixel_delta(shift)
         LL = _shift_Lanczos_kernel_torch(
-            -pix_center_shift[0],
-            -pix_center_shift[1],
-            2,
+            -shift[0],
+            -shift[1],
+            3,
             AP_config.ap_dtype,
             AP_config.ap_device,
         )
@@ -177,16 +182,16 @@ def _sample_convolve(self, image, shift, psf):
         ).squeeze()
     else:
         shift_psf = psf.data
-
+    shift_psf = shift_psf / torch.sum(shift_psf) 
     if self.psf_convolve_mode == "fft":
         image.data = fft_convolve_torch(
-            image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
+            image.data, shift_psf, img_prepadded=True
         )
     elif self.psf_convolve_mode == "direct":
         image.data = torch.nn.functional.conv2d(
             image.data.view(1, 1, *image.data.shape),
             torch.flip(
-                shift_psf.view(1, 1, *shift_psf.shape) / torch.sum(shift_psf),
+                shift_psf.view(1, 1, *shift_psf.shape),
                 dims=(2, 3),
             ),
             padding="same",
