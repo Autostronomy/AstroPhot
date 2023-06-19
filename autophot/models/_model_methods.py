@@ -164,8 +164,8 @@ def _sample_convolve(self, image, shift, psf):
     """
     
     if shift is not None:
-        if any(np.array(psf.data.shape) < 10):
-            psf_data = torch.nn.functional.pad(psf.data, (2, 2, 2, 2))
+        if any(np.array(psf.data.shape) < 15):
+            psf_data = torch.nn.functional.pad(psf.data, (3, 3, 3, 3))
         else:
             psf_data = psf.data
         LL = _shift_Lanczos_kernel_torch(
@@ -182,16 +182,16 @@ def _sample_convolve(self, image, shift, psf):
         ).squeeze()
     else:
         shift_psf = psf.data
-
+    shift_psf = shift_psf / torch.sum(shift_psf) 
     if self.psf_convolve_mode == "fft":
         image.data = fft_convolve_torch(
-            image.data, shift_psf / torch.sum(shift_psf), img_prepadded=True
+            image.data, shift_psf, img_prepadded=True
         )
     elif self.psf_convolve_mode == "direct":
         image.data = torch.nn.functional.conv2d(
             image.data.view(1, 1, *image.data.shape),
             torch.flip(
-                shift_psf.view(1, 1, *shift_psf.shape) / torch.sum(shift_psf),
+                shift_psf.view(1, 1, *shift_psf.shape),
                 dims=(2, 3),
             ),
             padding="same",
