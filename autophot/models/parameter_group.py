@@ -11,19 +11,24 @@ from ..utils.conversions.optimization import (
     d_inv_boundaries_dval,
     cyclic_boundaries,
 )
+from .parameter_object import Parameter
 from .. import AP_config
 
 __all__ = ["Parameter_Group"]
 
 
 class Parameter_Group(object):
-    def __init__(self, name, groups=None, parameters=None):
+    def __init__(self, name, groups=None, parameters=None, state=None):
         self.name = name
         self.groups = OrderedDict()
+        self.top_level_parameters = set()
+        self.parameters = OrderedDict()
+        if state is not None:
+            self.set_state(state)
+            return
         if groups is not None:
             for G in groups:
                 self.add_group(G)
-        self.parameters = OrderedDict()
         if parameters is not None:
             for P in parameters:
                 self.add_parameter(P)
@@ -38,15 +43,27 @@ class Parameter_Group(object):
     def add_group(self, group):
         self.groups[group.name] = group
         for P in group.parameters.values():
-            self.add_parameter(P)
+            self.add_parameter(P, top_level = False)
 
-    def add_parameter(self, parameter):
+    def add_parameter(self, parameter, top_level = True):
+        if top_level:
+            self.top_level_parameters.update([parameter.identity])
+
+        # Add the parameter identity to the list of parameters in this group
         self.parameters[parameter.identity] = parameter
+        # Add a link for the parameter back to this group
         parameter.groups.add(self)
+        
         for group in self.groups.values():
             if parameter.identity in group.parameters:
-                group.add_parameter(parameter)
+                group.add_parameter(parameter, top_level = False)
 
+    def pop_parameter(self, identity = None, name = None):
+        if identity is not None:
+            self.pop_id(identity)
+        if name is not None:
+            self.pop_name(name)
+    
     def get_identities(self):
         return sum((list(param.identities) for param in self), [])
 
@@ -296,11 +313,14 @@ class Parameter_Group(object):
             )
             start += V
 
-    def __iter__(self):
-        return filter(lambda p: not p.locked, self.parameters.values())
-
     def iter_all(self):
         return self.parameters.values()
+
+    def iter_top_level(self):
+        return filter(lambda p: p.identity in self.top_level_parameters, self.parameters.values())
+
+    def __iter__(self):
+        return filter(lambda p: not p.locked, self.parameters.values())
 
     def get_id(self, key):
         if ":" in key:
@@ -322,29 +342,49 @@ class Parameter_Group(object):
 
     def pop_id(self, key):
         try:
-            del self.parameters[key]
+            self.top_level_parameters.remove(key)
         except KeyError:
             pass
-        for group in self.groups.values():
-            group.pop_id(key)
+        return self.parameters.pop(key)
 
     def pop_name(self, key):
         try:
-            param = self.get_name(key)
-            del self.parameters[param.identity]
+            self.top_level_parameters.remove(param.identity)
         except KeyError:
             pass
-        for group in self.groups.values():
-            try:
-                group.pop_id(key)
-            except KeyError:
-                pass
+        param = self.get_name(key)
+        return self.parameters.pop(param.identity)
+        
+    def replace(self, old_param, new_param):
+        was_top_level = old_param.identity in self.top_level_parameters
+        self.pop_id(old_param.identity)
+        self.add_parameter(new_param, top_level = was_top_level)
 
     def to(self, dtype=None, device=None):
         for P in self.parameters.values():
             P.to(dtype=dtype, device=device)
         return self
 
+    def get_state(self, save_groups = True):
+        state = {"name": self.name}
+        if len(self.parameters) > 0:
+            state["parameter_order"] = list(P.name for P in self.iter_top_level())
+            state["parameters"] = dict((P.name,P.get_state()) for P in self.iter_top_level())
+        if save_groups and len(self.groups) > 0:
+            state["groups"] = dict((G.name, G.get_state()) for G in self.groups.values())
+        return state
+
+    def set_state(self, state):
+        self.name = state["name"]
+        if "parameters" in state:
+            self.parameters = OrderedDict()
+            for param in state["parameter_order"]:
+                self.add_parameter(Parameter(**state["parameters"][param]), top_level = True)
+        if "groups" in state:
+            self.groups = OrderedDict()
+            for group in state["groups"]:
+                self.add_group(Parameter_Group(group, state = state["groups"][group]))
+                            
     def __getitem__(self, key):
         return self.get_name(key)
 

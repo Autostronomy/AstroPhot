@@ -92,8 +92,7 @@ class AutoPhot_Model(object):
         old_groups = del_param.groups
         use_param = model.parameters.get_name(parameter)
         for group in old_groups:
-            group.pop_id(del_param.identity)
-            group.add_parameter(use_param)
+            group.replace(del_param, use_param)
 
     @torch.no_grad()
     @ignore_numpy_warnings
