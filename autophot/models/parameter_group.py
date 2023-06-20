@@ -53,7 +53,8 @@ class Parameter_Group(object):
         self.parameters[parameter.identity] = parameter
         # Add a link for the parameter back to this group
         parameter.groups.add(self)
-        
+
+        # Redundant parameter setting, ensures that parameters with the same identity do not coexist (generally only applicable when loading a model)
         for group in self.groups.values():
             if parameter.identity in group.parameters:
                 group.add_parameter(parameter, top_level = False)
