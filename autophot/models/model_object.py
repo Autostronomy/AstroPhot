@@ -145,7 +145,10 @@ class Component_Model(AutoPhot_Model):
     @property
     def psf(self):
         if self._psf is None:
-            return self.target.psf
+            try:
+                return self.target.psf
+            except AttributeError:
+                return None
         return self._psf
 
     @psf.setter
@@ -550,11 +553,9 @@ class Component_Model(AutoPhot_Model):
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
-        state["parameter_order"] = list(self.parameter_order)
-        if "parameters" not in state:
-            state["parameters"] = {}
-        for P in self.parameters:
-            state["parameters"][P.name] = P.get_state()
+        state["parameters"] = self.parameters.get_state(save_groups = False)
+        if isinstance(self.psf, AutoPhot_Model):
+            state["psf"] = self.psf.get_state()
         for key in self.track_attrs:
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
@@ -577,9 +578,9 @@ class Component_Model(AutoPhot_Model):
         for key in self.track_attrs:
             if key in state:
                 setattr(self, key, state[key])
-        self.parameters = Parameter_Group(self.name)
-        for P in state["parameter_order"]:
-            self.parameters.add_parameter(Parameter(**state["parameters"][P]))
+        self.parameters = Parameter_Group(self.name, state = state["parameters"])
+        if "psf" in state:
+            self.set_aux_psf(AutoPhot_Model(state["psf"]["name"], filename = state["psf"], target = self.target))
         self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         return state
 

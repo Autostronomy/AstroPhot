@@ -485,6 +485,10 @@ class Parameter(object):
         self.locked = state.get("locked", False)
         self.prof = state.get("prof", None)
 
+    def delete_self(self):
+        for group in self.groups:
+            group.pop_id(self.identity)
+
     def __str__(self):
         """String representation of the parameter which indicates it's value
         along with uncertainty, units, limits, etc.
