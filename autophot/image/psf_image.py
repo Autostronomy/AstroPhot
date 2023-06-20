@@ -41,14 +41,13 @@ class PSF_Image(Image):
                 psf_upscale (int, optional): Upscaling factor of the PSF. Default is 1.
                 band (str, optional): The band of the image. Default is None.
         """
+        self.psf_upscale = torch.as_tensor(
+            kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
+        )
         super().__init__(*args, **kwargs)
         assert torch.all(
             (torch.tensor(self.data.shape) % 2) == 1
         ), "psf must have odd shape"
-
-        self.psf_upscale = torch.as_tensor(
-            kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
-        )
 
         # set the band
         self.band = kwargs.get("band", None)

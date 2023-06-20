@@ -70,6 +70,7 @@ class Component_Model(AutoPhot_Model):
     psf_convolve_mode = "fft"  # fft, direct
     # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
     psf_subpixel_shift = "bilinear" # bilinear, lanczos:2, lanczos:3, lanczos:5, none
+    psf_upscale = 1.
 
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
@@ -91,6 +92,7 @@ class Component_Model(AutoPhot_Model):
     track_attrs = [
         "psf_mode",
         "psf_convolve_mode",
+        "psf_upscale",
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
@@ -164,6 +166,7 @@ class Component_Model(AutoPhot_Model):
                 val,
                 pixelscale=self.target.pixelscale,
                 band=self.target.band,
+                psf_upscale = self.psf_upscale,
             )
 
     # Initialization functions
@@ -580,7 +583,7 @@ class Component_Model(AutoPhot_Model):
                 setattr(self, key, state[key])
         self.parameters = Parameter_Group(self.name, state = state["parameters"])
         if "psf" in state:
-            self.set_aux_psf(AutoPhot_Model(state["psf"]["name"], filename = state["psf"], target = self.target))
+            self.set_aux_psf(AutoPhot_Model(state["psf"]["name"], filename = state["psf"], target = self.target, psf_upscale = 1.)) # fixme, remove psf upscale its temporary
         self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         return state
 

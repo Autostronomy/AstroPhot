@@ -180,10 +180,10 @@ def parametric_segment_initialize(
     target_area = target[model.window]
     edge = np.concatenate(
         (
-            target_area.data[:, 0],
-            target_area.data[:, -1],
-            target_area.data[0, :],
-            target_area.data[-1, :],
+            target_area.data[:, 0].detach().cpu().numpy(),
+            target_area.data[:, -1].detach().cpu().numpy(),
+            target_area.data[0, :].detach().cpu().numpy(),
+            target_area.data[-1, :].detach().cpu().numpy(),
         )
     )
     edge_average = np.median(edge)
@@ -195,10 +195,10 @@ def parametric_segment_initialize(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
-        pa=(model["PA"].value - target.north).detach().cpu().item()
+        pa=(model["PA"].value - target.north).item()
         if "PA" in model
         else 0.0,
-        q=model["q"].value.detach().cpu().item() if "q" in model else 1.0,
+        q=model["q"].value.item() if "q" in model else 1.0,
         n_isophotes=15,
         more=True,
     )

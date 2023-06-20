@@ -97,6 +97,7 @@ class Image(object):
 
         # set the data
         self.data = data
+        self.to()
 
     @property
     def north(self):
