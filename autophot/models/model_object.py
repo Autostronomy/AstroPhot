@@ -377,9 +377,10 @@ class Component_Model(AutoPhot_Model):
 
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
-
+        if not torch.all(torch.isfinite(working_image.data)):
+            print(self.name, "has non finite values in sample image!!!")
         image += working_image
-
+        
         return image
 
     @torch.no_grad()
@@ -484,6 +485,10 @@ class Component_Model(AutoPhot_Model):
             create_graph=False,
         )
 
+        if not torch.all(torch.isfinite(full_jac)):
+            print("found non finite jacobian for:")
+            print(self.name)
+            print(parameters)
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
             parameters=self.parameters.get_identity_vector(
