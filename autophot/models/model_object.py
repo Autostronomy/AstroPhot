@@ -493,7 +493,7 @@ class Component_Model(AutoPhot_Model):
         )
 
         if not torch.all(torch.isfinite(full_jac)):
-            print("found non finite jacobian for:", torch.sum(torch.isfinite(full_jac)).item(),full_jac.numel(), full_jac.shape)
+            print("found non finite jacobian for:", self.name, torch.sum(torch.isfinite(full_jac)).item(),full_jac.numel(), full_jac.shape)
             print(self.name)
             print(self.parameters)
         # Store the jacobian as a Jacobian_Image object

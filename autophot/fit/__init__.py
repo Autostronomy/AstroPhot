@@ -2,9 +2,9 @@ from .base import *
 from .lm import *
 from .gradient import *
 from .iterative import *
-from .hmc import *
+#from .hmc import *
 from .mhmcmc import *
-from .nuts import *
+#from .nuts import *
 
 """
 base: This module defines the base class BaseOptimizer, 
