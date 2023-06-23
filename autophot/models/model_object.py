@@ -560,6 +560,8 @@ class Component_Model(AutoPhot_Model):
                 if subtar.identity == self._target_identity:
                     usetar = subtar
                     break
+            else:
+                raise KeyError(f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}")
         else:
             usetar = tar
             
