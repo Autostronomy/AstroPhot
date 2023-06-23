@@ -335,9 +335,9 @@ class Parameter_Group(object):
             return self.groups[key[: key.find(":")]].get_name(key[key.find(":") + 1 :])
 
         # Attempt to find the parameter with that key name
-        for P in self.parameters.values():
-            if P.name == key:
-                return P
+        for Pid in self.top_level_parameters:
+            if self.parameters[Pid].name == key:
+                return self.parameters[Pid]
         # If the key cannot be found, raise an error
         raise KeyError()
 

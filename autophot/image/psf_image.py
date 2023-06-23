@@ -22,7 +22,7 @@ class PSF_Image(Image):
     Attributes:
         data (torch.Tensor): The image data of the PSF.
         psf_upscale (torch.Tensor): Upscaling factor of the PSF. Default is 1.
-        band (str): The band of the image. Default is None.
+        identity (str): The identity of the image. Default is None.
 
     Methods:
         psf_border_int: Calculates and returns the convolution border size of the PSF image in integer format.
@@ -48,9 +48,6 @@ class PSF_Image(Image):
         assert torch.all(
             (torch.tensor(self.data.shape) % 2) == 1
         ), "psf must have odd shape"
-
-        # set the band
-        self.band = kwargs.get("band", None)
 
     @property
     def psf_border_int(self):
@@ -117,7 +114,6 @@ class PSF_Image(Image):
         """
         return super().copy(
             psf_upscale=self.psf_upscale,
-            band=self.band,
         )
 
     def blank_copy(self, **kwargs):
@@ -133,7 +129,6 @@ class PSF_Image(Image):
         """
         return super().blank_copy(
             psf_upscale=self.psf_upscale,
-            band=self.band,
         )
 
     def get_window(self, **kwargs):
@@ -149,7 +144,6 @@ class PSF_Image(Image):
         """
         return super().get_window(
             psf_upscale=self.psf_upscale,
-            band=self.band,
         )
 
     def to(self, dtype=None, device=None):
@@ -181,7 +175,7 @@ class PSF_Image(Image):
             PSF_Image: A new instance of PSF_Image class with the reduced image size.
         """
         return super().reduce(
-            scale, psf_upscale=self.psf_upscale / scale, band=self.band, **kwargs
+            scale, psf_upscale=self.psf_upscale / scale, **kwargs
         )
 
     def expand(self, padding):

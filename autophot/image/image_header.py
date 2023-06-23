@@ -26,7 +26,7 @@ class Image_Header(object):
         note: Optional[str] = None,
         origin: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
-        _identity: str = None,
+        identity: str = None,
         **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
@@ -53,10 +53,10 @@ class Image_Header(object):
         None
         """
         # Record identity
-        if _identity is None:
+        if identity is None:
             self.identity = str(id(self))
         else:
-            self.identity = _identity
+            self.identity = identity
 
         if filename is not None:
             self.load(filename)
@@ -263,7 +263,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 
@@ -279,7 +279,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window & window,
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 
@@ -407,7 +407,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 
@@ -434,7 +434,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 

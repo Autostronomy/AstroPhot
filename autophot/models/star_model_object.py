@@ -28,11 +28,4 @@ class Star_Model(Component_Model):
     @psf_mode.setter
     def psf_mode(self, val):
         pass
-
-    @property
-    def integrate_mode(self):
-        return "none"
-
-    @integrate_mode.setter
-    def integrate_mode(self, val):
-        pass
+    

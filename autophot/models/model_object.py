@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 
 from .core_model import AutoPhot_Model
-from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List
+from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List, Target_Image, Target_Image_List
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
@@ -102,6 +102,7 @@ class Component_Model(AutoPhot_Model):
     useable = False
 
     def __init__(self, name, *args, **kwargs):
+        self._target_identity = None
         super().__init__(name, *args, **kwargs)
 
         self.psf = None
@@ -383,9 +384,7 @@ class Component_Model(AutoPhot_Model):
 
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
-        if not torch.all(torch.isfinite(working_image.data)):
-            print(self.name, "has non finite values in sample image!!!", torch.sum(torch.isfinite(working_image.data)).item(), working_image.data.numel())
-            print(self.parameters)
+            
         image += working_image
         
         return image
@@ -492,10 +491,11 @@ class Component_Model(AutoPhot_Model):
             create_graph=False,
         )
 
-        if not torch.all(torch.isfinite(full_jac)):
-            print("found non finite jacobian for:", self.name, torch.sum(torch.isfinite(full_jac)).item(),full_jac.numel(), full_jac.shape)
-            print(self.name)
-            print(self.parameters)
+        # if not torch.all(torch.isfinite(full_jac)):
+        #     print("found non finite jacobian for:", self.name, torch.sum(torch.isfinite(full_jac)).item(),full_jac.numel(), full_jac.shape)
+        #     print(self.name)
+        #     print(self.parameters)
+        #     full_jac[torch.logical_not(torch.isfinite(full_jac))] = 0.
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
             parameters=self.parameters.get_identity_vector(
@@ -543,6 +543,34 @@ class Component_Model(AutoPhot_Model):
 
         return jac_img
 
+    @property
+    def target(self):
+        try:
+            return self._target
+        except AttributeError:
+            return None
+
+    @target.setter
+    def target(self, tar):
+        assert tar is None or isinstance(tar, Target_Image)
+
+        # If a target image list is assigned, pick out the target appropriate for this model
+        if isinstance(tar, Target_Image_List) and self._target_identity is not None:
+            for subtar in tar:
+                if subtar.identity == self._target_identity:
+                    usetar = subtar
+                    break
+        else:
+            usetar = tar
+            
+        self._target = usetar
+        
+        # Remember the target identity to use
+        try:
+            self._target_identity = self._target.identity
+        except AttributeError:
+            pass
+
     def get_state(self):
         """Returns a dictionary with a record of the current state of the
         model.
@@ -557,6 +585,7 @@ class Component_Model(AutoPhot_Model):
         state = super().get_state()
         state["window"] = self.window.get_state()
         state["parameters"] = self.parameters.get_state(save_groups = False)
+        state["target_identity"] = self._target_identity
         if isinstance(self.psf, AutoPhot_Model):
             state["psf"] = self.psf.get_state()
         for key in self.track_attrs:
@@ -577,14 +606,22 @@ class Component_Model(AutoPhot_Model):
         """
         state = AutoPhot_Model.load(filename)
         self.name = state["name"]
+        # Use window saved state to initialize model window
         self.window = Window(**state["window"])
+        # reassign target in case a target list was given
+        self._target_identity = state["target_identity"]
+        self.target = self.target
+        # Set any attributes which were not default
         for key in self.track_attrs:
             if key in state:
                 setattr(self, key, state[key])
+        # Load the parameter group, this is handled by the parameter group object
         self.parameters = Parameter_Group(self.name, state = state["parameters"])
+        # Move parameters to the appropriate device and dtype
+        self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        # Re-create the aux PSF model if there was one
         if "psf" in state:
             self.set_aux_psf(AutoPhot_Model(state["psf"]["name"], filename = state["psf"], target = self.target, psf_upscale = 1.)) # fixme, remove psf upscale its temporary
-        self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         return state
 
     # Extra background methods for the basemodel

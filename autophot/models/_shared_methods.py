@@ -138,7 +138,9 @@ def parametric_initialize(
         return np.mean(residual[:-3])
 
     res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
-
+    if not res.success and AP_config.ap_verbose >= 2:
+        AP_config.ap_logger.warn(f"initialization fit not successful for {model.name}, falling back to defaults")
+        
     if force_uncertainty is None:
         reses = []
         for i in range(10):
