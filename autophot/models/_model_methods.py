@@ -142,6 +142,9 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
             eval_parameters=parameters,
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
+            quad_level=self.integrate_quad_level,
+            gridding=self.integrate_gridding,
+            max_depth=self.integrate_max_depth,
             reference=self.sampling_tolerance * ref,
         )
         deep[select] = intdeep

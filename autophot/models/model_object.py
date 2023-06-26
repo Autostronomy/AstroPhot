@@ -13,11 +13,6 @@ from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.operations import (
-    fft_convolve_torch,
-    fft_convolve_multi_torch,
-    grid_integrate,
-)
 from ..utils.interpolate import (
     _shift_Lanczos_kernel_torch,
     simpsons_kernel,
@@ -80,6 +75,9 @@ class Component_Model(AutoPhot_Model):
 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
+    integrate_max_depth = 2
+    integrate_gridding = 5
+    integrate_quad_level = 3 # please always choose an odd number 3 or higher
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
