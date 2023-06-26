@@ -40,6 +40,9 @@ class Component_Model(AutoPhot_Model):
       sampling_mode (str): Method for initial sampling of model. Can be one of midpoint, trapezoid, simpson. Default: midpoint
       sampling_tolerance (float): accuracy to which each pixel should be evaluated. Default: 1e-2
       integrate_mode (str): Integration scope for the model. One of none, threshold, full where threshold will select which pixels to integrate while full (in development) will integrate all pixels. Default: threshold
+      integrate_max_depth (int): Maximum recursion depth when performing sub pixel integration.
+      integrate_gridding (int): Amount by which to subdivide pixels when doing recursive pixel integration.
+      integrate_quad_level (int): The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher.
       softening (float): Softening length used for numerical stability and integration stability to avoid discontinuities (near R=0). Effectively has units of arcsec. Default: 1e-5
       jacobian_chunksize (int): Maximum size of parameter list before jacobian will be broken into smaller chunks.
       special_kwargs (list): Parameters which are treated specially by the model object and should not be updated directly.
@@ -75,9 +78,15 @@ class Component_Model(AutoPhot_Model):
 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
+
+    # Maximum recursion depth when performing sub pixel integration
     integrate_max_depth = 2
+
+    # Amount by which to subdivide pixels when doing recursive pixel integration
     integrate_gridding = 5
-    integrate_quad_level = 3 # please always choose an odd number 3 or higher
+
+    # The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher
+    integrate_quad_level = 3 
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
@@ -94,6 +103,9 @@ class Component_Model(AutoPhot_Model):
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
+        "integrate_max_depth",
+        "integrate_gridding",
+        "integrate_quad_level",
         "jacobian_chunksize",
         "softening",
     ]
@@ -331,6 +343,7 @@ class Component_Model(AutoPhot_Model):
                 working_image.header.pixel_shift_origin(center_shift)
             else:
                 center_shift = None
+
             # Evaluate the model at the current resolution
             reference, deep = self._sample_init(
                 image=working_image,
@@ -381,7 +394,7 @@ class Component_Model(AutoPhot_Model):
 
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
-            
+
         image += working_image
         
         return image
@@ -625,5 +638,6 @@ class Component_Model(AutoPhot_Model):
     from ._model_methods import _sample_init
     from ._model_methods import _sample_integrate
     from ._model_methods import _sample_convolve
+    from ._model_methods import _integrate_reference
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters

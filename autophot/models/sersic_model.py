@@ -19,6 +19,8 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import sersic_torch, sersic_np
 from ..utils.conversions.coordinates import Rotate_Cartesian
+from ..utils.conversions.functions import sersic_Ie_to_flux_torch
+
 
 __all__ = [
     "Sersic_Galaxy",
@@ -80,6 +82,10 @@ class Sersic_Galaxy(Galaxy_Model):
             self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
         )
 
+    def _integrate_reference(self, image_data, image_header, parameters):
+        ret = sersic_Ie_to_flux_torch((10**parameters["Ie"].value)*image_header.pixel_area, parameters["n"].value, parameters["Re"].value, parameters["q"].value)
+        return ret / image_data.numel()
+    
     from ._shared_methods import sersic_radial_model as radial_model
 
 

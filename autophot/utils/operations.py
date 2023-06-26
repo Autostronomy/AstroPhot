@@ -129,8 +129,8 @@ def single_quad_integrate(
         parameters=eval_parameters,
     )
 
-    # select the midpoint to use as reference vs the quadrature integral
-    ref = res[..., (quad_level**2) // 2]
+    # Reference flux for pixel is simply the mean of the evaluations
+    ref = res.mean(axis=-1) #res[..., (quad_level**2) // 2] # alternative, use midpoint
     
     # Apply the weights and reduce to original pixel space
     res = (res * weight).sum(axis=-1)
@@ -147,10 +147,43 @@ def grid_integrate(
     device,
     quad_level=3,
     gridding=5,
-    current_depth=1,
+    _current_depth=1,
     max_depth=2,
     reference=None,
 ):
+    """The grid_integrate function performs adaptive quadrature
+    integration over a given pixel grid, offering precision control
+    where it is needed most.
+
+    Args:
+      X (torch.Tensor): A 2D tensor representing the x-coordinates of the grid on which the function will be integrated.
+      Y (torch.Tensor): A 2D tensor representing the y-coordinates of the grid on which the function will be integrated.
+      image_header (ImageHeader): An object containing meta-information about the image.
+      eval_brightness (callable): A function that evaluates the brightness at each grid point. This function should be compatible with PyTorch tensor operations.
+      eval_parameters (Parameter_Group): An object containing parameters that are passed to the eval_brightness function.
+      dtype (torch.dtype): The data type of the output tensor. The dtype argument should be a valid PyTorch data type.
+      device (torch.device): The device on which to perform the computations. The device argument should be a valid PyTorch device.
+      quad_level (int, optional): The initial level of quadrature used in the integration. Defaults to 3.
+      gridding (int, optional): The factor by which the grid is subdivided when the integration error for a pixel is above the allowed threshold. Defaults to 5.
+      _current_depth (int, optional): The current depth level of the grid subdivision. Used for recursive calls to the function. Defaults to 1.
+      max_depth (int, optional): The maximum depth level of grid subdivision. Once this level is reached, no further subdivision is performed. Defaults to 2.
+      reference (torch.Tensor or None, optional): A scalar value that represents the allowed threshold for the integration error. 
+
+    Returns:
+      torch.Tensor: A tensor of the same shape as X and Y that represents the result of the integration on the grid.
+
+    This function operates by first performing a quadrature
+    integration over the given pixels. If the maximum depth level has
+    been reached, it simply returns the result. Otherwise, it
+    calculates the integration error for each pixel and selects those
+    that have an error above the allowed threshold. For pixels that
+    have low error, the result is set as computed. For those with high
+    error, it sets up a finer sampling grid and recursively evaluates
+    the quadrature integration on it. Finally, it integrates the
+    results from the finer sampling grid back to the current
+    resolution.
+
+    """
 
     # perform quadrature integration on the given pixels
     res, ref = single_quad_integrate(
@@ -165,7 +198,7 @@ def grid_integrate(
     )
 
     # if the max depth is reached, simply return the integrated pixels
-    if current_depth >= max_depth:
+    if _current_depth >= max_depth:
         return res
 
     # Begin integral
@@ -200,7 +233,7 @@ def grid_integrate(
         device,
         quad_level=quad_level+2,
         gridding=gridding,
-        current_depth=current_depth+1,
+        _current_depth=_current_depth+1,
         max_depth=max_depth,
         reference=reference * gridding**2,        
     )

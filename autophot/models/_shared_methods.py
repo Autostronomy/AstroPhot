@@ -34,7 +34,6 @@ from ..image import (
 )
 from .. import AP_config
 
-
 # Target Selector Decorator
 ######################################################################
 def select_target(func):
@@ -281,7 +280,7 @@ def parametric_segment_initialize(
 @default_internal
 def exponential_radial_model(self, R, image=None, parameters=None):
     return exponential_torch(
-        R + self.softening,
+        R,
         parameters["Re"].value,
         image.pixel_area * 10 ** parameters["Ie"].value,
     )
@@ -301,7 +300,7 @@ def exponential_iradial_model(self, i, R, image=None, parameters=None):
 @default_internal
 def sersic_radial_model(self, R, image=None, parameters=None):
     return sersic_torch(
-        R + self.softening,
+        R,
         parameters["n"].value,
         parameters["Re"].value,
         image.pixel_area * 10 ** parameters["Ie"].value,
@@ -311,7 +310,7 @@ def sersic_radial_model(self, R, image=None, parameters=None):
 @default_internal
 def sersic_iradial_model(self, i, R, image=None, parameters=None):
     return sersic_torch(
-        R + self.softening,
+        R,
         parameters["n"].value[i],
         parameters["Re"].value[i],
         image.pixel_area * 10 ** parameters["Ie"].value[i],
@@ -323,7 +322,7 @@ def sersic_iradial_model(self, i, R, image=None, parameters=None):
 @default_internal
 def moffat_radial_model(self, R, image=None, parameters=None):
     return moffat_torch(
-        R + self.softening,
+        R,
         parameters["n"].value,
         parameters["Rd"].value,
         image.pixel_area * 10 ** parameters["I0"].value,
@@ -333,7 +332,7 @@ def moffat_radial_model(self, R, image=None, parameters=None):
 @default_internal
 def moffat_iradial_model(self, i, R, image=None, parameters=None):
     return moffat_torch(
-        R + self.softening,
+        R,
         parameters["n"].value[i],
         parameters["Rd"].value[i],
         image.pixel_area * 10 ** parameters["I0"].value[i],
@@ -345,7 +344,7 @@ def moffat_iradial_model(self, i, R, image=None, parameters=None):
 @default_internal
 def nuker_radial_model(self, R, image=None, parameters=None):
     return nuker_torch(
-        R + self.softening,
+        R,
         parameters["Rb"].value,
         image.pixel_area * 10 ** parameters["Ib"].value,
         parameters["alpha"].value,
@@ -357,7 +356,7 @@ def nuker_radial_model(self, R, image=None, parameters=None):
 @default_internal
 def nuker_iradial_model(self, i, R, image=None, parameters=None):
     return nuker_torch(
-        R + self.softening,
+        R,
         parameters["Rb"].value[i],
         image.pixel_area * 10 ** parameters["Ib"].value[i],
         parameters["alpha"].value[i],
@@ -371,7 +370,7 @@ def nuker_iradial_model(self, i, R, image=None, parameters=None):
 @default_internal
 def gaussian_radial_model(self, R, image=None, parameters=None):
     return gaussian_torch(
-        R + self.softening,
+        R,
         parameters["sigma"].value,
         image.pixel_area * 10 ** parameters["flux"].value,
     )
@@ -380,7 +379,7 @@ def gaussian_radial_model(self, R, image=None, parameters=None):
 @default_internal
 def gaussian_iradial_model(self, i, R, image=None, parameters=None):
     return gaussian_torch(
-        R + self.softening,
+        R,
         parameters["sigma"].value[i],
         image.pixel_area * 10 ** parameters["flux"].value[i],
     )
@@ -535,7 +534,7 @@ def spline_segment_initialize(
 def spline_radial_model(self, R, image=None, parameters=None):
     return (
         spline_torch(
-            R + self.softening,
+            R,
             parameters["I(R)"].prof,
             parameters["I(R)"].value,
             extend=self.extend_profile,
@@ -548,7 +547,7 @@ def spline_radial_model(self, R, image=None, parameters=None):
 def spline_iradial_model(self, i, R, image=None, parameters=None):
     return (
         spline_torch(
-            R + self.softening,
+            R,
             parameters["I(R)"].prof,
             parameters["I(R)"].value[i],
             extend=self.extend_profile,

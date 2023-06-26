@@ -28,7 +28,7 @@ def angular_metric(self, X, Y, image=None, parameters=None):
 
 @default_internal
 def radius_metric(self, X, Y, image=None, parameters=None):
-    return torch.sqrt((torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2)
+    return torch.sqrt((torch.abs(X)+self.softening) ** 2 + (torch.abs(Y)+self.softening) ** 2)
 
 
 @classmethod
@@ -124,6 +124,8 @@ def _sample_init(self, image, parameters, center):
     )
     return mid.squeeze(), simps.squeeze()
 
+def _integrate_reference(self, image_data, image_header, parameters):
+    return torch.sum(image_data) / image_data.numel()
 
 def _sample_integrate(self, deep, reference, image, parameters, center):
     if self.integrate_mode == "none":
@@ -131,7 +133,7 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
     elif self.integrate_mode == "threshold":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
-        ref = torch.sum(deep) / deep.numel() # fixme, error can be over 100% on initial sampling reference is invalid
+        ref = self._integrate_reference(deep, image.header, parameters) # fixme, error can be over 100% on initial sampling reference is invalid
         error = torch.abs((deep - reference))
         select = error > (self.sampling_tolerance * ref)
         intdeep = grid_integrate(
