@@ -638,9 +638,8 @@ class Component_Model(AutoPhot_Model):
                     state["psf"]["name"],
                     filename=state["psf"],
                     target=self.target,
-                    psf_upscale=1.0,
                 )
-            )  # fixme, remove psf upscale its temporary
+            )
         return state
 
     # Extra background methods for the basemodel
