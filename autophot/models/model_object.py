@@ -166,7 +166,6 @@ class Component_Model(AutoPhot_Model):
             self._psf = PSF_Image(
                 val,
                 pixelscale=self.target.pixelscale,
-                band=self.target.band,
                 psf_upscale = self.psf_upscale,
             )
 
@@ -491,11 +490,6 @@ class Component_Model(AutoPhot_Model):
             create_graph=False,
         )
 
-        # if not torch.all(torch.isfinite(full_jac)):
-        #     print("found non finite jacobian for:", self.name, torch.sum(torch.isfinite(full_jac)).item(),full_jac.numel(), full_jac.shape)
-        #     print(self.name)
-        #     print(self.parameters)
-        #     full_jac[torch.logical_not(torch.isfinite(full_jac))] = 0.
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
             parameters=self.parameters.get_identity_vector(

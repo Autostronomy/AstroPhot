@@ -76,6 +76,7 @@ def _sample_init(self, image, parameters, center):
         X, Y = Coords - center[..., None, None]
         mid = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
         kernel = curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
+        # convolve curvature kernel to numericall compute second derivative
         curvature = torch.nn.functional.pad(
             torch.nn.functional.conv2d(
                 mid.view(1, 1, *mid.shape),
@@ -116,12 +117,8 @@ def _sample_init(self, image, parameters, center):
     X, Y = Coords - center[..., None, None]
     dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
     kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-    mid = torch.nn.functional.conv2d(
-        dens.view(1, 1, *dens.shape),
-        torch.ones_like(kernel) / 9,
-        stride=2,
-        padding="valid",
-    )  # dens[1::2,1::2]
+    # midpoint is just every other sample in the simpsons grid
+    mid = dens[1::2,1::2]
     simps = torch.nn.functional.conv2d(
         dens.view(1, 1, *dens.shape), kernel, stride=2, padding="valid"
     )
@@ -134,20 +131,18 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
     elif self.integrate_mode == "threshold":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
-        ref = torch.sum(deep) / deep.numel()
+        ref = torch.sum(deep) / deep.numel() # fixme, error can be over 100% on initial sampling reference is invalid
         error = torch.abs((deep - reference))
         select = error > (self.sampling_tolerance * ref)
         intdeep = grid_integrate(
             X=X[select],
             Y=Y[select],
-            value=deep[select],
             image_header=image.header,
             eval_brightness=self.evaluate_model,
             eval_parameters=parameters,
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
-            tolerance=self.sampling_tolerance,
-            reference=ref,
+            reference=self.sampling_tolerance * ref,
         )
         deep[select] = intdeep
     else:

@@ -362,7 +362,6 @@ def curvature_kernel(dtype, device):
             device=device,
             dtype=dtype,
         )
-        / 8
     )
     return kernel
 
