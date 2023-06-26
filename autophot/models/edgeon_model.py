@@ -173,7 +173,7 @@ class Edgeon_Sech(Edgeon_Model):
         return (
             (image.pixel_area * 10 ** parameters["I0"].value)
             * self.radial_model(X, image=image, parameters=parameters)
-            / (torch.cosh((Y+self.softening) / parameters["hs"].value) ** 2)
+            / (torch.cosh((Y + self.softening) / parameters["hs"].value) ** 2)
         )
 
 
@@ -207,7 +207,7 @@ class Edgeon_Isothermal(Edgeon_Sech):
 
     @default_internal
     def radial_model(self, R, image=None, parameters=None):
-        Rscaled = torch.abs((R+self.softening) / parameters["rs"].value)
+        Rscaled = torch.abs((R + self.softening) / parameters["rs"].value)
         return (
             Rscaled
             * torch.exp(-Rscaled)

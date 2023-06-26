@@ -28,4 +28,3 @@ class Star_Model(Component_Model):
     @psf_mode.setter
     def psf_mode(self, val):
         pass
-    

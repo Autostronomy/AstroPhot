@@ -8,16 +8,19 @@ import torch
 import matplotlib.pyplot as plt
 
 from .core_model import AutoPhot_Model
-from ..image import Model_Image, Window, PSF_Image, Jacobian_Image, Window_List, Target_Image, Target_Image_List
+from ..image import (
+    Model_Image,
+    Window,
+    PSF_Image,
+    Jacobian_Image,
+    Window_List,
+    Target_Image,
+    Target_Image_List,
+)
 from .parameter_object import Parameter
 from .parameter_group import Parameter_Group
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.interpolate import (
-    _shift_Lanczos_kernel_torch,
-    simpsons_kernel,
-    curvature_kernel,
-)
 from ._shared_methods import select_target
 from .. import AP_config
 
@@ -67,8 +70,8 @@ class Component_Model(AutoPhot_Model):
     # Technique for PSF convolution
     psf_convolve_mode = "fft"  # fft, direct
     # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
-    psf_subpixel_shift = "bilinear" # bilinear, lanczos:2, lanczos:3, lanczos:5, none
-    psf_upscale = 1.
+    psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
+    psf_upscale = 1.0
 
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
@@ -86,7 +89,7 @@ class Component_Model(AutoPhot_Model):
     integrate_gridding = 5
 
     # The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher
-    integrate_quad_level = 3 
+    integrate_quad_level = 3
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
@@ -176,7 +179,7 @@ class Component_Model(AutoPhot_Model):
             self._psf = PSF_Image(
                 val,
                 pixelscale=self.target.pixelscale,
-                psf_upscale = self.psf_upscale,
+                psf_upscale=self.psf_upscale,
             )
 
     # Initialization functions
@@ -337,9 +340,7 @@ class Component_Model(AutoPhot_Model):
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
                 pixel_center = working_image.world_to_pixel(parameters["center"].value)
-                center_shift = pixel_center - torch.round(
-                    pixel_center
-                )
+                center_shift = pixel_center - torch.round(pixel_center)
                 working_image.header.pixel_shift_origin(center_shift)
             else:
                 center_shift = None
@@ -359,7 +360,9 @@ class Component_Model(AutoPhot_Model):
             working_image.data += deep
 
             # Convolve the PSF
-            self._sample_convolve(working_image, center_shift, psf, self.psf_subpixel_shift)
+            self._sample_convolve(
+                working_image, center_shift, psf, self.psf_subpixel_shift
+            )
 
             # Shift image back to align with original pixel grid
             if self.psf_subpixel_shift != "none":
@@ -396,7 +399,7 @@ class Component_Model(AutoPhot_Model):
             working_image.data = working_image.data * torch.logical_not(self.mask)
 
         image += working_image
-        
+
         return image
 
     @torch.no_grad()
@@ -566,12 +569,14 @@ class Component_Model(AutoPhot_Model):
                     usetar = subtar
                     break
             else:
-                raise KeyError(f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}")
+                raise KeyError(
+                    f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}"
+                )
         else:
             usetar = tar
-            
+
         self._target = usetar
-        
+
         # Remember the target identity to use
         try:
             self._target_identity = self._target.identity
@@ -591,7 +596,7 @@ class Component_Model(AutoPhot_Model):
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
-        state["parameters"] = self.parameters.get_state(save_groups = False)
+        state["parameters"] = self.parameters.get_state(save_groups=False)
         state["target_identity"] = self._target_identity
         if isinstance(self.psf, AutoPhot_Model):
             state["psf"] = self.psf.get_state()
@@ -623,12 +628,19 @@ class Component_Model(AutoPhot_Model):
             if key in state:
                 setattr(self, key, state[key])
         # Load the parameter group, this is handled by the parameter group object
-        self.parameters = Parameter_Group(self.name, state = state["parameters"])
+        self.parameters = Parameter_Group(self.name, state=state["parameters"])
         # Move parameters to the appropriate device and dtype
         self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         # Re-create the aux PSF model if there was one
         if "psf" in state:
-            self.set_aux_psf(AutoPhot_Model(state["psf"]["name"], filename = state["psf"], target = self.target, psf_upscale = 1.)) # fixme, remove psf upscale its temporary
+            self.set_aux_psf(
+                AutoPhot_Model(
+                    state["psf"]["name"],
+                    filename=state["psf"],
+                    target=self.target,
+                    psf_upscale=1.0,
+                )
+            )  # fixme, remove psf upscale its temporary
         return state
 
     # Extra background methods for the basemodel

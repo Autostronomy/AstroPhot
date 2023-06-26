@@ -89,7 +89,9 @@ class AutoPhot_Model(object):
                 self.add_equality_constraint(model, P)
             return
         if AP_config.ap_verbose >= 2:
-            AP_config.ap_logger.info(f"adding equality constraint between {self.name} and {model.name} for parameter: {parameter}")
+            AP_config.ap_logger.info(
+                f"adding equality constraint between {self.name} and {model.name} for parameter: {parameter}"
+            )
         del_param = self.parameters.get_name(parameter)
         old_groups = del_param.groups
         use_param = model.parameters.get_name(parameter)

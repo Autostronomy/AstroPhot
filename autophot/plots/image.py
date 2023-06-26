@@ -337,8 +337,18 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
             upleft = upleft.detach().cpu().numpy()
             end = use_window.origin + use_window.end
             end = end.detach().cpu().numpy()
-            x = [use_window.origin[0].detach().cpu().numpy(), lowright[0], end[0], upleft[0]]
-            y = [use_window.origin[1].detach().cpu().numpy(), lowright[1], end[1], upleft[1]]
+            x = [
+                use_window.origin[0].detach().cpu().numpy(),
+                lowright[0],
+                end[0],
+                upleft[0],
+            ]
+            y = [
+                use_window.origin[1].detach().cpu().numpy(),
+                lowright[1],
+                end[1],
+                upleft[1],
+            ]
             ax.add_patch(
                 Polygon(
                     xy=list(zip(x, y)),
@@ -362,8 +372,18 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
         upleft = upleft.detach().cpu().numpy()
         end = use_window.origin + use_window.end
         end = end.detach().cpu().numpy()
-        x = [use_window.origin[0].detach().cpu().numpy(), lowright[0], end[0], upleft[0]]
-        y = [use_window.origin[1].detach().cpu().numpy(), lowright[1], end[1], upleft[1]]
+        x = [
+            use_window.origin[0].detach().cpu().numpy(),
+            lowright[0],
+            end[0],
+            upleft[0],
+        ]
+        y = [
+            use_window.origin[1].detach().cpu().numpy(),
+            lowright[1],
+            end[1],
+            upleft[1],
+        ]
         ax.add_patch(
             Polygon(
                 xy=list(zip(x, y)),

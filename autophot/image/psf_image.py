@@ -174,9 +174,7 @@ class PSF_Image(Image):
         Returns:
             PSF_Image: A new instance of PSF_Image class with the reduced image size.
         """
-        return super().reduce(
-            scale, psf_upscale=self.psf_upscale / scale, **kwargs
-        )
+        return super().reduce(scale, psf_upscale=self.psf_upscale / scale, **kwargs)
 
     def expand(self, padding):
         raise NotImplementedError("expand not available for PSF_Image")

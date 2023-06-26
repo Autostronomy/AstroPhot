@@ -138,8 +138,10 @@ def parametric_initialize(
 
     res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
     if not res.success and AP_config.ap_verbose >= 2:
-        AP_config.ap_logger.warn(f"initialization fit not successful for {model.name}, falling back to defaults")
-        
+        AP_config.ap_logger.warn(
+            f"initialization fit not successful for {model.name}, falling back to defaults"
+        )
+
     if force_uncertainty is None:
         reses = []
         for i in range(10):
@@ -196,9 +198,7 @@ def parametric_segment_initialize(
         target_area.data.detach().cpu().numpy() - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
-        pa=(model["PA"].value - target.north).item()
-        if "PA" in model
-        else 0.0,
+        pa=(model["PA"].value - target.north).item() if "PA" in model else 0.0,
         q=model["q"].value.item() if "q" in model else 1.0,
         n_isophotes=15,
         more=True,
