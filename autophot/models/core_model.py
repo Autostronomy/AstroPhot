@@ -88,12 +88,15 @@ class AutoPhot_Model(object):
             for P in parameter:
                 self.add_equality_constraint(model, P)
             return
+        if AP_config.ap_verbose >= 2:
+            AP_config.ap_logger.info(
+                f"adding equality constraint between {self.name} and {model.name} for parameter: {parameter}"
+            )
         del_param = self.parameters.get_name(parameter)
         old_groups = del_param.groups
         use_param = model.parameters.get_name(parameter)
         for group in old_groups:
-            group.pop_id(del_param.identity)
-            group.add_parameter(use_param)
+            group.replace(del_param, use_param)
 
     @torch.no_grad()
     @ignore_numpy_warnings

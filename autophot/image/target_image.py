@@ -25,8 +25,6 @@ class Target_Image(Image):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # set the band
-        self.band = kwargs.get("band", None)
 
         if not self.has_variance:
             self.set_variance(kwargs.get("variance", None))
@@ -34,17 +32,6 @@ class Target_Image(Image):
             self.set_mask(kwargs.get("mask", None))
         if not self.has_psf:
             self.set_psf(kwargs.get("psf", None), kwargs.get("psf_upscale", 1))
-
-    @property
-    def band(self):
-        if self._band is None:
-            self._band = str(Target_Image.image_count)
-            Target_Image.image_count += 1
-        return self._band
-
-    @band.setter
-    def band(self, val):
-        self._band = val
 
     @property
     def variance(self):
@@ -124,7 +111,7 @@ class Target_Image(Image):
             psf,
             psf_upscale=psf_upscale,
             pixelscale=self.pixelscale / psf_upscale,
-            band=self.band,
+            identity=self.identity,
         )
 
     def set_mask(self, mask):

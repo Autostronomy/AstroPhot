@@ -26,7 +26,7 @@ class Image_Header(object):
         note: Optional[str] = None,
         origin: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
-        _identity: str = None,
+        identity: str = None,
         **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
@@ -53,10 +53,10 @@ class Image_Header(object):
         None
         """
         # Record identity
-        if _identity is None:
+        if identity is None:
             self.identity = str(id(self))
         else:
-            self.identity = _identity
+            self.identity = identity
 
         if filename is not None:
             self.load(filename)
@@ -156,6 +156,7 @@ class Image_Header(object):
         self._pixel_area = torch.linalg.det(self.pixelscale).abs()
         self._pixel_length = self._pixel_area.sqrt()
         self._pixel_origin = None
+        self._pixelscale_inv = torch.linalg.inv(self.pixelscale)
 
     @property
     def pixel_area(self):
@@ -191,7 +192,7 @@ class Image_Header(object):
             O = self.pixel_origin.unsqueeze(-1)
         else:
             O = self.pixel_origin
-        return torch.linalg.solve(self.pixelscale, world_coordinate - O)
+        return self._pixelscale_inv @ (world_coordinate - O)
 
     def pixel_to_world_delta(self, pixel_delta):
         """Take in a coordinate on the regular cartesian pixel grid, where
@@ -205,7 +206,7 @@ class Image_Header(object):
         return self.pixelscale @ pixel_delta
 
     def world_to_pixel_delta(self, world_delta):
-        return torch.linalg.solve(self.pixelscale, world_delta)
+        return self._pixelscale_inv @ world_delta
 
     @property
     def origin(self) -> torch.Tensor:
@@ -262,7 +263,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 
@@ -278,7 +279,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window & window,
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 
@@ -406,7 +407,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 
@@ -433,7 +434,7 @@ class Image_Header(object):
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
-            _identity=self.identity,
+            identity=self.identity,
             **kwargs,
         )
 

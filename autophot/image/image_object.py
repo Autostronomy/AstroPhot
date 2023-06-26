@@ -42,7 +42,7 @@ class Image(object):
         note: Optional[str] = None,
         origin: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
-        _identity: str = None,
+        identity: str = None,
         **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
@@ -85,7 +85,7 @@ class Image(object):
                 note=note,
                 origin=origin,
                 center=center,
-                _identity=_identity,
+                identity=identity,
                 **kwargs,
             )
         else:
@@ -97,6 +97,7 @@ class Image(object):
 
         # set the data
         self.data = data
+        self.to()
 
     @property
     def north(self):

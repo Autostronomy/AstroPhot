@@ -336,7 +336,6 @@ cmap_div = LinearSegmentedColormap("cmap_div", div_cdict)
 # P = plt.cm.plasma_r
 # C = plt.cm.cividis
 # N = 3
-# print(np.concatenate((C(np.linspace(0,1,N)),np.array(((1,1,1,1),)),P(np.linspace(0,1,N)))))
 # cmap_div = ListedColormap(["#083D77", "#7E886B", "#B9AE65", "#FFFFFF", "#F1B555", "#EE964B", "#F95738"])
 
 # main_pallet = {

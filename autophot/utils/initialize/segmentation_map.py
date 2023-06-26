@@ -53,7 +53,7 @@ def centroids_from_segmentation_map(
 
     centroids = {}
 
-    XX, YY = np.meshgrid(np.arange(seg_map.shape[0]), np.arange(seg_map.shape[1]))
+    XX, YY = np.meshgrid(np.arange(seg_map.shape[1]), np.arange(seg_map.shape[0]))
 
     for index in np.unique(seg_map):
         if index is None or index in skip_index:

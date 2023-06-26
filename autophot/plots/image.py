@@ -49,7 +49,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
     if target_area.has_mask:
         dat[target_area.mask.detach().cpu().numpy()] = np.nan
     X, Y = target_area.get_coordinate_corner_meshgrid()
-
+    X = X.detach().cpu().numpy()
+    Y = Y.detach().cpu().numpy()
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)]) / 2
     vmin = sky - 5 * noise
@@ -156,6 +157,8 @@ def model_image(
 
     # Evaluate the model image
     X, Y = sample_image.get_coordinate_corner_meshgrid()
+    X = X.detach().cpu().numpy()
+    Y = Y.detach().cpu().numpy()
     sample_image = sample_image.data.detach().cpu().numpy()
 
     # Default kwargs for image
@@ -272,6 +275,8 @@ def residual_image(
         return fig, ax
 
     X, Y = sample_image[window].get_coordinate_corner_meshgrid()
+    X = X.detach().cpu().numpy()
+    Y = Y.detach().cpu().numpy()
     residuals = (target[window] - sample_image[window]).data
     if normalize_residuals:
         residuals = residuals / torch.sqrt(target[window].variance)
@@ -325,12 +330,25 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
             lowright = use_window.shape.clone()
             lowright[1] = 0.0
             lowright = use_window.origin + use_window.cartesian_to_world(lowright)
+            lowright = lowright.detach().cpu().numpy()
             upleft = use_window.shape.clone()
             upleft[0] = 0.0
             upleft = use_window.origin + use_window.cartesian_to_world(upleft)
+            upleft = upleft.detach().cpu().numpy()
             end = use_window.origin + use_window.end
-            x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
-            y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
+            end = end.detach().cpu().numpy()
+            x = [
+                use_window.origin[0].detach().cpu().numpy(),
+                lowright[0],
+                end[0],
+                upleft[0],
+            ]
+            y = [
+                use_window.origin[1].detach().cpu().numpy(),
+                lowright[1],
+                end[1],
+                upleft[1],
+            ]
             ax.add_patch(
                 Polygon(
                     xy=list(zip(x, y)),
@@ -347,12 +365,25 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
         lowright = use_window.shape.clone()
         lowright[1] = 0.0
         lowright = use_window.origin + use_window.cartesian_to_world(lowright)
+        lowright = lowright.detach().cpu().numpy()
         upleft = use_window.shape.clone()
         upleft[0] = 0.0
         upleft = use_window.origin + use_window.cartesian_to_world(upleft)
+        upleft = upleft.detach().cpu().numpy()
         end = use_window.origin + use_window.end
-        x = [use_window.origin[0], lowright[0], end[0], upleft[0]]
-        y = [use_window.origin[1], lowright[1], end[1], upleft[1]]
+        end = end.detach().cpu().numpy()
+        x = [
+            use_window.origin[0].detach().cpu().numpy(),
+            lowright[0],
+            end[0],
+            upleft[0],
+        ]
+        y = [
+            use_window.origin[1].detach().cpu().numpy(),
+            lowright[1],
+            end[1],
+            upleft[1],
+        ]
         ax.add_patch(
             Polygon(
                 xy=list(zip(x, y)),

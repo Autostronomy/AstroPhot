@@ -200,17 +200,17 @@ class TestImage(unittest.TestCase):
             )
 
         # iamge cropping
-        new_image.crop([torch.tensor(1, dtype = ap.AP_config.ap_dtype)])
+        new_image.crop([torch.tensor(1, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)])
         self.assertEqual(
             new_image.data.shape[0], 14, "crop should cut 1 pixel from both sides here"
         )
-        new_image.crop(torch.tensor([3, 2], dtype = ap.AP_config.ap_dtype))
+        new_image.crop(torch.tensor([3, 2], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device))
         self.assertEqual(
             new_image.data.shape[1],
             24,
             "previous crop and current crop should have cut from this axis",
         )
-        new_image.crop(torch.tensor([3, 2, 1, 0], dtype = ap.AP_config.ap_dtype))
+        new_image.crop(torch.tensor([3, 2, 1, 0], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device))
         self.assertEqual(
             new_image.data.shape[0],
             9,
@@ -437,7 +437,7 @@ class TestModelImage(unittest.TestCase):
             origin=torch.zeros(2) + 0.1,
             note="test image",
         )
-        new_image.shift_origin(torch.tensor((-0.1, -0.1), dtype = ap.AP_config.ap_dtype), is_prepadded=False)
+        new_image.shift_origin(torch.tensor((-0.1, -0.1), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device), is_prepadded=False)
 
         self.assertAlmostEqual(
             torch.sum(new_image.data).item(),

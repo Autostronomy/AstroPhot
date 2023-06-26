@@ -1,6 +1,7 @@
 scipy
 numpy
 astropy
+tk
 matplotlib
 torch
 tqdm

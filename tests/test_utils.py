@@ -24,8 +24,8 @@ class TestFFT(unittest.TestCase):
             target.psf.data,
         )
         scipy_convolve = fftconvolve(
-            target.data.detach().numpy(),
-            target.psf.data.detach().numpy(),
+            target.data.detach().cpu().numpy(),
+            target.psf.data.detach().cpu().numpy(),
             mode="same",
         )
         self.assertLess(
@@ -35,7 +35,7 @@ class TestFFT(unittest.TestCase):
         )
 
         self.assertTrue(
-            np.all(np.isclose(convolved.detach().numpy(), scipy_convolve)),
+            np.all(np.isclose(convolved.detach().cpu().numpy(), scipy_convolve)),
             "Should reproduce scipy convolve",
         )
 
@@ -58,51 +58,66 @@ class TestOptimize(unittest.TestCase):
 
         # with variance
         # with mask
-        mask = torch.zeros(10, dtype=torch.bool)
+        mask = torch.zeros(10, dtype=torch.bool, device = ap.AP_config.ap_device)
         mask[2] = 1
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10), torch.zeros(10), mask=mask, variance=2 * torch.ones(10)
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            mask=mask, variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)
         )
         self.assertEqual(chi2, 4.5, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10),
-            torch.zeros(10),
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
             params=3,
             mask=mask,
-            variance=2 * torch.ones(10),
+            variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
         )
-        self.assertEqual(chi2_red, 0.75, "Chi squared calculation incorrect")
+        self.assertEqual(chi2_red.item(), 0.75, "Chi squared calculation incorrect")
 
         # no mask
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10), torch.zeros(10), variance=2 * torch.ones(10)
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
         )
         self.assertEqual(chi2, 5, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10), torch.zeros(10), params=3, variance=2 * torch.ones(10)
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            params=3, variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)
         )
-        self.assertEqual(chi2_red, 5 / 7, "Chi squared calculation incorrect")
+        self.assertEqual(chi2_red.item(), 5 / 7, "Chi squared calculation incorrect")
 
         # no variance
         # with mask
-        mask = torch.zeros(10, dtype=torch.bool)
+        mask = torch.zeros(10, dtype=torch.bool, device = ap.AP_config.ap_device)
         mask[2] = 1
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10), torch.zeros(10), mask=mask
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            mask=mask
         )
-        self.assertEqual(chi2, 9, "Chi squared calculation incorrect")
+        self.assertEqual(chi2.item(), 9, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10), torch.zeros(10), params=3, mask=mask
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            params=3, mask=mask
         )
-        self.assertEqual(chi2_red, 1.5, "Chi squared calculation incorrect")
+        self.assertEqual(chi2_red.item(), 1.5, "Chi squared calculation incorrect")
 
         # no mask
-        chi2 = ap.utils.optimization.chi_squared(torch.ones(10), torch.zeros(10))
-        self.assertEqual(chi2, 10, "Chi squared calculation incorrect")
-        chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10), torch.zeros(10), params=3
+        chi2 = ap.utils.optimization.chi_squared(
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)
         )
-        self.assertEqual(chi2_red, 10 / 7, "Chi squared calculation incorrect")
+        self.assertEqual(chi2.item(), 10, "Chi squared calculation incorrect")
+        chi2_red = ap.utils.optimization.reduced_chi_squared(
+            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            params=3
+        )
+        self.assertEqual(chi2_red.item(), 10 / 7, "Chi squared calculation incorrect")
 
 
 class TestPSF(unittest.TestCase):
@@ -299,7 +314,7 @@ class TestConversions(unittest.TestCase):
         )
 
         # convert dict to hdf5
-        target = make_basic_sersic().data.detach().numpy()[0]
+        target = make_basic_sersic().data.detach().cpu().numpy()[0]
         d = {"sersic": target.tolist()}
         ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(
             h=h5py.File("mytestfile2.hdf5", "w"), D=d
@@ -415,7 +430,7 @@ class TestInterpolate(unittest.TestCase):
     def test_interpolate_functions(self):
 
         # Lanczos kernel interpolation on the center point of a gaussian (10., 10.)
-        model = make_basic_gaussian(x=10.0, y=10.0).data.detach().numpy()
+        model = make_basic_gaussian(x=10.0, y=10.0).data.detach().cpu().numpy()
         lanczos_interp = ap.utils.interpolate.point_Lanczos(
             model, 10.0, 10.0, scale=0.8
         )

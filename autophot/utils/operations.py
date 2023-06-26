@@ -117,7 +117,6 @@ def single_quad_integrate(
     abscissaX, abscissaY, weight = quad_table(
         quad_level, image_header.pixelscale, dtype, device
     )
-
     # Specify coordinates at which to evaluate function
     Xs = torch.repeat_interleave(X[..., None], quad_level ** 2, -1) + abscissaX
     Ys = torch.repeat_interleave(Y[..., None], quad_level ** 2, -1) + abscissaY
@@ -130,33 +129,63 @@ def single_quad_integrate(
         parameters=eval_parameters,
     )
 
-    ref = res.mean(axis=-1)
+    # Reference flux for pixel is simply the mean of the evaluations
+    ref = res.mean(axis=-1) #res[..., (quad_level**2) // 2] # alternative, use midpoint
+    
     # Apply the weights and reduce to original pixel space
     res = (res * weight).sum(axis=-1)
 
     return res, ref
 
-
 def grid_integrate(
     X,
     Y,
-    value,
     image_header,
     eval_brightness,
     eval_parameters,
     dtype,
     device,
-    tolerance=1e-2,
     quad_level=3,
     gridding=5,
-    grid_level=0,
-    max_level=2,
+    _current_depth=1,
+    max_depth=2,
     reference=None,
 ):
-    if grid_level >= max_level:
-        return value
+    """The grid_integrate function performs adaptive quadrature
+    integration over a given pixel grid, offering precision control
+    where it is needed most.
 
-    # Evaluate gaussian quadrature on the specified pixels
+    Args:
+      X (torch.Tensor): A 2D tensor representing the x-coordinates of the grid on which the function will be integrated.
+      Y (torch.Tensor): A 2D tensor representing the y-coordinates of the grid on which the function will be integrated.
+      image_header (ImageHeader): An object containing meta-information about the image.
+      eval_brightness (callable): A function that evaluates the brightness at each grid point. This function should be compatible with PyTorch tensor operations.
+      eval_parameters (Parameter_Group): An object containing parameters that are passed to the eval_brightness function.
+      dtype (torch.dtype): The data type of the output tensor. The dtype argument should be a valid PyTorch data type.
+      device (torch.device): The device on which to perform the computations. The device argument should be a valid PyTorch device.
+      quad_level (int, optional): The initial level of quadrature used in the integration. Defaults to 3.
+      gridding (int, optional): The factor by which the grid is subdivided when the integration error for a pixel is above the allowed threshold. Defaults to 5.
+      _current_depth (int, optional): The current depth level of the grid subdivision. Used for recursive calls to the function. Defaults to 1.
+      max_depth (int, optional): The maximum depth level of grid subdivision. Once this level is reached, no further subdivision is performed. Defaults to 2.
+      reference (torch.Tensor or None, optional): A scalar value that represents the allowed threshold for the integration error. 
+
+    Returns:
+      torch.Tensor: A tensor of the same shape as X and Y that represents the result of the integration on the grid.
+
+    This function operates by first performing a quadrature
+    integration over the given pixels. If the maximum depth level has
+    been reached, it simply returns the result. Otherwise, it
+    calculates the integration error for each pixel and selects those
+    that have an error above the allowed threshold. For pixels that
+    have low error, the result is set as computed. For those with high
+    error, it sets up a finer sampling grid and recursively evaluates
+    the quadrature integration on it. Finally, it integrates the
+    results from the finer sampling grid back to the current
+    resolution.
+
+    """
+
+    # perform quadrature integration on the given pixels
     res, ref = single_quad_integrate(
         X,
         Y,
@@ -168,43 +197,49 @@ def grid_integrate(
         quad_level=quad_level,
     )
 
-    # Determine which pixels are now converged to sufficient degree
-    error = torch.abs((res - ref))
-    select = error > (tolerance * reference)
+    # if the max depth is reached, simply return the integrated pixels
+    if _current_depth >= max_depth:
+        return res
 
-    # Update converged pixels with new value
-    value[torch.logical_not(select)] = res[torch.logical_not(select)]
+    # Begin integral
+    integral = torch.zeros_like(X)
+
+    # Select pixels which have errors above the allowed threshold
+    select = torch.abs((res - ref)) > reference
+
+    # For pixels with low error, set the results as computed
+    integral[torch.logical_not(select)] = res[torch.logical_not(select)]
 
     # Set up sub-gridding to super resolve problem pixels
     stepx, stepy = displacement_grid(
         gridding, gridding, image_header.pixelscale, dtype, device
     )
     # Write out the coordinates for the super resolved pixels
-    Xs = torch.repeat_interleave(
-        X[select][..., None], gridding ** 2, -1
+    subgridX = torch.repeat_interleave(
+        X[select].unsqueeze(-1), gridding ** 2, -1
     ) + stepx.reshape(-1)
-    Ys = torch.repeat_interleave(
-        Y[select][..., None], gridding ** 2, -1
+    subgridY = torch.repeat_interleave(
+        Y[select].unsqueeze(-1), gridding ** 2, -1
     ) + stepy.reshape(-1)
 
-    # Recursively evaluate the pixels at the higher gridding
-    deep_res = grid_integrate(
-        Xs,
-        Ys,
-        torch.zeros_like(Xs),
+    # Recursively evaluate the quadrature integration on the finer sampling grid
+    subgridres = grid_integrate(
+        subgridX,
+        subgridY,
         image_header.super_resolve(gridding),
         eval_brightness,
         eval_parameters,
         dtype,
         device,
-        tolerance,
-        quad_level + 1,
-        gridding,
-        grid_level + 1,
-        max_level,
-        reference=reference * gridding ** 2,
+        quad_level=quad_level+2,
+        gridding=gridding,
+        _current_depth=_current_depth+1,
+        max_depth=max_depth,
+        reference=reference * gridding**2,        
     )
 
-    # Update the pixels that have been sub-integrated
-    value[select] = deep_res.sum(axis=(-1,))
-    return value
+    # Integrate the finer sampling grid back to current resolution
+    integral[select] = subgridres.sum(axis=(-1,))
+
+    return integral
+    
