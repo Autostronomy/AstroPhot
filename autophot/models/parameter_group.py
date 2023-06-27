@@ -43,9 +43,9 @@ class Parameter_Group(object):
     def add_group(self, group):
         self.groups[group.name] = group
         for P in group.parameters.values():
-            self.add_parameter(P, top_level = False)
+            self.add_parameter(P, top_level=False)
 
-    def add_parameter(self, parameter, top_level = True):
+    def add_parameter(self, parameter, top_level=True):
         if top_level:
             self.top_level_parameters.update([parameter.identity])
 
@@ -57,14 +57,8 @@ class Parameter_Group(object):
         # Redundant parameter setting, ensures that parameters with the same identity do not coexist (generally only applicable when loading a model)
         for group in self.groups.values():
             if parameter.identity in group.parameters:
-                group.add_parameter(parameter, top_level = False)
+                group.add_parameter(parameter, top_level=False)
 
-    def pop_parameter(self, identity = None, name = None):
-        if identity is not None:
-            self.pop_id(identity)
-        if name is not None:
-            self.pop_name(name)
-    
     def get_identities(self):
         return sum((list(param.identities) for param in self), [])
 
@@ -318,7 +312,9 @@ class Parameter_Group(object):
         return self.parameters.values()
 
     def iter_top_level(self):
-        return filter(lambda p: p.identity in self.top_level_parameters, self.parameters.values())
+        return filter(
+            lambda p: p.identity in self.top_level_parameters, self.parameters.values()
+        )
 
     def __iter__(self):
         return filter(lambda p: not p.locked, self.parameters.values())
@@ -335,9 +331,9 @@ class Parameter_Group(object):
             return self.groups[key[: key.find(":")]].get_name(key[key.find(":") + 1 :])
 
         # Attempt to find the parameter with that key name
-        for P in self.parameters.values():
-            if P.name == key:
-                return P
+        for Pid in self.top_level_parameters:
+            if self.parameters[Pid].name == key:
+                return self.parameters[Pid]
         # If the key cannot be found, raise an error
         raise KeyError()
 
@@ -348,31 +344,31 @@ class Parameter_Group(object):
             pass
         return self.parameters.pop(key)
 
-    def pop_name(self, key):
-        try:
-            self.top_level_parameters.remove(param.identity)
-        except KeyError:
-            pass
-        param = self.get_name(key)
-        return self.parameters.pop(param.identity)
-        
     def replace(self, old_param, new_param):
         was_top_level = old_param.identity in self.top_level_parameters
         self.pop_id(old_param.identity)
-        self.add_parameter(new_param, top_level = was_top_level)
+        self.add_parameter(new_param, top_level=was_top_level)
 
     def to(self, dtype=None, device=None):
+        if dtype is None:
+            dtype = AP_config.ap_dtype
+        if device is None:
+            device = AP_config.ap_device
         for P in self.parameters.values():
             P.to(dtype=dtype, device=device)
         return self
 
-    def get_state(self, save_groups = True):
+    def get_state(self, save_groups=True):
         state = {"name": self.name}
         if len(self.parameters) > 0:
             state["parameter_order"] = list(P.name for P in self.iter_top_level())
-            state["parameters"] = dict((P.name,P.get_state()) for P in self.iter_top_level())
+            state["parameters"] = dict(
+                (P.name, P.get_state()) for P in self.iter_top_level()
+            )
         if save_groups and len(self.groups) > 0:
-            state["groups"] = dict((G.name, G.get_state()) for G in self.groups.values())
+            state["groups"] = dict(
+                (G.name, G.get_state()) for G in self.groups.values()
+            )
         return state
 
     def set_state(self, state):
@@ -380,12 +376,14 @@ class Parameter_Group(object):
         if "parameters" in state:
             self.parameters = OrderedDict()
             for param in state["parameter_order"]:
-                self.add_parameter(Parameter(**state["parameters"][param]), top_level = True)
+                self.add_parameter(
+                    Parameter(**state["parameters"][param]), top_level=True
+                )
         if "groups" in state:
             self.groups = OrderedDict()
             for group in state["groups"]:
-                self.add_group(Parameter_Group(group, state = state["groups"][group]))
-                            
+                self.add_group(Parameter_Group(group, state=state["groups"][group]))
+
     def __getitem__(self, key):
         return self.get_name(key)
 

@@ -28,7 +28,9 @@ def angular_metric(self, X, Y, image=None, parameters=None):
 
 @default_internal
 def radius_metric(self, X, Y, image=None, parameters=None):
-    return torch.sqrt((torch.abs(X)) ** 2 + (torch.abs(Y)) ** 2)
+    return torch.sqrt(
+        (torch.abs(X) + self.softening) ** 2 + (torch.abs(Y) + self.softening) ** 2
+    )
 
 
 @classmethod
@@ -76,6 +78,7 @@ def _sample_init(self, image, parameters, center):
         X, Y = Coords - center[..., None, None]
         mid = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
         kernel = curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
+        # convolve curvature kernel to numericall compute second derivative
         curvature = torch.nn.functional.pad(
             torch.nn.functional.conv2d(
                 mid.view(1, 1, *mid.shape),
@@ -116,16 +119,16 @@ def _sample_init(self, image, parameters, center):
     X, Y = Coords - center[..., None, None]
     dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
     kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-    mid = torch.nn.functional.conv2d(
-        dens.view(1, 1, *dens.shape),
-        torch.ones_like(kernel) / 9,
-        stride=2,
-        padding="valid",
-    )  # dens[1::2,1::2]
+    # midpoint is just every other sample in the simpsons grid
+    mid = dens[1::2, 1::2]
     simps = torch.nn.functional.conv2d(
         dens.view(1, 1, *dens.shape), kernel, stride=2, padding="valid"
     )
     return mid.squeeze(), simps.squeeze()
+
+
+def _integrate_reference(self, image_data, image_header, parameters):
+    return torch.sum(image_data) / image_data.numel()
 
 
 def _sample_integrate(self, deep, reference, image, parameters, center):
@@ -134,20 +137,23 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
     elif self.integrate_mode == "threshold":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
-        ref = torch.sum(deep) / deep.numel()
+        ref = self._integrate_reference(
+            deep, image.header, parameters
+        )  # fixme, error can be over 100% on initial sampling reference is invalid
         error = torch.abs((deep - reference))
         select = error > (self.sampling_tolerance * ref)
         intdeep = grid_integrate(
             X=X[select],
             Y=Y[select],
-            value=deep[select],
             image_header=image.header,
             eval_brightness=self.evaluate_model,
             eval_parameters=parameters,
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
-            tolerance=self.sampling_tolerance,
-            reference=ref,
+            quad_level=self.integrate_quad_level,
+            gridding=self.integrate_gridding,
+            max_depth=self.integrate_max_depth,
+            reference=self.sampling_tolerance * ref,
         )
         deep[select] = intdeep
     else:
@@ -157,7 +163,7 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
     return deep
 
 
-def _sample_convolve(self, image, shift, psf, shift_method = "bilinear"):
+def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
     """
     image: Image object with image.data pixel matrix
     shift: the amount of shifting to do in pixel units
@@ -167,14 +173,26 @@ def _sample_convolve(self, image, shift, psf, shift_method = "bilinear"):
         if shift_method == "bilinear":
             psf_data = torch.nn.functional.pad(psf.data, (1, 1, 1, 1))
             X, Y = torch.meshgrid(
-                torch.arange(psf_data.shape[1], dtype = AP_config.ap_dtype, device = AP_config.ap_device) - shift[0],
-                torch.arange(psf_data.shape[0], dtype = AP_config.ap_dtype, device = AP_config.ap_device) - shift[1],
-                indexing = "xy"
+                torch.arange(
+                    psf_data.shape[1],
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                - shift[0],
+                torch.arange(
+                    psf_data.shape[0],
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+                - shift[1],
+                indexing="xy",
             )
             shift_psf = interp2d(psf_data, X.clone(), Y.clone())
         elif "lanczos" in shift_method:
-            lanczos_order = int(shift_method[shift_method.find(":")+1:])
-            psf_data = torch.nn.functional.pad(psf.data, (lanczos_order, lanczos_order, lanczos_order, lanczos_order))
+            lanczos_order = int(shift_method[shift_method.find(":") + 1 :])
+            psf_data = torch.nn.functional.pad(
+                psf.data, (lanczos_order, lanczos_order, lanczos_order, lanczos_order)
+            )
             LL = _shift_Lanczos_kernel_torch(
                 -shift[0],
                 -shift[1],
@@ -191,11 +209,9 @@ def _sample_convolve(self, image, shift, psf, shift_method = "bilinear"):
             raise ValueError(f"unrecognized subpixel shift method: {shift_method}")
     else:
         shift_psf = psf.data
-    shift_psf = shift_psf / torch.sum(shift_psf) 
+    shift_psf = shift_psf / torch.sum(shift_psf)
     if self.psf_convolve_mode == "fft":
-        image.data = fft_convolve_torch(
-            image.data, shift_psf, img_prepadded=True
-        )
+        image.data = fft_convolve_torch(image.data, shift_psf, img_prepadded=True)
     elif self.psf_convolve_mode == "direct":
         image.data = torch.nn.functional.conv2d(
             image.data.view(1, 1, *image.data.shape),

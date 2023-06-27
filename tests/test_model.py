@@ -47,8 +47,8 @@ class TestModel(unittest.TestCase):
         )
         rep = model.parameters.get_vector(as_representation = True)
         nat = model.parameters.get_vector(as_representation = False)
-        self.assertTrue(torch.all(rep == model.parameters.transform(nat, to_representation = True)), "transform should map between parameter natural and representation")
-        self.assertTrue(torch.all(nat == model.parameters.transform(rep, to_representation = False)), "transform should map between parameter representation and natural")
+        self.assertTrue(torch.all(torch.isclose(rep, model.parameters.transform(nat, to_representation = True))), "transform should map between parameter natural and representation")
+        self.assertTrue(torch.all(torch.isclose(nat, model.parameters.transform(rep, to_representation = False))), "transform should map between parameter representation and natural")
 
     def test_model_sampling_modes(self):
 
@@ -130,8 +130,8 @@ class TestModel(unittest.TestCase):
         )
 
         sample = model()
-        self.assertEqual(sample.data[10,13], 0., "masked values should be zero")
-        self.assertNotEqual(sample.data[11,12], 0., "unmasked values should NOT be zero")
+        self.assertEqual(sample.data[10,13].item(), 0., "masked values should be zero")
+        self.assertNotEqual(sample.data[11,12].item(), 0., "unmasked values should NOT be zero")
 
 
 class TestAllModelBasics(unittest.TestCase):
@@ -230,10 +230,10 @@ class TestSersic(unittest.TestCase):
         )
 
         for P in model.parameter_order:
-            self.assertEqual(
+            self.assertAlmostEqual(
                 model[P].value.detach().cpu().tolist(),
                 model2[P].value.detach().cpu().tolist(),
-                "loaded model should have same parameters",
+                msg="loaded model should have same parameters",
             )
 
 

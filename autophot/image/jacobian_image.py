@@ -77,7 +77,13 @@ class Jacobian_Image(Image):
                     torch.cat(
                         (
                             self.data,
-                            torch.zeros(self.data.shape[0], self.data.shape[1], 1),
+                            torch.zeros(
+                                self.data.shape[0],
+                                self.data.shape[1],
+                                1,
+                                dtype=AP_config.ap_dtype,
+                                device=AP_config.ap_device,
+                            ),
                         ),
                         dim=2,
                     ),

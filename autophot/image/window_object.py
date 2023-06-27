@@ -143,6 +143,7 @@ class Window(object):
     def get_shape_flip(self, pixelscale):
         return torch.flip(self.get_shape(pixelscale), (0,))
 
+    @torch.no_grad()
     def _get_indices(self, obj_window, obj_pixelscale):
         """
         Return an index slicing tuple for obj corresponding to this window

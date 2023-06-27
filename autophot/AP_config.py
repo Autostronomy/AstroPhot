@@ -6,6 +6,7 @@ __all__ = ["ap_dtype", "ap_device", "ap_logger", "set_logging_output"]
 
 ap_dtype = torch.float64
 ap_device = "cuda:0" if torch.cuda.is_available() else "cpu"
+ap_verbose = 0
 
 logging.basicConfig(
     filename="AutoPhot.log",

@@ -65,16 +65,17 @@ class Galaxy_Model(Component_Model):
         if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]
+        target_area_data = target_area.data.detach().cpu().numpy()
         edge = np.concatenate(
             (
-                target_area.data.detach().cpu().numpy()[:, 0],
-                target_area.data.detach().cpu().numpy()[:, -1],
-                target_area.data.detach().cpu().numpy()[0, :],
-                target_area.data.detach().cpu().numpy()[-1, :],
+                target_area_data[:, 0],
+                target_area_data[:, -1],
+                target_area_data[0, :],
+                target_area_data[-1, :],
             )
         )
-        edge_average = np.median(edge)
-        edge_scatter = iqr(edge, rng=(16, 84)) / 2
+        edge_average = np.nanmedian(edge)
+        edge_scatter = iqr(edge[np.isfinite(edge)], rng=(16, 84)) / 2
         icenter = target_area.world_to_pixel(parameters["center"].value)
 
         if parameters["PA"].value is None:
