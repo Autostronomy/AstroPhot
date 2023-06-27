@@ -568,7 +568,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     if parameters["I0"].value is None:
         center = target_area.world_to_pixel(parameters["center"].value)
         flux = target_area.data[center[1].int().item(), center[0].int().item()]
-        parameters["I0"].set_value(torch.log10(flux / target_area.pixel_area), override_locked = True)
+        parameters["I0"].set_value(torch.log10(torch.abs(flux) / target_area.pixel_area), override_locked = True)
         parameters["I0"].set_uncertainty(0.01, override_locked = True)
         
     if parameters["dI(R)"].value is not None and parameters["dI(R)"].prof is not None:
