@@ -80,3 +80,6 @@ def sersic_flux_to_Ie_torch(flux, n, R, q):
 def sersic_inv_torch(I, n, Re, Ie):
     bn = sersic_n_to_b(n)
     return Re * ((1 - (1 / bn) * torch.log(I / Ie)) ** (n))
+
+def moffat_I0_to_flux(I0, n, rd, q):
+    return I0 * np.pi * rd**2 * q / (n - 1)
