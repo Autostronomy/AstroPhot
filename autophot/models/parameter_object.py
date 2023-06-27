@@ -61,7 +61,7 @@ class Parameter(object):
         self.units = kwargs.get("units", "none")
         self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
-        self.set_profile(kwargs.get("prof", None))
+        self.set_profile(kwargs.get("prof", None), override_locked=True)
         self.groups = kwargs.get("groups", set())
         self.to()
 
