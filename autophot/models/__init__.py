@@ -10,6 +10,7 @@ from .flatsky_model import *
 from .planesky_model import *
 from .gaussian_model import *
 from .spline_model import *
+from .relspline_model import *
 from .star_model_object import *
 from .psf_model import *
 from .superellipse_model import *
