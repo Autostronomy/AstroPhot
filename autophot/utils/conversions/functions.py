@@ -63,7 +63,6 @@ def sersic_Ie_to_flux_torch(Ie, n, R, q):
         * torch.exp(gammaln(2 * n))
     )
 
-
 def sersic_flux_to_Ie_torch(flux, n, R, q):
     bn = sersic_n_to_b(n)
     return flux / (
@@ -83,3 +82,23 @@ def sersic_inv_torch(I, n, Re, Ie):
 
 def moffat_I0_to_flux(I0, n, rd, q):
     return I0 * np.pi * rd**2 * q / (n - 1)
+
+def general_uncertainty_prop(
+        param_tuple, #tuple of parameter values
+        param_err_tuple, # tuple of parameter uncertainties
+        forward # forward function through which to get uncertainty
+):
+    # Make a new set of parameters which track uncertainty
+    new_params = []
+    for p in param_tuple:
+        newp = p.detach()
+        newp.requires_grad = True
+        new_params.append(newp)
+    # propogate forward and compute derivatives
+    f = forward(*new_params)
+    f.backward()
+    # Add all the error contributions in quadrature
+    x = torch.zeros_like(f)
+    for i in range(len(new_params)):
+        x = x + (new_params[i].grad * param_err_tuple[i])**2
+    return x.sqrt()

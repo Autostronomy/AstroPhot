@@ -6,7 +6,7 @@ from .star_model_object import Star_Model
 from ._shared_methods import parametric_initialize, select_target
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import moffat_np
-from ..utils.conversions.functions import moffat_I0_to_flux
+from ..utils.conversions.functions import moffat_I0_to_flux, general_uncertainty_prop
 
 __all__ = ["Moffat_Galaxy", "Moffat_Star"]
 
@@ -64,6 +64,21 @@ class Moffat_Galaxy(Galaxy_Model):
             parameters["n"].value,
             parameters["Rd"].value,
             parameters["q"].value,
+        )
+    @default_internal
+    def total_flux_uncertainty(self, parameters=None):
+        return general_uncertainty_prop(
+            (10 ** parameters["I0"].value,
+             parameters["n"].value,
+             parameters["Rd"].value,
+             parameters["q"].value
+            ),
+            ((10 ** parameters["I0"].value) * parameters["I0"].uncertainty * torch.log(10*torch.ones_like(parameters["I0"].value)),
+             parameters["n"].uncertainty,
+             parameters["Rd"].uncertainty,
+             parameters["q"].uncertainty
+            ),
+            moffat_I0_to_flux
         )
     
     from ._shared_methods import moffat_radial_model as radial_model
