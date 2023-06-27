@@ -132,6 +132,21 @@ class Moffat_Star(Star_Model):
             parameters["Rd"].value,
             torch.ones_like(parameters["n"].value),
         )
+    @default_internal
+    def total_flux_uncertainty(self, parameters=None):
+        return general_uncertainty_prop(
+            (10 ** parameters["I0"].value,
+             parameters["n"].value,
+             parameters["Rd"].value,
+             torch.ones_like(parameters["n"].value)
+            ),
+            ((10 ** parameters["I0"].value) * parameters["I0"].uncertainty * torch.log(10*torch.ones_like(parameters["I0"].value)),
+             parameters["n"].uncertainty,
+             parameters["Rd"].uncertainty,
+             torch.zeros_like(parameters["n"].value)
+            ),
+            moffat_I0_to_flux
+        )
     
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
