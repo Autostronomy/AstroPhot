@@ -354,10 +354,9 @@ class LM(BaseOptimizer):
         if torch.all(torch.isfinite(cov)):
             try:
                 self.model.parameters.set_uncertainty(
-                    2
-                    * torch.sqrt(
+                    torch.sqrt(
                         torch.abs(torch.diag(cov))
-                    ),  # fixme, is factor "2" too conservative?
+                    ),
                     as_representation=False,
                     parameters_identity=self.fit_parameters_identity,
                 )
@@ -601,7 +600,7 @@ class LM(BaseOptimizer):
         self.update_J_natural()
         self.update_hess()
         try:
-            self._covariance_matrix = torch.linalg.inv(self.hess)
+            self._covariance_matrix = 2*torch.linalg.inv(self.hess)
         except:
             AP_config.ap_logger.warning(
                 "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
@@ -609,7 +608,7 @@ class LM(BaseOptimizer):
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
             ) * (torch.diag(self.hess) == 0)
-            self._covariance_matrix = torch.linalg.inv(self.hess)
+            self._covariance_matrix = 2*torch.linalg.inv(self.hess)
         return self._covariance_matrix
 
     @torch.no_grad()
