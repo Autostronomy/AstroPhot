@@ -83,7 +83,7 @@ class Component_Model(AutoPhot_Model):
     integrate_mode = "threshold"  # none, threshold, full*
 
     # Maximum recursion depth when performing sub pixel integration
-    integrate_max_depth = 2
+    integrate_max_depth = 3
 
     # Amount by which to subdivide pixels when doing recursive pixel integration
     integrate_gridding = 5
@@ -95,7 +95,7 @@ class Component_Model(AutoPhot_Model):
     jacobian_chunksize = 10
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
-    softening = 1e-5
+    softening = 1e-3
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]

@@ -1,5 +1,6 @@
 from .base import *
 from .lm import *
+from .oldlm import *
 from .gradient import *
 from .iterative import *
 from .hmc import *
