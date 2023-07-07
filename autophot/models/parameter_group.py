@@ -136,6 +136,38 @@ class Parameter_Group(object):
             parameters += list(self.get_id(P).identities)
         return parameters
 
+    def get_name_vector(self, parameters_identity=None):
+        PVL = self.vector_len(parameters_identity=parameters_identity)
+        parameters = list(None for i in range(int(sum(PVL))))
+        porder = self.order(parameters_identity=parameters_identity)
+
+        # If vector is requested by identity, they are individually updated
+        pindex = 0
+        if parameters_identity is not None:
+            for P in porder:
+                isarray = len(self.get_id(P).identities) > 1
+                for ind, pid in enumerate(self.get_id(P).identities):
+                    if pid in parameters_identity:
+                        if isarray:
+                            parameters[pindex] = f"{self.get_id(P).name}:{ind}"
+                        else:
+                            parameters[pindex] = self.get_id(P).name
+                        pindex += 1
+            return parameters
+
+        # If the full vector is requested, they are added in bulk
+        for P, V in zip(porder, PVL):
+            isarray = len(self.get_id(P).identities) > 1
+            if isarray:
+                for ind, pid in enumerate(self.get_id(P).identities):
+                    parameters[pindex] = f"{self.get_id(P).name}:{ind}"
+                    pindex += 1
+            else:
+                parameters[pindex] = self.get_id(P).name
+                pindex += 1
+        return parameters
+        
+    
     def transform(
         self, in_parameters, to_representation=True, parameters_identity=None
     ):

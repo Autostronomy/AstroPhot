@@ -24,6 +24,7 @@ class LM(BaseOptimizer):
             model,
             initial_state: Sequence = None,
             max_iter: int = 100,
+            relative_tolerance: float = 1e-5,
             fit_parameters_identity=None,
             **kwargs,
     ):
@@ -33,6 +34,7 @@ class LM(BaseOptimizer):
             initial_state,
             max_iter=max_iter,
             fit_parameters_identity=fit_parameters_identity,
+            relative_tolerance = relative_tolerance,
             **kwargs,
         )
         self.forward = partial(model, as_representation = True, parameters_identity = fit_parameters_identity)
@@ -41,6 +43,7 @@ class LM(BaseOptimizer):
         self.transform = partial(model.parameters.transform, to_representation = False, parameters_identity = fit_parameters_identity)
         self.max_iter = max_iter
         self.max_step_iter = kwargs.get("max_step_iter", 10)
+        self.curvature_limit = kwargs.get("curvature_limit", 0.75) # sets how cautious the optimizer is for changing curvature, should be number greater than 0, where smaller is more cautious
         self._Lup = 3.
         self._Ldn = 2.
         self.L = kwargs.get("L0", 1.)
@@ -58,8 +61,9 @@ class LM(BaseOptimizer):
 
         # mask
         if model.target.has_mask:
-            self.mask = torch.logical_not(self.model.target[self.fit_window].flatten("mask"))
-            self.ndf -= torch.sum(self.mask).item()
+            mask = self.model.target[self.fit_window].flatten("mask")
+            self.mask = torch.logical_not(mask)
+            self.ndf -= torch.sum(mask).item()
         else:
             self.mask = None
 
@@ -70,35 +74,68 @@ class LM(BaseOptimizer):
     def Ldn(self):
         self.L = max(1e-9, self.L / self._Ldn)
         
+    @torch.no_grad()
     def step(self, chi2):
+
+        Y0 = self.forward(parameters = self.current_state).flatten("data")
+        J = self.jacobian(parameters = self.current_state).flatten("data")
+        r = -self.W * (self.Y - Y0)
+        self.hess = J.T @ (self.W.view(len(self.W), -1) * J)
+        self.grad = J.T @ (self.W * (self.Y - Y0))
 
         init_chi2 = chi2
         nostep = True
         best = (torch.zeros_like(self.current_state), init_chi2, self.L)
         direction = "none"
         iteration = 0
-        while iteration < self.max_step_iter:
+        d = 0.1
+        for iteration in range(self.max_step_iter):
             if self.verbose > 1:
                 AP_config.ap_logger.info(f"sub step L: {self.L}, Chi^2: {chi2}")
-            iteration += 1
+
             h = self._h(self.L, self.grad, self.hess)
-            chi2 = self._chi2((self.current_state + h).detach()).item()
+            Y1 = self.forward(parameters = self.current_state + d*h).flatten("data")
+            rh = -self.W * (self.Y - Y1)
+                
+            rpp = (2 / d) * ((rh - r) / d - self.W*(J @ h))
+            a = -self._h(self.L, J.T @ rpp, self.hess) / 2
+            if 2 * torch.linalg.norm(a) / torch.linalg.norm(h) > self.curvature_limit:
+                if self.verbose > 1:
+                    AP_config.ap_logger.info("Skip due to large curvature")
+                self.Lup()
+                continue
+            ha = h + a
+            Y1 = self.forward(parameters = self.current_state + ha).flatten("data")
+
+            chi2 = self._chi2(Y1.detach()).item()
             if not np.isfinite(chi2):
+                if self.verbose > 1:
+                    AP_config.ap_logger.info("Skip due to non-finite values")
                 self.Lup()
                 continue
 
-            if chi2 < best[1]:
+            if chi2 <= best[1]:
+                if self.verbose > 1:
+                    AP_config.ap_logger.info("new best chi^2")
                 best = (h, chi2, self.L)
                 nostep = False
-                direction = "better"
                 self.Ldn()
-            elif chi2 >= best[1] and direction in ["none", "worse"]:
+                if self.L == 1e-9 or direction == "worse":
+                    break
+                direction = "better"
+            elif chi2 > best[1] and direction in ["none", "worse"]:
+                if self.verbose > 1:
+                    AP_config.ap_logger.info("chi^2 is worse")
                 self.Lup()
+                if self.L == 1e9:
+                    break
                 direction = "worse"
             else:
                 break
 
             if (best[1] - init_chi2) / init_chi2 < -0.1:
+                if self.verbose > 1:
+                    AP_config.ap_logger.info("Large step taken, ending search for good step")
                 break
 
         if nostep:
@@ -113,42 +150,41 @@ class LM(BaseOptimizer):
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
 
         h = torch.linalg.solve(
-            (hess + L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
+            (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
             grad,
         )
         
         return h
 
-    def _chi2(self, state):
-
-        Ypred = self.forward(parameters = state).flatten("data")
-
+    @torch.no_grad()
+    def _chi2(self, Ypred):
         if self.mask is None:
             return torch.sum(self.W * (self.Y - Ypred)**2) / self.ndf
         else:
             return torch.sum((self.W * (self.Y - Ypred)**2)[self.mask]) / self.ndf
             
-        
+
+    @torch.no_grad()
     def update_hess_grad(self, natural = False):
 
-        Ypred = self.forward(parameters = self.current_state).flatten("data")
         if natural:
             J = self.jacobian_natural(parameters = self.transform(self.current_state)).flatten("data")
         else:
             J = self.jacobian(parameters = self.current_state).flatten("data")
+        Ypred = self.forward(parameters = self.current_state).flatten("data")
         self.hess = torch.matmul(J.T, (self.W.view(len(self.W), -1) * J))
-        self.grad = torch.matmul(J.T, (self.W * (self.Y - Ypred)))
+        self.grad = torch.matmul(J.T, self.W * (self.Y - Ypred))
         
+    @torch.no_grad()
     def fit(self):
 
-        self.loss_history = [self._chi2(self.current_state.detach()).item()]
+        self.loss_history = [self._chi2(self.forward(parameters = self.current_state).flatten("data")).item()]
         self.L_history = [self.L]
-        self.current_state_history = [self.current_state.detach().clone()]
+        self.lambda_history = [self.current_state.detach().clone().numpy()]
         
         for iteration in range(self.max_iter):
             if self.verbose > 0:
                 AP_config.ap_logger.info(f"Chi^2: {self.loss_history[-1]}, L: {self.L}")
-            self.update_hess_grad()
             try:
                 res = self.step(chi2 = self.loss_history[-1])
             except OptimizeStopFail:
@@ -158,22 +194,28 @@ class LM(BaseOptimizer):
                 break
 
             self.L = res[2]
-            self.Ldn()
             self.current_state = (self.current_state + res[0]).detach()
             
             self.L_history.append(self.L)
             self.loss_history.append(res[1])
-            self.current_state_history.append(self.current_state.detach().clone())
+            self.lambda_history.append(self.current_state.detach().clone().numpy())
             
-            if len(self.loss_history) >= 4:
+            self.Ldn()
+            
+            if len(self.loss_history) >= 3:
                 if (self.loss_history[-3] - self.loss_history[-1]) / self.loss_history[-1] < self.relative_tolerance and self.L < 0.1:
                     self.message = self.message + "success"
                     break
+            if len(self.loss_history) > 10:
+                if (self.loss_history[-10] - self.loss_history[-1]) / self.loss_history[-1] < self.relative_tolerance:
+                    self.message = self.message + "success by immobility. Convergence not guaranteed"
+                    break
+                
         else:
-            self.message = self.message + "fail. Maximum iterations"        
+            self.message = self.message + "fail. Maximum iterations"
                 
         if self.verbose > 0:
-            AP_config.ap_logger.info(f"Final Chi^2: {self.loss_history[-1]}, L: {self.L}. Converged: {self.message}")
+            AP_config.ap_logger.info(f"Final Chi^2: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}")
         self.model.parameters.set_values(
             self.current_state,
             as_representation=True,
@@ -189,7 +231,7 @@ class LM(BaseOptimizer):
             return self._covariance_matrix
         self.update_hess_grad(natural = True)
         try:
-            self._covariance_matrix = 2*torch.linalg.inv(self.hess)
+            self._covariance_matrix = torch.linalg.inv(self.hess)
         except:
             AP_config.ap_logger.warning(
                 "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
@@ -197,9 +239,10 @@ class LM(BaseOptimizer):
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
             ) * (torch.diag(self.hess) == 0)
-            self._covariance_matrix = 2*torch.linalg.inv(self.hess)
+            self._covariance_matrix = torch.linalg.inv(self.hess)
         return self._covariance_matrix
-    
+
+    @torch.no_grad()
     def update_uncertainty(self):
         # set the uncertainty for each parameter
         cov = self.covariance_matrix

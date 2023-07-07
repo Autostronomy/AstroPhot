@@ -456,7 +456,8 @@ class Parameter(object):
         if self.cyclic:
             state["cyclic"] = self.cyclic
         if self.prof is not None:
-            state["prof"] = self.prof.detach().cpu().numpy().tolist()
+            print("getting prof", self.prof.detach().cpu().tolist())
+            state["prof"] = self.prof.detach().cpu().tolist()
 
         return state
 
@@ -480,10 +481,10 @@ class Parameter(object):
         self.units = state.get("units", None)
         self.limits = state.get("limits", None)
         self.cyclic = state.get("cyclic", False)
-        self.uncertainty = state.get("uncertainty", None)
-        self.value = state.get("value", None)
+        self.set_uncertainty(state.get("uncertainty", None), override_locked = True)
+        self.set_value(state.get("value", None), override_locked = True)
+        self.set_profile(state.get("prof", None), override_locked = True)
         self.locked = state.get("locked", False)
-        self.prof = state.get("prof", None)
 
     def __str__(self):
         """String representation of the parameter which indicates it's value

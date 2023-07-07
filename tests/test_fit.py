@@ -283,14 +283,14 @@ class TestLM(unittest.TestCase):
 
         LM.fit()
 
-        LM.undo_step()
+        #LM.undo_step()
 
-        LM.take_low_rho_step()
-        for i in reversed(range(len(LM.decision_history))):
-            if "accept" in LM.decision_history[i]:
-                LM.decision_history[i] = "reject"
-                break
-        LM.take_low_rho_step()
+        # LM.take_low_rho_step()
+        # for i in reversed(range(len(LM.decision_history))):
+        #     if "accept" in LM.decision_history[i]:
+        #         LM.decision_history[i] = "reject"
+        #         break
+        # LM.take_low_rho_step()
 
     def test_lm_constraint(self):
         def dummy_constraint(p):

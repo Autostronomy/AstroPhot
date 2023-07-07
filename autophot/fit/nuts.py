@@ -99,7 +99,7 @@ class NUTS(BaseOptimizer):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         self.inv_mass = kwargs.get("inv_mass", None)
-        self.epsilon = kwargs.get("epsilon", 1e-3)
+        self.epsilon = kwargs.get("epsilon", 1e-4)
         self.progress_bar = kwargs.get("progress_bar", True)
         self.prior = kwargs.get("prior", None)
         self.warmup = kwargs.get("warmup", 100)
