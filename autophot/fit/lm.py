@@ -186,7 +186,7 @@ class LM(BaseOptimizer):
 
         self.loss_history = [self._chi2(self.forward(parameters = self.current_state).flatten("data")).item()]
         self.L_history = [self.L]
-        self.lambda_history = [self.current_state.detach().clone().numpy()]
+        self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
         
         for iteration in range(self.max_iter):
             if self.verbose > 0:
@@ -204,7 +204,7 @@ class LM(BaseOptimizer):
             
             self.L_history.append(self.L)
             self.loss_history.append(res[1])
-            self.lambda_history.append(self.current_state.detach().clone().numpy())
+            self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
             
             self.Ldn()
             
