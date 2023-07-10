@@ -57,7 +57,7 @@ class LM(BaseOptimizer):
         if model.target.has_variance:
             self.W = 1. / self.model.target[self.fit_window].flatten("variance")
         else:
-            self.W = torch.tensor(1., dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+            self.W = torch.ones_like(self.Y)
 
         # mask
         if model.target.has_mask:
@@ -90,9 +90,6 @@ class LM(BaseOptimizer):
         iteration = 0
         d = 0.1
         for iteration in range(self.max_step_iter):
-            if self.verbose > 1:
-                AP_config.ap_logger.info(f"sub step L: {self.L}, Chi^2: {chi2}")
-
             h = self._h(self.L, self.grad, self.hess)
             Y1 = self.forward(parameters = self.current_state + d*h).flatten("data")
             rh = -self.W * (self.Y - Y1)
@@ -103,21 +100,30 @@ class LM(BaseOptimizer):
                 if self.verbose > 1:
                     AP_config.ap_logger.info("Skip due to large curvature")
                 self.Lup()
+                if direction == "better":
+                    break
+                direction = "worse"
                 continue
             ha = h + a
             Y1 = self.forward(parameters = self.current_state + ha).flatten("data")
 
             chi2 = self._chi2(Y1.detach()).item()
+            if self.verbose > 1:
+                AP_config.ap_logger.info(f"sub step L: {self.L}, Chi^2: {chi2}")
+
             if not np.isfinite(chi2):
                 if self.verbose > 1:
                     AP_config.ap_logger.info("Skip due to non-finite values")
                 self.Lup()
+                if direction == "better":
+                    break
+                direction = "worse"
                 continue
 
             if chi2 <= best[1]:
                 if self.verbose > 1:
                     AP_config.ap_logger.info("new best chi^2")
-                best = (h, chi2, self.L)
+                best = (ha, chi2, self.L)
                 nostep = False
                 self.Ldn()
                 if self.L == 1e-9 or direction == "worse":
@@ -217,7 +223,7 @@ class LM(BaseOptimizer):
         if self.verbose > 0:
             AP_config.ap_logger.info(f"Final Chi^2: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}")
         self.model.parameters.set_values(
-            self.current_state,
+            self.res(),
             as_representation=True,
             parameters_identity=self.fit_parameters_identity,
         )
