@@ -90,6 +90,8 @@ class LM(BaseOptimizer):
         iteration = 0
         d = 0.1
         for iteration in range(self.max_step_iter):
+            if iteration > self.max_step_iter/2 and self.L < 1e-3:
+                self.L = 1.
             h = self._h(self.L, self.grad, self.hess)
             Y1 = self.forward(parameters = self.current_state + d*h).flatten("data")
             rh = -self.W * (self.Y - Y1)

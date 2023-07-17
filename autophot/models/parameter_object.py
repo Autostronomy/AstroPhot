@@ -456,7 +456,6 @@ class Parameter(object):
         if self.cyclic:
             state["cyclic"] = self.cyclic
         if self.prof is not None:
-            print("getting prof", self.prof.detach().cpu().tolist())
             state["prof"] = self.prof.detach().cpu().tolist()
 
         return state
