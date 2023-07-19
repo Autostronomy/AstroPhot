@@ -153,7 +153,7 @@ class Component_Model(AutoPhot_Model):
 
         """
 
-        self.psf = aux_psf
+        self._psf = aux_psf
 
         if add_parameters:
             self.parameters.add_group(aux_psf.parameters)
@@ -174,7 +174,7 @@ class Component_Model(AutoPhot_Model):
         elif isinstance(val, PSF_Image):
             self._psf = val
         elif isinstance(val, AutoPhot_Model):
-            self._psf = val
+            self.set_aux_psf(val)
         else:
             self._psf = PSF_Image(
                 val,
