@@ -71,7 +71,6 @@ class Component_Model(AutoPhot_Model):
     psf_convolve_mode = "fft"  # fft, direct
     # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
     psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
-    psf_upscale = 1.0
 
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
@@ -176,12 +175,8 @@ class Component_Model(AutoPhot_Model):
         elif isinstance(val, AutoPhot_Model):
             self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(
-                val,
-                pixelscale=self.target.pixelscale,
-                psf_upscale=self.psf_upscale,
-            )
-
+            raise ValueError(f"Model provided PSF should be one of: None, PSF_Image, AutoPhot_Model. Received: {type(val)}")
+    
     # Initialization functions
     ######################################################################
     @torch.no_grad()
@@ -319,13 +314,10 @@ class Component_Model(AutoPhot_Model):
                     image=self.psf_aux_image,
                     parameters=parameters.groups[self.psf.name],
                 )
-                upscale = (
-                    self.psf_aux_image.psf_upscale
-                    if self.psf_aux_image is not None
-                    else self.psf.psf_upscale
-                )
                 psf = PSF_Image(
-                    data=psf.data, pixelscale=psf.pixelscale, psf_upscale=upscale
+                    data=psf.data,
+                    pixelscale=psf.pixelscale,
+                    psf_upscale=torch.round(image.pixel_length / psf.pixel_length).int(),
                 )
             else:
                 psf = self.psf
