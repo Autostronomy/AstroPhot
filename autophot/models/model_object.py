@@ -101,7 +101,6 @@ class Component_Model(AutoPhot_Model):
     track_attrs = [
         "psf_mode",
         "psf_convolve_mode",
-        "psf_upscale",
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
@@ -175,7 +174,8 @@ class Component_Model(AutoPhot_Model):
         elif isinstance(val, AutoPhot_Model):
             self.set_aux_psf(val)
         else:
-            raise ValueError(f"Model provided PSF should be one of: None, PSF_Image, AutoPhot_Model. Received: {type(val)}")
+            self._psf = PSF_Image(val, pixelscale = self.target.pixelscale, psf_upscale = 1)
+            AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AutoPhot_Model object instead.")
     
     # Initialization functions
     ######################################################################
