@@ -1,6 +1,7 @@
 from .core_model import *
 from .model_object import *
 from .parameter_object import *
+from .parameter_group import *
 from .galaxy_model_object import *
 from .ray_model import *
 from .sersic_model import *

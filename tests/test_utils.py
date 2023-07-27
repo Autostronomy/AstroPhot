@@ -424,6 +424,15 @@ class TestConversions(unittest.TestCase):
             ),
             msg="Error computing inverse sersic function (torch)",
         )
+    def test_general_derivative(self):
+
+        res = ap.utils.conversions.functions.general_uncertainty_prop(
+            tuple(torch.tensor(a) for a in (1.0, 1.0, 1.0, 0.5)),
+            tuple(torch.tensor(a) for a in (0.1, 0.1, 0.1, 0.1)),
+            ap.utils.conversions.functions.sersic_Ie_to_flux_torch,
+        )
+
+        self.assertAlmostEqual(res.detach().cpu().numpy(), 1.8105, 3, "General uncertianty prop should compute uncertainty")
 
 
 class TestInterpolate(unittest.TestCase):
@@ -465,5 +474,6 @@ class TestAngleOperations(unittest.TestCase):
         )
 
 
+        
 if __name__ == "__main__":
     unittest.main()
