@@ -71,7 +71,6 @@ class Component_Model(AutoPhot_Model):
     psf_convolve_mode = "fft"  # fft, direct
     # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
     psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
-    psf_upscale = 1.0
 
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
@@ -83,7 +82,7 @@ class Component_Model(AutoPhot_Model):
     integrate_mode = "threshold"  # none, threshold, full*
 
     # Maximum recursion depth when performing sub pixel integration
-    integrate_max_depth = 2
+    integrate_max_depth = 3
 
     # Amount by which to subdivide pixels when doing recursive pixel integration
     integrate_gridding = 5
@@ -95,14 +94,13 @@ class Component_Model(AutoPhot_Model):
     jacobian_chunksize = 10
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
-    softening = 1e-5
+    softening = 1e-3
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
         "psf_mode",
         "psf_convolve_mode",
-        "psf_upscale",
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
@@ -153,7 +151,7 @@ class Component_Model(AutoPhot_Model):
 
         """
 
-        self.psf = aux_psf
+        self._psf = aux_psf
 
         if add_parameters:
             self.parameters.add_group(aux_psf.parameters)
@@ -174,14 +172,11 @@ class Component_Model(AutoPhot_Model):
         elif isinstance(val, PSF_Image):
             self._psf = val
         elif isinstance(val, AutoPhot_Model):
-            self._psf = val
+            self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(
-                val,
-                pixelscale=self.target.pixelscale,
-                psf_upscale=self.psf_upscale,
-            )
-
+            self._psf = PSF_Image(val, pixelscale = self.target.pixelscale, psf_upscale = 1)
+            AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AutoPhot_Model object instead.")
+    
     # Initialization functions
     ######################################################################
     @torch.no_grad()
@@ -319,13 +314,10 @@ class Component_Model(AutoPhot_Model):
                     image=self.psf_aux_image,
                     parameters=parameters.groups[self.psf.name],
                 )
-                upscale = (
-                    self.psf_aux_image.psf_upscale
-                    if self.psf_aux_image is not None
-                    else self.psf.psf_upscale
-                )
                 psf = PSF_Image(
-                    data=psf.data, pixelscale=psf.pixelscale, psf_upscale=upscale
+                    data=psf.data,
+                    pixelscale=psf.pixelscale,
+                    psf_upscale=torch.round(image.pixel_length / psf.pixel_length).int(),
                 )
             else:
                 psf = self.psf

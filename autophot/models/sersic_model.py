@@ -19,7 +19,7 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import sersic_torch, sersic_np
 from ..utils.conversions.coordinates import Rotate_Cartesian
-from ..utils.conversions.functions import sersic_Ie_to_flux_torch
+from ..utils.conversions.functions import sersic_Ie_to_flux_torch, general_uncertainty_prop
 
 
 __all__ = [
@@ -90,6 +90,31 @@ class Sersic_Galaxy(Galaxy_Model):
             parameters["Re"].value,
             parameters["q"].value,
         )
+    @default_internal
+    def total_flux_uncertainty(self, parameters=None):
+        return general_uncertainty_prop(
+            (10 ** parameters["Ie"].value,
+             parameters["n"].value,
+             parameters["Re"].value,
+             parameters["q"].value
+            ),
+            ((10 ** parameters["Ie"].value) * parameters["Ie"].uncertainty * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
+             parameters["n"].uncertainty,
+             parameters["Re"].uncertainty,
+             parameters["q"].uncertainty
+            ),
+            sersic_Ie_to_flux_torch
+        )
+        # return sersic_Ie_to_flux_uncertainty_torch(
+        #     10 ** parameters["Ie"].value,
+        #     parameters["n"].value,
+        #     parameters["Re"].value,
+        #     parameters["q"].value,
+        #     (10 ** parameters["Ie"].value) * parameters["Ie"].uncertainty * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
+        #     parameters["n"].uncertainty,
+        #     parameters["Re"].uncertainty,
+        #     parameters["q"].uncertainty,
+        # )
 
     def _integrate_reference(self, image_data, image_header, parameters):
         tot = self.total_flux(parameters)

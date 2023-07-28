@@ -29,7 +29,7 @@ def angular_metric(self, X, Y, image=None, parameters=None):
 @default_internal
 def radius_metric(self, X, Y, image=None, parameters=None):
     return torch.sqrt(
-        (torch.abs(X) + self.softening) ** 2 + (torch.abs(Y) + self.softening) ** 2
+        (X) ** 2 + (Y) ** 2 + self.softening**2
     )
 
 

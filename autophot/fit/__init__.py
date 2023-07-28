@@ -1,10 +1,14 @@
 from .base import *
 from .lm import *
+from .oldlm import *
 from .gradient import *
 from .iterative import *
-from .hmc import *
+try:
+    from .hmc import *
+    from .nuts import *
+except AssertionError as e:
+    print("Could not load HMC or NUTS due to:", str(e))
 from .mhmcmc import *
-from .nuts import *
 
 """
 base: This module defines the base class BaseOptimizer, 

@@ -91,7 +91,7 @@ def basic_config(config_file):
     MODEL = AutoPhot_Model(
         name="AutoPhot",
         model_type="group model",
-        model_list=model_list,
+        models=model_list,
         target=target,
     )
 

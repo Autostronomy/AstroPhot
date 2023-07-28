@@ -54,6 +54,10 @@ class Iter(BaseOptimizer):
 
         self.method = method
         self.method_kwargs = method_kwargs
+        if "relative_tolerance" not in method_kwargs and isinstance(method, LM):
+            # Lower tolerance since it's not worth fine tuning a model when it's neighbors will be shifting soon anyway
+            self.method_kwargs["relative_tolerance"] = 1e-3
+            self.method_kwargs["max_iter"] = 15
         #          # pixels      # parameters
         self.ndf = self.model.target[self.model.window].flatten("data").size(0) - len(
             self.current_state

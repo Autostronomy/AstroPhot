@@ -1,10 +1,11 @@
 import unittest
-from autophot.models import Parameter
+from autophot.models import Parameter, Parameter_Group
 import torch
+import numpy as np
 
 
 class TestParameter(unittest.TestCase):
-    @ torch.no_grad()
+    @torch.no_grad()
     def test_parameter_setting(self):
         base_param = Parameter("base param")
         base_param.set_value(1.0)
@@ -154,6 +155,41 @@ class TestParameter(unittest.TestCase):
 
         S = str(P)
 
+class TestParameterGroup(unittest.TestCase):
 
+    def test_generation(self):
+        P = Parameter("state", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = True, prof = 1.)
+
+        P2 = Parameter("v2")
+        P2.set_state(P.get_state())
+
+        PG = Parameter_Group("group", parameters = [P,P2])
+
+        PG_copy = PG.copy()
+
+    def test_vectors(self):
+        P1 = Parameter("test1", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
+
+        P2 = Parameter("test2", value = 2., uncertainty = 5., limits = (None, 1), locked = False)
+
+        PG = Parameter_Group("group", parameters = [P1,P2])
+
+        names = PG.get_name_vector()
+        self.assertEqual(names, ["test1", "test2"], "get name vector should produce ordered list of names")
+
+        uncertainty = PG.get_uncertainty_vector()
+        self.assertTrue(np.all(uncertainty.detach().cpu().numpy() == np.array([0.5,5.])), "get uncertainty vector should track uncertainty")
+
+    def test_inspection(self):
+        P1 = Parameter("test1", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
+
+        P2 = Parameter("test2", value = 2., uncertainty = 5., limits = (None, 1), locked = False)
+
+        PG = Parameter_Group("group", parameters = [P1,P2])
+
+        self.assertEqual(len(PG), 2, "parameter group should only have two parameters here")
+
+        string = str(PG)
+        
 if __name__ == "__main__":
     unittest.main()

@@ -554,3 +554,74 @@ def spline_iradial_model(self, i, R, image=None, parameters=None):
         )
         * image.pixel_area
     )
+
+# RelSpline
+######################################################################
+@torch.no_grad()
+@ignore_numpy_warnings
+@select_target
+@default_internal
+def relspline_initialize(self, target=None, parameters=None, **kwargs):
+    super(self.__class__, self).initialize(target=target, parameters=parameters)
+
+    target_area = target[self.window]
+    if parameters["I0"].value is None:
+        center = target_area.world_to_pixel(parameters["center"].value)
+        flux = target_area.data[center[1].int().item(), center[0].int().item()]
+        parameters["I0"].set_value(torch.log10(torch.abs(flux) / target_area.pixel_area), override_locked = True)
+        parameters["I0"].set_uncertainty(0.01, override_locked = True)
+        
+    if parameters["dI(R)"].value is not None and parameters["dI(R)"].prof is not None:
+        return
+
+    # Create the I(R) profile radii if needed
+    if parameters["dI(R)"].prof is None:
+        new_prof = [2 * target.pixel_length]
+        while new_prof[-1] < torch.max(self.window.shape / 2):
+            new_prof.append(
+                new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
+            )
+        new_prof.pop()
+        new_prof.pop()
+        new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
+        parameters["dI(R)"].set_profile(new_prof)
+
+    profR = parameters["dI(R)"].prof.detach().cpu().numpy()
+        
+    Coords = target_area.get_coordinate_meshgrid()
+    X, Y = Coords - parameters["center"].value[..., None, None]
+    X, Y = self.transform_coordinates(X, Y, target, parameters)
+    R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
+    rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
+    raveldat = target_area.data.detach().cpu().numpy().ravel()
+
+    I = (
+        binned_statistic(R.ravel(), raveldat, statistic="median", bins=rad_bins)[0]
+    ) / target.pixel_area.item()
+    N = np.isfinite(I)
+    if not np.all(N):
+        I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
+    if I[-1] >= I[-2]:
+        I[-1] = I[-2] / 2
+    S = binned_statistic(
+        R.ravel(), raveldat, statistic=lambda d: iqr(d, rng=[16, 84]) / 2, bins=rad_bins
+    )[0]
+    N = np.isfinite(S)
+    if not np.all(N):
+        S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
+    parameters["dI(R)"].set_value(np.log10(np.abs(I)) - parameters["I0"].value.item(), override_locked=True)
+    parameters["dI(R)"].set_uncertainty(
+        S / (np.abs(I) * np.log(10)), override_locked=True
+    )
+
+@default_internal
+def relspline_radial_model(self, R, image=None, parameters=None):
+    return (
+        spline_torch(
+            R,
+            torch.cat((torch.zeros_like(parameters["I0"].value).unsqueeze(-1),parameters["dI(R)"].prof)),
+            torch.cat((parameters["I0"].value.unsqueeze(-1), parameters["I0"].value + parameters["dI(R)"].value)),
+            extend=self.extend_profile,
+        )
+        * image.pixel_area
+    )

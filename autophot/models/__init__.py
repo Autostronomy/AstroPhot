@@ -1,6 +1,7 @@
 from .core_model import *
 from .model_object import *
 from .parameter_object import *
+from .parameter_group import *
 from .galaxy_model_object import *
 from .ray_model import *
 from .sersic_model import *
@@ -10,6 +11,7 @@ from .flatsky_model import *
 from .planesky_model import *
 from .gaussian_model import *
 from .spline_model import *
+from .relspline_model import *
 from .star_model_object import *
 from .psf_model import *
 from .superellipse_model import *

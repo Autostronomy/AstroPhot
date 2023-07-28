@@ -13,7 +13,7 @@ from ..utils.conversions.optimization import cyclic_difference_np
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..image import Model_Image, Window, Target_Image
+from ..image import Model_Image, Window, Target_Image, Target_Image_List
 from .parameter_group import Parameter_Group
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
@@ -139,10 +139,17 @@ class AutoPhot_Model(object):
         data = self.target[self.window]
         variance = data.variance
         if self.target.has_mask:
-            mask = torch.logical_not(data.mask)
-            chi2 = torch.sum(((model - data).data ** 2 / variance)[mask]) / 2.0
+            if isinstance(data, Target_Image_List):
+                mask = tuple(torch.logical_not(submask) for submask in data.mask)
+                chi2 = sum(torch.sum(((mo - da).data ** 2 / va)[ma]) / 2.0 for mo, da, va, ma in zip(model, data, variance, mask))
+            else:
+                mask = torch.logical_not(data.mask)
+                chi2 = torch.sum(((model - data).data ** 2 / variance)[mask]) / 2.0
         else:
-            chi2 = torch.sum(((model - data).data ** 2 / variance)) / 2.0
+            if isinstance(data, Target_Image_List):
+                chi2 = sum(torch.sum(((mo - da).data ** 2 / va)) / 2.0 for mo, da, va in zip(model, data, variance))
+            else:
+                chi2 = torch.sum(((model - data).data ** 2 / variance)) / 2.0
 
         return chi2
 

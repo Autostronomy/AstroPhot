@@ -130,7 +130,7 @@ def single_quad_integrate(
     )
 
     # Reference flux for pixel is simply the mean of the evaluations
-    ref = res.mean(axis=-1) #res[..., (quad_level**2) // 2] # alternative, use midpoint
+    ref = res[..., (quad_level**2) // 2] #res.mean(axis=-1) # # alternative, use midpoint
     
     # Apply the weights and reduce to original pixel space
     res = (res * weight).sum(axis=-1)
