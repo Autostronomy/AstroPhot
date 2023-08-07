@@ -15,6 +15,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
+    'sphinx.ext.viewcode',
 ]
 
 # Paths to templates
