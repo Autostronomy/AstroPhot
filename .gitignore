@@ -2,7 +2,7 @@
 deleteme
 _build
 build
-autophot.egg-info
+astrophot.egg-info
 **.ipynb_checkpoints
 **.#*
 **.log
