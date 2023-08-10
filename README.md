@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="media/AP_logo_white.png">
-  <source media="(prefers-color-scheme: light)" srcset="media/AP_logo.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Autostronomy/AstroPhot/blob/main/media/AP_logo_white.png?raw=true">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/Autostronomy/AstroPhot/blob/main/media/AP_logo.png?raw=true">
   <img alt="AstroPhot logo" src="media/AP_logo.png" width="70%">
 </picture>
 
