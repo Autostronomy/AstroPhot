@@ -28,7 +28,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # Project information
-project = "AutoPhot"
+project = "AstroPhot"
 copyright = "2023, Connor Stone"
 author = "Connor Stone"
 
@@ -61,7 +61,7 @@ html_sidebars = {
 html_favicon = "media/AP_logo_favicon.ico"
 
 # Output file base name for HTML help builder
-htmlhelp_basename = "AutoPhotdocs"
+htmlhelp_basename = "AstroPhotdocs"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -69,13 +69,13 @@ latex_elements = {}
 
 # LaTeX document settings
 latex_documents = [
-    (master_doc, "AutoPhot.tex", "AutoPhot Documentation", "Connor Stone", "manual"),
+    (master_doc, "AstroPhot.tex", "AstroPhot Documentation", "Connor Stone", "manual"),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 man_pages = [
-    (master_doc, "autophot", "AutoPhot Documentation", [author], 1),
+    (master_doc, "astrophot", "AstroPhot Documentation", [author], 1),
 ]
 
 # -- Options for Texinfo output -------------------------------------------
@@ -83,10 +83,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "AutoPhot",
-        "AutoPhot Documentation",
+        "AstroPhot",
+        "AstroPhot Documentation",
         author,
-        "AutoPhot",
+        "AstroPhot",
         "One line description of project.",
         "Miscellaneous",
     ),

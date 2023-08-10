@@ -1,5 +1,5 @@
 import unittest
-from autophot.models import Parameter, Parameter_Group
+from astrophot.models import Parameter, Parameter_Group
 import torch
 import numpy as np
 

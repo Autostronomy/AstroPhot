@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from .core_model import AutoPhot_Model
+from .core_model import AstroPhot_Model
 from ..image import (
     Model_Image,
     Window,
@@ -27,7 +27,7 @@ from .. import AP_config
 __all__ = ["Component_Model"]
 
 
-class Component_Model(AutoPhot_Model):
+class Component_Model(AstroPhot_Model):
     """Component_Model(name, target, window, locked, **kwargs)
 
     Component_Model is a base class for models that represent single
@@ -171,11 +171,11 @@ class Component_Model(AutoPhot_Model):
             self._psf = None
         elif isinstance(val, PSF_Image):
             self._psf = val
-        elif isinstance(val, AutoPhot_Model):
+        elif isinstance(val, AstroPhot_Model):
             self.set_aux_psf(val)
         else:
             self._psf = PSF_Image(val, pixelscale = self.target.pixelscale, psf_upscale = 1)
-            AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AutoPhot_Model object instead.")
+            AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AstroPhot_Model object instead.")
     
     # Initialization functions
     ######################################################################
@@ -278,7 +278,7 @@ class Component_Model(AutoPhot_Model):
         the requested image.
 
         Args:
-          image (Optional[Image]): An AutoPhot Image object (likely a Model_Image)
+          image (Optional[Image]): An AstroPhot Image object (likely a Model_Image)
                                      on which to evaluate the model values. If not
                                      provided, a new Model_Image object will be created.
           window (Optional[Window]): A window within which to evaluate the model.
@@ -309,7 +309,7 @@ class Component_Model(AutoPhot_Model):
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
-            if isinstance(self.psf, AutoPhot_Model):
+            if isinstance(self.psf, AstroPhot_Model):
                 psf = self.psf.sample(
                     image=self.psf_aux_image,
                     parameters=parameters.groups[self.psf.name],
@@ -590,14 +590,14 @@ class Component_Model(AutoPhot_Model):
         state["window"] = self.window.get_state()
         state["parameters"] = self.parameters.get_state(save_groups=False)
         state["target_identity"] = self._target_identity
-        if isinstance(self.psf, AutoPhot_Model):
+        if isinstance(self.psf, AstroPhot_Model):
             state["psf"] = self.psf.get_state()
         for key in self.track_attrs:
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
         return state
 
-    def load(self, filename: Union[str, dict, io.TextIOBase] = "AutoPhot.yaml"):
+    def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml"):
         """Used to load the model from a saved state.
 
         Sets the model window to the saved value and updates all
@@ -608,7 +608,7 @@ class Component_Model(AutoPhot_Model):
           filename: The source from which to load the model parameters. Can be a string (the name of the file on disc), a dictionary (formatted as if from self.get_state), or an io.TextIOBase (a file stream to load the file from).
 
         """
-        state = AutoPhot_Model.load(filename)
+        state = AstroPhot_Model.load(filename)
         self.name = state["name"]
         # Use window saved state to initialize model window
         self.window = Window(**state["window"])
@@ -626,7 +626,7 @@ class Component_Model(AutoPhot_Model):
         # Re-create the aux PSF model if there was one
         if "psf" in state:
             self.set_aux_psf(
-                AutoPhot_Model(
+                AstroPhot_Model(
                     state["psf"]["name"],
                     filename=state["psf"],
                     target=self.target,

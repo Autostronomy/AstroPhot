@@ -4,7 +4,7 @@ import importlib
 import numpy as np
 from astropy.io import fits
 from ..image import Target_Image
-from ..models import AutoPhot_Model
+from ..models import AstroPhot_Model
 from ..fit import LM
 from .. import AP_config
 
@@ -86,10 +86,10 @@ def basic_config(config_file):
             model_info_list[-1]["name"] = name
     model_list = []
     for model in model_info_list:
-        model_list.append(AutoPhot_Model(target=target, **model))
+        model_list.append(AstroPhot_Model(target=target, **model))
 
-    MODEL = AutoPhot_Model(
-        name="AutoPhot",
+    MODEL = AstroPhot_Model(
+        name="AstroPhot",
         model_type="group model",
         models=model_list,
         target=target,
@@ -103,7 +103,7 @@ def basic_config(config_file):
     optim_type = config.get("ap_optimizer", "LM")
     optim_kwargs = config.get("ap_optimizer_kwargs", {})
     if optim_type is None:
-        # perform no optimization, simply write the autophot model and the requested images
+        # perform no optimization, simply write the astrophot model and the requested images
         pass
     elif optim_type == "LM":
         result = LM(MODEL, **optim_kwargs).fit()
@@ -111,7 +111,7 @@ def basic_config(config_file):
     # Parse Save
     ######################################################################
     AP_config.ap_logger.info("Saving model")
-    model_save = config.get("ap_saveto_model", "AutoPhot.yaml")
+    model_save = config.get("ap_saveto_model", "AstroPhot.yaml")
     MODEL.save(model_save)
 
     model_image_save = config.get("ap_saveto_model_image", None)

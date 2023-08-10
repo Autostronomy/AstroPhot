@@ -72,7 +72,7 @@ def galaxy_light_profile(
 def radial_median_profile(
     fig,
     ax,
-    model: "AutoPhot_Model",
+    model: "AstroPhot_Model",
     count_limit: int = 10,
     return_profile: bool = False,
     rad_unit: str = "arcsec",
@@ -90,7 +90,7 @@ def radial_median_profile(
     Args:
       fig: matplotlib figure object
       ax: matplotlib axis object
-      model (AutoPhot_Model): Model object from which to determine the radial binning. Also provides the target image to extract the data
+      model (AstroPhot_Model): Model object from which to determine the radial binning. Also provides the target image to extract the data
       count_limit (int): The limit of pixels in a bin, below which uncertainties are not computed. Default: 10
       return_profile (bool): Instead of just returning the fig and ax object, will return the extracted profile formatted as: Rbins (the radial bin edges), medians (the median in each bin), scatter (the 16-84 quartile range / 2), count (the number of pixels in each bin). Default: False
       rad_unit (str): The name of the physical radius units. Default: "arcsec"

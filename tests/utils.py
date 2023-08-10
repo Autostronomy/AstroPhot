@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-import autophot as ap
+import astrophot as ap
 
 
 def make_basic_sersic(

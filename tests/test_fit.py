@@ -3,7 +3,7 @@ import unittest
 import torch
 import numpy as np
 
-import autophot as ap
+import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian
 
 ######################################################################
@@ -129,7 +129,7 @@ class TestComponentModelFits(unittest.TestCase):
 
         mod.initialize()
 
-        ap.AP_config.set_logging_output(stdout=True, filename="AutoPhot.log")
+        ap.AP_config.set_logging_output(stdout=True, filename="AstroPhot.log")
         res = ap.fit.LM(model=mod, verbose=1).fit()
         res.update_uncertainty()
         
@@ -265,7 +265,7 @@ class TestGroupModelFits(unittest.TestCase):
 class TestLM(unittest.TestCase):
     def test_lm_creation(self):
         target = make_basic_sersic()
-        new_model = ap.models.AutoPhot_Model(
+        new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -298,7 +298,7 @@ class TestLM(unittest.TestCase):
 
         new_constraint = ap.fit.LM_Constraint(dummy_constraint)
         target = make_basic_sersic()
-        new_model = ap.models.AutoPhot_Model(
+        new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -334,7 +334,7 @@ class TestIter(unittest.TestCase):
         target = make_basic_sersic()
         model_list = []
         model_list.append(
-            ap.models.AutoPhot_Model(
+            ap.models.AstroPhot_Model(
                 name="basic sersic",
                 model_type="sersic galaxy model",
                 parameters={
@@ -349,7 +349,7 @@ class TestIter(unittest.TestCase):
             )
         )
         model_list.append(
-            ap.models.AutoPhot_Model(
+            ap.models.AstroPhot_Model(
                 name="basic sky",
                 model_type="flat sky model",
                 parameters={"sky": -1},
@@ -357,7 +357,7 @@ class TestIter(unittest.TestCase):
             )
         )
 
-        MODEL = ap.models.AutoPhot_Model(
+        MODEL = ap.models.AstroPhot_Model(
             name="model",
             model_type="group model",
             target=target,
@@ -376,7 +376,7 @@ class TestIterLM(unittest.TestCase):
         target = make_basic_sersic()
         model_list = []
         model_list.append(
-            ap.models.AutoPhot_Model(
+            ap.models.AstroPhot_Model(
                 name="basic sersic",
                 model_type="sersic galaxy model",
                 parameters={
@@ -391,7 +391,7 @@ class TestIterLM(unittest.TestCase):
             )
         )
         model_list.append(
-            ap.models.AutoPhot_Model(
+            ap.models.AstroPhot_Model(
                 name="basic sky",
                 model_type="flat sky model",
                 parameters={"sky": -1},
@@ -399,7 +399,7 @@ class TestIterLM(unittest.TestCase):
             )
         )
 
-        MODEL = ap.models.AutoPhot_Model(
+        MODEL = ap.models.AstroPhot_Model(
             name="model",
             model_type="group model",
             target=target,

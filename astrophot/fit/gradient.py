@@ -11,7 +11,7 @@ __all__ = ["Grad"]
 
 
 class Grad(BaseOptimizer):
-    """A gradient descent optimization wrapper for AutoPhot_Model objects.
+    """A gradient descent optimization wrapper for AstroPhot_Model objects.
 
     The default method is "NAdam", a variant of the Adam optimization algorithm.
     This optimizer uses a combination of gradient descent and Nesterov momentum for faster convergence.
@@ -19,14 +19,14 @@ class Grad(BaseOptimizer):
     The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
     Parameters:
-        model (AutoPhot_Model): an AutoPhot_Model object with which to perform optimization.
+        model (AstroPhot_Model): an AstroPhot_Model object with which to perform optimization.
         initial_state (torch.Tensor, optional): an optional initial state for optimization.
         method (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
         patience (int or None, optional): the number of iterations without improvement before the optimizer will exit early. Defaults to None.
         optim_kwargs (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
 
     Attributes:
-        model (AutoPhot_Model): the AutoPhot_Model object to optimize.
+        model (AstroPhot_Model): the AstroPhot_Model object to optimize.
         current_state (torch.Tensor): the current state of the parameters being optimized.
         iteration (int): the number of iterations performed during the optimization.
         loss_history (list): the history of loss values at each iteration of the optimization.
@@ -40,7 +40,7 @@ class Grad(BaseOptimizer):
     """
 
     def __init__(
-        self, model: "AutoPhot_Model", initial_state: Sequence = None, **kwargs
+        self, model: "AstroPhot_Model", initial_state: Sequence = None, **kwargs
     ) -> None:
         """Initialize the gradient descent optimizer.
 

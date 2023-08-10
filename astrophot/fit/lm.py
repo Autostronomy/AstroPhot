@@ -65,7 +65,7 @@ class LM(BaseOptimizer):
     Note that the residuals :math:`r_i` are typically also scaled by
     the variance of the pixels, but this does not change the equations
     above. For a detailed explanation of the LM method see the article
-    by Henri Gavin on which much of the AutoPhot LM implementation is
+    by Henri Gavin on which much of the AstroPhot LM implementation is
     based::
     
         @article{Gavin2019,
@@ -110,7 +110,7 @@ class LM(BaseOptimizer):
     f(x), the quality of the initial estimate x0, and the distribution
     of the data.
 
-    The LM class implemented for AutoPhot takes a model, initial
+    The LM class implemented for AstroPhot takes a model, initial
     state, and various other optional parameters as inputs and seeks
     to find the parameters that minimize the cost function.
 
