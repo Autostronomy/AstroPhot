@@ -1,1 +1,1 @@
-recursive-include autophot *.py
+recursive-include astrophot *.py

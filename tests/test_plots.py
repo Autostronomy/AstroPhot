@@ -4,8 +4,8 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from autophot import image
-import autophot as ap
+from astrophot import image
+import astrophot as ap
 from utils import make_basic_sersic
 
 class TestPlots(unittest.TestCase):
@@ -33,7 +33,7 @@ class TestPlots(unittest.TestCase):
     def test_model_image(self):
         target = make_basic_sersic()
         
-        new_model = ap.models.AutoPhot_Model(
+        new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -57,7 +57,7 @@ class TestPlots(unittest.TestCase):
     def test_residual_image(self):
         target = make_basic_sersic()
         
-        new_model = ap.models.AutoPhot_Model(
+        new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
             parameters={
@@ -82,7 +82,7 @@ class TestPlots(unittest.TestCase):
 
         target = make_basic_sersic()
         
-        new_model = ap.models.AutoPhot_Model(
+        new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
             parameters={

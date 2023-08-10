@@ -1,5 +1,5 @@
 import unittest
-import autophot as ap
+import astrophot as ap
 import numpy as np
 import torch
 
