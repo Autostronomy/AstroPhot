@@ -72,7 +72,7 @@ class NUTS(BaseOptimizer):
     http://www.mcmchandbook.net/HandbookChapter5.pdf
 
     Args:
-        model (AutoPhot_Model): The model which will be sampled.
+        model (AstroPhot_Model): The model which will be sampled.
         initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of "as_representation" in the model. Defaults to None.
         max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.
         epsilon (float, optional): The step size for the NUTS sampler. Defaults to 1e-3.
@@ -91,7 +91,7 @@ class NUTS(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AutoPhot_Model",
+        model: "AstroPhot_Model",
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
         **kwargs

@@ -18,7 +18,7 @@ from .parameter_group import Parameter_Group
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
 
-__all__ = ["AutoPhot_Model"]
+__all__ = ["AstroPhot_Model"]
 
 
 def all_subclasses(cls):
@@ -28,10 +28,10 @@ def all_subclasses(cls):
 
 
 ######################################################################
-class AutoPhot_Model(object):
-    """AutoPhot_Model(name, *args, filename = None, model_type = None, **kwargs)
+class AstroPhot_Model(object):
+    """AstroPhot_Model(name, *args, filename = None, model_type = None, **kwargs)
 
-    Core class for all AutoPhot models and model like objects. The
+    Core class for all AstroPhot models and model like objects. The
     signature defined for this class includes all expected behaviour
     that will be accessed by some or all optimizers during
     fitting. This base class also handles saving and loading of
@@ -40,9 +40,9 @@ class AutoPhot_Model(object):
     functionality.
 
     Parameters:
-        name: every AutoPhot model should have a unique name [str]
-        filename: name of a file to load AutoPhot parameters, window, and name. The model will still need to be told its target, device, and other information [str]
-        model_type: a model type string can determine which kind of AutoPhot model is instantiated [str]
+        name: every AstroPhot model should have a unique name [str]
+        filename: name of a file to load AstroPhot parameters, window, and name. The model will still need to be told its target, device, and other information [str]
+        model_type: a model type string can determine which kind of AstroPhot model is instantiated [str]
     """
 
     model_type = "model"
@@ -51,22 +51,22 @@ class AutoPhot_Model(object):
 
     def __new__(cls, *args, filename=None, model_type=None, **kwargs):
         if filename is not None:
-            state = AutoPhot_Model.load(filename)
-            MODELS = AutoPhot_Model.List_Models()
+            state = AstroPhot_Model.load(filename)
+            MODELS = AstroPhot_Model.List_Models()
             for M in MODELS:
                 if M.model_type == state["model_type"]:
-                    return super(AutoPhot_Model, cls).__new__(M)
+                    return super(AstroPhot_Model, cls).__new__(M)
             else:
                 raise ModuleNotFoundError(
-                    f"Unknown AutoPhot model type: {state['model_type']}"
+                    f"Unknown AstroPhot model type: {state['model_type']}"
                 )
         elif model_type is not None:
-            MODELS = AutoPhot_Model.List_Models()  # all_subclasses(AutoPhot_Model)
+            MODELS = AstroPhot_Model.List_Models()  # all_subclasses(AstroPhot_Model)
             for M in MODELS:
                 if M.model_type == model_type:
-                    return super(AutoPhot_Model, cls).__new__(M)
+                    return super(AstroPhot_Model, cls).__new__(M)
             else:
-                raise ModuleNotFoundError(f"Unknown AutoPhot model type: {model_type}")
+                raise ModuleNotFoundError(f"Unknown AstroPhot model type: {model_type}")
 
         return super().__new__(cls)
 
@@ -159,7 +159,7 @@ class AutoPhot_Model(object):
         as_representation=False,
         **kwargs,
     ):
-        raise NotImplementedError("please use a subclass of AutoPhot_Model")
+        raise NotImplementedError("please use a subclass of AstroPhot_Model")
 
     @property
     def window(self):
@@ -267,7 +267,7 @@ class AutoPhot_Model(object):
         }
         return state
 
-    def save(self, filename="AutoPhot.yaml"):
+    def save(self, filename="AstroPhot.yaml"):
         if filename.endswith(".yaml"):
             state = self.get_state()
             with open(filename, "w") as f:
@@ -295,7 +295,7 @@ class AutoPhot_Model(object):
                 )
 
     @classmethod
-    def load(cls, filename="AutoPhot.yaml"):
+    def load(cls, filename="AstroPhot.yaml"):
         if isinstance(filename, dict):
             state = filename
         elif isinstance(filename, io.TextIOBase):

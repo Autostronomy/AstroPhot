@@ -16,7 +16,7 @@ class PSF_Star(Star_Model):
     within a pixel to accurately represent the center location of a
     point source. There is no funcitonal form for this object type as
     any image can be supplied. Note that as an argument to the model
-    at construction one can provide "psf" as an AutoPhot Model_Image
+    at construction one can provide "psf" as an AstroPhot Model_Image
     object. Since only bilinear interpolation is performed, it is
     recommended to provide the PSF at a higher resolution than the
     image if it is near the nyquist sampling limit. Bilinear

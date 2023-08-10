@@ -12,18 +12,18 @@ __email__ = "connorstone628@gmail.com"
 
 def run_from_terminal() -> None:
     """
-    Execute AutoPhot from the command line with various options.
+    Execute AstroPhot from the command line with various options.
 
     This function uses the `argparse` module to parse command line arguments and execute the appropriate functionality.
     It accepts the following arguments:
 
     - `filename`: the path to the configuration file. Or just 'tutorial' to download tutorials.
-    - `--config`: the type of configuration file being provided. One of: autophot, galfit.
-    - `-v`, `--version`: print the current AutoPhot version to screen.
-    - `--log`: set the log file name for AutoPhot. Use 'none' to suppress the log file.
+    - `--config`: the type of configuration file being provided. One of: astrophot, galfit.
+    - `-v`, `--version`: print the current AstroPhot version to screen.
+    - `--log`: set the log file name for AstroPhot. Use 'none' to suppress the log file.
     - `-q`: quiet flag to stop command line output, only print to log file.
     - `--dtype`: set the float point precision. Must be one of: float64, float32.
-    - `--device`: set the device for AutoPhot to use for computations. Must be one of: cpu, gpu.
+    - `--device`: set the device for AstroPhot to use for computations. Must be one of: cpu, gpu.
 
     If the `filename` argument is not provided, it raises a `RuntimeError`.
     If the `filename` argument is `tutorial` or `tutorials`,
@@ -31,7 +31,7 @@ def run_from_terminal() -> None:
 
     This function logs messages using the `AP_config` module,
     which sets the logging output based on the `--log` and `-q` arguments.
-    The `dtype` and `device` of AutoPhot can also be set using the `--dtype` and `--device` arguments, respectively.
+    The `dtype` and `device` of AstroPhot can also be set using the `--dtype` and `--device` arguments, respectively.
 
     Returns:
         None
@@ -41,8 +41,8 @@ def run_from_terminal() -> None:
         "running from the terminal, not sure if it will catch me."
     )
     parser = argparse.ArgumentParser(
-        prog="autophot",
-        description="Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/Autostronomy/AutoPhot",
+        prog="astrophot",
+        description="Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/Autostronomy/AstroPhot",
         epilog="Please see the documentation or contact connor stone (connorstone628@gmail.com) for further assistance.",
     )
     parser.add_argument(
@@ -54,23 +54,23 @@ def run_from_terminal() -> None:
     parser.add_argument(
         "--config",
         type=str,
-        default="autophot",
-        choices=["autophot", "galfit"],
+        default="astrophot",
+        choices=["astrophot", "galfit"],
         metavar="format",
-        help="The type of configuration file being being provided. One of: autophot, galfit.",
+        help="The type of configuration file being being provided. One of: astrophot, galfit.",
     )
     parser.add_argument(
         "-v",
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
-        help="print the current AutoPhot version to screen",
+        help="print the current AstroPhot version to screen",
     )
     parser.add_argument(
         "--log",
         type=str,
         metavar="logfile.log",
-        help="set the log file name for AutoPhot. use 'none' to suppress the log file.",
+        help="set the log file name for AstroPhot. use 'none' to suppress the log file.",
     )
     parser.add_argument(
         "-q",
@@ -89,7 +89,7 @@ def run_from_terminal() -> None:
         type=str,
         choices=["cpu", "gpu"],
         metavar="device",
-        help="set the device for AutoPhot to use for computations. Must be one of: cpu, gpu",
+        help="set the device for AstroPhot to use for computations. Must be one of: cpu, gpu",
     )
 
     args = parser.parse_args()
@@ -99,7 +99,7 @@ def run_from_terminal() -> None:
             stdout=not args.q, filename=None if args.log == "none" else args.log
         )
     elif args.q:
-        AP_config.set_logging_output(stdout=not args.q, filename="AutoPhot.log")
+        AP_config.set_logging_output(stdout=not args.q, filename="AstroPhot.log")
 
     if args.dtype is not None:
         AP_config.dtype = torch.float64 if args.dtype == "float64" else torch.float32
@@ -108,17 +108,17 @@ def run_from_terminal() -> None:
 
     if args.filename is None:
         raise RuntimeError(
-            "Please pass a config file to autophot. See 'autophot --help' for more information, or go to https://Autostronomy.github.io/AutoPhot/getting_started.html"
+            "Please pass a config file to astrophot. See 'astrophot --help' for more information, or go to https://Autostronomy.github.io/AstroPhot/getting_started.html"
         )
     if args.filename in ["tutorial", "tutorials"]:
         tutorials = [
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/GroupModels.ipynb",
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/JointModels.ipynb",
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/FittingMethods.ipynb",
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/CustomModels.ipynb",
-            "https://raw.github.com/Autostronomy/AutoPhot/main/docs/tutorials/simple_config.py",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/GettingStarted.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/GroupModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/JointModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/FittingMethods.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
             try:
@@ -131,11 +131,11 @@ def run_from_terminal() -> None:
                 )
 
         AP_config.ap_logger.info("collected the tutorials")
-    elif args.config == "autophot":
+    elif args.config == "astrophot":
         basic_config(args.filename)
     elif args.config == "galfit":
         galfit_config(args.filename)
     else:
         raise ValueError(
-            f"Unrecognized configuration file format {args.config}. Should be one of: autophot, galfit"
+            f"Unrecognized configuration file format {args.config}. Should be one of: astrophot, galfit"
         )
