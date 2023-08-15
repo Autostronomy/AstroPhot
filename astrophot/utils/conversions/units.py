@@ -1,5 +1,6 @@
 import numpy as np
 
+deg_to_arcsec = 3600.
 
 def flux_to_sb(flux, pixel_area, zeropoint):
     """Conversion from flux units to logarithmic surface brightness

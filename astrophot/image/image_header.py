@@ -7,6 +7,7 @@ import numpy as np
 from astropy.io import fits
 
 from .window_object import Window, Window_List
+from ..utils.conversions.units import deg_to_arcsec
 from .. import AP_config
 
 __all__ = ["Image_Header"]
@@ -77,7 +78,7 @@ class Image_Header(object):
         self.note = note
 
         if wcs is not None and pixelscale is None:
-            self.pixelscale = wcs.pixel_scale_matrix
+            self.pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
         else:
             self.pixelscale = pixelscale
 
