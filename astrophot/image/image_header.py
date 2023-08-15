@@ -80,6 +80,8 @@ class Image_Header(object):
         if wcs is not None and pixelscale is None:
             self.pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
         else:
+            if wcs is not None and isinstance(pixelscale, float):
+                AP_config.ap_logger.warn("Overriding WCS pixelscale with manual input! To remove this message, either let WCS define pixelscale, or input full pixelscale matrix")
             self.pixelscale = pixelscale
 
         # Set Window
@@ -303,20 +305,20 @@ class Image_Header(object):
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
-            )
+            ).abs()
         elif len(pixels) == 2:  # different crop in each dimension
             self.window -= self.pixel_to_world_delta(
                 torch.as_tensor(
                     pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-            )
+            ).abs()
         elif len(pixels) == 4:  # different crop on all sides
             pixels = torch.as_tensor(
                 pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             low = self.pixel_to_world_delta(pixels[:2])
             high = self.pixel_to_world_delta(pixels[2:])
-            self.window -= torch.cat((low, high))
+            self.window -= torch.cat((low, high)).abs()
         else:
             raise ValueError(f"Unrecognized pixel crop format: {pixels}")
         self._pixel_origin = None
