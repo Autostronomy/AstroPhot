@@ -44,6 +44,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
         return fig, ax
     if window is None:
         window = target.window
+    if kwargs.get("flipx", False):
+        ax.invert_xaxis()
     target_area = target[window]
     dat = np.copy(target_area.data.detach().cpu().numpy())
     if target_area.has_mask:
@@ -96,6 +98,7 @@ def model_image(
     showcbar=True,
     target_mask=False,
     cmap_levels=None,
+    flipx=False,
     **kwargs,
 ):
     """
@@ -151,10 +154,16 @@ def model_image(
                 window=images[2],
                 target=images[1],
                 showcbar=showcbar,
+                target_mask=target_mask,
+                cmap_levels=cmap_levels,
+                flipx=flipx,
                 **kwargs,
             )
         return fig, ax
 
+    if flipx:
+        ax.invert_xaxis()
+        
     # Evaluate the model image
     X, Y = sample_image.get_coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
@@ -217,6 +226,7 @@ def residual_image(
     center_residuals=False,
     clb_label=None,
     normalize_residuals=False,
+    flipx=False,
     **kwargs,
 ):
     """
@@ -270,10 +280,15 @@ def residual_image(
                 window=win,
                 showcbar=showcbar,
                 center_residuals=center_residuals,
+                clb_label=clb_label,
+                normalize_residuals=normalize_residuals,
+                flipx=flipx,
                 **kwargs,
             )
         return fig, ax
 
+    if flipx:
+        ax.invert_xaxis()
     X, Y = sample_image[window].get_coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
