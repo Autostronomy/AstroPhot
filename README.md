@@ -34,4 +34,4 @@ You can find the documentation at the [GitHub Pages site connected with the Astr
 
 ## Credit / Citation
 
-If you use AstroPhot in your research, please follow the [citation instructions here](https://autostronomy.github.io/AstroPhot/citation.html). A new paper for the updated AstroPhot code is in the works.
+If you use AstroPhot in your research, please follow the [citation instructions here](https://autostronomy.github.io/AstroPhot/citation.html).
