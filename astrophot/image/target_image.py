@@ -129,7 +129,7 @@ class Target_Image(Image):
 
     @variance.setter
     def variance(self, variance):
-        self.set_weight(1 / variance)
+        self.set_variance(variance)
 
     @property
     def has_variance(self):

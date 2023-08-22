@@ -52,7 +52,42 @@ class Airy_Star(Star_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        pass
+        if (parameters["I0"].value is not None) and (
+            parameters["aRL"].value is not None
+        ):
+            return
+        target_area = target[self.window]
+        icenter = target_area.world_to_pixel(parameters["center"].value)
+
+        if parameters["I0"].value is None:
+            parameters["I0"].set_value(
+                torch.log10(
+                    torch.mean(
+                        target_area.data[
+                            int(icenter[0]) - 2 : int(icenter[0]) + 2,
+                            int(icenter[1]) - 2 : int(icenter[1]) + 2,
+                        ]
+                    )
+                    / target.pixel_area.item()
+                ),
+                override_locked=True,
+            )
+            parameters["I0"].set_uncertainty(
+                torch.std(
+                    target_area.data[
+                        int(icenter[0]) - 2 : int(icenter[0]) + 2,
+                        int(icenter[1]) - 2 : int(icenter[1]) + 2,
+                    ]
+                )
+                / (torch.abs(parameters["I0"].value) * target.pixel_area),
+                override_locked=True,
+            )
+        if parameters["aRL"].value is None:
+            parameters["aRL"].set_value(
+                (5./8.) * 2 * target.pixel_length, override_locked=True
+            )
+            parameters["aRL"].set_uncertainty(parameters["aRL"].value / 2, override_locked=True)
+        
 
     @default_internal
     def radial_model(self, R, image=None, parameters=None):

@@ -244,7 +244,7 @@ class AstroPhot_Model(object):
 
         model = self.sample()
         data = self.target[self.window]
-        variance = data.weight
+        weight = data.weight
         if self.target.has_mask:
             if isinstance(data, Target_Image_List):
                 mask = tuple(torch.logical_not(submask) for submask in data.mask)
