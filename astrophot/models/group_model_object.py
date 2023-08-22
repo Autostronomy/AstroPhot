@@ -43,12 +43,12 @@ class Group_Model(AstroPhot_Model):
 
     def __init__(
         self,
-        name: str,
-        *args,
+            *,
+        name: Optional[str] = None,
         models: Optional[Sequence[AstroPhot_Model]] = None,
         **kwargs,
     ):
-        super().__init__(name, *args, models=models, **kwargs)
+        super().__init__(name=name, models=models, **kwargs)
         self._param_tuple = None
         self.models = OrderedDict()
         if models is not None:
@@ -56,7 +56,7 @@ class Group_Model(AstroPhot_Model):
         self._psf_mode = "none"
         self.update_window()
         if "filename" in kwargs:
-            self.load(kwargs["filename"])
+            self.load(kwargs["filename"], new_name=name)
 
     def add_model(self, model):
         """Adds a new model to the group model list. Ensures that the same
@@ -274,13 +274,16 @@ class Group_Model(AstroPhot_Model):
             state["models"][model.name] = model.get_state()
         return state
 
-    def load(self, filename="AstroPhot.yaml"):
+    def load(self, filename="AstroPhot.yaml", new_name = None):
         """Loads an AstroPhot state file and updates this model with the
         loaded parameters.
 
         """
         state = AstroPhot_Model.load(filename)
-        self.name = state["name"]
+        
+        if new_name is None:
+            new_name = state["name"]
+        self.name = new_name
         for model in state["models"]:
             for own_model in self.models.values():
                 if model == own_model.name:

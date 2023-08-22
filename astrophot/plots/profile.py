@@ -11,7 +11,7 @@ from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
 __all__ = [
-    "galaxy_light_profile",
+    "radial_light_profile",
     "radial_median_profile",
     "ray_light_profile",
     "wedge_light_profile",
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-def galaxy_light_profile(
+def radial_light_profile(
     fig,
     ax,
     model,

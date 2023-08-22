@@ -19,7 +19,63 @@ class Target_Image(Image):
     include a variance image, mask, and PSF as anciliary data which
     describes the target image.
 
+    Target images are a basic unit of data in `AstroPhot`, they store
+    the information collected from telescopes for which models are to
+    be fit. There is minimial functionality in the `Target_Image`
+    object itself, it is mostly defined in terms of how other objects
+    interact with it.
     
+    Basic usage:
+
+    .. code-block:: python
+
+      import astrophot as ap
+
+      # Create target image
+      image = ap.image.Target_Image(
+          data = <pixel data>,
+          wcs = <astropy WCS object>,
+          variance = <pixel uncertainties>,
+          psf = <point spread function as PSF_Image object>,
+          mask = <pixels to ignore>,
+      )
+
+      # Display the data
+      fig, ax = plt.subplots()
+      ap.plots.target_image(fig, ax, image)
+      plt.show()
+
+      # Save the image
+      image.save("mytarget.fits")
+
+      # Load the image
+      image2 = ap.image.Target_Image(filename = "mytarget.fits")
+
+      # Make low resolution version
+      lowrez = image.reduce(2)
+
+    Some important information to keep in mind. First, providing an
+    `astropy WCS` object is the best way to keep track of coordinates
+    and pixel scale properties, especially when dealing with
+    multi-band data. If images have relative positioning, rotation,
+    pixel sizes, field of view this will all be handled automatically
+    by taking advantage of `WCS` objects. Second, Providing accurate
+    variance (or weight) maps is critical to getting a good fit to the
+    data. This is a very common source of issues so it is worthwhile
+    to review literature on how best to construct such a map. A good
+    starting place is the FAQ for GALFIT:
+    https://users.obs.carnegiescience.edu/peng/work/galfit/CHI2.html
+    which is an excellent resource for all things image modeling. Just
+    note that `AstroPhot` uses variance or weight maps, not sigma
+    images. `AstroPhot` will not crete a variance map for the user, by
+    default it will just assume uniform variance which is rarely
+    accurate. Third, The PSF pixelscale must be a multiple of the
+    image pixelscale. So if the image has a pixelscale of 1 then the
+    PSF must have a pixelscale of 1, 1/2, 1/3, etc for anything to
+    work out. Note that if the PSF pixelscale is finer than the image,
+    then all modelling will be done at the higher resolution. This is
+    recommended for accuracy though it can mean higher memory
+    consumption.
 
     """
 
@@ -68,7 +124,7 @@ class Target_Image(Image):
         
         """
         if self.has_variance:
-            return torch.where(self._weight == 0, torch.inf, 1 / self._weight) #self._variance
+            return torch.where(self._weight == 0, torch.inf, 1 / self._weight)
         return torch.ones_like(self.data)
 
     @variance.setter
@@ -213,18 +269,9 @@ class Target_Image(Image):
         Provide a variance tensor for the image. This should have the same shape as the data.
         """
         if variance is None:
-            self._variance = None
+            self._weight = None
             return
-        assert (
-            variance.shape == self.data.shape
-        ), "variance must have same shape as data"
-        self._variance = (
-            variance.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-            if isinstance(variance, torch.Tensor)
-            else torch.as_tensor(
-                variance, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-        )
+        self.set_weight(1 / variance)
 
     def set_weight(self, weight):
         """Provide a weight tensor for the image. This should have the same
@@ -252,7 +299,7 @@ class Target_Image(Image):
         The PSF doesn't need to have the same pixelscale as the
         image. It should be some multiple of the resolution of the
         `Target_Image` though. So if the image has a pixelscale of 1,
-        the psf may have a pixelscale of 1/2, 1/3, 1/4 and so on.
+        the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """
         if psf is None:
@@ -294,8 +341,8 @@ class Target_Image(Image):
         if device is not None:
             device = AP_config.ap_device
 
-        if self.has_variance:
-            self._variance = self._variance.to(dtype=dtype, device=device)
+        if self.has_weight:
+            self._weight = self._weight.to(dtype=dtype, device=device)
         if self.has_psf:
             self._psf = self._psf.to(dtype=dtype, device=device)
         if self.has_mask:
@@ -323,7 +370,7 @@ class Target_Image(Image):
         return super().copy(
             mask=self._mask,
             psf=self._psf,
-            variance=self._variance,
+            weight=self._weight,
             **kwargs,
         )
 
@@ -339,7 +386,7 @@ class Target_Image(Image):
         indices = window.get_indices(self)
         return super().get_window(
             window=window,
-            variance=self._variance[indices] if self.has_variance else None,
+            weight=self._weight[indices] if self.has_weight else None,
             mask=self._mask[indices] if self.has_mask else None,
             psf=self._psf,
             **kwargs,
@@ -423,11 +470,11 @@ class Target_Image(Image):
         if self._psf is not None:
             psf_header = fits.Header()
             self.psf._save_image_list(image_list, psf_header)
-        if self._variance is not None:
-            var_header = fits.Header()
-            var_header["IMAGE"] = "VARIANCE"
+        if self.has_weight:
+            wgt_header = fits.Header()
+            wgt_header["IMAGE"] = "WEIGHT"
             image_list.append(
-                fits.ImageHDU(self._variance.detach().cpu().numpy(), header=var_header)
+                fits.ImageHDU(self._weight.detach().cpu().numpy(), header=wgt_header)
             )
         if self._mask is not None:
             mask_header = fits.Header()
@@ -454,8 +501,8 @@ class Target_Image(Image):
                         pixelscale=self.pixelscale / hdu.header["UPSCALE"],
                     )
                 )
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "VARIANCE":
-                self.set_variance(np.array(hdu.data, dtype=np.float64))
+            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "WEIGHT":
+                self.set_weight(np.array(hdu.data, dtype=np.float64))
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
                 self.set_mask(np.array(hdu.data, dtype=bool))
         return hdul
@@ -480,6 +527,19 @@ class Target_Image_List(Image_List, Target_Image):
     @property
     def has_variance(self):
         return any(image.has_variance for image in self.image_list)
+
+    @property
+    def weight(self):
+        return tuple(image.weight for image in self.image_list)
+
+    @weight.setter
+    def weight(self, weight):
+        for image, wgt in zip(self.image_list, weight):
+            image.set_weight(wgt)
+
+    @property
+    def has_weight(self):
+        return any(image.has_weight for image in self.image_list)
 
     def jacobian_image(
         self, parameters: List[str], data: Optional[List[torch.Tensor]] = None
