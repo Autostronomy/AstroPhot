@@ -27,7 +27,7 @@ class LM(BaseOptimizer):
     for solving non-linear least squares problems. It can be seen as a
     combination of the Gauss-Newton method and the gradient descent
     method: it works like the Gauss-Newton method when the parameters
-    are approximately correct, and like the gradient descent method
+    are approximately near a minimum, and like the gradient descent method
     when the parameters are far from their optimal values.
 
     The cost function that the LM algorithm tries to minimize is of
@@ -119,14 +119,41 @@ class LM(BaseOptimizer):
       initial_state (Sequence): Initial values for the parameters to be optimized.
       max_iter (int): Maximum number of iterations for the algorithm.
       relative_tolerance (float): Tolerance level for relative change in cost function value to trigger termination of the algorithm.
-      fit_parameters_identity: Used to select a subset of parameters .
+      fit_parameters_identity: Used to select a subset of parameters. This is mostly used internally.
       verbose: Controls the verbosity of the output during optimization. A higher value results in more detailed output. If not provided, defaults to 0 (no output).
       max_step_iter (optional): The maximum number of steps while searching for chi^2 improvement on a single Jacobian evaluation. Default is 10.
-      curvature_limit (optional): Controls how cautious the optimizer is for changing curvature. It should be a number greater than 0, where smaller is more cautious. Default is 0.75.
-      Lup and Ldn (optional): These are the adjustment step sizes for the damping parameter. Default is 5 and 3 respectively.
+      curvature_limit (optional): Controls how cautious the optimizer is for changing curvature. It should be a number greater than 0, where smaller is more cautious. Default is 1.
+      Lup and Ldn (optional): These adjust the step sizes for the damping parameter. Default is 5 and 3 respectively.
       L0 (optional): This is the starting damping parameter. For easy problems with good initialization, this can be set lower. Default is 1.
       acceleration (optional): Controls the use of geodesic acceleration, which can be helpful in some scenarios. Set 1 for full acceleration, 0 for no acceleration. Default is 0.
-        
+
+    Here is some basic usage of the LM optimizer:
+
+    .. code-block:: python
+
+      import astrophot as ap
+      # build model
+      # ...
+      
+      # Initialize model parameters
+      model.initialize()
+
+      # Fit the parameters
+      result = ap.fit.lm(model, verbose = 1)
+
+      # Check that a minimum was found
+      print(result.message)
+
+      # See the minimum chi^2 value
+      print(f"min chi2: {result.res_loss()}")
+      
+      # Update parameter uncertainties
+      result.update_uncertainty()
+
+      # Extract multivariate Gaussian of uncertainties
+      mu = result.res()
+      cov = result.covariance_matrix
+    
     """
 
     def __init__(
@@ -160,7 +187,7 @@ class LM(BaseOptimizer):
         # Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation
         self.max_step_iter = kwargs.get("max_step_iter", 10)
         # sets how cautious the optimizer is for changing curvature, should be number greater than 0, where smaller is more cautious
-        self.curvature_limit = kwargs.get("curvature_limit", 0.75) 
+        self.curvature_limit = kwargs.get("curvature_limit", 1.) 
         # These are the adjustment step sized for the damping parameter
         self._Lup = kwargs.get("Lup", 5.)
         self._Ldn = kwargs.get("Ldn", 3.)
@@ -176,7 +203,7 @@ class LM(BaseOptimizer):
 
         # 1 / (2 * sigma^2)
         if model.target.has_variance:
-            self.W = 1. / self.model.target[self.fit_window].flatten("variance")
+            self.W = self.model.target[self.fit_window].flatten("weight")
         else:
             self.W = torch.ones_like(self.Y)
 
@@ -192,12 +219,24 @@ class LM(BaseOptimizer):
         self._covariance_matrix = None
 
     def Lup(self):
+        """
+        Increases the damping parameter for more gradient-like steps. Used internally.
+        """
         self.L = min(1e9, self.L * self._Lup)
     def Ldn(self):
+        """
+        Decreases the damping parameter for more Gauss-Newton like steps. Used internally.
+        """
         self.L = max(1e-9, self.L / self._Ldn)
         
     @torch.no_grad()
     def step(self, chi2):
+        """Performs one step of the LM algorithm. Computes Jacobian, infers
+        hessian and gradient, solves for step vector and iterates on
+        damping parameter magnitude until a step with some improvement
+        in chi2 is found. Used internally.
+
+        """
 
         Y0 = self.forward(parameters = self.current_state).flatten("data")
         J = self.jacobian(parameters = self.current_state).flatten("data")
@@ -254,7 +293,8 @@ class LM(BaseOptimizer):
                 nostep = False
 
             # Check for high curvature, in which case linear approximation is not valid. avoid this step
-            if torch.linalg.norm(a) / torch.linalg.norm(h) > self.curvature_limit:
+            rho = torch.linalg.norm(a) / torch.linalg.norm(h)
+            if rho > self.curvature_limit:
                 if self.verbose > 1:
                     AP_config.ap_logger.info("Skip due to large curvature")
                 self.Lup()
@@ -301,7 +341,6 @@ class LM(BaseOptimizer):
     @staticmethod
     @torch.no_grad()
     def _h(L, grad, hess):
-
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
 
         h = torch.linalg.solve(
@@ -321,7 +360,13 @@ class LM(BaseOptimizer):
 
     @torch.no_grad()
     def update_hess_grad(self, natural = False):
+        """Updates the stored hessian matrix and gradient vector. This can be
+        used to compute the quantities in thier natural parameter
+        represntation. During normal optimization the hessian and
+        gradient are computed in a re-mapped parameter space where
+        parameters are defined form -inf to inf.
 
+        """
         if natural:
             J = self.jacobian_natural(parameters = self.transform(self.current_state)).flatten("data")
         else:
@@ -332,7 +377,14 @@ class LM(BaseOptimizer):
         
     @torch.no_grad()
     def fit(self):
+        """This performs the fitting operation. It iterates the LM step
+        function until convergence is reached. Includes a message
+        after fitting to indicate how the fitting exited. Typically if
+        the message returns a "success" then the algorithm found a
+        minimum. This may be the desired solution, or a pathological
+        local minimum, this often depends on the initial conditions.
 
+        """
         self._covariance_matrix = None
         self.loss_history = [self._chi2(self.forward(parameters = self.current_state).flatten("data")).item()]
         self.L_history = [self.L]
@@ -383,6 +435,14 @@ class LM(BaseOptimizer):
     @property
     @torch.no_grad()
     def covariance_matrix(self) -> torch.Tensor:
+        """The covariance matrix for the model at the current
+        parameters. This can be used to construct a full Gaussian PDF
+        for the parameters using: :math:`\\mathcal{N}(\\mu,\\Sigma)`
+        where :math:`\\mu` is the optimized parameters and
+        :math:`\\Sigma` is the covariance matrix.
+
+        """
+        
         if self._covariance_matrix is not None:
             return self._covariance_matrix
         self.update_hess_grad(natural = True)
@@ -400,6 +460,12 @@ class LM(BaseOptimizer):
 
     @torch.no_grad()
     def update_uncertainty(self):
+        """Call this function after optimization to set the uncertainties for
+        the parameters. This will use the diagonal of the covariance
+        matrix to update the uncertainties. See the covariance_matrix
+        function for the full representation of the uncertainties.
+
+        """
         # set the uncertainty for each parameter
         cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):

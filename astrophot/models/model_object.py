@@ -112,9 +112,9 @@ class Component_Model(AstroPhot_Model):
     ]
     useable = False
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, *, name=None, **kwargs):
         self._target_identity = None
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name=name,**kwargs)
 
         self.psf = None
         self.psf_aux_image = None
@@ -129,7 +129,7 @@ class Component_Model(AstroPhot_Model):
 
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
-            self.load(kwargs["filename"])
+            self.load(kwargs["filename"], new_name = name)
             return
 
         self.parameter_specs = self.build_parameter_specs(
@@ -597,7 +597,7 @@ class Component_Model(AstroPhot_Model):
                 state[key] = getattr(self, key)
         return state
 
-    def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml"):
+    def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new_name = None):
         """Used to load the model from a saved state.
 
         Sets the model window to the saved value and updates all
@@ -609,7 +609,9 @@ class Component_Model(AstroPhot_Model):
 
         """
         state = AstroPhot_Model.load(filename)
-        self.name = state["name"]
+        if new_name is None:
+            new_name = state["name"]
+        self.name = new_name
         # Use window saved state to initialize model window
         self.window = Window(**state["window"])
         # reassign target in case a target list was given

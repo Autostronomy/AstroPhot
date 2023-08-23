@@ -11,6 +11,15 @@ AstroPhot is a modular and object oriented astronomical image modelling package.
 
 One of the core components of AstroPhot is the model objects, these are organized in a class hierarchy with several layers of inheritance. While this is not considered best programming practice for many situations, in AstroPhot it is very intentional and we think helpful to users. With this hierarchy it is very easy to customize a model to suit your needs without needing to rewrite a great deal of code. Simply access the point in the hierarcy which most closely matches your desired result and make minor modifications. In the tutorials you can see how detailed models can be implemented with only a few lines of code even though the user has complete freedom to change any aspect of the model.
 
+Install
+-------
+
+For most users, you can just run::
+
+  pip install astrophot
+
+If you wish to help with the development, then see the `contributing guide <https://github.com/Autostronomy/AstroPhot/blob/main/CONTRIBUTING.md>`_.
+
 Using the Tutorials
 -------------------
 
@@ -33,7 +42,7 @@ When downloading the tutorials, you will also get a file called ``simple_config.
 Model Org Chart
 ---------------
 
-As a quick reference for what kinds of models are available in AstroPhot, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. Just use the second line at each step in the flow chart to construct the name. For example one could follow a fairly direct path to get a ``sersic galaxy model``, or a more complex path to get a ``muker fourier warp galaxy model``. Note that the ``Component_Model`` object doesn't have an identifier, it is really meant to hide in the background while its subclasses do the work.
+As a quick reference for what kinds of models are available in AstroPhot, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. Just use the second line at each step in the flow chart to construct the name. For example one could follow a fairly direct path to get a ``sersic galaxy model``, or a more complex path to get a ``nuker fourier warp galaxy model``. Note that the ``Component_Model`` object doesn't have an identifier, it is really meant to hide in the background while its subclasses do the work.
 
 .. image:: https://github.com/Autostronomy/AstroPhot/blob/main/media/AstroPhotModelOrgchart.png?raw=true
    :alt: AstroPhot Model Org Chart

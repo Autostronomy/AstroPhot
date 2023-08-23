@@ -21,8 +21,8 @@ class Zernike_Star(Star_Model):
     _parameter_order = Star_Model._parameter_order + ("Anm",)
     useable = True
 
-    def __init__(self, name, *args, order_n=2, r_scale=None, **kwargs):
-        super().__init__(name, *args, **kwargs)
+    def __init__(self, *, name=None, order_n=2, r_scale=None, **kwargs):
+        super().__init__(name=name, **kwargs)
 
         self.order_n = int(order_n)
         self.r_scale = r_scale
@@ -112,6 +112,7 @@ class Zernike_Star(Star_Model):
                 Z += c * R * T
         return Z
 
+    @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
             Coords = image.get_coordinate_meshgrid()

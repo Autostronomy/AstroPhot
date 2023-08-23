@@ -99,6 +99,7 @@ def model_image(
     target_mask=False,
     cmap_levels=None,
     flipx=False,
+    magunits=True,
     **kwargs,
 ):
     """
@@ -157,6 +158,7 @@ def model_image(
                 target_mask=target_mask,
                 cmap_levels=cmap_levels,
                 flipx=flipx,
+                magunits=magunits,
                 **kwargs,
             )
         return fig, ax
@@ -186,7 +188,7 @@ def model_image(
         )
 
     # If zeropoint is available, convert to surface brightness units
-    if target.zeropoint is not None:
+    if target.zeropoint is not None and magunits:
         sample_image = flux_to_sb(
             sample_image, target.pixel_area.item(), target.zeropoint.item()
         )
@@ -205,7 +207,7 @@ def model_image(
 
     # Add a colourbar
     if showcbar:
-        if target.zeropoint is not None:
+        if target.zeropoint is not None and magunits:
             clb = fig.colorbar(im, ax=ax, label="Surface Brightness [mag/arcsec$^2$]")
             clb.ax.invert_yaxis()
         else:

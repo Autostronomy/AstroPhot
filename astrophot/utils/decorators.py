@@ -6,6 +6,14 @@ import numpy as np
 
 
 def ignore_numpy_warnings(func):
+    """This decorator is used to turn off numpy warnings. This should
+    only be used in initialize scripts which often run heuristic code
+    to determine initial parameter values. These heuristics may
+    encounter log(0) or sqrt(-1) or other numerical artifacts and
+    should handle them before returning. This decorator simply cleans
+    up that processes to minimize clutter in the output.
+
+    """
     @wraps(func)
     def wrapped(*args, **kwargs):
         old_settings = np.seterr(all="ignore")
@@ -19,6 +27,13 @@ def ignore_numpy_warnings(func):
 
 
 def default_internal(func):
+    """This decorator inspects the input parameters for a function which
+    expects to recieve `image` and `parameters` arguments. If either
+    of these are not given, then the model can use it's default values
+    for the parameters assuming the `image` is the internal `target`
+    object and the `parameters` are the internally stored parameters.
+
+    """
     sig = inspect.signature(func)
 
     @wraps(func)

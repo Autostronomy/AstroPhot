@@ -29,27 +29,77 @@ def all_subclasses(cls):
 
 ######################################################################
 class AstroPhot_Model(object):
-    """AstroPhot_Model(name, *args, filename = None, model_type = None, **kwargs)
+    """Core class for all AstroPhot models and model like objects. This
+    class defines the signatures to interact with AstroPhot models
+    both for users and internal functions.
 
-    Core class for all AstroPhot models and model like objects. The
-    signature defined for this class includes all expected behaviour
-    that will be accessed by some or all optimizers during
-    fitting. This base class also handles saving and loading of
-    models, though individual models should define thier "get_state"
-    behaviour and "load" behaviour to fully take advantage of this
-    functionality.
+    Basic usage:
 
-    Parameters:
-        name: every AstroPhot model should have a unique name [str]
-        filename: name of a file to load AstroPhot parameters, window, and name. The model will still need to be told its target, device, and other information [str]
-        model_type: a model type string can determine which kind of AstroPhot model is instantiated [str]
+    .. code-block:: python
+
+      import astrophot as ap
+
+      # Create a model object
+      model = ap.models.AstroPhot_Model(
+          name = "unique name",
+          model_type = <choose a model type>,
+          target = <Target_Image object>,
+          window = [[a,b],[c,d]], <widnow pixel coordinates>,
+          parameters = <dict of parameter specifications if desired>,
+      )
+
+      # Initialize parameters that weren't set on creation
+      model.initialize()
+
+      # Fit model to target
+      result = ap.fit.lm(model, verbose=1).fit()
+
+      # Plot the model
+      fig, ax = plt.subplots()
+      ap.plots.model_image(fig, ax, model)
+      plt.show()
+
+      # Sample the model
+      img = model()
+      pixels = img.data
+
+    AstroPhot models are one of the main ways that one interacts with
+    the code, either by setting model parameters or passing models to
+    other objects, one can perform a huge variety of fitting
+    tasks. The subclass `Component_Model` should be thought of as the
+    basic unit when constructing a model of an image while a
+    `Group_Model` is a composite structure that may represent a
+    complex object, a region of an image, or even a model spanning
+    many images. Constructing the `Component_Model`s is where most
+    work goes, these store the actual parameters that will be
+    optimized. It is important to remmeber that a `Component_Model`
+    only ever applies to a single image and a single component (star,
+    galaxy, or even sub-component of one of those) in that image.
+
+    A complex representation is made by stacking many
+    `Component_Model`s together, in total this may result in a very
+    large number of parameters. Trying to find starting values for all
+    of these parameters can be tedious and error prone, so instead all
+    built-in AstroPhot models can self initialize and find reasonable
+    starting parameters for most situations. Even still one may find
+    that for extremely complex fits, it is more stable to first run an
+    iterative fitter before global optimization to start the models in
+    better initial positions.
+
+    Args:
+        name (Optional[str]): every AstroPhot model should have a unique name
+        model_type (str): a model type string can determine which kind of AstroPhot model is instantiated.
+        target (Optional[Target_Image]): A Target_Image object which stores information about the image which the model is trying to fit.
+        filename (Optional[str]): name of a file to load AstroPhot parameters, window, and name. The model will still need to be told its target, device, and other information
+
     """
 
     model_type = "model"
     constraint_strength = 10.0
     useable = False
+    model_names = []
 
-    def __new__(cls, *args, filename=None, model_type=None, **kwargs):
+    def __new__(cls, *, filename=None, model_type=None, **kwargs):
         if filename is not None:
             state = AstroPhot_Model.load(filename)
             MODELS = AstroPhot_Model.List_Models()
@@ -70,10 +120,7 @@ class AstroPhot_Model(object):
 
         return super().__new__(cls)
 
-    def __init__(self, name, *args, target=None, window=None, locked=False, **kwargs):
-        assert (
-            ":" not in name and "|" not in name
-        ), "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
+    def __init__(self, *, name=None, target=None, window=None, locked=False, **kwargs):
         self.name = name
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
@@ -83,7 +130,58 @@ class AstroPhot_Model(object):
         self._locked = locked
         self.mask = kwargs.get("mask", None)
 
+    @property
+    def name(self):
+        """The name for this model as a string. The name should be unique
+        though this is not enforced here. The name should not contain
+        the `|` or `:` characters as these are reserved for internal
+        use. If one tries to set the name of a model as `None` (for
+        example by not providing a name for the model) then a new
+        unique name will be generated. The unique name is just the
+        model type for this model with an extra unique id appended to
+        the end in the format of `[#]` where `#` is a number that
+        increases until a unique name is found.
+
+        """
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        try:
+            if name == self.name:
+                return
+        except AttributeError:
+            pass
+        if name is None:
+            i = 0
+            while True:
+                proposed_name = f"{self.model_type} [{i}]"
+                if proposed_name in AstroPhot_Model.model_names:
+                    i += 1
+                else:
+                    name = proposed_name
+                    break
+        assert (
+            ":" not in name and "|" not in name
+        ), "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
+        self._name = name
+        AstroPhot_Model.model_names.append(name)
+
     def add_equality_constraint(self, model, parameter):
+        """This function matches up parameters between two models. The
+        arguments are a model and a parameter name. The parameter with
+        that name from the other model will be used to replace the
+        parameter of that name in the current model. Effectively this
+        results in an equality constraint for the two models since
+        they are sharing the same parameter. If a list of parameter
+        names are given then this process is applied to all the
+        parameters.
+
+        Args:
+          model (AstroPhot_Model): A model object with parameters to take as the new matching parameter for this model.
+          parameter (str): The name of a parameter to match between the two models. The parameter with that name in the current model will be discarded.
+
+        """
         if isinstance(parameter, (tuple, list)):
             for P in parameter:
                 self.add_equality_constraint(model, P)
@@ -111,6 +209,12 @@ class AstroPhot_Model(object):
         pass
 
     def make_model_image(self, window: Optional[Window] = None):
+        """This is called to create a blank `Model_Image` object of the
+        correct format for this model. This is typically used
+        internally to construct the model image before filling the
+        pixel values with the model.
+
+        """
         if window is None:
             window = self.window
         else:
@@ -130,6 +234,9 @@ class AstroPhot_Model(object):
         as_representation=True,
         parameters_identity=None,
     ):
+        """
+        Compute the negative log likelihood of the model wrt the target image in the appropriate window. 
+        """
         if parameters is not None:
             self.parameters.set_values(
                 parameters, as_representation, parameters_identity
@@ -137,19 +244,19 @@ class AstroPhot_Model(object):
 
         model = self.sample()
         data = self.target[self.window]
-        variance = data.variance
+        weight = data.weight
         if self.target.has_mask:
             if isinstance(data, Target_Image_List):
                 mask = tuple(torch.logical_not(submask) for submask in data.mask)
-                chi2 = sum(torch.sum(((mo - da).data ** 2 / va)[ma]) / 2.0 for mo, da, va, ma in zip(model, data, variance, mask))
+                chi2 = sum(torch.sum(((mo - da).data ** 2 * wgt)[ma]) / 2.0 for mo, da, wgt, ma in zip(model, data, weight, mask))
             else:
                 mask = torch.logical_not(data.mask)
-                chi2 = torch.sum(((model - data).data ** 2 / variance)[mask]) / 2.0
+                chi2 = torch.sum(((model - data).data ** 2 * weight)[mask]) / 2.0
         else:
             if isinstance(data, Target_Image_List):
-                chi2 = sum(torch.sum(((mo - da).data ** 2 / va)) / 2.0 for mo, da, va in zip(model, data, variance))
+                chi2 = sum(torch.sum(((mo - da).data ** 2 * wgt)) / 2.0 for mo, da, wgt in zip(model, data, weight))
             else:
-                chi2 = torch.sum(((model - data).data ** 2 / variance)) / 2.0
+                chi2 = torch.sum(((model - data).data ** 2 * weight)) / 2.0
 
         return chi2
 
@@ -163,6 +270,18 @@ class AstroPhot_Model(object):
 
     @property
     def window(self):
+        """The window defines a region on the sky in which this model will be
+        optimized and typically evaluated. Two models with
+        non-overlapping windows are in effect independent of each
+        other. If there is another model with a window that spans both
+        of them, then they are tenuously conected.
+
+        If not provided, the model will assume a window equal to the
+        target it is fitting. Note that in this case the window is not
+        explicitly set to the target window, so if the model is moved
+        to another target then the fitting window will also change.
+
+        """
         try:
             if self._window is None:
                 return self.target.window.copy()
@@ -244,6 +363,10 @@ class AstroPhot_Model(object):
         will be bypassed when fitting parameters, however it will
         still be sampled for generating the model image.
 
+        Warning:
+
+          This feature is not yet fully functional and should be avoided for now. It is included here for the sake of testing.
+
         """
         return self._locked
 
@@ -254,6 +377,11 @@ class AstroPhot_Model(object):
 
     @property
     def parameter_order(self):
+        """Returns the model parameters in the order they are kept for
+        flattening, such as when evaluating the model with a tensor of
+        parameter values.
+
+        """
         return tuple(P.name for P in self.parameters)
 
     def __str__(self):
@@ -261,6 +389,11 @@ class AstroPhot_Model(object):
         return yaml.dump(self.get_state(), indent=2)
 
     def get_state(self):
+        """Returns a dictionary of the state of the model with its name,
+        type, parameters, and other important infomration. This
+        dictionary is what gets saved when a model saves to disk.
+
+        """
         state = {
             "name": self.name,
             "model_type": self.model_type,
@@ -268,6 +401,11 @@ class AstroPhot_Model(object):
         return state
 
     def save(self, filename="AstroPhot.yaml"):
+        """Saves a model object to disk. By default the file type should be
+        yaml, this is the only file type which gets tested, though
+        other file types such as json and hdf5 should work.
+
+        """
         if filename.endswith(".yaml"):
             state = self.get_state()
             with open(filename, "w") as f:
@@ -296,6 +434,9 @@ class AstroPhot_Model(object):
 
     @classmethod
     def load(cls, filename="AstroPhot.yaml"):
+        """
+        Loads a saved model object.
+        """
         if isinstance(filename, dict):
             state = filename
         elif isinstance(filename, io.TextIOBase):
@@ -350,6 +491,13 @@ class AstroPhot_Model(object):
     def __contains__(self, key):
         return self.parameters.__contains__(key)
 
+    def __del__(self):
+        try:
+            i = AstroPhot_Model.model_names.index(self.name)
+            AstroPhot_Model.model_names.pop(i)
+        except:
+            pass
+
     @select_sample
     def __call__(
         self,
@@ -360,6 +508,7 @@ class AstroPhot_Model(object):
         window=None,
         **kwargs,
     ):
+        
         if parameters is None:
             parameters = self.parameters
         elif isinstance(parameters, torch.Tensor):

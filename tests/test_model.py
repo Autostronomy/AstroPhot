@@ -12,9 +12,9 @@ from utils import make_basic_sersic
 class TestModel(unittest.TestCase):
     def test_AstroPhot_Model(self):
 
-        self.assertRaises(AssertionError, ap.models.AstroPhot_Model, "my|model")
+        self.assertRaises(AssertionError, ap.models.AstroPhot_Model, name = "my|model")
 
-        model = ap.models.AstroPhot_Model("test model")
+        model = ap.models.AstroPhot_Model(name = "test model")
 
         self.assertIsNone(model.target, "model should not have a target at this point")
 

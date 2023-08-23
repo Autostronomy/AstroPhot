@@ -6,12 +6,26 @@ def flux_to_sb(flux, pixel_area, zeropoint):
     """Conversion from flux units to logarithmic surface brightness
     units.
 
+    .. math::
+
+      \\mu = -2.5\\log_{10}(flux) + z.p. + 2.5\\log_{10}(A)
+
+    where :math:`z.p.` is the zeropoint and :math:`A` is the area of a pixel.
+
     """
     return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
 
 
 def flux_to_mag(flux, zeropoint, fluxe=None):
-    """Converts a flux total into logarithmic magnitude units."""
+    """Converts a flux total into logarithmic magnitude units.
+
+    .. math::
+
+      m = -2.5\\log_{10}(flux) + z.p.
+
+    where :math:`z.p.` is the zeropoint.
+    
+    """
     if fluxe is None:
         return -2.5 * np.log10(flux) + zeropoint
     else:
@@ -19,12 +33,28 @@ def flux_to_mag(flux, zeropoint, fluxe=None):
 
 
 def sb_to_flux(sb, pixel_area, zeropoint):
-    """Converts logarithmic surface brightness units into flux units."""
+    """Converts logarithmic surface brightness units into flux units.
+
+    .. math::
+
+      flux = A 10^{-(\\mu - z.p.)/2.5}
+
+    where :math:`z.p.` is the zeropoint and :math:`A` is the area of a pixel.
+    
+    """
     return pixel_area * 10 ** (-(sb - zeropoint) / 2.5)
 
 
 def mag_to_flux(mag, zeropoint, mage=None):
-    """converts logarithmic magnitude units into a flux total."""
+    """converts logarithmic magnitude units into a flux total.
+
+    .. math::
+
+      flux = 10^{-(m - z.p.)/2.5}
+
+    where :math:`z.p.` is the zeropoint.
+
+    """
     if mage is None:
         return 10 ** (-(mag - zeropoint) / 2.5)
     else:
@@ -40,6 +70,14 @@ def magperarcsec2_to_mag(mu, a=None, b=None, A=None):
     b: semi minor axis radius (arcsec)
     A: pre-calculated area (arcsec^2)
     returns: mag
+
+
+    .. math::
+
+      m = \\mu -2.5\\log_{10}(A)
+
+    where :math:`A` is an area in arcsec^2.
+    
     """
     assert (not A is None) or (not a is None and not b is None)
     if A is None:
@@ -57,6 +95,12 @@ def mag_to_magperarcsec2(m, a=None, b=None, R=None, A=None):
     b: semi minor axis radius (arcsec)
     A: pre-calculated area (arcsec^2)
     returns: mag/arcsec^2
+
+    .. math::
+
+      \\mu = m + 2.5\\log_{10}(A)
+
+    where :math:`A` is an area in arcsec^2.    
     """
     assert (not A is None) or (not a is None and not b is None) or (not R is None)
     if not R is None:
