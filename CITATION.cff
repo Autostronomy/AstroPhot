@@ -13,6 +13,25 @@ authors:
     email: connorstone628@gmail.com
     affiliation: Université de Montréal
     orcid: 'https://orcid.org/0000-0002-9086-6398'
+  - given-names: Stéphane
+    family-names: Courteau
+    affiliation: Queen's University
+  - given-names: Jean-Charles
+    family-names: Cuillandre
+    affiliation: Université de Paris
+    orcid: 'https://orcid.org/0000-0002-3263-8645'
+  - given-names: Yashar
+    family-names: Hezaveh
+    affiliation: Univeristé de Montréal
+    orcid: 'https://orcid.org/0000-0002-8669-5733'
+  - orcid: 'https://orcid.org/0000-0003-3544-3939'
+    given-names: Laurence
+    family-names: Perreault-Levasseur
+    affiliation: Université de Montréal
+  - given-names: Nikhil
+    family-names: Arora
+    affiliation: New York University Abu Dhabi
+    orcid: 'https://orcid.org/0000-0002-3929-9316'
 identifiers:
   - type: doi
     value: 10.1093/mnras/stad2477
