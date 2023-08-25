@@ -1,0 +1,52 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: AstroPhot
+message: >-
+  Fitting Everything Everywhere All at Once in Astronomical
+  Images
+type: software
+authors:
+  - given-names: Connor
+    family-names: Stone
+    email: connorstone628@gmail.com
+    affiliation: Université de Montréal
+    orcid: 'https://orcid.org/0000-0002-9086-6398'
+identifiers:
+  - type: doi
+    value: 10.1093/mnras/stad2477
+    description: MNRAS
+repository-code: 'https://github.com/Autostronomy/AstroPhot'
+url: 'https://autostronomy.github.io/AstroPhot/'
+abstract: >-
+  We present AstroPhot, a fast, powerful, and user-friendly
+  Python based astronomical image photometry solver.
+  AstroPhot incorporates automatic differentiation and GPU
+  (or parallel CPU) acceleration, powered by the machine
+  learning library PyTorch. Everything: AstroPhot can fit
+  models for sky, stars, galaxies, PSFs, and more in a
+  principled Chi^2 forward optimization, recovering Bayesian
+  posterior information and covariance of all parameters.
+  Everywhere: AstroPhot can optimize forward models on CPU
+  or GPU; across images that are large, multi-band,
+  multi-epoch, rotated, dithered, and more. All at once: The
+  models are optimized together, thus handling overlapping
+  objects and including the covariance between parameters
+  (including PSF and galaxy parameters). A number of
+  optimization algorithms are available including
+  Levenberg-Marquardt, Gradient descent, and No-U-Turn MCMC
+  sampling. With an object-oriented user interface,
+  AstroPhot makes it easy to quickly extract detailed
+  information from complex astronomical data for individual
+  images or large survey programs.
+keywords:
+  - python
+  - scientific computing
+  - pytorch
+  - photometry
+  - astronomy
+license: GPL-3.0
+commit: 543dd68
+version: 0.11.0
+date-released: '2023-08-23'
