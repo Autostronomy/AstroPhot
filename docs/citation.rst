@@ -20,3 +20,5 @@ Bibtex::
          adsurl = {https://ui.adsabs.harvard.edu/abs/2023MNRAS.tmp.2330S},
         adsnote = {Provided by the SAO/NASA Astrophysics Data System}
   }
+
+If you would like to identify the exact version of AstroPhot that you used in your analysis, please then also include a citation for the GitHub repository at the relevant version number from the `home page <https://github.com/Autostronomy/AstroPhot>`_.
