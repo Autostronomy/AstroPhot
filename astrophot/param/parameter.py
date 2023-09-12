@@ -13,61 +13,20 @@ from ..utils.conversions.optimization import (
     cyclic_boundaries,
 )
 from .. import AP_config
+from .base import Node
 
-__all__ = ["Parameter"]
-
-class Node(object):
-
-    def __init__(self, name, **kwargs):
-        self.name = name
-        self.nodes = OrderedDict()
-
-    def link(self, node):
-        self.nodes[node.name] = node
-
-    def unlink(self, node):
-        del self.nodes[node.name]
-
-    def dump(self):
-        for name in list(self.nodes.keys()):
-            del self.nodes[name]
-
-    def __getitem__(self, key):
-        if key in self.nodes:
-            return self.nodes[key]
-        base, stem = key.split(":", 1)
-        return self.nodes[key[:base]][stem]
-
-    def flat(self, include_locked = True):
-        flat = OrderedDict()
-        for node in self.nodes:
-            if len(node.nodes) == 0:
-                if node.locked and not include_locked:
-                    continue
-                flat[node] = None
-            else:
-                flat.update(node.flat(include_locked))
-        return flat
-
-    def get_state(self):
-        state = {
-            "name": self.name,
-            "identity": id(self),
-        }
-        if len(self.nodes) > 0:
-            state["nodes"] = tuple(node.get_state() for node in self.nodes.values())
-        return state
+__all__ = ["Parameter_Node"]
     
-class Param_Node(Node):
+class Parameter_Node(Node):
 
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)        
 
         self._prof = None
-        self.limits = kwargs.get("limits", (None, None))
+        self.limits = kwargs.get("limits", [None, None])
         self.cyclic = kwargs.get("cyclic", False)
-        self.elements = kwargs.get("elements", True)
         self.locked = False
+        self.shape = kwargs.get("shape", None)
         self.value = kwargs.get("value", None)
         self.locked = kwargs.get("locked", False)
         self.units = kwargs.get("units", "none")
@@ -81,65 +40,109 @@ class Param_Node(Node):
 
         if isinstance(self._value, torch.Tensor):
             return self._value
-        if isinstance(self._value, Param_Node):
+        if isinstance(self._value, Parameter_Node):
             return self._value.value
         if isinstance(self._value, FunctionType):
             return self._value(self)
 
         return None
 
+    def _set_val_subnodes(self, val):
+        flat = self.flat(include_locked = False)
+        loc = 0
+        for node in flat.keys():
+            node.value = val[loc:loc + node.size]
+            loc += node.size
+
+    def _set_val_self(self, val):
+        if self.shape is not None:
+            self._value = torch.as_tensor(
+                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ).reshape(self.shape)
+        else:
+            self._value = torch.as_tensor(
+                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+        self.shape = self._value.shape
+                
+        if self.cyclic:
+            self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
+        if self.limits[0] is not None:
+            assert torch.all(self._value > self.limits[0])
+        if self.limits[1] is not None:
+            assert torch.all(self._value < self.limits[1])
+        
     @value.setter
     def value(self, val):
         if self.locked:
             return
         if val is None:
             self._value = None
+            self.shape = None
             return
-        if len(self.nodes) > 0:
-            flat = self.flat(include_locked = False)
-            loc = 0
-            for node in flat.keys():
-                node.value = val[loc:loc + node.size]
-                loc += node.size
-            return
-        try:
-            if self._value is None:
-                self._value = torch.as_tensor(
-                    val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
-            else:
-                self._value = torch.as_tensor(
-                    val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
-            
-            if self.cyclic:
-                self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
-            if self.limits[0] is not None:
-                assert torch.all(self._value > self.limits[0])
-            if self.limits[1] is not None:
-                assert torch.all(self._value < self.limits[1])
-            return
-        except:
-            pass
-        
-        if isinstance(val, Param_Node):
+        if isinstance(val, Parameter_Node):
             self._value = val
+            self.shape = None
             # Link only to the pointed node
             self.dump()
             self.link(val)
             return
         if isinstance(val, FunctionType):
             self._value = val
+            self.shape = None
             return
-        raise ValueError(f"Unrecognized value type for parameter: {type(val)}")        
-            
+        if len(self.nodes) > 0:
+            self._set_val_subnodes(val)
+            return
+        self._set_val_self(val)
+
+    @property
+    def shape(self):
+        if isinstance(self._value, Parameter_Node):
+            return self._value.shape
+        if isinstance(self._value, FunctionType):
+            return self.value.shape
+        if len(self.nodes) > 0:
+            return self.flat_value(include_locked = False).shape
+        return self._shape
+
+    @shape.setter
+    def shape(self, shape):
+        self._shape = shape
+        
+    @property
+    def prof(self):
+        return self._prof
+
+    @prof.setter
+    def prof(self, prof):
+        if self.locked:
+            return
+        if prof is None:
+            self._prof = None
+            return
+        self._prof = torch.as_tensor(
+            prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+    
+    def flat(self, include_locked = True):
+        flat = OrderedDict()
+        for node in self.nodes:
+            if len(node.nodes) == 0 and not node.value is None:
+                if node.locked and not include_locked:
+                    continue
+                flat[node] = None
+            else:
+                flat.update(node.flat(include_locked))
+        return flat
+
     def flat_value(self, include_locked = False):
         flat = self.flat(include_locked)
         size = 0
         for node in flat.keys():
             size += node.size
 
-        val = torch.zeros(size)
+        val = torch.zeros(size, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         loc = 0
         for node in flat.keys():
             val[loc:loc + node.size] = node.value.flatten()
@@ -172,19 +175,19 @@ class Param_Node(Node):
         
         if self.value is not None:
             state["value"] = self.value.detach().cpu().numpy().tolist()
+        if self.shape is not None:
+            state["shape"] = tuple(self.shape)
         if self.units is not None:
             state["units"] = self.units
         if self.uncertainty is not None:
             state["uncertainty"] = self.uncertainty.detach().cpu().numpy().tolist()
         if self.locked:
             state["locked"] = self.locked
-        if self.limits is not None:
+        if not (self.limits[0] is None and self.limits[1] is None):
             save_lim = []
             for i in [0, 1]:
                 if self.limits[i] is None:
                     save_lim.append(None)
-                elif self.limits[i].numel() == 1:
-                    save_lim.append(self.limits[i].item())
                 else:
                     save_lim.append(self.limits[i].detach().cpu().tolist())
             state["limits"] = tuple(save_lim)
@@ -223,8 +226,7 @@ class Param_Node(Node):
         """If the parameter has multiple values, this is the length of the
         parameter.
 
-        """
-        
+        """        
         if self.value is None:
             return self.flat_value().numel()
         return self.value.numel()
@@ -233,3 +235,5 @@ class Param_Node(Node):
         if key == self.name:
             return self.value
         super().__getitem__(key)
+
+
