@@ -14,7 +14,7 @@ from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
 from ..utils.optimization import reduced_chi_squared
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import Model_Image, Window, Target_Image, Target_Image_List
-from .parameter_group import Parameter_Group
+from ..param import Parameter_Node
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
 
@@ -124,7 +124,7 @@ class AstroPhot_Model(object):
         self.name = name
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.constraints = kwargs.get("constraints", None)
-        self.parameters = Parameter_Group(self.name)
+        self.parameters = Parameter_Node(self.name)
         self.target = target
         self.window = window
         self._locked = locked

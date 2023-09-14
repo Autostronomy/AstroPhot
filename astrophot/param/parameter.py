@@ -25,10 +25,8 @@ class Parameter_Node(Node):
         self._prof = None
         self.limits = kwargs.get("limits", [None, None])
         self.cyclic = kwargs.get("cyclic", False)
-        self.locked = False
         self.shape = kwargs.get("shape", None)
         self.value = kwargs.get("value", None)
-        self.locked = kwargs.get("locked", False)
         self.units = kwargs.get("units", "none")
         self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
@@ -37,15 +35,12 @@ class Parameter_Node(Node):
 
     @property
     def value(self):
-
-        if isinstance(self._value, torch.Tensor):
-            return self._value
         if isinstance(self._value, Parameter_Node):
             return self._value.value
         if isinstance(self._value, FunctionType):
             return self._value(self)
 
-        return None
+        return self._value
 
     def _set_val_subnodes(self, val):
         flat = self.flat(include_locked = False)
@@ -74,7 +69,7 @@ class Parameter_Node(Node):
         
     @value.setter
     def value(self, val):
-        if self.locked:
+        if self.locked and not Node.global_unlock:
             return
         if val is None:
             self._value = None
@@ -93,6 +88,7 @@ class Parameter_Node(Node):
             return
         if len(self.nodes) > 0:
             self._set_val_subnodes(val)
+            self.shape = None
             return
         self._set_val_self(val)
 
@@ -116,7 +112,7 @@ class Parameter_Node(Node):
 
     @prof.setter
     def prof(self, prof):
-        if self.locked:
+        if self.locked and not Node.global_unlock:
             return
         if prof is None:
             self._prof = None
@@ -125,29 +121,6 @@ class Parameter_Node(Node):
             prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
     
-    def flat(self, include_locked = True):
-        flat = OrderedDict()
-        for node in self.nodes:
-            if len(node.nodes) == 0 and not node.value is None:
-                if node.locked and not include_locked:
-                    continue
-                flat[node] = None
-            else:
-                flat.update(node.flat(include_locked))
-        return flat
-
-    def flat_value(self, include_locked = False):
-        flat = self.flat(include_locked)
-        size = 0
-        for node in flat.keys():
-            size += node.size
-
-        val = torch.zeros(size, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        loc = 0
-        for node in flat.keys():
-            val[loc:loc + node.size] = node.value.flatten()
-            loc += node.size
-        return val
 
     def to(self, dtype=None, device=None):
         """
@@ -160,6 +133,9 @@ class Parameter_Node(Node):
             
         if isinstance(self._value, torch.Tensor):
             self._value = self._value.to(dtype=dtype, device=device)
+        elif len(self.nodes) > 0:
+            for node in self.nodes.values():
+                node.to(dtype, device)
         if isinstance(self._uncertainty, torch.Tensor):
             self._uncertainty = self._uncertainty.to(dtype=dtype, device=device)
         if isinstance(self.prof, torch.Tensor):
@@ -232,8 +208,9 @@ class Parameter_Node(Node):
         return self.value.numel()
         
     def __getitem__(self, key):
-        if key == self.name:
-            return self.value
-        super().__getitem__(key)
-
+        if isinstance(key, str):
+            if key == self.name:
+                return self.value
+            super().__getitem__(key)
+        
 

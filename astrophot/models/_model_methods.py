@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 
-from .parameter_object import Parameter
+from ..param import Parameter_Node
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import (
     _shift_Lanczos_kernel_torch,
@@ -64,10 +64,10 @@ def build_parameters(self):
         if p in self.parameters:
             continue
         # If a parameter object is provided, simply use as-is
-        if isinstance(self.parameter_specs[p], Parameter):
-            self.parameters.add_parameter(self.parameter_specs[p].to())
+        if isinstance(self.parameter_specs[p], Parameter_Node):
+            self.parameters.link(self.parameter_specs[p].to())
         elif isinstance(self.parameter_specs[p], dict):
-            self.parameters.add_parameter(Parameter(p, **self.parameter_specs[p]))
+            self.parameters.link(Parameter_Node(p, **self.parameter_specs[p]))
         else:
             raise ValueError(f"unrecognized parameter specification for {p}")
 

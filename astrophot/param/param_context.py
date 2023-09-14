@@ -1,3 +1,5 @@
+from .base import Node
+
 __all__ = ["Param_Unlock"]
 
 class Param_Unlock(object):
@@ -11,15 +13,21 @@ class Param_Unlock(object):
 
     """
 
-    def __init__(self, param):
+    def __init__(self, param = None):
         self.param = param
 
     def __enter__(self):
-        self.original_locked = self.param.locked
-        self.param.locked = False
+        if self.param is None:
+            Node.global_unlock = True
+        else:
+            self.original_locked = self.param.locked
+            self.param.locked = False
             
     def __exit__(self):
-        self.param.locked = self.original_locked
+        if self.param is None:
+            Node.global_unlock = False
+        else:
+            self.param.locked = self.original_locked
 
 class Param_OverrideShape(object):
     """Temporarily allow writing values to parameters, with the wrong
