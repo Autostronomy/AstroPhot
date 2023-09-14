@@ -112,12 +112,12 @@ def run_from_terminal() -> None:
         )
     if args.filename in ["tutorial", "tutorials"]:
         tutorials = [
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/GroupModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/JointModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/FittingMethods.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/GettingStarted.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/GroupModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/JointModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/FittingMethods.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/CustomModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
