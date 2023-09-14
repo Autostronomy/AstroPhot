@@ -16,13 +16,22 @@ jobs:
           cache: 'pip'
       - run: |
           pip install -r requirements.txt
+          
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx_rtd_theme
+          pip install sphinx sphinx_rtd_theme nbsphinx pandoc
+          
+      - name: Clone external Jupyter Notebook repository
+        run: |
+          cd $GITHUB_WORKSPACE/docs/
+          python pull_notebooks.py
+
       - name: Sphinx build
         run: |
+          cd $GITHUB_WORKSPACE/
           sphinx-apidoc -f -o docs/ astrophot/
           sphinx-build docs _build
+          
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
