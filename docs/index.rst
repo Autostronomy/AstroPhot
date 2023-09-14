@@ -56,6 +56,7 @@ This documentation includes all functions available in the AstroPhot package. Fo
     modules.rst
     configfile_interface.rst
     tutorials.rst
+    troubleshooting.rst
               
 |br|
 
