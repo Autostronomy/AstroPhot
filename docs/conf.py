@@ -16,6 +16,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     'sphinx.ext.viewcode',
+    'nbsphinx',
 ]
 
 # Paths to templates
@@ -37,7 +38,7 @@ version = "0.11"
 release = "0.11.0"
 
 # Patterns of files and directories to exclude
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 # Pygments style to use
 pygments_style = "sphinx"
