@@ -19,7 +19,8 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx_rtd_theme nbsphinx pandoc
+          sudo apt-get install -y pandoc
+          pip install sphinx sphinx_rtd_theme nbsphinx
           
       - name: Clone external Jupyter Notebook repository
         run: |

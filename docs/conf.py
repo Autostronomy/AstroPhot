@@ -11,12 +11,12 @@ sys.path.insert(0, os.path.abspath("../"))
 
 # Extensions to use
 extensions = [
+    'nbsphinx',
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     'sphinx.ext.viewcode',
-    'nbsphinx',
 ]
 
 # Paths to templates
