@@ -92,3 +92,6 @@ texinfo_documents = [
         "Miscellaneous",
     ),
 ]
+
+# -- Options for nbsphinx --------------------------------------------------
+nbsphinx_execute = 'never'
