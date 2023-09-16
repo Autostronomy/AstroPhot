@@ -12,7 +12,7 @@ class TestImage(unittest.TestCase):
     def test_image_creation(self):
         arr = torch.zeros((10, 15))
         base_image = image.Image(
-            arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
+            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
         )
 
         self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
@@ -21,7 +21,7 @@ class TestImage(unittest.TestCase):
         self.assertEqual(base_image.origin[1], 0, "image should track origin")
         self.assertEqual(base_image.note, "test image", "image should track note")
 
-        slicer = image.Window((3, 2), (4, 5))
+        slicer = image.Window(origin = (3, 2), shape = (4, 5))
         sliced_image = base_image[slicer]
         self.assertEqual(sliced_image.origin[0], 3, "image should track origin")
         self.assertEqual(sliced_image.origin[1], 2, "image should track origin")
@@ -32,7 +32,7 @@ class TestImage(unittest.TestCase):
             base_image.origin[1], 0, "subimage should not change image origin"
         )
 
-        second_base_image = image.Image(arr, pixelscale=1.0, note="test image")
+        second_base_image = image.Image(data = arr, pixelscale=1.0, note="test image")
         self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
         self.assertIsNone(second_base_image.zeropoint, "image should track zeropoint")
         self.assertEqual(second_base_image.origin[0], 0, "image should track origin")
@@ -44,7 +44,7 @@ class TestImage(unittest.TestCase):
     def test_copy(self):
 
         new_image = image.Image(
-            torch.zeros((10, 15)),
+            data = torch.zeros((10, 15)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
@@ -105,7 +105,7 @@ class TestImage(unittest.TestCase):
             origin=torch.ones(2),
             note="test image",
         )
-        slicer = image.Window((0, 0), (5, 5))
+        slicer = image.Window(origin = (0, 0), shape = (5, 5))
         sliced_image = base_image[slicer]
         sliced_image += 1
 
@@ -167,7 +167,7 @@ class TestImage(unittest.TestCase):
     def test_image_manipulation(self):
 
         new_image = image.Image(
-            torch.ones((16, 32)),
+            data = torch.ones((16, 32)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
@@ -220,7 +220,7 @@ class TestImage(unittest.TestCase):
     def test_image_save_load(self):
 
         new_image = image.Image(
-            torch.ones((16, 32)),
+            data =torch.ones((16, 32)),
             pixelscale=0.76,
             zeropoint=21.4,
             origin=torch.zeros(2) + 0.1,

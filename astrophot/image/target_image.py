@@ -24,7 +24,7 @@ class Target_Image(Image):
     be fit. There is minimial functionality in the `Target_Image`
     object itself, it is mostly defined in terms of how other objects
     interact with it.
-    
+
     Basic usage:
 
     .. code-block:: python
@@ -109,7 +109,7 @@ class Target_Image(Image):
         if self.has_variance:
             return torch.sqrt(self.variance)
         return torch.ones_like(self.data)
-            
+
     @property
     def variance(self):
         """Stores the variance of the image pixels. This represents the
@@ -121,7 +121,7 @@ class Target_Image(Image):
         The variance is not stored directly, instead it is
         computed as :math:`\\frac{1}{W}` where :math:`W` is the
         weights.
-        
+
         """
         if self.has_variance:
             return torch.where(self._weight == 0, torch.inf, 1 / self._weight)
@@ -178,11 +178,11 @@ class Target_Image(Image):
         if self.has_weight:
             return self._weight
         return torch.ones_like(self.data)
-    
+
     @weight.setter
     def weight(self, weight):
         self.set_weight(weight)
-        
+
     @property
     def has_weight(self):
         """Returns True when the image object has stored weight values. If
@@ -195,7 +195,7 @@ class Target_Image(Image):
         except AttributeError:
             self._weight = None
             return False
-        
+
     @property
     def mask(self):
         """The mask stores a tensor of boolean values which indicate any
@@ -281,9 +281,7 @@ class Target_Image(Image):
         if weight is None:
             self._weight = None
             return
-        assert (
-            weight.shape == self.data.shape
-        ), "weight must have same shape as data"
+        assert weight.shape == self.data.shape, "weight must have same shape as data"
         self._weight = (
             weight.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
             if isinstance(weight, torch.Tensor)
@@ -310,7 +308,7 @@ class Target_Image(Image):
             return
 
         self._psf = PSF_Image(
-            psf,
+            data=psf,
             psf_upscale=psf_upscale,
             pixelscale=self.pixelscale / psf_upscale,
             identity=self.identity,
@@ -496,7 +494,7 @@ class Target_Image(Image):
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
                 self.set_psf(
                     PSF_Image(
-                        np.array(hdu.data, dtype=np.float64),
+                        data=np.array(hdu.data, dtype=np.float64),
                         psf_upscale=hdu.header["UPSCALE"],
                         pixelscale=self.pixelscale / hdu.header["UPSCALE"],
                     )

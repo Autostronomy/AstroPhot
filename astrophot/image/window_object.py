@@ -18,20 +18,21 @@ class Window(WCS):
       origin: the position of the bottom left corner of the window. Note that for an image, the origin corresponds to the pixel location -0.5, -0.5 since the pixel coordinates have zero at the center of the pixel while the on sky bounding box should include the size of the pixels as well and so will be half a pixel width shifted. [arcsec]
       origin_radec: The position of outer corner of the (0,0) pixel given as Right Ascention and Declination (RA, DEC) in degrees. The most straightforward usage of `origin_radec` is to call `C = wcs.pixel_to_world(-0.5,-0.5)` which will give a SkyCoord object, then call `origin_radec = (C.ra.deg, C.dec.deg)` as an argument to the target image. **Note** see also `reference_radec`.
       shape: the length of the sides of the window in physical units [arcsec]
-      projection: A det = 1 matrix which describes the projection of coordinates on the sky. If nothing is given then an identity matrix is assumed. If a wcs object is given then the projection is the pixel scale matrix normalized to determinant of 1. Essentially this matrix described the transformation from a simple cartesian grid onto the sky which may be flipped, rotated or streched. [unitless 2x2 matrix]
+      pixelshape: A det = 1 matrix which describes the projection of coordinates on the sky. If nothing is given then an identity matrix is assumed. If a wcs object is given then the projection is the pixel scale matrix normalized to determinant of 1. Essentially this matrix described the transformation from a simple cartesian grid onto the sky which may be flipped, rotated or streched. [unitless 2x2 matrix]
       center: Instead of providing the origin, one can provide the center position. This will just be used to update the origin. [arcsec]
       center_radec: Similar to `origin_radec` one may provide the RA and DEC of the center of the image in degrees. **Note** see also `reference_radec` below.
       state: A dictionary containing the origin, shape, and orientation information. [dict]
       wcs: An astropy.wcs.wcs.WCS object which gives information about the origin and orientation of the window.
-      reference_radec: AstroPhot works on a tangent plane where everything is nice and linear, but the sky is a sphere. The worst case would be an image where one of the poles lies inside the image and there is a singularity in the coordinate system. In RA and DEC the approximation works best at `RA = 0`, `DEC = 0` (or really anywhere on the equator). This "good spot" for the coordinates is just an artifact of where we choose to put our coordinates, hence the pole singularity is also artificial. The `reference_radec` is an (RA, DEC) coordinate which can be used to re-orient the polar coordinates so that the "good spot" is anywhere you want. This all happens internally and you should not have to worry about it.   
+      reference_radec: AstroPhot works on a tangent plane where everything is nice and linear, but the sky is a sphere. The worst case would be an image where one of the poles lies inside the image and there is a singularity in the coordinate system. In RA and DEC the approximation works best at `RA = 0`, `DEC = 0` (or really anywhere on the equator). This "good spot" for the coordinates is just an artifact of where we choose to put our coordinates, hence the pole singularity is also artificial. The `reference_radec` is an (RA, DEC) coordinate which can be used to re-orient the polar coordinates so that the "good spot" is anywhere you want. This all happens internally and you should not have to worry about it.
     """
 
     def __init__(
         self,
+        *,
         origin=None,
         origin_radec=None,
         shape=None,
-        projection=None,
+        pixelshape=None,
         center=None,
         center_radec=None,
         state=None,
@@ -43,44 +44,40 @@ class Window(WCS):
             self.update_state(state)
             return
 
-        if projection is not None: # Projection matrix provided
-            projection = torch.as_tensor(
-                projection, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        if pixelshape is not None:  # Pixelshape matrix provided
+            pixelshape = torch.as_tensor(
+                pixelshape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             # normalize determinant to area of 1
-            self.projection = projection / torch.linalg.det(projection).abs().sqrt()
-        if wcs is not None: # Projection matrix from WCS
+            self.pixelshape = pixelshape / torch.linalg.det(pixelshape).abs().sqrt()
+        elif wcs is not None:  # Pixelshape matrix from WCS
             proj = wcs.pixel_scale_matrix
             proj /= np.sqrt(np.abs(np.linalg.det(proj)))
-            self.projection = torch.tensor(
+            self.pixelshape = torch.tensor(
                 proj, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-        else: # Projection matrix assumed to be identity
-            self.projection = torch.eye(
+        else:  # Pixelshape matrix assumed to be identity
+            self.pixelshape = torch.eye(
                 2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
 
         self.shape = torch.as_tensor(
             shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
-        
+
         # Determine origin
         if origin_radec is not None:
             origin_radec = torch.as_tensor(
                 origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            super().__init__(reference_radec = origin_radec)
-            self.origin = self.world_to_plane(
-                origin_radec
-            )
+            super().__init__(reference_radec=origin_radec)
+            self.origin = self.world_to_plane(*origin_radec)
         elif center_radec is not None:
             center_radec = torch.as_tensor(
                 center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            super().__init__(reference_radec = center_radec)
-            self.center = self.world_to_plane(
-                center_radec
-            )
+            super().__init__(reference_radec=center_radec)
+            self.center = self.world_to_plane(*center_radec)
         elif origin is not None:
             self.origin = torch.as_tensor(
                 origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -96,10 +93,8 @@ class Window(WCS):
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
-            super().__init__(reference_radec = wcs_origin)
-            self.origin = self.world_to_plane(
-                wcs_origin
-            )
+            super().__init__(reference_radec=wcs_origin)
+            self.origin = self.world_to_plane(*wcs_origin)
         else:
             raise ValueError(
                 "One of center or origin must be provided to create window"
@@ -126,16 +121,16 @@ class Window(WCS):
         of comparisons and where arithmetic is more straightforward.
 
         """
-        return torch.linalg.solve(self.projection, world_coordinate)
+        return torch.linalg.solve(self.pixelshape, world_coordinate)
 
     def cartesian_to_plane(self, cartesian_coordinate):
-        return self.projection @ cartesian_coordinate
+        return self.pixelshape @ cartesian_coordinate
 
     def copy(self):
         return self.__class__(
             origin=torch.clone(self.origin),
             shape=torch.clone(self.shape),
-            projection=torch.clone(self.projection),
+            pixelshape=torch.clone(self.pixelshape),
         )
 
     def to(self, dtype=None, device=None):
@@ -145,7 +140,7 @@ class Window(WCS):
             device = AP_config.ap_device
         self.shape = self.shape.to(dtype=dtype, device=device)
         self.origin = self.origin.to(dtype=dtype, device=device)
-        self.projection = self.projection.to(dtype=dtype, device=device)
+        self.pixelshape = self.pixelshape.to(dtype=dtype, device=device)
 
     def get_shape(self, pixelscale):
         return (torch.round(torch.linalg.solve(pixelscale, self.end).abs())).int()
@@ -209,7 +204,7 @@ class Window(WCS):
         state = {
             "origin": tuple(self.origin.detach().cpu().tolist()),
             "shape": tuple(self.shape.detach().cpu().tolist()),
-            "projection": tuple(tuple(p) for p in self.projection.detach().tolist()),
+            "pixelshape": tuple(tuple(p) for p in self.pixelshape.detach().tolist()),
         }
         return state
 
@@ -220,8 +215,8 @@ class Window(WCS):
         self.shape = torch.tensor(
             state["shape"], dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
-        self.projection = torch.tensor(
-            state["projection"], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        self.pixelshape = torch.tensor(
+            state["pixelshape"], dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
     # Window adjustment operators
@@ -235,7 +230,7 @@ class Window(WCS):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape + 2 * other
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
             self.origin
@@ -244,7 +239,7 @@ class Window(WCS):
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
@@ -290,7 +285,7 @@ class Window(WCS):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape - 2 * other
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
             self.origin
@@ -299,7 +294,7 @@ class Window(WCS):
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
@@ -345,7 +340,7 @@ class Window(WCS):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape * other
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
             self.origin
@@ -354,7 +349,7 @@ class Window(WCS):
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
@@ -386,7 +381,7 @@ class Window(WCS):
         if isinstance(other, (float, int, torch.dtype)):
             new_shape = self.shape / other
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
             self.origin
@@ -395,7 +390,7 @@ class Window(WCS):
                 other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             return self.__class__(
-                center=self.center, shape=new_shape, projection=self.projection
+                center=self.center, shape=new_shape, pixelshape=self.pixelshape
             )
         raise ValueError(f"Window object cannot be added with {type(other)}")
 
@@ -465,7 +460,7 @@ class Window(WCS):
         return self.__class__(
             origin=self.cartesian_to_plane(new_origin),
             shape=new_end - new_origin,
-            projection=self.projection,
+            pixelshape=self.pixelshape,
         )
 
     @torch.no_grad()
@@ -491,9 +486,9 @@ class Window(WCS):
             cart_self_origin + self.shape, cart_other_origin + other.shape
         )
         return self.__class__(
-            self.cartesian_to_plane(new_origin),
-            new_end - new_origin,
-            projection=self.projection,
+            origin=self.cartesian_to_plane(new_origin),
+            shape=new_end - new_origin,  # fixme might not be right
+            pixelshape=self.pixelshape,
         )
 
     @torch.no_grad()
@@ -510,9 +505,10 @@ class Window(WCS):
         return self
 
     def __str__(self):
-        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, projection: {self.projection.detach().tolist()}"
+        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, pixelshape: {self.pixelshape.detach().tolist()}"
+
     def __repr__(self):
-        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, projection: {self.projection.detach().tolist()}"
+        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, pixelshape: {self.pixelshape.detach().tolist()}"
 
 
 class Window_List(Window):
@@ -691,6 +687,7 @@ class Window_List(Window):
         return "Window List: \n" + (
             "\n".join(list(str(window) for window in self)) + "\n"
         )
+
     def __repr__(self):
         return "Window List: \n" + (
             "\n".join(list(repr(window) for window in self)) + "\n"

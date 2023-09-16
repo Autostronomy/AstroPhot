@@ -13,8 +13,8 @@ import torch
 class TestWindowList(unittest.TestCase):
     def test_windowlist_creation(self):
 
-        window1 = ap.image.Window((0, 6), (100, 110))
-        window2 = ap.image.Window((0, 6), (100, 110))
+        window1 = ap.image.Window(origin=(0, 6), shape=(100, 110))
+        window2 = ap.image.Window(origin=(0, 6), shape=(100, 110))
         windowlist = ap.image.Window_List([window1, window2])
 
         windowlist.to(dtype=torch.float64, device="cpu")
@@ -33,8 +33,8 @@ class TestWindowList(unittest.TestCase):
 
     def test_window_arithmetic(self):
 
-        windowbig = ap.image.Window((0, 0), (100, 110))
-        windowsmall = ap.image.Window((40, 40), (20, 30))
+        windowbig = ap.image.Window(origin=(0, 0), shape=(100, 110))
+        windowsmall = ap.image.Window(origin=(40, 40), shape=(20, 30))
         windowlistbs = ap.image.Window_List([windowbig, windowsmall])
         windowlistbb = ap.image.Window_List([windowbig, windowbig])
         windowlistsb = ap.image.Window_List([windowsmall, windowbig])
@@ -120,7 +120,7 @@ class TestWindowList(unittest.TestCase):
 
         # Logical or, offset
         ######################################################################
-        windowoffset = ap.image.Window((40, -20), (100, 90))
+        windowoffset = ap.image.Window(origin=(40, -20), shape=(100, 90))
         windowlistoffset = ap.image.Window_List([windowoffset, windowoffset])
         big_or_offset = windowlistbb | windowlistoffset
         self.assertEqual(
@@ -243,7 +243,7 @@ class TestWindowList(unittest.TestCase):
 
     def test_windowlist_buffering(self):
 
-        subwindow = ap.image.Window((0, 0), (100, 110))
+        subwindow = ap.image.Window(origin=(0, 0), shape=(100, 110))
         window = ap.image.Window_List([subwindow, subwindow.copy()])
 
         # Multiply

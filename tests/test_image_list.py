@@ -12,7 +12,7 @@ class TestImageList(unittest.TestCase):
     def test_image_creation(self):
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
-            arr1,
+            data=arr1,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
@@ -20,7 +20,7 @@ class TestImageList(unittest.TestCase):
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
-            arr2,
+            data=arr2,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
@@ -49,7 +49,7 @@ class TestImageList(unittest.TestCase):
             self.assertEqual(image.note, original_image.note, "image should track note")
 
         slicer = ap.image.Window_List(
-            (ap.image.Window((3, 2), (4, 5)), ap.image.Window((3, 2), (4, 5)))
+            (ap.image.Window(origin=(3, 2), shape=(4, 5)), ap.image.Window(origin=(3, 2), shape=(4, 5)))
         )
         sliced_image = test_image[slicer]
 
@@ -68,7 +68,7 @@ class TestImageList(unittest.TestCase):
 
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
-            arr1,
+            data=arr1,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
@@ -76,7 +76,7 @@ class TestImageList(unittest.TestCase):
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
-            arr2,
+            data=arr2,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
@@ -127,7 +127,7 @@ class TestImageList(unittest.TestCase):
 
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
-            arr1,
+            data=arr1,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
@@ -135,7 +135,7 @@ class TestImageList(unittest.TestCase):
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
-            arr2,
+            data=arr2,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
@@ -145,7 +145,7 @@ class TestImageList(unittest.TestCase):
 
         arr3 = torch.ones((10, 15))
         base_image3 = ap.image.Image(
-            arr3,
+            data=arr3,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.ones(2),
@@ -153,7 +153,7 @@ class TestImageList(unittest.TestCase):
         )
         arr4 = torch.zeros((15, 10))
         base_image4 = ap.image.Image(
-            arr4,
+            data=arr4,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.zeros(2),

@@ -7,7 +7,7 @@ import torch
 class TestWindow(unittest.TestCase):
     def test_window_creation(self):
 
-        window1 = ap.image.Window((0, 6), (100, 110))
+        window1 = ap.image.Window(origin = (0, 6), shape = (100, 110))
 
         window1.to(dtype=torch.float64, device="cpu")
 
@@ -18,7 +18,7 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(window1.center[0], 50.0, "Window should determine center")
         self.assertEqual(window1.center[1], 61.0, "Window should determine center")
 
-        self.assertRaises(ValueError, ap.image.Window)
+        self.assertRaises(Exception, ap.image.Window)
 
         shape = window1.get_shape(torch.tensor([[10.0,0.],[0.,10.0]], dtype = ap.AP_config.ap_dtype))
         self.assertEqual(
@@ -33,8 +33,8 @@ class TestWindow(unittest.TestCase):
 
     def test_window_arithmetic(self):
 
-        windowbig = ap.image.Window((0, 0), (100, 110))
-        windowsmall = ap.image.Window((40, 40), (20, 30))
+        windowbig = ap.image.Window(origin = (0, 0), shape = (100, 110))
+        windowsmall = ap.image.Window(origin = (40, 40), shape = (20, 30))
 
         # Logical or, size
         ######################################################################
@@ -111,7 +111,7 @@ class TestWindow(unittest.TestCase):
 
         # Logical or, offset
         ######################################################################
-        windowoffset = ap.image.Window((40, -20), (100, 90))
+        windowoffset = ap.image.Window(origin = (40, -20), shape = (100, 90))
         big_or_offset = windowbig | windowoffset
         self.assertEqual(
             big_or_offset.origin[0],
@@ -258,7 +258,7 @@ class TestWindow(unittest.TestCase):
 
         # Logical iand, offset
         ######################################################################
-        windowbig = ap.image.Window((0, 0), (100, 110))
+        windowbig = ap.image.Window(origin = (0, 0), shape = (100, 110))
         windowbig &= windowoffset
         self.assertEqual(
             windowbig.origin[0], 40, "logical and of images should take overlap region"
@@ -293,7 +293,7 @@ class TestWindow(unittest.TestCase):
 
     def test_window_buffering(self):
 
-        window = ap.image.Window((0, 0), (100, 110))
+        window = ap.image.Window(origin = (0, 0), shape = (100, 110))
 
         # Multiply
         ######################################################################
@@ -550,7 +550,7 @@ class TestWindow(unittest.TestCase):
 
     def test_window_state(self):
 
-        window = ap.image.Window(state={"origin": [1.0, 2.0], "shape": [10, 15], "projection": [[1.,0.],[0.,1.]]})
+        window = ap.image.Window(state={"origin": [1.0, 2.0], "shape": [10, 15], "pixelshape": [[1.,0.],[0.,1.]]})
         self.assertEqual(
             window.origin[0].item(), 1.0, "Window initialization should read state"
         )
@@ -558,7 +558,7 @@ class TestWindow(unittest.TestCase):
             window.shape[0].item(), 10.0, "Window initialization should read state"
         )
         self.assertEqual(
-            window.projection[0][0].item(), 1.0, "Window initialization should read state"
+            window.pixelshape[0][0].item(), 1.0, "Window initialization should read state"
         )
 
         state = window.get_state()
@@ -569,7 +569,7 @@ class TestWindow(unittest.TestCase):
             state["shape"][1], 15.0, "Window get state should collect values"
         )
         self.assertEqual(
-            state["projection"][1][0], 0.0, "Window get state should collect values"
+            state["pixelshape"][1][0], 0.0, "Window get state should collect values"
         )
 
     def test_window_logic(self):

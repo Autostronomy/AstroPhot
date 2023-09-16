@@ -19,7 +19,7 @@ class Image_Header(WCS):
 
     def __init__(
         self,
-        data_shape: Optional[torch.Tensor] = None,
+        data_shape: Optional[torch.Tensor],
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         wcs: Optional["astropy.wcs.wcs.WCS"] = None,
         window: Optional[Window] = None,
@@ -88,7 +88,9 @@ class Image_Header(WCS):
             self.pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
         else:
             if wcs is not None and isinstance(pixelscale, float):
-                AP_config.ap_logger.warn("Overriding WCS pixelscale with manual input! To remove this message, either let WCS define pixelscale, or input full pixelscale matrix")
+                AP_config.ap_logger.warn(
+                    "Overriding WCS pixelscale with manual input! To remove this message, either let WCS define pixelscale, or input full pixelscale matrix"
+                )
             self.pixelscale = pixelscale
 
         # Set Window
@@ -106,44 +108,64 @@ class Image_Header(WCS):
                     (0,),
                 )
             )
-            shape = torch.stack((
-                self.pixel_to_plane_delta(torch.tensor([data_shape[1], 0], dtype=AP_config.ap_dtype, device=AP_config.ap_device)),
-                self.pixel_to_plane_delta(torch.tensor([0, data_shape[0]], dtype=AP_config.ap_dtype, device=AP_config.ap_device)),
-            ))
-            if wcs is not None: # Image coordinates provided by WCS
+            shape = torch.stack(
+                (
+                    torch.linalg.norm(
+                        self.pixel_to_plane_delta(
+                            torch.tensor(
+                                [data_shape[1], 0],
+                                dtype=AP_config.ap_dtype,
+                                device=AP_config.ap_device,
+                            )
+                        )
+                    ),
+                    torch.linalg.norm(
+                        self.pixel_to_plane_delta(
+                            torch.tensor(
+                                [0, data_shape[0]],
+                                dtype=AP_config.ap_dtype,
+                                device=AP_config.ap_device,
+                            )
+                        )
+                    ),
+                )
+            )
+            if wcs is not None:  # Image coordinates provided by WCS
                 wcs_origin = wcs.pixel_to_world(-0.5, -0.5)
                 wcs_origin = torch.as_tensor(
                     [wcs_origin.ra.deg, wcs_origin.dec.deg],
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
-                super().__init__(reference_radec = wcs_origin)
-                origin = self.world_to_plane(
-                    wcs_origin
-                )
-            elif origin_radec is not None: # Image reference position from RA and DEC of image origin
+                super().__init__(reference_radec=wcs_origin)
+                origin = self.world_to_plane(*wcs_origin)
+            elif (
+                origin_radec is not None
+            ):  # Image reference position from RA and DEC of image origin
                 origin_radec = torch.as_tensor(
                     origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-                super().__init__(reference_radec = origin_radec)
-                origin = self.world_to_plane(
-                    origin_radec
-                )
-            elif center_radec is not None: # Image reference position from RA and DEC of image center
+                super().__init__(reference_radec=origin_radec)
+                origin = self.world_to_plane(*origin_radec)
+            elif (
+                center_radec is not None
+            ):  # Image reference position from RA and DEC of image center
                 center_radec = torch.as_tensor(
                     center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-                super().__init__(reference_radec = center_radec)
-                center = self.world_to_plane(
-                    center_radec
-                )
+                super().__init__(reference_radec=center_radec)
+                center = self.world_to_plane(*center_radec)
                 origin = center - end / 2
-            elif origin is not None: # Image reference position from tangent plane position of image origin
+            elif (
+                origin is not None
+            ):  # Image reference position from tangent plane position of image origin
                 super().__init__(**kwargs)
                 origin = torch.as_tensor(
                     origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-            elif center is not None: # Image reference position from tangent plane position of image center
+            elif (
+                center is not None
+            ):  # Image reference position from tangent plane position of image center
                 super().__init__(**kwargs)
                 origin = (
                     torch.as_tensor(
@@ -151,20 +173,22 @@ class Image_Header(WCS):
                     )
                     - end / 2
                 )
-            else: # Image origin assumed to be at tangent plane origin
+            else:  # Image origin assumed to be at tangent plane origin
                 super().__init__(**kwargs)
                 origin = torch.zeros(
                     2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
 
-            self.window = Window(origin=origin, shape=shape, projection=self.pixelscale)
+            self.window = Window(origin=origin, shape=shape, pixelshape=self.pixelscale)
         else:
             # When the Window object is provided
             self.window = window
             super().__init__(**kwargs)
             if self.pixelscale is None:
                 pixelscale = self.window.shape[0] / data_shape[1]
-                AP_config.ap_logger.warn("Assuming square pixels with pixelscale f{pixelscale.item()}. To remove this warning please provide the pixelscale explicitly when creating an image.")
+                AP_config.ap_logger.warn(
+                    "Assuming square pixels with pixelscale f{pixelscale.item()}. To remove this warning please provide the pixelscale explicitly when creating an image."
+                )
                 self.pixelscale = torch.tensor(
                     [[pixelscale, 0.0], [0.0, pixelscale]],
                     dtype=AP_config.ap_dtype,

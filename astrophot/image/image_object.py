@@ -32,6 +32,7 @@ class Image(object):
 
     def __init__(
         self,
+        *,
         data: Optional[Union[torch.Tensor]] = None,
         header: Optional[Image_Header] = None,
         wcs: Optional["astropy.wcs.wcs.WCS"] = None,
@@ -426,7 +427,6 @@ class Image(object):
 
     def __repr__(self):
         return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()} center: {self.center.detach().cpu().numpy()}\ndata: {self.data.detach().cpu().numpy()}"
-        
 
 
 class Image_List(Image):
@@ -580,7 +580,7 @@ class Image_List(Image):
     def __repr__(self):
         return f"image list of:\n" + "\n".join(
             image.__repr__() for image in self.image_list
-        ) 
+        )
 
     def __iter__(self):
         return (img for img in self.image_list)
