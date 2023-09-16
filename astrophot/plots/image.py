@@ -58,29 +58,37 @@ def target_image(fig, ax, target, window=None, **kwargs):
     vmin = sky - 5 * noise
     vmax = sky + 5 * noise
 
-    im = ax.pcolormesh(
-        X,
-        Y,
-        dat,
-        cmap="Greys",
-        norm=ImageNormalize(
-            stretch=HistEqStretch(
-                dat[np.logical_and(dat <= (sky + 3 * noise), np.isfinite(dat))]
+    if kwargs.get("linear", False):
+        im = ax.pcolormesh(
+            X,
+            Y,
+            dat,
+            cmap=cmap_grad,
+        )
+    else:
+        im = ax.pcolormesh(
+            X,
+            Y,
+            dat,
+            cmap="Greys",
+            norm=ImageNormalize(
+                stretch=HistEqStretch(
+                    dat[np.logical_and(dat <= (sky + 3 * noise), np.isfinite(dat))]
+                ),
+                clip=False,
+                vmax=sky + 3 * noise,
+                vmin=np.nanmin(dat),
             ),
-            clip=False,
-            vmax=sky + 3 * noise,
-            vmin=np.nanmin(dat),
-        ),
-    )
+        )
 
-    im = ax.pcolormesh(
-        X,
-        Y,
-        np.ma.masked_where(dat < (sky + 3 * noise), dat),
-        cmap=cmap_grad,
-        norm=matplotlib.colors.LogNorm(),
-        clim=[sky + 3 * noise, None],
-    )
+        im = ax.pcolormesh(
+            X,
+            Y,
+            np.ma.masked_where(dat < (sky + 3 * noise), dat),
+            cmap=cmap_grad,
+            norm=matplotlib.colors.LogNorm(),
+            clim=[sky + 3 * noise, None],
+        )
 
     ax.axis("equal")
 
@@ -346,11 +354,11 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
 
             lowright = use_window.shape.clone()
             lowright[1] = 0.0
-            lowright = use_window.origin + use_window.cartesian_to_world(lowright)
+            lowright = use_window.origin + use_window.cartesian_to_plane(lowright)
             lowright = lowright.detach().cpu().numpy()
             upleft = use_window.shape.clone()
             upleft[0] = 0.0
-            upleft = use_window.origin + use_window.cartesian_to_world(upleft)
+            upleft = use_window.origin + use_window.cartesian_to_plane(upleft)
             upleft = upleft.detach().cpu().numpy()
             end = use_window.origin + use_window.end
             end = end.detach().cpu().numpy()
@@ -381,11 +389,11 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
             use_window = model.window
         lowright = use_window.shape.clone()
         lowright[1] = 0.0
-        lowright = use_window.origin + use_window.cartesian_to_world(lowright)
+        lowright = use_window.origin + use_window.cartesian_to_plane(lowright)
         lowright = lowright.detach().cpu().numpy()
         upleft = use_window.shape.clone()
         upleft[0] = 0.0
-        upleft = use_window.origin + use_window.cartesian_to_world(upleft)
+        upleft = use_window.origin + use_window.cartesian_to_plane(upleft)
         upleft = upleft.detach().cpu().numpy()
         end = use_window.origin + use_window.end
         end = end.detach().cpu().numpy()

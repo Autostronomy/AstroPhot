@@ -111,19 +111,19 @@ class Image(object):
     def pixel_length(self):
         return self.header.pixel_length
 
-    def pixel_to_world(self, pixel_coordinate, internal_transpose=False):
-        return self.header.pixel_to_world(
+    def pixel_to_plane(self, pixel_coordinate, internal_transpose=False):
+        return self.header.pixel_to_plane(
             pixel_coordinate, internal_transpose=internal_transpose
         )
 
-    def world_to_pixel(self, world_coordinate, unsqueeze_origin=False):
-        return self.header.world_to_pixel(world_coordinate, unsqueeze_origin)
+    def plane_to_pixel(self, plane_coordinate, unsqueeze_origin=False):
+        return self.header.plane_to_pixel(plane_coordinate, unsqueeze_origin)
 
-    def pixel_to_world_delta(self, pixel_coordinate):
-        return self.header.pixel_to_world_delta(pixel_coordinate)
+    def pixel_to_plane_delta(self, pixel_coordinate):
+        return self.header.pixel_to_plane_delta(pixel_coordinate)
 
-    def world_to_pixel_delta(self, world_coordinate):
-        return self.header.world_to_pixel_delta(world_coordinate)
+    def plane_to_pixel_delta(self, plane_coordinate):
+        return self.header.plane_to_pixel_delta(plane_coordinate)
 
     @property
     def origin(self) -> torch.Tensor:
@@ -422,7 +422,11 @@ class Image(object):
         raise ValueError("Unrecognized Image getitem request!")
 
     def __str__(self):
-        return f"image pixelscale: {self.pixelscale} origin: {self.origin}\ndata: {self.data}"
+        return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()}"
+
+    def __repr__(self):
+        return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()} center: {self.center.detach().cpu().numpy()}\ndata: {self.data.detach().cpu().numpy()}"
+        
 
 
 class Image_List(Image):
@@ -572,6 +576,11 @@ class Image_List(Image):
         return f"image list of:\n" + "\n".join(
             image.__str__() for image in self.image_list
         )
+
+    def __repr__(self):
+        return f"image list of:\n" + "\n".join(
+            image.__repr__() for image in self.image_list
+        ) 
 
     def __iter__(self):
         return (img for img in self.image_list)

@@ -212,7 +212,7 @@ class Component_Model(AstroPhot_Model):
             return
 
         # Convert center coordinates to target area array indices
-        init_icenter = target_area.world_to_pixel(parameters["center"].value)
+        init_icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         # Compute center of mass in window
         COM = center_of_mass(
@@ -229,7 +229,7 @@ class Component_Model(AstroPhot_Model):
             return
         COM = (COM[1], COM[0])
         # Convert center of mass indices to coordinates
-        COM_center = target_area.pixel_to_world(
+        COM_center = target_area.pixel_to_plane(
             torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
 
@@ -331,7 +331,7 @@ class Component_Model(AstroPhot_Model):
             )
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
-                pixel_center = working_image.world_to_pixel(parameters["center"].value)
+                pixel_center = working_image.plane_to_pixel(parameters["center"].value)
                 center_shift = pixel_center - torch.round(pixel_center)
                 working_image.header.pixel_shift_origin(center_shift)
             else:

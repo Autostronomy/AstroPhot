@@ -104,7 +104,7 @@ def parametric_initialize(
     edge_average = np.median(edge)
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
-    icenter = target_area.world_to_pixel(parameters["center"].value)
+    icenter = target_area.plane_to_pixel(parameters["center"].value)
 
     # Collect isophotes for 1D fit
     iso_info = isophotes(
@@ -192,7 +192,7 @@ def parametric_segment_initialize(
     edge_average = np.median(edge)
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
-    icenter = target_area.world_to_pixel(model["center"].value)
+    icenter = target_area.plane_to_pixel(model["center"].value)
 
     iso_info = isophotes(
         target_area.data.detach().cpu().numpy() - edge_average,
@@ -566,7 +566,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
 
     target_area = target[self.window]
     if parameters["I0"].value is None:
-        center = target_area.world_to_pixel(parameters["center"].value)
+        center = target_area.plane_to_pixel(parameters["center"].value)
         flux = target_area.data[center[1].int().item(), center[0].int().item()]
         parameters["I0"].set_value(torch.log10(torch.abs(flux) / target_area.pixel_area), override_locked = True)
         parameters["I0"].set_uncertainty(0.01, override_locked = True)

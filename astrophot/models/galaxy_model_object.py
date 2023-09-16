@@ -76,7 +76,7 @@ class Galaxy_Model(Component_Model):
         )
         edge_average = np.nanmedian(edge)
         edge_scatter = iqr(edge[np.isfinite(edge)], rng=(16, 84)) / 2
-        icenter = target_area.world_to_pixel(parameters["center"].value)
+        icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["PA"].value is None:
             iso_info = isophotes(

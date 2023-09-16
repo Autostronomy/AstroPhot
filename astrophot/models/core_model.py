@@ -303,15 +303,15 @@ class AstroPhot_Model(object):
             self._window = window
         elif len(window) == 2:
             self._window = Window(
-                origin=self.target.pixel_to_world(
+                origin=self.target.pixel_to_plane(
                     torch.tensor(
                         (window[0][0] - 0.5, window[1][0] - 0.5),
                         dtype=AP_config.ap_dtype,
                         device=AP_config.ap_device,
                     )
                 ),
-                shape=self.target.window.world_to_cartesian(
-                    self.target.pixel_to_world_delta(
+                shape=self.target.window.plane_to_cartesian(
+                    self.target.pixel_to_plane_delta(
                         torch.tensor(
                             (window[0][1] - window[0][0], window[1][1] - window[1][0]),
                             dtype=AP_config.ap_dtype,
@@ -334,7 +334,7 @@ class AstroPhot_Model(object):
             )
             self._window = Window(
                 origin=origin,
-                shape=self.target.window.world_to_cartesian(end - origin),
+                shape=self.target.window.plane_to_cartesian(end - origin),
                 projection=self.target.window.projection,
             )
         else:

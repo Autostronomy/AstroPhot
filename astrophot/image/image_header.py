@@ -7,13 +7,14 @@ import numpy as np
 from astropy.io import fits
 
 from .window_object import Window, Window_List
+from .wcs import WCS
 from ..utils.conversions.units import deg_to_arcsec
 from .. import AP_config
 
 __all__ = ["Image_Header"]
 
 
-class Image_Header(object):
+class Image_Header(WCS):
     north = np.pi / 2.0
 
     def __init__(
@@ -26,7 +27,9 @@ class Image_Header(object):
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
         note: Optional[str] = None,
         origin: Optional[Sequence] = None,
+        origin_radec: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
+        center_radec: Optional[Sequence] = None,
         identity: str = None,
         **kwargs: Any,
     ) -> None:
@@ -45,9 +48,13 @@ class Image_Header(object):
         note : str or None, optional
             A note describing the image. Default is None.
         origin : numpy.ndarray or None, optional
-            The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
+            The origin of the image in the tangent plane coordinate system, as a 1D array of length 2. Default is None.
+        origin_radec : numpy.ndarray or None, optional
+            The origin of the image in the world coordinate system (RA, DEC), as a 1D array of length 2. Default is None.
         center : numpy.ndarray or None, optional
-            The center of the image in the coordinate system, as a 1D array of length 2. Default is None.
+            The center of the image in the tangent plane coordinate system, as a 1D array of length 2. Default is None.
+        center_radec : numpy.ndarray or None, optional
+            The center of the image in the world coordinate system (RA, DEC), as a 1D array of length 2. Default is None.
 
         Returns:
         --------
@@ -91,7 +98,7 @@ class Image_Header(object):
                 self.pixelscale is not None
             ), "pixelscale cannot be None if window is not provided"
 
-            end = self.pixel_to_world_delta(
+            end = self.pixel_to_plane_delta(
                 torch.flip(
                     torch.tensor(
                         data_shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -99,36 +106,65 @@ class Image_Header(object):
                     (0,),
                 )
             )
-            shape = torch.linalg.solve(self.pixelscale / self.pixel_length, end)
-            if wcs is not None:
+            shape = torch.stack((
+                self.pixel_to_plane_delta(torch.tensor([data_shape[1], 0], dtype=AP_config.ap_dtype, device=AP_config.ap_device)),
+                self.pixel_to_plane_delta(torch.tensor([0, data_shape[0]], dtype=AP_config.ap_dtype, device=AP_config.ap_device)),
+            ))
+            if wcs is not None: # Image coordinates provided by WCS
                 wcs_origin = wcs.pixel_to_world(-0.5, -0.5)
-                origin = torch.as_tensor(
-                    [wcs_origin.ra.arcsec, wcs_origin.dec.arcsec],
+                wcs_origin = torch.as_tensor(
+                    [wcs_origin.ra.deg, wcs_origin.dec.deg],
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
-            elif origin is None and center is None:
-                origin = torch.zeros(
-                    2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                super().__init__(reference_radec = wcs_origin)
+                origin = self.world_to_plane(
+                    wcs_origin
                 )
-            elif center is None:
+            elif origin_radec is not None: # Image reference position from RA and DEC of image origin
+                origin_radec = torch.as_tensor(
+                    origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+                super().__init__(reference_radec = origin_radec)
+                origin = self.world_to_plane(
+                    origin_radec
+                )
+            elif center_radec is not None: # Image reference position from RA and DEC of image center
+                center_radec = torch.as_tensor(
+                    center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
+                super().__init__(reference_radec = center_radec)
+                center = self.world_to_plane(
+                    center_radec
+                )
+                origin = center - end / 2
+            elif origin is not None: # Image reference position from tangent plane position of image origin
+                super().__init__(**kwargs)
                 origin = torch.as_tensor(
                     origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-            else:
+            elif center is not None: # Image reference position from tangent plane position of image center
+                super().__init__(**kwargs)
                 origin = (
                     torch.as_tensor(
                         center, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                     )
                     - end / 2
                 )
+            else: # Image origin assumed to be at tangent plane origin
+                super().__init__(**kwargs)
+                origin = torch.zeros(
+                    2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+                )
 
             self.window = Window(origin=origin, shape=shape, projection=self.pixelscale)
         else:
-            # When The Window object is provided
+            # When the Window object is provided
             self.window = window
+            super().__init__(**kwargs)
             if self.pixelscale is None:
                 pixelscale = self.window.shape[0] / data_shape[1]
+                AP_config.ap_logger.warn("Assuming square pixels with pixelscale f{pixelscale.item()}. To remove this warning please provide the pixelscale explicitly when creating an image.")
                 self.pixelscale = torch.tensor(
                     [[pixelscale, 0.0], [0.0, pixelscale]],
                     dtype=AP_config.ap_dtype,
@@ -172,16 +208,16 @@ class Image_Header(object):
     @property
     def pixel_origin(self):
         if self._pixel_origin is None:
-            self._pixel_origin = self.origin + self.pixel_to_world_delta(
+            self._pixel_origin = self.origin + self.pixel_to_plane_delta(
                 0.5 * torch.ones_like(self.origin)
             )
         return self._pixel_origin
 
-    def pixel_to_world(self, pixel_coordinate, internal_transpose=False):
-        """Take in a coordinate on the regular cartesian pixel grid, where
+    def pixel_to_plane(self, pixel_coordinate, internal_transpose=False):
+        """Take in a coordinate on the regular pixel grid, where
         0,0 is the center of the first pixel. This coordinate is
-        transformed into the world coordiante system based on the
-        pixel scale and origin position for this image. In the world
+        transformed into the tangent plane coordiante system based on the
+        pixel scale and origin position for this image. In the plane
         coordinate system the origin is placed with respect to the
         bottom corner of the 0,0 pixel.
 
@@ -190,26 +226,26 @@ class Image_Header(object):
             return (self.pixelscale @ pixel_coordinate).T + self.pixel_origin
         return (self.pixelscale @ pixel_coordinate) + self.pixel_origin
 
-    def world_to_pixel(self, world_coordinate, unsqueeze_origin=False):
+    def plane_to_pixel(self, plane_coordinate, unsqueeze_origin=False):
         if unsqueeze_origin:
             O = self.pixel_origin.unsqueeze(-1)
         else:
             O = self.pixel_origin
-        return self._pixelscale_inv @ (world_coordinate - O)
+        return self._pixelscale_inv @ (plane_coordinate - O)
 
-    def pixel_to_world_delta(self, pixel_delta):
+    def pixel_to_plane_delta(self, pixel_delta):
         """Take in a coordinate on the regular cartesian pixel grid, where
         0,0 is the center of the first pixel. This coordinate is
-        transformed into the world coordiante system based on the
-        pixel scale and origin position for this image. In the world
+        transformed into the plane coordiante system based on the
+        pixel scale and origin position for this image. In the plane
         coordinate system the origin is placed with respect to the
         bottom corner of the 0,0 pixel.
 
         """
         return self.pixelscale @ pixel_delta
 
-    def world_to_pixel_delta(self, world_delta):
-        return self._pixelscale_inv @ world_delta
+    def plane_to_pixel_delta(self, plane_delta):
+        return self._pixelscale_inv @ plane_delta
 
     @property
     def origin(self) -> torch.Tensor:
@@ -244,7 +280,7 @@ class Image_Header(object):
     def shift_origin(self, shift):
         """Adjust the origin position of the image header. This will not
         adjust the data represented by the header, only the
-        coordiantes system that maps pixel coordinates to the world
+        coordiantes system that maps pixel coordinates to the plane
         coordinates.
 
         """
@@ -252,7 +288,7 @@ class Image_Header(object):
         self._pixel_origin = None
 
     def pixel_shift_origin(self, shift):
-        self.shift_origin(self.pixel_to_world_delta(shift))
+        self.shift_origin(self.pixel_to_plane_delta(shift))
 
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
@@ -299,7 +335,7 @@ class Image_Header(object):
 
     def crop(self, pixels):  # fixme data_shape
         if len(pixels) == 1:  # same crop in all dimension
-            self.window -= self.pixel_to_world_delta(
+            self.window -= self.pixel_to_plane_delta(
                 torch.as_tensor(
                     [pixels[0], pixels[0]],
                     dtype=AP_config.ap_dtype,
@@ -307,7 +343,7 @@ class Image_Header(object):
                 )
             ).abs()
         elif len(pixels) == 2:  # different crop in each dimension
-            self.window -= self.pixel_to_world_delta(
+            self.window -= self.pixel_to_plane_delta(
                 torch.as_tensor(
                     pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
@@ -316,8 +352,8 @@ class Image_Header(object):
             pixels = torch.as_tensor(
                 pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            low = self.pixel_to_world_delta(pixels[:2])
-            high = self.pixel_to_world_delta(pixels[2:])
+            low = self.pixel_to_plane_delta(pixels[:2])
+            high = self.pixel_to_plane_delta(pixels[2:])
             self.window -= torch.cat((low, high)).abs()
         else:
             raise ValueError(f"Unrecognized pixel crop format: {pixels}")
@@ -338,7 +374,7 @@ class Image_Header(object):
             ysteps,
             indexing="xy",
         )
-        Coords = self.pixel_to_world(
+        Coords = self.pixel_to_plane(
             torch.stack((meshx, meshy)).view(2, -1), internal_transpose=True
         ).T
         return Coords.reshape((2, *meshx.shape))
@@ -363,7 +399,7 @@ class Image_Header(object):
             ysteps,
             indexing="xy",
         )
-        Coords = self.pixel_to_world(
+        Coords = self.pixel_to_plane(
             torch.stack((meshx, meshy)).view(2, -1), internal_transpose=True
         ).T
         return Coords.reshape((2, *meshx.shape))
@@ -394,7 +430,7 @@ class Image_Header(object):
             ysteps,
             indexing="xy",
         )
-        Coords = self.pixel_to_world(
+        Coords = self.pixel_to_plane(
             torch.stack((meshx, meshy)).view(2, -1), internal_transpose=True
         ).T
         return Coords.reshape((2, *meshx.shape))

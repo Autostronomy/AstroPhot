@@ -3,11 +3,12 @@ import torch
 
 from .. import AP_config
 from ..utils.conversions.coordinates import Rotate_Cartesian
+from .wcs import WCS
 
 __all__ = ["Window", "Window_List"]
 
 
-class Window(object):
+class Window(WCS):
     """class to define a window on the sky in coordinate space. These
     windows can undergo arithmetic an preserve logical behavior. Image
     objects can also be indexed using windows and will return an
@@ -15,69 +16,90 @@ class Window(object):
 
     Args:
       origin: the position of the bottom left corner of the window. Note that for an image, the origin corresponds to the pixel location -0.5, -0.5 since the pixel coordinates have zero at the center of the pixel while the on sky bounding box should include the size of the pixels as well and so will be half a pixel width shifted. [arcsec]
+      origin_radec: The position of outer corner of the (0,0) pixel given as Right Ascention and Declination (RA, DEC) in degrees. The most straightforward usage of `origin_radec` is to call `C = wcs.pixel_to_world(-0.5,-0.5)` which will give a SkyCoord object, then call `origin_radec = (C.ra.deg, C.dec.deg)` as an argument to the target image. **Note** see also `reference_radec`.
       shape: the length of the sides of the window in physical units [arcsec]
       projection: A det = 1 matrix which describes the projection of coordinates on the sky. If nothing is given then an identity matrix is assumed. If a wcs object is given then the projection is the pixel scale matrix normalized to determinant of 1. Essentially this matrix described the transformation from a simple cartesian grid onto the sky which may be flipped, rotated or streched. [unitless 2x2 matrix]
       center: Instead of providing the origin, one can provide the center position. This will just be used to update the origin. [arcsec]
+      center_radec: Similar to `origin_radec` one may provide the RA and DEC of the center of the image in degrees. **Note** see also `reference_radec` below.
       state: A dictionary containing the origin, shape, and orientation information. [dict]
       wcs: An astropy.wcs.wcs.WCS object which gives information about the origin and orientation of the window.
-
+      reference_radec: AstroPhot works on a tangent plane where everything is nice and linear, but the sky is a sphere. The worst case would be an image where one of the poles lies inside the image and there is a singularity in the coordinate system. In RA and DEC the approximation works best at `RA = 0`, `DEC = 0` (or really anywhere on the equator). This "good spot" for the coordinates is just an artifact of where we choose to put our coordinates, hence the pole singularity is also artificial. The `reference_radec` is an (RA, DEC) coordinate which can be used to re-orient the polar coordinates so that the "good spot" is anywhere you want. This all happens internally and you should not have to worry about it.   
     """
 
     def __init__(
         self,
         origin=None,
+        origin_radec=None,
         shape=None,
         projection=None,
         center=None,
+        center_radec=None,
         state=None,
         wcs=None,
+        **kwargs,
     ):
         # If loading from a previous state, simply update values and end init
         if state is not None:
             self.update_state(state)
             return
 
-        # Determine projection
-        if wcs is not None:
-            proj = wcs.pixel_scale_matrix
-            proj /= np.abs(np.linalg.det(proj))
-            self.projection = torch.tensor(
-                proj, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-        elif projection is None:
-            self.projection = torch.eye(
-                2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-        else:
-            # ensure it is a tensor
+        if projection is not None: # Projection matrix provided
             projection = torch.as_tensor(
                 projection, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             # normalize determinant to area of 1
             self.projection = projection / torch.linalg.det(projection).abs().sqrt()
+        if wcs is not None: # Projection matrix from WCS
+            proj = wcs.pixel_scale_matrix
+            proj /= np.sqrt(np.abs(np.linalg.det(proj)))
+            self.projection = torch.tensor(
+                proj, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+        else: # Projection matrix assumed to be identity
+            self.projection = torch.eye(
+                2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
 
-        # Determine origin and shape
-        if wcs is not None:
-            self.origin = torch.as_tensor(
-                wcs.pixel_to_world(-0.5, -0.5),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
+        self.shape = torch.as_tensor(
+            shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        
+        # Determine origin
+        if origin_radec is not None:
+            origin_radec = torch.as_tensor(
+                origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            self.shape = torch.as_tensor(
-                shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            super().__init__(reference_radec = origin_radec)
+            self.origin = self.world_to_plane(
+                origin_radec
             )
-        elif center is None and shape is not None and origin is not None:
-            self.shape = torch.as_tensor(
-                shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        elif center_radec is not None:
+            center_radec = torch.as_tensor(
+                center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
+            super().__init__(reference_radec = center_radec)
+            self.center = self.world_to_plane(
+                center_radec
+            )
+        elif origin is not None:
             self.origin = torch.as_tensor(
                 origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-        elif origin is None and center is not None and shape is not None:
-            self.shape = torch.as_tensor(
-                shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        elif center is not None:
+            self.center = torch.as_tensor(
+                center, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            self.center = center
+        elif wcs is not None:
+            wcs_origin = wcs.pixel_to_world(-0.5, -0.5)
+            wcs_origin = torch.as_tensor(
+                [wcs_origin.ra.deg, wcs_origin.dec.deg],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+            super().__init__(reference_radec = wcs_origin)
+            self.origin = self.world_to_plane(
+                wcs_origin
+            )
         else:
             raise ValueError(
                 "One of center or origin must be provided to create window"
@@ -85,7 +107,7 @@ class Window(object):
 
     @property
     def end(self):
-        return self.cartesian_to_world(self.shape)
+        return self.cartesian_to_plane(self.shape)
 
     @property
     def center(self):
@@ -98,27 +120,15 @@ class Window(object):
             - self.end / 2
         )
 
-    # @property
-    # def plt_extent(self):
-    #     return tuple(
-    #         pe.detach().cpu().item()
-    #         for pe in (
-    #             self.origin[0],
-    #             self.origin[0] + self.end[0],
-    #             self.origin[1],
-    #             self.origin[1] + self.end[1],
-    #         )
-    #     )
-
-    def world_to_cartesian(self, world_coordinate):
-        """Projects a world coordinate which may be rotated, flipped, or
+    def plane_to_cartesian(self, world_coordinate):
+        """Projects a tangent plane coordinate which may be rotated, flipped, or
         sheered into a regular square cartesian grid for the purpose
         of comparisons and where arithmetic is more straightforward.
 
         """
         return torch.linalg.solve(self.projection, world_coordinate)
 
-    def cartesian_to_world(self, cartesian_coordinate):
+    def cartesian_to_plane(self, cartesian_coordinate):
         return self.projection @ cartesian_coordinate
 
     def copy(self):
@@ -190,7 +200,7 @@ class Window(object):
 
     def shift_origin(self, shift):
         """
-        Shift the origin of the window by a specified amount in world coordinates
+        Shift the origin of the window by a specified amount in tangent plane coordinates
         """
         self.origin += shift
         return self
@@ -257,7 +267,7 @@ class Window(object):
         elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (
             2 * len(self.origin)
         ):
-            self.origin -= self.cartesian_to_world(
+            self.origin -= self.cartesian_to_plane(
                 torch.as_tensor(
                     other[::2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
@@ -445,61 +455,63 @@ class Window(object):
     # Window interaction operators
     @torch.no_grad()
     def __or__(self, other):
-        cart_self_origin = self.world_to_cartesian(self.origin)
-        cart_other_origin = self.world_to_cartesian(other.origin)
+        cart_self_origin = self.plane_to_cartesian(self.origin)
+        cart_other_origin = self.plane_to_cartesian(other.origin)
 
         new_origin = torch.minimum(cart_self_origin, cart_other_origin)
         new_end = torch.maximum(
             cart_self_origin + self.shape, cart_other_origin + other.shape
         )
         return self.__class__(
-            origin=self.cartesian_to_world(new_origin),
+            origin=self.cartesian_to_plane(new_origin),
             shape=new_end - new_origin,
             projection=self.projection,
         )
 
     @torch.no_grad()
     def __ior__(self, other):
-        cart_self_origin = self.world_to_cartesian(self.origin)
-        cart_other_origin = self.world_to_cartesian(other.origin)
+        cart_self_origin = self.plane_to_cartesian(self.origin)
+        cart_other_origin = self.plane_to_cartesian(other.origin)
 
         new_origin = torch.minimum(cart_self_origin, cart_other_origin)
         new_end = torch.maximum(
             cart_self_origin + self.shape, cart_other_origin + other.shape
         )
-        self.origin = self.cartesian_to_world(new_origin)
+        self.origin = self.cartesian_to_plane(new_origin)
         self.shape = new_end - new_origin
         return self
 
     @torch.no_grad()
     def __and__(self, other):
-        cart_self_origin = self.world_to_cartesian(self.origin)
-        cart_other_origin = self.world_to_cartesian(other.origin)
+        cart_self_origin = self.plane_to_cartesian(self.origin)
+        cart_other_origin = self.plane_to_cartesian(other.origin)
 
         new_origin = torch.maximum(cart_self_origin, cart_other_origin)
         new_end = torch.minimum(
             cart_self_origin + self.shape, cart_other_origin + other.shape
         )
         return self.__class__(
-            self.cartesian_to_world(new_origin),
+            self.cartesian_to_plane(new_origin),
             new_end - new_origin,
             projection=self.projection,
         )
 
     @torch.no_grad()
     def __iand__(self, other):
-        cart_self_origin = self.world_to_cartesian(self.origin)
-        cart_other_origin = self.world_to_cartesian(other.origin)
+        cart_self_origin = self.plane_to_cartesian(self.origin)
+        cart_other_origin = self.plane_to_cartesian(other.origin)
 
         new_origin = torch.maximum(cart_self_origin, cart_other_origin)
         new_end = torch.minimum(
             cart_self_origin + self.shape, cart_other_origin + other.shape
         )
-        self.origin = self.cartesian_to_world(new_origin)
+        self.origin = self.cartesian_to_plane(new_origin)
         self.shape = new_end - new_origin
         return self
 
     def __str__(self):
+        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, projection: {self.projection.detach().tolist()}"
+    def __repr__(self):
         return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, projection: {self.projection.detach().tolist()}"
 
 
@@ -678,4 +690,8 @@ class Window_List(Window):
     def __str__(self):
         return "Window List: \n" + (
             "\n".join(list(str(window) for window in self)) + "\n"
+        )
+    def __repr__(self):
+        return "Window List: \n" + (
+            "\n".join(list(repr(window) for window in self)) + "\n"
         )
