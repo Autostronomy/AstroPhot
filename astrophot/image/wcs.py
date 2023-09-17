@@ -11,7 +11,6 @@ rad_to_deg = 180 / np.pi
 rad_to_arcsec = rad_to_deg * 3600
 arcsec_to_rad = deg_to_rad / 3600
 
-
 class WCS:
     """Class to handle WCS interpretation in AstroPhot.
 
@@ -27,20 +26,27 @@ class WCS:
 
     """
 
-    _reference_radec = None
-    _projection = None
+    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
+    softening = 1e-3
+    
+    default_reference_radec = (0,0)
+    default_projection = "gnomonic"
 
     def __init__(self, *args, **kwargs):
 
-        if self.projection is None:
-            self.projection = kwargs.get("projection", "gnomonic")
-        if self.reference_radec is None:
-            self.reference_radec = kwargs.get("reference_radec", (0, 0))
+        self.projection = kwargs.get("projection", self.default_projection)
+        self.reference_radec = kwargs.get("reference_radec", self.default_reference_radec)
 
-    @classmethod
-    def world_to_plane(cls, world_RA, world_DEC):
-        if cls._projection == "gnomonic":
-            return cls.world_to_plane_gnomonic(
+    def to(self, dtype=None, device=None):
+        if dtype is None:
+            dtype = AP_config.ap_dtype
+        if device is None:
+            device = AP_config.ap_device
+        self.reference_radec = self.reference_radec.to(dtype=dtype, device=device)
+        
+    def world_to_plane(self, world_RA, world_DEC):
+        if self.projection == "gnomonic":
+            return self.world_to_plane_gnomonic(
                 torch.as_tensor(
                     world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -48,8 +54,8 @@ class WCS:
                     world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        if cls._projection == "orthographic":
-            return cls.world_to_plane_orthographic(
+        if self.projection == "orthographic":
+            return self.world_to_plane_orthographic(
                 torch.as_tensor(
                     world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -57,8 +63,8 @@ class WCS:
                     world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        if cls._projection == "steriographic":
-            return cls.world_to_plane_steriographic(
+        if self.projection == "steriographic":
+            return self.world_to_plane_steriographic(
                 torch.as_tensor(
                     world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -67,13 +73,12 @@ class WCS:
                 ),
             )
         raise ValueError(
-            f"Unrecognized projection: {cls._projection}. Should be one of: gnomonic, orthographic, steriographic"
+            f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
         )
 
-    @classmethod
-    def plane_to_world(cls, plane_x, plane_y):
-        if cls._projection == "gnomonic":
-            return cls.plane_to_world_gnomonic(
+    def plane_to_world(self, plane_x, plane_y):
+        if self.projection == "gnomonic":
+            return self.plane_to_world_gnomonic(
                 torch.as_tensor(
                     plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -81,8 +86,8 @@ class WCS:
                     plane_y, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        if cls._projection == "orthographic":
-            return cls.plane_to_world_orthographic(
+        if self.projection == "orthographic":
+            return self.plane_to_world_orthographic(
                 torch.as_tensor(
                     plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -90,8 +95,8 @@ class WCS:
                     plane_y, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        if cls._projection == "steriographic":
-            return cls.plane_to_world_steriographic(
+        if self.projection == "steriographic":
+            return self.plane_to_world_steriographic(
                 torch.as_tensor(
                     plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -100,7 +105,7 @@ class WCS:
                 ),
             )
         raise ValueError(
-            f"Unrecognized projection: {cls._projection}. Should be one of: gnomonic, orthographic, steriographic"
+            f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
         )
 
     @property
@@ -114,7 +119,7 @@ class WCS:
             "orthographic",
             "steriographic",
         ], f"Unrecognized projection: {proj}. Should be one of: gnomonic, orthographic, steriographic"
-        WCS._projection = proj
+        self._projection = proj
 
     @property
     def reference_radec(self):
@@ -122,12 +127,11 @@ class WCS:
 
     @reference_radec.setter
     def reference_radec(self, radec):
-        WCS._reference_radec = torch.tensor(
+        self._reference_radec = torch.as_tensor(
             radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
-    @classmethod
-    def _project_world_to_plane(cls, world_RA, world_DEC):
+    def _project_world_to_plane(self, world_RA, world_DEC):
         """
         Recurring core calculation in all the projections from world to plane.
 
@@ -137,20 +141,19 @@ class WCS:
         """
         return (
             torch.cos(world_DEC * deg_to_rad)
-            * torch.sin((world_RA - cls._reference_radec[0]) * deg_to_rad)
+            * torch.sin((world_RA - self.reference_radec[0]) * deg_to_rad)
             * rad_to_arcsec,
             (
-                torch.cos(cls._reference_radec[1] * deg_to_rad)
+                torch.cos(self.reference_radec[1] * deg_to_rad)
                 * torch.sin(world_DEC * deg_to_rad)
-                - torch.sin(cls._reference_radec[1] * deg_to_rad)
+                - torch.sin(self.reference_radec[1] * deg_to_rad)
                 * torch.cos(world_DEC * deg_to_rad)
-                * torch.cos((world_RA - cls._reference_radec[0]) * deg_to_rad)
+                * torch.cos((world_RA - self.reference_radec[0]) * deg_to_rad)
             )
             * rad_to_arcsec,
         )
 
-    @classmethod
-    def _project_plane_to_world(cls, plane_x, plane_y, rho, c):
+    def _project_plane_to_world(self, plane_x, plane_y, rho, c):
         """
         Recurring core calculation in all the projections from plane to world.
 
@@ -162,13 +165,13 @@ class WCS:
         """
         return (
             (
-                cls._reference_radec[0] * deg_to_rad
+                self._reference_radec[0] * deg_to_rad
                 + torch.arctan2(
                     plane_x * arcsec_to_rad * torch.sin(c),
-                    rho * torch.cos(cls._reference_radec[1] * deg_to_rad) * torch.cos(c)
+                    rho * torch.cos(self.reference_radec[1] * deg_to_rad) * torch.cos(c)
                     - plane_y
                     * arcsec_to_rad
-                    * torch.sin(cls._reference_radec[1] * deg_to_rad)
+                    * torch.sin(self.reference_radec[1] * deg_to_rad)
                     * torch.sin(c),
                 )
             )
@@ -176,19 +179,18 @@ class WCS:
             torch.arcsin(
                 torch.cos(c)
                 * torch.sin(
-                    cls._reference_radec[1] * deg_to_rad
+                    self.reference_radec[1] * deg_to_rad
                 )
                 + plane_y
                 * arcsec_to_rad
                 * torch.sin(c)
-                * torch.cos(cls._reference_radec[1] * deg_to_rad)
+                * torch.cos(self.reference_radec[1] * deg_to_rad)
                 / rho
             )
             * rad_to_deg,
         )
 
-    @classmethod
-    def world_to_plane_gnomonic(cls, world_RA, world_DEC):
+    def world_to_plane_gnomonic(self, world_RA, world_DEC):
         """Gnomonic projection: (RA,DEC) to tangent plane.
 
         Performs Gnomonic projection of (RA,DEC) coordinates onto a
@@ -206,18 +208,17 @@ class WCS:
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
         """
-        C = torch.sin(cls._reference_radec[1] * deg_to_rad) * torch.sin(
+        C = torch.sin(self.reference_radec[1] * deg_to_rad) * torch.sin(
             world_DEC * deg_to_rad
-        ) + torch.cos(cls._reference_radec[1] * deg_to_rad) * torch.cos(
+        ) + torch.cos(self.reference_radec[1] * deg_to_rad) * torch.cos(
             world_DEC * deg_to_rad
         ) * torch.cos(
-            (world_RA - cls._reference_radec[0]) * deg_to_rad
+            (world_RA - self.reference_radec[0]) * deg_to_rad
         )
-        x, y = cls._project_world_to_plane(world_RA, world_DEC)
+        x, y = self._project_world_to_plane(world_RA, world_DEC)
         return x / C, y / C
 
-    @classmethod
-    def plane_to_world_gnomonic(cls, plane_x, plane_y):
+    def plane_to_world_gnomonic(self, plane_x, plane_y):
         """Inverse Gnomonic projection: tangent plane to (RA,DEC).
 
         Performs the inverse Gnomonic projection of tangent plane
@@ -235,14 +236,13 @@ class WCS:
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
         """
-        rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
+        rho = (torch.sqrt(plane_x ** 2 + plane_y ** 2) + self.softening) * arcsec_to_rad
         c = torch.arctan(rho)
 
-        ra, dec = cls._project_plane_to_world(plane_x, plane_y, rho, c)
+        ra, dec = self._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec
 
-    @classmethod
-    def world_to_plane_steriographic(cls, world_RA, world_DEC):
+    def world_to_plane_steriographic(self, world_RA, world_DEC):
         """Steriographic projection: (RA,DEC) to tangent plane
 
         Performs Steriographic projection of (RA,DEC) coordinates onto
@@ -261,16 +261,15 @@ class WCS:
         C = (
             1
             + torch.sin(world_DEC * deg_to_rad)
-            * torch.sin(cls._reference_radec[1] * deg_to_rad)
+            * torch.sin(self._reference_radec[1] * deg_to_rad)
             + torch.cos(world_DEC * deg_to_rad)
-            * torch.cos(cls._reference_radec[1] * deg_to_rad)
-            * torch.cos((world_RA - cls._reference_radec[0]) * deg_to_rad)
+            * torch.cos(self._reference_radec[1] * deg_to_rad)
+            * torch.cos((world_RA - self._reference_radec[0]) * deg_to_rad)
         ) / 2
-        x, y = cls._project_world_to_plane(world_RA, world_DEC)
+        x, y = self._project_world_to_plane(world_RA, world_DEC)
         return x / C, y / C
 
-    @classmethod
-    def plane_to_world_steriographic(cls, plane_x, plane_y):
+    def plane_to_world_steriographic(self, plane_x, plane_y):
         """Inverse Steriographic projection: tangent plane to (RA,DEC).
 
         Performs the inverse Steriographic projection of tangent plane
@@ -285,13 +284,12 @@ class WCS:
         See: https://mathworld.wolfram.com/StereographicProjection.html
 
         """
-        rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
+        rho = (torch.sqrt(plane_x ** 2 + plane_y ** 2) + self.softening) * arcsec_to_rad
         c = 2 * torch.arctan(rho / 2)
-        ra, dec = cls._project_plane_to_world(plane_x, plane_y, rho, c)
+        ra, dec = self._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec
 
-    @classmethod
-    def world_to_plane_orthographic(cls, world_RA, world_DEC):
+    def world_to_plane_orthographic(self, world_RA, world_DEC):
         """Orthographic projection: (RA,DEC) to tangent plane
 
         Performs Orthographic projection of (RA,DEC) coordinates onto
@@ -309,11 +307,10 @@ class WCS:
         See: https://mathworld.wolfram.com/OrthographicProjection.html
 
         """
-        x, y = cls._project_world_to_plane(world_RA, world_DEC)
+        x, y = self._project_world_to_plane(world_RA, world_DEC)
         return x, y
 
-    @classmethod
-    def plane_to_world_orthographic(cls, plane_x, plane_y):
+    def plane_to_world_orthographic(self, plane_x, plane_y):
         """Inverse Orthographic projection: tangent plane to (RA,DEC).
 
         Performs the inverse Orthographic projection of tangent plane
@@ -331,8 +328,8 @@ class WCS:
         See: https://mathworld.wolfram.com/OrthographicProjection.html
 
         """
-        rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
+        rho = (torch.sqrt(plane_x ** 2 + plane_y ** 2) + self.softening) * arcsec_to_rad
         c = torch.arcsin(rho)
 
-        ra, dec = cls._project_plane_to_world(plane_x, plane_y, rho, c)
+        ra, dec = self._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec

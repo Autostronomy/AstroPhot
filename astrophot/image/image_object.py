@@ -432,6 +432,20 @@ class Image(object):
 class Image_List(Image):
     def __init__(self, image_list):
         self.image_list = list(image_list)
+        self.check_wcs()
+        
+    def check_wcs(self):
+        """Ensure the WCS system being used by all the windows in this list
+        are consistent with each other. They should all project world
+        coordinates onto the same tangent plane.
+
+        """
+        ref = torch.stack(tuple(I.header.reference_radec for I in self.image_list))
+        if not torch.allclose(ref, ref[0]):
+            AP_config.error("Reference coordiante missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+
+        if len(set(I.header.projection for I in self.image_list)) > 1:
+            AP_config.error("Projection missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
     @property
     def window(self):

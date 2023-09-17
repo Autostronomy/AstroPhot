@@ -23,8 +23,8 @@ class TestWCS(unittest.TestCase):
 
         self.assertEqual(wcs_set.projection, "orthographic", "Provided projection was Orthographic")
         self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10))), "World coordinates should be as provided")
-        self.assertEqual(wcs_blank.projection, "orthographic", "All WCS objects should be updated")
-        self.assertTrue(torch.all(wcs_blank.reference_radec == torch.tensor((90,10))), "All WCS objects should be updated")
+        self.assertNotEqual(wcs_blank.projection, "orthographic", "Not all WCS objects should be updated")
+        self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10))), "Not all WCS objects should be updated")
         
 
     def test_wcs_round_trip(self):

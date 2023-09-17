@@ -137,7 +137,8 @@ class Image_Header(WCS):
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
-                super().__init__(reference_radec=wcs_origin)
+                kwargs["reference_radec"] = kwargs.get("reference_radec", wcs_origin)
+                super().__init__(**kwargs)
                 origin = torch.stack(self.world_to_plane(*wcs_origin))
             elif (
                 origin_radec is not None
@@ -145,7 +146,8 @@ class Image_Header(WCS):
                 origin_radec = torch.as_tensor(
                     origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-                super().__init__(reference_radec=origin_radec)
+                kwargs["reference_radec"] = kwargs.get("reference_radec", origin_radec)
+                super().__init__(**kwargs)
                 origin = torch.stack(self.world_to_plane(*origin_radec))
             elif (
                 center_radec is not None
@@ -153,7 +155,8 @@ class Image_Header(WCS):
                 center_radec = torch.as_tensor(
                     center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
-                super().__init__(reference_radec=center_radec)
+                kwargs["reference_radec"] = kwargs.get("reference_radec", center_radec)
+                super().__init__(**kwargs)
                 center = torch.stack(self.world_to_plane(*center_radec))
                 origin = center - end / 2
             elif (
@@ -179,10 +182,18 @@ class Image_Header(WCS):
                     2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
 
-            self.window = Window(origin=origin, shape=shape, pixelshape=self.pixelscale)
+            self.window = Window(
+                origin=origin,
+                shape=shape,
+                pixelshape=self.pixelscale,
+                projection=self.projection,
+                reference_radec=self.reference_radec
+            )
         else:
             # When the Window object is provided
             self.window = window
+            kwargs["reference_radec"] = window.reference_radec
+            kwargs["projection"] = window.projection
             super().__init__(**kwargs)
             if self.pixelscale is None:
                 pixelscale = self.window.shape[0] / data_shape[1]
@@ -327,6 +338,8 @@ class Image_Header(WCS):
             note=self.note,
             window=self.window.copy(),
             identity=self.identity,
+            projection=self.projection,
+            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -343,6 +356,8 @@ class Image_Header(WCS):
             note=self.note,
             window=self.window & window,
             identity=self.identity,
+            projection=self.projection,
+            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -351,6 +366,7 @@ class Image_Header(WCS):
             dtype = AP_config.ap_dtype
         if device is None:
             device = AP_config.ap_device
+        super().to(dtype=dtype, device=device)
         self.window.to(dtype=dtype, device=device)
         self.pixelscale.to(dtype=dtype, device=device)
         if self.zeropoint is not None:
@@ -471,6 +487,8 @@ class Image_Header(WCS):
             note=self.note,
             window=self.window.copy(),
             identity=self.identity,
+            projection=self.projection,
+            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -498,6 +516,8 @@ class Image_Header(WCS):
             note=self.note,
             window=self.window.copy(),
             identity=self.identity,
+            projection=self.projection,
+            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -527,6 +547,8 @@ class Image_Header(WCS):
         img_header["IMAGE"] = "PRIMARY"
         img_header["PXLSCALE"] = str(self.pixelscale.detach().cpu().tolist())
         img_header["WINDOW"] = str(self.window.get_state())
+        img_header["PROJ"] = self.projection
+        img_header["REFRADEC"] = str(self.reference_radec.detach().cpu().tolist())
         if not self.zeropoint is None:
             img_header["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
         if not self.note is None:
@@ -555,6 +577,8 @@ class Image_Header(WCS):
                     device=AP_config.ap_device,
                 )
                 self.note = hdu.header.get("NOTE")
+                self.projection = hdu.header.get("PROJ")
+                self.reference_radec = eval(hdu.header.get("REFRADEC"))
                 self.window = Window(state=eval(hdu.header.get("WINDOW")))
                 break
         return hdul

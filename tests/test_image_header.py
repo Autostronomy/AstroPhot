@@ -7,7 +7,6 @@ import torch
 # Image_Header Objects
 ######################################################################
 
-
 class TestImageHeader(unittest.TestCase):
     def test_image_header_creation(self):
 

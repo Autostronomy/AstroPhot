@@ -550,7 +550,7 @@ class TestWindow(unittest.TestCase):
 
     def test_window_state(self):
 
-        window = ap.image.Window(state={"origin": [1.0, 2.0], "shape": [10, 15], "pixelshape": [[1.,0.],[0.,1.]]})
+        window = ap.image.Window(state={"origin": [1.0, 2.0], "shape": [10, 15], "pixelshape": [[1.,0.],[0.,1.]], "projection": "orthographic", "reference_radec": (0,0)})
         self.assertEqual(
             window.origin[0].item(), 1.0, "Window initialization should read state"
         )
@@ -570,6 +570,12 @@ class TestWindow(unittest.TestCase):
         )
         self.assertEqual(
             state["pixelshape"][1][0], 0.0, "Window get state should collect values"
+        )
+        self.assertEqual(
+            state["projection"], "orthographic", "Window get state should collect values"
+        )
+        self.assertEqual(
+            state["reference_radec"], (0.,0.), "Window get state should collect values"
         )
 
     def test_window_logic(self):
