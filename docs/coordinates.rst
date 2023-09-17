@@ -37,10 +37,11 @@ One gotcha to keep in mind with regards to ``world_to_plane`` and
 ``plane_to_world`` is that AstroPhot needs to know the reference
 (RA_0, DEC_0) where the tangent plane coordinate (0,0) meets with the
 celestial sphere world coordinate. You can set this by including
-``reference_radec = (RA_0, DEC_0)`` as an argument in the first image
-you create. Subsequent images will not modify the reference. If a
-reference is not given, then one will be assumed based on avaialble
-information when the first image is created.
+``reference_radec = (RA_0, DEC_0)`` as an argument in an image you
+create.  If a reference is not given, then one will be assumed based
+on avaialble information. Note that if you are doing multiband
+analysis you should ensure all the projection parameters are the same
+for all images!
 
 Projection Systems
 ------------------
@@ -55,23 +56,22 @@ implementation by AstroPhot see the `Wolfram MathWorld
 On small scales the choice of projection doesn't matter. For very
 large images the effect may be detectable, though it is likely
 insignificant compared to other effects in an image. Just like the
-``reference_radec`` you should choose your projection system in the
-first image you construct by passing ``projection = 'gnomonic'`` as an
-argument. Just like with the reference coordinate, subsequent image
-creation cannot modify the projection.
+``reference_radec`` you can choose your projection system in an image
+you construct by passing ``projection = 'gnomonic'`` as an
+argument. Just like with the reference coordinate, for images to talk
+to each other they should have the same projection.
 
-If you really want to change the projection after the first image has
+If you really want to change the projection after an image has
 been created (warning, this may cause serious missalignments between
 images), you can force it to update with::
 
   image.header.projection = 'steriographic'
 
-which would change the projection to steriographic. This change can be
-made with any image and it will affect all AstroPhot images
-simultaneously. They won't recompute thier position in the new
-projection system, they will just use new equations going
-forward. Hence the potential to seriously mess up your image alignmnt
-if this is done after some calculations have already been performed.
+which would change the projection to steriographic. The image won't
+recompute its position in the new projection system, it will just use
+new equations going forward. Hence the potential to seriously mess up
+your image alignmnt if this is done after some calculations have
+already been performed.
 
 Talking to the world
 --------------------
@@ -100,9 +100,20 @@ which would look something like::
       center_radec = (ra, dec),
   )
 
-If this is the first image being constructed then AstroPhot will set
-the reference RA, DEC to these center coordinates and future images
-will project onto that tangent plane.
+AstroPhot will set the reference RA, DEC to these center
+coordinates. A more explicit alternative is to just say what the
+reference coordiante should be. That would look something like::
+  
+  image = ap.image.Target_Image(
+      data = data,
+      pixelscale = pixelscale,
+      center_radec = (ra, dec),
+      reference_radec = (ra,dec),
+  )
+
+which will override anything else and set the reference coordinate for
+this image. Now ``center_radec`` could be anything and the world
+coordinate reference would be ``(ra,dec)``.
 
 You may also have a catalogue of objects that you would like to
 project into the image. The easiest way to do this if you already have
@@ -129,31 +140,9 @@ sources, you will need to do the opposite operation::
 
   world_position = image.header.plane_to_world(*model["center"].value)
 
-Which should be the coordinates in RA and DEC, assuming that you
-initialized the image with a WCS or by other means ensured that the
-world coordinates being used are correct. If you never gave AstroPhot
-the infomration it needs, then it likely assumed a reference position
-of (0,0) in the world coordinate system and so probably doesn't
-represent your object.
-
-
-Why global projection parameters?
----------------------------------
-
-Aren't global variables bad? Well, in this case they are the best way
-to minimize potential surprises with regards to coordinate
-systems. Transforming from the celestial sphere world coordinates to
-tangent plane coordiantes is not a perfect operation, however it is
-made infinitely worse if you are unwittingly projecting onto multiple
-different tangent plane coordinate systems (say when doing
-multi-band/multi-epoch analysis of multiple images). By forcing the
-projection parameters to be global variables, all images may be
-projected into the same tangent plane using world coordinates with
-minimal chance to make mistakes along the way.
-
-I would discourage trying to switch back and forth between two
-coordinate systems in the same analysis pipeline. For the sake of your
-sanity, and AstroPhot's you are better off splitting multiple image
-analysis tasks into separate scripts. If the images are far enough
-that they can't be on the same tangent plane, then they are probably
-relatively simple to separate anyway.
+Which should be the coordinates in RA and DEC (degrees), assuming that
+you initialized the image with a WCS or by other means ensured that
+the world coordinates being used are correct. If you never gave
+AstroPhot the infomration it needs, then it likely assumed a reference
+position of (0,0) in the world coordinate system and so probably
+doesn't represent your object.

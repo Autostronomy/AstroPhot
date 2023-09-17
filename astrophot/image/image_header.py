@@ -192,8 +192,8 @@ class Image_Header(WCS):
         else:
             # When the Window object is provided
             self.window = window
-            kwargs["reference_radec"] = window.reference_radec
-            kwargs["projection"] = window.projection
+            kwargs["reference_radec"] = kwargs.get("reference_radec", window.reference_radec)
+            kwargs["projection"] = kwargs.get("projection", window.projection)
             super().__init__(**kwargs)
             if self.pixelscale is None:
                 pixelscale = self.window.shape[0] / data_shape[1]
@@ -206,6 +206,12 @@ class Image_Header(WCS):
                     device=AP_config.ap_device,
                 )
 
+        self.check_wcs()
+        
+    def check_wcs(self):
+        assert self.projection == self.window.projection, "Image_Header and Widnow projection do not match!"
+        assert torch.allclose(self.reference_radec, self.window.reference_radec), "Image_Header and Window reference_radec do not match!"
+        
     @property
     def pixelscale(self):
         return self._pixelscale
