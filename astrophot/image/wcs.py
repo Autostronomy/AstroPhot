@@ -16,9 +16,10 @@ class WCS:
 
     AstroPhot performs it's operations on a tangent plane to the
     sphere, this class handles projections between the sphere and the
-    tangent plane. It holds class variables for the reference (RA,DEC)
-    where the tangent plane contacts the sphere, and the type of
-    projection being performed. Note that (RA,DEC) coordinates should always be in degrees while the tangent plane is in arcsec coordinates.
+    tangent plane. It holds variables for the reference (RA,DEC) where
+    the tangent plane contacts the sphere, and the type of projection
+    being performed. Note that (RA,DEC) coordinates should always be
+    in degrees while the tangent plane is in arcsec coordinates.
 
     Attributes:
       reference_radec: The reference (RA,DEC) coordinates in degrees where the tangent plane contacts the sphere.
