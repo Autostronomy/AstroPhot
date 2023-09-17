@@ -7,6 +7,7 @@ tutorials = [
     "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/JointModels.ipynb",
     "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/FittingMethods.ipynb",
     "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/CustomModels.ipynb",
+    "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/AdvancedPSFModels.ipynb",
 ]
 for url in tutorials:
     try:
