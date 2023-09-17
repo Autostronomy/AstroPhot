@@ -33,7 +33,7 @@ class WCS:
     def __init__(self, *args, **kwargs):
 
         if self.projection is None:
-            self.projection = "gnomonic"
+            self.projection = kwargs.get("projection", "gnomonic")
         if self.reference_radec is None:
             self.reference_radec = kwargs.get("reference_radec", (0, 0))
 
@@ -177,12 +177,12 @@ class WCS:
                 torch.cos(c)
                 * torch.sin(
                     cls._reference_radec[1] * deg_to_rad
-                    + plane_y
-                    * arcsec_to_rad
-                    * torch.sin(c)
-                    * torch.cos(cls._reference_radec[1] * deg_to_rad)
-                    / rho
                 )
+                + plane_y
+                * arcsec_to_rad
+                * torch.sin(c)
+                * torch.cos(cls._reference_radec[1] * deg_to_rad)
+                / rho
             )
             * rad_to_deg,
         )
@@ -206,6 +206,7 @@ class WCS:
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
         """
+        print("w2p gnomonic", cls._reference_radec.numpy())
         C = torch.sin(cls._reference_radec[1] * deg_to_rad) * torch.sin(
             world_DEC * deg_to_rad
         ) + torch.cos(cls._reference_radec[1] * deg_to_rad) * torch.cos(
@@ -235,6 +236,7 @@ class WCS:
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
         """
+        print("p2w gnomonic", cls._reference_radec.numpy())
         rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
         c = torch.arctan(rho)
 
@@ -258,6 +260,7 @@ class WCS:
         See: https://mathworld.wolfram.com/StereographicProjection.html
 
         """
+        print("w2p steriographic")
         C = (
             1
             + torch.sin(world_DEC * deg_to_rad)
@@ -285,6 +288,7 @@ class WCS:
         See: https://mathworld.wolfram.com/StereographicProjection.html
 
         """
+        print("p2w steriographic")
 
         rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
         c = 2 * torch.arctan(rho / 2)
@@ -310,6 +314,8 @@ class WCS:
         See: https://mathworld.wolfram.com/OrthographicProjection.html
 
         """
+        print("w2p orthographic")
+
         x, y = cls._project_world_to_plane(world_RA, world_DEC)
         return x, y
 
@@ -332,6 +338,7 @@ class WCS:
         See: https://mathworld.wolfram.com/OrthographicProjection.html
 
         """
+        print("p2w orthographic")
         rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
         c = torch.arcsin(rho)
 
