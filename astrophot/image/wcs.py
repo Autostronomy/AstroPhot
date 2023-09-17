@@ -206,7 +206,6 @@ class WCS:
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
         """
-        print("w2p gnomonic", cls._reference_radec.numpy())
         C = torch.sin(cls._reference_radec[1] * deg_to_rad) * torch.sin(
             world_DEC * deg_to_rad
         ) + torch.cos(cls._reference_radec[1] * deg_to_rad) * torch.cos(
@@ -236,7 +235,6 @@ class WCS:
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
         """
-        print("p2w gnomonic", cls._reference_radec.numpy())
         rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
         c = torch.arctan(rho)
 
@@ -260,7 +258,6 @@ class WCS:
         See: https://mathworld.wolfram.com/StereographicProjection.html
 
         """
-        print("w2p steriographic")
         C = (
             1
             + torch.sin(world_DEC * deg_to_rad)
@@ -288,8 +285,6 @@ class WCS:
         See: https://mathworld.wolfram.com/StereographicProjection.html
 
         """
-        print("p2w steriographic")
-
         rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
         c = 2 * torch.arctan(rho / 2)
         ra, dec = cls._project_plane_to_world(plane_x, plane_y, rho, c)
@@ -314,8 +309,6 @@ class WCS:
         See: https://mathworld.wolfram.com/OrthographicProjection.html
 
         """
-        print("w2p orthographic")
-
         x, y = cls._project_world_to_plane(world_RA, world_DEC)
         return x, y
 
@@ -338,50 +331,8 @@ class WCS:
         See: https://mathworld.wolfram.com/OrthographicProjection.html
 
         """
-        print("p2w orthographic")
         rho = torch.sqrt(plane_x ** 2 + plane_y ** 2) * arcsec_to_rad
         c = torch.arcsin(rho)
 
         ra, dec = cls._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec
-
-
-if __name__ == "__main__":
-
-    import matplotlib.pyplot as plt
-
-    WCS.reference_radec = torch.tensor((90.0, 0.0))
-
-    fig, axarr = plt.subplots(1, 3, figsize=(18, 6))
-    for proj, ax in zip(["gnomonic", "orthographic", "steriographic"], axarr):
-        WCS.projection = proj
-        wcs = WCS()
-        long_RA, long_DEC = torch.meshgrid(
-            torch.linspace(90 - 1 / 3600, 90 + 1 / 3600, 24, dtype=torch.float64),
-            torch.linspace(-1 / 3600, 1 / 3600, 1000, dtype=torch.float64),
-            indexing="xy",
-        )
-
-        long_x, long_y = wcs.world_to_plane(long_RA, long_DEC)
-
-        ax.plot(long_x.numpy(), long_y.numpy())
-        ax.set_title(proj)
-    plt.tight_layout()
-    plt.savefig(f"small_field_longitude.jpg")
-    plt.close()
-
-    fig, axarr = plt.subplots(1, 3, figsize=(18, 6))
-    for proj, ax in zip(["gnomonic", "orthographic", "steriographic"], axarr):
-        WCS.projection = proj
-        wcs = WCS()
-        long_RA, long_DEC = torch.meshgrid(
-            torch.linspace(10, 350, 24), torch.linspace(-80, 80, 1000), indexing="xy"
-        )
-
-        long_x, long_y = wcs.world_to_plane(long_RA, long_DEC)
-
-        ax.plot(long_x.numpy(), long_y.numpy())
-        ax.set_title(proj)
-    plt.tight_layout()
-    plt.savefig(f"large_field_longitude.jpg")
-    plt.close()

@@ -193,6 +193,29 @@ class TestImageList(unittest.TestCase):
             test_image[1].data[1][1], 1, "image addition should update its region"
         )
 
+    def test_image_list_display(self):
+        arr1 = torch.zeros((10, 15))
+        base_image1 = ap.image.Image(
+            data=arr1,
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2),
+            note="test image 1",
+        )
+        arr2 = torch.ones((15, 10))
+        base_image2 = ap.image.Image(
+            data=arr2,
+            pixelscale=0.5,
+            zeropoint=2.0,
+            origin=torch.ones(2),
+            note="test image 2",
+        )
+        test_image = ap.image.Image_List((base_image1, base_image2))
+
+        self.assertIsInstance(str(test_image), str, "String representation should be a string!")
+        self.assertIsInstance(repr(test_image), str, "Repr should be a string!")
+        
+
 
 class TestModelImageList(unittest.TestCase):
     def test_model_image_list_creation(self):

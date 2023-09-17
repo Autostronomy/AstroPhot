@@ -71,13 +71,13 @@ class Window(WCS):
                 origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             super().__init__(reference_radec=origin_radec)
-            self.origin = self.world_to_plane(*origin_radec)
+            self.origin = torch.stack(self.world_to_plane(*origin_radec))
         elif center_radec is not None:
             center_radec = torch.as_tensor(
                 center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             super().__init__(reference_radec=center_radec)
-            self.center = self.world_to_plane(*center_radec)
+            self.center = torch.stack(self.world_to_plane(*center_radec))
         elif origin is not None:
             self.origin = torch.as_tensor(
                 origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -94,7 +94,7 @@ class Window(WCS):
                 device=AP_config.ap_device,
             )
             super().__init__(reference_radec=wcs_origin)
-            self.origin = self.world_to_plane(*wcs_origin)
+            self.origin = torch.stack(self.world_to_plane(*wcs_origin))
         else:
             raise ValueError(
                 "One of center or origin must be provided to create window"
@@ -115,13 +115,13 @@ class Window(WCS):
             - self.end / 2
         )
 
-    def plane_to_cartesian(self, world_coordinate):
+    def plane_to_cartesian(self, plane_coordinate):
         """Projects a tangent plane coordinate which may be rotated, flipped, or
         sheered into a regular square cartesian grid for the purpose
         of comparisons and where arithmetic is more straightforward.
 
         """
-        return torch.linalg.solve(self.pixelshape, world_coordinate)
+        return torch.linalg.solve(self.pixelshape, plane_coordinate)
 
     def cartesian_to_plane(self, cartesian_coordinate):
         return self.pixelshape @ cartesian_coordinate

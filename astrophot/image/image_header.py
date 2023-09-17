@@ -138,7 +138,7 @@ class Image_Header(WCS):
                     device=AP_config.ap_device,
                 )
                 super().__init__(reference_radec=wcs_origin)
-                origin = self.world_to_plane(*wcs_origin)
+                origin = torch.stack(self.world_to_plane(*wcs_origin))
             elif (
                 origin_radec is not None
             ):  # Image reference position from RA and DEC of image origin
@@ -146,7 +146,7 @@ class Image_Header(WCS):
                     origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
                 super().__init__(reference_radec=origin_radec)
-                origin = self.world_to_plane(*origin_radec)
+                origin = torch.stack(self.world_to_plane(*origin_radec))
             elif (
                 center_radec is not None
             ):  # Image reference position from RA and DEC of image center
@@ -154,7 +154,7 @@ class Image_Header(WCS):
                     center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
                 super().__init__(reference_radec=center_radec)
-                center = self.world_to_plane(*center_radec)
+                center = torch.stack(self.world_to_plane(*center_radec))
                 origin = center - end / 2
             elif (
                 origin is not None

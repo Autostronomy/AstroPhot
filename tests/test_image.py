@@ -250,6 +250,18 @@ class TestImage(unittest.TestCase):
             "Loaded image should have same zeropoint",
         )
 
+    def test_image_display(self):
+        new_image = image.Image(
+            data =torch.ones((16, 32)),
+            pixelscale=0.76,
+            zeropoint=21.4,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+        )
+
+        self.assertIsInstance(str(new_image), str, "String representation should be a string!")
+        self.assertIsInstance(repr(new_image), str, "Repr should be a string!")
+
 
 class TestTargetImage(unittest.TestCase):
     def test_variance(self):
