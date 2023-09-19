@@ -7,16 +7,46 @@ import numpy as np
 from astropy.io import fits
 
 from .window_object import Window, Window_List
-from .wcs import WCS
+from .wcs import WPCS
 from ..utils.conversions.units import deg_to_arcsec
 from .. import AP_config
 
 __all__ = ["Image_Header"]
 
 
-class Image_Header(WCS):
-    north = np.pi / 2.0
+class Image_Header(WPCS):
+    """Initialize an instance of the APImage class.
+    Parameters:
+    -----------
+    pixelscale : float or None, optional
+        The physical scale of the pixels in the image, this is represented as a matrix which projects pixel units into sky units: $pixelscale @ pixel_vec = sky_vec$. The pixel scale matrix can be thought of in four components: \vec{s} @ F @ R @ S where \vec{s} is the side length of the pixels, F is a diagonal matrix of {1,-1} which flips the axes orientation, R is a rotation matrix, and S is a shear matrix which turns rectangular pixels into parallelograms. Default is None.
+    window : Window or None, optional
+        A Window object defining the area of the image to use. Default is None.
+    filename : str or None, optional
+        The name of a file containing the image data. Default is None.
+    zeropoint : float or None, optional
+        The image's zeropoint, used for flux calibration. Default is None.
+    note : str or None, optional
+        A note describing the image. Default is None.
+    origin : numpy.ndarray or None, optional
+        The origin of the image in the tangent plane coordinate system, as a 1D array of length 2. Default is None.
+    origin_radec : numpy.ndarray or None, optional
+        The origin of the image in the world coordinate system (RA, DEC), as a 1D array of length 2. Default is None.
+    center : numpy.ndarray or None, optional
+        The center of the image in the tangent plane coordinate system, as a 1D array of length 2. Default is None.
+    center_radec : numpy.ndarray or None, optional
+        The center of the image in the world coordinate system (RA, DEC), as a 1D array of length 2. Default is None.
 
+    Returns:
+    --------
+    None
+    """
+
+    north = np.pi / 2.
+    default_reference_imageij = (-0.5,-0.5)
+    default_reference_imagexy = (0,0)
+    default_pixelscale = 1
+    
     def __init__(
         self,
         data_shape: Optional[torch.Tensor],
@@ -30,36 +60,13 @@ class Image_Header(WCS):
         origin_radec: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
         center_radec: Optional[Sequence] = None,
+        reference_imagexy: Optional[Sequence] = None,
+        reference_imageij: Optional[Sequence] = None,
+        wpcs: Optional["WPCS"] = None,
+        ppcs: Optional["PPCS"] = None,
         identity: str = None,
         **kwargs: Any,
     ) -> None:
-        """Initialize an instance of the APImage class.
-
-        Parameters:
-        -----------
-        pixelscale : float or None, optional
-            The physical scale of the pixels in the image, this is represented as a matrix which projects pixel units into sky units: $pixelscale @ pixel_vec = sky_vec$. The pixel scale matrix can be thought of in four components: \vec{s} @ F @ R @ S where \vec{s} is the side length of the pixels, F is a diagonal matrix of {1,-1} which flips the axes orientation, R is a rotation matrix, and S is a shear matrix which turns rectangular pixels into parallelograms. Default is None.
-        window : Window or None, optional
-            A Window object defining the area of the image to use. Default is None.
-        filename : str or None, optional
-            The name of a file containing the image data. Default is None.
-        zeropoint : float or None, optional
-            The image's zeropoint, used for flux calibration. Default is None.
-        note : str or None, optional
-            A note describing the image. Default is None.
-        origin : numpy.ndarray or None, optional
-            The origin of the image in the tangent plane coordinate system, as a 1D array of length 2. Default is None.
-        origin_radec : numpy.ndarray or None, optional
-            The origin of the image in the world coordinate system (RA, DEC), as a 1D array of length 2. Default is None.
-        center : numpy.ndarray or None, optional
-            The center of the image in the tangent plane coordinate system, as a 1D array of length 2. Default is None.
-        center_radec : numpy.ndarray or None, optional
-            The center of the image in the world coordinate system (RA, DEC), as a 1D array of length 2. Default is None.
-
-        Returns:
-        --------
-        None
-        """
         # Record identity
         if identity is None:
             self.identity = str(id(self))
@@ -74,12 +81,7 @@ class Image_Header(WCS):
             data_shape, dtype=torch.int32, device=AP_config.ap_device
         )
         # set Zeropoint
-        if zeropoint is None:
-            self.zeropoint = None
-        else:
-            self.zeropoint = torch.as_tensor(
-                zeropoint, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+        self.zeropoint = zeropoint
 
         # set a note for the image
         self.note = note
@@ -131,70 +133,80 @@ class Image_Header(WCS):
                 )
             )
             if wcs is not None:  # Image coordinates provided by WCS
-                wcs_origin = wcs.pixel_to_world(-0.5, -0.5)
-                wcs_origin = torch.as_tensor(
-                    [wcs_origin.ra.deg, wcs_origin.dec.deg],
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-                kwargs["reference_radec"] = kwargs.get("reference_radec", wcs_origin)
+                self.reference_imageij = wcs.wcs.crpix if reference_imageij is None else reference_imageij
+                self.reference_imagexy = (0,0) if reference_imagexy is None else reference_imagexy
+                kwargs["reference_radec"] = kwargs.get("reference_radec", wcs.wcs.crval)
                 super().__init__(**kwargs)
-                origin = torch.stack(self.world_to_plane(*wcs_origin))
+                origin = torch.stack(self.pixel_to_plane(*(-0.5 * torch.ones_like(self.reference_imageij))))
             elif (
                 origin_radec is not None
             ):  # Image reference position from RA and DEC of image origin
+                # Origin given, it is reference point
+                self.reference_imageij = (-0.5,-0.5)
                 origin_radec = torch.as_tensor(
                     origin_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
                 kwargs["reference_radec"] = kwargs.get("reference_radec", origin_radec)
                 super().__init__(**kwargs)
                 origin = torch.stack(self.world_to_plane(*origin_radec))
+                self.reference_imagexy = origin
             elif (
                 center_radec is not None
             ):  # Image reference position from RA and DEC of image center
+                pix_center = torch.flip(
+                    data_shape.to(dtype=AP_config.ap_dtype),
+                    (0,),
+                ) / 2 - 0.5
+
+                self.reference_imageij = pix_center
                 center_radec = torch.as_tensor(
                     center_radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 )
                 kwargs["reference_radec"] = kwargs.get("reference_radec", center_radec)
                 super().__init__(**kwargs)
                 center = torch.stack(self.world_to_plane(*center_radec))
-                origin = center - end / 2
+                self.reference_imagexy = center
+                origin = self.pixel_to_plane(*(-0.5 * torch.ones_like(self.reference_imagexy)))
             elif (
                 origin is not None
             ):  # Image reference position from tangent plane position of image origin
+                self.reference_imageij = (-0.5,-0.5)
+                self.reference_imagexy = origin
                 super().__init__(**kwargs)
-                origin = torch.as_tensor(
-                    origin, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
             elif (
                 center is not None
             ):  # Image reference position from tangent plane position of image center
+                pix_center = torch.flip(
+                    data_shape.to(dtype=AP_config.ap_dtype),
+                    (0,),
+                ) / 2 - 0.5
+                self.reference_imageij = pix_center
+                self.reference_imagexy = center
                 super().__init__(**kwargs)
-                origin = (
-                    torch.as_tensor(
-                        center, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                    )
-                    - end / 2
-                )
+                origin = self.pixel_to_plane(*(-0.5 * torch.ones_like(self.reference_imagexy)))                
             else:  # Image origin assumed to be at tangent plane origin
                 super().__init__(**kwargs)
-                origin = torch.zeros(
-                    2, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
+                self.reference_imageij = (-0.5,-0.5) if reference_imageij is None else reference_imageij
+                self.reference_imagexy = (0,0) if reference_imagexy is None else reference_imagexy
+                origin = self.pixel_to_plane(*(-0.5 * torch.ones_like(self.reference_imagexy)))
 
             self.window = Window(
                 origin=origin,
                 shape=shape,
                 pixelshape=self.pixelscale,
                 projection=self.projection,
-                reference_radec=self.reference_radec
+                reference_radec=self.reference_radec,
+                reference_planexy=self.reference_planexy,
             )
         else:
             # When the Window object is provided
             self.window = window
-            kwargs["reference_radec"] = kwargs.get("reference_radec", window.reference_radec)
-            kwargs["projection"] = kwargs.get("projection", window.projection)
+            kwargs["reference_radec"] = window.reference_radec
+            kwargs["reference_planexy"] = window.reference_planexy
+            kwargs["projection"] = window.projection
             super().__init__(**kwargs)
+            self.reference_imageij = (-0.5,-0.5) if reference_imageij is None else reference_imageij
+            self.reference_imagexy = (0,0) if reference_imagexy is None else reference_imagexy
             if self.pixelscale is None:
                 pixelscale = self.window.shape[0] / data_shape[1]
                 AP_config.ap_logger.warn(
@@ -205,12 +217,6 @@ class Image_Header(WCS):
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
-
-        self.check_wcs()
-        
-    def check_wcs(self):
-        assert self.projection == self.window.projection, "Image_Header and Widnow projection do not match!"
-        assert torch.allclose(self.reference_radec, self.window.reference_radec), "Image_Header and Window reference_radec do not match!"
         
     @property
     def pixelscale(self):
@@ -235,7 +241,6 @@ class Image_Header(WCS):
             )
         self._pixel_area = torch.linalg.det(self.pixelscale).abs()
         self._pixel_length = self._pixel_area.sqrt()
-        self._pixel_origin = None
         self._pixelscale_inv = torch.linalg.inv(self.pixelscale)
 
     @property
@@ -247,34 +252,53 @@ class Image_Header(WCS):
         return self._pixel_length
 
     @property
-    def pixel_origin(self):
-        if self._pixel_origin is None:
-            self._pixel_origin = self.origin + self.pixel_to_plane_delta(
-                0.5 * torch.ones_like(self.origin)
-            )
-        return self._pixel_origin
-
-    def pixel_to_plane(self, pixel_coordinate, internal_transpose=False):
-        """Take in a coordinate on the regular pixel grid, where
-        0,0 is the center of the first pixel. This coordinate is
-        transformed into the tangent plane coordiante system based on the
-        pixel scale and origin position for this image. In the plane
-        coordinate system the origin is placed with respect to the
-        bottom corner of the 0,0 pixel.
+    def reference_imageij(self):
+        """pixel coordiantes where the pixel grid is fixed to the tangent
+        plane. These should be in pixel units where (0,0) is the
+        center of the [0,0] indexed pixel. However, it is still in xy
+        format, meaning that the first index gives translations in the
+        x-axis (horizontal-axis) of the image.
 
         """
-        if internal_transpose:
-            return (self.pixelscale @ pixel_coordinate).T + self.pixel_origin
-        return (self.pixelscale @ pixel_coordinate) + self.pixel_origin
+        return self._reference_imageij
 
-    def plane_to_pixel(self, plane_coordinate, unsqueeze_origin=False):
-        if unsqueeze_origin:
-            O = self.pixel_origin.unsqueeze(-1)
-        else:
-            O = self.pixel_origin
-        return self._pixelscale_inv @ (plane_coordinate - O)
+    @reference_imageij.setter
+    def reference_imageij(self, imageij):
+        self._reference_imageij = torch.as_tensor(
+            imageij, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+    @property
+    def reference_imagexy(self):
+        """plane coordiantes where the image grid is fixed to the tangent
+        plane. These should be in arcsec.
 
-    def pixel_to_plane_delta(self, pixel_delta):
+        """
+        return self._reference_imagexy
+
+    @reference_imagexy.setter
+    def reference_imagexy(self, imagexy):
+        self._reference_imagexy = torch.as_tensor(
+            imagexy, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+
+    def pixel_to_plane(self, pixel_i, pixel_j=None):
+        """Take in a coordinate on the regular pixel grid, where
+        0,0 is the center of the [0,0] indexed pixel. This coordinate is
+        transformed into the tangent plane coordiante system based on the
+        pixel scale and fixme
+        """
+        if pixel_j is None:
+            return torch.stack(self.pixel_to_plane(*pixel_i))
+        coords = torch.mm(self.pixelscale, torch.stack((pixel_i.reshape(-1), pixel_j.reshape(-1))) - self.reference_imageij.view(2,1)) + self.reference_imagexy.view(2,1)
+        return coords[0].reshape(pixel_i.shape), coords[1].reshape(pixel_j.shape)
+
+    def plane_to_pixel(self, plane_x, plane_y=None):
+        if plane_y is None:
+            return torch.stack(self.plane_to_pixel(*plane_x))
+        coords = torch.mm(self._pixelscale_inv, torch.stack((plane_x.reshape(-1), plane_y.reshape(-1))) - self.reference_imagexy.view(2,1)) + self.reference_imageij.view(2,1)
+        return coords[0].reshape(plane_x.shape), coords[1].reshape(plane_y.shape)
+
+    def pixel_to_plane_delta(self, pixel_delta_i, pixel_delta_j=None):
         """Take in a coordinate on the regular cartesian pixel grid, where
         0,0 is the center of the first pixel. This coordinate is
         transformed into the plane coordiante system based on the
@@ -283,11 +307,38 @@ class Image_Header(WCS):
         bottom corner of the 0,0 pixel.
 
         """
-        return self.pixelscale @ pixel_delta
+        if pixel_delta_j is None:
+            return torch.stack(self.pixel_to_plane_delta(*pixel_delta_i))
+        coords = torch.mm(self.pixelscale, torch.stack((pixel_delta_i.reshape(-1), pixel_delta_j.reshape(-1))))
+        return coords[0].reshape(pixel_delta_i.shape), coords[1].reshape(pixel_delta_j.shape)
 
-    def plane_to_pixel_delta(self, plane_delta):
-        return self._pixelscale_inv @ plane_delta
+    def plane_to_pixel_delta(self, plane_delta_x, plane_delta_y=None):
+        if plane_delta_y is None:
+            return torch.stack(self.plane_to_pixel_delta(*plane_delta_x))
+        coords = torch.mm(self._pixelscale_inv, torch.stack((plane_delta_x.reshape(-1), plane_delta_y.reshape(-1))))
+        return coords[0].reshape(plane_delta_x.shape), coords[1].reshape(plane_delta_y.shape)
 
+    def world_to_pixel(self, world_RA, world_DEC):
+        return self.plane_to_pixel(*self.world_to_plane(world_DEC, world_RA))
+    def pixel_to_world(self, pixel_i, pixel_j):
+        return self.plane_to_world(*self.pixel_to_plane(pixel_i, pixel_j))
+    
+    @property
+    def zeropoint(self):
+        return self._zeropoint
+
+    @zeropoint.setter
+    def zeropoint(self, zp):
+        if zp is None:
+            self._zeropoint = None
+            return
+
+        self._zeropoint = (
+            torch.as_tensor(zp, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            .clone()
+            .detach()
+        )
+    
     @property
     def origin(self) -> torch.Tensor:
         """
@@ -321,12 +372,12 @@ class Image_Header(WCS):
     def shift_origin(self, shift):
         """Adjust the origin position of the image header. This will not
         adjust the data represented by the header, only the
-        coordiantes system that maps pixel coordinates to the plane
+        coordinate system that maps pixel coordinates to the plane
         coordinates.
 
         """
         self.window.shift_origin(shift)
-        self._pixel_origin = None
+        self.reference_imagexy = self.reference_imagexy + shift
 
     def pixel_shift_origin(self, shift):
         self.shift_origin(self.pixel_to_plane_delta(shift))
@@ -337,22 +388,20 @@ class Image_Header(WCS):
         an image and then will want the original again.
 
         """
-        return self.__class__(
+        return super().copy(
             data_shape=self.data_shape,
             pixelscale=self.pixelscale,
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
             identity=self.identity,
-            projection=self.projection,
-            reference_radec=self.reference_radec,
             **kwargs,
         )
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
         indices = window.get_indices(self)
-        return self.__class__(
+        return super().copy(
             data_shape=(
                 indices[0].stop - indices[0].start,
                 indices[1].stop - indices[1].start,
@@ -362,8 +411,6 @@ class Image_Header(WCS):
             note=self.note,
             window=self.window & window,
             identity=self.identity,
-            projection=self.projection,
-            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -420,10 +467,8 @@ class Image_Header(WCS):
             ysteps,
             indexing="xy",
         )
-        Coords = self.pixel_to_plane(
-            torch.stack((meshx, meshy)).view(2, -1), internal_transpose=True
-        ).T
-        return Coords.reshape((2, *meshx.shape))
+        Coords = self.pixel_to_plane(meshx, meshy)
+        return torch.stack(Coords)
 
     @torch.no_grad()
     def get_coordinate_corner_meshgrid(self):
@@ -445,10 +490,8 @@ class Image_Header(WCS):
             ysteps,
             indexing="xy",
         )
-        Coords = self.pixel_to_plane(
-            torch.stack((meshx, meshy)).view(2, -1), internal_transpose=True
-        ).T
-        return Coords.reshape((2, *meshx.shape))
+        Coords = self.pixel_to_plane(meshx, meshy)
+        return torch.stack(Coords)
 
     @torch.no_grad()
     def get_coordinate_simps_meshgrid(self):
@@ -476,25 +519,21 @@ class Image_Header(WCS):
             ysteps,
             indexing="xy",
         )
-        Coords = self.pixel_to_plane(
-            torch.stack((meshx, meshy)).view(2, -1), internal_transpose=True
-        ).T
-        return Coords.reshape((2, *meshx.shape))
+        Coords = self.pixel_to_plane(meshx, meshy)
+        return torch.stack(Coords)
 
     def super_resolve(self, scale: int, **kwargs):
         assert isinstance(scale, int) or scale.dtype is torch.int32
         if scale == 1:
             return self
 
-        return self.__class__(
+        return super().copy(
             data_shape=self.data_shape,
             pixelscale=self.pixelscale / scale,
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
             identity=self.identity,
-            projection=self.projection,
-            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -515,15 +554,13 @@ class Image_Header(WCS):
         if scale == 1:
             return self
 
-        return self.__class__(
+        return super().copy(
             data_shape=self.data_shape,
             pixelscale=self.pixelscale * scale,
             zeropoint=self.zeropoint,
             note=self.note,
             window=self.window.copy(),
             identity=self.identity,
-            projection=self.projection,
-            reference_radec=self.reference_radec,
             **kwargs,
         )
 
@@ -539,7 +576,7 @@ class Image_Header(WCS):
         self.window += tuple(padding)
 
     def get_state(self):
-        state = {}
+        state = super().get_state()
         state["pixelscale"] = self.pixelscale.tolist()
         if self.zeropoint is not None:
             state["zeropoint"] = self.zeropoint.item()
@@ -549,18 +586,23 @@ class Image_Header(WCS):
         return state
 
     def _save_image_list(self):
-        img_header = fits.Header()
+        img_header = fits.Header(super().get_fits_state())
         img_header["IMAGE"] = "PRIMARY"
         img_header["PXLSCALE"] = str(self.pixelscale.detach().cpu().tolist())
         img_header["WINDOW"] = str(self.window.get_state())
-        img_header["PROJ"] = self.projection
-        img_header["REFRADEC"] = str(self.reference_radec.detach().cpu().tolist())
         if not self.zeropoint is None:
             img_header["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
         if not self.note is None:
             img_header["NOTE"] = str(self.note)
         return img_header
 
+    def set_fits_state(self, state):
+        super().set_fits_state(state)
+        self.pixelscale = eval(hdu.header.get("PXLSCALE"))
+        self.zeropoint = eval(hdu.header.get("ZEROPNT"))
+        self.note = hdu.header.get("NOTE")
+        self.window = Window(state=eval(hdu.header.get("WINDOW")))
+        
     def save(self, filename=None, overwrite=True):
         image_list = self._save_image_list()
         hdul = fits.HDUList(image_list)
@@ -572,20 +614,7 @@ class Image_Header(WCS):
         hdul = fits.open(filename)
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
-                self.pixelscale = torch.tensor(
-                    eval(hdu.header.get("PXLSCALE")),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-                self.zeropoint = torch.tensor(
-                    eval(hdu.header.get("ZEROPNT")),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-                self.note = hdu.header.get("NOTE")
-                self.projection = hdu.header.get("PROJ")
-                self.reference_radec = eval(hdu.header.get("REFRADEC"))
-                self.window = Window(state=eval(hdu.header.get("WINDOW")))
+                self.set_fits_state(hdu.header)
                 break
         return hdul
 

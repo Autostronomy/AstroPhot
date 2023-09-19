@@ -4,22 +4,22 @@ import numpy as np
 
 from .. import AP_config
 
-__all__ = ("WCS",)
+__all__ = ("WPCS",)
 
 deg_to_rad = np.pi / 180
 rad_to_deg = 180 / np.pi
 rad_to_arcsec = rad_to_deg * 3600
 arcsec_to_rad = deg_to_rad / 3600
 
-class WCS:
-    """Class to handle WCS interpretation in AstroPhot.
+class WPCS:
+    """World to Plane Coordinate System in AstroPhot.
 
     AstroPhot performs it's operations on a tangent plane to the
     sphere, this class handles projections between the sphere and the
     tangent plane. It holds variables for the reference (RA,DEC) where
     the tangent plane contacts the sphere, and the type of projection
     being performed. Note that (RA,DEC) coordinates should always be
-    in degrees while the tangent plane is in arcsec coordinates.
+    in degrees while the tangent plane is in arcsecs.
 
     Attributes:
       reference_radec: The reference (RA,DEC) coordinates in degrees where the tangent plane contacts the sphere.
@@ -31,12 +31,14 @@ class WCS:
     softening = 1e-3
     
     default_reference_radec = (0,0)
+    default_reference_planexy = (0,0)
     default_projection = "gnomonic"
 
     def __init__(self, *args, **kwargs):
 
         self.projection = kwargs.get("projection", self.default_projection)
         self.reference_radec = kwargs.get("reference_radec", self.default_reference_radec)
+        self.reference_planexy = kwargs.get("reference_planexy", self.default_reference_planexy)
 
     def to(self, dtype=None, device=None):
         if dtype is None:
@@ -47,7 +49,7 @@ class WCS:
         
     def world_to_plane(self, world_RA, world_DEC):
         if self.projection == "gnomonic":
-            return self.world_to_plane_gnomonic(
+            coords = self._world_to_plane_gnomonic(
                 torch.as_tensor(
                     world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -55,8 +57,8 @@ class WCS:
                     world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        if self.projection == "orthographic":
-            return self.world_to_plane_orthographic(
+        elif self.projection == "orthographic":
+            coords = self._world_to_plane_orthographic(
                 torch.as_tensor(
                     world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -64,8 +66,8 @@ class WCS:
                     world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        if self.projection == "steriographic":
-            return self.world_to_plane_steriographic(
+        elif self.projection == "steriographic":
+            coords = self._world_to_plane_steriographic(
                 torch.as_tensor(
                     world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -73,13 +75,18 @@ class WCS:
                     world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        raise ValueError(
-            f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
-        )
+        else:
+            raise ValueError(
+                f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
+            )
+        return coords[0] + self.reference_planexy[0], coords[1] + self.reference_planexy[1]
+    
 
     def plane_to_world(self, plane_x, plane_y):
+        plane_x = plane_x - self.reference_planexy[0]
+        plane_y = plane_y - self.reference_planexy[1]
         if self.projection == "gnomonic":
-            return self.plane_to_world_gnomonic(
+            return self._plane_to_world_gnomonic(
                 torch.as_tensor(
                     plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -88,7 +95,7 @@ class WCS:
                 ),
             )
         if self.projection == "orthographic":
-            return self.plane_to_world_orthographic(
+            return self._plane_to_world_orthographic(
                 torch.as_tensor(
                     plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -97,7 +104,7 @@ class WCS:
                 ),
             )
         if self.projection == "steriographic":
-            return self.plane_to_world_steriographic(
+            return self._plane_to_world_steriographic(
                 torch.as_tensor(
                     plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
@@ -124,12 +131,27 @@ class WCS:
 
     @property
     def reference_radec(self):
+        """
+        RA DEC (world) coordiantes where the tangent plane meets the celestial sphere. These should be in degrees.
+        """
         return self._reference_radec
 
     @reference_radec.setter
     def reference_radec(self, radec):
         self._reference_radec = torch.as_tensor(
             radec, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+    @property
+    def reference_planexy(self):
+        """
+        x y tangent plane coordiantes where the tangent plane meets the celestial sphere. These should be in arcsec.
+        """
+        return self._reference_planexy
+
+    @reference_planexy.setter
+    def reference_planexy(self, planexy):
+        self._reference_planexy = torch.as_tensor(
+            planexy, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
     def _project_world_to_plane(self, world_RA, world_DEC):
@@ -191,7 +213,7 @@ class WCS:
             * rad_to_deg,
         )
 
-    def world_to_plane_gnomonic(self, world_RA, world_DEC):
+    def _world_to_plane_gnomonic(self, world_RA, world_DEC):
         """Gnomonic projection: (RA,DEC) to tangent plane.
 
         Performs Gnomonic projection of (RA,DEC) coordinates onto a
@@ -219,7 +241,7 @@ class WCS:
         x, y = self._project_world_to_plane(world_RA, world_DEC)
         return x / C, y / C
 
-    def plane_to_world_gnomonic(self, plane_x, plane_y):
+    def _plane_to_world_gnomonic(self, plane_x, plane_y):
         """Inverse Gnomonic projection: tangent plane to (RA,DEC).
 
         Performs the inverse Gnomonic projection of tangent plane
@@ -243,7 +265,7 @@ class WCS:
         ra, dec = self._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec
 
-    def world_to_plane_steriographic(self, world_RA, world_DEC):
+    def _world_to_plane_steriographic(self, world_RA, world_DEC):
         """Steriographic projection: (RA,DEC) to tangent plane
 
         Performs Steriographic projection of (RA,DEC) coordinates onto
@@ -270,7 +292,7 @@ class WCS:
         x, y = self._project_world_to_plane(world_RA, world_DEC)
         return x / C, y / C
 
-    def plane_to_world_steriographic(self, plane_x, plane_y):
+    def _plane_to_world_steriographic(self, plane_x, plane_y):
         """Inverse Steriographic projection: tangent plane to (RA,DEC).
 
         Performs the inverse Steriographic projection of tangent plane
@@ -290,7 +312,7 @@ class WCS:
         ra, dec = self._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec
 
-    def world_to_plane_orthographic(self, world_RA, world_DEC):
+    def _world_to_plane_orthographic(self, world_RA, world_DEC):
         """Orthographic projection: (RA,DEC) to tangent plane
 
         Performs Orthographic projection of (RA,DEC) coordinates onto
@@ -311,7 +333,7 @@ class WCS:
         x, y = self._project_world_to_plane(world_RA, world_DEC)
         return x, y
 
-    def plane_to_world_orthographic(self, plane_x, plane_y):
+    def _plane_to_world_orthographic(self, plane_x, plane_y):
         """Inverse Orthographic projection: tangent plane to (RA,DEC).
 
         Performs the inverse Orthographic projection of tangent plane
@@ -334,3 +356,35 @@ class WCS:
 
         ra, dec = self._project_plane_to_world(plane_x, plane_y, rho, c)
         return ra, dec
+
+    def get_state(self):
+        return {
+            "projection": self.projection,
+            "reference_radec": self.reference_radec.detach().cpu().tolist(),
+            "reference_planexy": self.reference_planexy.detach().cpu().tolist(),
+        }
+    def set_state(self, state):
+        self.projection = state["projection"]
+        self.reference_radec = state["reference_radec"]
+        self.reference_planexy = state["reference_planexy"]
+
+    def get_fits_state(self):
+        return {
+            "PROJ": self.projection,
+            "REFRADEC": str(self.reference_radec.detach().cpu().tolist()),
+            "REFPLNXY": str(self.reference_planexy.detach().cpu().tolist()),
+        }
+    
+    def set_fits_state(self, state):
+        self.projection = state["PROJ"]
+        self.reference_radec = eval(state["REFRADEC"])
+        self.reference_planexy = eval(state["REFPLNXY"])
+        
+    def copy(self, **kwargs):
+        return self.__class__(
+            projection=self.projection,
+            reference_radec=self.reference_radec,
+            reference_planexy=self.reference_planexy,
+            **kwargs,
+        )
+        

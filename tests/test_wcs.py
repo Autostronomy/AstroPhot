@@ -3,7 +3,6 @@ import astrophot as ap
 import numpy as np
 import torch
 
-
 class TestWCS(unittest.TestCase):
     def test_wcs_creation(self):
 

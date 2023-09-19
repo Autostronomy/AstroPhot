@@ -3,12 +3,12 @@ import torch
 
 from .. import AP_config
 from ..utils.conversions.coordinates import Rotate_Cartesian
-from .wcs import WCS
+from .wcs import WPCS
 
 __all__ = ["Window", "Window_List"]
 
 
-class Window(WCS):
+class Window(WPCS):
     """class to define a window on the sky in coordinate space. These
     windows can undergo arithmetic an preserve logical behavior. Image
     objects can also be indexed using windows and will return an

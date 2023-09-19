@@ -112,13 +112,11 @@ class Image(object):
     def pixel_length(self):
         return self.header.pixel_length
 
-    def pixel_to_plane(self, pixel_coordinate, internal_transpose=False):
-        return self.header.pixel_to_plane(
-            pixel_coordinate, internal_transpose=internal_transpose
-        )
+    def pixel_to_plane(self, pixel_coordinate):
+        return self.header.pixel_to_plane(pixel_coordinate)
 
-    def plane_to_pixel(self, plane_coordinate, unsqueeze_origin=False):
-        return self.header.plane_to_pixel(plane_coordinate, unsqueeze_origin)
+    def plane_to_pixel(self, plane_coordinate):
+        return self.header.plane_to_pixel(plane_coordinate)
 
     def pixel_to_plane_delta(self, pixel_coordinate):
         return self.header.pixel_to_plane_delta(pixel_coordinate)
