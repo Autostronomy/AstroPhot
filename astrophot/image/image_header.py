@@ -154,7 +154,7 @@ class Image_Header(WPCS):
                 center_radec is not None
             ):  # Image reference position from RA and DEC of image center
                 pix_center = torch.flip(
-                    data_shape.to(dtype=AP_config.ap_dtype),
+                    self.data_shape.to(dtype=AP_config.ap_dtype),
                     (0,),
                 ) / 2 - 0.5
 
@@ -177,7 +177,7 @@ class Image_Header(WPCS):
                 center is not None
             ):  # Image reference position from tangent plane position of image center
                 pix_center = torch.flip(
-                    data_shape.to(dtype=AP_config.ap_dtype),
+                    self.data_shape.to(dtype=AP_config.ap_dtype),
                     (0,),
                 ) / 2 - 0.5
                 self.reference_imageij = pix_center
@@ -598,10 +598,10 @@ class Image_Header(WPCS):
 
     def set_fits_state(self, state):
         super().set_fits_state(state)
-        self.pixelscale = eval(hdu.header.get("PXLSCALE"))
-        self.zeropoint = eval(hdu.header.get("ZEROPNT"))
-        self.note = hdu.header.get("NOTE")
-        self.window = Window(state=eval(hdu.header.get("WINDOW")))
+        self.pixelscale = eval(state["PXLSCALE"])
+        self.zeropoint = eval(state.get("ZEROPNT", "None"))
+        self.note = state.get("NOTE",None)
+        self.window = Window(state=eval(state["WINDOW"]))
         
     def save(self, filename=None, overwrite=True):
         image_list = self._save_image_list()

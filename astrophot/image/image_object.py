@@ -112,17 +112,17 @@ class Image(object):
     def pixel_length(self):
         return self.header.pixel_length
 
-    def pixel_to_plane(self, pixel_coordinate):
-        return self.header.pixel_to_plane(pixel_coordinate)
+    def pixel_to_plane(self, *args, **kwargs):
+        return self.header.pixel_to_plane(*args, **kwargs)
 
-    def plane_to_pixel(self, plane_coordinate):
-        return self.header.plane_to_pixel(plane_coordinate)
+    def plane_to_pixel(self, *args, **kwargs):
+        return self.header.plane_to_pixel(*args, **kwargs)
 
-    def pixel_to_plane_delta(self, pixel_coordinate):
-        return self.header.pixel_to_plane_delta(pixel_coordinate)
+    def pixel_to_plane_delta(self, *args, **kwargs):
+        return self.header.pixel_to_plane_delta(*args, **kwargs)
 
-    def plane_to_pixel_delta(self, plane_coordinate):
-        return self.header.plane_to_pixel_delta(plane_coordinate)
+    def plane_to_pixel_delta(self, *args, **kwargs):
+        return self.header.plane_to_pixel_delta(*args, **kwargs)
 
     @property
     def origin(self) -> torch.Tensor:

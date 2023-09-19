@@ -7,15 +7,15 @@ class TestWCS(unittest.TestCase):
     def test_wcs_creation(self):
 
         # Blank startup
-        wcs_blank = ap.image.WCS()
+        wcs_blank = ap.image.WPCS()
 
         self.assertEqual(wcs_blank.projection, "gnomonic", "Default projection should be Gnomonic")
         self.assertTrue(torch.all(wcs_blank.reference_radec == 0), "default reference world coordinates should be zeros")
 
         # Provided parameters
-        ap.image.WCS._projection = None # reset
-        ap.image.WCS._reference_radec = None # reset
-        wcs_set = ap.image.WCS(
+        ap.image.WPCS._projection = None # reset
+        ap.image.WPCS._reference_radec = None # reset
+        wcs_set = ap.image.WPCS(
             projection = "orthographic",
             reference_radec = (90,10),
         )
@@ -32,9 +32,9 @@ class TestWCS(unittest.TestCase):
             print(projection)
             for ref_coords in [(20.3, 79), (120.2,-19), (300, -50), (0,0)]:
                 print(ref_coords)
-                ap.image.WCS._projection = None # reset
-                ap.image.WCS._reference_radec = None # reset
-                wcs = ap.image.WCS(
+                ap.image.WPCS._projection = None # reset
+                ap.image.WPCS._reference_radec = None # reset
+                wcs = ap.image.WPCS(
                     projection = projection,
                     reference_radec = ref_coords,
                 )
