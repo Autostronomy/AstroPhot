@@ -3,6 +3,8 @@ from astrophot import image
 import astrophot as ap
 import torch
 
+from utils import get_astropy_wcs
+
 ######################################################################
 # Image_Header Objects
 ######################################################################
@@ -55,4 +57,13 @@ class TestImageHeader(unittest.TestCase):
 
         self.assertTrue(torch.allclose(torch.stack(H.plane_to_world(*H.origin)), torch.ones_like(H.center) * 10), "Origin_radec provided, origin should be as given in world coordinates")
 
+        # Astropy WCS
+        wcs = get_astropy_wcs()
+        H = ap.image.Image_Header(
+            data_shape = (180,180),
+            wcs = wcs,
+        )
+
+        self.assertTrue(torch.allclose(torch.tensor(wcs.wcs.crpix), torch.stack(H.world_to_pixel(*torch.tensor(wcs.wcs.crval)))), "Astropy WCS initialization should map crval crpix coordinates")
+        
         

@@ -15,7 +15,7 @@ class WPCS:
     """World to Plane Coordinate System in AstroPhot.
 
     AstroPhot performs it's operations on a tangent plane to the
-    sphere, this class handles projections between the sphere and the
+    celestial sphere, this class handles projections between the sphere and the
     tangent plane. It holds variables for the reference (RA,DEC) where
     the tangent plane contacts the sphere, and the type of projection
     being performed. Note that (RA,DEC) coordinates should always be
@@ -23,6 +23,7 @@ class WPCS:
 
     Attributes:
       reference_radec: The reference (RA,DEC) coordinates in degrees where the tangent plane contacts the sphere.
+      reference_planexy: The reference tangent plane coordinates in arcsec where the tangent plane contacts the sphere.
       projection: The projection system used to convert from (RA,DEC) onto the tangent plane. Should be one of: gnomonic (default), orthographic, steriographic
 
     """
@@ -35,19 +36,23 @@ class WPCS:
     default_projection = "gnomonic"
 
     def __init__(self, *args, **kwargs):
-
         self.projection = kwargs.get("projection", self.default_projection)
         self.reference_radec = kwargs.get("reference_radec", self.default_reference_radec)
         self.reference_planexy = kwargs.get("reference_planexy", self.default_reference_planexy)
-
-    def to(self, dtype=None, device=None):
-        if dtype is None:
-            dtype = AP_config.ap_dtype
-        if device is None:
-            device = AP_config.ap_device
-        self.reference_radec = self.reference_radec.to(dtype=dtype, device=device)
         
-    def world_to_plane(self, world_RA, world_DEC):
+    def world_to_plane(self, world_RA, world_DEC=None):
+        """Take a coordinate on the world coordiante system, also called the
+        celesial sphere, (RA, DEC in degrees) and transform it to the
+        cooresponding tangent plane coordinate
+        (arcsec). Transformation is done based on the chosen
+        projection (default gnomonic) and reference positions. See the
+        :doc:`coordinates` documentation for more details on how the
+        transformation is performed.
+
+        """
+        
+        if world_DEC is None:
+            return torch.stack(self.world_to_plane(*world_RA))
         if self.projection == "gnomonic":
             coords = self._world_to_plane_gnomonic(
                 torch.as_tensor(
@@ -82,7 +87,18 @@ class WPCS:
         return coords[0] + self.reference_planexy[0], coords[1] + self.reference_planexy[1]
     
 
-    def plane_to_world(self, plane_x, plane_y):
+    def plane_to_world(self, plane_x, plane_y=None):
+        """Take a coordinate on the tangent plane (arcsec), and transform it
+        to the cooresponding world coordinate (RA, DEC in
+        degrees). Transformation is done based on the chosen
+        projection (default gnomonic) and reference positions. See the
+        :doc:`coordinates` documentation for more details on how the
+        transformation is performed.
+
+        """
+        
+        if plane_y is None:
+            return torch.stack(self.world_to_plane(*plane_x))
         plane_x = plane_x - self.reference_planexy[0]
         plane_y = plane_y - self.reference_planexy[1]
         if self.projection == "gnomonic":
@@ -118,6 +134,9 @@ class WPCS:
 
     @property
     def projection(self):
+        """
+        The mathematical projection formula which described how world coordinates are mapped to the tangent plane.
+        """
         return self._projection
 
     @projection.setter
@@ -181,10 +200,10 @@ class WPCS:
         Recurring core calculation in all the projections from plane to world.
 
         Args:
-          plane_x: tangent plane x coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.
-          plane_y: tangent plane y coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.
-          rho: polar radius in tangent plane.
-          c: constant term dependent on the projection.
+          plane_x: tangent plane x coordinate in arcseconds.
+          plane_y: tangent plane y coordinate in arcseconds.
+          rho: polar radius on tangent plane.
+          c: coordinate term dependent on the projection.
         """
         return (
             (
@@ -217,8 +236,7 @@ class WPCS:
         """Gnomonic projection: (RA,DEC) to tangent plane.
 
         Performs Gnomonic projection of (RA,DEC) coordinates onto a
-        tangent plane. The origin for the tangent plane is at the
-        contact point. The tangent plane makes contact at the location
+        tangent plane. The tangent plane makes contact at the location
         of the `reference_radec` variable. In a gnomonic projection,
         great circles are mapped to straight lines. The gnomonic
         projection represents the image formed by a spherical lens,
@@ -253,8 +271,8 @@ class WPCS:
         projection.
 
         Args:
-          plane_x: tangent plane x coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.
-          plane_y: tangent plane y coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.
+          plane_x: tangent plane x coordinate in arcseconds.
+          plane_y: tangent plane y coordinate in arcseconds.
 
         See: https://mathworld.wolfram.com/GnomonicProjection.html
 
@@ -269,9 +287,8 @@ class WPCS:
         """Steriographic projection: (RA,DEC) to tangent plane
 
         Performs Steriographic projection of (RA,DEC) coordinates onto
-        a tangent plane. The origin for the tangent plane is at the
-        contact point. The tangent plane makes contact at the location
-        of the `reference_radec` variable. The steriographic
+        a tangent plane. The tangent plane makes contact at the
+        location of the `reference_radec` variable. The steriographic
         projection preserves circles and angle measures.
 
         Args:
@@ -316,12 +333,12 @@ class WPCS:
         """Orthographic projection: (RA,DEC) to tangent plane
 
         Performs Orthographic projection of (RA,DEC) coordinates onto
-        a tangent plane. The origin for the tangent plane is at the
-        contact point. The tangent plane makes contact at the location
-        of the `reference_radec` variable. The point of perspective
-        for the orthographic projection is at infinite distance. This
-        projection is perhaps better suited to represent the view of
-        an exoplanet, however it is included here for completeness.
+        a tangent plane. The tangent plane makes contact at the
+        location of the `reference_radec` variable. The point of
+        perspective for the orthographic projection is at infinite
+        distance. This projection is perhaps better suited to
+        represent the view of an exoplanet, however it is included
+        here for completeness.
 
         Args:
           world_RA: Right ascension in degrees
@@ -358,17 +375,28 @@ class WPCS:
         return ra, dec
 
     def get_state(self):
+        """Returns a dictionary with the information needed to recreate the
+        WPCS object.
+
+        """
         return {
             "projection": self.projection,
             "reference_radec": self.reference_radec.detach().cpu().tolist(),
             "reference_planexy": self.reference_planexy.detach().cpu().tolist(),
         }
     def set_state(self, state):
+        """Takes a state dictionary and re-creates the state of the WPCS
+        object.
+
+        """
         self.projection = state["projection"]
         self.reference_radec = state["reference_radec"]
         self.reference_planexy = state["reference_planexy"]
 
     def get_fits_state(self):
+        """
+        Similar to get_state, except specifically tailored to be stored in a fits format.
+        """
         return {
             "PROJ": self.projection,
             "REFRADEC": str(self.reference_radec.detach().cpu().tolist()),
@@ -376,15 +404,32 @@ class WPCS:
         }
     
     def set_fits_state(self, state):
+        """
+        Reads and applies the state from the get_fits_state function.
+        """
         self.projection = state["PROJ"]
         self.reference_radec = eval(state["REFRADEC"])
         self.reference_planexy = eval(state["REFPLNXY"])
         
     def copy(self, **kwargs):
+        """Create a copy of the WPCS object with the same projection
+        paramaters.
+
+        """
         return self.__class__(
             projection=self.projection,
             reference_radec=self.reference_radec,
             reference_planexy=self.reference_planexy,
             **kwargs,
         )
-        
+    
+    def to(self, dtype=None, device=None):
+        """
+        Convert all stored tensors to a new device and data type
+        """
+        if dtype is None:
+            dtype = AP_config.ap_dtype
+        if device is None:
+            device = AP_config.ap_device
+        self._reference_radec = self._reference_radec.to(dtype=dtype, device=device)
+        self._reference_planexy = self._reference_planexy.to(dtype=dtype, device=device)
