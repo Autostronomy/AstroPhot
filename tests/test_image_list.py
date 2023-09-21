@@ -49,7 +49,7 @@ class TestImageList(unittest.TestCase):
             self.assertEqual(image.note, original_image.note, "image should track note")
 
         slicer = ap.image.Window_List(
-            (ap.image.Window(origin=(3, 2), shape=(4, 5)), ap.image.Window(origin=(3, 2), shape=(4, 5)))
+            (ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)), ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)))
         )
         sliced_image = test_image[slicer]
 
@@ -257,10 +257,14 @@ class TestModelImageList(unittest.TestCase):
             "adding then subtracting should give the same image",
         )
 
+        print(test_image.data)
         test_image.clear_image()
+        print(test_image.data)
         test_image.replace(second_image)
+        print(test_image.data)
 
         test_image -= (1, 1)
+        print(test_image.data)
 
         self.assertTrue(
             torch.all(test_image[0].data == save_image[0].data),
@@ -345,7 +349,7 @@ class TestJacobianImageList(unittest.TestCase):
             zeropoint=1.0,
             note="test image 1",
             window=ap.image.Window(
-                origin=torch.zeros(2) + 0.1, shape=torch.tensor((15, 10))
+                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((15, 10))
             ),
         )
         arr2 = torch.ones((15, 10, 3))
@@ -357,7 +361,7 @@ class TestJacobianImageList(unittest.TestCase):
             zeropoint=2.0,
             note="test image 2",
             window=ap.image.Window(
-                origin=torch.zeros(2) + 0.2, shape=torch.tensor((10, 15))
+                origin=torch.zeros(2) + 0.2, pixel_shape=torch.tensor((10, 15))
             ),
         )
 

@@ -49,7 +49,7 @@ class PSF_Star(Star_Model):
                 data=torch.clone(self.psf.data),
                 pixelscale=self.psf.pixelscale,
             )
-        self.psf_model.header.shift_origin(
+        self.psf_model.header.shift(
             self.psf_model.origin - self.psf_model.center
         )
 

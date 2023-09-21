@@ -74,19 +74,20 @@ class PSF_Image(Image):
             / 2
         ).int()
 
-    @property
-    def psf_border(self):
-        """Calculates and returns the border size of the PSF image in the
-        units of pixelscale. This is the border used for padding
-        before convolution.
+    # @property
+    # def psf_border(self):
+    #     """Calculates and returns the border size of the PSF image in the
+    #     units of arcsec. This is the border used for padding
+    #     before convolution.
 
-        Returns:
-            torch.Tensor: The border size of the PSF image in the units of pixelscale.
+    #     Returns:
+    #         torch.Tensor: The border size of the PSF image in arcsec.
 
-        """
-        return self.window.plane_to_cartesian(
-            self.pixel_to_plane_delta(self.psf_border_int.to(dtype=AP_config.ap_dtype))
-        )
+    #     """
+        
+    #     return self.window.plane_to_cartesian(
+    #         self.pixel_to_plane_delta(self.psf_border_int.to(dtype=AP_config.ap_dtype))
+    #     )
 
     def _save_image_list(self, image_list, psf_header):
         """Saves the image list to the PSF HDU header.

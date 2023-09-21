@@ -9,6 +9,7 @@ from scipy.stats import iqr
 
 from ..models import Group_Model, Sky_Model
 from ..image import Image_List, Window_List
+from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
@@ -352,13 +353,13 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
             else:
                 use_window = m.window
 
-            lowright = use_window.shape.clone()
+            lowright = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
             lowright[1] = 0.0
-            lowright = use_window.origin + use_window.cartesian_to_plane(lowright)
+            lowright = use_window.origin + use_window.pixel_to_plane_delta(lowright)
             lowright = lowright.detach().cpu().numpy()
-            upleft = use_window.shape.clone()
+            upleft = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
             upleft[0] = 0.0
-            upleft = use_window.origin + use_window.cartesian_to_plane(upleft)
+            upleft = use_window.origin + use_window.pixel_to_plane_delta(upleft)
             upleft = upleft.detach().cpu().numpy()
             end = use_window.origin + use_window.end
             end = end.detach().cpu().numpy()
@@ -387,13 +388,13 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
             use_window = model.window.window_list[model.target.index(target)]
         else:
             use_window = model.window
-        lowright = use_window.shape.clone()
+        lowright = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
         lowright[1] = 0.0
-        lowright = use_window.origin + use_window.cartesian_to_plane(lowright)
+        lowright = use_window.origin + use_window.pixel_to_plane_delta(lowright)
         lowright = lowright.detach().cpu().numpy()
-        upleft = use_window.shape.clone()
+        upleft = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
         upleft[0] = 0.0
-        upleft = use_window.origin + use_window.cartesian_to_plane(upleft)
+        upleft = use_window.origin + use_window.pixel_to_plane_delta(upleft)
         upleft = upleft.detach().cpu().numpy()
         end = use_window.origin + use_window.end
         end = end.detach().cpu().numpy()

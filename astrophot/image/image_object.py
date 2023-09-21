@@ -317,7 +317,7 @@ class Image(object):
             data=self.data[: MS * scale, : NS * scale]
             .reshape(MS, scale, NS, scale)
             .sum(axis=(1, 3)),
-            header=self.header.reduce(scale, **kwargs),
+            header=self.header.rescale(1/scale, **kwargs),
             **kwargs,
         )
 
@@ -438,11 +438,14 @@ class Image_List(Image):
         coordinates onto the same tangent plane.
 
         """
-        ref = torch.stack(tuple(I.header.reference_radec for I in self.image_list))
+        ref = torch.stack(tuple(I.window.reference_radec for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            AP_config.error("Reference coordiante missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.error("Reference coordiante (RA DEC) missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+        ref = torch.stack(tuple(I.window.reference_planexy for I in self.image_list))
+        if not torch.allclose(ref, ref[0]):
+            AP_config.error("Reference coordiante (tangent plane) missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
-        if len(set(I.header.projection for I in self.image_list)) > 1:
+        if len(set(I.window.projection for I in self.image_list)) > 1:
             AP_config.error("Projection missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
     @property

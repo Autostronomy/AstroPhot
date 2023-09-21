@@ -23,7 +23,7 @@ class Model_Image(Image):
         assert not (data is None and window is None)
         if data is None:
             data = torch.zeros(
-                tuple(window.get_shape_flip(pixelscale)),
+                torch.flip(window.pixel_shape,(0,)).detach().cpu().tolist(),
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
@@ -35,7 +35,7 @@ class Model_Image(Image):
         self.data = torch.zeros_like(self.data)
 
     def shift_origin(self, shift, is_prepadded=True):
-        self.window.shift_origin(shift)
+        self.window.shift(shift)
         pix_shift = self.plane_to_pixel_delta(shift)
         if torch.any(torch.abs(pix_shift) > 1):
             raise NotImplementedError(
