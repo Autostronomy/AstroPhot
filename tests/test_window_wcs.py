@@ -1,0 +1,34 @@
+import unittest
+import numpy as np
+
+from astropy.coordinates import SkyCoord
+import astropy.wcs
+import astropy.units as u
+
+import astrophot as ap
+from astrophot.image.window_object import Window
+
+
+class TestWindowWcs(unittest.TestCase):
+    def test_window_wcs_shape(self):
+        # [0,0] of CD matrix negative, others positive
+        wcs_header_string_nppp = "WCSAXES =                    2 / Number of coordinate axes                      CRPIX1  =          2053.100183 / Pixel coordinate of reference point            CRPIX2  =          1971.914889 / Pixel coordinate of reference point            PC1_1   = -5.0681804927077E-05 / Coordinate transformation matrix element       PC1_2   =  2.2656179216274E-05 / Coordinate transformation matrix element       PC2_1   =  2.2642367835984E-05 / Coordinate transformation matrix element       PC2_2   =  5.0566453748215E-05 / Coordinate transformation matrix element       CDELT1  =                  1.0 / [deg] Coordinate increment at reference point  CDELT2  =                  1.0 / [deg] Coordinate increment at reference point  CUNIT1  = 'deg'                / Units of coordinate increment and value        CUNIT2  = 'deg'                / Units of coordinate increment and value        CTYPE1  = 'RA---TAN'           / TAN (gnomonic) projection + SIP distortions    CTYPE2  = 'DEC--TAN'           / TAN (gnomonic) projection + SIP distortions    CRVAL1  =      60.143286724693 / [deg] Coordinate value at reference point      CRVAL2  =      -44.13292616339 / [deg] Coordinate value at reference point      LONPOLE =                180.0 / [deg] Native longitude of celestial pole       LATPOLE =      -44.13292616339 / [deg] Native latitude of celestial pole        MJDREF  =                  0.0 / [d] MJD of fiducial time                       RADESYS = 'ICRS'               / Equatorial coordinate system                   END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             "
+        # [1,1] of CD matrix postitive, others negative
+        wcs_header_string_nnnp = "WCSAXES =                    2 / Number of coordinate axes                      CRPIX1  =          2015.192126 / Pixel coordinate of reference point            CRPIX2  =          1968.704597 / Pixel coordinate of reference point            PC1_1   = -5.5410852767805E-05 / Coordinate transformation matrix element       PC1_2   = -7.1379810679143E-07 / Coordinate transformation matrix element       PC2_1   = -7.0957503843761E-07 / Coordinate transformation matrix element       PC2_2   =  5.5515960689837E-05 / Coordinate transformation matrix element       CDELT1  =                  1.0 / [deg] Coordinate increment at reference point  CDELT2  =                  1.0 / [deg] Coordinate increment at reference point  CUNIT1  = 'deg'                / Units of coordinate increment and value        CUNIT2  = 'deg'                / Units of coordinate increment and value        CTYPE1  = 'RA---TAN'           / TAN (gnomonic) projection + SIP distortions    CTYPE2  = 'DEC--TAN'           / TAN (gnomonic) projection + SIP distortions    CRVAL1  =      60.371857275079 / [deg] Coordinate value at reference point      CRVAL2  =     -44.125292354859 / [deg] Coordinate value at reference point      LONPOLE =                180.0 / [deg] Native longitude of celestial pole       LATPOLE =     -44.125292354859 / [deg] Native latitude of celestial pole        MJDREF  =                  0.0 / [d] MJD of fiducial time                       RADESYS = 'ICRS'               / Equatorial coordinate system                   END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             "
+
+        wcs_nppp = astropy.wcs.WCS(wcs_header_string_nppp)
+        wcs_nnnp = astropy.wcs.WCS(wcs_header_string_nnnp)
+
+        pixel_shape = [5000, 5000]
+        window_nppp = Window(wcs=wcs_nppp, pixel_shape=pixel_shape)
+        window_nnnp = Window(wcs=wcs_nnnp, pixel_shape=pixel_shape)
+
+        self.assertTrue(wcs_nppp is not None)
+        self.assertTrue(wcs_nnnp is not None)
+
+        np.testing.assert_allclose(window_nppp.shape, [999.1739, 997.3801], atol=1e-4)
+        np.testing.assert_allclose(window_nnnp.shape, [997.4771, 999.3699], atol=1e-4)
+
+
+if __name__ == "__main__":
+    unittest.main()

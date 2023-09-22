@@ -433,7 +433,6 @@ class PPCS:
     """
     plane to pixel coordinate system
 
-
     Args:
       pixelscale : float or None, optional
           The physical scale of the pixels in the image, this is
@@ -454,7 +453,6 @@ class PPCS:
           corresponding to the reference_imageij coordinate. These two
           reference points ar pinned together, any rotations would occur
           about this point. By default this is (0., 0.).
-
     """
 
     default_reference_imageij = (-0.5, -0.5)
@@ -701,6 +699,244 @@ class PPCS:
     def __repr__(self):
         return f"PPCS reference_imageij: {self.reference_imageij.detach().cpu().tolist()}, reference_imagexy: {self.reference_imagexy.detach().cpu().tolist()}, pixelscale: {self.pixelscale.detach().cpu().tolist()}"
 
+        
+class PPCS_SIP(PPCS):
+    """
+    Detector -> Focal Plane -> Projection Plane
+
+    This adds a step of going from detector coordinates to focal plane pixels coordinates.
+
+    Args:
+      pixelscale : float or None, optional
+          The physical scale of the pixels in the image, this is
+          represented as a matrix which projects pixel units into sky
+          units: :math:`pixelscale @ pixel_vec = sky_vec`. The pixel
+          scale matrix can be thought of in four components:
+          :math:`\vec{s} @ F @ R @ S` where :math:`\vec{s}` is the side
+          length of the pixels, :math:`F` is a diagonal matrix of {1,-1}
+          which flips the axes orientation, :math:`R` is a rotation
+          matrix, and :math:`S` is a shear matrix which turns
+          rectangular pixels into parallelograms. Default is None.      
+      reference_imageij : Sequence or None, optional
+          The pixel coordinate at which the image is fixed to the
+          tangent plane. By default this is (-0.5, -0.5) or the bottom
+          corner of the [0,0] indexed pixel.
+      reference_imagexy : Sequence or None, optional
+          The tangent plane coordinate at which the image is fixed,
+          corresponding to the reference_imageij coordinate. These two
+          reference points ar pinned together, any rotations would occur
+          about this point. By default this is (0., 0.).
+      A, B : SIP matrix (u, v) -> (x, y)
+    """
+    
+    default_reference_imageij = (-0.5, -0.5)
+    default_reference_imagexy = (0,0)
+    default_pixelscale = 1
+
+    def __init__(self, *, wcs=None, pixelscale=None, **kwargs):
+
+        self.reference_imageij = kwargs.get("reference_imageij", self.default_reference_imageij)        
+        self.reference_imagexy = kwargs.get("reference_imagexy", self.default_reference_imagexy)
+
+        # Collect the pixelscale of the pixel grid
+        if wcs is not None and pixelscale is None:
+            self.pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
+        elif pixelscale is not None:
+            if wcs is not None and isinstance(pixelscale, float):
+                AP_config.ap_logger.warning(
+                    "Overriding WCS pixelscale with manual input! To remove this message, either let WCS define pixelscale, or input full pixelscale matrix"
+                )
+            self.pixelscale = pixelscale
+        else:
+            AP_config.ap_logger.warning(
+                "Assuming pixelscale of 1! To remove this message please provide the pixelscale explicitly"
+            )
+            self.pixelscale = self.default_pixelscale
+
+    @property
+    def pixelscale(self):
+        """Matrix defining the shape of pixels in the tangent plane, these
+        can be any parallelogram defined by the matrix.
+
+        """
+        return self._pixelscale
+
+    @pixelscale.setter
+    def pixelscale(self, pix):
+        if pix is None:
+            self._pixelscale = None
+            return
+
+        self._pixelscale = (
+            torch.as_tensor(pix, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            .clone()
+            .detach()
+        )
+        if self._pixelscale.numel() == 1:
+            self._pixelscale = torch.tensor(
+                [[self._pixelscale.item(), 0.0], [0.0, self._pixelscale.item()]],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+        self._pixel_area = torch.linalg.det(self.pixelscale).abs()
+        self._pixel_length = self._pixel_area.sqrt()
+        self._pixelscale_inv = torch.linalg.inv(self.pixelscale)
+
+    @property
+    def reference_imageij(self):
+        """pixel coordiantes where the pixel grid is fixed to the tangent
+        plane. These should be in pixel units where (0,0) is the
+        center of the [0,0] indexed pixel. However, it is still in xy
+        format, meaning that the first index gives translations in the
+        x-axis (horizontal-axis) of the image.
+
+        """
+        return self._reference_imageij
+
+    @reference_imageij.setter
+    def reference_imageij(self, imageij):
+        self._reference_imageij = torch.as_tensor(
+            imageij, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+
+    @property
+    def reference_imagexy(self):
+        """plane coordiantes where the image grid is fixed to the tangent
+        plane. These should be in arcsec.
+
+        """
+        return self._reference_imagexy
+
+    @reference_imagexy.setter
+    def reference_imagexy(self, imagexy):
+        self._reference_imagexy = torch.as_tensor(
+            imagexy, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+
+    def pixel_to_plane(self, pixel_i, pixel_j=None):
+        """
+        Apply SIP corrections to relative pixel coordinates
+
+        SIP models the difference between plane of the CCD and the focal plane
+        of the system.  In this framework, the detector coordinates (u, v), 
+        are corrected with the SIP matrix to the focal plane (x, y).
+
+        So the entire process
+        (u, v) -> (x, y) -> projection plane -> (ra, dec)
+
+        If the SIP matrix is :math:`A`,
+        the pixel scale matrix :math:`P`,
+        the reference pixel :math:`\vec{r}_{pix}`,
+        the reference tangent plane point :math:`\vec{r}_{tan}`,
+        the coordinates in the focal plane :math:`\vec{c}_{foc}`,
+        the coordinates in the detector plane :math:`\vec{u}_{pix}`,
+        then the coordinate in the tangent plane is:
+
+        .. math::
+            \vec{c}_{foc} = [u + f(u, v), v + g(u, v)]
+            f(u, v) = Sum_{p, q} A_{p, q} u^p v^q; p+q <= A_order
+            g(u, v) = Sum_{p, q} B_{p, q} u^p v^q; p+q <= B_order
+            \vec{c}_{tan} = [P(\vec{c}_{foc} - \vec{r}_{pix})] + \vec{r}_{tan}
+
+        Then pass those to pixel_to_plane
+
+        See:
+        https://irsa.ipac.caltech.edu/data/SPITZER/docs/files/spitzer/shupeADASS.pdf
+        """
+        if pixel_j is None:
+            return torch.stack(self.pixel_sip_to_plane(*pixel_i))
+        coords = torch.mm(self.pixelscale, torch.stack((pixel_i.reshape(-1), pixel_j.reshape(-1))) - self.reference_imageij.view(2,1)) + self.reference_imagexy.view(2,1)
+        return coords[0].reshape(pixel_i.shape), coords[1].reshape(pixel_j.shape)
+
+    def plane_to_pixel(self, plane_x, plane_y=None):
+        """Take a coordinate on the tangent plane (arcsec) and transform it to
+        the cooresponding pixel grid coordinate (pixel units where
+        (0,0) is the [0,0] indexed pixel). Transformation is done
+        based on the pixel scale and reference positions. If the pixel
+        scale matrix is :math:`P`, the reference pixel is
+        :math:`\vec{r}_{pix}`, the reference tangent plane point is
+        :math:`\vec{r}_{tan}`, and the coordinate to transform is
+        :math:`\vec{c}_{tan}` then the coordiante in the pixel grid
+        is:
+
+        .. math::
+            \vec{c}_{pix} = [P^{-1}(\vec{c}_{tan} - \vec{r}_{tan})] + \vec{r}_{pix}
+
+        """
+        if plane_y is None:
+            return torch.stack(self.plane_to_pixel(*plane_x))
+        coords = torch.mm(self._pixelscale_inv, torch.stack((plane_x.reshape(-1), plane_y.reshape(-1))) - self.reference_imagexy.view(2,1)) + self.reference_imageij.view(2,1)
+        return coords[0].reshape(plane_x.shape), coords[1].reshape(plane_y.shape)
+
+    def pixel_to_plane_delta(self, pixel_delta_i, pixel_delta_j=None):
+        """Take a translation in pixel space and determine the cooresponding
+        translation in the tangent plane (arcsec). Essentially this performs
+        the pixel scale matrix multiplication without any reference
+        coordinates applied.
+
+        """
+        if pixel_delta_j is None:
+            return torch.stack(self.pixel_to_plane_delta(*pixel_delta_i))
+        coords = torch.mm(self.pixelscale, torch.stack((pixel_delta_i.reshape(-1), pixel_delta_j.reshape(-1))))
+        return coords[0].reshape(pixel_delta_i.shape), coords[1].reshape(pixel_delta_j.shape)
+
+    def plane_to_pixel_delta(self, plane_delta_x, plane_delta_y=None):
+        """Take a translation in tangent plane space (arcsec) and determine
+        the cooresponding translation in pixel space. Essentially this
+        performs the pixel scale matrix multiplication without any
+        reference coordinates applied.
+
+        """
+        if plane_delta_y is None:
+            return torch.stack(self.plane_to_pixel_delta(*plane_delta_x))
+        coords = torch.mm(self._pixelscale_inv, torch.stack((plane_delta_x.reshape(-1), plane_delta_y.reshape(-1))))
+        return coords[0].reshape(plane_delta_x.shape), coords[1].reshape(plane_delta_y.shape)
+        
+    def copy(self, **kwargs):
+        """Create a copy of the WPCS object with the same projection
+        paramaters.
+
+        """
+        copy_kwargs = {
+            "pixelscale": self.pixelscale,
+            "reference_imageij": self.reference_imageij,
+            "reference_imagexy": self.reference_imagexy,
+        }
+        copy_kwargs.update(kwargs)
+        return self.__class__(
+            **copy_kwargs,
+        )
+    
+    def get_state(self):
+        return {
+            "pixelscale": tuple(self.pixelscale.detach().cpu().tolist()),
+            "reference_imageij": tuple(self.reference_imageij.detach().cpu().tolist()),
+            "reference_imagexy": tuple(self.reference_imagexy.detach().cpu().tolist()),
+        }
+
+    def set_state(self, state):
+        self.pixelscale = state.get("pixelscale", self.default_pixelscale)
+        self.reference_imageij = state.get("reference_imageij", self.default_reference_imageij)
+        self.reference_imagexy = state.get("reference_imagexy", self.default_reference_imagexy)
+    
+    def to(self, dtype=None, device=None):
+        """
+        Convert all stored tensors to a new device and data type
+        """
+        if dtype is None:
+            dtype = AP_config.ap_dtype
+        if device is None:
+            device = AP_config.ap_device
+        self._pixelscale = self._pixelscale.to(dtype=dtype, device=device)
+        self._reference_imageij = self._reference_imageij.to(dtype=dtype, device=device)
+        self._reference_imagexy = self._reference_imagexy.to(dtype=dtype, device=device)
+
+    def __str__(self):
+        return f"PPCS reference_imageij: {self.reference_imageij.detach().cpu().tolist()}, reference_imagexy: {self.reference_imagexy.detach().cpu().tolist()}"
+        
+    def __repr__(self):
+        return f"PPCS reference_imageij: {self.reference_imageij.detach().cpu().tolist()}, reference_imagexy: {self.reference_imagexy.detach().cpu().tolist()}, pixelscale: {self.pixelscale.detach().cpu().tolist()}"
+
 
 class WCS(WPCS, PPCS):
     """
@@ -736,8 +972,12 @@ class WCS(WPCS, PPCS):
             )
         else:
             WPCS.__init__(self, *args, **kwargs)
-
-        PPCS.__init__(self, *args, wcs=wcs, **kwargs)
+            
+        if wcs is not None: 
+            PPCS_SIP.__init__(self, *args, wcs=wcs, **kwargs)
+            print("SIP!")
+        else:
+            PPCS.__init__(self, *args, wcs=wcs, **kwargs)
 
     def world_to_pixel(self, world_RA, world_DEC=None):
         """A wrapper which applies :meth:`world_to_plane` then
