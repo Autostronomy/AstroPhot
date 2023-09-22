@@ -31,6 +31,27 @@ class TestWindow(unittest.TestCase):
 
         x = str(window1)
 
+    def test_window_crop(self):
+        
+        window1 = ap.image.Window(origin = (0, 6), pixel_shape = (100, 110))
+
+        window1.crop_to_pixel([[10,90],[15,105]])
+
+        self.assertTrue(np.all(window1.origin.detach().cpu().numpy() == np.array([10., 21])), "crop pixels should move origin")
+        self.assertTrue(np.all(window1.pixel_shape.detach().cpu().numpy() == np.array([80, 90])), "crop pixels should change shape")
+
+    def test_window_get_indices(self):
+
+        window1 = ap.image.Window(origin = (0, 6), pixel_shape = (100, 110))
+        xstep, ystep = np.meshgrid(range(100), range(110), indexing = "xy")
+        zstep = xstep + ystep
+        window2 = ap.image.Window(origin = (15, 15), pixel_shape = (30, 200))
+
+        zsliced = zstep[window1.get_self_indices(window2)]
+        self.assertTrue(np.all(zsliced == zstep[9:110,15:45]), "window slices should get correct part of image")
+        zsliced = zstep[window2.get_other_indices(window1)]
+        self.assertTrue(np.all(zsliced == zstep[9:110,15:45]), "window slices should get correct part of image")
+
     def test_window_arithmetic(self):
 
         windowbig = ap.image.Window(origin = (0, 0), pixel_shape = (100, 110))
@@ -580,9 +601,9 @@ class TestWindow(unittest.TestCase):
 
     def test_window_logic(self):
 
-        window1 = ap.image.Window(origin=[0.0, 1.0],  pixel_shape=[10.2, 11.8])
-        window2 = ap.image.Window(origin=[0.0, 1.0],  pixel_shape=[10.2, 11.8])
-        window3 = ap.image.Window(origin=[-0.6, 0.4], pixel_shape=[15.2, 18.0])
+        window1 = ap.image.Window(origin=[0.0, 1.0],  pixel_shape=[10., 11.])
+        window2 = ap.image.Window(origin=[0.0, 1.0],  pixel_shape=[10., 11.])
+        window3 = ap.image.Window(origin=[-0.6, 0.4], pixel_shape=[15., 18.])
 
         self.assertEqual(
             window1, window2, "same origin, shape windows should evaluate equal"

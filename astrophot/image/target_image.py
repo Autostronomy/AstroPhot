@@ -381,7 +381,7 @@ class Target_Image(Image):
 
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
-        indices = window.get_indices(self)
+        indices = self.window.get_self_indices(window)
         return super().get_window(
             window=window,
             weight=self._weight[indices] if self.has_weight else None,

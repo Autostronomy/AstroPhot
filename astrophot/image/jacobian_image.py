@@ -65,8 +65,8 @@ class Jacobian_Image(Image):
 
         full_window = self.window | other.window
 
-        self_indices = other.window.get_indices(self)
-        other_indices = self.window.get_indices(other)
+        self_indices = other.window.get_other_indices(self)
+        other_indices = self.window.get_other_indices(other)
         for i, other_identity in enumerate(other.parameters):
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)

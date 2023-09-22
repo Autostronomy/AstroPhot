@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from astropy.wcs import WCS as AstropyWCS
 
 from .. import AP_config
 from ..utils.conversions.coordinates import Rotate_Cartesian
@@ -204,61 +205,31 @@ class Window(WCS):
             **kwargs,
         )
 
+    @staticmethod
     @torch.no_grad()
-    def _get_indices(self, obj_window):
-        other_origin_pix = torch.round(self.plane_to_pixel(obj_window.origin) + 0.5).int()
+    def _get_indices(ref_window, obj_window):
+        other_origin_pix = torch.round(ref_window.plane_to_pixel(obj_window.origin) + 0.5).int()
         new_origin_pix = torch.maximum(torch.zeros_like(other_origin_pix), other_origin_pix)
 
-        other_pixel_end = torch.round(self.plane_to_pixel(obj_window.origin + obj_window.end) + 0.5).int()
-        new_pixel_end = torch.minimum(self.pixel_shape, other_pixel_end)
+        other_pixel_end = torch.round(ref_window.plane_to_pixel(obj_window.origin + obj_window.end) + 0.5).int()
+        new_pixel_end = torch.minimum(ref_window.pixel_shape, other_pixel_end)
         return slice(new_origin_pix[1], new_pixel_end[1]), slice(new_origin_pix[0], new_pixel_end[0])
 
-        # low = torch.round(self.plane_to_pixel_delta(self.reference_imagexy - obj_window.reference_imagexy) + self.reference_imageij - obj_window.reference_imageij).int()
-        # high = torch.round(self.plane_to_pixel_delta(self.reference_imagexy + self.end - obj_window.reference_imagexy) + self.reference_imageij - obj_window.reference_imageij).int()
-        # max_pix = torch.round(self.plane_to_pixel_delta(obj_window.end)).int()
-        # print(low, high, max_pix)
-        # limits = torch.clamp(torch.stack((low, high)), min=torch.zeros_like(high), max=high)
-        # print(limits)
-        # return slice(limits[0][1], limits[1][1]), slice(limits[0][0], limits[1][0])
-        
-    # @torch.no_grad()
-    # def _get_indices(self, obj_window, obj_pixelscale):
-    #     """
-    #     Return an index slicing tuple for obj corresponding to this window
-    #     """
-    #     unclipped_start = torch.round(
-    #         torch.linalg.solve(obj_pixelscale, (self.origin - obj_window.origin))
-    #     ).int()
-    #     unclipped_end = torch.round(
-    #         torch.linalg.solve(
-    #             obj_pixelscale, (self.origin + self.end - obj_window.origin)
-    #         )
-    #     ).int()
-    #     clipping_end = torch.round(
-    #         torch.linalg.solve(obj_pixelscale, obj_window.end)
-    #     ).int()
-    #     return (
-    #         slice(
-    #             torch.max(
-    #                 torch.tensor(0, dtype=torch.int, device=AP_config.ap_device),
-    #                 unclipped_start[1],
-    #             ),
-    #             torch.min(clipping_end[1], unclipped_end[1]),
-    #         ),
-    #         slice(
-    #             torch.max(
-    #                 torch.tensor(0, dtype=torch.int, device=AP_config.ap_device),
-    #                 unclipped_start[0],
-    #             ),
-    #             torch.min(clipping_end[0], unclipped_end[0]),
-    #         ),
-    #     )
-
-    def get_indices(self, obj):
+    def get_self_indices(self, obj):
         """
         Return an index slicing tuple for obj corresponding to this window
         """
-        return self._get_indices(obj.window)
+        if isinstance(obj, Window):
+            return self._get_indices(self, obj)
+        return self._get_indices(self, obj.window)
+    
+    def get_other_indices(self, obj):
+        """
+        Return an index slicing tuple for obj corresponding to this window
+        """
+        if isinstance(obj, Window):
+            return self._get_indices(obj, self)
+        return self._get_indices(obj.window, self)
 
     def overlap_frac(self, other):
         overlap = self & other
@@ -783,6 +754,25 @@ class Window_List(Window):
         for window in self:
             window.to(dtype, device)
 
+    def get_astropywcs(self, **kwargs):
+        wargs = {
+            'NAXIS': 2,
+            'NAXIS1': self.pixel_shape[0].item(),
+            'NAXIS2': self.pixel_shape[1].item(),
+            'CTYPE1': 'RA---TAN',
+            'CTYPE2': 'DEC--TAN',
+            'CRVAL1': self.pixel_to_world(self.reference_imageij)[0].item(),
+            'CRVAL2': self.pixel_to_world(self.reference_imageij)[1].item(),
+            'CRPIX1': self.reference_imageij[0].item(),
+            'CRPIX2': self.reference_imageij[1].item(),
+            'CD1_1': self.pixelscale[0][0].item(),
+            'CD1_2': self.pixelscale[0][1].item(),
+            'CD2_1': self.pixelscale[1][0].item(),
+            'CD2_2': self.pixelscale[1][1].item(),
+        }
+        wargs.update(kwargs)
+        return AstropyWCS(wargs)
+        
     def get_state(self):
         return list(window.get_state() for window in self)
 

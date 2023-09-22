@@ -238,7 +238,7 @@ class Image(object):
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
         return self.__class__(
-            data=self.data[window.get_indices(self)],
+            data=self.data[self.window.get_self_indices(window)],
             header=self.header.get_window(window, **kwargs),
             **kwargs,
         )
@@ -358,47 +358,47 @@ class Image(object):
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_indices(other)]
+            new_img.data -= other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_indices(self)].copy()
+            new_img = self[other.window.get_other_indices(self)].copy()
             new_img.data -= other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_indices(other)]
+            new_img.data += other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_indices(self)].copy()
+            new_img = self[other.window.get_other_indices(self)].copy()
             new_img.data += other
             return new_img
 
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_indices(other)]
+            new_img.data -= other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_indices(self)].copy()
+            new_img = self[other.window.get_other_indices(self)].copy()
             new_img.data -= other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_indices(other)]
+            new_img.data += other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_indices(self)].copy()
+            new_img = self[other.window.get_other_indices(self)].copy()
             new_img.data += other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data[other.window.get_indices(self)] += other.data[
-                self.window.get_indices(other)
+            self.data[other.window.get_other_indices(self)] += other.data[
+                self.window.get_other_indices(other)
             ]
         else:
             self.data += other
@@ -406,8 +406,8 @@ class Image(object):
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data[other.window.get_indices(self)] -= other.data[
-                self.window.get_indices(other)
+            self.data[other.window.get_other_indices(self)] -= other.data[
+                self.window.get_other_indices(other)
             ]
         else:
             self.data -= other

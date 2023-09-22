@@ -63,8 +63,8 @@ class Model_Image(Image):
         if isinstance(other, Image):
             if self.window.overlap_frac(other.window) == 0.0:  # fixme control flow
                 return
-            other_indices = self.window.get_indices(other)
-            self_indices = other.window.get_indices(self)
+            other_indices = self.window.get_other_indices(other)
+            self_indices = other.window.get_other_indices(self)
             if (
                 self.data[self_indices].nelement() == 0
                 or other.data[other_indices].nelement() == 0
@@ -72,7 +72,7 @@ class Model_Image(Image):
                 return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
-            self.data[other.get_indices(self)] = data
+            self.data[self.get_self_indices(other)] = data
         else:
             self.data = other
 
