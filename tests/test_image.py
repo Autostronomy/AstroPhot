@@ -322,11 +322,6 @@ class TestTargetImage(unittest.TestCase):
             5,
             "psf border should be half psf size, rounded up ",
         )
-        # self.assertEqual(
-        #     new_image.psf.psf_border[0],
-        #     5,
-        #     "psf border should be half psf size, rounded up ",
-        # )
 
         reduced_image = new_image.reduce(3)
         self.assertEqual(

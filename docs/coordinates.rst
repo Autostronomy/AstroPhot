@@ -22,14 +22,15 @@ There are three main coordinate systems to think about.
 #. ``pixel`` coordinates are specific to each image, they start at
    (0,0) in the center of the [0,0] indexed pixel. These are
    effectively unitless, a step of 1 in pixel coordinates is the same
-   as changing an index by 1. Note however that in the pixel
-   coordinate system the values are represented by floating point
-   numbers and so (1.3,2.8) is a valid pixel coordinate that is just
-   partway between pixel centers.
+   as changing an index by 1. Though image array indexing is flipped
+   so pixel coordinate (1,0) represents the center of the index [0,1]
+   pixel. Also, in the pixel coordinate system the values are
+   represented by floating point numbers and so (1.3,2.8) is a valid
+   pixel coordinate that is just partway between pixel centers.
 
 Tranformations exist in AstroPhot for converting ``world`` to/from
 ``plane`` and for converting ``plane`` to/from ``pixel``. The best way
-to interface with these is to use the ``image.header.world_to_plane``
+to interface with these is to use the ``image.window.world_to_plane``
 for any AstroPhot image object (you may similarly swap ``world``,
 ``plane``, and ``pixel``).
 
@@ -39,8 +40,8 @@ One gotcha to keep in mind with regards to ``world_to_plane`` and
 sphere. You can set this by including ``reference_radec = (RA_0,
 DEC_0)`` as an argument in an image you create.  If a reference is not
 given, then one will be assumed based on avaialble information. Note
-that if you are doing multiband analysis you should ensure all the
-projection parameters are the same for all images!
+that if you are doing multiband analysis you should ensure that the
+``reference_radec`` is same for all images!
 
 Projection Systems
 ------------------
@@ -56,15 +57,15 @@ On small scales the choice of projection doesn't matter. For very
 large images the effect may be detectable, though it is likely
 insignificant compared to other effects in an image. Just like the
 ``reference_radec`` you can choose your projection system in an image
-you construct by passing ``projection = 'gnomonic'`` as an
-argument. Just like with the reference coordinate, for images to talk
-to each other they should have the same projection.
+you construct by passing ``projection = 'gnomonic'`` as an argument.
+Just like with the reference coordinate, for images to "talk" to each
+other they should have the same projection.
 
 If you really want to change the projection after an image has
 been created (warning, this may cause serious missalignments between
 images), you can force it to update with::
 
-  image.header.projection = 'steriographic'
+  image.window.projection = 'steriographic'
 
 which would change the projection to steriographic. The image won't
 recompute its position in the new projection system, it will just use
@@ -82,37 +83,46 @@ features you can take advantage of. When creating an image in
 AstroPhot, you need to tell it some basic properties so that the image
 knows how to place itself in the tangent plane. Using the WCS object
 you should be able to recover the coordinates of the image in (RA,
-DEC), for a 10 pixel by 10 pixel image you could accomplish this by
+DEC), for an example wcs object you could accomplish this by
 doing something like::
 
-  center = wcs.pixel_to_world(5,5)
-  ra, dec = center.ra.deg, center.dec.deg
+  ra, dec = wcs.wcs.crval
 
 meaning that you know the world position of the image. To have
 AstroPhot place the image at the right location in the tangent plane
-you can use the ``center_radec`` argument when constructing the image
-which would look something like::
+you can use the ``wcs`` argument when constructing the image which
+would look something like::
 
   image = ap.image.Target_Image(
       data = data,
-      pixelscale = pixelscale,
-      center_radec = (ra, dec),
+      reference_radec = (ra, dec),
+      wcs = wcs,
   )
 
-AstroPhot will set the reference RA, DEC to these center
-coordinates. A more explicit alternative is to just say what the
-reference coordiante should be. That would look something like::
+AstroPhot will set the reference RA, DEC to these coordinates and also
+set the image in the correct position. A more explicit alternative is
+to just say what the reference coordiante should be. That would look
+something like::
   
   image = ap.image.Target_Image(
       data = data,
       pixelscale = pixelscale,
-      center_radec = (ra, dec),
       reference_radec = (ra,dec),
+      reference_imagexy = (x, y),
   )
 
-which will override anything else and set the reference coordinate for
-this image. Now ``center_radec`` could be anything and the world
-coordinate reference would be ``(ra,dec)``.
+which uniquely defines the position of the image in the coordinate
+system. Remember that the ``reference_radec`` should be the same for
+all images in a multi-image analysis, while ``reference_imagexy``
+specifies the position of a particular image.  Another similar option is to set
+``center_radec`` like::
+
+  image = ap.image.Target_Image(
+      data = data,
+      pixelscale = pixelscale,
+      reference_radec = (ra,dec),
+      center_radec = (c_ra, c_dec),
+  )
 
 You may also have a catalogue of objects that you would like to
 project into the image. The easiest way to do this if you already have
@@ -126,7 +136,7 @@ center position of a sersic model. That would look like::
       model_type = "sersic galaxy model",
       target = image,
       parameters = {
-          "center": image.header.world_to_plane(obj_pos.ra.deg, obj_pos.dec.deg),
+          "center": image.window.world_to_plane(obj_pos.ra.deg, obj_pos.dec.deg),
       }
   )
 
@@ -137,14 +147,13 @@ means that if you have optimized a model and you would like to present
 it's position in world coordinates that can be compared with other
 sources, you will need to do the opposite operation::
 
-  world_position = image.header.plane_to_world(model["center"].value)
+  world_position = image.window.plane_to_world(model["center"].value)
 
 Which should be the coordinates in RA and DEC (degrees), assuming that
 you initialized the image with a WCS or by other means ensured that
 the world coordinates being used are correct. If you never gave
 AstroPhot the information it needs, then it likely assumed a reference
-position of (0,0) in the world coordinate system and so probably
-doesn't represent your object.
+position of (0,0) in the world coordinate system.
 
 Coordinate reference points
 ---------------------------
@@ -155,15 +164,16 @@ the transformation from ``world`` to ``plane`` AstroPhot keeps track
 of two vectors: ``reference_radec`` and ``reference_planexy``. These
 variables are stored in all ``Image_Header`` objects and essentially
 pin down the mapping such that one coordinate will get mapped to the
-other. All other coordinates follow from the projection system
-assumed. It is possible to specify these variables directly when
-constructing an image, or implicitly if you give some other relevant
-information (eg an Astropy WCS). AstroPhot also keeps track of two
-more vectors: ``reference_imageij`` and ``reference_imagexy``. These
-variables control where an image is placed in the tangent plane and
-represent a fixed point between the pixel coordinates and the tangent
-plane coordinates. If your pixel scale matrix includes a rotation then
-the rotation will be performed about this position.
+other. All other coordinates follow from the projection system assumed
+(i.e. Gnomonic). It is possible to specify these variables directly
+when constructing an image, or implicitly if you give some other
+relevant information (eg an Astropy WCS). AstroPhot Window objects
+also keep track of two more vectors: ``reference_imageij`` and
+``reference_imagexy``. These variables control where an image is
+placed in the tangent plane and represent a fixed point between the
+pixel coordinates and the tangent plane coordinates. If your pixel
+scale matrix includes a rotation then the rotation will be performed
+about this position.
 
 All together, these reference positions define how pixels are mapped
 in AstroPhot. This level of generality is overkill for analyzing a
@@ -191,17 +201,19 @@ Below is a summary of the reference coordinates and their meaning:
    be the same for every image in multi-image analysis.
 #. ``reference_planexy`` tangent plane coordinates (arcsec) where it
    makes contact with the celesial sphere. This should typically be
-   (0,0) though that is not enforced (it is assumed if not given).
-   This reference coordinate should be the same for all images in
-   multi-image analysis.
+   (0,0) though that is not stricktly enforced (it is assumed if not
+   given). This reference coordinate should be the same for all
+   images in multi-image analysis.
 #. ``reference_imageij`` pixel coordinates about which the image is
    defined. For example in an Astropy WCS object the wcs.wcs.crpix
    array gives the pixel coordinate reference point for which the
    world coordinate mapping (wcs.wcs.crval) is defined. One may think
    of the referenced pixel location as being "pinned" to the tangent
-   plane.
+   plane. This may be different for each image in multi-image
+   analysis..
 #. ``reference_imagexy`` tangent plane coordinates (arcsec) about
    which the image is defined. This is the pivot point about which the
    pixelscale matrix operates, therefore if the pixelscale matrix
    defines a rotation then this is the coordinate about which the
-   rotation will be performed.
+   rotation will be performed. This may be different for each image in
+   multi-image analysis.

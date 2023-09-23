@@ -688,6 +688,10 @@ class WCS(WPCS, PPCS):
     """
 
     def __init__(self, *args, wcs=None, **kwargs):
+        if kwargs.get("state", None) is not None:
+            self.set_state(kwargs["state"])
+            return
+        
         if wcs is not None:
             if wcs.wcs.ctype[0] != "RA---TAN":
                 AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatable with AstroPhot.")

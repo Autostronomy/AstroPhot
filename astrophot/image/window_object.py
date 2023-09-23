@@ -10,7 +10,7 @@ __all__ = ["Window", "Window_List"]
 
 class Window(WCS):
     """class to define a window on the sky in coordinate space. These
-    windows can undergo arithmetic an preserve logical behavior. Image
+    windows can undergo arithmetic and preserve logical behavior. Image
     objects can also be indexed using windows and will return an
     appropriate subsection of their data.
 
@@ -18,19 +18,16 @@ class Window(WCS):
     place itself. The simplest method is to pass an
     Astropy WCS object such as::
 
-      H = ap.image.Window(
-          data_shape = data.shape,
-          wcs = wcs,
-      )
+      H = ap.image.Window(wcs = wcs)
 
     this will automatically place your image at the correct RA, DEC
-    and assign the correct pixel scale. WARNING, it will default to
+    and assign the correct pixel scale, etc. WARNING, it will default to
     setting the reference RA DEC at the reference RA DEC of the wcs
     object; if you have multiple images you should force them all to
-    have the same reference world coordiante by passing
+    have the same reference world coordinate by passing
     ``reference_radec = (ra, dec)``. See the :doc:`coordinates`
     documentation for more details. There are several other ways to
-    initialize the image header. If you provide ``origin_radec`` then
+    initialize a window. If you provide ``origin_radec`` then
     it will place the image origin at the requested RA DEC
     coordinates. If you provide ``center_radec`` then it will place
     the image center at the requested RA DEC coordiantes. Note that in
@@ -59,8 +56,12 @@ class Window(WCS):
       center_radec : Sequence or None, optional
           The center of the image in the world coordinate system (RA,
           DEC in degrees), as a 1D array of length 2. Default is None.
-      wcs: An astropy.wcs.wcs.WCS object which gives information about the origin and orientation of the window.
-      reference_radec: AstroPhot works on a tangent plane where everything is nice and linear, but the sky is a sphere. The worst case would be an image where one of the poles lies inside the image and there is a singularity in the coordinate system. In RA and DEC the approximation works best at `RA = 0`, `DEC = 0` (or really anywhere on the equator). This "good spot" for the coordinates is just an artifact of where we choose to put our coordinates, hence the pole singularity is also artificial. The `reference_radec` is an (RA, DEC) coordinate which can be used to re-orient the polar coordinates so that the "good spot" is anywhere you want. This all happens internally and you should not have to worry about it.
+      wcs: An astropy.wcs.WCS object which gives information about the
+          origin and orientation of the window.
+      reference_radec: Coordinates in the celestial sphere (RA DEC) where
+          the world coordinate system meets the tangent plane where most
+          AstroPhot calculations are performed.
+
     """
 
     def __init__(
@@ -81,8 +82,10 @@ class Window(WCS):
             return
         
         # Collect the shape of the window
-        assert pixel_shape is not None, "Window must know pixel shape of region (how many pixels on each side)"
-        self.pixel_shape = pixel_shape
+        if pixel_shape is None:
+            self.pixel_shape = pixel_shape
+        else:
+            self.pixel_shape = wcs.pixel_shape
             
         # Determine relative positioning of tangent plane and pixel grid. Also world coordinates and tangent plane
         assert sum(C is not None for C in [wcs, origin_radec, center_radec, origin, center]) <= 1, "Please provide only one reference position for the window, otherwise the placement is ambiguous"
@@ -191,12 +194,6 @@ class Window(WCS):
         super().to(dtype=dtype, device=device)
         self.pixel_shape = self.pixel_shape.to(dtype=dtype, device=device)
 
-    # def get_shape(self, pixelscale):
-    #     return (torch.round(torch.linalg.solve(pixelscale, self.end).abs())).int()
-
-    # def get_shape_flip(self, pixelscale):
-    #     return torch.flip(self.get_shape(pixelscale), (0,))
-
     def rescale(self, scale, **kwargs):
         return self.copy(
             pixelscale = self.pixelscale / scale,
@@ -252,6 +249,25 @@ class Window(WCS):
         self.reference_imageij = self.reference_imageij - shift
         return self
 
+    def get_astropywcs(self, **kwargs):
+        wargs = {
+            'NAXIS': 2,
+            'NAXIS1': self.pixel_shape[0].item(),
+            'NAXIS2': self.pixel_shape[1].item(),
+            'CTYPE1': 'RA---TAN',
+            'CTYPE2': 'DEC--TAN',
+            'CRVAL1': self.pixel_to_world(self.reference_imageij)[0].item(),
+            'CRVAL2': self.pixel_to_world(self.reference_imageij)[1].item(),
+            'CRPIX1': self.reference_imageij[0].item(),
+            'CRPIX2': self.reference_imageij[1].item(),
+            'CD1_1': self.pixelscale[0][0].item(),
+            'CD1_2': self.pixelscale[0][1].item(),
+            'CD2_1': self.pixelscale[1][0].item(),
+            'CD2_2': self.pixelscale[1][1].item(),
+        }
+        wargs.update(kwargs)
+        return AstropyWCS(wargs)
+    
     def get_state(self):
         state = super().get_state()
         state["pixel_shape"] = tuple(self.pixel_shape.detach().cpu().tolist())
@@ -282,8 +298,8 @@ class Window(WCS):
             pixels = torch.as_tensor(
                 pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            self.pixel_shape = self.pixel_shape - pixels[::2] - pixels[1::2]
-            self.reference_imageij = self.reference_imageij - pixels[::2]
+            self.pixel_shape = self.pixel_shape - pixels[:2] - pixels[2:]
+            self.reference_imageij = self.reference_imageij - pixels[:2]
         else:
             raise ValueError(f"Unrecognized pixel crop format: {pixels}")
         return self
@@ -316,8 +332,8 @@ class Window(WCS):
             pixels = torch.as_tensor(
                 pixels, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-            self.pixel_shape = self.pixel_shape + pixels[::2] + pixels[1::2]
-            self.reference_imageij = self.reference_imageij + pixels[::2]
+            self.pixel_shape = self.pixel_shape + pixels[:2] + pixels[2:]
+            self.reference_imageij = self.reference_imageij + pixels[:2]
         else:
             raise ValueError(f"Unrecognized pixel crop format: {pixels}")
         return self
@@ -405,227 +421,6 @@ class Window(WCS):
         Coords = self.pixel_to_plane(meshx, meshy)
         return torch.stack(Coords)
 
-    # # Window adjustment operators
-    # @torch.no_grad()
-    # def __add__(self, other):
-    #     """Add to the size of the window. This operation preserves the window
-    #     center and changes the size (shape) of the window by
-    #     increasing the border.
-
-    #     """
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         new_shape = self.shape + 2 * other
-    #         return self.copy(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixel_shape=None,
-    #         )
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         new_shape = self.shape + 2 * torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         return self.copy(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixel_shape=None,
-    #         )
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __iadd__(self, other):
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         keep_center = self.center.clone()
-    #         self.shape += 2 * other
-    #         self.center = keep_center
-    #         return self
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         keep_center = self.center.clone()
-    #         self.shape += 2 * torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         self.center = keep_center
-    #         return self
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (
-    #         2 * len(self.origin)
-    #     ):
-    #         self.origin -= self.cartesian_to_plane(
-    #             torch.as_tensor(
-    #                 other[::2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #             )
-    #         )
-    #         self.shape -= torch.as_tensor(
-    #             torch.sum(other.view(-1, 2), axis=0),
-    #             dtype=AP_config.ap_dtype,
-    #             device=AP_config.ap_device,
-    #         )
-    #         return self
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __sub__(self, other):
-    #     """Reduce the size of the window. This operation preserves the window
-    #     center and changes the size (shape) of the window by reducing
-    #     the border.
-
-    #     """
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         new_shape = self.shape - 2 * other
-    #         return self.__class__(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixelshape=self.pixelshape,
-    #             projection=self.projection,
-    #             reference_radec=self.reference_radec,
-    #         )
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         new_shape = self.shape - 2 * torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         return self.__class__(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixelshape=self.pixelshape,
-    #             projection=self.projection,
-    #             reference_radec=self.reference_radec,
-    #         )
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __isub__(self, other):
-    #     if isinstance(other, (float, int, torch.dtype)) or (
-    #         isinstance(other, torch.Tensor) and other.numel() == 1
-    #     ):
-    #         keep_center = self.center.clone()
-    #         self.shape -= 2 * other
-    #         self.center = keep_center
-    #         return self
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         keep_center = self.center.clone()
-    #         self.shape -= 2 * torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         self.center = keep_center
-    #         return self
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == (
-    #         2 * len(self.origin)
-    #     ):
-    #         self.origin += torch.as_tensor(
-    #             other[::2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         self.shape -= torch.as_tensor(
-    #             torch.sum(other.view(-1, 2), axis=0),
-    #             dtype=AP_config.ap_dtype,
-    #             device=AP_config.ap_device,
-    #         )
-    #         return self
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __mul__(self, other):
-    #     """Add to the size of the window. This operation preserves the window
-    #     center and changes the size (shape) of the window by
-    #     multiplying the border.
-
-    #     """
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         new_shape = self.shape * other
-    #         return self.__class__(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixelshape=self.pixelshape,
-    #             projection=self.projection,
-    #             reference_radec=self.reference_radec,
-    #         )
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         new_shape = self.shape * torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         return self.__class__(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixelshape=self.pixelshape,
-    #             projection=self.projection,
-    #             reference_radec=self.reference_radec,
-    #         )
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __imul__(self, other):
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         keep_center = self.center.clone()
-    #         self.shape *= other
-    #         self.center = keep_center
-    #         return self
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         keep_center = self.center.clone()
-    #         self.shape *= torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         self.center = keep_center
-    #         return self
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __truediv__(self, other):
-    #     """Reduce the size of the window. This operation preserves the window
-    #     center and changes the size (shape) of the window by
-    #     dividing the border.
-
-    #     """
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         new_shape = self.shape / other
-    #         return self.__class__(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixelshape=self.pixelshape,
-    #             projection=self.projection,
-    #             reference_radec=self.reference_radec,
-    #         )
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         new_shape = self.shape / torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         return self.__class__(
-    #             center=self.center,
-    #             shape=new_shape,
-    #             pixelshape=self.pixelshape,
-    #             projection=self.projection,
-    #             reference_radec=self.reference_radec,
-    #         )
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
-    # @torch.no_grad()
-    # def __itruediv__(self, other):
-    #     if isinstance(other, (float, int, torch.dtype)):
-    #         keep_center = self.center.clone()
-    #         self.shape /= other
-    #         self.center = keep_center
-    #         return self
-    #     elif isinstance(other, (tuple, torch.Tensor)) and len(other) == len(
-    #         self.origin
-    #     ):
-    #         keep_center = self.center.clone()
-    #         self.shape /= torch.as_tensor(
-    #             other, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-    #         )
-    #         self.center = keep_center
-    #         return self
-    #     raise ValueError(f"Window object cannot be added with {type(other)}")
-
     # Window Comparison operators
     @torch.no_grad()
     def __eq__(self, other):
@@ -638,7 +433,6 @@ class Window(WCS):
         ) and (
             torch.all(self.pixel_to_plane(torch.zeros_like(self.reference_imageij)) == other.pixel_to_plane(torch.zeros_like(other.reference_imageij)))
         ) # fixme more checks?
-    
 
     @torch.no_grad()
     def __ne__(self, other):
@@ -740,6 +534,11 @@ class Window_List(Window):
     def shape(self):
         return tuple(w.shape for w in self)
 
+    @property
+    @torch.no_grad()
+    def center(self):
+        return tuple(w.center for w in self)
+
     def shift_origin(self, shift):
         raise NotImplementedError("shift origin not implemented for window list")
 
@@ -753,25 +552,6 @@ class Window_List(Window):
             device = AP_config.ap_device
         for window in self:
             window.to(dtype, device)
-
-    def get_astropywcs(self, **kwargs):
-        wargs = {
-            'NAXIS': 2,
-            'NAXIS1': self.pixel_shape[0].item(),
-            'NAXIS2': self.pixel_shape[1].item(),
-            'CTYPE1': 'RA---TAN',
-            'CTYPE2': 'DEC--TAN',
-            'CRVAL1': self.pixel_to_world(self.reference_imageij)[0].item(),
-            'CRVAL2': self.pixel_to_world(self.reference_imageij)[1].item(),
-            'CRPIX1': self.reference_imageij[0].item(),
-            'CRPIX2': self.reference_imageij[1].item(),
-            'CD1_1': self.pixelscale[0][0].item(),
-            'CD1_2': self.pixelscale[0][1].item(),
-            'CD2_1': self.pixelscale[1][0].item(),
-            'CD2_2': self.pixelscale[1][1].item(),
-        }
-        wargs.update(kwargs)
-        return AstropyWCS(wargs)
         
     def get_state(self):
         return list(window.get_state() for window in self)
