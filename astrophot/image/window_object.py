@@ -58,9 +58,27 @@ class Window(WCS):
           DEC in degrees), as a 1D array of length 2. Default is None.
       wcs: An astropy.wcs.WCS object which gives information about the
           origin and orientation of the window.
-      reference_radec: Coordinates in the celestial sphere (RA DEC) where
-          the world coordinate system meets the tangent plane where most
-          AstroPhot calculations are performed.
+      reference_radec: world coordinates on the celestial sphere (RA,
+          DEC in degrees) where the tangent plane makes contact. This should
+          be the same for every image in multi-image analysis.
+      reference_planexy: tangent plane coordinates (arcsec) where it
+          makes contact with the celesial sphere. This should typically be
+          (0,0) though that is not stricktly enforced (it is assumed if not
+          given). This reference coordinate should be the same for all
+          images in multi-image analysis.
+      reference_imageij: pixel coordinates about which the image is
+          defined. For example in an Astropy WCS object the wcs.wcs.crpix
+          array gives the pixel coordinate reference point for which the
+          world coordinate mapping (wcs.wcs.crval) is defined. One may think
+          of the referenced pixel location as being "pinned" to the tangent
+          plane. This may be different for each image in multi-image
+          analysis..
+      reference_imagexy: tangent plane coordinates (arcsec) about
+          which the image is defined. This is the pivot point about which the
+          pixelscale matrix operates, therefore if the pixelscale matrix
+          defines a rotation then this is the coordinate about which the
+          rotation will be performed. This may be different for each image in
+          multi-image analysis.
 
     """
 
