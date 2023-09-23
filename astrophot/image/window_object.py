@@ -100,7 +100,7 @@ class Window(WCS):
             return
         
         # Collect the shape of the window
-        if pixel_shape is None:
+        if pixel_shape is not None:
             self.pixel_shape = pixel_shape
         else:
             self.pixel_shape = wcs.pixel_shape
