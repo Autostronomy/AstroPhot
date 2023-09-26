@@ -532,14 +532,14 @@ class Window_List(Window):
         """
         ref = torch.stack(tuple(W.reference_radec for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
-            AP_config.error("Reference (world) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Reference (world) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         ref = torch.stack(tuple(W.reference_planexy for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
-            AP_config.error("Reference (tangent plane) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Reference (tangent plane) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         if len(set(W.projection for W in filter(lambda w: w is not None, self.window_list))) > 1:
-            AP_config.error("Projection missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Projection missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
             
             
     @property

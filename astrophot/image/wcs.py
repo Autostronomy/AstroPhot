@@ -100,7 +100,7 @@ class WPCS:
         """
         
         if plane_y is None:
-            return torch.stack(self.world_to_plane(*plane_x))
+            return torch.stack(self.plane_to_world(*plane_x))
         plane_x = plane_x - self.reference_planexy[0]
         plane_y = plane_y - self.reference_planexy[1]
         if self.projection == "gnomonic":
@@ -698,11 +698,12 @@ class WCS(WPCS, PPCS):
             if wcs.wcs.ctype[1] != "DEC--TAN":
                 AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatable with AstroPhot.")
                 
-        if wcs is not None:  
-            kwargs["reference_radec"] = kwargs.get("reference_radec", wcs.wcs.crval)
+        if wcs is not None:
+            sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
+            kwargs["reference_radec"] = kwargs.get("reference_radec", (sky_coord.ra.deg, sky_coord.dec.deg))
             kwargs["reference_imageij"] = wcs.wcs.crpix
             WPCS.__init__(self, *args, wcs=wcs, **kwargs)
-            kwargs["reference_imagexy"] = self.world_to_plane(torch.tensor(wcs.wcs.crval, dtype=AP_config.ap_dtype, device=AP_config.ap_device))
+            kwargs["reference_imagexy"] = self.world_to_plane(torch.tensor((sky_coord.ra.deg, sky_coord.dec.deg), dtype=AP_config.ap_dtype, device=AP_config.ap_device))
         else:
             WPCS.__init__(self, *args, **kwargs)
             

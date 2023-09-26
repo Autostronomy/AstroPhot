@@ -42,7 +42,7 @@ class Image_Header:
         self,
         *,
         data_shape: Optional[torch.Tensor] = None,
-        wcs: Optional["astropy.wcs.wcs.WCS"] = None,
+        wcs: Optional["astropy.wcs.WCS"] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,

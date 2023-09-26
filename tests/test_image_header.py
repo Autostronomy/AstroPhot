@@ -46,7 +46,7 @@ class TestImageHeader(unittest.TestCase):
             center_radec = (10,10),
         )
 
-        self.assertTrue(torch.allclose(torch.stack(H.plane_to_world(*H.center)), torch.ones_like(H.center) * 10), "Center_radec provided, center should be as given in world coordinates")
+        self.assertTrue(torch.allclose(H.plane_to_world(H.center), torch.ones_like(H.center) * 10), "Center_radec provided, center should be as given in world coordinates")
 
         # Origin radec
         H = ap.image.Image_Header(
@@ -55,7 +55,7 @@ class TestImageHeader(unittest.TestCase):
             origin_radec = (10,10),
         )
 
-        self.assertTrue(torch.allclose(torch.stack(H.plane_to_world(*H.origin)), torch.ones_like(H.center) * 10), "Origin_radec provided, origin should be as given in world coordinates")
+        self.assertTrue(torch.allclose(H.plane_to_world(H.origin), torch.ones_like(H.center) * 10), "Origin_radec provided, origin should be as given in world coordinates")
 
         # Astropy WCS
         wcs = get_astropy_wcs()
@@ -64,6 +64,8 @@ class TestImageHeader(unittest.TestCase):
             wcs = wcs,
         )
 
-        self.assertTrue(torch.allclose(torch.tensor(wcs.wcs.crpix), torch.stack(H.world_to_pixel(*torch.tensor(wcs.wcs.crval)))), "Astropy WCS initialization should map crval crpix coordinates")
+        sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
+        wcs_world = torch.tensor((sky_coord.ra.deg, sky_coord.dec.deg))
+        self.assertTrue(torch.allclose(torch.tensor(wcs.wcs.crpix), H.world_to_pixel(wcs_world)), "Astropy WCS initialization should map crval crpix coordinates")
         
         

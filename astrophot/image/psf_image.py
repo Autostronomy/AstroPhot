@@ -45,6 +45,10 @@ class PSF_Image(Image):
             kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
         )
         super().__init__(*args, **kwargs)
+        self.reference_radec = (0,0)
+        self.reference_planexy = (0,0)
+        self.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
+        self.reference_imagexy = (0,0)
         assert torch.all(
             (torch.tensor(self.data.shape) % 2) == 1
         ), "psf must have odd shape"
