@@ -212,11 +212,11 @@ class Window(WCS):
         super().to(dtype=dtype, device=device)
         self.pixel_shape = self.pixel_shape.to(dtype=dtype, device=device)
 
-    def rescale(self, scale, **kwargs):
+    def rescale_pixel(self, scale, **kwargs):
         return self.copy(
-            pixelscale = self.pixelscale / scale,
-            pixel_shape = self.pixel_shape * scale,
-            reference_imageij=(self.reference_imageij + 0.5)*scale - 0.5,
+            pixelscale = self.pixelscale * scale,
+            pixel_shape = self.pixel_shape / scale,
+            reference_imageij=(self.reference_imageij + 0.5) / scale - 0.5,
             **kwargs,
         )
 
@@ -487,7 +487,7 @@ class Window(WCS):
         new_origin_pix = torch.maximum(-0.5 * torch.ones_like(other_origin_pix), other_origin_pix)
 
         other_pixel_end = self.plane_to_pixel(other.origin + other.end)
-        new_pixel_end = torch.minimum(self.pixel_shape.to(dtype=AP_config.ap_dtype), other_pixel_end)
+        new_pixel_end = torch.minimum(self.pixel_shape.to(dtype=AP_config.ap_dtype) - 0.5, other_pixel_end)
         return self.copy(
             origin=self.pixel_to_plane(new_origin_pix),
             pixel_shape=new_pixel_end - new_origin_pix,
@@ -530,15 +530,15 @@ class Window_List(Window):
         coordinates onto the same tangent plane.
 
         """
-        ref = torch.stack(tuple(W.reference_radec for W in self.window_list))
+        ref = torch.stack(tuple(W.reference_radec for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
             AP_config.error("Reference (world) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
-        ref = torch.stack(tuple(W.reference_planexy for W in self.window_list))
+        ref = torch.stack(tuple(W.reference_planexy for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
             AP_config.error("Reference (tangent plane) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
-        if len(set(W.projection for W in self.window_list)) > 1:
+        if len(set(W.projection for W in filter(lambda w: w is not None, self.window_list))) > 1:
             AP_config.error("Projection missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
             
             

@@ -221,12 +221,12 @@ class Image_Header:
         self.window.crop_pixel(pixels)
         return self
 
-    def rescale(self, scale: int, **kwargs):
+    def rescale_pixel(self, scale: int, **kwargs):
         if scale == 1:
             return self
         
         return self.copy(
-            window = self.window.rescale(scale),
+            window = self.window.rescale_pixel(scale),
             **kwargs,
         )
     

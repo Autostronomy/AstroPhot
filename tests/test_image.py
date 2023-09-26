@@ -309,7 +309,7 @@ class TestTargetImage(unittest.TestCase):
     def test_psf(self):
 
         new_image = image.Target_Image(
-            data=torch.ones((16, 32)),
+            data=torch.ones((15, 33)),
             psf=torch.ones((9, 9)),
             pixelscale=1.0,
             zeropoint=1.0,
@@ -463,7 +463,7 @@ class TestJacobianImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             window=ap.image.Window(
-                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((16, 32))
+                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
             ),
             note="test image",
         )

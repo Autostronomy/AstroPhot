@@ -226,7 +226,7 @@ def grid_integrate(
     subgridres = grid_integrate(
         subgridX,
         subgridY,
-        image_header.rescale(gridding),
+        image_header.rescale_pixel(1/gridding),
         eval_brightness,
         eval_parameters,
         dtype,

@@ -100,6 +100,9 @@ class Image(object):
         self.data = data
         self.to()
 
+        # # Check that image data and header are in agreement (this requires talk back from GPU to CPU so is only used for testing)
+        # assert np.all(np.flip(np.array(self.data.shape)[:2]) == self.window.pixel_shape.numpy()), f"data shape {np.flip(np.array(self.data.shape)[:2])}, window shape {self.window.pixel_shape.numpy()}"
+
     @property
     def north(self):
         return self.header.north
@@ -317,7 +320,7 @@ class Image(object):
             data=self.data[: MS * scale, : NS * scale]
             .reshape(MS, scale, NS, scale)
             .sum(axis=(1, 3)),
-            header=self.header.rescale(1/scale, **kwargs),
+            header=self.header.rescale_pixel(scale, **kwargs),
             **kwargs,
         )
 
