@@ -60,15 +60,11 @@ class PSF_Star(Star_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
         target_area = target[self.window]
-        if parameters["flux"].value is None:
-            parameters["flux"].set_value(
-                torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area),
-                override_locked=True,
-            )
-        if parameters["flux"].uncertainty is None:
-            parameters["flux"].set_uncertainty(
-                torch.abs(parameters["flux"].value) * 1e-2, override_locked=True
-            )
+        with Param_Unlock(parameters["flux"]):
+            if parameters["flux"].value is None:
+                parameters["flux"].value = torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area)
+            if parameters["flux"].uncertainty is None:
+                parameters["flux"].uncertainty = torch.abs(parameters["flux"].value) * 1e-2
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):

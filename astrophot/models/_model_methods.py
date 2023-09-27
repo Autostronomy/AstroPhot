@@ -46,7 +46,7 @@ def build_parameter_specs(cls, user_specs=None):
     if isinstance(user_specs, dict):
         for p in user_specs:
             # If the user supplied a parameter object subclass, simply use that as is
-            if isinstance(user_specs[p], Parameter):
+            if isinstance(user_specs[p], Parameter_Node):
                 parameter_specs[p] = user_specs[p]
             elif isinstance(
                 user_specs[p], dict

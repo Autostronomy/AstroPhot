@@ -28,6 +28,9 @@ class Node(ABC):
         base, stem = key.split(":", 1)
         return self.nodes[base][stem]
 
+    def __contains__(self, key):
+        return key in self.nodes
+
     def get_state(self):
         state = {
             "name": self.name,

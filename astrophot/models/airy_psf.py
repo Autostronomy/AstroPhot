@@ -77,7 +77,6 @@ class Airy_Star(Star_Model):
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
                 ) / (torch.abs(parameters["I0"].value) * target.pixel_area)
-            )
         if parameters["aRL"].value is None:
             with Param_Unlock(parameters["aRL"]):
                 parameters["aRL"].value = (5./8.) * 2 * target.pixel_length

@@ -70,7 +70,7 @@ class Warp_Galaxy(Galaxy_Model):
                     new_prof.pop()
                     new_prof.pop()
                     new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-                    parameters[prof_param].set_profile(new_prof)
+                    parameters[prof_param].prof = new_prof
                 else:  # matching length of a provided profile
                     # create logarithmically spaced profile radii
                     new_prof = [0] + list(
@@ -84,21 +84,16 @@ class Warp_Galaxy(Galaxy_Model):
                     for i in range(1, len(new_prof)):
                         if new_prof[i] - new_prof[i - 1] < target.pixel_length.item():
                             new_prof[i] = new_prof[i - 1] + target.pixel_length.item()
-                    parameters[prof_param].set_profile(new_prof)
+                    parameters[prof_param].prof = new_prof
 
         if not (parameters["PA(R)"].value is None or parameters["q(R)"].value is None):
             return
 
-        if parameters["PA(R)"].value is None:
-            parameters["PA(R)"].set_value(
-                np.zeros(len(parameters["PA(R)"].prof)) + target.north,
-                override_locked=True,
-            )
-
-        if parameters["q(R)"].value is None:
-            parameters["q(R)"].set_value(
-                np.ones(len(parameters["q(R)"].prof)) * 0.9, override_locked=True
-            )
+        with Param_Unlock(parameters["PA(R)"]):
+            if parameters["PA(R)"].value is None:
+                parameters["PA(R)"].value = np.zeros(len(parameters["PA(R)"].prof)) + target.north
+            if parameters["q(R)"].value is None:
+                parameters["q(R)"].value = np.ones(len(parameters["q(R)"].prof)) * 0.9
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):

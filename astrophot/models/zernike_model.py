@@ -49,15 +49,13 @@ class Zernike_Star(Star_Model):
             return
 
         # Set the default coefficients to zeros
-        parameters["Anm"].set_value(
-            torch.zeros(len(self.nm_list)), override_locked=True
-        )
-
-        # Set the zero order zernike polynomial to the average in the image
-        if self.nm_list[0] == (0, 0):
-            parameters["Anm"].value[0] = (
-                torch.median(target[self.window].data) / target.pixel_area
-            )
+        with Param_Unlock(parameters["Anm"]):
+            parameters["Anm"].value = torch.zeros(len(self.nm_list))
+            # Set the zero order zernike polynomial to the average in the image
+            if self.nm_list[0] == (0, 0):
+                parameters["Anm"].value[0] = (
+                    torch.median(target[self.window].data) / target.pixel_area
+                )
 
     def iter_nm(self, n):
         nm = []
