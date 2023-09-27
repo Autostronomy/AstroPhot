@@ -72,7 +72,7 @@ class Model_Image(Image):
                 return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
-            self.data[self.get_self_indices(other)] = data
+            self.data[self.window.get_self_indices(other)] = data
         else:
             self.data = other
 

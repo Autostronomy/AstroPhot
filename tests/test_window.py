@@ -23,6 +23,8 @@ class TestWindow(unittest.TestCase):
         x = str(window1)
         x = repr(window1)
 
+        wcs = window1.get_astropywcs()
+
     def test_window_crop(self):
         
         window1 = ap.image.Window(origin = (0, 6), pixel_shape = (100, 110))

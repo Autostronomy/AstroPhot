@@ -23,7 +23,13 @@ class TestWPCS(unittest.TestCase):
         self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10))), "World coordinates should be as provided")
         self.assertNotEqual(wcs_blank.projection, "orthographic", "Not all WCS objects should be updated")
         self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10))), "Not all WCS objects should be updated")
+
+        wcs_set = wcs_set.copy()
         
+        self.assertEqual(wcs_set.projection, "orthographic", "Provided projection was Orthographic")
+        self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10))), "World coordinates should be as provided")
+        self.assertNotEqual(wcs_blank.projection, "orthographic", "Not all WCS objects should be updated")
+        self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10))), "Not all WCS objects should be updated")
 
     def test_wpcs_round_trip(self):
 
@@ -77,6 +83,17 @@ class TestPPCS(unittest.TestCase):
         self.assertTrue(torch.allclose(wcs_set.reference_imagexy, torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should be as provided")
         self.assertTrue(torch.allclose(wcs_set.plane_to_pixel(torch.tensor((0.12,0.45))), torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should map to pixel reference coordinates")
         self.assertTrue(torch.allclose(wcs_set.pixel_to_plane(torch.tensor((5.,10.))), torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should map to plane reference coordinates")
+
+        wcs_set = wcs_set.copy()
+
+        self.assertTrue(torch.allclose(wcs_set.pixelscale, torch.tensor([[-0.173205, 0.1],[0.15,0.259808]], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "Provided pixelscale should be used")
+        self.assertTrue(torch.allclose(wcs_set.reference_imageij, torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should be as provided")
+        self.assertTrue(torch.allclose(wcs_set.reference_imagexy, torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should be as provided")
+        self.assertTrue(torch.allclose(wcs_set.plane_to_pixel(torch.tensor((0.12,0.45))), torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should map to pixel reference coordinates")
+        self.assertTrue(torch.allclose(wcs_set.pixel_to_plane(torch.tensor((5.,10.))), torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should map to plane reference coordinates")
+        
+
+        wcs_set.pixelscale = None
         
     def test_ppcs_round_trip(self):
 
@@ -109,7 +126,25 @@ class TestPPCS(unittest.TestCase):
                 self.assertTrue(torch.allclose(reproject_y, test_grid_y), "Round trip y should map back to itself")
 
 class TestWCS(unittest.TestCase):
+    def test_wcs_creation(self):
 
+        wcs = ap.image.WCS(
+            projection = "orthographic",
+            pixelscale = [[-0.173205, 0.1],[0.15,0.259808]],
+            reference_radec = (120.2,-19),
+            reference_imagexy = (33., 123.),
+        )
+
+        wcs2 = wcs.copy()
+
+        self.assertEqual(wcs2.projection, "orthographic", "Provided projection was Orthographic")
+        self.assertTrue(torch.allclose(wcs2.reference_radec, wcs.reference_radec), "World coordinates should be as provided")
+        self.assertTrue(torch.allclose(wcs2.reference_planexy, wcs.reference_planexy), "Plane coordinates should be as provided")
+        self.assertTrue(torch.allclose(wcs2.reference_imagexy, wcs.reference_imagexy), "imagexy coordinates should be as provided")
+        self.assertTrue(torch.allclose(wcs2.reference_imageij, wcs.reference_imageij), "imageij coordinates should be as provided")
+        self.assertTrue(torch.allclose(wcs2.pixelscale, wcs.pixelscale), "pixelscale should be as provided")
+        
+        
     def test_wcs_roundtrip(self):
         for pixelscale in [0.2, [[0.6, 0.],[0., 0.4]], [[-0.173205, 0.1],[0.15,0.259808]]]:
             print(pixelscale)
@@ -162,3 +197,25 @@ class TestWCS(unittest.TestCase):
         self.assertTrue(torch.allclose(wcs.pixelscale, torch.tensor([[-0.173205, 0.1],[0.15,0.259808]], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "WCS pixelscale should be set by state")
         self.assertTrue(torch.allclose(wcs.reference_radec, torch.tensor((120.2,-19), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "WCS reference RA DEC should be set by state")
         self.assertTrue(torch.allclose(wcs.reference_imagexy, torch.tensor((33., 123.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "WCS reference image position should be set by state")
+
+        wcs_state = wcs.get_fits_state()
+
+        new_wcs = ap.image.WCS()
+        new_wcs.set_fits_state(state = wcs_state)
+
+        self.assertEqual(wcs.projection, new_wcs.projection, "WCS projection should be set by state")
+        self.assertTrue(torch.allclose(wcs.pixelscale, torch.tensor([[-0.173205, 0.1],[0.15,0.259808]], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "WCS pixelscale should be set by state")
+        self.assertTrue(torch.allclose(wcs.reference_radec, torch.tensor((120.2,-19), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "WCS reference RA DEC should be set by state")
+        self.assertTrue(torch.allclose(wcs.reference_imagexy, torch.tensor((33., 123.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "WCS reference image position should be set by state")
+        
+    def test_wcs_repr(self):
+
+        wcs = ap.image.WCS(
+            projection = "orthographic",
+            pixelscale = [[-0.173205, 0.1],[0.15,0.259808]],
+            reference_radec = (120.2,-19),
+            reference_imagexy = (33., 123.),
+        )
+
+        S = str(wcs)
+        R = repr(wcs)

@@ -69,3 +69,34 @@ class TestImageHeader(unittest.TestCase):
         self.assertTrue(torch.allclose(torch.tensor(wcs.wcs.crpix), H.world_to_pixel(wcs_world)), "Astropy WCS initialization should map crval crpix coordinates")
         
         
+    def test_image_header_wcs_roundtrip(self):
+
+        wcs = get_astropy_wcs()
+        # Minimial input
+        H = ap.image.Image_Header(
+            data_shape = (20,20),
+            zeropoint = 22.5,
+            wcs = wcs,
+        )
+
+        self.assertTrue(torch.allclose(H.world_to_plane(H.plane_to_world(torch.zeros_like(H.window.reference_radec))), torch.zeros_like(H.window.reference_radec)), "WCS world/plane roundtrip should return input value")
+        self.assertTrue(torch.allclose(H.pixel_to_plane(H.plane_to_pixel(torch.zeros_like(H.window.reference_radec))), torch.zeros_like(H.window.reference_radec)), "WCS pixel/plane roundtrip should return input value")
+        self.assertTrue(torch.allclose(H.world_to_pixel(H.pixel_to_world(torch.zeros_like(H.window.reference_radec))), torch.zeros_like(H.window.reference_radec), atol = 1e-6), "WCS world/pixel roundtrip should return input value")
+
+        self.assertTrue(torch.allclose(H.pixel_to_plane_delta(H.plane_to_pixel_delta(torch.ones_like(H.window.reference_radec))), torch.ones_like(H.window.reference_radec)), "WCS pixel/plane delta roundtrip should return input value")
+
+        
+        
+    def test_iamge_header_repr(self):
+
+        wcs = get_astropy_wcs()
+        # Minimial input
+        H = ap.image.Image_Header(
+            data_shape = (20,20),
+            zeropoint = 22.5,
+            wcs = wcs,
+        )
+
+        S = str(H)
+        R = repr(H)
+        

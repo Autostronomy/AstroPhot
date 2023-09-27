@@ -28,6 +28,7 @@ class TestWindowList(unittest.TestCase):
         self.assertRaises(AssertionError, ap.image.Window_List)
 
         x = str(windowlist)
+        x = repr(windowlist)
 
     def test_window_arithmetic(self):
 

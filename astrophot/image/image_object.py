@@ -5,7 +5,7 @@ import torch
 from torch.nn.functional import pad
 import numpy as np
 from astropy.io import fits
-from astropy.wcs import WCS
+from astropy.wcs import WCS as AstropyWCS
 
 from .window_object import Window, Window_List
 from .image_header import Image_Header
@@ -35,7 +35,7 @@ class Image(object):
         *,
         data: Optional[Union[torch.Tensor]] = None,
         header: Optional[Image_Header] = None,
-        wcs: Optional["astropy.wcs.wcs.WCS"] = None,
+        wcs: Optional[AstropyWCS] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
@@ -115,17 +115,28 @@ class Image(object):
     def pixel_length(self):
         return self.header.pixel_length
 
-    def pixel_to_plane(self, *args, **kwargs):
-        return self.header.pixel_to_plane(*args, **kwargs)
-
+    def world_to_plane(self, *args, **kwargs):
+        return self.window.world_to_plane(*args, **kwargs)
+    def plane_to_world(self, *args, **kwargs):
+        return self.window.plane_to_world(*args, **kwargs)
     def plane_to_pixel(self, *args, **kwargs):
-        return self.header.plane_to_pixel(*args, **kwargs)
-
-    def pixel_to_plane_delta(self, *args, **kwargs):
-        return self.header.pixel_to_plane_delta(*args, **kwargs)
-
+        return self.window.plane_to_pixel(*args, **kwargs)
+    def pixel_to_plane(self, *args, **kwargs):
+        return self.window.pixel_to_plane(*args, **kwargs)
     def plane_to_pixel_delta(self, *args, **kwargs):
-        return self.header.plane_to_pixel_delta(*args, **kwargs)
+        return self.window.plane_to_pixel_delta(*args, **kwargs)
+    def pixel_to_plane_delta(self, *args, **kwargs):
+        return self.window.pixel_to_plane_delta(*args, **kwargs)
+    def world_to_pixel(self, *args, **kwargs):
+        return self.window.world_to_pixel(*args, **kwargs)
+    def pixel_to_world(self, *args, **kwargs):
+        return self.window.pixel_to_world(*args, **kwargs)
+    def get_coordinate_meshgrid(self):
+        return self.window.get_coordinate_meshgrid()
+    def get_coordinate_corner_meshgrid(self):
+        return self.window.get_coordinate_corner_meshgrid()
+    def get_coordinate_simps_meshgrid(self):
+        return self.window.get_coordinate_simps_meshgrid()
 
     @property
     def origin(self) -> torch.Tensor:
@@ -364,7 +375,7 @@ class Image(object):
             new_img.data -= other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_other_indices(self)].copy()
+            new_img = self.copy()
             new_img.data -= other
             return new_img
 
@@ -374,27 +385,7 @@ class Image(object):
             new_img.data += other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_other_indices(self)].copy()
-            new_img.data += other
-            return new_img
-
-    def __sub__(self, other):
-        if isinstance(other, Image):
-            new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_other_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_other_indices(self)].copy()
-            new_img.data -= other
-            return new_img
-
-    def __add__(self, other):
-        if isinstance(other, Image):
-            new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_other_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_other_indices(self)].copy()
+            new_img = self.copy()
             new_img.data += other
             return new_img
 

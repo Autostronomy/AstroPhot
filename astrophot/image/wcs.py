@@ -638,7 +638,7 @@ class PPCS:
         return coords[0].reshape(plane_delta_x.shape), coords[1].reshape(plane_delta_y.shape)
         
     def copy(self, **kwargs):
-        """Create a copy of the WPCS object with the same projection
+        """Create a copy of the PPCS object with the same projection
         paramaters.
 
         """
@@ -663,6 +663,24 @@ class PPCS:
         self.reference_imageij = state.get("reference_imageij", self.default_reference_imageij)
         self.reference_imagexy = state.get("reference_imagexy", self.default_reference_imagexy)
     
+    def get_fits_state(self):
+        """
+        Similar to get_state, except specifically tailored to be stored in a FITS format.
+        """
+        return {
+            "PXLSCALE": str(self.pixelscale.detach().cpu().tolist()),
+            "REFIMGIJ": str(self.reference_imageij.detach().cpu().tolist()),
+            "REFIMGXY": str(self.reference_imagexy.detach().cpu().tolist()),
+        }
+    
+    def set_fits_state(self, state):
+        """
+        Reads and applies the state from the get_fits_state function.
+        """
+        self.pixelscale = eval(state["PXLSCALE"])
+        self.reference_imageij = eval(state["REFIMGIJ"])
+        self.reference_imagexy = eval(state["REFIMGXY"])
+        
     def to(self, dtype=None, device=None):
         """
         Convert all stored tensors to a new device and data type
@@ -733,9 +751,12 @@ class WCS(WPCS, PPCS):
             "pixelscale": self.pixelscale,
             "reference_imageij": self.reference_imageij,
             "reference_imagexy": self.reference_imagexy,
+            "projection": self.projection,
+            "reference_radec": self.reference_radec,
+            "reference_planexy": self.reference_planexy,
         }
         copy_kwargs.update(kwargs)
-        return super().copy(
+        return self.__class__(
             **copy_kwargs,     
         )
 
@@ -751,6 +772,21 @@ class WCS(WPCS, PPCS):
     def set_state(self, state):
         WPCS.set_state(self, state)
         PPCS.set_state(self, state)
+        
+    def get_fits_state(self):
+        """
+        Similar to get_state, except specifically tailored to be stored in a FITS format.
+        """
+        state = WPCS.get_fits_state(self)
+        state.update(PPCS.get_fits_state(self))
+        return state
+    
+    def set_fits_state(self, state):
+        """
+        Reads and applies the state from the get_fits_state function.
+        """
+        WPCS.set_fits_state(self, state)
+        PPCS.set_fits_state(self, state)
         
     def __str__(self):
         return f"WCS:\n{WPCS.__str__(self)}\n{PPCS.__str__(self)}"
