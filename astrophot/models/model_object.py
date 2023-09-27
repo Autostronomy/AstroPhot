@@ -444,11 +444,7 @@ class Component_Model(AstroPhot_Model):
         if parameters is not None:
             if len(parameters) > self.jacobian_chunksize:
                 dochunk = True
-            self.parameters.set_values(
-                parameters,
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            )
+            self.parameters.values = parameters
         else:
             if (
                 len(

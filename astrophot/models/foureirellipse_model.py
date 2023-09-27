@@ -95,42 +95,31 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        if parameters["am"].value is None:
-            parameters["am"].set_value(
-                torch.zeros(
+        with Param_Unlock(parameters["am"], parameters["phim"]):
+            if parameters["am"].value is None:
+                parameters["am"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["am"].uncertainty is None:
-            parameters["am"].set_uncertainty(
-                torch.tensor(
+                )
+            if parameters["am"].uncertainty is None:
+                parameters["am"].uncertainty = torch.tensor(
                     0.05 * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].value is None:
-            parameters["phim"].set_value(
-                torch.zeros(
+                )
+            if parameters["phim"].value is None:
+                parameters["phim"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].uncertainty is None:
-            parameters["phim"].set_uncertainty(
-                torch.tensor(
+                )
+            if parameters["phim"].uncertainty is None:
+                parameters["phim"].uncertainty = torch.tensor(
                     (5 * np.pi / 180) * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
+                )
 
 
 class FourierEllipse_Warp(Warp_Galaxy):
@@ -218,39 +207,28 @@ class FourierEllipse_Warp(Warp_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        if parameters["am"].value is None:
-            parameters["am"].set_value(
-                torch.zeros(
+        with Param_Unlock(parameters["am"], parameters["phim"]):
+            if parameters["am"].value is None:
+                parameters["am"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["am"].uncertainty is None:
-            parameters["am"].set_uncertainty(
-                torch.tensor(
+                )
+            if parameters["am"].uncertainty is None:
+                parameters["am"].uncertainty = torch.tensor(
                     0.05 * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].value is None:
-            parameters["phim"].set_value(
-                torch.zeros(
+                )
+            if parameters["phim"].value is None:
+                parameters["phim"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].uncertainty is None:
-            parameters["phim"].set_uncertainty(
-                torch.tensor(
+                )
+            if parameters["phim"].uncertainty is None:
+                parameters["phim"].uncertainty = torch.tensor(
                     (5 * np.pi / 180) * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
+                )

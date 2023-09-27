@@ -20,18 +20,20 @@ __all__ = ["Parameter_Node"]
 class Parameter_Node(Node):
 
     def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)        
 
-        self._prof = None
+        super().__init__(name, **kwargs)
+        temp_locked = self.locked
+        self.locked = False
+        self._value = None
+        self.prof = kwargs.get("prof", None)
         self.limits = kwargs.get("limits", [None, None])
         self.cyclic = kwargs.get("cyclic", False)
         self.shape = kwargs.get("shape", None)
         self.value = kwargs.get("value", None)
         self.units = kwargs.get("units", "none")
-        self._uncertainty = None
         self.uncertainty = kwargs.get("uncertainty", None)
-        self.set_profile(kwargs.get("prof", None), override_locked=True)
         self.to()
+        self.locked = temp_locked
 
     @property
     def value(self):
@@ -58,7 +60,7 @@ class Parameter_Node(Node):
             self._value = torch.as_tensor(
                 val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
-        self.shape = self._value.shape
+            self.shape = self._value.shape
                 
         if self.cyclic:
             self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
@@ -74,6 +76,7 @@ class Parameter_Node(Node):
         if val is None:
             self._value = None
             self.shape = None
+            self.dump()
             return
         if isinstance(val, Parameter_Node):
             self._value = val
@@ -91,6 +94,7 @@ class Parameter_Node(Node):
             self.shape = None
             return
         self._set_val_self(val)
+        self.dump() # fixme is this right?
 
     @property
     def shape(self):
@@ -120,7 +124,41 @@ class Parameter_Node(Node):
         self._prof = torch.as_tensor(
             prof, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
-    
+
+    @property
+    def uncertainty(self):
+        return self._uncertainty
+    @uncertainty.setter
+    def uncertainty(self, unc):
+        if self.locked and not Node.global_unlock:
+            return
+        if unc is None:
+            self._uncertainty = None
+            return
+        self._uncertainty = torch.as_tensor(
+            unc, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+
+    @property
+    def limits(self):
+        return self._limits
+    @limits.setter
+    def limits(self, limits):
+        if self.locked and not Node.global_unlock:
+            return
+        if limits[0] is None:
+            low = None
+        else:
+            low = torch.as_tensor(
+                limits[0], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+        if limits[1] is None:
+            high = None
+        else:
+            high = torch.as_tensor(
+                limits[1], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+        self._limits = (low, high)
 
     def to(self, dtype=None, device=None):
         """
@@ -179,14 +217,13 @@ class Parameter_Node(Node):
         holds all information about a variable.
 
         """
-        self.name = state["name"]
-        self._identity = state["identity"]
+        super().set_state(state)
         self.units = state.get("units", None)
         self.limits = state.get("limits", None)
         self.cyclic = state.get("cyclic", False)
-        self.set_uncertainty(state.get("uncertainty", None), override_locked = True)
-        self.set_value(state.get("value", None), override_locked = True)
-        self.set_profile(state.get("prof", None), override_locked = True)
+        self.uncertainty = state.get("uncertainty", None)
+        self.value = state.get("value", None)
+        self.prof = state.get("prof", None)
         self.locked = state.get("locked", False)
 
     def __eq__(self, other):
@@ -210,7 +247,7 @@ class Parameter_Node(Node):
     def __getitem__(self, key):
         if isinstance(key, str):
             if key == self.name:
-                return self.value
+                return self
             super().__getitem__(key)
         
-
+        raise ValueError(f"Unrecognized getitem request: {key}")

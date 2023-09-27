@@ -39,27 +39,21 @@ class Plane_Sky(Sky_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        if parameters["sky"].value is None:
-            parameters["sky"].set_value(
-                np.median(target[self.window].data.detach().cpu().numpy())
-                / target.pixel_area.item(),
-                override_locked=True,
-            )
-        if parameters["sky"].uncertainty is None:
-            parameters["sky"].set_uncertainty(
-                (
+        with Param_Unlock(parameters["sky"]):
+            if parameters["sky"].value is None:
+                parameters["sky"].value = np.median(target[self.window].data.detach().cpu().numpy()) / target.pixel_area.item()
+            if parameters["sky"].uncertainty is None:
+                parameters["sky"].uncertainty = (
                     iqr(
                         target[self.window].data.detach().cpu().numpy(),
                         rng=(31.731 / 2, 100 - 31.731 / 2),
                     )
                     / (2.0)
-                )
-                / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy())),
-                override_locked=True,
-            )
-        if parameters["delta"].value is None:
-            parameters["delta"].set_value([0.0, 0.0], override_locked=True)
-            parameters["delta"].set_uncertainty([0.1, 0.1], override_locked=True)
+                ) / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
+        with Param_Unlock(parameters["delta"]):
+            if parameters["delta"].value is None:
+                parameters["delta"].value = [0.0, 0.0]
+                parameters["delta"].uncertainty = [0.1, 0.1]
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):

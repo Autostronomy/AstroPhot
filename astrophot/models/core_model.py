@@ -123,7 +123,6 @@ class AstroPhot_Model(object):
     def __init__(self, *, name=None, target=None, window=None, locked=False, **kwargs):
         self.name = name
         AP_config.ap_logger.debug("Creating model named: {self.name}")
-        self.constraints = kwargs.get("constraints", None)
         self.parameters = Parameter_Node(self.name)
         self.target = target
         self.window = window
@@ -167,34 +166,34 @@ class AstroPhot_Model(object):
         self._name = name
         AstroPhot_Model.model_names.append(name)
 
-    def add_equality_constraint(self, model, parameter):
-        """This function matches up parameters between two models. The
-        arguments are a model and a parameter name. The parameter with
-        that name from the other model will be used to replace the
-        parameter of that name in the current model. Effectively this
-        results in an equality constraint for the two models since
-        they are sharing the same parameter. If a list of parameter
-        names are given then this process is applied to all the
-        parameters.
+    # def add_equality_constraint(self, model, parameter):
+    #     """This function matches up parameters between two models. The
+    #     arguments are a model and a parameter name. The parameter with
+    #     that name from the other model will be used to replace the
+    #     parameter of that name in the current model. Effectively this
+    #     results in an equality constraint for the two models since
+    #     they are sharing the same parameter. If a list of parameter
+    #     names are given then this process is applied to all the
+    #     parameters.
 
-        Args:
-          model (AstroPhot_Model): A model object with parameters to take as the new matching parameter for this model.
-          parameter (str): The name of a parameter to match between the two models. The parameter with that name in the current model will be discarded.
+    #     Args:
+    #       model (AstroPhot_Model): A model object with parameters to take as the new matching parameter for this model.
+    #       parameter (str): The name of a parameter to match between the two models. The parameter with that name in the current model will be discarded.
 
-        """
-        if isinstance(parameter, (tuple, list)):
-            for P in parameter:
-                self.add_equality_constraint(model, P)
-            return
-        if AP_config.ap_verbose >= 2:
-            AP_config.ap_logger.info(
-                f"adding equality constraint between {self.name} and {model.name} for parameter: {parameter}"
-            )
-        del_param = self.parameters.get_name(parameter)
-        old_groups = del_param.groups
-        use_param = model.parameters.get_name(parameter)
-        for group in old_groups:
-            group.replace(del_param, use_param)
+    #     """
+    #     if isinstance(parameter, (tuple, list)):
+    #         for P in parameter:
+    #             self.add_equality_constraint(model, P)
+    #         return
+    #     if AP_config.ap_verbose >= 2:
+    #         AP_config.ap_logger.info(
+    #             f"adding equality constraint between {self.name} and {model.name} for parameter: {parameter}"
+    #         )
+    #     del_param = self.parameters.get_name(parameter)
+    #     old_groups = del_param.groups
+    #     use_param = model.parameters.get_name(parameter)
+    #     for group in old_groups:
+    #         group.replace(del_param, use_param)
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -231,16 +230,12 @@ class AstroPhot_Model(object):
     def negative_log_likelihood(
         self,
         parameters=None,
-        as_representation=True,
-        parameters_identity=None,
     ):
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window. 
         """
         if parameters is not None:
-            self.parameters.set_values(
-                parameters, as_representation, parameters_identity
-            )
+            self.parameters.value = parameters
 
         model = self.sample()
         data = self.target[self.window]
@@ -263,7 +258,6 @@ class AstroPhot_Model(object):
     def jacobian(
         self,
         parameters=None,
-        as_representation=False,
         **kwargs,
     ):
         raise NotImplementedError("please use a subclass of AstroPhot_Model")
@@ -503,8 +497,6 @@ class AstroPhot_Model(object):
         self,
         image=None,
         parameters=None,
-        as_representation=True,
-        parameters_identity=None,
         window=None,
         **kwargs,
     ):
@@ -512,10 +504,6 @@ class AstroPhot_Model(object):
         if parameters is None:
             parameters = self.parameters
         elif isinstance(parameters, torch.Tensor):
-            self.parameters.set_values(
-                parameters,
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            )
+            self.parameters.value = parameters
             parameters = self.parameters
         return self.sample(image=image, window=window, parameters=parameters, **kwargs)

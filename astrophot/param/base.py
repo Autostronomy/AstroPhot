@@ -26,7 +26,7 @@ class Node(ABC):
         if key in self.nodes:
             return self.nodes[key]
         base, stem = key.split(":", 1)
-        return self.nodes[key[:base]][stem]
+        return self.nodes[base][stem]
 
     def get_state(self):
         state = {
@@ -37,6 +37,13 @@ class Node(ABC):
             state["nodes"] = tuple(node.get_state() for node in self.nodes.values())
         return state
 
+    def set_state(self, state):
+        self.name = state["name"]
+
+        if "nodes" in state:
+            for node in state["nodes"]:
+                self.link(self.__class__(**node))
+
     @property
     @abstractmethod
     def value(self):
@@ -44,7 +51,7 @@ class Node(ABC):
 
     def flat(self, include_locked = True):
         flat = OrderedDict()
-        for node in self.nodes:
+        for node in self.nodes.values():
             if len(node.nodes) == 0 and not node.value is None:
                 if node.locked and not (include_locked or Node.global_unlock):
                     continue
@@ -65,3 +72,8 @@ class Node(ABC):
             val[loc:loc + node.size] = node.value.flatten()
             loc += node.size
         return val
+
+    def __str__(self):
+        return f"Node: {self.name}"
+    def __repr__(self):
+        return f"Node: {self.name} " + ("locked" if self.locked else "unlocked")
