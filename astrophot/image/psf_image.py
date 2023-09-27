@@ -45,6 +45,10 @@ class PSF_Image(Image):
             kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
         )
         super().__init__(*args, **kwargs)
+        self.reference_radec = (0,0)
+        self.reference_planexy = (0,0)
+        self.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
+        self.reference_imagexy = (0,0)
         assert torch.all(
             (torch.tensor(self.data.shape) % 2) == 1
         ), "psf must have odd shape"
@@ -73,20 +77,6 @@ class PSF_Image(Image):
             )
             / 2
         ).int()
-
-    @property
-    def psf_border(self):
-        """Calculates and returns the border size of the PSF image in the
-        units of pixelscale. This is the border used for padding
-        before convolution.
-
-        Returns:
-            torch.Tensor: The border size of the PSF image in the units of pixelscale.
-
-        """
-        return self.window.world_to_cartesian(
-            self.pixel_to_world_delta(self.psf_border_int.to(dtype=AP_config.ap_dtype))
-        )
 
     def _save_image_list(self, image_list, psf_header):
         """Saves the image list to the PSF HDU header.

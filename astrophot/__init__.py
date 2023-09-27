@@ -5,7 +5,7 @@ from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, param, AP_config
 
 # meta data
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 __author__ = "Connor Stone"
 __email__ = "connorstone628@gmail.com"
 
@@ -112,12 +112,12 @@ def run_from_terminal() -> None:
         )
     if args.filename in ["tutorial", "tutorials"]:
         tutorials = [
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/GroupModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/JointModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/FittingMethods.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/GettingStarted.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/GroupModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/JointModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/FittingMethods.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/CustomModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:

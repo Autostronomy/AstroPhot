@@ -272,6 +272,44 @@ class TestGroup(unittest.TestCase):
 
         self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
 
+    def test_jointmodel_creation(self):
+        np.random.seed(12345)
+        shape = (10, 15)
+        tar = ap.image.Target_Image(
+            data=np.random.normal(loc=0, scale=1.4, size=shape),
+            pixelscale=0.8,
+            variance=np.ones(shape) * (1.4 ** 2),
+        )
+        shape2 = (33, 42)
+        tar2 = ap.image.Target_Image(
+            data=np.random.normal(loc=0, scale=1.4, size=shape2),
+            pixelscale=0.3,
+            origin = (43.2, 78.01),
+            variance=np.ones(shape2) * (1.4 ** 2),
+        )
+
+        mod1 = ap.models.Flat_Sky(
+            name="base model 1",
+            target=tar,
+        )
+        mod2 = ap.models.Flat_Sky(
+            name="base model 2",
+            target=tar2,
+        )
+
+        smod = ap.models.AstroPhot_Model(
+            name="group model",
+            model_type="group model",
+            model_list=[mod1, mod2],
+            target=tar,
+        )
+
+        self.assertFalse(smod.locked, "default model state should not be locked")
+
+        smod.initialize()
+
+        self.assertTrue(torch.all(torch.isfinite(smod().data)), "model_image should be real")
+
 
 if __name__ == "__main__":
     unittest.main()

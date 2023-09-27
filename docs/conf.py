@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath("../"))
 
 # Extensions to use
 extensions = [
+    'nbsphinx',
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -33,11 +34,11 @@ copyright = "2023, Connor Stone"
 author = "Connor Stone"
 
 # Version information
-version = "0.11"
-release = "0.11.0"
+version = "0.12"
+release = "0.12.0"
 
 # Patterns of files and directories to exclude
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 # Pygments style to use
 pygments_style = "sphinx"
@@ -91,3 +92,6 @@ texinfo_documents = [
         "Miscellaneous",
     ),
 ]
+
+# -- Options for nbsphinx --------------------------------------------------
+nbsphinx_execute = 'never'

@@ -59,7 +59,7 @@ class Edgeon_Model(Component_Model):
         )
         edge_average = np.median(edge)
         edge_scatter = iqr(edge, rng=(16, 84)) / 2
-        icenter = target_area.world_to_pixel(parameters["center"].value)
+        icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         iso_info = isophotes(
             target_area.data.detach().cpu().numpy() - edge_average,
@@ -135,7 +135,7 @@ class Edgeon_Sech(Edgeon_Model):
         ):
             return
         target_area = target[self.window]
-        icenter = target_area.world_to_pixel(parameters["center"].value)
+        icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["I0"].value is None:
             with Param_Unlock(parameters["I0"]):

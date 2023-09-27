@@ -58,7 +58,7 @@ class Airy_Star(Star_Model):
         ):
             return
         target_area = target[self.window]
-        icenter = target_area.world_to_pixel(parameters["center"].value)
+        icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["I0"].value is None:
             with Param_Unlock(parameters["I0"]):

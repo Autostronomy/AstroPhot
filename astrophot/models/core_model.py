@@ -296,41 +296,7 @@ class AstroPhot_Model(object):
         if isinstance(window, Window):
             self._window = window
         elif len(window) == 2:
-            self._window = Window(
-                origin=self.target.pixel_to_world(
-                    torch.tensor(
-                        (window[0][0] - 0.5, window[1][0] - 0.5),
-                        dtype=AP_config.ap_dtype,
-                        device=AP_config.ap_device,
-                    )
-                ),
-                shape=self.target.window.world_to_cartesian(
-                    self.target.pixel_to_world_delta(
-                        torch.tensor(
-                            (window[0][1] - window[0][0], window[1][1] - window[1][0]),
-                            dtype=AP_config.ap_dtype,
-                            device=AP_config.ap_device,
-                        )
-                    )
-                ),
-                projection=self.target.pixelscale,
-            )
-        elif len(window) == 4:
-            origin = torch.tensor(
-                (window[0], window[1]),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
-            end = torch.tensor(
-                (window[2], window[3]),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
-            self._window = Window(
-                origin=origin,
-                shape=self.target.window.world_to_cartesian(end - origin),
-                projection=self.target.window.projection,
-            )
+            self._window = self.target.window.copy().crop_to_pixel(window)
         else:
             raise ValueError(f"Unrecognized window format: {str(window)}")
 
