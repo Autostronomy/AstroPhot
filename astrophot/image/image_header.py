@@ -1,14 +1,11 @@
-from typing import Optional, Union, Any, Sequence, Tuple
-from copy import deepcopy
+from typing import Optional, Union, Any
 
 import torch
-from torch.nn.functional import pad
 import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS as AstropyWCS
 
-from .window_object import Window, Window_List
-from .wcs import WPCS
-from ..utils.conversions.units import deg_to_arcsec
+from .window_object import Window
 from .. import AP_config
 
 __all__ = ["Image_Header"]
@@ -20,7 +17,7 @@ class Image_Header:
     The Image_Header object stores all meta information which tells
     AstroPhot what is contained in an image array of pixels. This
     includes coordinate systems and how to transform between them (see
-    :doc:`coordiantes`). The image header will also know the image
+    :doc:`coordinates`). The image header will also know the image
     zeropoint if that data is avaialble.
     
     Args:
@@ -42,7 +39,7 @@ class Image_Header:
         self,
         *,
         data_shape: Optional[torch.Tensor] = None,
-        wcs: Optional["astropy.wcs.WCS"] = None,
+        wcs: Optional[AstropyWCS] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
@@ -104,7 +101,7 @@ class Image_Header:
     @property
     def origin(self) -> torch.Tensor:
         """
-        Returns the origin (pixel coordinate -0.5, -0.5) of the image window in the tangent plane (arcsec).
+        Returns the location of the origin (pixel coordinate -0.5, -0.5) of the image window in the tangent plane (arcsec).
 
         Returns:
             torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the origin.
@@ -114,10 +111,10 @@ class Image_Header:
     @property
     def shape(self) -> torch.Tensor:
         """
-        Returns the shape (size) of the image window in arcsec.
+        Returns the shape (size) of the image window (arcsec, arcsec).
 
         Returns:
-                torch.Tensor: A 1D tensor of shape (2,) containing the (width, height) of the window in pixels.
+                torch.Tensor: A 1D tensor of shape (2,) containing the (width, height) of the window in arcsec.
         """
         return self.window.shape
 
@@ -213,9 +210,14 @@ class Image_Header:
     def crop(self, pixels):  # fixme data_shape?
         """Reduce the size of an image by cropping some number of pixels off
         the borders. If pixels is a single value, that many pixels are
-        cropped off all sides. If pixels is two values thena different
+        cropped off all sides. If pixels is two values then a different
         crop is done in x vs y. If pixels is four values then crop on
         all sides are specified explicitly.
+
+        formatted as:
+        [crop all sides] or
+        [crop x, crop y] or
+        [crop x low, crop y low, crop x high, crop y high]
 
         """
         self.window.crop_pixel(pixels)
@@ -302,7 +304,7 @@ class Image_Header:
 
     def _save_image_list(self):
         """
-        Constructs a fits header object which has the necessary information to recreate the Image_Header object.
+        Constructs a FITS header object which has the necessary information to recreate the Image_Header object.
         """
         img_header = fits.Header()
         img_header["IMAGE"] = "PRIMARY"
@@ -315,15 +317,15 @@ class Image_Header:
 
     def set_fits_state(self, state):
         """
-        Updates the state of the Image_Header using information saved in a fits header.
+        Updates the state of the Image_Header using information saved in a FITS header (more generally, a properly formatted dictionary will also work).
         """
         self.zeropoint = eval(state.get("ZEROPNT", "None"))
-        self.note = state.get("NOTE",None)
+        self.note = state.get("NOTE", None)
         self.window = Window(state=eval(state["WINDOW"]))
         
     def save(self, filename=None, overwrite=True):
         """
-        Save to a fits file.
+        Save header to a FITS file.
         """
         image_list = self._save_image_list()
         hdul = fits.HDUList(image_list)
@@ -333,7 +335,7 @@ class Image_Header:
 
     def load(self, filename):
         """
-        load from a fits file.
+        load header from a FITS file.
         """
         hdul = fits.open(filename)
         for hdu in hdul:

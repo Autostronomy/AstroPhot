@@ -525,21 +525,21 @@ class Window_List(Window):
         self.check_wcs()
         
     def check_wcs(self):
-        """Ensure the WCS system being used by all the windows in this list
+        """Ensure the WCS systems being used by all the windows in this list
         are consistent with each other. They should all project world
         coordinates onto the same tangent plane.
 
         """
         ref = torch.stack(tuple(W.reference_radec for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference (world) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Reference (world) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         ref = torch.stack(tuple(W.reference_planexy for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference (tangent plane) coordinate missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Reference (tangent plane) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         if len(set(W.projection for W in filter(lambda w: w is not None, self.window_list))) > 1:
-            AP_config.ap_logger.error("Projection missmatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Projection mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
             
             
     @property
@@ -609,99 +609,6 @@ class Window_List(Window):
     @torch.no_grad()
     def __ne__(self, other):
         return not self == other
-
-    # @torch.no_grad()
-    # def __gt__(self, other):
-    #     results = list((sw > ow).view(-1) for sw, ow in zip(self, other))
-    #     return torch.all(torch.cat(results))
-
-    # @torch.no_grad()
-    # def __ge__(self, other):
-    #     results = list((sw >= ow).view(-1) for sw, ow in zip(self, other))
-    #     return torch.all(torch.cat(results))
-
-    # @torch.no_grad()
-    # def __lt__(self, other):
-    #     results = list((sw < ow).view(-1) for sw, ow in zip(self, other))
-    #     return torch.all(torch.cat(results))
-
-    # @torch.no_grad()
-    # def __le__(self, other):
-    #     results = list((sw <= ow).view(-1) for sw, ow in zip(self, other))
-    #     return torch.all(torch.cat(results))
-
-    # # Window adjustment operators
-    # @torch.no_grad()
-    # def __add__(self, other):
-    #     try:
-    #         new_windows = list(sw + ow for sw, ow in zip(self, other))
-    #     except TypeError:
-    #         new_windows = list(sw + other for sw in self)
-    #     return self.__class__(window_list=new_windows)
-
-    # @torch.no_grad()
-    # def __sub__(self, other):
-    #     try:
-    #         new_windows = list(sw - ow for sw, ow in zip(self, other))
-    #     except TypeError:
-    #         new_windows = list(sw - other for sw in self)
-    #     return self.__class__(window_list=new_windows)
-
-    # @torch.no_grad()
-    # def __mul__(self, other):
-    #     try:
-    #         new_windows = list(sw * ow for sw, ow in zip(self, other))
-    #     except TypeError:
-    #         new_windows = list(sw * other for sw in self)
-    #     return self.__class__(window_list=new_windows)
-
-    # @torch.no_grad()
-    # def __truediv__(self, other):
-    #     try:
-    #         new_windows = list(sw / ow for sw, ow in zip(self, other))
-    #     except TypeError:
-    #         new_windows = list(sw / other for sw in self)
-    #     return self.__class__(window_list=new_windows)
-
-    # @torch.no_grad()
-    # def __iadd__(self, other):
-    #     try:
-    #         for sw, ow in zip(self, other):
-    #             sw += ow
-    #     except TypeError:
-    #         for sw in self:
-    #             sw += other
-    #     return self
-
-    # @torch.no_grad()
-    # def __isub__(self, other):
-    #     try:
-    #         for sw, ow in zip(self, other):
-    #             sw -= ow
-    #     except TypeError:
-    #         for sw in self:
-    #             sw -= other
-    #     return self
-
-    # @torch.no_grad()
-    # def __imul__(self, other):
-    #     try:
-    #         for sw, ow in zip(self, other):
-    #             sw *= ow
-    #     except TypeError:
-    #         for sw in self:
-    #             sw *= other
-    #     return self
-
-    # @torch.no_grad()
-    # def __itruediv__(self, other):
-    #     try:
-    #         for sw, ow in zip(self, other):
-    #             sw /= ow
-    #     except TypeError:
-    #         for sw in self:
-    #             sw /= other
-    #     return self
 
     def __len__(self):
         return len(self.window_list)

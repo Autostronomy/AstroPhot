@@ -15,7 +15,7 @@ There are three main coordinate systems to think about.
    astronomical sources are represented in. These should always be
    used in degree units as far as AstroPhot is concerned.
 #. ``plane`` coordinates are the tangent plane on which AstroPhot
-   performs it's calculations. Working on a plane makes everything
+   performs its calculations. Working on a plane makes everything
    linear and does not introduce a noticible effect for small enough
    images. In the tangent plane everything should be represented in
    arcsecond units.
@@ -23,10 +23,14 @@ There are three main coordinate systems to think about.
    (0,0) in the center of the [0,0] indexed pixel. These are
    effectively unitless, a step of 1 in pixel coordinates is the same
    as changing an index by 1. Though image array indexing is flipped
-   so pixel coordinate (1,0) represents the center of the index [0,1]
-   pixel. Also, in the pixel coordinate system the values are
-   represented by floating point numbers and so (1.3,2.8) is a valid
-   pixel coordinate that is just partway between pixel centers.
+   so pixel coordinate (3,10) represents the center of the index
+   [10,3] pixel. It is a convention for most images that the first
+   axis indexes vertically and the second axis indexis horizontally,
+   if this is not the case for oyur images you can apply a transpose
+   before passing the data to AstroPhot. Also, in the pixel coordinate
+   system the values are represented by floating point numbers and so
+   (1.3,2.8) is a valid pixel coordinate that is just partway between
+   pixel centers.
 
 Tranformations exist in AstroPhot for converting ``world`` to/from
 ``plane`` and for converting ``plane`` to/from ``pixel``. The best way
@@ -40,8 +44,8 @@ One gotcha to keep in mind with regards to ``world_to_plane`` and
 sphere. You can set this by including ``reference_radec = (RA_0,
 DEC_0)`` as an argument in an image you create.  If a reference is not
 given, then one will be assumed based on avaialble information. Note
-that if you are doing multiband analysis you should ensure that the
-``reference_radec`` is same for all images!
+that if you are doing simultaneous multi-image analysis you should
+ensure that the ``reference_radec`` is same for all images!
 
 Projection Systems
 ------------------
@@ -76,15 +80,24 @@ already been performed.
 Talking to the world
 --------------------
 
-If you have images with WCS information (likely Astropy WCS) then you
-will want to use this to map images onto the same tangent plane. That
-is mostly described in the basics section, however there are some more
-features you can take advantage of. When creating an image in
-AstroPhot, you need to tell it some basic properties so that the image
-knows how to place itself in the tangent plane. Using the WCS object
-you should be able to recover the coordinates of the image in (RA,
-DEC), for an example wcs object you could accomplish this by
-doing something like::
+If you have images with WCS information then you will want to use this
+to map images onto the same tangent plane. Often this will take the
+form of information in a FITS file, which can easily be accessed using
+Astropy like::
+
+  from astropy.io import fits
+  from astropy.wcs import WCS
+  hdu = fits.open("myimage.fits")
+  data = hdu[0].data
+  wcs = WCS(hdu[0].header)
+
+That is somewhat described in the basics section, however there are
+some more features you can take advantage of. When creating an image
+in AstroPhot, you need to tell it some basic properties so that the
+image knows how to place itself in the tangent plane. Using the
+Astropy WCS object above you should be able to recover the coordinates
+of the image in (RA, DEC), for an example Astropy wcs object you could
+accomplish this by doing something like::
 
   ra, dec = wcs.wcs.crval
 
@@ -101,7 +114,7 @@ would look something like::
 
 AstroPhot will set the reference RA, DEC to these coordinates and also
 set the image in the correct position. A more explicit alternative is
-to just say what the reference coordiante should be. That would look
+to just say what the reference coordinate should be. That would look
 something like::
   
   image = ap.image.Target_Image(
@@ -144,16 +157,17 @@ Which will start the object at the correct position in the image given
 its world coordinates. As you can see, the ``center`` and in fact all
 parameters for AstroPhot models are defined in the tangent plane. This
 means that if you have optimized a model and you would like to present
-it's position in world coordinates that can be compared with other
+its position in world coordinates that can be compared with other
 sources, you will need to do the opposite operation::
 
   world_position = image.window.plane_to_world(model["center"].value)
 
-Which should be the coordinates in RA and DEC (degrees), assuming that
-you initialized the image with a WCS or by other means ensured that
-the world coordinates being used are correct. If you never gave
-AstroPhot the information it needs, then it likely assumed a reference
-position of (0,0) in the world coordinate system.
+That should assign ``world_position`` the coordinates in RA and DEC
+(degrees), assuming that you initialized the image with a WCS or by
+other means ensured that the world coordinates being used are
+correct. If you never gave AstroPhot the information it needs, then it
+likely assumed a reference position of (0,0) in the world coordinate
+system.
 
 Coordinate reference points
 ---------------------------
@@ -165,9 +179,9 @@ of two vectors: ``reference_radec`` and ``reference_planexy``. These
 variables are stored in all ``Image_Header`` objects and essentially
 pin down the mapping such that one coordinate will get mapped to the
 other. All other coordinates follow from the projection system assumed
-(i.e. Gnomonic). It is possible to specify these variables directly
+(i.e., Gnomonic). It is possible to specify these variables directly
 when constructing an image, or implicitly if you give some other
-relevant information (eg an Astropy WCS). AstroPhot Window objects
+relevant information (e.g., an Astropy WCS). AstroPhot Window objects
 also keep track of two more vectors: ``reference_imageij`` and
 ``reference_imagexy``. These variables control where an image is
 placed in the tangent plane and represent a fixed point between the

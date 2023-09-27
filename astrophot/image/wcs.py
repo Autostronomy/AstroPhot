@@ -1,4 +1,3 @@
-from abc import ABC
 import torch
 import numpy as np
 
@@ -15,7 +14,7 @@ arcsec_to_rad = deg_to_rad / 3600
 class WPCS:
     """World to Plane Coordinate System in AstroPhot.
 
-    AstroPhot performs it's operations on a tangent plane to the
+    AstroPhot performs its operations on a tangent plane to the
     celestial sphere, this class handles projections between the sphere and the
     tangent plane. It holds variables for the reference (RA,DEC) where
     the tangent plane contacts the sphere, and the type of projection
@@ -29,7 +28,7 @@ class WPCS:
 
     """
 
-    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
+    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0). This is in units of arcsec.
     softening = 1e-3
     
     default_reference_radec = (0,0)
@@ -43,7 +42,7 @@ class WPCS:
         
         
     def world_to_plane(self, world_RA, world_DEC=None):
-        """Take a coordinate on the world coordiante system, also called the
+        """Take a coordinate on the world coordinate system, also called the
         celesial sphere, (RA, DEC in degrees) and transform it to the
         cooresponding tangent plane coordinate
         (arcsec). Transformation is done based on the chosen
@@ -153,7 +152,7 @@ class WPCS:
     @property
     def reference_radec(self):
         """
-        RA DEC (world) coordiantes where the tangent plane meets the celestial sphere. These should be in degrees.
+        RA DEC (world) coordinates where the tangent plane meets the celestial sphere. These should be in degrees.
         """
         return self._reference_radec
 
@@ -165,7 +164,7 @@ class WPCS:
     @property
     def reference_planexy(self):
         """
-        x y tangent plane coordiantes where the tangent plane meets the celestial sphere. These should be in arcsec.
+        x y tangent plane coordinates where the tangent plane meets the celestial sphere. These should be in arcsec.
         """
         return self._reference_planexy
 
@@ -397,7 +396,7 @@ class WPCS:
 
     def get_fits_state(self):
         """
-        Similar to get_state, except specifically tailored to be stored in a fits format.
+        Similar to get_state, except specifically tailored to be stored in a FITS format.
         """
         return {
             "PROJ": self.projection,
@@ -546,7 +545,7 @@ class PPCS:
 
     @property
     def reference_imageij(self):
-        """pixel coordiantes where the pixel grid is fixed to the tangent
+        """pixel coordinates where the pixel grid is fixed to the tangent
         plane. These should be in pixel units where (0,0) is the
         center of the [0,0] indexed pixel. However, it is still in xy
         format, meaning that the first index gives translations in the
@@ -562,7 +561,7 @@ class PPCS:
         )
     @property
     def reference_imagexy(self):
-        """plane coordiantes where the image grid is fixed to the tangent
+        """plane coordinates where the image grid is fixed to the tangent
         plane. These should be in arcsec.
 
         """
@@ -577,12 +576,12 @@ class PPCS:
     def pixel_to_plane(self, pixel_i, pixel_j=None):
         """Take in a coordinate on the regular pixel grid, where 0,0 is the
         center of the [0,0] indexed pixel. This coordinate is
-        transformed into the tangent plane coordiante system (arcsec)
+        transformed into the tangent plane coordinate system (arcsec)
         based on the pixel scale and reference positions. If the pixel
         scale matrix is :math:`P`, the reference pixel is
         :math:`\vec{r}_{pix}`, the reference tangent plane point is
         :math:`\vec{r}_{tan}`, and the coordinate to transform is
-        :math:`\vec{c}_{pix}` then the coordiante in the tangent plane
+        :math:`\vec{c}_{pix}` then the coordinate in the tangent plane
         is:
 
         .. math::
@@ -602,7 +601,7 @@ class PPCS:
         scale matrix is :math:`P`, the reference pixel is
         :math:`\vec{r}_{pix}`, the reference tangent plane point is
         :math:`\vec{r}_{tan}`, and the coordinate to transform is
-        :math:`\vec{c}_{tan}` then the coordiante in the pixel grid
+        :math:`\vec{c}_{tan}` then the coordinate in the pixel grid
         is:
 
         .. math::
@@ -699,10 +698,10 @@ class WCS(WPCS, PPCS):
                 AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatable with AstroPhot.")
                 
         if wcs is not None:
-            sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
-            kwargs["reference_radec"] = kwargs.get("reference_radec", (sky_coord.ra.deg, sky_coord.dec.deg))
+            kwargs["reference_radec"] = kwargs.get("reference_radec", wcs.wcs.crval)
             kwargs["reference_imageij"] = wcs.wcs.crpix
             WPCS.__init__(self, *args, wcs=wcs, **kwargs)
+            sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
             kwargs["reference_imagexy"] = self.world_to_plane(torch.tensor((sky_coord.ra.deg, sky_coord.dec.deg), dtype=AP_config.ap_dtype, device=AP_config.ap_device))
         else:
             WPCS.__init__(self, *args, **kwargs)

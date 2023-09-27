@@ -436,20 +436,20 @@ class Image_List(Image):
         self.check_wcs()
         
     def check_wcs(self):
-        """Ensure the WCS system being used by all the windows in this list
+        """Ensure the WCS systems being used by all the windows in this list
         are consistent with each other. They should all project world
         coordinates onto the same tangent plane.
 
         """
         ref = torch.stack(tuple(I.window.reference_radec for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference coordinate (RA DEC) missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Reference coordinate (RA DEC) mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
         ref = torch.stack(tuple(I.window.reference_planexy for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference coordinate (tangent plane) missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Reference coordinate (tangent plane) mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         if len(set(I.window.projection for I in self.image_list)) > 1:
-            AP_config.ap_logger.error("Projection missmatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            AP_config.ap_logger.error("Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
     @property
     def window(self):
