@@ -42,9 +42,9 @@ This documentation is a work in progress, further updates will come.
     install.rst
     getting_started.rst
     tutorials.rst
-    contributing.rst
+    coordinates.rst
+    troubleshooting.rst
     citation.rst
-    license.rst   
 
 User Documentation
 ==================
@@ -55,9 +55,9 @@ This documentation includes all functions available in the AstroPhot package. Fo
     :maxdepth: 1
 
     modules.rst
-    coordinates.rst
     configfile_interface.rst
-    troubleshooting.rst
+    license.rst   
+    contributing.rst
               
 |br|
 
