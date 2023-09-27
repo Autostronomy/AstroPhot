@@ -212,7 +212,7 @@ class Component_Model(AstroPhot_Model):
             return
 
         # Convert center coordinates to target area array indices
-        init_icenter = target_area.world_to_pixel(parameters["center"].value)
+        init_icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         # Compute center of mass in window
         COM = center_of_mass(
@@ -229,7 +229,7 @@ class Component_Model(AstroPhot_Model):
             return
         COM = (COM[1], COM[0])
         # Convert center of mass indices to coordinates
-        COM_center = target_area.pixel_to_world(
+        COM_center = target_area.pixel_to_plane(
             torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
 
@@ -322,7 +322,7 @@ class Component_Model(AstroPhot_Model):
             else:
                 psf = self.psf
             # Add border for psf convolution edge effects, will be cropped out later
-            working_window += psf.psf_border
+            working_window.pad_pixel(psf.psf_border_int)
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = image.pixelscale / psf.psf_upscale
             # Make the image object to which the samples will be tracked
@@ -331,9 +331,9 @@ class Component_Model(AstroPhot_Model):
             )
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
-                pixel_center = working_image.world_to_pixel(parameters["center"].value)
+                pixel_center = working_image.plane_to_pixel(parameters["center"].value)
                 center_shift = pixel_center - torch.round(pixel_center)
-                working_image.header.pixel_shift_origin(center_shift)
+                working_image.header.pixel_shift(center_shift)
             else:
                 center_shift = None
 
@@ -358,7 +358,7 @@ class Component_Model(AstroPhot_Model):
 
             # Shift image back to align with original pixel grid
             if self.psf_subpixel_shift != "none":
-                working_image.header.pixel_shift_origin(-center_shift)
+                working_image.header.pixel_shift(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
             working_image = working_image.reduce(psf.psf_upscale).crop(
                 psf.psf_border_int

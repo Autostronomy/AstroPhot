@@ -3,6 +3,7 @@ from astrophot import image
 import astrophot as ap
 import torch
 
+from utils import get_astropy_wcs
 ######################################################################
 # Image Objects
 ######################################################################
@@ -12,7 +13,7 @@ class TestImage(unittest.TestCase):
     def test_image_creation(self):
         arr = torch.zeros((10, 15))
         base_image = image.Image(
-            arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
+            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
         )
 
         self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
@@ -21,7 +22,7 @@ class TestImage(unittest.TestCase):
         self.assertEqual(base_image.origin[1], 0, "image should track origin")
         self.assertEqual(base_image.note, "test image", "image should track note")
 
-        slicer = image.Window((3, 2), (4, 5))
+        slicer = image.Window(origin = (3, 2), pixel_shape = (4, 5))
         sliced_image = base_image[slicer]
         self.assertEqual(sliced_image.origin[0], 3, "image should track origin")
         self.assertEqual(sliced_image.origin[1], 2, "image should track origin")
@@ -32,7 +33,7 @@ class TestImage(unittest.TestCase):
             base_image.origin[1], 0, "subimage should not change image origin"
         )
 
-        second_base_image = image.Image(arr, pixelscale=1.0, note="test image")
+        second_base_image = image.Image(data = arr, pixelscale=1.0, note="test image")
         self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
         self.assertIsNone(second_base_image.zeropoint, "image should track zeropoint")
         self.assertEqual(second_base_image.origin[0], 0, "image should track origin")
@@ -44,7 +45,7 @@ class TestImage(unittest.TestCase):
     def test_copy(self):
 
         new_image = image.Image(
-            torch.zeros((10, 15)),
+            data = torch.zeros((10, 15)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
@@ -105,7 +106,7 @@ class TestImage(unittest.TestCase):
             origin=torch.ones(2),
             note="test image",
         )
-        slicer = image.Window((0, 0), (5, 5))
+        slicer = image.Window(origin = (0, 0), pixel_shape = (5, 5))
         sliced_image = base_image[slicer]
         sliced_image += 1
 
@@ -164,10 +165,48 @@ class TestImage(unittest.TestCase):
             base_image.data[8][8], 1, "array addition should update its region"
         )
 
+    def test_excersize_arithmatic(self):
+
+        arr = torch.zeros((10, 12))
+        base_image = image.Image(
+            data=arr,
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.ones(2),
+            note="test image",
+        )
+        second_image = image.Image(
+            data=torch.ones((5, 5)),
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=[3, 3],
+            note="second image",
+        )
+
+        new_img = base_image + second_image
+        new_img = new_img - second_image
+
+        self.assertTrue(torch.allclose(new_img.data, torch.zeros_like(new_img.data)), "addition and subtraction should produce no change")
+        
+        base_image += second_image
+        base_image -= second_image
+
+        self.assertTrue(torch.allclose(base_image.data, torch.zeros_like(base_image.data)), "addition and subtraction should produce no change")
+
+        new_img = base_image + 10.
+        new_img = new_img - 10.
+
+        self.assertTrue(torch.allclose(new_img.data, torch.zeros_like(new_img.data)), "addition and subtraction should produce no change")
+        
+        base_image += 10.
+        base_image -= 10.
+
+        self.assertTrue(torch.allclose(base_image.data, torch.zeros_like(base_image.data)), "addition and subtraction should produce no change")
+        
     def test_image_manipulation(self):
 
         new_image = image.Image(
-            torch.ones((16, 32)),
+            data = torch.ones((16, 32)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
@@ -220,7 +259,7 @@ class TestImage(unittest.TestCase):
     def test_image_save_load(self):
 
         new_image = image.Image(
-            torch.ones((16, 32)),
+            data =torch.ones((16, 32)),
             pixelscale=0.76,
             zeropoint=21.4,
             origin=torch.zeros(2) + 0.1,
@@ -249,6 +288,34 @@ class TestImage(unittest.TestCase):
             loaded_image.zeropoint,
             "Loaded image should have same zeropoint",
         )
+
+    def test_image_wcs_roundtrip(self):
+
+        wcs = get_astropy_wcs()
+        # Minimial input
+        I = ap.image.Image(
+            data = torch.zeros((20,20)),
+            zeropoint = 22.5,
+            wcs = wcs,
+        )
+
+        self.assertTrue(torch.allclose(I.world_to_plane(I.plane_to_world(torch.zeros_like(I.window.reference_radec))), torch.zeros_like(I.window.reference_radec)), "WCS world/plane roundtrip should return input value")
+        self.assertTrue(torch.allclose(I.pixel_to_plane(I.plane_to_pixel(torch.zeros_like(I.window.reference_radec))), torch.zeros_like(I.window.reference_radec)), "WCS pixel/plane roundtrip should return input value")
+        self.assertTrue(torch.allclose(I.world_to_pixel(I.pixel_to_world(torch.zeros_like(I.window.reference_radec))), torch.zeros_like(I.window.reference_radec), atol = 1e-6), "WCS world/pixel roundtrip should return input value")
+
+        self.assertTrue(torch.allclose(I.pixel_to_plane_delta(I.plane_to_pixel_delta(torch.ones_like(I.window.reference_radec))), torch.ones_like(I.window.reference_radec)), "WCS pixel/plane delta roundtrip should return input value")
+        
+    def test_image_display(self):
+        new_image = image.Image(
+            data =torch.ones((16, 32)),
+            pixelscale=0.76,
+            zeropoint=21.4,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+        )
+
+        self.assertIsInstance(str(new_image), str, "String representation should be a string!")
+        self.assertIsInstance(repr(new_image), str, "Repr should be a string!")
 
 
 class TestTargetImage(unittest.TestCase):
@@ -297,7 +364,7 @@ class TestTargetImage(unittest.TestCase):
     def test_psf(self):
 
         new_image = image.Target_Image(
-            data=torch.ones((16, 32)),
+            data=torch.ones((15, 33)),
             psf=torch.ones((9, 9)),
             pixelscale=1.0,
             zeropoint=1.0,
@@ -307,11 +374,6 @@ class TestTargetImage(unittest.TestCase):
         self.assertTrue(new_image.has_psf, "target image should store variance")
         self.assertEqual(
             new_image.psf.psf_border_int[0],
-            5,
-            "psf border should be half psf size, rounded up ",
-        )
-        self.assertEqual(
-            new_image.psf.psf_border[0],
             5,
             "psf border should be half psf size, rounded up ",
         )
@@ -418,6 +480,7 @@ class TestModelImage(unittest.TestCase):
         )
 
         new_image.replace(other_image)
+        new_image.replace(other_image.window, other_image.data)
 
         self.assertEqual(
             new_image.data[0][0],
@@ -427,6 +490,8 @@ class TestModelImage(unittest.TestCase):
         self.assertEqual(
             new_image.data[5][5], 5, "image replace should update values in its window"
         )
+
+        
 
     def test_shift(self):
 
@@ -456,7 +521,7 @@ class TestJacobianImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             window=ap.image.Window(
-                origin=torch.zeros(2) + 0.1, shape=torch.tensor((16, 32))
+                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
             ),
             note="test image",
         )
@@ -467,7 +532,7 @@ class TestJacobianImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             window=ap.image.Window(
-                origin=torch.zeros(2) + 4 + 0.1, shape=torch.tensor((4, 4))
+                origin=torch.zeros(2) + 4 + 0.1, pixel_shape=torch.tensor((4, 4))
             ),
             note="other image",
         )

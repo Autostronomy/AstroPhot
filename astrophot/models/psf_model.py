@@ -49,7 +49,7 @@ class PSF_Star(Star_Model):
                 data=torch.clone(self.psf.data),
                 pixelscale=self.psf.pixelscale,
             )
-        self.psf_model.header.shift_origin(
+        self.psf_model.header.shift(
             self.psf_model.origin - self.psf_model.center
         )
 
@@ -77,9 +77,7 @@ class PSF_Star(Star_Model):
             X, Y = Coords - parameters["center"].value[..., None, None]
 
         # Convert coordinates into pixel locations in the psf image
-        pX, pY = self.psf_model.world_to_pixel(
-            torch.stack((X, Y)).view(2, -1), unsqueeze_origin=True
-        )
+        pX, pY = self.psf_model.plane_to_pixel(X, Y)
         pX = pX.reshape(X.shape)
         pY = pY.reshape(Y.shape)
 

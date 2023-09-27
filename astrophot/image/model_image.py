@@ -23,7 +23,7 @@ class Model_Image(Image):
         assert not (data is None and window is None)
         if data is None:
             data = torch.zeros(
-                tuple(window.get_shape_flip(pixelscale)),
+                torch.flip(window.pixel_shape,(0,)).detach().cpu().tolist(),
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
@@ -35,8 +35,8 @@ class Model_Image(Image):
         self.data = torch.zeros_like(self.data)
 
     def shift_origin(self, shift, is_prepadded=True):
-        self.window.shift_origin(shift)
-        pix_shift = self.world_to_pixel_delta(shift)
+        self.window.shift(shift)
+        pix_shift = self.plane_to_pixel_delta(shift)
         if torch.any(torch.abs(pix_shift) > 1):
             raise NotImplementedError(
                 "Shifts larger than 1 pixel are currently not handled"
@@ -63,8 +63,8 @@ class Model_Image(Image):
         if isinstance(other, Image):
             if self.window.overlap_frac(other.window) == 0.0:  # fixme control flow
                 return
-            other_indices = self.window.get_indices(other)
-            self_indices = other.window.get_indices(self)
+            other_indices = self.window.get_other_indices(other)
+            self_indices = other.window.get_other_indices(self)
             if (
                 self.data[self_indices].nelement() == 0
                 or other.data[other_indices].nelement() == 0
@@ -72,7 +72,7 @@ class Model_Image(Image):
                 return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
-            self.data[other.get_indices(self)] = data
+            self.data[self.window.get_self_indices(other)] = data
         else:
             self.data = other
 

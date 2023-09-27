@@ -5,7 +5,7 @@ import torch
 from torch.nn.functional import pad
 import numpy as np
 from astropy.io import fits
-from astropy.wcs import WCS
+from astropy.wcs import WCS as AstropyWCS
 
 from .window_object import Window, Window_List
 from .image_header import Image_Header
@@ -32,9 +32,10 @@ class Image(object):
 
     def __init__(
         self,
+        *,
         data: Optional[Union[torch.Tensor]] = None,
         header: Optional[Image_Header] = None,
-        wcs: Optional["astropy.wcs.wcs.WCS"] = None,
+        wcs: Optional[AstropyWCS] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         window: Optional[Window] = None,
         filename: Optional[str] = None,
@@ -99,6 +100,9 @@ class Image(object):
         self.data = data
         self.to()
 
+        # # Check that image data and header are in agreement (this requires talk back from GPU to CPU so is only used for testing)
+        # assert np.all(np.flip(np.array(self.data.shape)[:2]) == self.window.pixel_shape.numpy()), f"data shape {np.flip(np.array(self.data.shape)[:2])}, window shape {self.window.pixel_shape.numpy()}"
+
     @property
     def north(self):
         return self.header.north
@@ -111,19 +115,28 @@ class Image(object):
     def pixel_length(self):
         return self.header.pixel_length
 
-    def pixel_to_world(self, pixel_coordinate, internal_transpose=False):
-        return self.header.pixel_to_world(
-            pixel_coordinate, internal_transpose=internal_transpose
-        )
-
-    def world_to_pixel(self, world_coordinate, unsqueeze_origin=False):
-        return self.header.world_to_pixel(world_coordinate, unsqueeze_origin)
-
-    def pixel_to_world_delta(self, pixel_coordinate):
-        return self.header.pixel_to_world_delta(pixel_coordinate)
-
-    def world_to_pixel_delta(self, world_coordinate):
-        return self.header.world_to_pixel_delta(world_coordinate)
+    def world_to_plane(self, *args, **kwargs):
+        return self.window.world_to_plane(*args, **kwargs)
+    def plane_to_world(self, *args, **kwargs):
+        return self.window.plane_to_world(*args, **kwargs)
+    def plane_to_pixel(self, *args, **kwargs):
+        return self.window.plane_to_pixel(*args, **kwargs)
+    def pixel_to_plane(self, *args, **kwargs):
+        return self.window.pixel_to_plane(*args, **kwargs)
+    def plane_to_pixel_delta(self, *args, **kwargs):
+        return self.window.plane_to_pixel_delta(*args, **kwargs)
+    def pixel_to_plane_delta(self, *args, **kwargs):
+        return self.window.pixel_to_plane_delta(*args, **kwargs)
+    def world_to_pixel(self, *args, **kwargs):
+        return self.window.world_to_pixel(*args, **kwargs)
+    def pixel_to_world(self, *args, **kwargs):
+        return self.window.pixel_to_world(*args, **kwargs)
+    def get_coordinate_meshgrid(self):
+        return self.window.get_coordinate_meshgrid()
+    def get_coordinate_corner_meshgrid(self):
+        return self.window.get_coordinate_corner_meshgrid()
+    def get_coordinate_simps_meshgrid(self):
+        return self.window.get_coordinate_simps_meshgrid()
 
     @property
     def origin(self) -> torch.Tensor:
@@ -239,7 +252,7 @@ class Image(object):
     def get_window(self, window, **kwargs):
         """Get a sub-region of the image as defined by a window on the sky."""
         return self.__class__(
-            data=self.data[window.get_indices(self)],
+            data=self.data[self.window.get_self_indices(window)],
             header=self.header.get_window(window, **kwargs),
             **kwargs,
         )
@@ -318,7 +331,7 @@ class Image(object):
             data=self.data[: MS * scale, : NS * scale]
             .reshape(MS, scale, NS, scale)
             .sum(axis=(1, 3)),
-            header=self.header.reduce(scale, **kwargs),
+            header=self.header.rescale_pixel(scale, **kwargs),
             **kwargs,
         )
 
@@ -359,47 +372,27 @@ class Image(object):
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_indices(other)]
+            new_img.data -= other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_indices(self)].copy()
+            new_img = self.copy()
             new_img.data -= other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_indices(other)]
+            new_img.data += other.data[self.window.get_other_indices(other)]
             return new_img
         else:
-            new_img = self[other.window.get_indices(self)].copy()
-            new_img.data += other
-            return new_img
-
-    def __sub__(self, other):
-        if isinstance(other, Image):
-            new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_indices(self)].copy()
-            new_img.data -= other
-            return new_img
-
-    def __add__(self, other):
-        if isinstance(other, Image):
-            new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_indices(other)]
-            return new_img
-        else:
-            new_img = self[other.window.get_indices(self)].copy()
+            new_img = self.copy()
             new_img.data += other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data[other.window.get_indices(self)] += other.data[
-                self.window.get_indices(other)
+            self.data[other.window.get_other_indices(self)] += other.data[
+                self.window.get_other_indices(other)
             ]
         else:
             self.data += other
@@ -407,8 +400,8 @@ class Image(object):
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data[other.window.get_indices(self)] -= other.data[
-                self.window.get_indices(other)
+            self.data[other.window.get_other_indices(self)] -= other.data[
+                self.window.get_other_indices(other)
             ]
         else:
             self.data -= other
@@ -422,12 +415,32 @@ class Image(object):
         raise ValueError("Unrecognized Image getitem request!")
 
     def __str__(self):
-        return f"image pixelscale: {self.pixelscale} origin: {self.origin}\ndata: {self.data}"
+        return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()}"
+
+    def __repr__(self):
+        return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()} center: {self.center.detach().cpu().numpy()}\ndata: {self.data.detach().cpu().numpy()}"
 
 
 class Image_List(Image):
     def __init__(self, image_list):
         self.image_list = list(image_list)
+        self.check_wcs()
+        
+    def check_wcs(self):
+        """Ensure the WCS systems being used by all the windows in this list
+        are consistent with each other. They should all project world
+        coordinates onto the same tangent plane.
+
+        """
+        ref = torch.stack(tuple(I.window.reference_radec for I in self.image_list))
+        if not torch.allclose(ref, ref[0]):
+            AP_config.ap_logger.error("Reference coordinate (RA DEC) mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+        ref = torch.stack(tuple(I.window.reference_planexy for I in self.image_list))
+        if not torch.allclose(ref, ref[0]):
+            AP_config.ap_logger.error("Reference coordinate (tangent plane) mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+
+        if len(set(I.window.projection for I in self.image_list)) > 1:
+            AP_config.ap_logger.error("Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
     @property
     def window(self):
@@ -571,6 +584,11 @@ class Image_List(Image):
     def __str__(self):
         return f"image list of:\n" + "\n".join(
             image.__str__() for image in self.image_list
+        )
+
+    def __repr__(self):
+        return f"image list of:\n" + "\n".join(
+            image.__repr__() for image in self.image_list
         )
 
     def __iter__(self):

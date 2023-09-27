@@ -12,7 +12,7 @@ class TestImageList(unittest.TestCase):
     def test_image_creation(self):
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
-            arr1,
+            data=arr1,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
@@ -20,7 +20,7 @@ class TestImageList(unittest.TestCase):
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
-            arr2,
+            data=arr2,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
@@ -49,7 +49,7 @@ class TestImageList(unittest.TestCase):
             self.assertEqual(image.note, original_image.note, "image should track note")
 
         slicer = ap.image.Window_List(
-            (ap.image.Window((3, 2), (4, 5)), ap.image.Window((3, 2), (4, 5)))
+            (ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)), ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)))
         )
         sliced_image = test_image[slicer]
 
@@ -68,7 +68,7 @@ class TestImageList(unittest.TestCase):
 
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
-            arr1,
+            data=arr1,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
@@ -76,7 +76,7 @@ class TestImageList(unittest.TestCase):
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
-            arr2,
+            data=arr2,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
@@ -127,7 +127,7 @@ class TestImageList(unittest.TestCase):
 
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
-            arr1,
+            data=arr1,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
@@ -135,7 +135,7 @@ class TestImageList(unittest.TestCase):
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
-            arr2,
+            data=arr2,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
@@ -145,7 +145,7 @@ class TestImageList(unittest.TestCase):
 
         arr3 = torch.ones((10, 15))
         base_image3 = ap.image.Image(
-            arr3,
+            data=arr3,
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.ones(2),
@@ -153,7 +153,7 @@ class TestImageList(unittest.TestCase):
         )
         arr4 = torch.zeros((15, 10))
         base_image4 = ap.image.Image(
-            arr4,
+            data=arr4,
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.zeros(2),
@@ -192,6 +192,29 @@ class TestImageList(unittest.TestCase):
         self.assertEqual(
             test_image[1].data[1][1], 1, "image addition should update its region"
         )
+
+    def test_image_list_display(self):
+        arr1 = torch.zeros((10, 15))
+        base_image1 = ap.image.Image(
+            data=arr1,
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2),
+            note="test image 1",
+        )
+        arr2 = torch.ones((15, 10))
+        base_image2 = ap.image.Image(
+            data=arr2,
+            pixelscale=0.5,
+            zeropoint=2.0,
+            origin=torch.ones(2),
+            note="test image 2",
+        )
+        test_image = ap.image.Image_List((base_image1, base_image2))
+
+        self.assertIsInstance(str(test_image), str, "String representation should be a string!")
+        self.assertIsInstance(repr(test_image), str, "Repr should be a string!")
+        
 
 
 class TestModelImageList(unittest.TestCase):
@@ -234,10 +257,14 @@ class TestModelImageList(unittest.TestCase):
             "adding then subtracting should give the same image",
         )
 
+        print(test_image.data)
         test_image.clear_image()
+        print(test_image.data)
         test_image.replace(second_image)
+        print(test_image.data)
 
         test_image -= (1, 1)
+        print(test_image.data)
 
         self.assertTrue(
             torch.all(test_image[0].data == save_image[0].data),
@@ -322,7 +349,7 @@ class TestJacobianImageList(unittest.TestCase):
             zeropoint=1.0,
             note="test image 1",
             window=ap.image.Window(
-                origin=torch.zeros(2) + 0.1, shape=torch.tensor((15, 10))
+                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((15, 10))
             ),
         )
         arr2 = torch.ones((15, 10, 3))
@@ -334,7 +361,7 @@ class TestJacobianImageList(unittest.TestCase):
             zeropoint=2.0,
             note="test image 2",
             window=ap.image.Window(
-                origin=torch.zeros(2) + 0.2, shape=torch.tensor((10, 15))
+                origin=torch.zeros(2) + 0.2, pixel_shape=torch.tensor((10, 15))
             ),
         )
 
