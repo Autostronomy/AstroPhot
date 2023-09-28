@@ -1,6 +1,6 @@
 from .base import Node
 
-__all__ = ["Param_Unlock"]
+__all__ = ("Param_Unlock", "Param_SoftLimits")
 
 class Param_Unlock(object):
     """Temporarily unlock a parameter.
@@ -23,11 +23,24 @@ class Param_Unlock(object):
             self.original_locked = self.param.locked
             self.param.locked = False
             
-    def __exit__(self):
+    def __exit__(self, *args, **kwargs):
         if self.param is None:
             Node.global_unlock = False
         else:
             self.param.locked = self.original_locked
+
+class Param_SoftLimits(object):
+
+    def __init__(self, param):
+        self.param = param
+
+    def __enter__(self, *args, **kwargs):
+        self.original_setter = self.param._set_val_self
+        self.param._set_val_self = self.param._soft_set_val_self
+            
+    def __exit__(self, *args, **kwargs):
+        self.param._set_val_self = self.original_setter   
+
 
 class Param_OverrideShape(object):
     """Temporarily allow writing values to parameters, with the wrong
@@ -46,7 +59,7 @@ class Param_OverrideShape(object):
         self.original_shape = self.param.shape
         self.param.shape = None
             
-    def __exit__(self):
+    def __exit__(self, *args, **kwargs):
         if self.param.shape is None:
             self.param.shape = self.original_shape
    
@@ -59,5 +72,5 @@ class Param_Mask(object):
     def __enter__(self):
         pass
 
-    def __exit__(self):
+    def __exit__(self, *args, **kwargs):
         pass

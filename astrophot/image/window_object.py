@@ -288,7 +288,7 @@ class Window(WCS):
     
     def get_state(self):
         state = super().get_state()
-        state["pixel_shape"] = tuple(self.pixel_shape.detach().cpu().tolist())
+        state["pixel_shape"] = self.pixel_shape.detach().cpu().tolist()
         return state
 
     def set_state(self, state):

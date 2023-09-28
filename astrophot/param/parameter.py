@@ -44,13 +44,44 @@ class Parameter_Node(Node):
 
         return self._value
 
+    def flat_value(self, include_locked = False):
+        flat = self.flat(include_locked)
+        size = 0
+        for node in flat.values():
+            size += node.size
+
+        val = torch.zeros(size, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        loc = 0
+        for node in flat.values():
+            val[loc:loc + node.size] = node.value.flatten()
+            loc += node.size
+        return val
+
     def _set_val_subnodes(self, val):
         flat = self.flat(include_locked = False)
         loc = 0
-        for node in flat.keys():
+        for node in flat.values():
             node.value = val[loc:loc + node.size]
             loc += node.size
 
+    def _soft_set_val_self(self, val):
+        if self.shape is not None:
+            self._value = torch.as_tensor(
+                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ).reshape(self.shape)
+        else:
+            self._value = torch.as_tensor(
+                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+            self.shape = self._value.shape
+            
+        if self.cyclic:
+            self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
+        if self.limits[0] is not None:
+            self._value = torch.maximum(self._value, torch.ones_like(self._value) * self.limits[0] * 1.001)
+        if self.limits[1] is not None:
+            self._value = torch.minimum(self._value, torch.ones_like(self._value) * self.limits[1] * 0.999)
+            
     def _set_val_self(self, val):
         if self.shape is not None:
             self._value = torch.as_tensor(
@@ -65,9 +96,9 @@ class Parameter_Node(Node):
         if self.cyclic:
             self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
         if self.limits[0] is not None:
-            assert torch.all(self._value > self.limits[0])
+            assert torch.all(self._value > self.limits[0]), f"{self.name} has lower limit {self.limits[0].detach().cpu().tolist()}"
         if self.limits[1] is not None:
-            assert torch.all(self._value < self.limits[1])
+            assert torch.all(self._value < self.limits[1]), f"{self.name} has upper limit {self.limits[1].detach().cpu().tolist()}"
         
     @value.setter
     def value(self, val):
@@ -76,7 +107,9 @@ class Parameter_Node(Node):
         if val is None:
             self._value = None
             self.shape = None
-            self.dump()
+            return
+        if isinstance(val, str):
+            self._value = val
             return
         if isinstance(val, Parameter_Node):
             self._value = val
@@ -186,17 +219,19 @@ class Parameter_Node(Node):
 
         """
         state = super().get_state()
-        
         if self.value is not None:
-            state["value"] = self.value.detach().cpu().numpy().tolist()
+            if isinstance(self._value, Node):
+                state["value"] = "NODE:" + str(self._value.identity)
+            elif isinstance(self._value, FunctionType):
+                state["value"] = "FUNCTION:" + self._value.__name__
+            else:
+                state["value"] = self.value.detach().cpu().numpy().tolist()
         if self.shape is not None:
-            state["shape"] = tuple(self.shape)
+            state["shape"] = list(self.shape)
         if self.units is not None:
             state["units"] = self.units
         if self.uncertainty is not None:
             state["uncertainty"] = self.uncertainty.detach().cpu().numpy().tolist()
-        if self.locked:
-            state["locked"] = self.locked
         if not (self.limits[0] is None and self.limits[1] is None):
             save_lim = []
             for i in [0, 1]:
@@ -204,7 +239,7 @@ class Parameter_Node(Node):
                     save_lim.append(None)
                 else:
                     save_lim.append(self.limits[i].detach().cpu().tolist())
-            state["limits"] = tuple(save_lim)
+            state["limits"] = save_lim
         if self.cyclic:
             state["cyclic"] = self.cyclic
         if self.prof is not None:
@@ -217,15 +252,18 @@ class Parameter_Node(Node):
         holds all information about a variable.
 
         """
+        
         super().set_state(state)
+        save_locked = self.locked
+        self.locked = False
         self.units = state.get("units", None)
-        self.limits = state.get("limits", None)
+        self.limits = state.get("limits", (None,None))
         self.cyclic = state.get("cyclic", False)
         self.uncertainty = state.get("uncertainty", None)
         self.value = state.get("value", None)
         self.prof = state.get("prof", None)
-        self.locked = state.get("locked", False)
-
+        self.locked = save_locked
+        
     def __eq__(self, other):
         return self is other
 
@@ -244,10 +282,3 @@ class Parameter_Node(Node):
             return self.flat_value().numel()
         return self.value.numel()
         
-    def __getitem__(self, key):
-        if isinstance(key, str):
-            if key == self.name:
-                return self
-            super().__getitem__(key)
-        
-        raise ValueError(f"Unrecognized getitem request: {key}")

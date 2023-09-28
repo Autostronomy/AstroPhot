@@ -3,6 +3,7 @@ from scipy.stats import iqr
 import torch
 
 from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..param import Param_Unlock, Param_SoftLimits
 from .sky_model_object import Sky_Model
 from ._shared_methods import select_target
 
@@ -32,7 +33,7 @@ class Flat_Sky(Sky_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        with Param_Unlock(parameters["sky"]):
+        with Param_Unlock(parameters["sky"]), Param_SoftLimits(parameters["sky"]):
             if parameters["sky"].value is None:
                 parameters["sky"].value = torch.log10(torch.median(target[self.window].data) / target.pixel_area)
             if parameters["sky"].uncertainty is None:

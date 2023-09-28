@@ -5,6 +5,7 @@ import torch
 from .sky_model_object import Sky_Model
 from ._shared_methods import select_target
 from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..param import Param_Unlock, Param_SoftLimits
 
 __all__ = ["Plane_Sky"]
 
@@ -39,7 +40,7 @@ class Plane_Sky(Sky_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        with Param_Unlock(parameters["sky"]):
+        with Param_Unlock(parameters["sky"]), Param_SoftLimits(parameters["sky"]):
             if parameters["sky"].value is None:
                 parameters["sky"].value = np.median(target[self.window].data.detach().cpu().numpy()) / target.pixel_area.item()
             if parameters["sky"].uncertainty is None:
@@ -50,7 +51,7 @@ class Plane_Sky(Sky_Model):
                     )
                     / (2.0)
                 ) / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
-        with Param_Unlock(parameters["delta"]):
+        with Param_Unlock(parameters["delta"]), Param_SoftLimits(parameters["delta"]):
             if parameters["delta"].value is None:
                 parameters["delta"].value = [0.0, 0.0]
                 parameters["delta"].uncertainty = [0.1, 0.1]

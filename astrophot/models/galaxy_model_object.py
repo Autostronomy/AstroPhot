@@ -11,7 +11,7 @@ from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
 )
-from ..param import Param_Unlock
+from ..param import Param_Unlock, Param_SoftLimits
 from .model_object import Component_Model
 from ._shared_methods import select_target
 
@@ -88,7 +88,7 @@ class Galaxy_Model(Component_Model):
                 q=1.0,
                 n_isophotes=15,
             )
-            with Param_Unlock(parameters["PA"]):
+            with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
                 parameters["PA"].value = (
                     -(
                         (
@@ -112,7 +112,7 @@ class Galaxy_Model(Component_Model):
                 pa=(parameters["PA"].value - target.north).detach().cpu().item(),
                 q=q_samples,
             )
-            with Param_Unlock(parameters["q"]):
+            with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
                 parameters["q"].value = q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))]
 
     @default_internal

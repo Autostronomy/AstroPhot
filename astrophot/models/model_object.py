@@ -17,7 +17,7 @@ from ..image import (
     Target_Image,
     Target_Image_List,
 )
-from ..param import Parameter_Node
+from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
@@ -202,7 +202,7 @@ class Component_Model(AstroPhot_Model):
 
         # Use center of window if a center hasn't been set yet
         if parameters["center"].value is None:
-            with Param_Unlock(parameters["center"]):
+            with Param_Unlock(parameters["center"]), Param_SoftLimits(parameters["center"]):
                 parameters["center"].value = self.window.center
         else:
             return
@@ -569,7 +569,7 @@ class Component_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-    def get_state(self):
+    def get_state(self, save_params = True):
         """Returns a dictionary with a record of the current state of the
         model.
 
@@ -582,10 +582,11 @@ class Component_Model(AstroPhot_Model):
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
-        state["parameters"] = self.parameters.get_state()
+        if save_params:
+            state["parameters"] = self.parameters.get_state()
         state["target_identity"] = self._target_identity
         if isinstance(self.psf, AstroPhot_Model):
-            state["psf"] = self.psf.get_state()
+            state["psf"] = self.psf.get_state(save_params = False)
         for key in self.track_attrs:
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
@@ -616,11 +617,15 @@ class Component_Model(AstroPhot_Model):
             if key in state:
                 setattr(self, key, state[key])
         # Load the parameter group, this is handled by the parameter group object
-        self.parameters = Parameter_Node(self.name, state=state["parameters"])
+        if isinstance(state["parameters"], Parameter_Node):
+            self.parameters = state["parameters"]
+        else:
+            self.parameters = Parameter_Node(self.name, state=state["parameters"])
         # Move parameters to the appropriate device and dtype
         self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         # Re-create the aux PSF model if there was one
         if "psf" in state:
+            state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]
             self.set_aux_psf(
                 AstroPhot_Model(
                     state["psf"]["name"],

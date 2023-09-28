@@ -382,8 +382,8 @@ class WPCS:
         """
         return {
             "projection": self.projection,
-            "reference_radec": tuple(self.reference_radec.detach().cpu().tolist()),
-            "reference_planexy": tuple(self.reference_planexy.detach().cpu().tolist()),
+            "reference_radec": self.reference_radec.detach().cpu().tolist(),
+            "reference_planexy": self.reference_planexy.detach().cpu().tolist(),
         }
     def set_state(self, state):
         """Takes a state dictionary and re-creates the state of the WPCS
@@ -654,9 +654,9 @@ class PPCS:
     
     def get_state(self):
         return {
-            "pixelscale": tuple(self.pixelscale.detach().cpu().tolist()),
-            "reference_imageij": tuple(self.reference_imageij.detach().cpu().tolist()),
-            "reference_imagexy": tuple(self.reference_imagexy.detach().cpu().tolist()),
+            "pixelscale": self.pixelscale.detach().cpu().tolist(),
+            "reference_imageij": self.reference_imageij.detach().cpu().tolist(),
+            "reference_imagexy": self.reference_imagexy.detach().cpu().tolist(),
         }
     def set_state(self, state):
         self.pixelscale = state.get("pixelscale", self.default_pixelscale)

@@ -32,7 +32,7 @@ from ..image import (
     Target_Image_List,
     Window_List,
 )
-from ..param import Param_Unlock
+from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 # Target Selector Decorator
@@ -151,7 +151,7 @@ def parametric_initialize(
                 minimize(optim, x0=x0, args=(R[N], flux[N]), method="Nelder-Mead")
             )
     for param, resx, x0x in zip(params, res.x, x0):
-        with Param_Unlock(parameters[param]):
+        with Param_Unlock(parameters[param]), Param_SoftLimits(parameters[param]):
             if parameters[param].value is None:
                 parameters[param].value = resx if res.success else x0x
             if force_uncertainty is None and parameters[param].uncertainty is None:
@@ -200,12 +200,13 @@ def parametric_segment_initialize(
     )
     R = np.array(list(iso["R"] for iso in iso_info)) * target.pixel_length.item()
     was_none = list(False for i in range(len(params)))
+    val = {}
+    unc = {}
     for i, p in enumerate(params):
         if model[p].value is None:
-            with Param_Unlock(model[p]):
-                was_none[i] = True
-                model[p].value = np.zeros(segments)
-                model[p].uncertainty = np.zeros(segments)
+            was_none[i] = True
+            val[p] = np.zeros(segments)
+            unc[p] = np.zeros(segments)
     for r in range(segments):
         flux = []
         for iso in iso_info:
@@ -254,12 +255,15 @@ def parametric_segment_initialize(
                 )
         for i, param in enumerate(params):
             if was_none[i]:
-                with Param_Unlock(model[param]):
-                    model[param].value[r] = res.x[i] if res.success else x0[i]
-                    if force_uncertainty is None and model[param].uncertainty is None:
-                        model[param].uncertainty[r] = np.std(list(subres.x[params.index(param)] for subres in reses))
-                    elif force_uncertainty is not None:
-                        model[param].uncertainty[r] = force_uncertainty[params.index(param)][r]
+                val[param][r] = res.x[i] if res.success else x0[i]
+                if force_uncertainty is None and model[param].uncertainty is None:
+                    unc[r] = np.std(list(subres.x[params.index(param)] for subres in reses))
+                elif force_uncertainty is not None:
+                    unc[r] = force_uncertainty[params.index(param)][r]
+                
+            with Param_Unlock(model[param]), Param_SoftLimits(model[param]):
+                model[param].value = val[param]
+                model[param].uncertainty = unc[param]
 
 
 # Exponential
@@ -419,7 +423,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
     N = np.isfinite(S)
     if not np.all(N):
         S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-    with Param_Unlock(parameters["I(R)"]):
+    with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
         parameters["I(R)"].value = np.log10(np.abs(I))
         parameters["I(R)"].uncertainty = S / (np.abs(I) * np.log(10))
 
@@ -448,10 +452,6 @@ def spline_segment_initialize(
         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
         parameters["I(R)"].prof = new_prof
 
-    with Param_Unlock(parameters["I(R)"]):
-        parameters["I(R)"].value = np.zeros((segments, len(parameters["I(R)"].prof)))
-        parameters["I(R)"].uncertainty = np.zeros((segments, len(parameters["I(R)"].prof)))
-        
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     Coords = target_area.get_coordinate_meshgrid()
@@ -461,6 +461,8 @@ def spline_segment_initialize(
     T = self.angular_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
     raveldat = target_area.data.detach().cpu().numpy().ravel()
+    val = np.zeros((segments, len(parameters["I(R)"].prof)))
+    unc = np.zeros((segments, len(parameters["I(R)"].prof)))
     for s in range(segments):
         if segments % 2 == 0 and symmetric:
             angles = (T - (s * np.pi / segments)) % np.pi
@@ -508,9 +510,11 @@ def spline_segment_initialize(
         N = np.isfinite(S)
         if not np.all(N):
             S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-        with Param_Unlock(parameters["I(R)"]):
-            parameters["I(R)"].value[s] = np.log10(np.abs(I))
-            parameters["I(R)"].uncertainty[s] = S / (np.abs(I) * np.log(10))
+        val[s] = np.log10(np.abs(I))
+        unc[s] = S / (np.abs(I) * np.log(10))
+    with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
+        parameters["I(R)"].value = val
+        parameters["I(R)"].uncertainty = unc
 
 
 @default_internal
@@ -551,7 +555,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     if parameters["I0"].value is None:
         center = target_area.plane_to_pixel(parameters["center"].value)
         flux = target_area.data[center[1].int().item(), center[0].int().item()]
-        with Param_Unlock(parameters["I0"]):
+        with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
             parameters["I0"].value = torch.log10(torch.abs(flux) / target_area.pixel_area)
             parameters["I0"].uncertainty = 0.01
         
@@ -593,7 +597,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     N = np.isfinite(S)
     if not np.all(N):
         S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-    with Param_Unlock(parameters["dI(R)"]):
+    with Param_Unlock(parameters["dI(R)"]), Param_SoftLimits(parameters["dI(R)"]):
         parameters["dI(R)"].value = np.log10(np.abs(I)) - parameters["I0"].value.item()
         parameters["dI(R)"].uncertainty = S / (np.abs(I) * np.log(10))
 

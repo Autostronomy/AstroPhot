@@ -156,6 +156,7 @@ class TestAllModelBasics(unittest.TestCase):
 
         target = make_basic_sersic()
         for model_type in ap.models.Component_Model.List_Model_Names(useable=True):
+            print(model_type)
             MODEL = ap.models.AstroPhot_Model(
                 name="test model",
                 model_type=model_type,
@@ -163,6 +164,8 @@ class TestAllModelBasics(unittest.TestCase):
             )
             MODEL.initialize()
             img = MODEL()
+            print(MODEL)
+            print(img.data.detach().numpy())
             self.assertTrue(
                 torch.all(torch.isfinite(img.data)),
                 "Model should evaluate a real number for the full image",
@@ -229,7 +232,6 @@ class TestSersic(unittest.TestCase):
             filename="test_AstroPhot_sersic.yaml",
         )
 
-        # fixme
         for P in model.parameter_order:
             self.assertAlmostEqual(
                 model[P].value.detach().cpu().tolist(),
@@ -262,7 +264,7 @@ class TestGroup(unittest.TestCase):
         smod = ap.models.AstroPhot_Model(
             name="group model",
             model_type="group model",
-            model_list=[mod1, mod2],
+            models=[mod1, mod2],
             target=tar,
         )
 
@@ -300,7 +302,7 @@ class TestGroup(unittest.TestCase):
         smod = ap.models.AstroPhot_Model(
             name="group model",
             model_type="group model",
-            model_list=[mod1, mod2],
+            models=[mod1, mod2],
             target=tar,
         )
 
@@ -310,6 +312,46 @@ class TestGroup(unittest.TestCase):
 
         self.assertTrue(torch.all(torch.isfinite(smod().data)), "model_image should be real")
 
+    def test_groupmodel_saveload(self):
+        np.random.seed(12345)
+        tar = make_basic_sersic()
 
+        mod1 = ap.models.Sersic_Galaxy(
+            name="base model 1",
+            target=tar,
+            parameters={"center": {"value": [5, 5], "locked": False}},
+        )
+        mod2 = ap.models.Sersic_Galaxy(
+            name="base model 2",
+            target=tar,
+            parameters={"center": {"value": [5, 5], "locked": False}},
+        )
+
+        smod = ap.models.AstroPhot_Model(
+            name="group model",
+            model_type="group model",
+            models=[mod1, mod2],
+            target=tar,
+        )
+
+        self.assertFalse(smod.locked, "default model state should not be locked")
+
+        smod.initialize()
+
+        self.assertTrue(torch.all(torch.isfinite(smod().data)), "model_image should be real values")
+
+        smod.save("test_save_group_model.yaml")
+
+        newmod = ap.models.AstroPhot_Model(
+            name = "group model",
+            filename = "test_save_group_model.yaml",
+        )
+
+        self.assertEqual(len(smod.models), len(newmod.models), "Group model should load sub models")
+
+        self.assertEqual(newmod.parameters.size, 14, "Group model size should sum all parameters")
+
+        self.assertTrue(torch.all(newmod.parameters.flat_value() == smod.parameters.flat_value()), "Save/load should extract all parameters")
+        
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ from ..image import Model_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import interp2d
 from ._shared_methods import select_target
+from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 __all__ = ["PSF_Star"]
@@ -60,7 +61,7 @@ class PSF_Star(Star_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
         target_area = target[self.window]
-        with Param_Unlock(parameters["flux"]):
+        with Param_Unlock(parameters["flux"]), Param_SoftLimits(parameters["flux"]):
             if parameters["flux"].value is None:
                 parameters["flux"].value = torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area)
             if parameters["flux"].uncertainty is None:

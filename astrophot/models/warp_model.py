@@ -6,6 +6,7 @@ from .galaxy_model_object import Galaxy_Model
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
 from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..param import Param_Unlock, Param_SoftLimits
 from ._shared_methods import select_target
 
 __all__ = ["Warp_Galaxy"]
@@ -89,7 +90,7 @@ class Warp_Galaxy(Galaxy_Model):
         if not (parameters["PA(R)"].value is None or parameters["q(R)"].value is None):
             return
 
-        with Param_Unlock(parameters["PA(R)"]):
+        with Param_Unlock(parameters["PA(R)"]), Param_SoftLimits(parameters["PA(R)"]):
             if parameters["PA(R)"].value is None:
                 parameters["PA(R)"].value = np.zeros(len(parameters["PA(R)"].prof)) + target.north
             if parameters["q(R)"].value is None:

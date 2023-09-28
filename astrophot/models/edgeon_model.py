@@ -9,7 +9,7 @@ from ._shared_methods import select_target
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..param import Param_Unlock
+from ..param import Param_Unlock, Param_SoftLimits
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
@@ -69,7 +69,7 @@ class Edgeon_Model(Component_Model):
             q=1.0,
             n_isophotes=15,
         )
-        with Param_Unlock(parameters["PA"]):
+        with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
             parameters["PA"].value = (
                 -(
                     (
@@ -138,7 +138,7 @@ class Edgeon_Sech(Edgeon_Model):
         icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["I0"].value is None:
-            with Param_Unlock(parameters["I0"]):
+            with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
                 parameters["I0"].value = torch.log10(
                     torch.mean(
                         target_area.data[
@@ -155,7 +155,7 @@ class Edgeon_Sech(Edgeon_Model):
                     ]
                 ) / (torch.abs(parameters["I0"].value) * target.pixel_area)
         if parameters["hs"].value is None:
-            with Param_Unlock(parameters["hs"]):
+            with Param_Unlock(parameters["hs"]), Param_SoftLimits(parameters["hs"]):
                 parameters["hs"].value = torch.max(self.window.shape) * 0.1
                 parameters["hs"].uncertainty = parameters["hs"].value / 2
 
@@ -191,7 +191,7 @@ class Edgeon_Isothermal(Edgeon_Sech):
         super().initialize(target=target, parameters=parameters)
         if parameters["rs"].value is not None:
             return
-        with Param_Unlock(parameters["rs"]):
+        with Param_Unlock(parameters["rs"]), Param_SoftLimits(parameters["rs"]):
             parameters["rs"].value = torch.max(self.window.shape) * 0.4
             parameters["rs"].uncertainty = parameters["rs"].value / 2
 

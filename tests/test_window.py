@@ -353,7 +353,7 @@ class TestWindow(unittest.TestCase):
             state["projection"], "orthographic", "Window get state should collect values"
         )
         self.assertEqual(
-            state["reference_radec"], (0.,0.), "Window get state should collect values"
+            tuple(state["reference_radec"]), (0.,0.), "Window get state should collect values"
         )
 
     def test_window_logic(self):

@@ -26,7 +26,7 @@ class TestNode(unittest.TestCase):
 
         self.assertIs(node1["node2"], node2, "node getitem should fetch correct node")
 
-        for Na, Nb in zip(node1.flat().keys(), (node2, node3)):
+        for Na, Nb in zip(node1.flat().values(), (node2, node3)):
             self.assertIs(Na, Nb, "node flat should produce correct order")
 
         node4 = Node("node4")
@@ -35,7 +35,7 @@ class TestNode(unittest.TestCase):
 
         self.assertIs(node1["node2:node4"], node4, "node getitem should fetch correct node")
         
-        for Na, Nb in zip(node1.flat(include_locked=False).keys(), (node4,)):
+        for Na, Nb in zip(node1.flat(include_locked=False).values(), (node4,)):
             self.assertIs(Na, Nb, "node flat should produce correct order")
 
 

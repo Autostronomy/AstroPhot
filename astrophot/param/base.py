@@ -9,12 +9,21 @@ class Node(ABC):
     def __init__(self, name, **kwargs):
         self.name = name
         self.nodes = OrderedDict()
+        if "state" in kwargs:
+            self.set_state(kwargs["state"])
+            return
+        if "nodes" in kwargs:
+            for node in kwargs["nodes"]:
+                self.link(self.__class__(**node))
         self.locked = kwargs.get("locked", False)
 
     def link(self, *nodes):
         for node in nodes:
+            for subnode_id in node.flat().keys():
+                if self.identity == subnode_id:
+                    raise RuntimeError("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
             self.nodes[node.name] = node
-
+            
     def unlink(self, *nodes):
         for node in nodes:
             del self.nodes[node.name]
@@ -23,30 +32,53 @@ class Node(ABC):
         self.unlink(*self.nodes.values())
 
     def __getitem__(self, key):
+        if key == self.name:
+            return self
         if key in self.nodes:
             return self.nodes[key]
-        base, stem = key.split(":", 1)
-        return self.nodes[base][stem]
-
+        if isinstance(key, str) and ":" in key:
+            base, stem = key.split(":", 1)
+            return self.nodes[base][stem]
+        if isinstance(key, int):
+            for node in self.nodes.values():
+                if key == node.identity:
+                    return node
+        raise ValueError(f"Unrecognized key for '{self}': {key}")
+                
     def __contains__(self, key):
         return key in self.nodes
 
+    def __eq__(self, other):
+        return self is other
+
+    @property
+    def identity(self):
+        try:
+            return self._identity
+        except AttributeError:
+            return id(self)
+    
     def get_state(self):
         state = {
             "name": self.name,
-            "identity": id(self),
+            "identity": self.identity,
         }
+        if self.locked:
+            state["locked"] = self.locked
         if len(self.nodes) > 0:
-            state["nodes"] = tuple(node.get_state() for node in self.nodes.values())
+            state["nodes"] = list(node.get_state() for node in self.nodes.values())
         return state
 
     def set_state(self, state):
         self.name = state["name"]
-
+        self._identity = state["identity"]
         if "nodes" in state:
             for node in state["nodes"]:
                 self.link(self.__class__(**node))
-
+        self.locked = state.get("locked", False)
+    def __iter__(self):
+        return filter(lambda n: not n.locked, self.nodes.values())
+    
     @property
     @abstractmethod
     def value(self):
@@ -58,23 +90,11 @@ class Node(ABC):
             if len(node.nodes) == 0 and not node.value is None:
                 if node.locked and not (include_locked or Node.global_unlock):
                     continue
-                flat[node] = None
+                flat[node.identity] = node
             else:
                 flat.update(node.flat(include_locked))
         return flat
 
-    def flat_value(self, include_locked = False):
-        flat = self.flat(include_locked)
-        size = 0
-        for node in flat.keys():
-            size += node.size
-
-        val = torch.zeros(size, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        loc = 0
-        for node in flat.keys():
-            val[loc:loc + node.size] = node.value.flatten()
-            loc += node.size
-        return val
 
     def __str__(self):
         return f"Node: {self.name}"
