@@ -268,11 +268,9 @@ class Group_Model(AstroPhot_Model):
         and its parameters.
 
         """
-        print("group getting state")
         state = super().get_state()
         if save_params:
             state["parameters"] = self.parameters.get_state()
-            print("getting state", self.parameters.get_state())
         if "models" not in state:
             state["models"] = {}
         for model in self.models.values():

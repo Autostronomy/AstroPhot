@@ -44,18 +44,69 @@ class Parameter_Node(Node):
 
         return self._value
 
-    def flat_value(self, include_locked = False):
-        flat = self.flat(include_locked)
-        size = 0
-        for node in flat.values():
-            size += node.size
+    @property
+    def mask(self):
+        if not self.leaf:
+            return self.vector_mask()
+        try:
+            return self._mask
+        except AttributeError:
+            return torch.ones(self.shape, dtype = torch.bool, device = AP_config.ap_device)
 
-        val = torch.zeros(size, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        
+    def vector_values(self):
+        """The vector representation is for values which correspond to
+        fundamental inputs to the parameter DAG. Since the DAG may
+        have linked nodes, or functions which produce values derrived
+        from other node values, the collection of all "values" is not
+        necessarily of use for some methods such as fitting
+        algorithms.
+
+        """
+
+        if self.leaf:
+            return self.value[self.mask].flatten()
+        
+        flat = self.flat(include_locked = False, include_links = False)
+        return torch.cat(tuple(node.vector_values() for node in flat.values()))
+
+    def vector_mask(self):
+        if self.leaf:
+            return self.mask.flatten()
+        
+        flat = self.flat(include_locked = False, include_links = False)
+        return torch.cat(tuple(node.vector_mask() for node in flat.values()))
+
+    def vector_set_mask(self, mask):
+        if self.leaf:
+            self.mask = mask.reshape(self.shape)
+            return
+        flat = self.flat(include_locked = False, include_links = False)
+
         loc = 0
         for node in flat.values():
-            val[loc:loc + node.size] = node.value.flatten()
+            node.vector_set_mask(mask[loc:loc+node.size])
             loc += node.size
-        return val
+        
+    def vector_identities(self):
+        if self.leaf:
+            return self.identities[self.mask].flatten()
+        flat = self.flat(include_locked = False, include_links = False)
+        return torch.cat(tuple(node.vector_identities() for node in flat.values()))
+        
+        
+    def vector_set_values(self, values):
+        if self.leaf:
+            self._value[self.mask] = values
+            return
+
+        mask = self.vector_mask()
+        flat = self.flat(include_locked = False, include_links = False)
+
+        loc = 0
+        for node in flat.values():
+            node.vector_set_values(values[mask[:loc].sum().int():mask[:loc+node.size].sum().int()])
+            loc += node.size
 
     def _set_val_subnodes(self, val):
         flat = self.flat(include_locked = False)
@@ -269,9 +320,9 @@ class Parameter_Node(Node):
 
     @property
     def size(self):
-        if len(self.nodes) > 0:
-            return self.flat_value().numel()
-        return self.value.numel()
+        if self.leaf:
+            return self.value.numel()    
+        return self.flat_value().numel()
         
     def __len__(self):
         """If the parameter has multiple values, this is the length of the

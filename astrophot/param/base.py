@@ -31,6 +31,10 @@ class Node(ABC):
     def dump(self):
         self.unlink(*self.nodes.values())
 
+    @property
+    def leaf(self):
+        return len(self.nodes) == 0
+
     def __getitem__(self, key):
         if key == self.name:
             return self
@@ -84,14 +88,19 @@ class Node(ABC):
     def value(self):
         ...
 
-    def flat(self, include_locked = True):
+    def flat(self, include_locked = True, include_links = False):
         flat = OrderedDict()
+        if self.leaf and self.value is not None:
+            if not self.locked or include_locked or Node.global_unlock:
+                flat[self.identity] = self
         for node in self.nodes.values():
-            if len(node.nodes) == 0 and not node.value is None:
+            if node.leaf and node.value is not None:
                 if node.locked and not (include_locked or Node.global_unlock):
                     continue
                 flat[node.identity] = node
             else:
+                if include_links and (not node.locked or include_locked or Node.global_unlock):
+                    flat[node.identity] = node
                 flat.update(node.flat(include_locked))
         return flat
 
