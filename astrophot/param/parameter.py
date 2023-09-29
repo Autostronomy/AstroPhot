@@ -4,6 +4,7 @@ from copy import deepcopy
 from collections import OrderedDict
 
 import torch
+import numpy as np
 
 from ..utils.conversions.optimization import (
     boundaries,
@@ -79,7 +80,7 @@ class Parameter_Node(Node):
 
     def vector_set_mask(self, mask):
         if self.leaf:
-            self.mask = mask.reshape(self.shape)
+            self._mask = mask.reshape(self.shape)
             return
         flat = self.flat(include_locked = False, include_links = False)
 
@@ -90,9 +91,17 @@ class Parameter_Node(Node):
         
     def vector_identities(self):
         if self.leaf:
-            return self.identities[self.mask].flatten()
+            return self.identities[self.mask.detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_identities() for node in flat.values()))
+        return np.concatenate(tuple(node.vector_identities() for node in flat.values()))
+
+    @property
+    def identities(self):
+        if self.leaf:
+            idstr = str(self.identity)
+            return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
+        flat = self.flat(include_locked = False, include_links = False)
+        return np.concatenate(tuple(node.identities() for node in flat.values()))
         
         
     def vector_set_values(self, values):
@@ -186,9 +195,9 @@ class Parameter_Node(Node):
             return self._value.shape
         if isinstance(self._value, FunctionType):
             return self.value.shape
-        if len(self.nodes) > 0:
-            return self.flat_value(include_locked = False).shape
-        return self._shape
+        if self.leaf:
+            return self._shape
+        return self.flat_value(include_locked = False).shape
 
     @shape.setter
     def shape(self, shape):

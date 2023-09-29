@@ -1,5 +1,5 @@
 import unittest
-from astrophot.param import Node as BaseNode, Parameter_Node
+from astrophot.param import Node as BaseNode, Parameter_Node, Param_Mask
 import torch
 import numpy as np
 
@@ -163,6 +163,52 @@ class TestParameter(unittest.TestCase):
 
         S = str(P)
 
+class TestParameterVector(unittest.TestCase):
+    def test_param_vector_creation(self):
+
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
+        P2 = Parameter_Node("test2", value = 2., uncertainty = 5., locked = False)
+        P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,5.], locked = False)
+        P4 = Parameter_Node("test4", value = P2)
+        PG = Parameter_Node("testgroup")
+        PG.link(P1)
+        PG.link(P2)
+        PG.link(P3)
+        PG.link(P4)
+        
+        self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,2.,4.,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+        self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
+        self.assertEqual(PG.vector_identities().size, 4, "Vector should take all/only leaf node identities")
+
+    def test_vector_masking(self):
+        
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
+        P2 = Parameter_Node("test2", value = 2., uncertainty = 5., locked = False)
+        P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,5.], locked = False)
+        P4 = Parameter_Node("test4", value = P2)
+        PG = Parameter_Node("testgroup")
+        PG.link(P1)
+        PG.link(P2)
+        PG.link(P3)
+        PG.link(P4)
+
+        mask = torch.tensor([1,0,0,1], dtype = torch.bool, device=P1.value.device)
+
+        with Param_Mask(PG, mask):
+            self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+            self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
+            self.assertEqual(PG.vector_identities().size, 2, "Vector should take all/only leaf node identities")
+
+            # Nested masking
+            new_mask = torch.tensor([1,0], dtype = torch.bool, device=P1.value.device)
+            with Param_Mask(PG, new_mask):
+                self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+                self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
+                self.assertEqual(PG.vector_identities().size, 1, "Vector should take all/only leaf node identities")
+
+            self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+            self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
+            self.assertEqual(PG.vector_identities().size, 2, "Vector should take all/only leaf node identities")
 # class TestParameterGroup(unittest.TestCase):
 
 #     def test_generation(self):

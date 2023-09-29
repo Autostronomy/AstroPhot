@@ -1,8 +1,8 @@
 from .base import Node
 
-__all__ = ("Param_Unlock", "Param_SoftLimits")
+__all__ = ("Param_Unlock", "Param_SoftLimits", "Param_Mask")
 
-class Param_Unlock(object):
+class Param_Unlock:
     """Temporarily unlock a parameter.
 
     Context manager to unlock a parameter temporarily. Inside the
@@ -29,8 +29,12 @@ class Param_Unlock(object):
         else:
             self.param.locked = self.original_locked
 
-class Param_SoftLimits(object):
+class Param_SoftLimits:
+    """
+    Temporarily allow writing parameter values outside limits.
 
+    Values outside the limits will be quietly shift until they are within the boundaries of the parameter limits.
+    """
     def __init__(self, param):
         self.param = param
 
@@ -42,35 +46,22 @@ class Param_SoftLimits(object):
         self.param._set_val_self = self.original_setter   
 
 
-class Param_OverrideShape(object):
-    """Temporarily allow writing values to parameters, with the wrong
-    shape.
-
-    Temporarily sets the shape of the parameter to None, this means
-    that new values for a parameter can be written without concern for
-    previous values/shapes of the parameter.
-
+class Param_Mask:
     """
+    Temporarily mask parameters.
 
-    def __init__(self, param):
+    Select a subset of parameters to be used through the "vector" interface of the DAG.
+    """
+    def __init__(self, param, new_mask):
         self.param = param
+        self.new_mask = new_mask
 
     def __enter__(self):
-        self.original_shape = self.param.shape
-        self.param.shape = None
-            
-    def __exit__(self, *args, **kwargs):
-        if self.param.shape is None:
-            self.param.shape = self.original_shape
-   
-class Param_Mask(object):
 
-    def __init__(self, param, mask):
-        self.param = param
-        self.mask = mask
-
-    def __enter__(self):
-        pass
+        self.old_mask = self.param.vector_mask()
+        self.mask = self.param.vector_mask()
+        self.mask[self.mask.clone()] = self.new_mask
+        self.param.vector_set_mask(self.mask)
 
     def __exit__(self, *args, **kwargs):
-        pass
+        self.param.vector_set_mask(self.old_mask)
