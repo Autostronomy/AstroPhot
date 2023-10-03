@@ -354,7 +354,7 @@ class TestIter(unittest.TestCase):
             ap.models.AstroPhot_Model(
                 name="basic sky",
                 model_type="flat sky model",
-                parameters={"sky": -1},
+                parameters={"F": -1},
                 target=target,
             )
         )
@@ -396,7 +396,7 @@ class TestIterLM(unittest.TestCase):
             ap.models.AstroPhot_Model(
                 name="basic sky",
                 model_type="flat sky model",
-                parameters={"sky": -1},
+                parameters={"F": -1},
                 target=target,
             )
         )
