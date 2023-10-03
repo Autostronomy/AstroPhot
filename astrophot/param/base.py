@@ -4,9 +4,18 @@ from abc import ABC, abstractmethod
 __all__ = ["Node"]
 
 class Node(ABC):
+    """Base node object in the Directed Acyclic Graph (DAG).
+
+    The base Node object handles storing the DAG nodes and links
+    between them. An important part of the DAG system is to be able to
+    find all the leaf nodes, which is done using the `flat` function.
+
+    """
     global_unlock = False
     
     def __init__(self, name, **kwargs):
+        if ":" in name:
+            raise ValueError(f"Node names must not have ':' character. Cannot use name: {name}")
         self.name = name
         self.nodes = OrderedDict()
         if "state" in kwargs:
@@ -17,6 +26,18 @@ class Node(ABC):
         self.locked = kwargs.get("locked", False)
 
     def link(self, *nodes):
+        """Creates a directed link from the current node to the provided
+        node(s) in the input. This function will also check that the
+        linked node does not exist higher up in the DAG to the current
+        node, if that is the case then a cycle has formed which breaks
+        the DAG structure and could cause problems. An error will be
+        thrown in this case.
+
+        The linked node is added to a ``nodes`` dictionary that each
+        node stores. This makes it easy to check which nodes are
+        linked to each other.
+
+        """
         for node in nodes:
             for subnode_id in node.flat(include_locked=True, include_links=True).keys():
                 if self.identity == subnode_id:
@@ -24,17 +45,40 @@ class Node(ABC):
             self.nodes[node.name] = node
             
     def unlink(self, *nodes):
+        """Undoes the linking of two nodes. Note that this could sever the
+        connection of many nodes to each other if the current node was
+        the only link between two branches.
+
+        """
         for node in nodes:
             del self.nodes[node.name]
 
     def dump(self):
+        """Simply unlinks all nodes that the current node is linked with.
+
+        """
         self.unlink(*self.nodes.values())
 
     @property
     def leaf(self):
+        """Returns True when the current node is a leaf node.
+
+        """
         return len(self.nodes) == 0
 
     def __getitem__(self, key):
+        """Used to get a node from the DAG relative to the current node. It
+        is possible to collect nodes from deeper in the DAG by
+        separating the names of the nodes along the path with a colon
+        (:). For example::
+
+          first_node["second_node:third_node"]
+
+        returns a node that is actually linked to ``second_node``
+        without needing to first get ``second_node`` then call
+        ``second_node['third_node']``.
+
+        """
         if key == self.name:
             return self
         if key in self.nodes:
