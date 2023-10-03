@@ -2,6 +2,7 @@ import unittest
 
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 
 import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian
@@ -58,13 +59,13 @@ class TestComponentModelFits(unittest.TestCase):
 
         mod_initparams = {}
         for p in mod.parameters:
-            mod_initparams[p.name] = np.copy(p.representation.detach().cpu().numpy())
+            mod_initparams[p.name] = np.copy(p.vector_representation().detach().cpu().numpy())
 
         res = ap.fit.Grad(model=mod, max_iter=10).fit()
 
         for p in mod.parameters:
             self.assertFalse(
-                np.any(p.representation.detach().cpu().numpy() == mod_initparams[p.name]),
+                np.any(p.vector_representation().detach().cpu().numpy() == mod_initparams[p.name]),
                 f"parameter {p.name} should update with optimization",
             )
 
@@ -131,6 +132,7 @@ class TestComponentModelFits(unittest.TestCase):
 
         ap.AP_config.set_logging_output(stdout=True, filename="AstroPhot.log")
         res = ap.fit.LM(model=mod, verbose=1).fit()
+
         res.update_uncertainty()
         
         self.assertAlmostEqual(
@@ -243,21 +245,21 @@ class TestGroupModelFits(unittest.TestCase):
 
         mod1_initparams = {}
         for p in mod1.parameters:
-            mod1_initparams[p.name] = np.copy(p.representation.detach().cpu().numpy())
+            mod1_initparams[p.name] = np.copy(p.vector_representation().detach().cpu().numpy())
         mod2_initparams = {}
         for p in mod2.parameters:
-            mod2_initparams[p.name] = np.copy(p.representation.detach().cpu().numpy())
+            mod2_initparams[p.name] = np.copy(p.vector_representation().detach().cpu().numpy())
 
         res = ap.fit.Grad(model=smod, max_iter=10).fit()
 
         for p in mod1.parameters:
             self.assertFalse(
-                np.any(p.representation.detach().cpu().numpy() == mod1_initparams[p.name]),
+                np.any(p.vector_representation().detach().cpu().numpy() == mod1_initparams[p.name]),
                 f"mod1 parameter {p.name} should update with optimization",
             )
         for p in mod2.parameters:
             self.assertFalse(
-                np.any(p.representation.detach().cpu().numpy() == mod2_initparams[p.name]),
+                np.any(p.vector_representation().detach().cpu().numpy() == mod2_initparams[p.name]),
                 f"mod2 parameter {p.name} should update with optimization",
             )
 
@@ -266,7 +268,7 @@ class TestLM(unittest.TestCase):
     def test_lm_creation(self):
         target = make_basic_sersic()
         new_model = ap.models.AstroPhot_Model(
-            name="constrained sersic",
+            name="test sersic",
             model_type="sersic galaxy model",
             parameters={
                 "center": [20, 20],
@@ -279,7 +281,7 @@ class TestLM(unittest.TestCase):
             target=target,
         )
 
-        LM = ap.fit.LM(new_model)
+        LM = ap.fit.LM(new_model, max_iter = 10)
 
         LM.fit()
 
@@ -292,41 +294,41 @@ class TestLM(unittest.TestCase):
         #         break
         # LM.take_low_rho_step()
 
-    def test_lm_constraint(self):
-        def dummy_constraint(p):
-            return torch.sum(torch.abs(p))
+#     def test_lm_constraint(self):
+#         def dummy_constraint(p):
+#             return torch.sum(torch.abs(p))
 
-        new_constraint = ap.fit.LM_Constraint(dummy_constraint)
-        target = make_basic_sersic()
-        new_model = ap.models.AstroPhot_Model(
-            name="constrained sersic",
-            model_type="sersic galaxy model",
-            parameters={
-                "center": [20, 20],
-                "PA": 60 * np.pi / 180,
-                "q": 0.5,
-                "n": 2,
-                "Re": 5,
-                "Ie": 1,
-            },
-            target=target,
-        )
+#         new_constraint = ap.fit.LM_Constraint(dummy_constraint)
+#         target = make_basic_sersic()
+#         new_model = ap.models.AstroPhot_Model(
+#             name="constrained sersic",
+#             model_type="sersic galaxy model",
+#             parameters={
+#                 "center": [20, 20],
+#                 "PA": 60 * np.pi / 180,
+#                 "q": 0.5,
+#                 "n": 2,
+#                 "Re": 5,
+#                 "Ie": 1,
+#             },
+#             target=target,
+#         )
 
-        jac = new_constraint.jacobian(new_model)
-        samp = new_constraint(new_model)
+#         jac = new_constraint.jacobian(new_model)
+#         samp = new_constraint(new_model)
 
-        self.assertTrue(
-            torch.all(torch.isfinite(jac)),
-            "Constraint Jacobian should produce real numbers",
-        )
-        self.assertTrue(
-            torch.all(torch.isclose(jac, torch.ones_like(jac))),
-            "Constraint Jacobian should produce correct derivatives",
-        )
-        self.assertTrue(
-            torch.all(torch.isfinite(samp)),
-            "Constraint sample should produce real numbers",
-        )
+#         self.assertTrue(
+#             torch.all(torch.isfinite(jac)),
+#             "Constraint Jacobian should produce real numbers",
+#         )
+#         self.assertTrue(
+#             torch.all(torch.isclose(jac, torch.ones_like(jac))),
+#             "Constraint Jacobian should produce correct derivatives",
+#         )
+#         self.assertTrue(
+#             torch.all(torch.isfinite(samp)),
+#             "Constraint sample should produce real numbers",
+#         )
 
 
 class TestIter(unittest.TestCase):

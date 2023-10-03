@@ -197,7 +197,6 @@ class Group_Model(AstroPhot_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        parameters_identity: Optional[tuple] = None,
         pass_jacobian: Optional["Jacobian_Image"] = None,
         window: Optional[Window] = None,
         **kwargs,
@@ -217,17 +216,14 @@ class Group_Model(AstroPhot_Model):
         self._param_tuple = None
 
         if parameters is not None:
-            self.parameters.set_values(
-                parameters,
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            )
+            if as_representation:
+                self.parameters.vector_set_representation(parameters)
+            else:
+                self.parameters.vector_set_values(parameters)
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
-                parameters=self.parameters.get_identity_vector(
-                    parameters_identity=parameters_identity,
-                )
+                parameters=self.parameters.vector_identities()
             )
         else:
             jac_img = pass_jacobian
@@ -236,14 +232,12 @@ class Group_Model(AstroPhot_Model):
             if isinstance(model, Group_Model):
                 model.jacobian(
                     as_representation=as_representation,
-                    parameters_identity=parameters_identity,
                     pass_jacobian=jac_img,
                     window=window,
                 )
             else:  # fixme, maybe make pass_jacobian be filled internally to each model
                 jac_img += model.jacobian(
                     as_representation=as_representation,
-                    parameters_identity=parameters_identity,
                     pass_jacobian=jac_img,
                     window=window,
                 )

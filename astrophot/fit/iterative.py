@@ -13,6 +13,7 @@ from scipy.special import gammainc
 
 from .base import BaseOptimizer
 from .lm import LM
+from ..param import Param_Mask
 from .. import AP_config
 
 __all__ = ["Iter", "Iter_LM"]
@@ -97,7 +98,7 @@ class Iter(BaseOptimizer):
                 AP_config.ap_logger.info(model.name)
             self.sub_step(model)
         # Update the current state
-        self.current_state = self.model.parameters.get_vector(as_representation=True)
+        self.current_state = self.model.parameters.vector_representation()
 
         # Update the loss value
         with torch.no_grad():
@@ -172,7 +173,7 @@ class Iter(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.parameters.set_values(self.res(), as_representation=True)
+        self.model.parameters.vector_set_representation(self.res())
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
@@ -232,7 +233,8 @@ class Iter_LM(BaseOptimizer):
 
     def step(self):
         # These store the chunking information depending on which chunk mode is selected
-        param_ids = list(self.model.parameters.get_identity_vector())
+        param_ids = list(self.model.parameters.vector_identities())
+        init_param_ids = list(self.model.parameters.vector_identities())
         _chunk_index = 0
         _chunk_choices = None
         res = None
@@ -242,24 +244,20 @@ class Iter_LM(BaseOptimizer):
 
         # Loop through all the chunks
         while True:
+            chunk = torch.zeros(len(param_ids), dtype = torch.bool, device = AP_config.ap_device)
             if isinstance(self.chunks, int):
                 if len(param_ids) == 0:
                     break
                 if self.method == "random":
                     # Draw a random chunk of ids
-                    if len(param_ids) >= self.chunks:
-                        chunk = random.sample(param_ids, self.chunks)
-                        N = np.argsort(
-                            np.array(list(param_ids.index(c) for c in chunk))
-                        )
-                        chunk = np.array(chunk)[N]
-                    else:
-                        chunk = copy(param_ids)
+                    for pid in random.sample(param_ids, min(len(param_ids), self.chunks)):
+                        chunk[init_param_ids.index(pid)] = True
                 else:
                     # Draw the next chunk of ids
-                    chunk = param_ids[: self.chunks]
+                    for pid in param_ids[: self.chunks]:
+                        chunk[init_param_ids.index(pid)] = True
                 # Remove the selected ids from the list
-                for p in chunk:
+                for p in np.array(init_param_ids)[chunk.detach().cpu().numpy()]:
                     param_ids.pop(param_ids.index(p))
             elif isinstance(self.chunks, (tuple, list)):
                 if _chunk_choices is None:
@@ -271,12 +269,14 @@ class Iter_LM(BaseOptimizer):
                     # Select a random chunk from the given groups
                     sub_index = random.choice(_chunk_choices)
                     _chunk_choices.pop(_chunk_choices.index(sub_index))
-                    chunk = self.chunks[sub_index]
+                    for pid in self.chunks[sub_index]:
+                        chunk[param_ids.index(pid)] = True
                 else:
                     if _chunk_index >= len(self.chunks):
                         break
                     # Select the next chunk in order
-                    chunk = self.chunks[_chunk_index]
+                    for pid in self.chunks[_chunk_index]:
+                        chunk[param_ids.index(pid)] = True
                     _chunk_index += 1
             else:
                 raise ValueError(
@@ -285,12 +285,12 @@ class Iter_LM(BaseOptimizer):
             if self.verbose > 0:
                 AP_config.ap_logger.info(str(chunk))
             del res
-            res = LM(
-                self.model,
-                fit_parameters_identity=chunk,
-                ndf=self.ndf,
-                **self.LM_kwargs,
-            ).fit()
+            with Param_Mask(self.model.parameters, chunk):
+                res = LM(
+                    self.model,
+                    ndf=self.ndf,
+                    **self.LM_kwargs,
+                ).fit()
             if self.verbose > 0:
                 AP_config.ap_logger.info(f"chunk loss: {res.res_loss()}")
             if self.verbose > 1:
@@ -298,7 +298,7 @@ class Iter_LM(BaseOptimizer):
 
         self.loss_history.append(res.res_loss())
         self.lambda_history.append(
-            self.model.parameters.get_vector(as_representation=True)
+            self.model.parameters.vector_representation()
             .detach()
             .cpu()
             .numpy()
@@ -344,7 +344,7 @@ class Iter_LM(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.parameters.set_values(self.res(), as_representation=True)
+        self.model.parameters.vector_set_representation(self.res())
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"

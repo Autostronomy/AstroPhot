@@ -26,10 +26,9 @@ class BaseOptimizer(object):
 
     def __init__(
         self,
-        model: "Autorof_Model",
+        model: "AstroPhot_Model",
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
-        fit_parameters_identity: Optional[tuple] = None,
         fit_window: Optional["Window"] = None,
         **kwargs,
     ) -> None:
@@ -59,7 +58,6 @@ class BaseOptimizer(object):
 
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
-        self.fit_parameters_identity = fit_parameters_identity
 
         if fit_window is None:
             self.fit_window = self.model.window
@@ -68,10 +66,7 @@ class BaseOptimizer(object):
 
         if initial_state is None:
             self.model.initialize()
-            initial_state = self.model.parameters.get_vector(
-                as_representation=True,
-                parameters_identity=self.fit_parameters_identity,
-            )
+            initial_state = self.model.parameters.vector_representation()
         else:
             initial_state = torch.as_tensor(
                 initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device

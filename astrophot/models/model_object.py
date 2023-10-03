@@ -398,7 +398,6 @@ class Component_Model(AstroPhot_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        parameters_identity: Optional[tuple] = None,
         window: Optional[Window] = None,
         pass_jacobian: Optional[Jacobian_Image] = None,
         **kwargs,
@@ -436,55 +435,31 @@ class Component_Model(AstroPhot_Model):
             window = self.window & window
 
         # skip jacobian calculation if no parameters match criteria
-        if self.parameters[parameters_identity].size == 0 or window.overlap_frac(self.window) <= 0:
+        if torch.sum(self.parameters.vector_mask()) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
 
         # Set the parameters if provided and check the size of the parameter list
-        dochunk = False
         if parameters is not None:
-            if len(parameters) > self.jacobian_chunksize:
-                dochunk = True
-            self.parameters.values = parameters
-        else:
-            if (
-                len(
-                    self.parameters.get_identity_vector(
-                        parameters_identity=parameters_identity
-                    )
-                )
-                > self.jacobian_chunksize
-            ):
-                dochunk = True
-
-        # If the parameter list is too large, apply the chunk jacobian analysis
-        if dochunk:
+            if as_representation:
+                self.parameters.vector_set_representation(parameters)
+            else:
+                self.parameters.vector_set_values(parameters)
+        if torch.sum(self.parameters.vector_mask()) > self.jacobian_chunksize:
             return self._chunk_jacobian(
                 as_representation=as_representation,
-                parameters_identity=parameters_identity,
                 window=window,
                 **kwargs,
             )
 
-        # Store the parameter identities
-        if parameters_identity is None:
-            pids = None
-        else:
-            pids = self.parameters.get_identity_vector(
-                parameters_identity=parameters_identity,
-            )
         # Compute the jacobian
         full_jac = jacobian(
             lambda P: self(
                 image=None,
                 parameters=P,
                 as_representation=as_representation,
-                parameters_identity=pids,
                 window=window,
             ).data,
-            self.parameters.get_vector(
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            ).detach(),
+            self.parameters.vector_representation().detach() if as_representation else self.parameters.vector_values().detach(),
             strategy="forward-mode",
             vectorize=True,
             create_graph=False,
@@ -492,9 +467,7 @@ class Component_Model(AstroPhot_Model):
 
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
-            parameters=self.parameters.get_identity_vector(
-                parameters_identity=parameters_identity,
-            ),
+            parameters=self.parameters.vector_identities(),
             data=full_jac,
         )
         return jac_img
@@ -518,22 +491,21 @@ class Component_Model(AstroPhot_Model):
         `self.jacobian` function when appropriate.
 
         """
-
-        pids = self.parameters.get_identity_vector(
-            parameters_identity=parameters_identity,
-        )
+        pids = self.parameters.vector_identities()
         jac_img = self.target[window].jacobian_image(
             parameters=pids,
         )
 
         for ichunk in range(0, len(pids), self.jacobian_chunksize):
-            jac_img += self.jacobian(
-                parameters=None,
-                as_representation=as_representation,
-                parameters_identity=pids[ichunk : ichunk + self.jacobian_chunksize],
-                window=window,
-                **kwargs,
-            )
+            mask = torch.zeros(len(pids), dtype = torch.bool, device = AP_config.ap_device)
+            mask[ichunk:ichunk+self.jacobian_chunksize] = True
+            with Param_Mask(self.parameters, mask):
+                jac_img += self.jacobian(
+                    parameters=None,
+                    as_representation=as_representation,
+                    window=window,
+                    **kwargs,
+                )
 
         return jac_img
 

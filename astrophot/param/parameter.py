@@ -23,6 +23,8 @@ class Parameter_Node(Node):
     def __init__(self, name, **kwargs):
 
         super().__init__(name, **kwargs)
+        if "state" in kwargs:
+            return
         temp_locked = self.locked
         self.locked = False
         self._value = None
@@ -70,6 +72,25 @@ class Parameter_Node(Node):
         
         flat = self.flat(include_locked = False, include_links = False)
         return torch.cat(tuple(node.vector_values() for node in flat.values()))
+    
+    def vector_uncertainty(self):
+
+        if self.leaf:
+            return self.uncertainty[self.mask].flatten()
+        
+        flat = self.flat(include_locked = False, include_links = False)
+        return torch.cat(tuple(node.vector_uncertainty() for node in flat.values()))
+
+    def vector_representation(self):
+        """The vector representation is for values which correspond to
+        fundamental inputs to the parameter DAG. Since the DAG may
+        have linked nodes, or functions which produce values derrived
+        from other node values, the collection of all "values" is not
+        necessarily of use for some methods such as fitting
+        algorithms.
+
+        """
+        return self.vector_transform_val_to_rep(self.vector_values())
 
     def vector_mask(self):
         if self.leaf:
@@ -78,17 +99,6 @@ class Parameter_Node(Node):
         flat = self.flat(include_locked = False, include_links = False)
         return torch.cat(tuple(node.vector_mask() for node in flat.values()))
 
-    def vector_set_mask(self, mask):
-        if self.leaf:
-            self._mask = mask.reshape(self.shape)
-            return
-        flat = self.flat(include_locked = False, include_links = False)
-
-        loc = 0
-        for node in flat.values():
-            node.vector_set_mask(mask[loc:loc+node.size])
-            loc += node.size
-        
     def vector_identities(self):
         if self.leaf:
             return self.identities[self.mask.detach().cpu().numpy()].flatten()
@@ -102,9 +112,9 @@ class Parameter_Node(Node):
             return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
         return np.concatenate(tuple(node.identities() for node in flat.values()))
-        
-        
+    
     def vector_set_values(self, values):
+        values = torch.as_tensor(values, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         if self.leaf:
             self._value[self.mask] = values
             return
@@ -116,7 +126,90 @@ class Parameter_Node(Node):
         for node in flat.values():
             node.vector_set_values(values[mask[:loc].sum().int():mask[:loc+node.size].sum().int()])
             loc += node.size
+            
+    def vector_set_uncertainty(self, uncertainty):
+        uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)        
+        if self.leaf:
+            self._uncertainty[self.mask] = uncertainty
+            return
 
+        mask = self.vector_mask()
+        flat = self.flat(include_locked = False, include_links = False)
+
+        loc = 0
+        for node in flat.values():
+            node.vector_set_uncertainty(uncertainty[mask[:loc].sum().int():mask[:loc+node.size].sum().int()])
+            loc += node.size
+
+    def vector_set_mask(self, mask):
+        mask = torch.as_tensor(mask, dtype = torch.bool, device = AP_config.ap_device)
+        if self.leaf:
+            self._mask = mask.reshape(self.shape)
+            return
+        flat = self.flat(include_locked = False, include_links = False)
+
+        loc = 0
+        for node in flat.values():
+            node.vector_set_mask(mask[loc:loc+node.size])
+            loc += node.size
+        
+    def vector_set_representation(self, rep):
+        self.vector_set_values(self.vector_transform_rep_to_val(rep))
+        
+    def vector_transform_rep_to_val(self, rep):
+        rep = torch.as_tensor(rep, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        if self.leaf:
+            if self.cyclic:
+                val = cyclic_boundaries(rep, (self.limits[0][self.mask], self.limits[1][self.mask]))
+            elif self.limits[0] is None and self.limits[1] is None:
+                val = rep
+            else:
+                val = inv_boundaries(
+                    rep,
+                    (
+                        None if self.limits[0] is None else self.limits[0][self.mask],
+                        None if self.limits[1] is None else self.limits[1][self.mask]
+                    )
+                )
+            return val
+
+        mask = self.vector_mask()
+        flat = self.flat(include_locked = False, include_links = False)
+
+        loc = 0
+        vals = []
+        for node in flat.values():
+            vals.append(node.vector_transform_rep_to_val(rep[mask[:loc].sum().int():mask[:loc+node.size].sum().int()]))
+            loc += node.size
+        return torch.cat(vals)
+    
+    def vector_transform_val_to_rep(self, val):
+        val = torch.as_tensor(val, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        if self.leaf:
+            if self.cyclic:
+                rep = cyclic_boundaries(val, (self.limits[0][self.mask], self.limits[1][self.mask]))
+            elif self.limits[0] is None and self.limits[1] is None:
+                rep = val
+            else:
+                rep = boundaries(
+                    val,
+                    (
+                        None if self.limits[0] is None else self.limits[0][self.mask],
+                        None if self.limits[1] is None else self.limits[1][self.mask]
+                    )
+                )
+            return rep
+
+        mask = self.vector_mask()
+        flat = self.flat(include_locked = False, include_links = False)
+
+        loc = 0
+        reps = []
+        for node in flat.values():
+            reps.append(node.vector_transform_val_to_rep(val[mask[:loc].sum().int():mask[:loc+node.size].sum().int()]))
+            loc += node.size
+        return torch.cat(reps)
+        
     def _set_val_subnodes(self, val):
         flat = self.flat(include_locked = False)
         loc = 0
@@ -187,17 +280,20 @@ class Parameter_Node(Node):
             self.shape = None
             return
         self._set_val_self(val)
-        self.dump() # fixme is this right?
+        self.dump()
 
     @property
     def shape(self):
-        if isinstance(self._value, Parameter_Node):
-            return self._value.shape
-        if isinstance(self._value, FunctionType):
-            return self.value.shape
-        if self.leaf:
-            return self._shape
-        return self.flat_value(include_locked = False).shape
+        try:
+            if isinstance(self._value, Parameter_Node):
+                return self._value.shape
+            if isinstance(self._value, FunctionType):
+                return self.value.shape
+            if self.leaf:
+                return self._shape
+        except AttributeError:
+            pass
+        return None
 
     @shape.setter
     def shape(self, shape):
@@ -323,6 +419,14 @@ class Parameter_Node(Node):
         self.value = state.get("value", None)
         self.prof = state.get("prof", None)
         self.locked = save_locked
+
+    def flat_detach(self):
+        for P in self.flat().values():
+            P.value = P.value.detach()
+            if P.uncertainty is not None:
+                P.uncertainty = P.uncertainty.detach()
+            if P.prof is not None:
+                P.prof = P.prof.detach()
         
     def __eq__(self, other):
         return self is other
@@ -330,8 +434,8 @@ class Parameter_Node(Node):
     @property
     def size(self):
         if self.leaf:
-            return self.value.numel()    
-        return self.flat_value().numel()
+            return self.value.numel()
+        return self.vector_values().numel()
         
     def __len__(self):
         """If the parameter has multiple values, this is the length of the
@@ -342,3 +446,8 @@ class Parameter_Node(Node):
             return self.flat_value().numel()
         return self.value.numel()
         
+
+    def __str__(self):
+        return super().__str__() + " " + ("branch" if self.value is None else str(self.value.detach().cpu().tolist()))
+    def __repr__(self):
+        return super().__repr__() + "\nValue: " + ("branch" if self.value is None else str(self.value.detach().cpu().tolist()))

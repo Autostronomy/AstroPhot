@@ -162,7 +162,6 @@ class LM(BaseOptimizer):
             initial_state: Sequence = None,
             max_iter: int = 100,
             relative_tolerance: float = 1e-5,
-            fit_parameters_identity=None,
             **kwargs,
     ):
 
@@ -170,18 +169,14 @@ class LM(BaseOptimizer):
             model,
             initial_state,
             max_iter=max_iter,
-            fit_parameters_identity=fit_parameters_identity,
             relative_tolerance = relative_tolerance,
             **kwargs,
         )
         # The forward model which computes the output image given input parameters
-        self.forward = partial(model, as_representation = True, parameters_identity = fit_parameters_identity)
+        self.forward = partial(model, as_representation=True)
         # Compute the jacobian in representation units (defined for -inf, inf)
-        self.jacobian = partial(model.jacobian, as_representation = True, parameters_identity = fit_parameters_identity)
-        # Compute the jacobian in natural units
-        self.jacobian_natural = partial(model.jacobian, as_representation = False, parameters_identity = fit_parameters_identity)
-        # Function to transform between true parameter values and representation values
-        self.transform = partial(model.parameters.transform, to_representation = False, parameters_identity = fit_parameters_identity)
+        self.jacobian = partial(model.jacobian, as_representation=True)
+        self.jacobian_natural = partial(model.jacobian, as_representation=False)
         # Maximum number of iterations of the algorithm
         self.max_iter = max_iter
         # Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation
@@ -243,7 +238,7 @@ class LM(BaseOptimizer):
         r = -self.W * (self.Y - Y0)
         self.hess = J.T @ (self.W.view(len(self.W), -1) * J)
         self.grad = J.T @ (self.W * (self.Y - Y0))
-
+        
         init_chi2 = chi2
         nostep = True
         best = (torch.zeros_like(self.current_state), init_chi2, self.L)
@@ -271,7 +266,6 @@ class LM(BaseOptimizer):
             # Evaluate new step
             ha = h + a*self.acceleration
             Y1 = self.forward(parameters = self.current_state + ha).flatten("data")
-
             # Compute and report chi^2
             chi2 = self._chi2(Y1.detach()).item()
             if self.verbose > 1:
@@ -368,7 +362,7 @@ class LM(BaseOptimizer):
 
         """
         if natural:
-            J = self.jacobian_natural(parameters = self.transform(self.current_state)).flatten("data")
+            J = self.jacobian_natural(parameters = self.model.parameters.vector_transform_rep_to_val(self.current_state)).flatten("data")
         else:
             J = self.jacobian(parameters = self.current_state).flatten("data")
         Ypred = self.forward(parameters = self.current_state).flatten("data")
@@ -403,7 +397,6 @@ class LM(BaseOptimizer):
 
             self.L = res[2]
             self.current_state = (self.current_state + res[0]).detach()
-            
             self.L_history.append(self.L)
             self.loss_history.append(res[1])
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
@@ -424,11 +417,7 @@ class LM(BaseOptimizer):
                 
         if self.verbose > 0:
             AP_config.ap_logger.info(f"Final Chi^2: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}")
-        self.model.parameters.set_values(
-            self.res(),
-            as_representation=True,
-            parameters_identity=self.fit_parameters_identity,
-        )
+        self.model.parameters.vector_set_representation(self.res())
 
         return self
 
@@ -470,12 +459,8 @@ class LM(BaseOptimizer):
         cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):
             try:
-                self.model.parameters.set_uncertainty(
-                    torch.sqrt(
-                        torch.abs(torch.diag(cov))
-                    ),
-                    as_representation=False,
-                    parameters_identity=self.fit_parameters_identity,
+                self.model.parameters.uncertainty = torch.sqrt(
+                    torch.abs(torch.diag(cov))
                 )
             except RuntimeError as e:
                 AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")

@@ -30,7 +30,7 @@ class Jacobian_Image(Image):
         super().__init__(**kwargs)
 
         self.target_identity = target_identity
-        self.parameters = parameters
+        self.parameters = list(parameters)
         assert len(self.parameters) == len(
             set(self.parameters)
         ), "Every parameter should be unique upon jacobian creation"

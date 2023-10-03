@@ -53,6 +53,9 @@ class TestNode(unittest.TestCase):
 
         state = node1.get_state()
 
+        S = str(node1)
+        R = repr(node1)
+
 class TestParameter(unittest.TestCase):
     @torch.no_grad()
     def test_parameter_setting(self):
@@ -163,6 +166,19 @@ class TestParameter(unittest.TestCase):
 
         S = str(P)
 
+    def test_parameter_value(self):
+
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
+
+        P2 = Parameter_Node("test2", value = P1)
+
+        P3 = Parameter_Node("test3", value = lambda P: P["test1"].value**2, link = (P1,))
+
+        self.assertEqual(P1.value.item(), 0.5, "Parameter should store value")
+        self.assertEqual(P2.value.item(), 0.5, "Pointing parameter should fetch value")
+        self.assertEqual(P3.value.item(), 0.25, "Function parameter should compute value")
+        
+
 class TestParameterVector(unittest.TestCase):
     def test_param_vector_creation(self):
 
@@ -170,11 +186,8 @@ class TestParameterVector(unittest.TestCase):
         P2 = Parameter_Node("test2", value = 2., uncertainty = 5., locked = False)
         P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,5.], locked = False)
         P4 = Parameter_Node("test4", value = P2)
-        PG = Parameter_Node("testgroup")
-        PG.link(P1)
-        PG.link(P2)
-        PG.link(P3)
-        PG.link(P4)
+        P5 = Parameter_Node("test5", value = lambda P: P["test1"].value**2, link = (P1,))
+        PG = Parameter_Node("testgroup", link = (P1, P2, P3, P4, P5))
         
         self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,2.,4.,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
         self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
@@ -182,20 +195,18 @@ class TestParameterVector(unittest.TestCase):
 
     def test_vector_masking(self):
         
-        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
-        P2 = Parameter_Node("test2", value = 2., uncertainty = 5., locked = False)
-        P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,5.], locked = False)
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.3, limits = (-1, 1), locked = False, prof = 1.)
+        P2 = Parameter_Node("test2", value = 2., uncertainty = 1., locked = False)
+        P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,3.], locked = False)
         P4 = Parameter_Node("test4", value = P2)
-        PG = Parameter_Node("testgroup")
-        PG.link(P1)
-        PG.link(P2)
-        PG.link(P3)
-        PG.link(P4)
+        P5 = Parameter_Node("test5", value = lambda P: P["test1"].value**2, link = (P1,))
+        PG = Parameter_Node("testgroup", link = (P1, P2, P3, P4, P5))
 
         mask = torch.tensor([1,0,0,1], dtype = torch.bool, device=P1.value.device)
 
         with Param_Mask(PG, mask):
             self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+            self.assertTrue(torch.all(PG.vector_uncertainty() == torch.tensor([0.3,3.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node uncertainty")
             self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
             self.assertEqual(PG.vector_identities().size, 2, "Vector should take all/only leaf node identities")
 
@@ -203,47 +214,39 @@ class TestParameterVector(unittest.TestCase):
             new_mask = torch.tensor([1,0], dtype = torch.bool, device=P1.value.device)
             with Param_Mask(PG, new_mask):
                 self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+                self.assertTrue(torch.all(PG.vector_uncertainty() == torch.tensor([0.3], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node uncertainty")
                 self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
                 self.assertEqual(PG.vector_identities().size, 1, "Vector should take all/only leaf node identities")
 
             self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+            self.assertTrue(torch.all(PG.vector_uncertainty() == torch.tensor([0.3,3.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node uncertainty")
             self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
             self.assertEqual(PG.vector_identities().size, 2, "Vector should take all/only leaf node identities")
-# class TestParameterGroup(unittest.TestCase):
 
-#     def test_generation(self):
-#         P = Parameter("state", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = True, prof = 1.)
 
-#         P2 = Parameter("v2")
-#         P2.set_state(P.get_state())
-
-#         PG = Parameter_Group("group", parameters = [P,P2])
-
-#         PG_copy = PG.copy()
-
-#     def test_vectors(self):
-#         P1 = Parameter("test1", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
-
-#         P2 = Parameter("test2", value = 2., uncertainty = 5., limits = (None, 1), locked = False)
-
-#         PG = Parameter_Group("group", parameters = [P1,P2])
-
-#         names = PG.get_name_vector()
-#         self.assertEqual(names, ["test1", "test2"], "get name vector should produce ordered list of names")
-
-#         uncertainty = PG.get_uncertainty_vector()
-#         self.assertTrue(np.all(uncertainty.detach().cpu().numpy() == np.array([0.5,5.])), "get uncertainty vector should track uncertainty")
-
-#     def test_inspection(self):
-#         P1 = Parameter("test1", value = 1., uncertainty = 0.5, limits = (-1, 1), locked = False, prof = 1.)
-
-#         P2 = Parameter("test2", value = 2., uncertainty = 5., limits = (None, 1), locked = False)
-
-#         PG = Parameter_Group("group", parameters = [P1,P2])
-
-#         self.assertEqual(len(PG), 2, "parameter group should only have two parameters here")
-
-#         string = str(PG)
+    def test_vector_representation(self):
         
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.3, limits = (-1, 1), locked = False, prof = 1.)
+        P2 = Parameter_Node("test2", value = 2., uncertainty = 1., locked = False)
+        P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,3.], limits = ((0., 1.), None), locked = False)
+        P4 = Parameter_Node("test4", value = P2)
+        P5 = Parameter_Node("test5", value = lambda P: P["test1"].value**2, link = (P1,))
+        P6 = Parameter_Node("test6", value = ((5,6),(7,8)), uncertainty = 0.1 * np.zeros((2,2)), limits = (None, 10*np.ones((2,2))))
+        PG = Parameter_Node("testgroup", link = (P1, P2, P3, P4, P5, P6))
+
+        mask = torch.tensor([1,1,0,1,0,1,0,1], dtype = torch.bool, device=P1.value.device)
+
+        self.assertEqual(len(PG.vector_representation()), 8, "representation should collect all values")
+        with Param_Mask(PG, mask):
+            # round trip
+            vec = PG.vector_values().clone()
+            rep = PG.vector_representation()
+            PG.vector_set_representation(rep)
+            self.assertTrue(torch.all(vec == PG.vector_values()), "representation should be reversible")
+            self.assertEqual(PG.vector_values().numel(), 5, "masked values shouldn't be shown")
+
+        S = str(PG)
+        R = repr(PG)
+
 if __name__ == "__main__":
     unittest.main()

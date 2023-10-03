@@ -119,6 +119,7 @@ class NUTS(BaseOptimizer):
         def step(model, prior):
             x = pyro.sample("x", prior)
             # Log-likelihood function
+            model.parameters.flat_detach()
             log_likelihood_value = -model.negative_log_likelihood(
                 parameters=x, as_representation=True
             )
@@ -134,7 +135,7 @@ class NUTS(BaseOptimizer):
 
         # Set up the NUTS sampler
         nuts_kwargs = {
-            "jit_compile": True,
+            "jit_compile": False,
             "ignore_jit_warnings": True,
             "step_size": self.epsilon,
             "full_mass": True,
@@ -149,7 +150,7 @@ class NUTS(BaseOptimizer):
             }
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.parameters.get_vector(as_representation=True)}
+        init_params = {"x": self.model.parameters.vector_representation()}
 
         # Run MCMC with the NUTS sampler and the initial guess
         mcmc_kwargs = {
@@ -169,9 +170,7 @@ class NUTS(BaseOptimizer):
 
         with torch.no_grad():
             for i in range(len(chain)):
-                chain[i] = self.model.parameters.transform(
-                    chain[i], to_representation=False
-                )
+                chain[i] = self.model.parameters.vector_transform_rep_to_val(chain[i])
         self.chain = chain
 
         return self

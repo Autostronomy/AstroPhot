@@ -164,8 +164,6 @@ class TestAllModelBasics(unittest.TestCase):
             )
             MODEL.initialize()
             img = MODEL()
-            print(MODEL)
-            print(img.data.detach().numpy())
             self.assertTrue(
                 torch.all(torch.isfinite(img.data)),
                 "Model should evaluate a real number for the full image",
@@ -225,7 +223,6 @@ class TestSersic(unittest.TestCase):
         )
 
         model.initialize()
-
         model.save("test_AstroPhot_sersic.yaml")
         model2 = ap.models.AstroPhot_Model(
             name="load model",
@@ -346,12 +343,11 @@ class TestGroup(unittest.TestCase):
             name = "group model",
             filename = "test_save_group_model.yaml",
         )
-
         self.assertEqual(len(smod.models), len(newmod.models), "Group model should load sub models")
 
         self.assertEqual(newmod.parameters.size, 14, "Group model size should sum all parameters")
 
-        self.assertTrue(torch.all(newmod.parameters.flat_value() == smod.parameters.flat_value()), "Save/load should extract all parameters")
+        self.assertTrue(torch.all(newmod.parameters.vector_values() == smod.parameters.vector_values()), "Save/load should extract all parameters")
         
 if __name__ == "__main__":
     unittest.main()

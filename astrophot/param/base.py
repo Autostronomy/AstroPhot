@@ -12,14 +12,13 @@ class Node(ABC):
         if "state" in kwargs:
             self.set_state(kwargs["state"])
             return
-        if "nodes" in kwargs:
-            for node in kwargs["nodes"]:
-                self.link(self.__class__(**node))
+        if "link" in kwargs:
+            self.link(*kwargs["link"])
         self.locked = kwargs.get("locked", False)
 
     def link(self, *nodes):
         for node in nodes:
-            for subnode_id in node.flat().keys():
+            for subnode_id in node.flat(include_locked=True, include_links=True).keys():
                 if self.identity == subnode_id:
                     raise RuntimeError("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
             self.nodes[node.name] = node
@@ -78,7 +77,7 @@ class Node(ABC):
         self._identity = state["identity"]
         if "nodes" in state:
             for node in state["nodes"]:
-                self.link(self.__class__(**node))
+                self.link(self.__class__(name = node["name"], state = node))
         self.locked = state.get("locked", False)
     def __iter__(self):
         return filter(lambda n: not n.locked, self.nodes.values())
@@ -108,4 +107,4 @@ class Node(ABC):
     def __str__(self):
         return f"Node: {self.name}"
     def __repr__(self):
-        return f"Node: {self.name} " + ("locked" if self.locked else "unlocked")
+        return f"Node: {self.name} " + ("locked" if self.locked else "unlocked") + ("" if self.leaf else " {" + ";".join(repr(node) for node in self.nodes) + "}")
