@@ -244,7 +244,7 @@ class Iter_LM(BaseOptimizer):
 
         # Loop through all the chunks
         while True:
-            chunk = torch.zeros(len(param_ids), dtype = torch.bool, device = AP_config.ap_device)
+            chunk = torch.zeros(len(init_param_ids), dtype = torch.bool, device = AP_config.ap_device)
             if isinstance(self.chunks, int):
                 if len(param_ids) == 0:
                     break
@@ -282,7 +282,7 @@ class Iter_LM(BaseOptimizer):
                 raise ValueError(
                     "Unrecognized chunks value, should be one of int, tuple. not: {type(self.chunks)}"
                 )
-            if self.verbose > 0:
+            if self.verbose > 1:
                 AP_config.ap_logger.info(str(chunk))
             del res
             with Param_Mask(self.model.parameters, chunk):

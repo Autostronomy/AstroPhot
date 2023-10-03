@@ -27,10 +27,10 @@ class Plane_Sky(Sky_Model):
 
     model_type = f"plane {Sky_Model.model_type}"
     parameter_specs = {
-        "sky": {"units": "flux/arcsec^2"},
+        "F": {"units": "flux/arcsec^2"},
         "delta": {"units": "flux/arcsec"},
     }
-    _parameter_order = Sky_Model._parameter_order + ("sky", "delta")
+    _parameter_order = Sky_Model._parameter_order + ("F", "delta")
     useable = True
 
     @torch.no_grad()
@@ -40,11 +40,11 @@ class Plane_Sky(Sky_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        with Param_Unlock(parameters["sky"]), Param_SoftLimits(parameters["sky"]):
-            if parameters["sky"].value is None:
-                parameters["sky"].value = np.median(target[self.window].data.detach().cpu().numpy()) / target.pixel_area.item()
-            if parameters["sky"].uncertainty is None:
-                parameters["sky"].uncertainty = (
+        with Param_Unlock(parameters["F"]), Param_SoftLimits(parameters["F"]):
+            if parameters["F"].value is None:
+                parameters["F"].value = np.median(target[self.window].data.detach().cpu().numpy()) / target.pixel_area.item()
+            if parameters["F"].uncertainty is None:
+                parameters["F"].uncertainty = (
                     iqr(
                         target[self.window].data.detach().cpu().numpy(),
                         rng=(31.731 / 2, 100 - 31.731 / 2),
@@ -62,7 +62,7 @@ class Plane_Sky(Sky_Model):
             Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[..., None, None]
         return (
-            image.pixel_area * parameters["sky"].value
+            image.pixel_area * parameters["F"].value
             + X * parameters["delta"].value[0]
             + Y * parameters["delta"].value[1]
         )

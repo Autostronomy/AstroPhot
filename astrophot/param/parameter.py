@@ -57,6 +57,24 @@ class Parameter_Node(Node):
             return torch.ones(self.shape, dtype = torch.bool, device = AP_config.ap_device)
 
         
+    @property
+    def identities(self):
+        if self.leaf:
+            idstr = str(self.identity)
+            return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
+        flat = self.flat(include_locked = False, include_links = False)
+        return np.concatenate(tuple(node.identities() for node in flat.values()))
+    
+    @property
+    def names(self):
+        if self.leaf:
+            S = self.size
+            if S == 1:
+                return np.array((self.name,))
+            return np.array(tuple(f"{self.name}:{i}" for i in range(self.size)))
+        flat = self.flat(include_locked = False, include_links = False)
+        return np.concatenate(tuple(node.names() for node in flat.values()))
+    
     def vector_values(self):
         """The vector representation is for values which correspond to
         fundamental inputs to the parameter DAG. Since the DAG may
@@ -105,16 +123,14 @@ class Parameter_Node(Node):
         flat = self.flat(include_locked = False, include_links = False)
         return np.concatenate(tuple(node.vector_identities() for node in flat.values()))
 
-    @property
-    def identities(self):
+    def vector_names(self):
         if self.leaf:
-            idstr = str(self.identity)
-            return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
+            return self.names[self.mask.detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.identities() for node in flat.values()))
-    
+        return np.concatenate(tuple(node.vector_names() for node in flat.values()))
+        
     def vector_set_values(self, values):
-        values = torch.as_tensor(values, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        values = torch.as_tensor(values, dtype = AP_config.ap_dtype, device = AP_config.ap_device).flatten()
         if self.leaf:
             self._value[self.mask] = values
             return
@@ -210,44 +226,37 @@ class Parameter_Node(Node):
             loc += node.size
         return torch.cat(reps)
         
-    def _set_val_subnodes(self, val):
-        flat = self.flat(include_locked = False)
-        loc = 0
-        for node in flat.values():
-            node.value = val[loc:loc + node.size]
-            loc += node.size
-
     def _soft_set_val_self(self, val):
+        val = torch.as_tensor(
+            val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
         if self.shape is not None:
-            self._value = torch.as_tensor(
-                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            ).reshape(self.shape)
+            self._value = val.reshape(self.shape)
         else:
-            self._value = torch.as_tensor(
-                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+            self._value = val
             self.shape = self._value.shape
             
         if self.cyclic:
             self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
+            return
         if self.limits[0] is not None:
             self._value = torch.maximum(self._value, torch.ones_like(self._value) * self.limits[0] * 1.001)
         if self.limits[1] is not None:
             self._value = torch.minimum(self._value, torch.ones_like(self._value) * self.limits[1] * 0.999)
             
     def _set_val_self(self, val):
+        val = torch.as_tensor(
+            val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
         if self.shape is not None:
-            self._value = torch.as_tensor(
-                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            ).reshape(self.shape)
+            self._value = val.reshape(self.shape)
         else:
-            self._value = torch.as_tensor(
-                val, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+            self._value = val
             self.shape = self._value.shape
                 
         if self.cyclic:
             self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
+            return
         if self.limits[0] is not None:
             assert torch.all(self._value > self.limits[0]), f"{self.name} has lower limit {self.limits[0].detach().cpu().tolist()}"
         if self.limits[1] is not None:
@@ -276,7 +285,7 @@ class Parameter_Node(Node):
             self.shape = None
             return
         if len(self.nodes) > 0:
-            self._set_val_subnodes(val)
+            self.vector_set_values(val)
             self.shape = None
             return
         self._set_val_self(val)

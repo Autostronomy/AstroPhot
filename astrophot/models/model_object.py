@@ -17,7 +17,7 @@ from ..image import (
     Target_Image,
     Target_Image_List,
 )
-from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits
+from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits, Param_Mask
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target

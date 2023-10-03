@@ -16,3 +16,4 @@ version of each tutorial is available here.
     JointModels
     CustomModels
     AdvancedPSFModels
+    ConstrainedModels
