@@ -174,6 +174,9 @@ def model_image(
 
     if flipx:
         ax.invert_xaxis()
+
+    # cut out the requested window
+    sample_image = sample_image[window]
         
     # Evaluate the model image
     X, Y = sample_image.get_coordinate_corner_meshgrid()
