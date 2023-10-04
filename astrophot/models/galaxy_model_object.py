@@ -103,6 +103,8 @@ class Galaxy_Model(Component_Model):
                         + target.north
                     )
                 ) % np.pi
+                if parameters["PA"].uncertainty is None:
+                    parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA"].value) # default uncertainty of 5 degrees is assumed
         if parameters["q"].value is None:
             q_samples = np.linspace(0.1, 0.9, 15)
             iso_info = isophotes(
@@ -114,6 +116,8 @@ class Galaxy_Model(Component_Model):
             )
             with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
                 parameters["q"].value = q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))]
+                if parameters["q"].uncertainty is None:
+                    parameters["q"].uncertainty = parameters["q"].value * self.default_uncertainty
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):

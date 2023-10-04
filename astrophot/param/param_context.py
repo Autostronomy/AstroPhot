@@ -8,7 +8,7 @@ class Param_Unlock:
     Context manager to unlock a parameter temporarily. Inside the
     context, the parameter will behave as unlocked regardless of its
     initial condition. Upon exiting the context, the parameter will
-    return to it's previous locked state regardless of any changes
+    return to its previous locked state regardless of any changes
     made by the user to the lock state.
 
     """
@@ -38,7 +38,11 @@ class Param_SoftLimits:
     limits will actually move a parameter by 0.001 into the parameter
     range. For example the axis ratio ``q`` has limits from (0,1) so
     if one were to write: ``q.value = 2`` then the actual value that
-    get's written would be ``0.999``.
+    gets written would be ``0.999``.
+
+    Cyclic parameters are not affected by this, any value outside the
+    range is always (Param_SoftLimits context or not) wrapped back
+    into the range using modulo arithmetic.
 
     """
     def __init__(self, param):

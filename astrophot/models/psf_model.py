@@ -65,7 +65,7 @@ class PSF_Star(Star_Model):
             if parameters["flux"].value is None:
                 parameters["flux"].value = torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area)
             if parameters["flux"].uncertainty is None:
-                parameters["flux"].uncertainty = torch.abs(parameters["flux"].value) * 1e-2
+                parameters["flux"].uncertainty = torch.abs(parameters["flux"].value) * self.default_uncertainty
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):

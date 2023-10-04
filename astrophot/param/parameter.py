@@ -137,7 +137,7 @@ class Parameter_Node(Node):
         ``center`` parameter with two components [x,y] would have
         identities be ``np.array(["123456:0", "123456:1"])`` where the
         first part is the unique id for the Parameter_Node object and
-        the second number indexes where in the value tensor it referes
+        the second number indexes where in the value tensor it refers
         to.
 
         """
@@ -167,7 +167,7 @@ class Parameter_Node(Node):
     def vector_values(self):
         """The vector representation is for values which correspond to
         fundamental inputs to the parameter DAG. Since the DAG may
-        have linked nodes, or functions which produce values derrived
+        have linked nodes, or functions which produce values derived
         from other node values, the collection of all "values" is not
         necessarily of use for some methods such as fitting
         algorithms. The vector representation is useful for optimizers
@@ -305,7 +305,7 @@ class Parameter_Node(Node):
 
         The transformation is done based on the limits of each
         parameter leaf. If no limits are provided then the
-        represnetaiton and value are equivalent. If both are given
+        representation and value are equivalent. If both are given
         then a ``tan`` and ``arctan`` are used to convert between the
         finite range and the infinite range. If the limits are
         one-sided then the transformation: ``newvalue = value - 1 /
@@ -345,7 +345,7 @@ class Parameter_Node(Node):
 
         The transformation is done based on the limits of each
         parameter leaf. If no limits are provided then the
-        represnetaiton and value are equivalent. If both are given
+        representation and value are equivalent. If both are given
         then a ``tan`` and ``arctan`` are used to convert between the
         finite range and the infinite range. If the limits are
         one-sided then the transformation: ``newvalue = value - 1 /
@@ -577,7 +577,7 @@ class Parameter_Node(Node):
         return state
     
     def set_state(self, state):
-        """Update the state of the parameter given a state variable whcih
+        """Update the state of the parameter given a state variable which
         holds all information about a variable.
 
         """
@@ -597,7 +597,7 @@ class Parameter_Node(Node):
         """Due to the system used to track and update values in the DAG, some
         parts of the computational graph used to determine gradients
         may linger after calling .backward on a model using the
-        parameters. This function essnetially resets all the leaf
+        parameters. This function essentially resets all the leaf
         values so that the full computational graph is freed.
 
         """

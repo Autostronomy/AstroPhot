@@ -105,7 +105,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
                 )
             if parameters["am"].uncertainty is None:
                 parameters["am"].uncertainty = torch.tensor(
-                    0.05 * np.ones(len(self.modes)),
+                    self.default_uncertainty * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
@@ -117,7 +117,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
                     device=AP_config.ap_device,
                 )
             if parameters["phim"].uncertainty is None:
-                parameters["phim"].uncertainty = torch.tensor(
+                parameters["phim"].uncertainty = torch.tensor( # Uncertainty assumed to be 5 degreees if not provided
                     (5 * np.pi / 180) * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
@@ -218,7 +218,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
                 )
             if parameters["am"].uncertainty is None:
                 parameters["am"].uncertainty = torch.tensor(
-                    0.05 * np.ones(len(self.modes)),
+                    self.default_uncertainty * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
@@ -231,7 +231,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
                 )
             if parameters["phim"].uncertainty is None:
                 parameters["phim"].uncertainty = torch.tensor(
-                    (5 * np.pi / 180) * np.ones(len(self.modes)),
+                    (5 * np.pi / 180) * np.ones(len(self.modes)),# Uncertainty assumed to be 5 degreees if not provided
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )

@@ -258,52 +258,6 @@ class TestLM(unittest.TestCase):
 
         LM.fit()
 
-        #LM.undo_step()
-
-        # LM.take_low_rho_step()
-        # for i in reversed(range(len(LM.decision_history))):
-        #     if "accept" in LM.decision_history[i]:
-        #         LM.decision_history[i] = "reject"
-        #         break
-        # LM.take_low_rho_step()
-
-#     def test_lm_constraint(self):
-#         def dummy_constraint(p):
-#             return torch.sum(torch.abs(p))
-
-#         new_constraint = ap.fit.LM_Constraint(dummy_constraint)
-#         target = make_basic_sersic()
-#         new_model = ap.models.AstroPhot_Model(
-#             name="constrained sersic",
-#             model_type="sersic galaxy model",
-#             parameters={
-#                 "center": [20, 20],
-#                 "PA": 60 * np.pi / 180,
-#                 "q": 0.5,
-#                 "n": 2,
-#                 "Re": 5,
-#                 "Ie": 1,
-#             },
-#             target=target,
-#         )
-
-#         jac = new_constraint.jacobian(new_model)
-#         samp = new_constraint(new_model)
-
-#         self.assertTrue(
-#             torch.all(torch.isfinite(jac)),
-#             "Constraint Jacobian should produce real numbers",
-#         )
-#         self.assertTrue(
-#             torch.all(torch.isclose(jac, torch.ones_like(jac))),
-#             "Constraint Jacobian should produce correct derivatives",
-#         )
-#         self.assertTrue(
-#             torch.all(torch.isfinite(samp)),
-#             "Constraint sample should produce real numbers",
-#         )
-
-
 class TestIter(unittest.TestCase):
     def test_iter_basic(self):
         target = make_basic_sersic()

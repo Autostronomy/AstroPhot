@@ -95,7 +95,7 @@ class AstroPhot_Model(object):
     """
 
     model_type = "model"
-    constraint_strength = 10.0
+    default_uncertainty = 1e-2 # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
     useable = False
     model_names = []
 

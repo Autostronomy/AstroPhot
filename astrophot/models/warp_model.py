@@ -93,8 +93,17 @@ class Warp_Galaxy(Galaxy_Model):
         with Param_Unlock(parameters["PA(R)"]), Param_SoftLimits(parameters["PA(R)"]):
             if parameters["PA(R)"].value is None:
                 parameters["PA(R)"].value = np.zeros(len(parameters["PA(R)"].prof)) + target.north
+            if parameters["PA(R)"].uncertainty is None:
+                parameters["PA(R)"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA(R)"].value)                
             if parameters["q(R)"].value is None:
+                # If no initial value is provided for q(R) a heursitic initial value is assumed.
+                # The most neutral initial position would be 1, but the boundaries of q are (0,1) non-inclusive
+                # so that is not allowed. A value like 0.999 may get stuck since it is near the very edge of
+                # the (0,1) range. So 0.9 is chosen to be mostly passive, but still some signal for the optimizer.
                 parameters["q(R)"].value = np.ones(len(parameters["q(R)"].prof)) * 0.9
+            if parameters["q(R)"].uncertainty is None:
+                parameters["q(R)"].uncertainty = self.default_uncertainty * parameters["q(R)"].value
+                
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):

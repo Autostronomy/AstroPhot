@@ -29,26 +29,26 @@ class TestModel(unittest.TestCase):
 
         state = model.get_state()
 
-    # def test_basic_model_methods(self):
+    def test_basic_model_methods(self):
 
-    #     target = make_basic_sersic()
-    #     model = ap.models.AstroPhot_Model(
-    #         name="test sersic",
-    #         model_type="sersic galaxy model",
-    #         parameters={
-    #             "center": [20, 20],
-    #             "PA": 60 * np.pi / 180,
-    #             "q": 0.5,
-    #             "n": 2,
-    #             "Re": 5,
-    #             "Ie": 1,
-    #         },
-    #         target=target,
-    #     )
-    #     rep = model.parameters.get_vector(as_representation = True)
-    #     nat = model.parameters.get_vector(as_representation = False)
-    #     self.assertTrue(torch.all(torch.isclose(rep, model.parameters.transform(nat, to_representation = True))), "transform should map between parameter natural and representation")
-    #     self.assertTrue(torch.all(torch.isclose(nat, model.parameters.transform(rep, to_representation = False))), "transform should map between parameter representation and natural")
+        target = make_basic_sersic()
+        model = ap.models.AstroPhot_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+        rep = model.parameters.vector_representation()
+        nat = model.parameters.vector_values()
+        self.assertTrue(torch.all(torch.isclose(rep, model.parameters.vector_transform_val_to_rep(nat))), "transform should map between parameter natural and representation")
+        self.assertTrue(torch.all(torch.isclose(nat, model.parameters.vector_transform_rep_to_val(rep))), "transform should map between parameter representation and natural")
 
     def test_model_sampling_modes(self):
 

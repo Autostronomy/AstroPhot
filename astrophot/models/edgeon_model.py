@@ -84,6 +84,7 @@ class Edgeon_Model(Component_Model):
                     + target.north
                 )
             ) % np.pi
+            parameters["PA"].uncertainty = parameters["PA"].value * self.default_uncertainty
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):

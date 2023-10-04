@@ -52,6 +52,8 @@ class Zernike_Star(Star_Model):
         # Set the default coefficients to zeros
         with Param_Unlock(parameters["Anm"]), Param_SoftLimits(parameters["Anm"]):
             parameters["Anm"].value = torch.zeros(len(self.nm_list))
+            if parameters["Anm"].uncertainty is None:
+                parameters["Anm"].uncertainty = self.default_uncertainty * torch.ones_like(parameters["Anm"].value)
             # Set the zero order zernike polynomial to the average in the image
             if self.nm_list[0] == (0, 0):
                 parameters["Anm"].value[0] = (

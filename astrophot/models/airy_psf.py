@@ -80,7 +80,7 @@ class Airy_Star(Star_Model):
         if parameters["aRL"].value is None:
             with Param_Unlock(parameters["aRL"]), Param_SoftLimits(parameters["aRL"]):
                 parameters["aRL"].value = (5./8.) * 2 * target.pixel_length
-                parameters["aRL"].uncertainty = parameters["aRL"].value / 2
+                parameters["aRL"].uncertainty = parameters["aRL"].value * self.default_uncertainty
         
 
     @default_internal

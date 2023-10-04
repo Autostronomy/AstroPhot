@@ -54,7 +54,7 @@ class Plane_Sky(Sky_Model):
         with Param_Unlock(parameters["delta"]), Param_SoftLimits(parameters["delta"]):
             if parameters["delta"].value is None:
                 parameters["delta"].value = [0.0, 0.0]
-                parameters["delta"].uncertainty = [0.1, 0.1]
+                parameters["delta"].uncertainty = [self.default_uncertainty, self.default_uncertainty]
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
