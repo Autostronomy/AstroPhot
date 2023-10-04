@@ -41,7 +41,13 @@ def target_image(fig, ax, target, window=None, **kwargs):
     # recursive call for target image list
     if isinstance(target, Image_List):
         for i in range(len(target.image_list)):
-            target_image(fig, ax[i], target.image_list[i], window=window, **kwargs)
+            wi = None
+            if window is not None:
+                if hasattr(window, "__iter__"):
+                    wi = window[i]
+                else:
+                    wi = window
+            target_image(fig, ax[i], target.image_list[i], window=wi, **kwargs)
         return fig, ax
     if window is None:
         window = target.window
