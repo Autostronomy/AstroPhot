@@ -178,7 +178,7 @@ class Node(ABC):
         """
         flat = OrderedDict()
         if self.leaf and self.value is not None:
-            if not self.locked or include_locked or Node.global_unlock:
+            if (not self.locked) or include_locked or Node.global_unlock:
                 flat[self.identity] = self
         for node in self.nodes.values():
             if node.locked and not (include_locked or Node.global_unlock):
@@ -186,7 +186,7 @@ class Node(ABC):
             if node.leaf and node.value is not None:
                 flat[node.identity] = node
             else:
-                if include_links and (not node.locked or include_locked or Node.global_unlock):
+                if include_links and ((not node.locked) or include_locked or Node.global_unlock):
                     flat[node.identity] = node
                 flat.update(node.flat(include_locked))
         return flat

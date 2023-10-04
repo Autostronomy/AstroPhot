@@ -145,7 +145,7 @@ class Parameter_Node(Node):
             idstr = str(self.identity)
             return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.identities() for node in flat.values()))
+        return np.concatenate(tuple(node.identities for node in flat.values()))
     
     @property
     def names(self):
@@ -162,7 +162,7 @@ class Parameter_Node(Node):
                 return np.array((self.name,))
             return np.array(tuple(f"{self.name}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.names() for node in flat.values()))
+        return np.concatenate(tuple(node.names for node in flat.values()))
     
     def vector_values(self):
         """The vector representation is for values which correspond to
@@ -497,6 +497,7 @@ class Parameter_Node(Node):
         if unc is None:
             self._uncertainty = None
             return
+        
         self._uncertainty = torch.as_tensor(
             unc, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )

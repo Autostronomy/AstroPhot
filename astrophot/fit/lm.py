@@ -459,7 +459,7 @@ class LM(BaseOptimizer):
         cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):
             try:
-                self.model.parameters.uncertainty = torch.sqrt(
+                self.model.parameters.vector_set_uncertainty = torch.sqrt(
                     torch.abs(torch.diag(cov))
                 )
             except RuntimeError as e:

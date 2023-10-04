@@ -1,5 +1,5 @@
 import unittest
-from astrophot.param import Node as BaseNode, Parameter_Node, Param_Mask
+from astrophot.param import Node as BaseNode, Parameter_Node, Param_Mask, Param_Unlock, Param_SoftLimits
 import torch
 import numpy as np
 
@@ -17,6 +17,10 @@ class TestNode(unittest.TestCase):
         node1 = Node("node1")
         node2 = Node("node2", locked = True)
 
+        # Check for bad nameing
+        with self.assertRaises(ValueError):
+            node_bad = Node("node:bad")
+
     def test_node_link(self):
         node1 = Node("node1")
         node2 = Node("node2")
@@ -24,6 +28,8 @@ class TestNode(unittest.TestCase):
 
         node1.link(node2, node3)
 
+        self.assertTrue(node1.branch, "node1 is a branch")
+        self.assertFalse(node3.branch, "node1 is not a branch")
         self.assertIs(node1["node2"], node2, "node getitem should fetch correct node")
 
         for Na, Nb in zip(node1.flat().values(), (node2, node3)):
@@ -33,16 +39,35 @@ class TestNode(unittest.TestCase):
 
         node2.link(node4)
 
-        self.assertIs(node1["node2:node4"], node4, "node getitem should fetch correct node")
-        
         for Na, Nb in zip(node1.flat(include_locked=False).values(), (node4,)):
             self.assertIs(Na, Nb, "node flat should produce correct order")
 
+        # Check for cycle in DAG
+        with self.assertRaises(RuntimeError):
+            node4.link(node1)
 
         node1.dump()
 
         self.assertEqual(len(node1.nodes), 0, "dump should clear all nodes")
 
+
+    def test_node_access(self):
+        node1 = Node("node1")
+        node2 = Node("node2")
+        node3 = Node("node3", locked = True)
+
+        node1.link(node2, node3)
+        node4 = Node("node4")
+
+        node2.link(node4)
+        
+        self.assertIs(node1["node2:node4"], node4, "node getitem should fetch correct node")
+        self.assertEqual(node1["node1"], node1, "node should get itself when getter called with its name")
+
+        # Check that error is raised when requesting non existent node
+        with self.assertRaises(ValueError):
+            badnode = node1[1.2]
+            
     def test_state(self):
         
         node1 = Node("node1")
@@ -177,8 +202,23 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(P1.value.item(), 0.5, "Parameter should store value")
         self.assertEqual(P2.value.item(), 0.5, "Pointing parameter should fetch value")
         self.assertEqual(P3.value.item(), 0.25, "Function parameter should compute value")
-        
 
+        self.assertEqual(P2.shape, P1.shape, "reference node should map shape")
+        self.assertEqual(P3.shape, P1.shape, "reference node should map shape")
+        
+class TestParamContext(unittest.TestCase):
+    def test_unlock(self):
+        locked_param = Parameter_Node("locked param", value=1.0, locked=True)
+        locked_param.value = 2.
+        self.assertEqual(locked_param.value.item(), 1., "locked parameter should not be updated out of context")
+        with Param_Unlock(locked_param):
+            locked_param.value = 2.
+        self.assertEqual(locked_param.value.item(), 2., "locked parameter should be updated in context")
+        with Param_Unlock():
+            locked_param.value = 3.
+        self.assertEqual(locked_param.value.item(), 3., "locked parameter should be updated in global unlock context")
+        
+            
 class TestParameterVector(unittest.TestCase):
     def test_param_vector_creation(self):
 
@@ -190,9 +230,15 @@ class TestParameterVector(unittest.TestCase):
         PG = Parameter_Node("testgroup", link = (P1, P2, P3, P4, P5))
         
         self.assertTrue(torch.all(PG.vector_values() == torch.tensor([0.5,2.,4.,5.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
-        self.assertEqual(PG.vector_mask().numel(), 4, "Vector should take all/only leaf node masks")
+        self.assertEqual(PG.mask.numel(), 4, "Vector should take all/only leaf node masks")
         self.assertEqual(PG.vector_identities().size, 4, "Vector should take all/only leaf node identities")
+        self.assertEqual(PG.identities.size, 4, "Vector should take all/only leaf node identities")
+        self.assertEqual(PG.names.size, 4, "Vector should take all/only leaf node names")
+        self.assertEqual(PG.vector_names().size, 4, "Vector should take all/only leaf node names")
 
+        PG.value = [1.,2.,3.,4.]
+        self.assertTrue(torch.all(PG.vector_values() == torch.tensor([1.,2.,3.,4.], dtype=P1.value.dtype, device = P1.value.device)), "Vector store all leaf node values")
+        
     def test_vector_masking(self):
         
         P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.3, limits = (-1, 1), locked = False, prof = 1.)
