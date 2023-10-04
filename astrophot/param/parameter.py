@@ -421,9 +421,9 @@ class Parameter_Node(Node):
             self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
             return
         if self.limits[0] is not None:
-            self._value = self._value + torch.ones_like(self._value) * 1e-3
+            self._value = torch.maximum(self._value, self.limits[0] + torch.ones_like(self._value) * 1e-3)
         if self.limits[1] is not None:
-            self._value = self._value - torch.ones_like(self._value) * 1e-3
+            self._value = torch.minimum(self._value, self.limits[1] - torch.ones_like(self._value) * 1e-3)
             
         
     @value.setter

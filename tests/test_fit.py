@@ -73,54 +73,28 @@ class TestComponentModelFits(unittest.TestCase):
         """
         Test sersic fitting with entirely independent sersic sampling at 10x resolution.
         """
-        np.random.seed(12345)
         N = 50
         pixelscale = 0.8
-        upsample = 10
         shape = (N + 10, N)
-        # true_params = [2,5,10,-3, 5, 0.7, np.pi/4]
         true_params = {
             "n": 2,
             "Re": 10,
-            "Ie": 1,
+            "Ie": 1.,
             "center": [shape[0]*pixelscale/2 - 3.3, shape[1]*pixelscale/2 + 5.3],
             "q": 0.7,
             "pa": np.pi / 4,
         }
-        IXX, IYY = np.meshgrid(
-            np.linspace(
-                pixelscale / (2 * upsample),
-                shape[1]*pixelscale - (pixelscale / (2 * upsample)),
-                shape[1] * upsample,
-            ),
-            np.linspace(
-                pixelscale / (2 * upsample),
-                shape[0]*pixelscale - (pixelscale / (2 * upsample)),
-                shape[0] * upsample,
-            ),
-        )
-        QPAXX, QPAYY = ap.utils.conversions.coordinates.Axis_Ratio_Cartesian_np(
-            true_params["q"],
-            IXX - true_params["center"][0],
-            IYY - true_params["center"][1],
-            -(true_params["pa"] - np.pi/2),
-        )
-        Z0 = ap.utils.parametric_profiles.sersic_np(
-            np.sqrt(QPAXX ** 2 + QPAYY ** 2),
-            true_params["n"],
-            true_params["Re"],
-            pixelscale**2 * 10**true_params["Ie"],
-        ) + np.random.normal(
-            loc=0, scale=0.1, size=(shape[0] * upsample, shape[1] * upsample)
-        )
-        Z0 = (
-            Z0.reshape(shape[0], upsample, shape[1], upsample).sum(axis=(1, 3))
-            / upsample ** 2
-        )
-        tar = ap.image.Target_Image(
-            data=Z0,
-            pixelscale=pixelscale,
-            variance=np.ones(Z0.shape) * (0.1 ** 2),
+        tar = make_basic_sersic(
+            N = shape[0],
+            M = shape[1],
+            pixelscale = pixelscale,
+            x = true_params["center"][0],
+            y = true_params["center"][1],
+            n = true_params["n"],
+            Re = true_params["Re"],
+            Ie = true_params["Ie"],
+            q = true_params["q"],
+            PA = true_params["pa"],
         )
 
         mod = ap.models.Sersic_Galaxy(
@@ -129,9 +103,8 @@ class TestComponentModelFits(unittest.TestCase):
         )
 
         mod.initialize()
-
         ap.AP_config.set_logging_output(stdout=True, filename="AstroPhot.log")
-        res = ap.fit.LM(model=mod, verbose=1).fit()
+        res = ap.fit.LM(model=mod, verbose=2).fit()
 
         res.update_uncertainty()
         

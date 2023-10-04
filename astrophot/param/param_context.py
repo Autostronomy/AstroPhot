@@ -32,12 +32,13 @@ class Param_Unlock:
 class Param_SoftLimits:
     """Temporarily allow writing parameter values outside limits.
 
-    Values outside the limits will be quietly shifted until they are
-    within the boundaries of the parameter limits. Since the limits
-    are non-inclusive, the soft limits will actually move a parameter
-    by 0.001 into the parameter range. For example the axis ratio
-    ``q`` has limits from (0,1) so if one were to write: ``q.value =
-    2`` then the actual value that get's written would be ``0.999``.
+    Values outside the limits will be quietly (no error/warning
+    raised) shifted until they are within the boundaries of the
+    parameter limits. Since the limits are non-inclusive, the soft
+    limits will actually move a parameter by 0.001 into the parameter
+    range. For example the axis ratio ``q`` has limits from (0,1) so
+    if one were to write: ``q.value = 2`` then the actual value that
+    get's written would be ``0.999``.
 
     """
     def __init__(self, param):
