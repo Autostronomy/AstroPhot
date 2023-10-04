@@ -30,10 +30,15 @@ class Param_Unlock:
             self.param.locked = self.original_locked
 
 class Param_SoftLimits:
-    """
-    Temporarily allow writing parameter values outside limits.
+    """Temporarily allow writing parameter values outside limits.
 
-    Values outside the limits will be quietly shift until they are within the boundaries of the parameter limits.
+    Values outside the limits will be quietly shifted until they are
+    within the boundaries of the parameter limits. Since the limits
+    are non-inclusive, the soft limits will actually move a parameter
+    by 0.001 into the parameter range. For example the axis ratio
+    ``q`` has limits from (0,1) so if one were to write: ``q.value =
+    2`` then the actual value that get's written would be ``0.999``.
+
     """
     def __init__(self, param):
         self.param = param
@@ -47,10 +52,31 @@ class Param_SoftLimits:
 
 
 class Param_Mask:
-    """
-    Temporarily mask parameters.
+    """Temporarily mask parameters.
 
-    Select a subset of parameters to be used through the "vector" interface of the DAG.
+    Select a subset of parameters to be used through the "vector"
+    interface of the DAG. The context is initialized with a
+    Parameter_Node object (``P``) and a torch tensor (``M``) where the
+    size of the mask should be equal to the current vector
+    representation of the parameter (``M.numel() ==
+    P.vector_values().numel()``). The mask tensor should be of
+    ``torch.bool`` dtype where ``True`` indicates to keep using that
+    parameter and ``False`` indicates to hide that parameter value.
+
+    Note that ``Param_Mask`` contexts can be nested and will behave
+    accordingly (the mask tensor will need to match the vector size
+    within the previous context). As an example, imagine there is a
+    parameter node ``P`` which has five sub-nodes each with a single
+    value, one could nest contexts like::
+
+      M1 = torch.tensor((1,1,0,1,0), dtype = torch.bool)
+      with Param_Mask(P, M1):
+        # Now P behaves as if it only has 3 elements
+        M2 = torch.tensor([0,1,1], dtype = torch.bool)
+        with Param_Mask(P, M2):
+          # Now P behaves as if it only has 2 elements
+          P.vector_values() # returns tensor with 2 elements
+
     """
     def __init__(self, param, new_mask):
         self.param = param

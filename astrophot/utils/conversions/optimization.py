@@ -5,13 +5,10 @@ from ... import AP_config
 
 def boundaries(val, limits):
     """val in limits expanded to range -inf to inf"""
-    tval = (
-        val
-        if isinstance(val, torch.Tensor)
-        else torch.tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    )
+    tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    
     if limits[0] is None:
-        return tval - 1.0 / (tval - limits[1])  # fixme check + or -?
+        return tval - 1.0 / (tval - limits[1])
     elif limits[1] is None:
         return tval - 1.0 / (tval - limits[0])
     return torch.tan((tval - limits[0]) * np.pi / (limits[1] - limits[0]) - np.pi / 2)
@@ -19,15 +16,13 @@ def boundaries(val, limits):
 
 def inv_boundaries(val, limits):
     """val in range -inf to inf compressed to within the limits"""
-
     tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    
     if limits[0] is None:
         return (tval + limits[1] - torch.sqrt(torch.pow(tval - limits[1], 2) + 4)) * 0.5
     elif limits[1] is None:
         return (tval + limits[0] + torch.sqrt(torch.pow(tval - limits[0], 2) + 4)) * 0.5
-    return (torch.arctan(tval) + np.pi / 2) * (limits[1] - limits[0]) / np.pi + limits[
-        0
-    ]
+    return (torch.arctan(tval) + np.pi / 2) * (limits[1] - limits[0]) / np.pi + limits[0]
 
 
 def d_boundaries_dval(val, limits):
@@ -58,11 +53,8 @@ def d_inv_boundaries_dval(val, limits):
 
 def cyclic_boundaries(val, limits):
     """Applies cyclic boundary conditions to the input value."""
-    tval = (
-        val
-        if isinstance(val, torch.Tensor)
-        else torch.tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    )
+    tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    
     return limits[0] + ((tval - limits[0]) % (limits[1] - limits[0]))
 
 
@@ -71,16 +63,9 @@ def cyclic_difference_torch(val1, val2, period):
     boundary conditions.
 
     """
-    tval1 = (
-        val1
-        if isinstance(val1, torch.Tensor)
-        else torch.tensor(val1, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    )
-    tval2 = (
-        val2
-        if isinstance(val2, torch.Tensor)
-        else torch.tensor(val2, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    )
+    tval1 = torch.as_tensor(val1, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    tval2 = torch.as_tensor(val2, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    
     return torch.arcsin(torch.sin((tval1 - tval2) * np.pi / period)) * period / np.pi
 
 
@@ -89,4 +74,6 @@ def cyclic_difference_np(val1, val2, period):
     boundary conditions.
 
     """
-    return np.arcsin(np.sin((val1 - val2) * np.pi / period)) * period / np.pi
+    tval1 = torch.as_tensor(val1, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    tval2 = torch.as_tensor(val2, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
+    return np.arcsin(np.sin((tval1 - tval2) * np.pi / period)) * period / np.pi

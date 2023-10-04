@@ -10,6 +10,11 @@ class Node(ABC):
     between them. An important part of the DAG system is to be able to
     find all the leaf nodes, which is done using the `flat` function.
 
+    Args:
+      name (str): The name of the node, this should identify it uniquely in the local context it will be used in.
+      locked (bool): Records if the node is locked, this is relevant for some other operations which only act on unlocked nodes.
+      link (tuple[Node]): A tuple of node objects which this node will be linked to on initialization.
+
     """
     global_unlock = False
     
@@ -65,6 +70,12 @@ class Node(ABC):
 
         """
         return len(self.nodes) == 0
+    @property
+    def branch(self):
+        """Returns True when the current node is a branch node (not a leaf node, is linked to more nodes).
+
+        """
+        return len(self.nodes) > 0
 
     def __getitem__(self, key):
         """Used to get a node from the DAG relative to the current node. It
@@ -93,19 +104,39 @@ class Node(ABC):
         raise ValueError(f"Unrecognized key for '{self}': {key}")
                 
     def __contains__(self, key):
+        """Check if a node has a link directly to another node. A check like
+        ``"second_node" in first_node`` would return true only if
+        ``first_node`` was linked to ``second_node``.
+
+        """
         return key in self.nodes
 
     def __eq__(self, other):
+        """Equality check for nodes only returns true if they are in fact the
+        same node.
+
+        """
         return self is other
 
     @property
     def identity(self):
+        """A read only property of the node which does not change over it's
+        lifetime that uniquely identifies it relative to other
+        nodes. By default this just uses the ``id(self)`` though for
+        the purpose of saving/loading it may not always be this way.
+
+        """
         try:
             return self._identity
         except AttributeError:
             return id(self)
     
     def get_state(self):
+        """Returns a dictionary with state information about this node. From
+        that dictionary the node can reconstruct itself, or form
+        another node which is a copy of this one.
+
+        """
         state = {
             "name": self.name,
             "identity": self.identity,
@@ -117,12 +148,18 @@ class Node(ABC):
         return state
 
     def set_state(self, state):
+        """Used to set the state of the node for the purpose of
+        loading/copying. This uses the dictionary produced by
+        ``get_state`` to re-create itself.
+
+        """
         self.name = state["name"]
         self._identity = state["identity"]
         if "nodes" in state:
             for node in state["nodes"]:
                 self.link(self.__class__(name = node["name"], state = node))
         self.locked = state.get("locked", False)
+        
     def __iter__(self):
         return filter(lambda n: not n.locked, self.nodes.values())
     
@@ -132,21 +169,27 @@ class Node(ABC):
         ...
 
     def flat(self, include_locked = True, include_links = False):
+        """Searches the DAG from this node and collects other nodes in the
+        graph. By default it will include all leaf nodes only, however
+        it can be directed to only collect leaf nodes that are not
+        locked, it can also be directed to collect all nodes instead
+        of just leaf nodes.
+
+        """
         flat = OrderedDict()
         if self.leaf and self.value is not None:
             if not self.locked or include_locked or Node.global_unlock:
                 flat[self.identity] = self
         for node in self.nodes.values():
+            if node.locked and not (include_locked or Node.global_unlock):
+                continue
             if node.leaf and node.value is not None:
-                if node.locked and not (include_locked or Node.global_unlock):
-                    continue
                 flat[node.identity] = node
             else:
                 if include_links and (not node.locked or include_locked or Node.global_unlock):
                     flat[node.identity] = node
                 flat.update(node.flat(include_locked))
         return flat
-
 
     def __str__(self):
         return f"Node: {self.name}"
