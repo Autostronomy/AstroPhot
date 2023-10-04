@@ -17,15 +17,13 @@ from ..image import (
     Target_Image,
     Target_Image_List,
 )
-from .parameter_object import Parameter
-from .parameter_group import Parameter_Group
+from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits, Param_Mask
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .. import AP_config
 
 __all__ = ["Component_Model"]
-
 
 class Component_Model(AstroPhot_Model):
     """Component_Model(name, target, window, locked, **kwargs)
@@ -138,7 +136,7 @@ class Component_Model(AstroPhot_Model):
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
-                self.parameters.set_values(kwargs["parameters"])
+                self.parameters.value = kwargs["parameters"]
 
     def set_aux_psf(self, aux_psf, add_parameters=True):
         """Set the PSF for this model as an auxiliary psf model. This psf
@@ -154,7 +152,7 @@ class Component_Model(AstroPhot_Model):
         self._psf = aux_psf
 
         if add_parameters:
-            self.parameters.add_group(aux_psf.parameters)
+            self.parameters.link(aux_psf.parameters)
 
     @property
     def psf(self):
@@ -186,7 +184,7 @@ class Component_Model(AstroPhot_Model):
     def initialize(
         self,
         target: Optional["Target_Image"] = None,
-        parameters: Optional[Parameter_Group] = None,
+        parameters: Optional[Parameter_Node] = None,
         **kwargs,
     ):
         """Determine initial values for the center coordinates. This is done
@@ -204,7 +202,8 @@ class Component_Model(AstroPhot_Model):
 
         # Use center of window if a center hasn't been set yet
         if parameters["center"].value is None:
-            parameters["center"].set_value(self.window.center, override_locked=True)
+            with Param_Unlock(parameters["center"]), Param_SoftLimits(parameters["center"]):
+                parameters["center"].value = self.window.center
         else:
             return
 
@@ -243,7 +242,7 @@ class Component_Model(AstroPhot_Model):
         X: Optional[torch.Tensor] = None,
         Y: Optional[torch.Tensor] = None,
         image: Optional["Image"] = None,
-        parameters: "Parameter_Group" = None,
+        parameters: "Parameter_Node" = None,
         **kwargs,
     ):
         """Evaluate the model on every pixel in the given image. The
@@ -263,7 +262,7 @@ class Component_Model(AstroPhot_Model):
         self,
         image: Optional["Image"] = None,
         window: Optional[Window] = None,
-        parameters: Optional[Parameter_Group] = None,
+        parameters: Optional[Parameter_Node] = None,
     ):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
@@ -312,7 +311,7 @@ class Component_Model(AstroPhot_Model):
             if isinstance(self.psf, AstroPhot_Model):
                 psf = self.psf.sample(
                     image=self.psf_aux_image,
-                    parameters=parameters.groups[self.psf.name],
+                    parameters=parameters[self.psf.name],
                 )
                 psf = PSF_Image(
                     data=psf.data,
@@ -399,7 +398,6 @@ class Component_Model(AstroPhot_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        parameters_identity: Optional[tuple] = None,
         window: Optional[Window] = None,
         pass_jacobian: Optional[Jacobian_Image] = None,
         **kwargs,
@@ -437,60 +435,31 @@ class Component_Model(AstroPhot_Model):
             window = self.window & window
 
         # skip jacobian calculation if no parameters match criteria
-        porder = self.parameters.order(parameters_identity=parameters_identity)
-        if len(porder) == 0 or window.overlap_frac(self.window) <= 0:
+        if torch.sum(self.parameters.vector_mask()) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
 
         # Set the parameters if provided and check the size of the parameter list
-        dochunk = False
         if parameters is not None:
-            if len(parameters) > self.jacobian_chunksize:
-                dochunk = True
-            self.parameters.set_values(
-                parameters,
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            )
-        else:
-            if (
-                len(
-                    self.parameters.get_identity_vector(
-                        parameters_identity=parameters_identity
-                    )
-                )
-                > self.jacobian_chunksize
-            ):
-                dochunk = True
-
-        # If the parameter list is too large, apply the chunk jacobian analysis
-        if dochunk:
+            if as_representation:
+                self.parameters.vector_set_representation(parameters)
+            else:
+                self.parameters.vector_set_values(parameters)
+        if torch.sum(self.parameters.vector_mask()) > self.jacobian_chunksize:
             return self._chunk_jacobian(
                 as_representation=as_representation,
-                parameters_identity=parameters_identity,
                 window=window,
                 **kwargs,
             )
 
-        # Store the parameter identities
-        if parameters_identity is None:
-            pids = None
-        else:
-            pids = self.parameters.get_identity_vector(
-                parameters_identity=parameters_identity,
-            )
         # Compute the jacobian
         full_jac = jacobian(
             lambda P: self(
                 image=None,
                 parameters=P,
                 as_representation=as_representation,
-                parameters_identity=pids,
                 window=window,
             ).data,
-            self.parameters.get_vector(
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            ).detach(),
+            self.parameters.vector_representation().detach() if as_representation else self.parameters.vector_values().detach(),
             strategy="forward-mode",
             vectorize=True,
             create_graph=False,
@@ -498,9 +467,7 @@ class Component_Model(AstroPhot_Model):
 
         # Store the jacobian as a Jacobian_Image object
         jac_img = self.target[window].jacobian_image(
-            parameters=self.parameters.get_identity_vector(
-                parameters_identity=parameters_identity,
-            ),
+            parameters=self.parameters.vector_identities(),
             data=full_jac,
         )
         return jac_img
@@ -524,22 +491,21 @@ class Component_Model(AstroPhot_Model):
         `self.jacobian` function when appropriate.
 
         """
-
-        pids = self.parameters.get_identity_vector(
-            parameters_identity=parameters_identity,
-        )
+        pids = self.parameters.vector_identities()
         jac_img = self.target[window].jacobian_image(
             parameters=pids,
         )
 
         for ichunk in range(0, len(pids), self.jacobian_chunksize):
-            jac_img += self.jacobian(
-                parameters=None,
-                as_representation=as_representation,
-                parameters_identity=pids[ichunk : ichunk + self.jacobian_chunksize],
-                window=window,
-                **kwargs,
-            )
+            mask = torch.zeros(len(pids), dtype = torch.bool, device = AP_config.ap_device)
+            mask[ichunk:ichunk+self.jacobian_chunksize] = True
+            with Param_Mask(self.parameters, mask):
+                jac_img += self.jacobian(
+                    parameters=None,
+                    as_representation=as_representation,
+                    window=window,
+                    **kwargs,
+                )
 
         return jac_img
 
@@ -575,7 +541,7 @@ class Component_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-    def get_state(self):
+    def get_state(self, save_params = True):
         """Returns a dictionary with a record of the current state of the
         model.
 
@@ -588,10 +554,11 @@ class Component_Model(AstroPhot_Model):
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
-        state["parameters"] = self.parameters.get_state(save_groups=False)
+        if save_params:
+            state["parameters"] = self.parameters.get_state()
         state["target_identity"] = self._target_identity
         if isinstance(self.psf, AstroPhot_Model):
-            state["psf"] = self.psf.get_state()
+            state["psf"] = self.psf.get_state(save_params = False)
         for key in self.track_attrs:
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
@@ -622,11 +589,15 @@ class Component_Model(AstroPhot_Model):
             if key in state:
                 setattr(self, key, state[key])
         # Load the parameter group, this is handled by the parameter group object
-        self.parameters = Parameter_Group(self.name, state=state["parameters"])
+        if isinstance(state["parameters"], Parameter_Node):
+            self.parameters = state["parameters"]
+        else:
+            self.parameters = Parameter_Node(self.name, state=state["parameters"])
         # Move parameters to the appropriate device and dtype
         self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         # Re-create the aux PSF model if there was one
         if "psf" in state:
+            state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]
             self.set_aux_psf(
                 AstroPhot_Model(
                     state["psf"]["name"],

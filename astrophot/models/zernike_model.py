@@ -7,6 +7,7 @@ from scipy.special import binom
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .star_model_object import Star_Model
+from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 __all__ = ("Zernike_Star",)
@@ -49,15 +50,15 @@ class Zernike_Star(Star_Model):
             return
 
         # Set the default coefficients to zeros
-        parameters["Anm"].set_value(
-            torch.zeros(len(self.nm_list)), override_locked=True
-        )
-
-        # Set the zero order zernike polynomial to the average in the image
-        if self.nm_list[0] == (0, 0):
-            parameters["Anm"].value[0] = (
-                torch.median(target[self.window].data) / target.pixel_area
-            )
+        with Param_Unlock(parameters["Anm"]), Param_SoftLimits(parameters["Anm"]):
+            parameters["Anm"].value = torch.zeros(len(self.nm_list))
+            if parameters["Anm"].uncertainty is None:
+                parameters["Anm"].uncertainty = self.default_uncertainty * torch.ones_like(parameters["Anm"].value)
+            # Set the zero order zernike polynomial to the average in the image
+            if self.nm_list[0] == (0, 0):
+                parameters["Anm"].value[0] = (
+                    torch.median(target[self.window].data) / target.pixel_area
+                )
 
     def iter_nm(self, n):
         nm = []

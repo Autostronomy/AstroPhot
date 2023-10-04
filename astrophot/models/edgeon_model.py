@@ -9,6 +9,7 @@ from ._shared_methods import select_target
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..param import Param_Unlock, Param_SoftLimits
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
@@ -42,7 +43,7 @@ class Edgeon_Model(Component_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
         if parameters["PA"].value is not None:
@@ -68,8 +69,8 @@ class Edgeon_Model(Component_Model):
             q=1.0,
             n_isophotes=15,
         )
-        parameters["PA"].set_value(
-            (
+        with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
+            parameters["PA"].value = (
                 -(
                     (
                         Angle_Average(
@@ -82,10 +83,8 @@ class Edgeon_Model(Component_Model):
                     )
                     + target.north
                 )
-            )
-            % np.pi,
-            override_locked=True,
-        )
+            ) % np.pi
+            parameters["PA"].uncertainty = parameters["PA"].value * self.default_uncertainty
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
@@ -97,7 +96,7 @@ class Edgeon_Model(Component_Model):
         X=None,
         Y=None,
         image: "Image" = None,
-        parameters: "Parameter_Group" = None,
+        parameters: "Parameter_Node" = None,
         **kwargs,
     ):
         if X is None:
@@ -129,7 +128,7 @@ class Edgeon_Sech(Edgeon_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
         if (parameters["I0"].value is not None) and (
@@ -140,8 +139,8 @@ class Edgeon_Sech(Edgeon_Model):
         icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["I0"].value is None:
-            parameters["I0"].set_value(
-                torch.log10(
+            with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
+                parameters["I0"].value = torch.log10(
                     torch.mean(
                         target_area.data[
                             int(icenter[0]) - 2 : int(icenter[0]) + 2,
@@ -149,24 +148,17 @@ class Edgeon_Sech(Edgeon_Model):
                         ]
                     )
                     / target.pixel_area.item()
-                ),
-                override_locked=True,
-            )
-            parameters["I0"].set_uncertainty(
-                torch.std(
+                )
+                parameters["I0"].uncertainty = torch.std(
                     target_area.data[
                         int(icenter[0]) - 2 : int(icenter[0]) + 2,
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
-                )
-                / (torch.abs(parameters["I0"].value) * target.pixel_area),
-                override_locked=True,
-            )
+                ) / (torch.abs(parameters["I0"].value) * target.pixel_area)
         if parameters["hs"].value is None:
-            parameters["hs"].set_value(
-                torch.max(self.window.shape) * 0.1, override_locked=True
-            )
-            parameters["hs"].set_value(parameters["hs"].value / 2, override_locked=True)
+            with Param_Unlock(parameters["hs"]), Param_SoftLimits(parameters["hs"]):
+                parameters["hs"].value = torch.max(self.window.shape) * 0.1
+                parameters["hs"].uncertainty = parameters["hs"].value / 2
 
     @default_internal
     def brightness_model(self, X, Y, image=None, parameters=None):
@@ -195,15 +187,14 @@ class Edgeon_Isothermal(Edgeon_Sech):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
         if parameters["rs"].value is not None:
             return
-        parameters["rs"].set_value(
-            torch.max(self.window.shape) * 0.4, override_locked=True
-        )
-        parameters["rs"].set_value(parameters["rs"].value / 2, override_locked=True)
+        with Param_Unlock(parameters["rs"]), Param_SoftLimits(parameters["rs"]):
+            parameters["rs"].value = torch.max(self.window.shape) * 0.4
+            parameters["rs"].uncertainty = parameters["rs"].value / 2
 
     @default_internal
     def radial_model(self, R, image=None, parameters=None):

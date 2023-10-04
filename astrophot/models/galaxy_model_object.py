@@ -11,6 +11,7 @@ from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
 )
+from ..param import Param_Unlock, Param_SoftLimits
 from .model_object import Component_Model
 from ._shared_methods import select_target
 
@@ -58,7 +59,7 @@ class Galaxy_Model(Component_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
 
@@ -87,8 +88,8 @@ class Galaxy_Model(Component_Model):
                 q=1.0,
                 n_isophotes=15,
             )
-            parameters["PA"].set_value(
-                (
+            with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
+                parameters["PA"].value = (
                     -(
                         (
                             Angle_Average(
@@ -101,10 +102,9 @@ class Galaxy_Model(Component_Model):
                         )
                         + target.north
                     )
-                )
-                % np.pi,
-                override_locked=True,
-            )
+                ) % np.pi
+                if parameters["PA"].uncertainty is None:
+                    parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA"].value) # default uncertainty of 5 degrees is assumed
         if parameters["q"].value is None:
             q_samples = np.linspace(0.1, 0.9, 15)
             iso_info = isophotes(
@@ -114,10 +114,10 @@ class Galaxy_Model(Component_Model):
                 pa=(parameters["PA"].value - target.north).detach().cpu().item(),
                 q=q_samples,
             )
-            parameters["q"].set_value(
-                q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))],
-                override_locked=True,
-            )
+            with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
+                parameters["q"].value = q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))]
+                if parameters["q"].uncertainty is None:
+                    parameters["q"].uncertainty = parameters["q"].value * self.default_uncertainty
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
@@ -129,7 +129,7 @@ class Galaxy_Model(Component_Model):
 
     @default_internal
     def evaluate_model(
-        self, X=None, Y=None, image=None, parameters: "Parameter_Group" = None, **kwargs
+        self, X=None, Y=None, image=None, parameters: "Parameter_Node" = None, **kwargs
     ):
         if X is None or Y is None:
             Coords = image.get_coordinate_meshgrid()

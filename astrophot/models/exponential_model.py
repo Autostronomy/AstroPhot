@@ -72,7 +72,7 @@ class Exponential_Galaxy(Galaxy_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Group"] = None, **kwargs
+        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
 

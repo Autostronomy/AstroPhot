@@ -6,6 +6,7 @@ from .galaxy_model_object import Galaxy_Model
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
 from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..param import Param_Unlock, Param_SoftLimits
 from ._shared_methods import select_target
 
 __all__ = ["Warp_Galaxy"]
@@ -70,7 +71,7 @@ class Warp_Galaxy(Galaxy_Model):
                     new_prof.pop()
                     new_prof.pop()
                     new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-                    parameters[prof_param].set_profile(new_prof)
+                    parameters[prof_param].prof = new_prof
                 else:  # matching length of a provided profile
                     # create logarithmically spaced profile radii
                     new_prof = [0] + list(
@@ -84,21 +85,25 @@ class Warp_Galaxy(Galaxy_Model):
                     for i in range(1, len(new_prof)):
                         if new_prof[i] - new_prof[i - 1] < target.pixel_length.item():
                             new_prof[i] = new_prof[i - 1] + target.pixel_length.item()
-                    parameters[prof_param].set_profile(new_prof)
+                    parameters[prof_param].prof = new_prof
 
         if not (parameters["PA(R)"].value is None or parameters["q(R)"].value is None):
             return
 
-        if parameters["PA(R)"].value is None:
-            parameters["PA(R)"].set_value(
-                np.zeros(len(parameters["PA(R)"].prof)) + target.north,
-                override_locked=True,
-            )
-
-        if parameters["q(R)"].value is None:
-            parameters["q(R)"].set_value(
-                np.ones(len(parameters["q(R)"].prof)) * 0.9, override_locked=True
-            )
+        with Param_Unlock(parameters["PA(R)"]), Param_SoftLimits(parameters["PA(R)"]):
+            if parameters["PA(R)"].value is None:
+                parameters["PA(R)"].value = np.zeros(len(parameters["PA(R)"].prof)) + target.north
+            if parameters["PA(R)"].uncertainty is None:
+                parameters["PA(R)"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA(R)"].value)                
+            if parameters["q(R)"].value is None:
+                # If no initial value is provided for q(R) a heursitic initial value is assumed.
+                # The most neutral initial position would be 1, but the boundaries of q are (0,1) non-inclusive
+                # so that is not allowed. A value like 0.999 may get stuck since it is near the very edge of
+                # the (0,1) range. So 0.9 is chosen to be mostly passive, but still some signal for the optimizer.
+                parameters["q(R)"].value = np.ones(len(parameters["q(R)"].prof)) * 0.9
+            if parameters["q(R)"].uncertainty is None:
+                parameters["q(R)"].uncertainty = self.default_uncertainty * parameters["q(R)"].value
+                
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):

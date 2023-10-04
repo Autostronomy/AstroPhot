@@ -5,6 +5,7 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from ._shared_methods import select_target
+from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 __all__ = ["FourierEllipse_Galaxy", "FourierEllipse_Warp"]
@@ -95,42 +96,32 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        if parameters["am"].value is None:
-            parameters["am"].set_value(
-                torch.zeros(
+        with Param_Unlock(parameters["am"]), Param_SoftLimits(parameters["am"]):
+            if parameters["am"].value is None:
+                parameters["am"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["am"].uncertainty is None:
-            parameters["am"].set_uncertainty(
-                torch.tensor(
-                    0.05 * np.ones(len(self.modes)),
+                )
+            if parameters["am"].uncertainty is None:
+                parameters["am"].uncertainty = torch.tensor(
+                    self.default_uncertainty * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].value is None:
-            parameters["phim"].set_value(
-                torch.zeros(
+                )
+        with Param_Unlock(parameters["phim"]), Param_SoftLimits(parameters["phim"]):
+            if parameters["phim"].value is None:
+                parameters["phim"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].uncertainty is None:
-            parameters["phim"].set_uncertainty(
-                torch.tensor(
+                )
+            if parameters["phim"].uncertainty is None:
+                parameters["phim"].uncertainty = torch.tensor( # Uncertainty assumed to be 5 degreees if not provided
                     (5 * np.pi / 180) * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
+                )
 
 
 class FourierEllipse_Warp(Warp_Galaxy):
@@ -218,39 +209,29 @@ class FourierEllipse_Warp(Warp_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        if parameters["am"].value is None:
-            parameters["am"].set_value(
-                torch.zeros(
+        with Param_Unlock(parameters["am"]), Param_SoftLimits(parameters["am"]):
+            if parameters["am"].value is None:
+                parameters["am"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["am"].uncertainty is None:
-            parameters["am"].set_uncertainty(
-                torch.tensor(
-                    0.05 * np.ones(len(self.modes)),
+                )
+            if parameters["am"].uncertainty is None:
+                parameters["am"].uncertainty = torch.tensor(
+                    self.default_uncertainty * np.ones(len(self.modes)),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].value is None:
-            parameters["phim"].set_value(
-                torch.zeros(
+                )
+        with Param_Unlock(parameters["phim"]), Param_SoftLimits(parameters["phim"]):
+            if parameters["phim"].value is None:
+                parameters["phim"].value = torch.zeros(
                     len(self.modes),
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
-        if parameters["phim"].uncertainty is None:
-            parameters["phim"].set_uncertainty(
-                torch.tensor(
-                    (5 * np.pi / 180) * np.ones(len(self.modes)),
+                )
+            if parameters["phim"].uncertainty is None:
+                parameters["phim"].uncertainty = torch.tensor(
+                    (5 * np.pi / 180) * np.ones(len(self.modes)),# Uncertainty assumed to be 5 degreees if not provided
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
-                ),
-                override_locked=True,
-            )
+                )

@@ -2,7 +2,7 @@ import sys
 import argparse
 import requests
 from .parse_config import galfit_config, basic_config
-from . import models, image, plots, utils, fit, AP_config
+from . import models, image, plots, utils, fit, param, AP_config
 
 # meta data
 __version__ = "0.12.0"
@@ -118,6 +118,8 @@ def run_from_terminal() -> None:
             "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/JointModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/FittingMethods.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/AdvancedPSFModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/ConstrainedModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:

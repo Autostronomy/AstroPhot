@@ -4,6 +4,7 @@ import numpy as np
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .star_model_object import Star_Model
+from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 __all__ = ("Airy_Star",)
@@ -60,8 +61,8 @@ class Airy_Star(Star_Model):
         icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["I0"].value is None:
-            parameters["I0"].set_value(
-                torch.log10(
+            with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
+                parameters["I0"].value = torch.log10(
                     torch.mean(
                         target_area.data[
                             int(icenter[0]) - 2 : int(icenter[0]) + 2,
@@ -69,24 +70,17 @@ class Airy_Star(Star_Model):
                         ]
                     )
                     / target.pixel_area.item()
-                ),
-                override_locked=True,
-            )
-            parameters["I0"].set_uncertainty(
-                torch.std(
+                )
+                parameters["I0"].uncertainty = torch.std(
                     target_area.data[
                         int(icenter[0]) - 2 : int(icenter[0]) + 2,
                         int(icenter[1]) - 2 : int(icenter[1]) + 2,
                     ]
-                )
-                / (torch.abs(parameters["I0"].value) * target.pixel_area),
-                override_locked=True,
-            )
+                ) / (torch.abs(parameters["I0"].value) * target.pixel_area)
         if parameters["aRL"].value is None:
-            parameters["aRL"].set_value(
-                (5./8.) * 2 * target.pixel_length, override_locked=True
-            )
-            parameters["aRL"].set_uncertainty(parameters["aRL"].value / 2, override_locked=True)
+            with Param_Unlock(parameters["aRL"]), Param_SoftLimits(parameters["aRL"]):
+                parameters["aRL"].value = (5./8.) * 2 * target.pixel_length
+                parameters["aRL"].uncertainty = parameters["aRL"].value * self.default_uncertainty
         
 
     @default_internal

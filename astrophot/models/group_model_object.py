@@ -17,6 +17,7 @@ from ..image import (
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
+from ..param import Parameter_Node
 from .. import AP_config
 
 __all__ = ["Group_Model"]
@@ -76,7 +77,7 @@ class Group_Model(AstroPhot_Model):
             )
 
         self.models[model.name] = model
-        self.parameters.add_group(model.parameters)
+        self.parameters.link(model.parameters)
         self.update_window()
 
     def update_window(self, include_locked: bool = False):
@@ -139,15 +140,15 @@ class Group_Model(AstroPhot_Model):
         target_copy = target.copy()
         for model in self.models.values():
             model.initialize(
-                target=target_copy, parameters=parameters.groups[model.name]
+                target=target_copy, parameters=parameters[model.name]
             )
-            target_copy -= model(parameters=parameters.groups[model.name])
+            target_copy -= model(parameters=parameters[model.name])
 
     def sample(
         self,
         image: Optional["Image"] = None,
         window: Optional[Window] = None,
-        parameters: Optional["Parameter_Group"] = None,
+        parameters: Optional["Parameter_Node"] = None,
     ):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
@@ -181,12 +182,12 @@ class Group_Model(AstroPhot_Model):
             if sample_window:
                 # Will sample the model fit window then add to the image
                 image += model(
-                    window=use_window, parameters=parameters.groups[model.name]
+                    window=use_window, parameters=parameters[model.name]
                 )
             else:
                 # Will sample the entire image
                 model(
-                    image, window=use_window, parameters=parameters.groups[model.name]
+                    image, window=use_window, parameters=parameters[model.name]
                 )
 
         return image
@@ -196,7 +197,6 @@ class Group_Model(AstroPhot_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        parameters_identity: Optional[tuple] = None,
         pass_jacobian: Optional["Jacobian_Image"] = None,
         window: Optional[Window] = None,
         **kwargs,
@@ -216,17 +216,14 @@ class Group_Model(AstroPhot_Model):
         self._param_tuple = None
 
         if parameters is not None:
-            self.parameters.set_values(
-                parameters,
-                as_representation=as_representation,
-                parameters_identity=parameters_identity,
-            )
+            if as_representation:
+                self.parameters.vector_set_representation(parameters)
+            else:
+                self.parameters.vector_set_values(parameters)
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
-                parameters=self.parameters.get_identity_vector(
-                    parameters_identity=parameters_identity,
-                )
+                parameters=self.parameters.vector_identities()
             )
         else:
             jac_img = pass_jacobian
@@ -235,14 +232,12 @@ class Group_Model(AstroPhot_Model):
             if isinstance(model, Group_Model):
                 model.jacobian(
                     as_representation=as_representation,
-                    parameters_identity=parameters_identity,
                     pass_jacobian=jac_img,
                     window=window,
                 )
             else:  # fixme, maybe make pass_jacobian be filled internally to each model
                 jac_img += model.jacobian(
                     as_representation=as_representation,
-                    parameters_identity=parameters_identity,
                     pass_jacobian=jac_img,
                     window=window,
                 )
@@ -262,16 +257,18 @@ class Group_Model(AstroPhot_Model):
         for model in self.models.values():
             model.psf_mode = value
 
-    def get_state(self):
+    def get_state(self, save_params = True):
         """Returns a dictionary with information about the state of the model
         and its parameters.
 
         """
         state = super().get_state()
+        if save_params:
+            state["parameters"] = self.parameters.get_state()
         if "models" not in state:
             state["models"] = {}
         for model in self.models.values():
-            state["models"][model.name] = model.get_state()
+            state["models"][model.name] = model.get_state(save_params = False)
         return state
 
     def load(self, filename="AstroPhot.yaml", new_name = None):
@@ -284,7 +281,14 @@ class Group_Model(AstroPhot_Model):
         if new_name is None:
             new_name = state["name"]
         self.name = new_name
+        
+        if isinstance(state["parameters"], Parameter_Node):
+            self.parameters = state["parameters"]
+        else:
+            self.parameters = Parameter_Node(self.name, state = state["parameters"])
+            
         for model in state["models"]:
+            state["models"][model]["parameters"] = self.parameters[model]
             for own_model in self.models.values():
                 if model == own_model.name:
                     own_model.load(state["models"][model])

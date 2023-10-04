@@ -53,7 +53,6 @@ class Grad(BaseOptimizer):
         """
 
         super().__init__(model, initial_state, **kwargs)
-        self.current_state.requires_grad = True
 
         # set parameters from the user
         self.patience = kwargs.get("patience", None)
@@ -66,6 +65,7 @@ class Grad(BaseOptimizer):
             self.optim_kwargs["lr"] = 0.1 / (len(self.current_state) ** (0.5))
 
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
+        self.current_state.requires_grad = True
         self.optimizer = getattr(torch.optim, self.method)(
             (self.current_state,), **self.optim_kwargs
         )
@@ -98,11 +98,11 @@ class Grad(BaseOptimizer):
         and takes a step with the PyTorch optimizer.
 
         """
-
         self.iteration += 1
 
         self.optimizer.zero_grad()
-
+        self.model.parameters.flat_detach()
+        
         loss = self.compute_loss()
 
         loss.backward()
@@ -128,7 +128,6 @@ class Grad(BaseOptimizer):
 
         """
         start_fit = time()
-
         try:
             while True:
                 self.step()
@@ -150,9 +149,7 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.parameters.set_values(
-            torch.tensor(self.res()), as_representation=True
-        )
+        self.model.parameters.vector_set_representation(self.res())
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from .galaxy_model_object import Galaxy_Model
-from .parameter_object import Parameter
+from ..param import Parameter_Node
 from ..utils.interpolate import cubic_spline_torch
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
