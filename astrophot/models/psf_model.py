@@ -72,8 +72,6 @@ class Pixelated_Point(Point_Model):
 
         # Convert coordinates into pixel locations in the psf image
         pX, pY = self.psf_model.plane_to_pixel(X, Y)
-        pX = pX.reshape(X.shape)
-        pY = pY.reshape(Y.shape)
 
         # Select only the pixels where the PSF image is defined
         select = torch.logical_and(

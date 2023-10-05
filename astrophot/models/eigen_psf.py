@@ -28,6 +28,10 @@ class Eigen_Point(Point_Model):
     with the correct pixelscale (essentially just divide the
     pixelscale by the upsampling factor you used).
 
+    Args:
+      eigen_basis (tensor): This is the basis set of images used to form the eigen point source, it should be a tensor with shape (N x W x H) where N is the number of eigen images, and W/H are the dimensions of the image.
+      eigen_pixelscale (float): This is the pixelscale associated with the eigen basis images.
+    
     Parameters:
         flux: the total flux of the point source model, represented as the log of the total flux.
         weights: the relative amplitude of the Eigen basis modes.
@@ -44,7 +48,17 @@ class Eigen_Point(Point_Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.eigen_basis = torch.tensor(kwargs["eigen_basis"], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
+        if "eigen_basis" not in kwargs:
+            AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or use Pixelated_Point model.")
+            self.eigen_basis = torch.clone(self.psf.data).unsqueeze(0)
+            parameters["weights"].locked = True
+        else:
+            self.eigen_basis = torch.tensor(
+                kwargs["eigen_basis"],
+                dtype = AP_config.ap_dtype,
+                device = AP_config.ap_device
+            )
+        self.eigen_pixelscale = kwargs.get("eigen_pixelscale", self.psf.pixelscale)
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -73,18 +87,16 @@ class Eigen_Point(Point_Model):
             X, Y = Coords - parameters["center"].value[..., None, None]
 
         psf_model = PSF_Image(
-            data = torch.sum(self.eigen_basis * parameters["weights"].value, axis = 0)
-            pixelscale = self.psf.pixelscale,
+            data = torch.sum(self.eigen_basis * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)), axis = 0)
+            pixelscale = self.eigen_pixelscale,
         )
         # Convert coordinates into pixel locations in the psf image
         pX, pY = psf_model.plane_to_pixel(X, Y)
-        pX = pX.reshape(X.shape)
-        pY = pY.reshape(Y.shape)
 
         # Select only the pixels where the PSF image is defined
         select = torch.logical_and(
-            torch.logical_and(pX > -0.5, pX < psf_model.data.shape[1]),
-            torch.logical_and(pY > -0.5, pY < psf_model.data.shape[0]),
+            torch.logical_and(pX > -0.5, pX < psf_model.data.shape[1]-0.5),
+            torch.logical_and(pY > -0.5, pY < psf_model.data.shape[0]-0.5),
         )
 
         # Zero everywhere outside the psf
