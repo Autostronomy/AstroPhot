@@ -8,7 +8,7 @@ from scipy.optimize import minimize
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
-from .star_model_object import Star_Model
+from .point_model_object import Point_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
@@ -25,7 +25,7 @@ from ..utils.conversions.coordinates import Rotate_Cartesian
 
 __all__ = [
     "Exponential_Galaxy",
-    "Exponential_Star",
+    "Exponential_Point",
     "Exponential_SuperEllipse",
     "Exponential_SuperEllipse_Warp",
     "Exponential_Warp",
@@ -83,8 +83,8 @@ class Exponential_Galaxy(Galaxy_Model):
     from ._shared_methods import exponential_radial_model as radial_model
 
 
-class Exponential_Star(Star_Model):
-    """basic star model with a exponential profile for the radial light
+class Exponential_Point(Point_Model):
+    """basic point source model with a exponential profile for the radial light
     profile.
 
     I(R) = Ie * exp(-b1(R/Re - 1))
@@ -100,12 +100,12 @@ class Exponential_Star(Star_Model):
 
     """
 
-    model_type = f"exponential {Star_Model.model_type}"
+    model_type = f"exponential {Point_Model.model_type}"
     parameter_specs = {
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
-    _parameter_order = Star_Model._parameter_order + ("Re", "Ie")
+    _parameter_order = Point_Model._parameter_order + ("Re", "Ie")
     useable = True
 
     @torch.no_grad()

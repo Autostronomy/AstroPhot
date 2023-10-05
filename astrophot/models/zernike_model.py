@@ -6,20 +6,20 @@ from scipy.special import binom
 
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
-from .star_model_object import Star_Model
+from .point_model_object import Point_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ("Zernike_Star",)
+__all__ = ("Zernike_Point",)
 
 
-class Zernike_Star(Star_Model):
+class Zernike_Point(Point_Model):
 
-    model_type = f"zernike {Star_Model.model_type}"
+    model_type = f"zernike {Point_Model.model_type}"
     parameter_specs = {
         "Anm": {"units": "flux/arcsec^2"},
     }
-    _parameter_order = Star_Model._parameter_order + ("Anm",)
+    _parameter_order = Point_Model._parameter_order + ("Anm",)
     useable = True
 
     def __init__(self, *, name=None, order_n=2, r_scale=None, **kwargs):

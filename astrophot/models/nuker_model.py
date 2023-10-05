@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
-from .star_model_object import Star_Model
+from .point_model_object import Point_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
@@ -18,7 +18,7 @@ from ..utils.parametric_profiles import nuker_np
 
 __all__ = [
     "Nuker_Galaxy",
-    "Nuker_Star",
+    "Nuker_Point",
     "Nuker_SuperEllipse",
     "Nuker_SuperEllipse_Warp",
     "Nuker_FourierEllipse",
@@ -93,8 +93,8 @@ class Nuker_Galaxy(Galaxy_Model):
     from ._shared_methods import nuker_radial_model as radial_model
 
 
-class Nuker_Star(Star_Model):
-    """basic star model with a Nuker profile for the radial light
+class Nuker_Point(Point_Model):
+    """basic point source model with a Nuker profile for the radial light
     profile. The functional form of the Nuker profile is defined as:
 
     I(R) = Ib * 2^((beta-gamma)/alpha) * (R / Rb)^(-gamma) * (1 + (R/Rb)^alpha)^((gamma - beta)/alpha)
@@ -114,7 +114,7 @@ class Nuker_Star(Star_Model):
 
     """
 
-    model_type = f"nuker {Star_Model.model_type}"
+    model_type = f"nuker {Point_Model.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
         "Ib": {"units": "log10(flux/arcsec^2)"},
@@ -122,7 +122,7 @@ class Nuker_Star(Star_Model):
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
     }
-    _parameter_order = Star_Model._parameter_order + (
+    _parameter_order = Point_Model._parameter_order + (
         "Rb",
         "Ib",
         "alpha",

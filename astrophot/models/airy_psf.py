@@ -3,14 +3,14 @@ import numpy as np
 
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
-from .star_model_object import Star_Model
+from .point_model_object import Point_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ("Airy_Star",)
+__all__ = ("Airy_Point",)
 
 
-class Airy_Star(Star_Model):
+class Airy_Point(Point_Model):
     """The Airy disk is an analytic description of the diffraction pattern
     for a circular aperture.
 
@@ -33,17 +33,17 @@ class Airy_Star(Star_Model):
     position from the center of the pattern, :math:`R` is the distance
     from the circular aperture to the observation plane.
 
-    In the `Airy_Star` class we combine the parameters
+    In the `Airy_Point` class we combine the parameters
     :math:`a,R,\\lambda` into a single ratio to be optimized (or fixed
     by the optical configuration).
 
     """
-    model_type = f"airy {Star_Model.model_type}"
+    model_type = f"airy {Point_Model.model_type}"
     parameter_specs = {
         "I0": {"units": "log10(flux/arcsec^2)"},
         "aRL": {"units": "a/(R lambda)"}
     }
-    _parameter_order = Star_Model._parameter_order + ("I0", "aRL")
+    _parameter_order = Point_Model._parameter_order + ("I0", "aRL")
     useable = True
 
     @torch.no_grad()

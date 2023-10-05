@@ -1,6 +1,6 @@
 import torch
 
-from .star_model_object import Star_Model
+from .point_model_object import Point_Model
 from ..image import Model_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import interp2d
@@ -8,36 +8,36 @@ from ._shared_methods import select_target
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ["PSF_Star"]
+__all__ = ["Pixelated_Point"]
 
 
-class PSF_Star(Star_Model):
-    """Star model which uses an image of the PSF as it's representation
-    for stars. Using bilinear interpolation it will shift the PSF
+class Pixelated_Point(Point_Model):
+    """point source model which uses an image of the PSF as it's representation
+    for point sources. Using bilinear interpolation it will shift the PSF
     within a pixel to accurately represent the center location of a
     point source. There is no funcitonal form for this object type as
     any image can be supplied. Note that as an argument to the model
-    at construction one can provide "psf" as an AstroPhot Model_Image
+    at construction one can provide "psf" as an AstroPhot PSF_Image
     object. Since only bilinear interpolation is performed, it is
     recommended to provide the PSF at a higher resolution than the
     image if it is near the nyquist sampling limit. Bilinear
     interpolation is very fast and accurate for smooth models, so this
     way it is possible to do the expensive interpolation before
     optimization and save time. Note that if you do this you must
-    provide the PSF as a Model_Image object with the correct PSF
-    (essentially just divide the PSF by the upsampling factor you
+    provide the PSF as a PSF_Image object with the correct pixelscale
+    (essentially just divide the pixelscale by the upsampling factor you
     used).
 
     Parameters:
-        flux: the total flux of the star model, represented as the log of the total flux.
+        flux: the total flux of the point source model, represented as the log of the total flux.
 
     """
 
-    model_type = f"psf {Star_Model.model_type}"
+    model_type = f"psf {Point_Model.model_type}"
     parameter_specs = {
         "flux": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = Star_Model._parameter_order + ("flux",)
+    _parameter_order = Point_Model._parameter_order + ("flux",)
     useable = True
 
     def __init__(self, *args, **kwargs):
@@ -46,7 +46,7 @@ class PSF_Star(Star_Model):
         if "psf" in kwargs:
             self.psf_model = kwargs["psf"]
         else:
-            self.psf_model = Model_Image(
+            self.psf_model = PSF_Image(
                 data=torch.clone(self.psf.data),
                 pixelscale=self.psf.pixelscale,
             )
