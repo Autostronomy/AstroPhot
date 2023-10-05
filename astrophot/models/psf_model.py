@@ -50,9 +50,6 @@ class Pixelated_Point(Point_Model):
                 data=torch.clone(self.psf.data),
                 pixelscale=self.psf.pixelscale,
             )
-        self.psf_model.header.shift(
-            self.psf_model.origin - self.psf_model.center
-        )
 
     @torch.no_grad()
     @ignore_numpy_warnings

@@ -44,17 +44,7 @@ class Eigen_Point(Point_Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # fixme, model already has PSF interface, those can just be merged
-        if "psf" in kwargs: # fixme accept a list of images
-            self.psf_model = kwargs["psf"]
-        else:
-            self.psf_model = PSF_Image(
-                data=torch.clone(self.psf.data),
-                pixelscale=self.psf.pixelscale,
-            )
-        self.psf_model.header.shift(
-            self.psf_model.origin - self.psf_model.center
-        )
+        self.eigen_basis = torch.tensor(kwargs["eigen_basis"], dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -68,6 +58,13 @@ class Eigen_Point(Point_Model):
                 parameters["flux"].value = torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area)
             if parameters["flux"].uncertainty is None:
                 parameters["flux"].uncertainty = torch.abs(parameters["flux"].value) * self.default_uncertainty
+        with Param_Unlock(parameters["weights"]), Param_SoftLimits(parameters["weights"]):
+            if parameters["weights"].value is None:
+                W = np.zeros(len(self.eigen_basis))
+                W[0] = 1.
+                parameters["weights"].value = W
+            if parameters["weights"].uncertainty is None:
+                parameters["weights"].uncertainty = torch.ones_like(parameters["weights"].value) * self.default_uncertainty
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
@@ -75,21 +72,25 @@ class Eigen_Point(Point_Model):
             Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[..., None, None]
 
+        psf_model = PSF_Image(
+            data = torch.sum(self.eigen_basis * parameters["weights"].value, axis = 0)
+            pixelscale = self.psf.pixelscale,
+        )
         # Convert coordinates into pixel locations in the psf image
-        pX, pY = self.psf_model.plane_to_pixel(X, Y)
+        pX, pY = psf_model.plane_to_pixel(X, Y)
         pX = pX.reshape(X.shape)
         pY = pY.reshape(Y.shape)
 
         # Select only the pixels where the PSF image is defined
         select = torch.logical_and(
-            torch.logical_and(pX > -0.5, pX < self.psf_model.data.shape[1]),
-            torch.logical_and(pY > -0.5, pY < self.psf_model.data.shape[0]),
+            torch.logical_and(pX > -0.5, pX < psf_model.data.shape[1]),
+            torch.logical_and(pY > -0.5, pY < psf_model.data.shape[0]),
         )
 
         # Zero everywhere outside the psf
         result = torch.zeros_like(X)
 
         # Use bilinear interpolation of the PSF at the requested coordinates
-        result[select] = interp2d(self.psf_model.data, pX[select], pY[select])
+        result[select] = interp2d(psf_model.data, pX[select], pY[select])
 
         return result * (image.pixel_area * 10 ** parameters["flux"].value)
