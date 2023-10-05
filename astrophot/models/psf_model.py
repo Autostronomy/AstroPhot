@@ -1,7 +1,7 @@
 import torch
 
 from .point_model_object import Point_Model
-from ..image import Model_Image
+from ..image import PSF_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import interp2d
 from ._shared_methods import select_target
