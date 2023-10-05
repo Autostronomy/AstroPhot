@@ -8,42 +8,44 @@ from ._shared_methods import select_target
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ["Pixelated_Point"]
+__all__ = ["Eigen_Point"]
 
 
-class Pixelated_Point(Point_Model):
-    """point source model which uses an image of the PSF as it's representation
-    for point sources. Using bilinear interpolation it will shift the PSF
-    within a pixel to accurately represent the center location of a
-    point source. There is no funcitonal form for this object type as
-    any image can be supplied. Note that as an argument to the model
-    at construction one can provide "psf" as an AstroPhot PSF_Image
-    object. Since only bilinear interpolation is performed, it is
-    recommended to provide the PSF at a higher resolution than the
-    image if it is near the nyquist sampling limit. Bilinear
-    interpolation is very fast and accurate for smooth models, so this
-    way it is possible to do the expensive interpolation before
-    optimization and save time. Note that if you do this you must
-    provide the PSF as a PSF_Image object with the correct pixelscale
-    (essentially just divide the pixelscale by the upsampling factor you
-    used).
+class Eigen_Point(Point_Model):
+    """point source model which uses multiple images as a basis for the
+    PSF as it's representation for point sources. Using bilinear
+    interpolation it will shift the PSF within a pixel to accurately
+    represent the center location of a point source. There is no
+    funcitonal form for this object type as any image can be
+    supplied. Note that as an argument to the model at construction
+    one can provide "psf" as an AstroPhot PSF_Image object. Since only
+    bilinear interpolation is performed, it is recommended to provide
+    the PSF at a higher resolution than the image if it is near the
+    nyquist sampling limit. Bilinear interpolation is very fast and
+    accurate for smooth models, so this way it is possible to do the
+    expensive interpolation before optimization and save time. Note
+    that if you do this you must provide the PSF as a PSF_Image object
+    with the correct pixelscale (essentially just divide the
+    pixelscale by the upsampling factor you used).
 
     Parameters:
         flux: the total flux of the point source model, represented as the log of the total flux.
+        weights: the relative amplitude of the Eigen basis modes.
 
     """
 
-    model_type = f"pixelated {Point_Model.model_type}"
+    model_type = f"eigen {Point_Model.model_type}"
     parameter_specs = {
         "flux": {"units": "log10(flux/arcsec^2)"},
+        "weights": {"units": "unitless"},
     }
-    _parameter_order = Point_Model._parameter_order + ("flux",)
+    _parameter_order = Point_Model._parameter_order + ("flux","weights")
     useable = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # fixme, model already has PSF interface, those can just be merged
-        if "psf" in kwargs:
+        if "psf" in kwargs: # fixme accept a list of images
             self.psf_model = kwargs["psf"]
         else:
             self.psf_model = PSF_Image(
