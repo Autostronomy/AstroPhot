@@ -12,6 +12,7 @@ from .spline_model import *
 from .relspline_model import *
 from .point_model_object import *
 from .psf_model import *
+from .eigen_psf import *
 from .superellipse_model import *
 from .edgeon_model import *
 from .exponential_model import *

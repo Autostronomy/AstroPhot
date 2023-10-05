@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from .point_model_object import Point_Model
 from ..image import PSF_Image
@@ -9,7 +10,6 @@ from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 __all__ = ["Eigen_Point"]
-
 
 class Eigen_Point(Point_Model):
     """point source model which uses multiple images as a basis for the
@@ -51,7 +51,7 @@ class Eigen_Point(Point_Model):
         if "eigen_basis" not in kwargs:
             AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or use Pixelated_Point model.")
             self.eigen_basis = torch.clone(self.psf.data).unsqueeze(0)
-            parameters["weights"].locked = True
+            self.parameters["weights"].locked = True
         else:
             self.eigen_basis = torch.tensor(
                 kwargs["eigen_basis"],
@@ -87,7 +87,7 @@ class Eigen_Point(Point_Model):
             X, Y = Coords - parameters["center"].value[..., None, None]
 
         psf_model = PSF_Image(
-            data = torch.sum(self.eigen_basis * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)), axis = 0)
+            data = torch.sum(self.eigen_basis * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)), axis = 0),
             pixelscale = self.eigen_pixelscale,
         )
         # Convert coordinates into pixel locations in the psf image
