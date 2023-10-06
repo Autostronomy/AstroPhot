@@ -89,8 +89,8 @@ def make_basic_gaussian(
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
     )
 
-    MODEL = ap.models.Gaussian_Point(
-        name="basic gaussian point source",
+    MODEL = ap.models.Gaussian_PSF(
+        name="basic gaussian psf source",
         target=target,
         parameters={
             "center": [x, y],
