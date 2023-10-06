@@ -7,7 +7,7 @@ from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from .point_model_object import Point_Model
+from .psf_model_object import PSF_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from ._shared_methods import (
@@ -24,7 +24,7 @@ from ..utils.conversions.functions import sersic_Ie_to_flux_torch, general_uncer
 
 __all__ = [
     "Sersic_Galaxy",
-    "Sersic_Point",
+    "Sersic_PSF",
     "Sersic_Warp",
     "Sersic_SuperEllipse",
     "Sersic_FourierEllipse",
@@ -123,7 +123,7 @@ class Sersic_Galaxy(Galaxy_Model):
     from ._shared_methods import sersic_radial_model as radial_model
 
 
-class Sersic_Point(Point_Model):
+class Sersic_PSF(PSF_Model):
     """basic point source model with a sersic profile for the radial light
     profile. The functional form of the Sersic profile is defined as:
 
@@ -142,13 +142,13 @@ class Sersic_Point(Point_Model):
 
     """
 
-    model_type = f"sersic {Point_Model.model_type}"
+    model_type = f"sersic {PSF_Model.model_type}"
     parameter_specs = {
         "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
-    _parameter_order = Point_Model._parameter_order + ("n", "Re", "Ie")
+    _parameter_order = PSF_Model._parameter_order + ("n", "Re", "Ie")
     useable = True
 
     @torch.no_grad()

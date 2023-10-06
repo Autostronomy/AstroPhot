@@ -5,14 +5,14 @@ from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from .point_model_object import Point_Model
+from .psf_model_object import PSF_Model
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 
 __all__ = [
     "RelSpline_Galaxy",
-    "RelSpline_Point",
+    "RelSpline_PSF",
 ]
 
 
@@ -49,7 +49,7 @@ class RelSpline_Galaxy(Galaxy_Model):
     from ._shared_methods import relspline_radial_model as radial_model
 
 
-class RelSpline_Point(Point_Model):
+class RelSpline_PSF(PSF_Model):
     """point source model with a spline radial light profile. The light
     profile is defined as a cubic spline interpolation of the stored
     brightness values:
@@ -67,12 +67,12 @@ class RelSpline_Point(Point_Model):
 
     """
 
-    model_type = f"relspline {Point_Model.model_type}"
+    model_type = f"relspline {PSF_Model.model_type}"
     parameter_specs = {
         "I0": {"units": "log10(flux/arcsec^2)"},
         "dI(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = Point_Model._parameter_order + ("I0", "dI(R)")
+    _parameter_order = PSF_Model._parameter_order + ("I0", "dI(R)")
     useable = True
     extend_profile = True
 

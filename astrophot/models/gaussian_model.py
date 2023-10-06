@@ -7,7 +7,7 @@ from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from .point_model_object import Point_Model
+from .psf_model_object import PSF_Model
 from ._shared_methods import (
     parametric_initialize,
     parametric_segment_initialize,
@@ -23,7 +23,7 @@ __all__ = [
     "Gaussian_FourierEllipse",
     "Gaussian_FourierEllipse_Warp",
     "Gaussian_Warp",
-    "Gaussian_Point",
+    "Gaussian_PSF",
 ]
 
 
@@ -265,7 +265,7 @@ class Gaussian_Warp(Warp_Galaxy):
     from ._shared_methods import gaussian_radial_model as radial_model
 
 
-class Gaussian_Point(Point_Model):
+class Gaussian_PSF(PSF_Model):
     """Basic point source model with a Gaussian as the radial light profile. The
     gaussian radial profile is defined as:
 
@@ -281,12 +281,12 @@ class Gaussian_Point(Point_Model):
 
     """
 
-    model_type = f"gaussian {Point_Model.model_type}"
+    model_type = f"gaussian {PSF_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
         "flux": {"units": "log10(flux)"},
     }
-    _parameter_order = Point_Model._parameter_order + ("sigma", "flux")
+    _parameter_order = PSF_Model._parameter_order + ("sigma", "flux")
     useable = True
 
     @torch.no_grad()

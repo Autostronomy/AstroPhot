@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from .point_model_object import Point_Model
+from .psf_model_object import PSF_Model
 from ..image import PSF_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import interp2d
@@ -9,9 +9,9 @@ from ._shared_methods import select_target
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ["Eigen_Point"]
+__all__ = ["Eigen_PSF"]
 
-class Eigen_Point(Point_Model):
+class Eigen_PSF(PSF_Model):
     """point source model which uses multiple images as a basis for the
     PSF as it's representation for point sources. Using bilinear
     interpolation it will shift the PSF within a pixel to accurately
@@ -38,28 +38,30 @@ class Eigen_Point(Point_Model):
 
     """
 
-    model_type = f"eigen {Point_Model.model_type}"
+    model_type = f"eigen {PSF_Model.model_type}"
     parameter_specs = {
         "flux": {"units": "log10(flux/arcsec^2)"},
         "weights": {"units": "unitless"},
     }
-    _parameter_order = Point_Model._parameter_order + ("flux","weights")
+    _parameter_order = PSF_Model._parameter_order + ("flux","weights")
     useable = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "eigen_basis" not in kwargs:
-            AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or use Pixelated_Point model.")
+            AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or use Pixelated_PSF model.")
             self.eigen_basis = torch.clone(self.psf.data).unsqueeze(0)
             self.parameters["weights"].locked = True
         else:
-            self.eigen_basis = torch.tensor(
+            self.eigen_basis = torch.as_tensor(
                 kwargs["eigen_basis"],
                 dtype = AP_config.ap_dtype,
                 device = AP_config.ap_device
             )
-        self.eigen_pixelscale = kwargs.get("eigen_pixelscale", self.psf.pixelscale)
-
+        if kwargs.get("normalize_eigen_basis", True):
+            self.eigen_basis = self.eigen_basis / torch.sum(self.eigen_basis, axis = 0)
+        self.eigen_pixelscale = kwargs.get("eigen_pixelscale", 1. if self.psf is None else self.psf.pixelscale)
+        
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -87,7 +89,7 @@ class Eigen_Point(Point_Model):
             X, Y = Coords - parameters["center"].value[..., None, None]
 
         psf_model = PSF_Image(
-            data = torch.sum(self.eigen_basis * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)), axis = 0),
+            data = torch.sum(self.eigen_basis * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0),
             pixelscale = self.eigen_pixelscale,
         )
         # Convert coordinates into pixel locations in the psf image

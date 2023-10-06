@@ -1,6 +1,6 @@
 import torch
 
-from .point_model_object import Point_Model
+from .psf_model_object import PSF_Model
 from ..image import PSF_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import interp2d
@@ -8,10 +8,10 @@ from ._shared_methods import select_target
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ["Pixelated_Point"]
+__all__ = ["Pixelated_PSF"]
 
 
-class Pixelated_Point(Point_Model):
+class Pixelated_PSF(PSF_Model):
     """point source model which uses an image of the PSF as it's representation
     for point sources. Using bilinear interpolation it will shift the PSF
     within a pixel to accurately represent the center location of a
@@ -33,11 +33,11 @@ class Pixelated_Point(Point_Model):
 
     """
 
-    model_type = f"pixelated {Point_Model.model_type}"
+    model_type = f"pixelated {PSF_Model.model_type}"
     parameter_specs = {
         "flux": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = Point_Model._parameter_order + ("flux",)
+    _parameter_order = PSF_Model._parameter_order + ("flux",)
     useable = True
 
     def __init__(self, *args, **kwargs):
@@ -75,8 +75,8 @@ class Pixelated_Point(Point_Model):
 
         # Select only the pixels where the PSF image is defined
         select = torch.logical_and(
-            torch.logical_and(pX > -0.5, pX < self.psf_model.data.shape[1]),
-            torch.logical_and(pY > -0.5, pY < self.psf_model.data.shape[0]),
+            torch.logical_and(pX > -0.5, pX < self.psf_model.data.shape[1] - 0.5),
+            torch.logical_and(pY > -0.5, pY < self.psf_model.data.shape[0] - 0.5),
         )
 
         # Zero everywhere outside the psf

@@ -2,13 +2,13 @@ import torch
 import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
-from .point_model_object import Point_Model
+from .psf_model_object import PSF_Model
 from ._shared_methods import parametric_initialize, select_target
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import moffat_np
 from ..utils.conversions.functions import moffat_I0_to_flux, general_uncertainty_prop
 
-__all__ = ["Moffat_Galaxy", "Moffat_Point"]
+__all__ = ["Moffat_Galaxy", "Moffat_PSF"]
 
 
 def _x0_func(model_params, R, F):
@@ -84,7 +84,7 @@ class Moffat_Galaxy(Galaxy_Model):
     from ._shared_methods import moffat_radial_model as radial_model
 
 
-class Moffat_Point(Point_Model):
+class Moffat_PSF(PSF_Model):
     """basic point source model with a Moffat profile for the radial light
     profile. The functional form of the Moffat profile is defined as:
 
@@ -102,13 +102,13 @@ class Moffat_Point(Point_Model):
 
     """
 
-    model_type = f"moffat {Point_Model.model_type}"
+    model_type = f"moffat {PSF_Model.model_type}"
     parameter_specs = {
         "n": {"units": "none", "limits": (0.1, 10), "uncertainty": 0.05},
         "Rd": {"units": "arcsec", "limits": (0, None)},
         "I0": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = Point_Model._parameter_order + ("n", "Rd", "I0")
+    _parameter_order = PSF_Model._parameter_order + ("n", "Rd", "I0")
     useable = True
 
     @torch.no_grad()

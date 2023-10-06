@@ -4,10 +4,10 @@ from .model_object import Component_Model
 from ..utils.decorators import default_internal
 
 
-__all__ = ["Point_Model"]
+__all__ = ["PSF_Model"]
 
 
-class Point_Model(Component_Model):
+class PSF_Model(Component_Model):
     """Prototype point source (typically a star) model, to be subclassed
     by other point source models which define specific
     behavior. Mostly this just requires that no standard PSF
@@ -19,7 +19,7 @@ class Point_Model(Component_Model):
 
     """
 
-    model_type = f"point {Component_Model.model_type}"
+    model_type = f"psf {Component_Model.model_type}"
     useable = False
 
     @property
