@@ -60,7 +60,11 @@ class Eigen_PSF(PSF_Model):
             )
         if kwargs.get("normalize_eigen_basis", True):
             self.eigen_basis = self.eigen_basis / torch.sum(self.eigen_basis, axis = 0)
-        self.eigen_pixelscale = kwargs.get("eigen_pixelscale", 1. if self.psf is None else self.psf.pixelscale)
+        self.eigen_pixelscale = torch.as_tensor(
+            kwargs.get("eigen_pixelscale", 1. if self.psf is None else self.psf.pixelscale),
+            dtype = AP_config.ap_dtype,
+            device = AP_config.ap_device
+        )
         
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -89,9 +93,10 @@ class Eigen_PSF(PSF_Model):
             X, Y = Coords - parameters["center"].value[..., None, None]
 
         psf_model = PSF_Image(
-            data = torch.sum(self.eigen_basis * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0),
-            pixelscale = self.eigen_pixelscale,
+            data = torch.sum(self.eigen_basis.detach() * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0),
+            pixelscale = self.eigen_pixelscale.detach(),
         )
+        
         # Convert coordinates into pixel locations in the psf image
         pX, pY = psf_model.plane_to_pixel(X, Y)
 
@@ -100,11 +105,12 @@ class Eigen_PSF(PSF_Model):
             torch.logical_and(pX > -0.5, pX < psf_model.data.shape[1]-0.5),
             torch.logical_and(pY > -0.5, pY < psf_model.data.shape[0]-0.5),
         )
+        print("choose points", torch.sum(select).item())
 
         # Zero everywhere outside the psf
         result = torch.zeros_like(X)
 
         # Use bilinear interpolation of the PSF at the requested coordinates
         result[select] = interp2d(psf_model.data, pX[select], pY[select])
-
+        
         return result * (image.pixel_area * 10 ** parameters["flux"].value)

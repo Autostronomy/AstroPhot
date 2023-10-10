@@ -289,7 +289,7 @@ class Component_Model(AstroPhot_Model):
           Image: The image with the computed model values.
 
         """
-
+        print("in sample")
         # Image on which to evaluate model
         if image is None:
             image = self.make_model_image(window=window)
@@ -370,12 +370,14 @@ class Component_Model(AstroPhot_Model):
                 pixelscale=image.pixelscale, window=working_window
             )
             # Evaluate the model on the image
+            print("sample init")
             reference, deep = self._sample_init(
                 image=working_image,
                 parameters=parameters,
                 center=parameters["center"].value,
             )
             # Super-resolve and integrate where needed
+            print("sample integrate")
             deep = self._sample_integrate(
                 deep,
                 reference,

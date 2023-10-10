@@ -2,8 +2,8 @@ import unittest
 import astrophot as ap
 import torch
 import numpy as np
-from utils import make_basic_sersic
-
+from utils import make_basic_sersic, make_basic_gaussian
+torch.autograd.set_detect_anomaly(True)
 ######################################################################
 # Model Objects
 ######################################################################
@@ -169,7 +169,49 @@ class TestAllModelBasics(unittest.TestCase):
                 "Model should evaluate a real number for the full image",
             )
 
+class TestEigenPSF(unittest.TestCase):
+    def test_init(self):
+        target = make_basic_sersic()
+        basis = np.stack(list(make_basic_gaussian(N = 51, M = 51, sigma = s).data for s in np.linspace(8, 1, 10)))
+        # basis = np.random.rand(10,51,51)
+        EM = ap.models.AstroPhot_Model(
+            model_type = "eigen psf model",
+            eigen_basis = basis,
+            eigen_pixelscale = 1,
+            target = target,
+        )
 
+        EM.initialize()
+
+        init_log_likelihood = EM.negative_log_likelihood()
+
+        res = ap.fit.LM(EM, max_iter = 10, verbose = 1).fit()
+
+        fit_log_likelihood = EM.negative_log_likelihood()
+
+        self.assertTrue(init_log_likelihood > fit_log_likelihood, "Fitting should improve likelihood")
+
+class TestPixelPSF(unittest.TestCase):
+    def test_init(self):
+        target = make_basic_sersic()
+        psf = make_basic_gaussian(N = 51, M = 51).data
+        PM = ap.models.AstroPhot_Model(
+            model_type = "pixelated psf model",
+            psf = ap.image.PSF_Image(data = psf, pixelscale = 0.8),
+            target = target,
+        )
+
+        PM.initialize()
+
+        init_log_likelihood = PM.negative_log_likelihood()
+
+        res = ap.fit.LM(PM, max_iter = 10, verbose = 1).fit()
+
+        fit_log_likelihood = PM.negative_log_likelihood()
+
+        self.assertTrue(init_log_likelihood > fit_log_likelihood, "Fitting should improve likelihood")
+
+        
 class TestSersic(unittest.TestCase):
     def test_sersic_creation(self):
         np.random.seed(12345)
