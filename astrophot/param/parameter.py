@@ -621,9 +621,24 @@ class Parameter_Node(Node):
 
         """        
         return self.size
-        
 
+    def print_params(self, include_locked=True, include_prof=True, include_id=True):
+        if self.leaf:
+            return f"{self.name}" + (f" (id-{self.identity})" if include_id else "") + f": {self.value.detach().cpu().tolist()}" + ("" if self.uncertainty is None else f" +- {self.uncertainty.detach().cpu().tolist()}") + f" [{self.units}]" + ("" if self.limits[0] is None and self.limits[1] is None else f", limits: ({None if self.limits[0] is None else self.limits[0].detach().cpu().tolist()}, {None if self.limits[1] is None else self.limits[1].detach().cpu().tolist()})") + (", cyclic" if self.cyclic else "") + (", locked" if self.locked else "") + (f", prof: {self.prof.detach().cpu().tolist()}" if include_prof and self.prof is not None else "")
+        elif isinstance(self._value, Parameter_Node):
+            return self.name + (f" (id-{self.identity})" if include_id else "") + " points to: " + self._value.print_params(include_locked=include_locked, include_prof=include_prof, include_id=include_id)
+        return self.name + (f" (id-{self.identity}, {('function node, '+self._value.__name__) if isinstance(self._value, FunctionType) else 'branch node'})" if include_id else "") + ":\n"
+        
     def __str__(self):
-        return super().__str__() + " " + ("branch" if self.value is None else str(self.value.detach().cpu().tolist()))
-    def __repr__(self):
-        return super().__repr__() + "\nValue: " + ("branch" if self.value is None else str(self.value.detach().cpu().tolist()))
+        reply = self.print_params(include_locked=True, include_prof=False, include_id=False)
+        if self.leaf or isinstance(self._value, Parameter_Node):
+            return reply
+        reply += "\n".join(node.print_params(include_locked=True, include_prof=False, include_id=False) for node in self.flat(include_locked=True, include_links=False).values())
+        return reply
+    
+    def __repr__(self, level = 0, indent = '  '):
+        reply = indent*level + self.print_params(include_locked=True, include_prof=False, include_id=True)
+        if self.leaf or isinstance(self._value, Parameter_Node):
+            return reply
+        reply += "\n".join(node.__repr__(level = level+1, indent=indent) for node in self.nodes.values())
+        return reply
