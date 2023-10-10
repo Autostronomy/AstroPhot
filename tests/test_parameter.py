@@ -291,8 +291,8 @@ class TestParameterVector(unittest.TestCase):
             self.assertTrue(torch.all(vec == PG.vector_values()), "representation should be reversible")
             self.assertEqual(PG.vector_values().numel(), 5, "masked values shouldn't be shown")
 
-        S = str(PG)
-        R = repr(PG)
+        self.assertIsInstance(str(PG), str, "String representation should return string")
+        self.assertIsInstance(repr(PG), str, "Repr should return string")
 
 if __name__ == "__main__":
     unittest.main()
