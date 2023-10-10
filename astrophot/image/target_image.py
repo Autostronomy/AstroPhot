@@ -234,7 +234,7 @@ class Target_Image(Image):
         """Stores the point-spread-function for this target. This should be a
         `PSF_Image` object which represents the scattering of a point
         source of light. It can also be an `AstroPhot_Model` object
-        which will contribute it's own parameters to an optimization
+        which will contribute its own parameters to an optimization
         problem.
 
         The PSF stored for a `Target_Image` object is passed to all

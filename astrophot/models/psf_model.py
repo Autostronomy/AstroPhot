@@ -12,7 +12,7 @@ __all__ = ["PSF_Star"]
 
 
 class PSF_Star(Star_Model):
-    """Star model which uses an image of the PSF as it's representation
+    """Star model which uses an image of the PSF as its representation
     for stars. Using bilinear interpolation it will shift the PSF
     within a pixel to accurately represent the center location of a
     point source. There is no funcitonal form for this object type as
