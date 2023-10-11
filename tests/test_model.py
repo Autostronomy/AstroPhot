@@ -29,6 +29,24 @@ class TestModel(unittest.TestCase):
 
         state = model.get_state()
 
+    def test_initialize_does_not_recurse(self):
+        "Test case for error where missing parameter name triggered print that triggered missing parameter name ..."
+        target = make_basic_sersic()
+        model = ap.models.AstroPhot_Model(
+            name="test model",
+            model_type="sersic galaxy model",
+            target=target,
+        )
+        # Define a function that accesses a parameter that doesn't exist
+        def calc(params):
+            return params["A"].value
+
+        model["center"].value = calc
+
+        with self.assertRaises(ValueError) as context:
+            model.initialize()
+        self.assertTrue(str(context.exception) == "Unrecognized key for 'center': A")
+
     def test_basic_model_methods(self):
 
         target = make_basic_sersic()
