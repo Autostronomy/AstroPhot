@@ -289,7 +289,6 @@ class Component_Model(AstroPhot_Model):
           Image: The image with the computed model values.
 
         """
-        print("in sample")
         # Image on which to evaluate model
         if image is None:
             image = self.make_model_image(window=window)
