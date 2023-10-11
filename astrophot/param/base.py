@@ -101,7 +101,7 @@ class Node(ABC):
             for node in self.nodes.values():
                 if key == node.identity:
                     return node
-        raise ValueError(f"Unrecognized key for '{self}': {key}")
+        raise ValueError(f"Unrecognized key for '{self.name}': {key}")
                 
     def __contains__(self, key):
         """Check if a node has a link directly to another node. A check like
