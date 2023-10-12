@@ -77,12 +77,20 @@ class TestComponentModelFits(unittest.TestCase):
         pixelscale = 0.8
         shape = (N + 10, N)
         true_params = {
+            "center": [shape[0]*pixelscale/2 - 3.3, shape[1]*pixelscale/2 + 5.3],
             "n": 2,
             "Re": 10,
             "Ie": 1.,
-            "center": [shape[0]*pixelscale/2 - 3.3, shape[1]*pixelscale/2 + 5.3],
             "q": 0.7,
             "pa": np.pi / 4,
+        }
+        expected_uncertainty = {
+            "center": [0.0047, 0.0049],
+            "n": 0.0013,
+            "Re": 0.0026,
+            "Ie": 0.0072,
+            "q": 0.0277,
+            "pa": 0.0022,
         }
         tar = make_basic_sersic(
             N = shape[0],
@@ -149,6 +157,61 @@ class TestComponentModelFits(unittest.TestCase):
             true_params["q"],
             1,
             "LM should accurately recover parameters in simple cases",
+        )
+        cov = res.covariance_matrix
+        self.assertAlmostEqual(
+            mod["center"].uncertainty.item()[0],
+            expected_uncertainty["center"][0],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["center"].uncertainty.item()[1],
+            expected_uncertainty["center"][1],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["n"].uncertainty.item(),
+            expected_uncertainty["n"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["Re"].uncertainty.item(),
+            expected_uncertainty["Re"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["Ie"].uncertainty.item(),
+            expected_uncertainty["Ie"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["q"].uncertainty.item(),
+            expected_uncertainty["q"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["q"].uncertainty.item(),
+            expected_uncertainty["q"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["q"].uncertainty.item(),
+            expected_uncertainty["q"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
+        )
+        self.assertAlmostEqual(
+            mod["pa"].uncertainty.item(),
+            expected_uncertainty["pa"],
+            1,
+            "LM should accurately recover parameter uncertainty in simple cases",
         )
 
 
