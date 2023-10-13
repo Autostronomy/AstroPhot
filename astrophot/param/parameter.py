@@ -284,6 +284,8 @@ class Parameter_Node(Node):
         """
         uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)        
         if self.leaf:
+            if self._uncertainty is None:
+                self._uncertainty = torch.ones_like(self.value)
             self._uncertainty[self.mask] = uncertainty
             return
 
