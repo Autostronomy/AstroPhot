@@ -357,7 +357,9 @@ class Parameter_Node(Node):
         for node in flat.values():
             vals.append(node.vector_transform_rep_to_val(rep[mask[:loc].sum().int():mask[:loc+node.size].sum().int()]))
             loc += node.size
-        return torch.cat(vals)
+        if len(vals) > 0:
+            return torch.cat(vals)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     
     def vector_transform_val_to_rep(self, val):
         """Used to transform between the ``vector_values`` and
@@ -397,7 +399,9 @@ class Parameter_Node(Node):
         for node in flat.values():
             reps.append(node.vector_transform_val_to_rep(val[mask[:loc].sum().int():mask[:loc+node.size].sum().int()]))
             loc += node.size
-        return torch.cat(reps)
+        if len(reps) > 0:
+            return torch.cat(reps)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         
     def _set_val_self(self, val):
         """Handles the setting of the value for a leaf node. Ensures the
