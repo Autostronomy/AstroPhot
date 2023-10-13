@@ -145,7 +145,10 @@ class Parameter_Node(Node):
             idstr = str(self.identity)
             return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.identities for node in flat.values()))
+        vec = tuple(node.identities for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
     
     @property
     def names(self):
@@ -162,7 +165,10 @@ class Parameter_Node(Node):
                 return np.array((self.name,))
             return np.array(tuple(f"{self.name}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.names for node in flat.values()))
+        vec = tuple(node.names for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
     
     def vector_values(self):
         """The vector representation is for values which correspond to
@@ -181,7 +187,10 @@ class Parameter_Node(Node):
             return self.value[self.mask].flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_values() for node in flat.values()))
+        vec = tuple(node.vector_values() for node in flat.values())
+        if len(vec) > 0:
+            return torch.cat(vec)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     
     def vector_uncertainty(self):
         """This returns a vector (see vector_values) with the uncertainty for
@@ -192,7 +201,10 @@ class Parameter_Node(Node):
             return self.uncertainty[self.mask].flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_uncertainty() for node in flat.values()))
+        vec = tuple(node.vector_uncertainty() for node in flat.values())
+        if len(vec) > 0:
+            return torch.cat(vec)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     def vector_representation(self):
         """This returns a vector (see vector_values) with the representation
@@ -214,7 +226,10 @@ class Parameter_Node(Node):
             return self.mask.flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_mask() for node in flat.values()))
+        vec = tuple(node.vector_mask() for node in flat.values())
+        if len(vec) > 0:
+            return torch.cat(vec)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     def vector_identities(self):
         """This returns a vector (see vector_values) with the identities for
@@ -224,7 +239,10 @@ class Parameter_Node(Node):
         if self.leaf:
             return self.identities[self.mask.detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.vector_identities() for node in flat.values()))
+        vec = tuple(node.vector_identities() for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
 
     def vector_names(self):
         """This returns a vector (see vector_values) with the names for each
@@ -234,7 +252,10 @@ class Parameter_Node(Node):
         if self.leaf:
             return self.names[self.mask.detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.vector_names() for node in flat.values()))
+        vec = tuple(node.vector_names() for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
         
     def vector_set_values(self, values):
         """This function allows one to update the full vector of values in a
