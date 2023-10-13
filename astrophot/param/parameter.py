@@ -501,6 +501,10 @@ class Parameter_Node(Node):
         self._uncertainty = torch.as_tensor(
             unc, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
+        # Ensure that the uncertainty tensor has the same shape as the data
+        if self.shape is not None:
+            if self._uncertainty.shape != self.shape:
+                self._uncertainty = self._uncertainty * torch.ones(self.shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     @property
     def limits(self):
@@ -589,8 +593,8 @@ class Parameter_Node(Node):
         self.units = state.get("units", None)
         self.limits = state.get("limits", (None,None))
         self.cyclic = state.get("cyclic", False)
-        self.uncertainty = state.get("uncertainty", None)
         self.value = state.get("value", None)
+        self.uncertainty = state.get("uncertainty", None)
         self.prof = state.get("prof", None)
         self.locked = save_locked
 

@@ -459,8 +459,10 @@ class LM(BaseOptimizer):
         cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):
             try:
-                self.model.parameters.vector_set_uncertainty = torch.sqrt(
-                    torch.abs(torch.diag(cov))
+                self.model.parameters.vector_set_uncertainty(
+                    torch.sqrt(
+                        torch.abs(torch.diag(cov))
+                    )
                 )
             except RuntimeError as e:
                 AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
