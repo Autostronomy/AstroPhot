@@ -83,7 +83,7 @@ class TestNode(unittest.TestCase):
 
 class TestParameter(unittest.TestCase):
     @torch.no_grad()
-    def test_parameter_setting(self):
+    def test_parameter_value(self):
         base_param = Parameter_Node("base param")
         base_param.value = 1.0
         self.assertEqual(base_param.value, 1, msg="Value should be set to 1")
@@ -205,6 +205,26 @@ class TestParameter(unittest.TestCase):
 
         self.assertEqual(P2.shape, P1.shape, "reference node should map shape")
         self.assertEqual(P3.shape, P1.shape, "reference node should map shape")
+
+    def test_parameter_uncertainty(self):
+        P1 = Parameter_Node("test_set_scalar", value=0, uncertainty=0)
+        self.assertEqual(P1.uncertainty, 0, "Uncertainty as scalar should match scalar value.")
+        P2 = Parameter_Node("test_set_none", value=0, uncertainty=None)
+        self.assertEqual(P2.uncertainty, None, "Uncertainty sets to None.")
+        P3 = Parameter_Node("test_set_array", value=[0, 0], uncertainty=[1, 1])
+        self.assertEqual(P3.uncertainty[0], 1, "Uncertainty array should set to array.")
+        self.assertEqual(P3.uncertainty[1], 1, "Uncertainty array should set to array.")
+        P4 = Parameter_Node("test_set_scalar_uncertainty_with_array_value", value=[0, 0], uncertainty=1)
+        self.assertEqual(P4.uncertainty[0], 1)
+        self.assertEqual(P4.uncertainty[1], 1)
+        P5 = Parameter_Node("test_set_array_uncertainty_with_scalar_value", value=0, uncertainty=[1, 1])
+        self.assertEqual(P5.uncertainty[0], 1)
+        self.assertEqual(P5.uncertainty[1], 1)
+
+        P6 = Parameter_Node("test_vector_set_uncertainty_that_was_none", value=[0, 0], uncertainty=None)
+        P6.vector_set_uncertainty([1, 1])
+        self.assertEqual(P6.uncertainty, [1, 1])
+
         
 class TestParamContext(unittest.TestCase):
     def test_unlock(self):
