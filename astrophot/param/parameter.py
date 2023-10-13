@@ -198,6 +198,8 @@ class Parameter_Node(Node):
 
         """
         if self.leaf:
+            if self._uncertainty is None:
+                self.uncertainty = torch.ones_like(self.value)
             return self.uncertainty[self.mask].flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
