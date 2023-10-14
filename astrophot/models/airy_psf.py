@@ -9,7 +9,6 @@ from .. import AP_config
 
 __all__ = ("Airy_PSF",)
 
-
 class Airy_PSF(PSF_Model):
     """The Airy disk is an analytic description of the diffraction pattern
     for a circular aperture.
@@ -58,7 +57,7 @@ class Airy_PSF(PSF_Model):
         ):
             return
         target_area = target[self.window]
-        icenter = target_area.plane_to_pixel(parameters["center"].value)
+        icenter = target_area.plane_to_pixel(torch.zeros_like(target_area.center))
 
         if parameters["I0"].value is None:
             with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
@@ -92,8 +91,7 @@ class Airy_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = image.get_coordinate_meshgrid()
 
         r = self.radius_metric(X, Y, image, parameters)
         return self.radial_model(r, image=image, parameters=parameters)

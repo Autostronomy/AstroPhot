@@ -89,8 +89,7 @@ class Eigen_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = image.get_coordinate_meshgrid()
 
         psf_model = PSF_Image(
             data = torch.sum(self.eigen_basis.detach() * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0),

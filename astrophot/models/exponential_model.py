@@ -124,8 +124,7 @@ class Exponential_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = image.get_coordinate_meshgrid()
         return self.radial_model(
             self.radius_metric(X, Y, image=image, parameters=parameters),
             image=image,

@@ -82,6 +82,8 @@ class RelSpline_PSF(PSF_Model):
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
+        if X is None:
+            X, Y = image.get_coordinate_meshgrid()
         return self.radial_model(
             self.radius_metric(X, Y, image, parameters), image, parameters
         )

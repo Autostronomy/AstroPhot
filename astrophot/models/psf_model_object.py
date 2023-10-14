@@ -9,8 +9,14 @@ __all__ = ["PSF_Model"]
 
 class PSF_Model(AstroPhot_Model):
     """Prototype point source (typically a star) model, to be subclassed
-    by other point source models which define specific
-    behavior. 
+    by other point source models which define specific behavior.
+
+    PSF_Models behave differently than component models. For starters,
+    their target image must be a PSF_Image object instead of a
+    Target_Image object. PSF_Models also don't define a "center"
+    variable since their center is always (0,0) just like a
+    PSF_Image. A PSF_Model will never be convolved with a PSF_Model
+    (that's it's job!), so a lot of the sampling method is simpler.
 
     """
 
@@ -94,7 +100,7 @@ class PSF_Model(AstroPhot_Model):
     @default_internal
     def initialize(
         self,
-        target: Optional["Target_Image"] = None,
+        target: Optional["PSF_Image"] = None,
         parameters: Optional[Parameter_Node] = None,
         **kwargs,
     ):
@@ -128,8 +134,7 @@ class PSF_Model(AstroPhot_Model):
 
         """
         if X is None or Y is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = image.get_coordinate_meshgrid()
         return torch.zeros_like(X)  # do nothing in base model
 
     def sample(
@@ -187,7 +192,7 @@ class PSF_Model(AstroPhot_Model):
         reference, deep = self._sample_init(
             image=working_image,
             parameters=parameters,
-            center=parameters["center"].value,
+            center=torch.zeros_like(working_image.center),
         )
         # Super-resolve and integrate where needed
         deep = self._sample_integrate(
@@ -195,7 +200,7 @@ class PSF_Model(AstroPhot_Model):
             reference,
             working_image,
             parameters,
-            center=parameters["center"].value,
+            center=torch.zeros_like(working_image.center),
         )
         # Add the sampled/integrated pixels to the requested image
         working_image.data += deep
@@ -207,122 +212,6 @@ class PSF_Model(AstroPhot_Model):
 
         return image
 
-    @torch.no_grad()
-    def jacobian(
-        self,
-        parameters: Optional[torch.Tensor] = None,
-        as_representation: bool = False,
-        window: Optional[Window] = None,
-        pass_jacobian: Optional[Jacobian_Image] = None,
-        **kwargs,
-    ):
-        """Compute the Jacobian matrix for this model.
-
-        The Jacobian matrix represents the partial derivatives of the
-        model's output with respect to its input parameters. It is
-        useful in optimization and model fitting processes. This
-        method simplifies the process of computing the Jacobian matrix
-        for astronomical image models and is primarily used by the
-        Levenberg-Marquardt algorithm for model fitting tasks.
-
-        Args:
-          parameters (Optional[torch.Tensor]): A 1D parameter tensor to override the
-                                               current model's parameters.
-          as_representation (bool): Indicates if the parameters argument is
-                                    provided as real values or representations
-                                    in the (-inf, inf) range. Default is False.
-          parameters_identity (Optional[tuple]): Specifies which parameters are to be
-                                                 considered in the computation.
-          window (Optional[Window]): A window object specifying the region of interest
-                                     in the image.
-          **kwargs: Additional keyword arguments.
-
-        Returns:
-          Jacobian_Image: A Jacobian_Image object containing the computed Jacobian matrix.
-
-        """
-        if window is None:
-            window = self.window
-        else:
-            if isinstance(window, Window_List):
-                window = window.window_list[pass_jacobian.index(self.target)]
-            window = self.window & window
-
-        # skip jacobian calculation if no parameters match criteria
-        if torch.sum(self.parameters.vector_mask()) == 0 or window.overlap_frac(self.window) <= 0:
-            return self.target[window].jacobian_image()
-
-        # Set the parameters if provided and check the size of the parameter list
-        if parameters is not None:
-            if as_representation:
-                self.parameters.vector_set_representation(parameters)
-            else:
-                self.parameters.vector_set_values(parameters)
-        if torch.sum(self.parameters.vector_mask()) > self.jacobian_chunksize:
-            return self._chunk_jacobian(
-                as_representation=as_representation,
-                window=window,
-                **kwargs,
-            )
-
-        # Compute the jacobian
-        full_jac = jacobian(
-            lambda P: self(
-                image=None,
-                parameters=P,
-                as_representation=as_representation,
-                window=window,
-            ).data,
-            self.parameters.vector_representation().detach() if as_representation else self.parameters.vector_values().detach(),
-            strategy="forward-mode",
-            vectorize=True,
-            create_graph=False,
-        )
-
-        # Store the jacobian as a Jacobian_Image object
-        jac_img = self.target[window].jacobian_image(
-            parameters=self.parameters.vector_identities(),
-            data=full_jac,
-        )
-        return jac_img
-
-    @torch.no_grad()
-    def _chunk_jacobian(
-        self,
-        as_representation: bool = False,
-        parameters_identity: Optional[tuple] = None,
-        window: Optional[Window] = None,
-        **kwargs,
-    ):
-        """Evaluates the Jacobian in small chunks to reduce memory usage.
-
-        For models with many parameters it can be prohibitive to build
-        the full Jacobian in a single pass. Instead this function
-        breaks the list of parameters into chunks as determined by
-        `self.jacobian_chunksize` evaluates the Jacobian only for
-        those, it then builds up the full Jacobian as a separate
-        tensor. This is for internal use and should be called by the
-        `self.jacobian` function when appropriate.
-
-        """
-        pids = self.parameters.vector_identities()
-        jac_img = self.target[window].jacobian_image(
-            parameters=pids,
-        )
-
-        for ichunk in range(0, len(pids), self.jacobian_chunksize):
-            mask = torch.zeros(len(pids), dtype = torch.bool, device = AP_config.ap_device)
-            mask[ichunk:ichunk+self.jacobian_chunksize] = True
-            with Param_Mask(self.parameters, mask):
-                jac_img += self.jacobian(
-                    parameters=None,
-                    as_representation=as_representation,
-                    window=window,
-                    **kwargs,
-                )
-
-        return jac_img
-
     @property
     def target(self):
         try:
@@ -332,10 +221,10 @@ class PSF_Model(AstroPhot_Model):
 
     @target.setter
     def target(self, tar):
-        assert tar is None or isinstance(tar, Target_Image)
+        assert tar is None or isinstance(tar, PSF_Image)
 
         # If a target image list is assigned, pick out the target appropriate for this model
-        if isinstance(tar, Target_Image_List) and self._target_identity is not None:
+        if isinstance(tar, PSF_Image_List) and self._target_identity is not None:
             for subtar in tar:
                 if subtar.identity == self._target_identity:
                     usetar = subtar
@@ -355,59 +244,6 @@ class PSF_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-    def get_state(self, save_params = True):
-        """Returns a dictionary with a record of the current state of the
-        model.
-
-        Specifically, the current parameter settings and the
-        window for this model. From this information it is possible
-        for the model to re-build itself lated when loading from
-        disk. Note that the target image is not saved, this must be
-        reset when loading the model.
-
-        """
-        state = super().get_state()
-        state["window"] = self.window.get_state()
-        if save_params:
-            state["parameters"] = self.parameters.get_state()
-        state["target_identity"] = self._target_identity
-        for key in self.track_attrs:
-            if getattr(self, key) != getattr(self.__class__, key):
-                state[key] = getattr(self, key)
-        return state
-
-    def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new_name = None):
-        """Used to load the model from a saved state.
-
-        Sets the model window to the saved value and updates all
-        parameters with the saved information. This overrides the
-        current parameter settings.
-
-        Args:
-          filename: The source from which to load the model parameters. Can be a string (the name of the file on disc), a dictionary (formatted as if from self.get_state), or an io.TextIOBase (a file stream to load the file from).
-
-        """
-        state = AstroPhot_Model.load(filename)
-        if new_name is None:
-            new_name = state["name"]
-        self.name = new_name
-        # Use window saved state to initialize model window
-        self.window = Window(**state["window"])
-        # reassign target in case a target list was given
-        self._target_identity = state["target_identity"]
-        self.target = self.target
-        # Set any attributes which were not default
-        for key in self.track_attrs:
-            if key in state:
-                setattr(self, key, state[key])
-        # Load the parameter group, this is handled by the parameter group object
-        if isinstance(state["parameters"], Parameter_Node):
-            self.parameters = state["parameters"]
-        else:
-            self.parameters = Parameter_Node(self.name, state=state["parameters"])
-        # Move parameters to the appropriate device and dtype
-        self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        return state
 
     # Extra background methods for the basemodel
     ######################################################################
@@ -418,3 +254,7 @@ class PSF_Model(AstroPhot_Model):
     from ._model_methods import _integrate_reference
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
+    from ._model_methods import jacobian
+    from ._model_methods import _chunk_jacobian
+    from ._model_methods import get_state
+    from ._model_methods import load

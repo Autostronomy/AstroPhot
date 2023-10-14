@@ -12,7 +12,6 @@ from .. import AP_config
 
 __all__ = ("Zernike_PSF",)
 
-
 class Zernike_PSF(PSF_Model):
 
     model_type = f"zernike {PSF_Model.model_type}"
@@ -116,8 +115,7 @@ class Zernike_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = image.get_coordinate_meshgrid()
 
         phi = self.angular_metric(X, Y, image, parameters)
 

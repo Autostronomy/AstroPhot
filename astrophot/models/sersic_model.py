@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-from scipy.stats import iqr
-from scipy.optimize import minimize
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
@@ -144,11 +142,10 @@ class Sersic_PSF(PSF_Model):
 
     model_type = f"sersic {PSF_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
-    _parameter_order = PSF_Model._parameter_order + ("n", "Re", "Ie")
+    _parameter_order = PSF_Model._parameter_order + ("n", "Re")
     useable = True
 
     @torch.no_grad()
@@ -159,7 +156,7 @@ class Sersic_PSF(PSF_Model):
         super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+            self, parameters, target, _wrap_sersic, ("n", "Re"), _x0_func
         )
 
     from ._shared_methods import sersic_radial_model as radial_model
@@ -167,7 +164,7 @@ class Sersic_PSF(PSF_Model):
     @default_internal
     def total_flux(self, parameters=None):
         return sersic_Ie_to_flux_torch(
-            10 ** parameters["Ie"].value,
+            torch.ones_like(parameters["n"].value),
             parameters["n"].value,
             parameters["Re"].value,
             torch.ones_like(parameters["n"].value),
@@ -176,8 +173,7 @@ class Sersic_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = image.get_coordinate_meshgrid()
         return self.radial_model(
             self.radius_metric(X, Y, image=image, parameters=parameters),
             image=image,
