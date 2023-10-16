@@ -43,7 +43,7 @@ One gotcha to keep in mind with regards to ``world_to_plane`` and
 (RA_0, DEC_0) where the tangent plane meets with the celestial
 sphere. You can set this by including ``reference_radec = (RA_0,
 DEC_0)`` as an argument in an image you create.  If a reference is not
-given, then one will be assumed based on avaialble information. Note
+given, then one will be assumed based on available information. Note
 that if you are doing simultaneous multi-image analysis you should
 ensure that the ``reference_radec`` is same for all images!
 
@@ -95,16 +95,16 @@ That is somewhat described in the basics section, however there are
 some more features you can take advantage of. When creating an image
 in AstroPhot, you need to tell it some basic properties so that the
 image knows how to place itself in the tangent plane. Using the
-Astropy WCS object above you should be able to recover the coordinates
+Astropy WCS object above you can recover the reference coordinates
 of the image in (RA, DEC), for an example Astropy wcs object you could
-accomplish this by doing something like::
+accomplish this with:
 
   ra, dec = wcs.wcs.crval
 
-meaning that you know the world position of the image. To have
+meaning that you know the world position of the reference RA, Dec
+of the image WCS.  To have
 AstroPhot place the image at the right location in the tangent plane
-you can use the ``wcs`` argument when constructing the image which
-would look something like::
+you can use the ``wcs`` argument when constructing the image::
 
   image = ap.image.Target_Image(
       data = data,
@@ -212,22 +212,22 @@ Below is a summary of the reference coordinates and their meaning:
 
 #. ``reference_radec`` world coordinates on the celestial sphere (RA,
    DEC in degrees) where the tangent plane makes contact. This should
-   be the same for every image in multi-image analysis.
+   be the same for every image in a multi-image analysis.
 #. ``reference_planexy`` tangent plane coordinates (arcsec) where it
    makes contact with the celesial sphere. This should typically be
    (0,0) though that is not stricktly enforced (it is assumed if not
    given). This reference coordinate should be the same for all
-   images in multi-image analysis.
+   images in a multi-image analysis.
 #. ``reference_imageij`` pixel coordinates about which the image is
    defined. For example in an Astropy WCS object the wcs.wcs.crpix
    array gives the pixel coordinate reference point for which the
    world coordinate mapping (wcs.wcs.crval) is defined. One may think
    of the referenced pixel location as being "pinned" to the tangent
-   plane. This may be different for each image in multi-image
-   analysis..
+   plane. This may be different for each image in a multi-image
+   analysis.
 #. ``reference_imagexy`` tangent plane coordinates (arcsec) about
    which the image is defined. This is the pivot point about which the
    pixelscale matrix operates, therefore if the pixelscale matrix
    defines a rotation then this is the coordinate about which the
    rotation will be performed. This may be different for each image in
-   multi-image analysis.
+   a multi-image analysis.

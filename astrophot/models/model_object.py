@@ -58,7 +58,7 @@ class Component_Model(AstroPhot_Model):
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     parameter_specs = {
-        "center": {"units": "arcsec", "uncertainty": 0.1},
+        "center": {"units": "arcsec", "uncertainty": [0.1, 0.1]},
     }
     # Fixed order of parameters for all methods that interact with the list of parameters
     _parameter_order = ("center",)

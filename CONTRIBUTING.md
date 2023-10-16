@@ -20,7 +20,7 @@ Any changes you make to the AstroPhot code base will be reflected the next time 
 Issues are the main method used to track the addition of new features, improvement of current functionality, and debugging problems. 
 If you spot something that should be improved/added, especially if you know how to do it, please create an Issue using the `Issues` tab above.
 To do this, first check if there are any similar issues already in place.
-If so, consider adding a comment to that issue to expand it's scope, or you can assign the issue to yourself if you are ready to tackle it.
+If so, consider adding a comment to that issue to expand its scope, or you can assign the issue to yourself if you are ready to tackle it.
 If no issue already exists, then make a new one; make sure to use a descriptive title and include lots of keywords even if it makes the grammar a bit funny.
 Then add a detailed description of what needs to be done; a detailed description is one that someone other than yourself could take and work from to add the new feature.
 Make sure to tag your issue with any tags that are relevant for that issue.

@@ -145,7 +145,10 @@ class Parameter_Node(Node):
             idstr = str(self.identity)
             return np.array(tuple(f"{idstr}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.identities for node in flat.values()))
+        vec = tuple(node.identities for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
     
     @property
     def names(self):
@@ -162,7 +165,10 @@ class Parameter_Node(Node):
                 return np.array((self.name,))
             return np.array(tuple(f"{self.name}:{i}" for i in range(self.size)))
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.names for node in flat.values()))
+        vec = tuple(node.names for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
     
     def vector_values(self):
         """The vector representation is for values which correspond to
@@ -181,7 +187,10 @@ class Parameter_Node(Node):
             return self.value[self.mask].flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_values() for node in flat.values()))
+        vec = tuple(node.vector_values() for node in flat.values())
+        if len(vec) > 0:
+            return torch.cat(vec)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     
     def vector_uncertainty(self):
         """This returns a vector (see vector_values) with the uncertainty for
@@ -189,10 +198,15 @@ class Parameter_Node(Node):
 
         """
         if self.leaf:
+            if self._uncertainty is None:
+                self.uncertainty = torch.ones_like(self.value)
             return self.uncertainty[self.mask].flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_uncertainty() for node in flat.values()))
+        vec = tuple(node.vector_uncertainty() for node in flat.values())
+        if len(vec) > 0:
+            return torch.cat(vec)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     def vector_representation(self):
         """This returns a vector (see vector_values) with the representation
@@ -214,7 +228,10 @@ class Parameter_Node(Node):
             return self.mask.flatten()
         
         flat = self.flat(include_locked = False, include_links = False)
-        return torch.cat(tuple(node.vector_mask() for node in flat.values()))
+        vec = tuple(node.vector_mask() for node in flat.values())
+        if len(vec) > 0:
+            return torch.cat(vec)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     def vector_identities(self):
         """This returns a vector (see vector_values) with the identities for
@@ -224,7 +241,10 @@ class Parameter_Node(Node):
         if self.leaf:
             return self.identities[self.mask.detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.vector_identities() for node in flat.values()))
+        vec = tuple(node.vector_identities() for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
 
     def vector_names(self):
         """This returns a vector (see vector_values) with the names for each
@@ -234,7 +254,10 @@ class Parameter_Node(Node):
         if self.leaf:
             return self.names[self.mask.detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
-        return np.concatenate(tuple(node.vector_names() for node in flat.values()))
+        vec = tuple(node.vector_names() for node in flat.values())
+        if len(vec) > 0:
+            return np.concatenate(vec)
+        return np.array(())
         
     def vector_set_values(self, values):
         """This function allows one to update the full vector of values in a
@@ -263,6 +286,8 @@ class Parameter_Node(Node):
         """
         uncertainty = torch.as_tensor(uncertainty, dtype = AP_config.ap_dtype, device = AP_config.ap_device)        
         if self.leaf:
+            if self._uncertainty is None:
+                self._uncertainty = torch.ones_like(self.value)
             self._uncertainty[self.mask] = uncertainty
             return
 
@@ -336,7 +361,9 @@ class Parameter_Node(Node):
         for node in flat.values():
             vals.append(node.vector_transform_rep_to_val(rep[mask[:loc].sum().int():mask[:loc+node.size].sum().int()]))
             loc += node.size
-        return torch.cat(vals)
+        if len(vals) > 0:
+            return torch.cat(vals)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
     
     def vector_transform_val_to_rep(self, val):
         """Used to transform between the ``vector_values`` and
@@ -376,7 +403,9 @@ class Parameter_Node(Node):
         for node in flat.values():
             reps.append(node.vector_transform_val_to_rep(val[mask[:loc].sum().int():mask[:loc+node.size].sum().int()]))
             loc += node.size
-        return torch.cat(reps)
+        if len(reps) > 0:
+            return torch.cat(reps)
+        return torch.tensor((), dtype = AP_config.ap_dtype, device = AP_config.ap_device)
         
     def _set_val_self(self, val):
         """Handles the setting of the value for a leaf node. Ensures the
@@ -501,6 +530,10 @@ class Parameter_Node(Node):
         self._uncertainty = torch.as_tensor(
             unc, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
+        # Ensure that the uncertainty tensor has the same shape as the data
+        if self.shape is not None:
+            if self._uncertainty.shape != self.shape:
+                self._uncertainty = self._uncertainty * torch.ones(self.shape, dtype = AP_config.ap_dtype, device = AP_config.ap_device)
 
     @property
     def limits(self):
@@ -589,8 +622,8 @@ class Parameter_Node(Node):
         self.units = state.get("units", None)
         self.limits = state.get("limits", (None,None))
         self.cyclic = state.get("cyclic", False)
-        self.uncertainty = state.get("uncertainty", None)
         self.value = state.get("value", None)
+        self.uncertainty = state.get("uncertainty", None)
         self.prof = state.get("prof", None)
         self.locked = save_locked
 
@@ -621,9 +654,24 @@ class Parameter_Node(Node):
 
         """        
         return self.size
-        
 
+    def print_params(self, include_locked=True, include_prof=True, include_id=True):
+        if self.leaf:
+            return f"{self.name}" + (f" (id-{self.identity})" if include_id else "") + f": {self.value.detach().cpu().tolist()}" + ("" if self.uncertainty is None else f" +- {self.uncertainty.detach().cpu().tolist()}") + f" [{self.units}]" + ("" if self.limits[0] is None and self.limits[1] is None else f", limits: ({None if self.limits[0] is None else self.limits[0].detach().cpu().tolist()}, {None if self.limits[1] is None else self.limits[1].detach().cpu().tolist()})") + (", cyclic" if self.cyclic else "") + (", locked" if self.locked else "") + (f", prof: {self.prof.detach().cpu().tolist()}" if include_prof and self.prof is not None else "")
+        elif isinstance(self._value, Parameter_Node):
+            return self.name + (f" (id-{self.identity})" if include_id else "") + " points to: " + self._value.print_params(include_locked=include_locked, include_prof=include_prof, include_id=include_id)
+        return self.name + (f" (id-{self.identity}, {('function node, '+self._value.__name__) if isinstance(self._value, FunctionType) else 'branch node'})" if include_id else "") + ":\n"
+        
     def __str__(self):
-        return super().__str__() + " " + ("branch" if self.value is None else str(self.value.detach().cpu().tolist()))
-    def __repr__(self):
-        return super().__repr__() + "\nValue: " + ("branch" if self.value is None else str(self.value.detach().cpu().tolist()))
+        reply = self.print_params(include_locked=True, include_prof=False, include_id=False)
+        if self.leaf or isinstance(self._value, Parameter_Node):
+            return reply
+        reply += "\n".join(node.print_params(include_locked=True, include_prof=False, include_id=False) for node in self.flat(include_locked=True, include_links=False).values())
+        return reply
+    
+    def __repr__(self, level = 0, indent = '  '):
+        reply = indent*level + self.print_params(include_locked=True, include_prof=False, include_id=True)
+        if self.leaf or isinstance(self._value, Parameter_Node):
+            return reply
+        reply += "\n".join(node.__repr__(level = level+1, indent=indent) for node in self.nodes.values())
+        return reply

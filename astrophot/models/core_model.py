@@ -321,6 +321,10 @@ class AstroPhot_Model(object):
 
     def __str__(self):
         """String representation for the model."""
+        return self.parameters.__str__()
+    
+    def __repr__(self):
+        """Detailed string representation for the model."""
         return yaml.dump(self.get_state(), indent=2)
 
     def get_state(self):

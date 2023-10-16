@@ -56,7 +56,7 @@ class Iter(BaseOptimizer):
         self.method = method
         self.method_kwargs = method_kwargs
         if "relative_tolerance" not in method_kwargs and isinstance(method, LM):
-            # Lower tolerance since it's not worth fine tuning a model when it's neighbors will be shifting soon anyway
+            # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
             self.method_kwargs["relative_tolerance"] = 1e-3
             self.method_kwargs["max_iter"] = 15
         #          # pixels      # parameters

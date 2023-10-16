@@ -29,6 +29,24 @@ class TestModel(unittest.TestCase):
 
         state = model.get_state()
 
+    def test_initialize_does_not_recurse(self):
+        "Test case for error where missing parameter name triggered print that triggered missing parameter name ..."
+        target = make_basic_sersic()
+        model = ap.models.AstroPhot_Model(
+            name="test model",
+            model_type="sersic galaxy model",
+            target=target,
+        )
+        # Define a function that accesses a parameter that doesn't exist
+        def calc(params):
+            return params["A"].value
+
+        model["center"].value = calc
+
+        with self.assertRaises(ValueError) as context:
+            model.initialize()
+        self.assertTrue(str(context.exception) == "Unrecognized key for 'center': A")
+
     def test_basic_model_methods(self):
 
         target = make_basic_sersic()
@@ -135,23 +153,6 @@ class TestModel(unittest.TestCase):
 
 
 class TestAllModelBasics(unittest.TestCase):
-    def test_all_model_init(self):
-
-        target = make_basic_sersic()
-        for model_type in ap.models.Component_Model.List_Model_Names(useable=True):
-            MODEL = ap.models.AstroPhot_Model(
-                name="test model",
-                model_type=model_type,
-                target=target,
-            )
-            MODEL.initialize()
-            for P in MODEL.parameter_order:
-                self.assertIsNotNone(
-                    MODEL[P].value,
-                    f"Model type {model_type} parameter {P} should not be None after initialization",
-                )
-                # perhaps add check that uncertainty is not none
-
     def test_all_model_sample(self):
 
         target = make_basic_sersic()
@@ -163,11 +164,18 @@ class TestAllModelBasics(unittest.TestCase):
                 target=target,
             )
             MODEL.initialize()
+            for P in MODEL.parameter_order:
+                self.assertIsNotNone(
+                    MODEL[P].value,
+                    f"Model type {model_type} parameter {P} should not be None after initialization",
+                )
             img = MODEL()
             self.assertTrue(
                 torch.all(torch.isfinite(img.data)),
                 "Model should evaluate a real number for the full image",
             )
+            self.assertIsInstance(str(MODEL), str, "String representation should return string")
+            self.assertIsInstance(repr(MODEL), str, "Repr should return string")
 
 class TestEigenPSF(unittest.TestCase):
     def test_init(self):
