@@ -7,7 +7,9 @@ from ._shared_methods import select_target
 __all__ = ("Point_Source",)
 
 class Point_Source(Component_Model):
-
+    """
+    Describes a point source in the image, this is a delta function at some position in the sky. This is typically used to describe stars, supernovae, very small galaxies, quasars, asteroids or any other object which can essentially be entirely described by a position and total flux (no structure). 
+    """
     model_type = f"pointsource {Component_Model.model_type}"
     parameter_specs = {
         "flux": {"units": "log10(flux/arcsec^2)"},
@@ -15,15 +17,14 @@ class Point_Source(Component_Model):
     _parameter_order = Component_Model._parameter_order + ("flux")
     useable = True
 
+    # Psf convolution should be on by default since this is a delta function
     psf_mode = "full"
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
-        if isinstance(kwargs["psf"], PSF_Image) or isinstance(kwargs["psf"], PSF_Model):
-            self.psf = kwargs["psf"]
-        else:
+        if self.psf is None:
             raise ValueError("Point_Source needs psf information")
 
     @torch.no_grad()
