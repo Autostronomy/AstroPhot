@@ -336,7 +336,41 @@ test6: [[5.0, 6.0], [7.0, 8.0]] +- [[0.0, 0.0], [0.0, 0.0]] [none], limits: (Non
                 raise RuntimeError("infinite loop! Something very wrong with parameter repr")
         self.assertEqual(repr_string, ref_string, "Repr should return specific string")
 
-        
 
+    def test_empty_vector(self):
+        def node_func_sqr(P):
+            return P["test1"].value**2
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.3, limits = (-1, 1), locked = True, prof = 1.)
+        P2 = Parameter_Node("test2", value = 2., uncertainty = 1., locked = True)
+        P3 = Parameter_Node("test3", value = [4.,5.], uncertainty = [5.,3.], limits = ((0., 1.), None), locked = True)
+        P4 = Parameter_Node("test4", value = P2)
+        P5 = Parameter_Node("test5", value = node_func_sqr, link = (P1,))
+        P6 = Parameter_Node("test6", value = ((5,6),(7,8)), uncertainty = 0.1 * np.zeros((2,2)), limits = (None, 10*np.ones((2,2))), locked = True)
+        PG = Parameter_Node("testgroup", link = (P1, P2, P3, P4, P5, P6))
+
+        self.assertEqual(PG.names.shape, (0,), "all locked parameter should have empty names")
+        self.assertEqual(PG.identities.shape,(0,), "all locked parameter should have empty identities")
+        self.assertEqual(PG.vector_names().shape, (0,), "all locked parameter should have empty names")
+        self.assertEqual(PG.vector_identities().shape,(0,), "all locked parameter should have empty identities")
+
+        self.assertEqual(PG.vector_values().shape, (0,), "all locked parameter should have empty values")
+        self.assertEqual(PG.vector_uncertainty().shape, (0,), "all locked parameter should have empty uncertainty")
+        self.assertEqual(PG.vector_mask().shape, (0,), "all locked parameter should have empty mask")
+        self.assertEqual(PG.vector_representation().shape, (0,), "all locked parameter should have empty representation")
+
+    def test_none_uncertainty(self):
+        
+        P1 = Parameter_Node("test1", value = 0.5, uncertainty = 0.3, limits = (-1, 1), locked = False, prof = 1.)
+        P2 = Parameter_Node("test2", value = 2., locked = True)
+        P3 = Parameter_Node("test3", value = [4.,5.], limits = ((0., 1.), None), locked = False)
+        P4 = Parameter_Node("test4", link = (P1, P2, P3))
+
+        self.assertEqual(tuple(P4.vector_uncertainty().detach().cpu().tolist()), (0.3, 1., 1.), "None uncertainty should be filled with ones")
+        
+        P3.uncertainty = None
+        P4.vector_set_uncertainty((0.1,0.1,0.1))
+        
+        self.assertEqual(tuple(P4.vector_uncertainty().detach().cpu().tolist()), (0.1, 0.1, 0.1), "None uncertainty should be filled using vector_set_uncertainty")
+        
 if __name__ == "__main__":
     unittest.main()
