@@ -11,6 +11,7 @@
 [![pypi](https://img.shields.io/pypi/v/astrophot.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/astrophot/)
 [![downloads](https://img.shields.io/pypi/dm/astrophot?label=PyPI%20Downloads)](https://libraries.io/pypi/astrophot)
 [![codecov](https://img.shields.io/codecov/c/github/Autostronomy/AstroPhot?logo=codecov)](https://app.codecov.io/gh/Autostronomy/AstroPhot?search=&displayType=list)
+![Static Badge](https://img.shields.io/badge/ADSrecord-MNRAS-937CB9?link=https%3A%2F%2Fui.adsabs.harvard.edu%2Fabs%2F2023MNRAS.525.6377S%2Fabstract)
 
 AstroPhot is a fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry. It is a python based package that uses PyTorch to quickly and efficiently perform analysis tasks. Written by [Connor Stone](https://connorjstone.com/) for tasks such as LSB imaging, handling crowded fields, multi-band photometry, and analyzing massive data from future telescopes. AstroPhot is flexible and fast for any astronomical image modelling task. While it uses PyTorch (originally developed for Machine Learning) it is NOT a machine learning based tool.
 
