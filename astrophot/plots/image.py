@@ -131,6 +131,7 @@ def model_image(
         cmap_levels (int, optional): The number of discrete levels to convert the continuous color map to.
             If not `None`, the color map is converted to a ListedColormap with the specified number of levels.
             Defaults to `None`.
+        sample_full_image: If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.
         **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Returns:
@@ -245,6 +246,7 @@ def residual_image(
     clb_label=None,
     normalize_residuals=False,
     flipx=False,
+    sample_full_image=False,
     **kwargs,
 ):
     """
@@ -268,6 +270,7 @@ def residual_image(
             residuals. Defaults to `None`.
         normalize_residuals (bool, optional): Whether to normalize the residuals. If `True`, residuals are divided by the square root
             of the variance of the target. Defaults to `False`.
+        sample_full_image: If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.
         **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Returns:
@@ -285,8 +288,11 @@ def residual_image(
     if target is None:
         target = model.target
     if sample_image is None:
-        sample_image = model.make_model_image()
-        sample_image = model(sample_image)
+        if sample_full_image:
+            sample_image = model.make_model_image()
+            sample_image = model(sample_image)
+        else:
+            sample_image = model()
     if isinstance(window, Window_List) or isinstance(target, Image_List):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(
