@@ -109,7 +109,7 @@ def model_image(
     cmap_levels=None,
     flipx=False,
     magunits=True,
-    sample_full_image=False
+    sample_full_image=False,
     **kwargs,
 ):
     """
