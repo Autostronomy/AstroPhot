@@ -109,6 +109,7 @@ def model_image(
     cmap_levels=None,
     flipx=False,
     magunits=True,
+    sample_full_image=False
     **kwargs,
 ):
     """
@@ -142,8 +143,11 @@ def model_image(
     """
 
     if sample_image is None:
-        sample_image = model.make_model_image()
-        sample_image = model(sample_image)
+        if sample_full_image:
+            sample_image = model.make_model_image()
+            sample_image = model(sample_image)
+        else:
+            sample_image = model()
 
     # Use model target if not given
     if target is None:
