@@ -92,6 +92,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
         )
 
     ax.axis("equal")
+    ax.set_xlabel("Tangent Plane X [arcsec]")
+    ax.set_ylabel("Tangent Plane Y [arcsec]")
 
     return fig, ax
 
@@ -221,6 +223,8 @@ def model_image(
 
     # Enforce equal spacing on x y
     ax.axis("equal")
+    ax.set_xlabel("Tangent Plane X [arcsec]")
+    ax.set_ylabel("Tangent Plane Y [arcsec]")
 
     # Add a colourbar
     if showcbar:
@@ -337,6 +341,8 @@ def residual_image(
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
     ax.axis("equal")
+    ax.set_xlabel("Tangent Plane X [arcsec]")
+    ax.set_ylabel("Tangent Plane Y [arcsec]")
 
     if showcbar:
         if normalize_residuals:
