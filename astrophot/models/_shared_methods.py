@@ -94,12 +94,16 @@ def parametric_initialize(
         return
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
+    target_dat = target_area.data.detach().cpu().numpy()
+    if target_area.has_mask:
+        mask = target_area.mask.detach().cpu().numpy()
+        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     edge = np.concatenate(
         (
-            target_area.data.detach().cpu().numpy()[:, 0],
-            target_area.data.detach().cpu().numpy()[:, -1],
-            target_area.data.detach().cpu().numpy()[0, :],
-            target_area.data.detach().cpu().numpy()[-1, :],
+            target_dat[:, 0],
+            target_dat[:, -1],
+            target_dat[0, :],
+            target_dat[-1, :],
         )
     )
     edge_average = np.median(edge)
@@ -109,7 +113,7 @@ def parametric_initialize(
 
     # Collect isophotes for 1D fit
     iso_info = isophotes(
-        target_area.data.detach().cpu().numpy() - edge_average,
+        target_dat - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
         pa=(parameters["PA"].value - target.north).detach().cpu().item()
@@ -176,12 +180,16 @@ def parametric_segment_initialize(
         return
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
+    target_dat = target_area.data.detach().cpu().numpy()
+    if target_area.has_mask:
+        mask = target_area.mask.detach().cpu().numpy()
+        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     edge = np.concatenate(
         (
-            target_area.data[:, 0].detach().cpu().numpy(),
-            target_area.data[:, -1].detach().cpu().numpy(),
-            target_area.data[0, :].detach().cpu().numpy(),
-            target_area.data[-1, :].detach().cpu().numpy(),
+            target_dat[:, 0],
+            target_dat[:, -1],
+            target_dat[0, :],
+            target_dat[-1, :],
         )
     )
     edge_average = np.median(edge)
@@ -190,7 +198,7 @@ def parametric_segment_initialize(
     icenter = target_area.plane_to_pixel(model["center"].value)
 
     iso_info = isophotes(
-        target_area.data.detach().cpu().numpy() - edge_average,
+        target_dat - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
         pa=(model["PA"].value - target.north).item() if "PA" in model else 0.0,
@@ -402,12 +410,16 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
 
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
+    target_dat = target_area.data.detach().cpu().numpy()
+    if target_area.has_mask:
+        mask = target_area.mask.detach().cpu().numpy()
+        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     Coords = target_area.get_coordinate_meshgrid()
     X, Y = Coords - parameters["center"].value[..., None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
-    raveldat = target_area.data.detach().cpu().numpy().ravel()
+    raveldat = target_dat.ravel()
 
     I = (
         binned_statistic(R.ravel(), raveldat, statistic="median", bins=rad_bins)[0]
@@ -454,13 +466,17 @@ def spline_segment_initialize(
 
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
+    target_dat = target_area.data.detach().cpu().numpy()
+    if target_area.has_mask:
+        mask = target_area.mask.detach().cpu().numpy()
+        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     Coords = target_area.get_coordinate_meshgrid()
     X, Y = Coords - parameters["center"].value[..., None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
     T = self.angular_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
-    raveldat = target_area.data.detach().cpu().numpy().ravel()
+    raveldat = target_dat.ravel()
     val = np.zeros((segments, len(parameters["I(R)"].prof)))
     unc = np.zeros((segments, len(parameters["I(R)"].prof)))
     for s in range(segments):
@@ -552,11 +568,15 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     super(self.__class__, self).initialize(target=target, parameters=parameters)
 
     target_area = target[self.window]
+    target_dat = target_area.data.detach().cpu().numpy()
+    if target_area.has_mask:
+        mask = target_area.mask.detach().cpu().numpy()
+        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     if parameters["I0"].value is None:
         center = target_area.plane_to_pixel(parameters["center"].value)
-        flux = target_area.data[center[1].int().item(), center[0].int().item()]
+        flux = target_dat[center[1].int().item(), center[0].int().item()]
         with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
-            parameters["I0"].value = torch.log10(torch.abs(flux) / target_area.pixel_area)
+            parameters["I0"].value = np.log10(np.abs(flux) / target_area.pixel_area.item())
             parameters["I0"].uncertainty = 0.01
         
     if parameters["dI(R)"].value is not None and parameters["dI(R)"].prof is not None:
@@ -581,7 +601,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     X, Y = self.transform_coordinates(X, Y, target, parameters)
     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
-    raveldat = target_area.data.detach().cpu().numpy().ravel()
+    raveldat = target_dat.ravel()
 
     I = (
         binned_statistic(R.ravel(), raveldat, statistic="median", bins=rad_bins)[0]
