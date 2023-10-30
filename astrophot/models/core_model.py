@@ -237,6 +237,11 @@ class AstroPhot_Model(object):
     ):
         raise NotImplementedError("please use a subclass of AstroPhot_Model")
 
+    @default_internal
+    def total_flux(self, parameters=None, window=None, image=None):
+        F = self(parameters = parameters, window=None, image=None)
+        return torch.sum(F.data)
+        
     @property
     def window(self):
         """The window defines a region on the sky in which this model will be
