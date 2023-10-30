@@ -12,7 +12,7 @@ from utils import make_basic_sersic
 class TestModel(unittest.TestCase):
     def test_AstroPhot_Model(self):
 
-        self.assertRaises(AssertionError, ap.models.AstroPhot_Model, name = "my|model")
+        self.assertRaises(ap.errors.NameNotAllowed, ap.models.AstroPhot_Model, name = "my|model")
 
         model = ap.models.AstroPhot_Model(name = "test model")
 

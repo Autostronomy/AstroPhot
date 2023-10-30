@@ -266,7 +266,7 @@ class Target_Image(Image):
 
     def set_variance(self, variance):
         """
-        Provide a variance tensor for the image. This should have the same shape as the data.
+        Provide a variance tensor for the image. Variance is equal to $\sigma^2$. This should have the same shape as the data.
         """
         if variance is None:
             self._weight = None
@@ -274,14 +274,15 @@ class Target_Image(Image):
         self.set_weight(1 / variance)
 
     def set_weight(self, weight):
-        """Provide a weight tensor for the image. This should have the same
+        """Provide a weight tensor for the image. Weight is equal to $\frac{1}{\sigma^2}$. This should have the same
         shape as the data.
 
         """
         if weight is None:
             self._weight = None
             return
-        assert weight.shape == self.data.shape, "weight must have same shape as data"
+        if weight.shape != self.data.shape:
+            raise SpecificationConflict(f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})")
         self._weight = (
             weight.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
             if isinstance(weight, torch.Tensor)
@@ -321,7 +322,8 @@ class Target_Image(Image):
         if mask is None:
             self._mask = None
             return
-        assert mask.shape == self.data.shape, "mask must have same shape as data"
+        if mask.shape != self.data.shape:
+            raise SpecificationConflict(f"mask must have same shape as data ({mask.shape} vs {self.data.shape})")
         self._mask = (
             mask.to(dtype=torch.bool, device=AP_config.ap_device)
             if isinstance(mask, torch.Tensor)
@@ -509,9 +511,8 @@ class Target_Image(Image):
 class Target_Image_List(Image_List, Target_Image):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        assert all(
-            isinstance(image, Target_Image) for image in self.image_list
-        ), f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.image_list)}"
+        if not all(isinstance(image, Target_Image) for image in self.image_list):
+            raise InvalidImage(f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.image_list)}")
 
     @property
     def variance(self):

@@ -9,6 +9,7 @@ from .. import AP_config
 from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
+from ..errors import InvalidModel
 
 __all__ = [
     "radial_light_profile",
@@ -241,7 +242,8 @@ def wedge_light_profile(
 
 def warp_phase_profile(fig, ax, model, rad_unit="arcsec", doassert=True):
     if doassert:
-        assert isinstance(model, Warp_Galaxy)
+        if not isinstance(model, Warp_Galaxy):
+            raise InvalidModel(f"warp_phase_profile must be given a 'Warp_Galaxy' object. Not {type(model)}")
 
     ax.plot(
         model.profR,

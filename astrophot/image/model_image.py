@@ -5,6 +5,7 @@ from .. import AP_config
 from .image_object import Image, Image_List
 from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
+from ..errors import InvalidData, SpecificationConflict
 
 __all__ = ["Model_Image", "Model_Image_List"]
 
@@ -20,7 +21,8 @@ class Model_Image(Image):
     """
 
     def __init__(self, pixelscale=None, data=None, window=None, **kwargs):
-        assert not (data is None and window is None)
+        if data is None and window is None:
+            raise InvalidData("Model_Image must have either data or a window to construct itself.")
         if data is None:
             data = torch.zeros(
                 torch.flip(window.pixel_shape,(0,)).detach().cpu().tolist(),
@@ -81,9 +83,8 @@ class Model_Image(Image):
 class Model_Image_List(Image_List, Model_Image):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        assert all(
-            isinstance(image, Model_Image) for image in self.image_list
-        ), f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}"
+        if not all(isinstance(image, Model_Image) for image in self.image_list):
+            raise InvalidImage(f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}")
 
     def clear_image(self):
         for image in self.image_list:

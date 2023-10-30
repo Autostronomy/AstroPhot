@@ -3,6 +3,7 @@ import numpy as np
 
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
+from ..errors import SpecificationConflict
 
 __all__ = ("WPCS", "PPCS", "WCS")
 
@@ -129,7 +130,7 @@ class WPCS:
                     plane_y, dtype=AP_config.ap_dtype, device=AP_config.ap_device
                 ),
             )
-        raise ValueError(
+        raise InvalidWCS(
             f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
         )
 
@@ -142,11 +143,12 @@ class WPCS:
 
     @projection.setter
     def projection(self, proj):
-        assert proj in [
-            "gnomonic",
-            "orthographic",
-            "steriographic",
-        ], f"Unrecognized projection: {proj}. Should be one of: gnomonic, orthographic, steriographic"
+        if proj not in (
+                "gnomonic",
+                "orthographic",
+                "steriographic",
+        ):
+            raise InvalidWCS(f"Unrecognized projection: {proj}. Should be one of: gnomonic, orthographic, steriographic")
         self._projection = proj
 
     @property

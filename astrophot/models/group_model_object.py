@@ -266,7 +266,8 @@ class Group_Model(AstroPhot_Model):
 
     @target.setter
     def target(self, tar):
-        assert tar is None or isinstance(tar, Target_Image)
+        if not (tar is None or isinstance(tar, Target_Image)):
+            raise InvalidTarget("Group_Model target must be a Target_Image instance.")
         self._target = tar
 
         if hasattr(self, "models"):

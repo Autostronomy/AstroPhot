@@ -1,5 +1,6 @@
 import unittest
 from astrophot.param import Node as BaseNode, Parameter_Node, Param_Mask, Param_Unlock, Param_SoftLimits
+import astrophot as ap
 import torch
 import numpy as np
 
@@ -43,7 +44,7 @@ class TestNode(unittest.TestCase):
             self.assertIs(Na, Nb, "node flat should produce correct order")
 
         # Check for cycle in DAG
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ap.errors.InvalidParameter):
             node4.link(node1)
 
         node1.dump()
@@ -116,7 +117,7 @@ class TestParameter(unittest.TestCase):
             100,
             msg="lower limit variable should not have upper limit",
         )
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ap.errors.InvalidParameter):
             lowlim_param.value = -100.0
 
         # Upper limit parameter
@@ -127,14 +128,14 @@ class TestParameter(unittest.TestCase):
             -100,
             msg="upper limit variable should not have lower limit",
         )
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ap.errors.InvalidParameter):
             uplim_param.value = 100.0
 
         # Range limit parameter
         range_param = Parameter_Node("range param", limits=(-1, 1))
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ap.errors.InvalidParameter):
             range_param.value = 100.0
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ap.errors.InvalidParameter):
             range_param.value = -100.0
 
         # Cyclic Range limit parameter

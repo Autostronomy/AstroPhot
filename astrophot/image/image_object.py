@@ -10,6 +10,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .window_object import Window, Window_List
 from .image_header import Image_Header
 from .. import AP_config
+from ..errors import SpecificationConflict
 
 __all__ = ["Image", "Image_List"]
 
@@ -211,10 +212,11 @@ class Image(object):
             require_shape (bool): Whether to check that the shape of the data is the same as the current data.
 
         Raises:
-            AssertionError: If `require_shape` is `True` and the shape of the data is different from the current data.
+            SpecificationConflict: If `require_shape` is `True` and the shape of the data is different from the current data.
         """
-        if self._data is not None and require_shape:
-            assert data.shape == self._data.shape
+        if self._data is not None and require_shape and data.shape != self._data.shape:
+            raise SpecificationConflict(f"Attempting to change image data with tensor that has a different shape! ({data.shape} vs {self._data.shape}) Use 'require_shape = False' if this is desired behaviour.")
+        
         if data is None:
             self.data = torch.tensor(
                 (), dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -321,7 +323,8 @@ class Image(object):
             scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
 
         """
-        assert isinstance(scale, int) or scale.dtype is torch.int32
+        if not isinstance(scale, int) and scale.dtype is not torch.int32:
+            raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
         if scale == 1:
             return self
 
@@ -341,7 +344,8 @@ class Image(object):
           padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
         """
         padding = np.array(padding)
-        assert np.all(padding >= 0), "negative padding not allowed in expand method"
+        if np.any(padding < 0):
+            raise SpecificationConflict("negative padding not allowed in expand method")
         pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
         self.data = pad(self.data, pad=pad_boundaries, mode="constant", value=0)
         self.header.expand(padding)
@@ -516,7 +520,6 @@ class Image_List(Image):
         return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
 
     def reduce(self, scale):
-        assert isinstance(scale, int) or scale.dtype is torch.int32
         if scale == 1:
             return self
 

@@ -25,8 +25,6 @@ class TestWindowList(unittest.TestCase):
         self.assertEqual(windowlist.center[1][0], 50., "Window should determine center")
         self.assertEqual(windowlist.center[0][1], 61., "Window should determine center")
 
-        self.assertRaises(AssertionError, ap.image.Window_List)
-
         x = str(windowlist)
         x = repr(windowlist)
 

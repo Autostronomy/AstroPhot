@@ -44,9 +44,10 @@ class Zernike_Star(Star_Model):
 
         # Check if user has already set the coefficients
         if parameters["Anm"].value is not None:
-            assert len(self.nm_list) == len(
+            if len(self.nm_list) != len(
                 parameters["Anm"].value
-            ), "nm_list must match coefficients (Anm)"
+            ):
+                raise SpecificationConflict(f"nm_list length ({len(self.nm_list)}) must match coefficients ({len(parameters['Anm'].value)})")
             return
 
         # Set the default coefficients to zeros

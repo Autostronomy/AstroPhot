@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from abc import ABC, abstractmethod
+from ..errors import InvalidParameter
 
 __all__ = ["Node"]
 
@@ -46,7 +47,7 @@ class Node(ABC):
         for node in nodes:
             for subnode_id in node.flat(include_locked=True, include_links=True).keys():
                 if self.identity == subnode_id:
-                    raise RuntimeError("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
+                    raise InvalidParameter("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
             self.nodes[node.name] = node
             
     def unlink(self, *nodes):
