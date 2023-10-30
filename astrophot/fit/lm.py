@@ -379,6 +379,12 @@ class LM(BaseOptimizer):
         local minimum, this often depends on the initial conditions.
 
         """
+
+        if len(self.current_state) == 0:
+            if self.verbose > 0:
+                AP_config.ap_logger.warning(f"No parameters to optimize. Exiting fit")
+            return self
+            
         self._covariance_matrix = None
         self.loss_history = [self._chi2(self.forward(parameters = self.current_state).flatten("data")).item()]
         self.L_history = [self.L]

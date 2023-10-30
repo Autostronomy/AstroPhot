@@ -106,7 +106,7 @@ class Galaxy_Model(Component_Model):
                 if parameters["PA"].uncertainty is None:
                     parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA"].value) # default uncertainty of 5 degrees is assumed
         if parameters["q"].value is None:
-            q_samples = np.linspace(0.1, 0.9, 15)
+            q_samples = np.linspace(0.2, 0.9, 15)
             iso_info = isophotes(
                 target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),

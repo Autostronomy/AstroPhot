@@ -257,6 +257,22 @@ class Group_Model(AstroPhot_Model):
         for model in self.models.values():
             model.psf_mode = value
 
+    @property
+    def target(self):
+        try:
+            return self._target
+        except AttributeError:
+            return None
+
+    @target.setter
+    def target(self, tar):
+        assert tar is None or isinstance(tar, Target_Image)
+        self._target = tar
+
+        if hasattr(self, "models"):
+            for model in self.models.values():
+                model.target = tar
+
     def get_state(self, save_params = True):
         """Returns a dictionary with information about the state of the model
         and its parameters.
