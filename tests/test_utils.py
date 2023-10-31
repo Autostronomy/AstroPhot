@@ -473,7 +473,21 @@ class TestAngleOperations(unittest.TestCase):
             msg="incorrectly calculating iqr of list of angles",
         )
 
+    def test_angle_com(self):
+        pixelscale = 0.8
+        tar = make_basic_sersic(
+            N=50,
+            M=50,
+            pixelscale=pixelscale,
+            x=24.5*pixelscale,
+            y=24.5*pixelscale,
+            PA = 115 * np.pi / 180,
+        )
 
+        res = ap.utils.angle_operations.Angle_COM_PA(tar.data.detach().cpu().numpy())
+
+        self.assertAlmostEqual(res + np.pi/2, 115 * np.pi / 180, delta = 0.1)
+        
         
 if __name__ == "__main__":
     unittest.main()
