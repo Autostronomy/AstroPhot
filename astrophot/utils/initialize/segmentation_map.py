@@ -3,7 +3,28 @@ from typing import Union
 
 import numpy as np
 from astropy.io import fits
+from ..angle_operations import Angle_COM_PA
 
+__all__ = (
+    "centroids_from_segmentation_map",
+    "PA_from_segmentation_map",
+    "windows_from_segmentation_map",
+    "scale_windows",
+    "filter_windows",
+)
+
+def _select_img(img, hduli):
+    if isinstance(img, str):
+        if img.endswith(".fits"):
+            hdul = fits.open(img)
+            img = hdul[hduli].data
+        elif img.endswith(".npy"):
+            img = np.load(img)
+        else:
+            raise ValueError(
+                f"unrecognized file type, should be one of: fits, npy\n{img}"
+            )
+    return img
 
 def centroids_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
@@ -29,27 +50,8 @@ def centroids_from_segmentation_map(
       centroids (dict): dictionary of centroid positions matched to each segment ID. The centroids are in pixel coordinates
     """
 
-    if isinstance(seg_map, str):
-        if seg_map.endswith(".fits"):
-            hdul = fits.open(seg_map)
-            seg_map = hdul[hdul_index_seg].data
-        elif seg_map.endswith(".npy"):
-            seg_map = np.load(seg_map)
-        else:
-            raise ValueError(
-                f"unrecognized file type, should be one of: fits, npy\n{seg_map}"
-            )
-
-    if isinstance(image, str):
-        if image.endswith(".fits"):
-            hdul = fits.open(image)
-            image = hdul[hdul_index_img].data
-        elif image.endswith(".npy"):
-            image = np.load(image)
-        else:
-            raise ValueError(
-                f"unrecognized file type, should be one of: fits, npy\n{image}"
-            )
+    seg_map = _select_img(seg_map, hdul_index_seg)
+    image = _select_img(image, hdul_index_img)
 
     centroids = {}
 
@@ -65,6 +67,34 @@ def centroids_from_segmentation_map(
 
     return centroids
 
+def PA_from_segmentation_map(
+    seg_map: Union[np.ndarray, str],
+    image: Union[np.ndarray, str],
+    centroids = None,
+    hdul_index_seg: int = 0,
+    hdul_index_img: int = 0,
+    skip_index: tuple = (0,),
+    north = np.pi/2,
+):
+    
+    seg_map = _select_img(seg_map, hdul_index_seg)
+    image = _select_img(image, hdul_index_img)
+    
+    if centroids is None:
+        centroids = centroids_from_segmentation_map(seg_map=seg_map, image = image, skip_index=skip_index)
+    
+    XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
+    
+    PAs = {}
+    for index in np.unique(seg_map):
+        if index is None or index in skip_index:
+            continue
+        N = seg_map == index
+        PA = Angle_COM_PA(image[N], XX[N] - centroids[index][0], YY[N] - centroids[index][1]) + north
+        PAs[index] = PA
+        
+    return PAs
+        
 
 def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
     """Convert a segmentation map into boinding boxes

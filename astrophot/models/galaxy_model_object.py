@@ -6,7 +6,7 @@ from scipy.stats import iqr
 
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.angle_operations import Angle_Average
+from ..utils.angle_operations import Angle_Average, Angle_COM_PA
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
@@ -66,13 +66,16 @@ class Galaxy_Model(Component_Model):
         if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]
-        target_area_data = target_area.data.detach().cpu().numpy()
+        target_dat = target_area.data.detach().cpu().numpy()
+        if target_area.has_mask:
+            mask = target_area.mask.detach().cpu().numpy()
+            target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
         edge = np.concatenate(
             (
-                target_area_data[:, 0],
-                target_area_data[:, -1],
-                target_area_data[0, :],
-                target_area_data[-1, :],
+                target_dat[:, 0],
+                target_dat[:, -1],
+                target_dat[0, :],
+                target_dat[-1, :],
             )
         )
         edge_average = np.nanmedian(edge)
@@ -80,29 +83,17 @@ class Galaxy_Model(Component_Model):
         icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["PA"].value is None:
-            iso_info = isophotes(
-                target_area.data.detach().cpu().numpy() - edge_average,
-                (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
-                threshold=3 * edge_scatter,
-                pa=0.0,
-                q=1.0,
-                n_isophotes=15,
-            )
+            weights = target_dat - edge_average
+            Coords = target_area.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[..., None, None]
+            if target_area.has_mask:
+                seg = np.logical_not(target_area.mask.detach().cpu().numpy())
+                PA = Angle_COM_PA(weights[seg], X[seg], Y[seg])
+            else:
+                PA = Angle_COM_PA(weights, X, Y)
+                
             with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
-                parameters["PA"].value = (
-                    -(
-                        (
-                            Angle_Average(
-                                list(
-                                    iso["phase2"]
-                                    for iso in iso_info[-int(len(iso_info) / 3) :]
-                                )
-                            )
-                            / 2
-                        )
-                        + target.north
-                    )
-                ) % np.pi
+                parameters["PA"].value = (PA+target_area.north) % np.pi
                 if parameters["PA"].uncertainty is None:
                     parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA"].value) # default uncertainty of 5 degrees is assumed
         if parameters["q"].value is None:
