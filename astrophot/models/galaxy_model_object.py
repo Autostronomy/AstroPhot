@@ -86,6 +86,7 @@ class Galaxy_Model(Component_Model):
             weights = target_dat - edge_average
             Coords = target_area.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = X.detach().cpu().numpy(), Y.detach().cpu().numpy()
             if target_area.has_mask:
                 seg = np.logical_not(target_area.mask.detach().cpu().numpy())
                 PA = Angle_COM_PA(weights[seg], X[seg], Y[seg])
