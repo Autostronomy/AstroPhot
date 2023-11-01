@@ -427,6 +427,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
     N = np.isfinite(I)
     if not np.all(N):
         I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
+    I = np.abs(I)
     if I[-1] >= I[-2]:
         I[-1] = I[-2] / 2
     S = binned_statistic(
@@ -436,8 +437,8 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
     if not np.all(N):
         S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
     with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
-        parameters["I(R)"].value = np.log10(np.abs(I))
-        parameters["I(R)"].uncertainty = S / (np.abs(I) * np.log(10))
+        parameters["I(R)"].value = np.log10(I)
+        parameters["I(R)"].uncertainty = S / (I * np.log(10))
 
 
 @torch.no_grad()

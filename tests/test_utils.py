@@ -149,10 +149,26 @@ class TestSegtoWindow(unittest.TestCase):
             segmap, image=segmap
         )
 
+        PAs = ap.utils.initialize.PA_from_segmentation_map(
+            segmap, image=segmap, centroids = centroids,
+        )
+        qs = ap.utils.initialize.q_from_segmentation_map(
+            segmap, image=segmap, centroids = centroids,
+        )
+
         windows = ap.utils.initialize.windows_from_segmentation_map(segmap)
 
         self.assertEqual(
             len(windows), 3, "should ignore zero index, but find all three windows"
+        )
+        self.assertEqual(
+            len(centroids), 3, "should ignore zero index, but find all three windows"
+        )
+        self.assertEqual(
+            len(PAs), 3, "should ignore zero index, but find all three windows"
+        )
+        self.assertEqual(
+            len(qs), 3, "should ignore zero index, but find all three windows"
         )
 
         self.assertEqual(
@@ -473,7 +489,21 @@ class TestAngleOperations(unittest.TestCase):
             msg="incorrectly calculating iqr of list of angles",
         )
 
+    def test_angle_com(self):
+        pixelscale = 0.8
+        tar = make_basic_sersic(
+            N=50,
+            M=50,
+            pixelscale=pixelscale,
+            x=24.5*pixelscale,
+            y=24.5*pixelscale,
+            PA = 115 * np.pi / 180,
+        )
 
+        res = ap.utils.angle_operations.Angle_COM_PA(tar.data.detach().cpu().numpy())
+
+        self.assertAlmostEqual(res + np.pi/2, 115 * np.pi / 180, delta = 0.1)
+        
         
 if __name__ == "__main__":
     unittest.main()
