@@ -8,6 +8,7 @@ from ..angle_operations import Angle_COM_PA
 __all__ = (
     "centroids_from_segmentation_map",
     "PA_from_segmentation_map",
+    "q_from_segmentation_map",
     "windows_from_segmentation_map",
     "scale_windows",
     "filter_windows",
@@ -94,7 +95,39 @@ def PA_from_segmentation_map(
         PAs[index] = PA
         
     return PAs
+
+def q_from_segmentation_map(
+    seg_map: Union[np.ndarray, str],
+    image: Union[np.ndarray, str],
+    centroids = None,
+    hdul_index_seg: int = 0,
+    hdul_index_img: int = 0,
+    skip_index: tuple = (0,),
+    north = np.pi/2,
+):
+    
+    seg_map = _select_img(seg_map, hdul_index_seg)
+    image = _select_img(image, hdul_index_img)
+    
+    if centroids is None:
+        centroids = centroids_from_segmentation_map(seg_map=seg_map, image = image, skip_index=skip_index)
+    
+    XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
+    
+    qs = {}
+    for index in np.unique(seg_map):
+        if index is None or index in skip_index:
+            continue
+        N = seg_map == index
+        theta = np.arctan2(YY[N] - centroids[index][1], XX[N] - centroids[index][0])
         
+        # Ballpark correct, could be better
+        ang_com_cos = np.sum(image[N] * np.cos(2*theta)) / np.sum(image[N])
+        ang_com_sin = np.sum(image[N] * np.sin(2*theta)) / np.sum(image[N])
+        qs[index] = 1. - (np.abs(ang_com_cos) + np.abs(ang_com_sin))
+        
+    return qs
+
 
 def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
     """Convert a segmentation map into boinding boxes
