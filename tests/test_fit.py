@@ -321,6 +321,27 @@ class TestLM(unittest.TestCase):
 
         LM.fit()
 
+    def test_chunk_image_jacobian(self):
+        target = make_basic_sersic()
+        new_model = ap.models.AstroPhot_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+            image_chunksize = 15,
+        )
+
+        LM = ap.fit.LM(new_model, max_iter = 10)
+
+        LM.fit()
+
 class TestIter(unittest.TestCase):
     def test_iter_basic(self):
         target = make_basic_sersic()
