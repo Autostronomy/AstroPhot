@@ -149,10 +149,20 @@ class TestSegtoWindow(unittest.TestCase):
             segmap, image=segmap
         )
 
+        PAs = ap.utils.initialize.PA_from_segmentation_map(
+            segmap, image=segmap, centroids = centroids,
+        )
+
         windows = ap.utils.initialize.windows_from_segmentation_map(segmap)
 
         self.assertEqual(
             len(windows), 3, "should ignore zero index, but find all three windows"
+        )
+        self.assertEqual(
+            len(centroids), 3, "should ignore zero index, but find all three windows"
+        )
+        self.assertEqual(
+            len(PAs), 3, "should ignore zero index, but find all three windows"
         )
 
         self.assertEqual(
