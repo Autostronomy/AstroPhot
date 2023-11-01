@@ -242,8 +242,3 @@ def grid_integrate(
     integral[select] = subgridres.sum(axis=(-1,))
 
     return integral
-    
-def weighted_quantiles(values, weights, quantiles=0.5):
-    i = np.argsort(values)
-    c = np.cumsum(weights[i])
-    return values[i[np.searchsorted(c, np.array(quantiles) * c[-1])]]
