@@ -90,6 +90,7 @@ class Component_Model(AstroPhot_Model):
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
+    image_chunksize = 1000
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3
@@ -450,6 +451,12 @@ class Component_Model(AstroPhot_Model):
                 window=window,
                 **kwargs,
             )
+        if torch.max(window.pixel_shape) > self.image_chunksize:
+            return self._chunk_image_jacobian(
+                as_representation=as_representation,
+                window=window,
+                **kwargs,
+            )
 
         # Compute the jacobian
         full_jac = jacobian(
@@ -473,6 +480,50 @@ class Component_Model(AstroPhot_Model):
         return jac_img
 
     @torch.no_grad()
+    def _chunk_image_jacobian(
+        self,
+        as_representation: bool = False,
+        parameters_identity: Optional[tuple] = None,
+        window: Optional[Window] = None,
+        **kwargs,
+    ):
+        """Evaluates the Jacobian in smaller chunks to reduce memory usage.
+
+        For models acting on large windows it can be prohibitive to
+        build the full Jacobian in a single pass. Instead this
+        function breaks the image into chunks as determined by
+        `self.image_chunksize` evaluates the Jacobian only for the
+        sub-images, it then builds up the full Jacobian as a separate
+        tensor.
+
+        This is for internal use and should be called by the
+        `self.jacobian` function when appropriate.
+
+        """
+        
+        pids = self.parameters.vector_identities()
+        jac_img = self.target[window].jacobian_image(
+            parameters=pids,
+        )
+
+        pixel_shape = window.pixel_shape.detach().cpu().numpy()
+        Ncells = np.int64(np.round(np.ceil(pixel_shape / self.image_chunksize)))
+        cellsize = np.int64(np.round(window.pixel_shape / Ncells))
+        
+        for nx in range(Ncells[0]):
+            for ny in range(Ncells[1]):
+                subwindow = window.copy()
+                subwindow.crop_to_pixel(((cellsize[0]*nx, min(pixel_shape[0],cellsize[0]*(nx+1))), (cellsize[1]*ny, min(pixel_shape[1], cellsize[1]*(ny+1)))))
+                jac_img += self.jacobian(
+                    parameters=None,
+                    as_representation=as_representation,
+                    window=subwindow,
+                    **kwargs,
+                )
+
+        return jac_img
+        
+    @torch.no_grad()
     def _chunk_jacobian(
         self,
         as_representation: bool = False,
@@ -487,7 +538,9 @@ class Component_Model(AstroPhot_Model):
         breaks the list of parameters into chunks as determined by
         `self.jacobian_chunksize` evaluates the Jacobian only for
         those, it then builds up the full Jacobian as a separate
-        tensor. This is for internal use and should be called by the
+        tensor.
+
+        This is for internal use and should be called by the
         `self.jacobian` function when appropriate.
 
         """
