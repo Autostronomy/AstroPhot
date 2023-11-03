@@ -2,6 +2,7 @@ import unittest
 from astrophot import image
 import astrophot as ap
 import torch
+import numpy as np
 
 from utils import get_astropy_wcs
 ######################################################################
@@ -317,7 +318,28 @@ class TestImage(unittest.TestCase):
         self.assertIsInstance(str(new_image), str, "String representation should be a string!")
         self.assertIsInstance(repr(new_image), str, "Repr should be a string!")
 
+    def test_image_errors(self):
 
+        new_image = image.Image(
+            data =torch.ones((16, 32)),
+            pixelscale=0.76,
+            zeropoint=21.4,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+        )
+
+        # Change data badly
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            new_image.data = np.zeros((5,5))
+
+        # Fractional image reduction
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            reduced = new_image.reduce(0.2)
+
+        # Negative expand image
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            unexpanded = new_image.expand((-2, 3))
+            
 class TestTargetImage(unittest.TestCase):
     def test_variance(self):
 
@@ -424,6 +446,22 @@ class TestTargetImage(unittest.TestCase):
             torch.all(new_image.psf.data == loaded_image.psf.data),
             "Loaded image should have same psf",
         )
+    def test_target_errors(self):
+        new_image = image.Target_Image(
+            data=torch.ones((16, 32)),
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+        )
+
+        # bad variance
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            new_image.variance = np.ones((5,5))
+            
+        # bad mask
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            new_image.mask = np.zeros((5,5))
 
 class TestPSFImage(unittest.TestCase):
     def test_copying(self):
@@ -460,7 +498,15 @@ class TestPSFImage(unittest.TestCase):
         reduce_image = new_image.reduce(3)
         self.assertEqual(tuple(reduce_image.psf.data.shape), (5,5), "reducing image should reduce psf")
         self.assertEqual(reduce_image.psf.psf_upscale, 1, "reducing image should update upscale factor")
-        
+
+    def test_psf_errors(self):
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            psf_image = image.PSF_Image(
+                data = torch.ones((18,15)),
+                pixelscale = 1.,
+                psf_upscale = 3,
+            )
+            
         
 class TestModelImage(unittest.TestCase):
     def test_replace(self):
@@ -511,6 +557,11 @@ class TestModelImage(unittest.TestCase):
             msg="Shifting field of ones should give field of ones",
         )
 
+    def test_errors(self):
+
+        with self.assertRaises(ap.errors.InvalidData):
+            new_image = image.Model_Image()
+
 class TestJacobianImage(unittest.TestCase):
     def test_jacobian_add(self):
 
@@ -549,6 +600,45 @@ class TestJacobianImage(unittest.TestCase):
             (512, 4),
             "Jacobian should flatten to Npix*Nparams tensor",
         )
+
+    def test_jacobian_error(self):
+
+        # Create parameter list with multiple same entries
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            new_image = ap.image.Jacobian_Image(
+                parameters=["a", "b", "c", "a"],
+                target_identity="target1",
+                data=torch.ones((16, 32, 3)),
+                pixelscale=1.0,
+                zeropoint=1.0,
+                window=ap.image.Window(
+                    origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
+                ),
+                note="test image",
+            )
+
+        # Adding a model image to a jacobian image
+        new_image = ap.image.Jacobian_Image(
+            parameters=["a", "b", "c"],
+            target_identity="target1",
+            data=torch.ones((16, 32, 3)),
+            pixelscale=1.0,
+            zeropoint=1.0,
+            window=ap.image.Window(
+                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
+            ),
+            note="test image",
+        )
+        bad_image = image.Model_Image(
+            data=torch.ones((16, 32)),
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2) + 0.1,
+            note="test image",
+        )
+        with self.assertRaises(ap.errors.InvalidImage):
+            new_image += bad_image
+            
 
 
 if __name__ == "__main__":

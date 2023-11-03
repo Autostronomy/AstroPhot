@@ -25,8 +25,6 @@ class TestWindowList(unittest.TestCase):
         self.assertEqual(windowlist.center[1][0], 50., "Window should determine center")
         self.assertEqual(windowlist.center[0][1], 61., "Window should determine center")
 
-        self.assertRaises(AssertionError, ap.image.Window_List)
-
         x = str(windowlist)
         x = repr(windowlist)
 
@@ -223,5 +221,26 @@ class TestWindowList(unittest.TestCase):
             windowlist1, windowlist3, "Differnt windows should not evaluate equal"
         )
 
+    def test_image_list_errors(self):
+        window1 = ap.image.Window(origin=[0.0, 1.0], pixel_shape=[10.2, 11.8])
+        window2 = ap.image.Window(origin=[0.0, 1.0], pixel_shape=[10.2, 11.8])
+        windowlist1 = ap.image.Window_List([window1, window2])
+
+        # Bad ra dec reference point
+        window2 = ap.image.Window(origin=[0.0, 1.0], reference_radec = np.ones(2), pixel_shape=[10.2, 11.8])
+        with self.assertRaises(ap.errors.ConflicingWCS):
+            test_image = ap.image.Window_List((window1, window2))
+
+        # Bad tangent plane x y reference point
+        window2 = ap.image.Window(origin=[0.0, 1.0], reference_planexy = np.ones(2), pixel_shape=[10.2, 11.8])
+        with self.assertRaises(ap.errors.ConflicingWCS):
+            test_image = ap.image.Window_List((window1, window2))
+
+        # Bad WCS projection
+        window2 = ap.image.Window(origin=[0.0, 1.0], projection = "orthographic", pixel_shape=[10.2, 11.8])
+        with self.assertRaises(ap.errors.ConflicingWCS):
+            test_image = ap.image.Window_List((window1, window2))
+        
+        
 if __name__ == "__main__":
     unittest.main()

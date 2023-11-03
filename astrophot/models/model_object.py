@@ -22,6 +22,7 @@ from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .. import AP_config
+from ..errors import InvalidTarget
 
 __all__ = ["Component_Model"]
 
@@ -564,14 +565,12 @@ class Component_Model(AstroPhot_Model):
 
     @property
     def target(self):
-        try:
-            return self._target
-        except AttributeError:
-            return None
+        return self._target
 
     @target.setter
     def target(self, tar):
-        assert tar is None or isinstance(tar, Target_Image)
+        if not (tar is None or isinstance(tar, Target_Image)):
+            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
 
         # If a target image list is assigned, pick out the target appropriate for this model
         if isinstance(tar, Target_Image_List) and self._target_identity is not None:
@@ -580,9 +579,7 @@ class Component_Model(AstroPhot_Model):
                     usetar = subtar
                     break
             else:
-                raise KeyError(
-                    f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}"
-                )
+                raise InvalidTarget(f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}")
         else:
             usetar = tar
 
