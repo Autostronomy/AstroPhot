@@ -7,7 +7,7 @@ from torch.nn.functional import avg_pool2d
 from .image_object import Image, Image_List
 from astropy.io import fits
 from .. import AP_config
-from ..errors import SpecificationConflict
+from ..errors import SpecificationConflict, InvalidData
 
 __all__ = ["PSF_Image"]
 
@@ -50,11 +50,19 @@ class PSF_Image(Image):
         self.reference_planexy = (0,0)
         self.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
         self.reference_imagexy = (0,0)
+
+    def set_data(
+        self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
+    ):
+        super(data = data, require_shape = require_shape).set_data()
+        
         if torch.any(
             (torch.tensor(self.data.shape) % 2) != 1
         ):
             raise SpecificationConflict(f"psf must have odd shape, not {self.data.shape}")
-
+        if torch.any(self.data < 0):
+            raise InvalidData("PSF image should have positive values.")
+        
     @property
     def psf_border_int(self):
         """Calculates and returns the border size of the PSF image in integer
