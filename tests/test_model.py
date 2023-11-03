@@ -12,8 +12,6 @@ from utils import make_basic_sersic
 class TestModel(unittest.TestCase):
     def test_AstroPhot_Model(self):
 
-        self.assertRaises(AssertionError, ap.models.AstroPhot_Model, name = "my|model")
-
         model = ap.models.AstroPhot_Model(name = "test model")
 
         self.assertIsNone(model.target, "model should not have a target at this point")
@@ -43,9 +41,8 @@ class TestModel(unittest.TestCase):
 
         model["center"].value = calc
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(KeyError) as context:
             model.initialize()
-        self.assertTrue(str(context.exception) == "Unrecognized key for 'center': A")
 
     def test_basic_model_methods(self):
 
@@ -150,6 +147,44 @@ class TestModel(unittest.TestCase):
         sample = model()
         self.assertEqual(sample.data[10,13].item(), 0., "masked values should be zero")
         self.assertNotEqual(sample.data[11,12].item(), 0., "unmasked values should NOT be zero")
+
+    def test_model_errors(self):
+
+        # Invalid name
+        self.assertRaises(ap.errors.NameNotAllowed, ap.models.AstroPhot_Model, name = "my|model")
+
+        # Target that is not a target image
+        arr = torch.zeros((10, 15))
+        target = ap.image.Image(
+            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
+        )
+
+        with self.assertRaises(ap.errors.InvalidTarget):
+            model = ap.models.AstroPhot_Model(
+                name="test model",
+                model_type="sersic galaxy model",
+                target=target,
+            )
+
+        # model that doesnt exist
+        target = make_basic_sersic()
+        with self.assertRaises(ap.errors.UnrecognizedModel):
+            model = ap.models.AstroPhot_Model(
+                name="test model",
+                model_type="sersic gaaxy model",
+                target=target,
+            )
+
+        # invalid window
+        with self.assertRaises(ap.errors.InvalidWindow):
+            model = ap.models.AstroPhot_Model(
+                name="test model",
+                model_type="sersic galaxy model",
+                target=target,
+                window = (1,2,3),
+            )
+            
+        
 
 
 class TestAllModelBasics(unittest.TestCase):

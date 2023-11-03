@@ -60,7 +60,13 @@ class TestWPCS(unittest.TestCase):
 
                 self.assertTrue(torch.allclose(reproject_RA, test_grid_RA), "Round trip RA should map back to itself")
                 self.assertTrue(torch.allclose(reproject_DEC, test_grid_DEC), "Round trip DEC should map back to itself")
-            
+
+    def test_wpcs_errors(self):
+        with self.assertRaises(ap.errors.InvalidWCS):
+            wcs = ap.image.WPCS(
+                projection = "connor",
+            )
+        
 class TestPPCS(unittest.TestCase):
 
     def test_ppcs_creation(self):

@@ -5,6 +5,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .. import AP_config
 from ..utils.conversions.coordinates import Rotate_Cartesian
 from .wcs import WCS
+from ..errors import ConflicingWCS, SpecificationConflict
 
 __all__ = ["Window", "Window_List"]
 
@@ -106,7 +107,9 @@ class Window(WCS):
             self.pixel_shape = wcs.pixel_shape
             
         # Determine relative positioning of tangent plane and pixel grid. Also world coordinates and tangent plane
-        assert sum(C is not None for C in [wcs, origin_radec, center_radec, origin, center]) <= 1, "Please provide only one reference position for the window, otherwise the placement is ambiguous"
+        if not sum(C is not None for C in [wcs, origin_radec, center_radec, origin, center]) <= 1:
+            raise SpecificationConflict("Please provide only one reference position for the window, otherwise the placement is ambiguous")
+        
         # Image coordinates provided by WCS
         if wcs is not None:
             super().__init__(wcs=wcs, **kwargs)
@@ -517,9 +520,8 @@ class Window_List(Window):
         if state is not None:
             self.set_state(state)
         else:
-            assert (
-                window_list is not None
-            ), "window_list must be a list of Window objects"
+            if window_list is None:
+                window_list = []
             self.window_list = list(window_list)
 
         self.check_wcs()
@@ -530,16 +532,19 @@ class Window_List(Window):
         coordinates onto the same tangent plane.
 
         """
-        ref = torch.stack(tuple(W.reference_radec for W in filter(lambda w: w is not None, self.window_list)))
+        windows = tuple(W.reference_radec for W in filter(lambda w: w is not None, self.window_list))
+        if len(windows) == 0:
+            return
+        ref = torch.stack(windows)
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference (world) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Reference (world) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         ref = torch.stack(tuple(W.reference_planexy for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference (tangent plane) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Reference (tangent plane) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         if len(set(W.projection for W in filter(lambda w: w is not None, self.window_list))) > 1:
-            AP_config.ap_logger.error("Projection mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Projection mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
             
             
     @property

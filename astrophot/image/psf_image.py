@@ -7,6 +7,7 @@ from torch.nn.functional import avg_pool2d
 from .image_object import Image, Image_List
 from astropy.io import fits
 from .. import AP_config
+from ..errors import SpecificationConflict
 
 __all__ = ["PSF_Image"]
 
@@ -49,9 +50,10 @@ class PSF_Image(Image):
         self.reference_planexy = (0,0)
         self.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
         self.reference_imagexy = (0,0)
-        assert torch.all(
-            (torch.tensor(self.data.shape) % 2) == 1
-        ), "psf must have odd shape"
+        if torch.any(
+            (torch.tensor(self.data.shape) % 2) != 1
+        ):
+            raise SpecificationConflict(f"psf must have odd shape, not {self.data.shape}")
 
     @property
     def psf_border_int(self):
