@@ -22,6 +22,7 @@ from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .. import AP_config
+from ..errors import InvalidTarget
 
 __all__ = ["Component_Model"]
 

@@ -3,7 +3,7 @@ import numpy as np
 
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
-from ..errors import SpecificationConflict
+from ..errors import SpecificationConflict, InvalidWCS
 
 __all__ = ("WPCS", "PPCS", "WCS")
 
@@ -55,36 +55,28 @@ class WPCS:
         
         if world_DEC is None:
             return torch.stack(self.world_to_plane(*world_RA))
+
+        world_RA = torch.as_tensor(
+            world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        world_DEC = torch.as_tensor(
+            world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        
         if self.projection == "gnomonic":
             coords = self._world_to_plane_gnomonic(
-                torch.as_tensor(
-                    world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-                torch.as_tensor(
-                    world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
+                world_RA,
+                world_DEC,
             )
         elif self.projection == "orthographic":
             coords = self._world_to_plane_orthographic(
-                torch.as_tensor(
-                    world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-                torch.as_tensor(
-                    world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
+                world_RA,
+                world_DEC,
             )
         elif self.projection == "steriographic":
             coords = self._world_to_plane_steriographic(
-                torch.as_tensor(
-                    world_RA, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-                torch.as_tensor(
-                    world_DEC, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-            )
-        else:
-            raise ValueError(
-                f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
+                world_RA,
+                world_DEC,
             )
         return coords[0] + self.reference_planexy[0], coords[1] + self.reference_planexy[1]
     
@@ -101,38 +93,29 @@ class WPCS:
         
         if plane_y is None:
             return torch.stack(self.plane_to_world(*plane_x))
-        plane_x = plane_x - self.reference_planexy[0]
-        plane_y = plane_y - self.reference_planexy[1]
+        plane_x = torch.as_tensor(
+            plane_x - self.reference_planexy[0],
+            dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        plane_y = torch.as_tensor(
+            plane_y - self.reference_planexy[1],
+            dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
         if self.projection == "gnomonic":
             return self._plane_to_world_gnomonic(
-                torch.as_tensor(
-                    plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-                torch.as_tensor(
-                    plane_y, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
+                plane_x,
+                plane_y,
             )
         if self.projection == "orthographic":
             return self._plane_to_world_orthographic(
-                torch.as_tensor(
-                    plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-                torch.as_tensor(
-                    plane_y, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
+                plane_x,
+                plane_y,
             )
         if self.projection == "steriographic":
             return self._plane_to_world_steriographic(
-                torch.as_tensor(
-                    plane_x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
-                torch.as_tensor(
-                    plane_y, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                ),
+                plane_x,
+                plane_y,
             )
-        raise InvalidWCS(
-            f"Unrecognized projection: {self.projection}. Should be one of: gnomonic, orthographic, steriographic"
-        )
 
     @property
     def projection(self):

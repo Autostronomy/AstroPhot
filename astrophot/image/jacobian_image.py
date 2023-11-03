@@ -6,6 +6,7 @@ from torch.nn.functional import pad
 
 from .image_object import Image, Image_List
 from .. import AP_config
+from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["Jacobian_Image", "Jacobian_Image_List"]
 

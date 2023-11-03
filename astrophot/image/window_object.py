@@ -5,6 +5,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .. import AP_config
 from ..utils.conversions.coordinates import Rotate_Cartesian
 from .wcs import WCS
+from ..errors import ConflicingWCS, SpecificationConflict
 
 __all__ = ["Window", "Window_List"]
 
@@ -536,14 +537,14 @@ class Window_List(Window):
             return
         ref = torch.stack(windows)
         if not torch.allclose(ref, ref[0]):
-            raise InvalidWindow("Reference (world) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Reference (world) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         ref = torch.stack(tuple(W.reference_planexy for W in filter(lambda w: w is not None, self.window_list)))
         if not torch.allclose(ref, ref[0]):
-            raise InvalidWindow("Reference (tangent plane) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Reference (tangent plane) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         if len(set(W.projection for W in filter(lambda w: w is not None, self.window_list))) > 1:
-            raise InvalidWindow("Projection mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Projection mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
             
             
     @property

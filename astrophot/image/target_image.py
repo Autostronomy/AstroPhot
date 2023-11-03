@@ -10,6 +10,7 @@ from .model_image import Model_Image, Model_Image_List
 from .psf_image import PSF_Image
 from astropy.io import fits
 from .. import AP_config
+from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["Target_Image", "Target_Image_List"]
 

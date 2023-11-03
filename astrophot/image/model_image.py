@@ -5,7 +5,7 @@ from .. import AP_config
 from .image_object import Image, Image_List
 from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
-from ..errors import InvalidData, SpecificationConflict
+from ..errors import InvalidData, SpecificationConflict, InvalidImage
 
 __all__ = ["Model_Image", "Model_Image_List"]
 

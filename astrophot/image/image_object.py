@@ -10,7 +10,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .window_object import Window, Window_List
 from .image_header import Image_Header
 from .. import AP_config
-from ..errors import SpecificationConflict
+from ..errors import SpecificationConflict, ConflicingWCS
 
 __all__ = ["Image", "Image_List"]
 
@@ -323,7 +323,7 @@ class Image(object):
             scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
 
         """
-        if not isinstance(scale, int) and scale.dtype is not torch.int32:
+        if not isinstance(scale, int) and not (isinstance(scale, torch.Tensor) and scale.dtype is torch.int32):
             raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
         if scale == 1:
             return self
@@ -438,13 +438,13 @@ class Image_List(Image):
         """
         ref = torch.stack(tuple(I.window.reference_radec for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference coordinate (RA DEC) mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Reference (world) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
         ref = torch.stack(tuple(I.window.reference_planexy for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            AP_config.ap_logger.error("Reference coordinate (tangent plane) mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Reference (tangent plane) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
         if len(set(I.window.projection for I in self.image_list)) > 1:
-            AP_config.ap_logger.error("Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS("Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
 
     @property
     def window(self):

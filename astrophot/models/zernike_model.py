@@ -9,6 +9,7 @@ from ._shared_methods import select_target
 from .star_model_object import Star_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
+from ..errors import SpecificationConflict
 
 __all__ = ("Zernike_Star",)
 

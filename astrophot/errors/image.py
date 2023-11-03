@@ -1,6 +1,6 @@
 from .base import AstroPhotError
 
-__all__ = ("InvalidWindow", "InvalidData")
+__all__ = ("InvalidWindow", "ConflicingWCS", "InvalidData", "InvalidImage", "InvalidWCS")
 
 class InvalidWindow(AstroPhotError):
     """
@@ -8,6 +8,12 @@ class InvalidWindow(AstroPhotError):
     """
     ...
 
+class ConflicingWCS(InvalidWindow):
+    """
+    Raised when windows are compared and have WCS prescriptions which do not agree
+    """
+    ...
+    
 class InvalidData(AstroPhotError):
     """
     Raised when an image object can't determine the data it is holding.
@@ -25,3 +31,4 @@ class InvalidWCS(AstroPhotError):
     Raised when the WCS is not appropriate as given.
     """
     ...
+

@@ -66,7 +66,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node1["node1"], node1, "node should get itself when getter called with its name")
 
         # Check that error is raised when requesting non existent node
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             badnode = node1[1.2]
             
     def test_state(self):
