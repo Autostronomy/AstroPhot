@@ -69,7 +69,7 @@ def construct_psf(
 ):
     """Given a list of initial guesses for star center locations, finds
     the interpolated flux peak, re-centers the stars such that they
-    are exactly on a pixel center, the median stacks the normalized
+    are exactly on a pixel center, then median stacks the normalized
     stars to determine an average PSF.
 
     Note that all coordinates in this function are pixel
