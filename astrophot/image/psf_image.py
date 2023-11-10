@@ -54,7 +54,7 @@ class PSF_Image(Image):
     def set_data(
         self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
     ):
-        super(data = data, require_shape = require_shape).set_data()
+        super().set_data(data = data, require_shape = require_shape)
         
         if torch.any(
             (torch.tensor(self.data.shape) % 2) != 1
