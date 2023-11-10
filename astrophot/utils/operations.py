@@ -242,4 +242,3 @@ def grid_integrate(
     integral[select] = subgridres.sum(axis=(-1,))
 
     return integral
-    

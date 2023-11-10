@@ -11,11 +11,10 @@ import matplotlib.pyplot as plt
 
 from .base import BaseOptimizer
 from .. import AP_config
+from ..errors import OptimizeStop
 
 __all__ = ("LM",)
 
-class OptimizeStopFail(Exception):
-    pass
 
 class LM(BaseOptimizer):
     """The LM class is an implementation of the Levenberg-Marquardt
@@ -328,7 +327,7 @@ class LM(BaseOptimizer):
                 if self.verbose > 1:
                     AP_config.ap_logger.warn("no low curvature step found, taking high curvature step")
                 return scarry_best
-            raise OptimizeStopFail("Could not find step to improve chi^2")
+            raise OptimizeStop("Could not find step to improve chi^2")
 
         return best
 
@@ -395,7 +394,7 @@ class LM(BaseOptimizer):
                 AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]}, L: {self.L}")
             try:
                 res = self.step(chi2 = self.loss_history[-1])
-            except OptimizeStopFail:
+            except OptimizeStop:
                 if self.verbose > 0:
                     AP_config.ap_logger.warning("Could not find step to improve Chi^2, stopping")
                 self.message = self.message + "fail. Could not find step to improve Chi^2"

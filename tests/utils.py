@@ -40,10 +40,13 @@ def make_basic_sersic(
 ):
 
     np.random.seed(rand)
+    mask = np.zeros((N, M), dtype = bool)
+    mask[0][0] = True
     target = ap.image.Target_Image(
         data=np.zeros((N, M)),
         pixelscale=pixelscale,
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
+        mask = mask,
     )
 
     MODEL = ap.models.Sersic_Galaxy(
