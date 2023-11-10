@@ -696,9 +696,9 @@ class WCS(WPCS, PPCS):
         
         if wcs is not None:
             if wcs.wcs.ctype[0] != "RA---TAN":
-                AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatable with AstroPhot.")
+                AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot.")
             if wcs.wcs.ctype[1] != "DEC--TAN":
-                AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatable with AstroPhot.")
+                AP_config.ap_logger.warning("Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot.")
                 
         if wcs is not None:
             kwargs["reference_radec"] = kwargs.get("reference_radec", wcs.wcs.crval)
