@@ -1,4 +1,5 @@
 from typing import Optional, Union, Dict, Tuple, Any
+import io
 from copy import deepcopy
 
 import numpy as np
@@ -12,7 +13,7 @@ from ..utils.interpolate import (
     curvature_kernel,
     interp2d,
 )
-from ..image import Model_Image, Target_Image, Window
+from ..image import Model_Image, Target_Image, Window, Jacobian_Image
 from ..utils.operations import (
     fft_convolve_torch,
     fft_convolve_multi_torch,
@@ -234,7 +235,7 @@ def jacobian(
     **kwargs,
 ):
     """Compute the Jacobian matrix for this model.
-    
+
     The Jacobian matrix represents the partial derivatives of the
     model's output with respect to its input parameters. It is useful
     in optimization and model fitting processes. This method
@@ -281,6 +282,12 @@ def jacobian(
             window=window,
             **kwargs,
         )
+    if torch.max(window.pixel_shape) > self.image_chunksize:
+        return self._chunk_image_jacobian(
+            as_representation=as_representation,
+            window=window,
+            **kwargs,
+        )
 
     # Compute the jacobian
     full_jac = jacobian(
@@ -302,6 +309,50 @@ def jacobian(
         data=full_jac,
     )
     return jac_img
+
+@torch.no_grad()
+def _chunk_image_jacobian(
+    self,
+    as_representation: bool = False,
+    parameters_identity: Optional[tuple] = None,
+    window: Optional[Window] = None,
+    **kwargs,
+):
+    """Evaluates the Jacobian in smaller chunks to reduce memory usage.
+    
+    For models acting on large windows it can be prohibitive to build
+    the full Jacobian in a single pass. Instead this function breaks
+    the image into chunks as determined by `self.image_chunksize`
+    evaluates the Jacobian only for the sub-images, it then builds up
+    the full Jacobian as a separate tensor.
+
+    This is for internal use and should be called by the
+    `self.jacobian` function when appropriate.
+
+    """
+        
+    pids = self.parameters.vector_identities()
+    jac_img = self.target[window].jacobian_image(
+        parameters=pids,
+    )
+    
+    pixel_shape = window.pixel_shape.detach().cpu().numpy()
+    Ncells = np.int64(np.round(np.ceil(pixel_shape / self.image_chunksize)))
+    cellsize = np.int64(np.round(window.pixel_shape / Ncells))
+        
+    for nx in range(Ncells[0]):
+        for ny in range(Ncells[1]):
+            subwindow = window.copy()
+            subwindow.crop_to_pixel(((cellsize[0]*nx, min(pixel_shape[0],cellsize[0]*(nx+1))), (cellsize[1]*ny, min(pixel_shape[1], cellsize[1]*(ny+1)))))
+            jac_img += self.jacobian(
+                parameters=None,
+                as_representation=as_representation,
+                window=subwindow,
+                **kwargs,
+            )
+            
+    return jac_img
+
 
 @torch.no_grad()
 def _chunk_jacobian(

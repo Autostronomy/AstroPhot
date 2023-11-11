@@ -6,6 +6,7 @@ from torch.nn.functional import pad
 
 from .image_object import Image, Image_List
 from .. import AP_config
+from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["Jacobian_Image", "Jacobian_Image_List"]
 
@@ -31,9 +32,8 @@ class Jacobian_Image(Image):
 
         self.target_identity = target_identity
         self.parameters = list(parameters)
-        assert len(self.parameters) == len(
-            set(self.parameters)
-        ), "Every parameter should be unique upon jacobian creation"
+        if len(self.parameters) != len(set(self.parameters)):
+            raise SpecificationConflict("Every parameter should be unique upon jacobian creation")
 
     def flatten(self, attribute: str = "data"):
         return getattr(self, attribute).reshape((-1, len(self.parameters)))
@@ -53,9 +53,8 @@ class Jacobian_Image(Image):
         raise NotImplementedError("Jacobian images cannot subtract")
 
     def __iadd__(self, other):
-        assert isinstance(
-            other, Jacobian_Image
-        ), "Jacobian images can only add with each other"
+        if not isinstance(other, Jacobian_Image):
+            raise InvalidImage("Jacobian images can only add with each other, not: type(other)")
 
         # exclude null jacobian images
         if other.data is None:
@@ -115,9 +114,8 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
     def flatten(self, attribute="data"):
         if len(self.image_list) > 1:
             for image in self.image_list[1:]:
-                assert (
-                    self.image_list[0].parameters == image.parameters
-                ), "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used"
+                if self.image_list[0].parameters != image.parameters:
+                    raise SpecificationConflict("Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used.")
         return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
 
     def __add__(self, other):

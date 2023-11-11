@@ -15,6 +15,7 @@ from ..utils.conversions.optimization import (
 )
 from .. import AP_config
 from .base import Node
+from ..errors import InvalidParameter
 
 __all__ = ["Parameter_Node"]
     
@@ -427,9 +428,11 @@ class Parameter_Node(Node):
             self._value = self.limits[0] + ((self._value - self.limits[0]) % (self.limits[1] - self.limits[0]))
             return
         if self.limits[0] is not None:
-            assert torch.all(self._value > self.limits[0]), f"{self.name} has lower limit {self.limits[0].detach().cpu().tolist()}"
+            if not torch.all(self._value > self.limits[0]):
+                raise InvalidParameter(f"{self.name} has lower limit {self.limits[0].detach().cpu().tolist()}")
         if self.limits[1] is not None:
-            assert torch.all(self._value < self.limits[1]), f"{self.name} has upper limit {self.limits[1].detach().cpu().tolist()}"
+            if not torch.all(self._value < self.limits[1]):
+                raise InvalidParameter(f"{self.name} has upper limit {self.limits[1].detach().cpu().tolist()}")
             
     def _soft_set_val_self(self, val):
         """The same as ``_set_val_self`` except that it doesn't raise an

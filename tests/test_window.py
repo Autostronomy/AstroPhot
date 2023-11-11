@@ -369,6 +369,13 @@ class TestWindow(unittest.TestCase):
             window1, window3, "Differnt windows should not evaluate equal"
         )
 
+    def test_window_errors(self):
+
+        # Initialize with conflicting information
+        with self.assertRaises(ap.errors.SpecificationConflict):
+            window = ap.image.Window(origin=[0.0, 1.0], origin_radec=[5.,6.],  pixel_shape=[10., 11.])
+
+        
 
 if __name__ == "__main__":
     unittest.main()

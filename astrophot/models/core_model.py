@@ -17,15 +17,15 @@ from ..image import Model_Image, Window, Target_Image, Target_Image_List
 from ..param import Parameter_Node
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
+from ..errors import NameNotAllowed, InvalidTarget, UnrecognizedModel, InvalidWindow
 
-__all__ = ["AstroPhot_Model"]
+__all__ = ("AstroPhot_Model",)
 
 
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)]
     )
-
 
 ######################################################################
 class AstroPhot_Model(object):
@@ -107,7 +107,7 @@ class AstroPhot_Model(object):
                 if M.model_type == state["model_type"]:
                     return super(AstroPhot_Model, cls).__new__(M)
             else:
-                raise ModuleNotFoundError(
+                raise UnrecognizedModel(
                     f"Unknown AstroPhot model type: {state['model_type']}"
                 )
         elif model_type is not None:
@@ -116,11 +116,15 @@ class AstroPhot_Model(object):
                 if M.model_type == model_type:
                     return super(AstroPhot_Model, cls).__new__(M)
             else:
-                raise ModuleNotFoundError(f"Unknown AstroPhot model type: {model_type}")
+                raise UnrecognizedModel(f"Unknown AstroPhot model type: {model_type}")
 
         return super().__new__(cls)
 
     def __init__(self, *, name=None, target=None, window=None, locked=False, **kwargs):
+        if not hasattr(self, "_window"):
+            self._window = None
+        if not hasattr(self, "_target"):
+            self._target = None
         self.name = name
         AP_config.ap_logger.debug("Creating model named: {self.name}")
         self.parameters = Parameter_Node(self.name)
@@ -160,9 +164,8 @@ class AstroPhot_Model(object):
                 else:
                     name = proposed_name
                     break
-        assert (
-            ":" not in name and "|" not in name
-        ), "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
+        if ":" in name or "|" in name:
+            raise NameNotAllowed("characters '|' and ':' are reserved for internal model operations please do not include these in a model name")
         self._name = name
         AstroPhot_Model.model_names.append(name)
 
@@ -237,6 +240,11 @@ class AstroPhot_Model(object):
     ):
         raise NotImplementedError("please use a subclass of AstroPhot_Model")
 
+    @default_internal
+    def total_flux(self, parameters=None, window=None, image=None):
+        F = self(parameters = parameters, window=None, image=None)
+        return torch.sum(F.data)
+        
     @property
     def window(self):
         """The window defines a region on the sky in which this model will be
@@ -251,45 +259,39 @@ class AstroPhot_Model(object):
         to another target then the fitting window will also change.
 
         """
-        try:
-            if self._window is None:
-                return self.target.window.copy()
-            return self._window
-        except AttributeError:
+        if self._window is None:
             if self.target is None:
                 raise ValueError(
                     "This model has no target or window, these must be provided by the user"
                 )
             return self.target.window.copy()
+        return self._window
 
     def set_window(self, window):
-        # If no window given, dont go any further
         if window is None:
-            return
-
-        # If the window is given in proper format, simply use as-is
-        if isinstance(window, Window):
+            # If no window given, set to none
+            self._window = None
+        elif isinstance(window, Window):
+            # If window object given, use that
             self._window = window
         elif len(window) == 2:
+            # If window given in pixels, use relative to target
             self._window = self.target.window.copy().crop_to_pixel(window)
         else:
-            raise ValueError(f"Unrecognized window format: {str(window)}")
+            raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
     @window.setter
     def window(self, window):
-        self._window = window
         self.set_window(window)
 
     @property
     def target(self):
-        try:
-            return self._target
-        except AttributeError:
-            return None
+        return self._target
 
     @target.setter
     def target(self, tar):
-        assert tar is None or isinstance(tar, Target_Image)
+        if not (tar is None or isinstance(tar, Target_Image)):
+            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
         self._target = tar
 
     @property
@@ -307,7 +309,6 @@ class AstroPhot_Model(object):
 
     @locked.setter
     def locked(self, val):
-        assert isinstance(val, bool)
         self._locked = val
 
     @property

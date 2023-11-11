@@ -11,11 +11,10 @@ import matplotlib.pyplot as plt
 
 from .base import BaseOptimizer
 from .. import AP_config
+from ..errors import OptimizeStop
 
 __all__ = ("LM",)
 
-class OptimizeStopFail(Exception):
-    pass
 
 class LM(BaseOptimizer):
     """The LM class is an implementation of the Levenberg-Marquardt
@@ -269,7 +268,7 @@ class LM(BaseOptimizer):
             # Compute and report chi^2
             chi2 = self._chi2(Y1.detach()).item()
             if self.verbose > 1:
-                AP_config.ap_logger.info(f"sub step L: {self.L}, Chi^2: {chi2}")
+                AP_config.ap_logger.info(f"sub step L: {self.L}, Chi^2/DoF: {chi2}")
 
             # Skip if chi^2 is nan
             if not np.isfinite(chi2):
@@ -328,7 +327,7 @@ class LM(BaseOptimizer):
                 if self.verbose > 1:
                     AP_config.ap_logger.warn("no low curvature step found, taking high curvature step")
                 return scarry_best
-            raise OptimizeStopFail("Could not find step to improve chi^2")
+            raise OptimizeStop("Could not find step to improve chi^2")
 
         return best
 
@@ -392,10 +391,10 @@ class LM(BaseOptimizer):
         
         for iteration in range(self.max_iter):
             if self.verbose > 0:
-                AP_config.ap_logger.info(f"Chi^2: {self.loss_history[-1]}, L: {self.L}")
+                AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]}, L: {self.L}")
             try:
                 res = self.step(chi2 = self.loss_history[-1])
-            except OptimizeStopFail:
+            except OptimizeStop:
                 if self.verbose > 0:
                     AP_config.ap_logger.warning("Could not find step to improve Chi^2, stopping")
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
@@ -422,7 +421,7 @@ class LM(BaseOptimizer):
             self.message = self.message + "fail. Maximum iterations"
                 
         if self.verbose > 0:
-            AP_config.ap_logger.info(f"Final Chi^2: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}")
+            AP_config.ap_logger.info(f"Final Chi^2/DoF: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}")
         self.model.parameters.vector_set_representation(self.res())
 
         return self

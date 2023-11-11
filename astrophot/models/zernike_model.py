@@ -9,6 +9,7 @@ from ._shared_methods import select_target
 from .psf_model_object import PSF_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
+from ..errors import SpecificationConflict
 
 __all__ = ("Zernike_PSF",)
 
@@ -43,9 +44,10 @@ class Zernike_PSF(PSF_Model):
 
         # Check if user has already set the coefficients
         if parameters["Anm"].value is not None:
-            assert len(self.nm_list) == len(
+            if len(self.nm_list) != len(
                 parameters["Anm"].value
-            ), "nm_list must match coefficients (Anm)"
+            ):
+                raise SpecificationConflict(f"nm_list length ({len(self.nm_list)}) must match coefficients ({len(parameters['Anm'].value)})")
             return
 
         # Set the default coefficients to zeros

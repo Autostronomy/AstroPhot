@@ -22,6 +22,7 @@ from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from .. import AP_config
+from ..errors import InvalidTarget
 
 __all__ = ["Component_Model"]
 
@@ -90,6 +91,7 @@ class Component_Model(AstroPhot_Model):
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
+    image_chunksize = 1000
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3
@@ -391,17 +393,15 @@ class Component_Model(AstroPhot_Model):
         image += working_image
 
         return image
-
+    
     @property
     def target(self):
-        try:
-            return self._target
-        except AttributeError:
-            return None
+        return self._target
 
     @target.setter
     def target(self, tar):
-        assert tar is None or isinstance(tar, Target_Image)
+        if not (tar is None or isinstance(tar, Target_Image)):
+            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
 
         # If a target image list is assigned, pick out the target appropriate for this model
         if isinstance(tar, Target_Image_List) and self._target_identity is not None:
@@ -410,9 +410,7 @@ class Component_Model(AstroPhot_Model):
                     usetar = subtar
                     break
             else:
-                raise KeyError(
-                    f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}"
-                )
+                raise InvalidTarget(f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}")
         else:
             usetar = tar
 
@@ -438,5 +436,6 @@ class Component_Model(AstroPhot_Model):
     from ._model_methods import build_parameters
     from ._model_methods import jacobian
     from ._model_methods import _chunk_jacobian
+    from ._model_methods import _chunk_image_jacobian
     from ._model_methods import get_state
     from ._model_methods import load
