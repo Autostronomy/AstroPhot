@@ -5,7 +5,6 @@ from time import time
 from copy import copy
 import random
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from scipy.optimize import minimize
@@ -84,7 +83,7 @@ class Iter(BaseOptimizer):
         if self.verbose > 1:
             AP_config.ap_logger.info(res.message)
         model.target = initial_target
-
+        
     def step(self) -> None:
         """
         Perform a single iteration of optimization.

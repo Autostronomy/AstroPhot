@@ -9,6 +9,7 @@ from ._shared_methods import select_target
 from .star_model_object import Star_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
+from ..errors import SpecificationConflict
 
 __all__ = ("Zernike_Star",)
 
@@ -44,9 +45,10 @@ class Zernike_Star(Star_Model):
 
         # Check if user has already set the coefficients
         if parameters["Anm"].value is not None:
-            assert len(self.nm_list) == len(
+            if len(self.nm_list) != len(
                 parameters["Anm"].value
-            ), "nm_list must match coefficients (Anm)"
+            ):
+                raise SpecificationConflict(f"nm_list length ({len(self.nm_list)}) must match coefficients ({len(parameters['Anm'].value)})")
             return
 
         # Set the default coefficients to zeros

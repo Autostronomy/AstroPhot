@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from abc import ABC, abstractmethod
+from ..errors import InvalidParameter
 
 __all__ = ["Node"]
 
@@ -46,7 +47,7 @@ class Node(ABC):
         for node in nodes:
             for subnode_id in node.flat(include_locked=True, include_links=True).keys():
                 if self.identity == subnode_id:
-                    raise RuntimeError("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
+                    raise InvalidParameter("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
             self.nodes[node.name] = node
             
     def unlink(self, *nodes):
@@ -101,7 +102,7 @@ class Node(ABC):
             for node in self.nodes.values():
                 if key == node.identity:
                     return node
-        raise ValueError(f"Unrecognized key for '{self.name}': {key}")
+        raise KeyError(f"Unrecognized key for '{self.name}': {key}")
                 
     def __contains__(self, key):
         """Check if a node has a link directly to another node. A check like
