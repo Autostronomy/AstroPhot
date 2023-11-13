@@ -2,7 +2,6 @@ from functools import partial
 from typing import Optional, Union
 import io
 
-from torch.autograd.functional import jacobian
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -421,8 +420,6 @@ class Component_Model(AstroPhot_Model):
             self._target_identity = self._target.identity
         except AttributeError:
             pass
-
-
 
     # Extra background methods for the basemodel
     ######################################################################

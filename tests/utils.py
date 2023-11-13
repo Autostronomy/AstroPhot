@@ -92,13 +92,15 @@ def make_basic_gaussian(
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
     )
 
-    MODEL = ap.models.Gaussian_PSF(
-        name="basic gaussian psf source",
+    MODEL = ap.models.Gaussian_Galaxy(
+        name="basic gaussian source",
         target=target,
         parameters={
             "center": [x, y],
             "sigma": sigma,
             "flux": flux,
+            "PA": {"value": 0., "locked": True},
+            "q": {"value": 0.99, "locked": True},
         },
     )
 

@@ -22,7 +22,6 @@ from .. import AP_config
 
 __all__ = ["Group_Model"]
 
-
 class Group_Model(AstroPhot_Model):
     """Model object which represents a list of other models. For each
     general AstroPhot model method, this calls all the appropriate
@@ -279,7 +278,8 @@ class Group_Model(AstroPhot_Model):
         and its parameters.
 
         """
-        state = super().get_state()
+        print("class: ", self.__class__)
+        state = super().get_state(save_params = save_params)
         if save_params:
             state["parameters"] = self.parameters.get_state()
         if "models" not in state:

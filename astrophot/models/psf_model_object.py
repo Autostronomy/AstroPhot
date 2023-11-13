@@ -1,7 +1,17 @@
+from typing import Optional
+
 import torch
 
 from .core_model import AstroPhot_Model
-from ..utils.decorators import default_internal
+from ..image import (
+    Model_Image,
+    Window,
+    PSF_Image,
+    Image_List,
+)
+from ._shared_methods import select_target
+from ..utils.decorators import default_internal, ignore_numpy_warnings
+from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 
 
 __all__ = ["PSF_Model"]
@@ -89,8 +99,7 @@ class PSF_Model(AstroPhot_Model):
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.value = kwargs["parameters"]
-        assert torch.all(self.window.reference_imageij == torch.zeros_like(self.window.reference_imageij)), "PSF models must always be centered at (0,0)"
-        assert torch.all(self.window.reference_imagexy == torch.zeros_like(self.window.reference_imagexy)), "PSF models must always be centered at (0,0)"
+        assert torch.allclose(self.window.center, torch.zeros_like(self.window.center)), "PSF models must always be centered at (0,0)"
 
     # Initialization functions
     ######################################################################
@@ -224,7 +233,7 @@ class PSF_Model(AstroPhot_Model):
         assert tar is None or isinstance(tar, PSF_Image)
 
         # If a target image list is assigned, pick out the target appropriate for this model
-        if isinstance(tar, PSF_Image_List) and self._target_identity is not None:
+        if isinstance(tar, Image_List) and self._target_identity is not None:
             for subtar in tar:
                 if subtar.identity == self._target_identity:
                     usetar = subtar

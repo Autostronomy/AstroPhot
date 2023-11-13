@@ -50,7 +50,7 @@ class Eigen_PSF(PSF_Model):
         super().__init__(*args, **kwargs)
         if "eigen_basis" not in kwargs:
             AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or use Pixelated_PSF model.")
-            self.eigen_basis = torch.clone(self.psf.data).unsqueeze(0)
+            self.eigen_basis = torch.clone(self.target.data).unsqueeze(0)
             self.parameters["weights"].locked = True
         else:
             self.eigen_basis = torch.as_tensor(
@@ -61,7 +61,7 @@ class Eigen_PSF(PSF_Model):
         if kwargs.get("normalize_eigen_basis", True):
             self.eigen_basis = self.eigen_basis / torch.sum(self.eigen_basis, axis = 0)
         self.eigen_pixelscale = torch.as_tensor(
-            kwargs.get("eigen_pixelscale", 1. if self.psf is None else self.psf.pixelscale),
+            kwargs.get("eigen_pixelscale", 1. if self.target is None else self.target.pixelscale),
             dtype = AP_config.ap_dtype,
             device = AP_config.ap_device
         )

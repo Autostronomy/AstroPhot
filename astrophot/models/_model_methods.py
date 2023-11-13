@@ -4,6 +4,7 @@ from copy import deepcopy
 
 import numpy as np
 import torch
+from torch.autograd.functional import jacobian as torchjac
 
 from ..param import Parameter_Node
 from ..utils.decorators import ignore_numpy_warnings, default_internal
@@ -13,7 +14,7 @@ from ..utils.interpolate import (
     curvature_kernel,
     interp2d,
 )
-from ..image import Model_Image, Target_Image, Window, Jacobian_Image
+from ..image import Model_Image, Target_Image, Window, Jacobian_Image, Window_List
 from ..utils.operations import (
     fft_convolve_torch,
     fft_convolve_multi_torch,
@@ -260,6 +261,7 @@ def jacobian(
 
     """
     if window is None:
+        print(self)
         window = self.window
     else:
         if isinstance(window, Window_List):
@@ -290,7 +292,7 @@ def jacobian(
         )
 
     # Compute the jacobian
-    full_jac = jacobian(
+    full_jac = torchjac(
         lambda P: self(
             image=None,
             parameters=P,

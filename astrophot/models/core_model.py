@@ -328,7 +328,7 @@ class AstroPhot_Model(object):
         """Detailed string representation for the model."""
         return yaml.dump(self.get_state(), indent=2)
 
-    def get_state(self):
+    def get_state(self, *args, **kwargs):
         """Returns a dictionary of the state of the model with its name,
         type, parameters, and other important infomration. This
         dictionary is what gets saved when a model saves to disk.
