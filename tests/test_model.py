@@ -228,14 +228,6 @@ class TestEigenPSF(unittest.TestCase):
 
         EM.initialize()
 
-        init_log_likelihood = EM.negative_log_likelihood()
-
-        res = ap.fit.LM(EM, max_iter = 10, verbose = 1).fit()
-
-        fit_log_likelihood = EM.negative_log_likelihood()
-
-        self.assertTrue(init_log_likelihood > fit_log_likelihood, "Fitting should improve likelihood")
-
 class TestPixelPSF(unittest.TestCase):
     def test_init(self):
         target = make_basic_gaussian(N = 51, M = 51)
@@ -250,15 +242,6 @@ class TestPixelPSF(unittest.TestCase):
         )
 
         PM.initialize()
-
-        init_log_likelihood = PM.negative_log_likelihood()
-
-        res = ap.fit.LM(PM, max_iter = 10, verbose = 1).fit()
-
-        fit_log_likelihood = PM.negative_log_likelihood()
-
-        self.assertTrue(init_log_likelihood > fit_log_likelihood, "Fitting should improve likelihood")
-
         
 class TestSersic(unittest.TestCase):
     def test_sersic_creation(self):

@@ -278,7 +278,6 @@ class Group_Model(AstroPhot_Model):
         and its parameters.
 
         """
-        print("class: ", self.__class__)
         state = super().get_state(save_params = save_params)
         if save_params:
             state["parameters"] = self.parameters.get_state()

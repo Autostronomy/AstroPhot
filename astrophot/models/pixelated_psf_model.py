@@ -12,44 +12,40 @@ __all__ = ["Pixelated_PSF"]
 
 
 class Pixelated_PSF(PSF_Model):
-    """point source model which uses an image of the PSF as it's representation
-    for point sources. Using bilinear interpolation it will shift the PSF
-    within a pixel to accurately represent the center location of a
-    point source. There is no funcitonal form for this object type as
-    any image can be supplied. Note that as an argument to the model
-    at construction one can provide "psf" as an AstroPhot PSF_Image
-    object. Since only bilinear interpolation is performed, it is
+    """point source model which uses an image of the PSF as it's
+    representation for point sources. Using bilinear interpolation it
+    will shift the PSF within a pixel to accurately represent the
+    center location of a point source. There is no funcitonal form for
+    this object type as any image can be supplied. The image pixels
+    will be optimized as individual parameters. This can very quickly
+    result in a large number of parameters and a near impossible
+    fitting task, ideally this should be restricted to a very small
+    area likely at the center of the PSF.
+
+    To initialize the PSF image will by default be set to the target
+    PSF_Image values, thus one can use an empirical PSF as a starting
+    point. Since only bilinear interpolation is performed, it is
     recommended to provide the PSF at a higher resolution than the
     image if it is near the nyquist sampling limit. Bilinear
     interpolation is very fast and accurate for smooth models, so this
     way it is possible to do the expensive interpolation before
     optimization and save time. Note that if you do this you must
     provide the PSF as a PSF_Image object with the correct pixelscale
-    (essentially just divide the pixelscale by the upsampling factor you
-    used).
+    (essentially just divide the pixelscale by the upsampling factor
+    you used).
 
     Parameters:
-        flux: the total flux of the point source model, represented as the log of the total flux.
+        pixels: the total flux within each pixel, represented as the log of the flux.
 
     """
 
     model_type = f"pixelated {PSF_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux/arcsec^2)"},
+        "pixels": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = PSF_Model._parameter_order + ("flux",)
+    _parameter_order = PSF_Model._parameter_order + ("pixels",)
     useable = True
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # fixme, model already has PSF interface, those can just be merged
-        if "psf" in kwargs:
-            self.psf_model = kwargs["psf"]
-        else:
-            self.psf_model = PSF_Image(
-                data=torch.clone(self.psf.data),
-                pixelscale=self.psf.pixelscale,
-            )
+    model_integrated = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -58,11 +54,11 @@ class Pixelated_PSF(PSF_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
         target_area = target[self.window]
-        with Param_Unlock(parameters["flux"]), Param_SoftLimits(parameters["flux"]):
-            if parameters["flux"].value is None:
-                parameters["flux"].value = torch.log10(torch.abs(torch.sum(target_area.data)) / target.pixel_area)
-            if parameters["flux"].uncertainty is None:
-                parameters["flux"].uncertainty = torch.abs(parameters["flux"].value) * self.default_uncertainty
+        with Param_Unlock(parameters["pixels"]), Param_SoftLimits(parameters["pixels"]):
+            if parameters["pixels"].value is None:
+                parameters["pixels"].value = torch.log10(torch.abs(target_area.data) / target.pixel_area)
+            if parameters["pixels"].uncertainty is None:
+                parameters["pixels"].uncertainty = torch.abs(parameters["pixels"].value) * self.default_uncertainty
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
@@ -70,18 +66,18 @@ class Pixelated_PSF(PSF_Model):
             X, Y = image.get_coordinate_meshgrid()
 
         # Convert coordinates into pixel locations in the psf image
-        pX, pY = self.psf_model.plane_to_pixel(X, Y)
+        pX, pY = self.target.plane_to_pixel(X, Y)
 
         # Select only the pixels where the PSF image is defined
         select = torch.logical_and(
-            torch.logical_and(pX > -0.5, pX < self.psf_model.data.shape[1] - 0.5),
-            torch.logical_and(pY > -0.5, pY < self.psf_model.data.shape[0] - 0.5),
+            torch.logical_and(pX > -0.5, pX < parameters["pixels"].shape[1] - 0.5),
+            torch.logical_and(pY > -0.5, pY < parameters["pixels"].shape[0] - 0.5),
         )
 
         # Zero everywhere outside the psf
         result = torch.zeros_like(X)
 
         # Use bilinear interpolation of the PSF at the requested coordinates
-        result[select] = interp2d(self.psf_model.data, pX[select], pY[select])
+        result[select] = interp2d(parameters["pixels"].value, pX[select], pY[select])
 
-        return result * (image.pixel_area * 10 ** parameters["flux"].value)
+        return image.pixel_area * 10 ** result

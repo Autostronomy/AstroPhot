@@ -421,6 +421,26 @@ class Component_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
+    def get_state(self, save_params = True):
+        """Returns a dictionary with a record of the current state of the
+        model.
+        
+        Specifically, the current parameter settings and the window for
+        this model. From this information it is possible for the model to
+        re-build itself lated when loading from disk. Note that the target
+        image is not saved, this must be reset when loading the model.
+        
+        """
+        state = super().get_state()
+        state["window"] = self.window.get_state()
+        if save_params:
+            state["parameters"] = self.parameters.get_state()
+        state["target_identity"] = self._target_identity
+        for key in self.track_attrs:
+            if getattr(self, key) != getattr(self.__class__, key):
+                state[key] = getattr(self, key)
+        return state
+    
     # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import radius_metric
@@ -434,5 +454,4 @@ class Component_Model(AstroPhot_Model):
     from ._model_methods import jacobian
     from ._model_methods import _chunk_jacobian
     from ._model_methods import _chunk_image_jacobian
-    from ._model_methods import get_state
     from ._model_methods import load

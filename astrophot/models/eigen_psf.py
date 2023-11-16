@@ -45,6 +45,7 @@ class Eigen_PSF(PSF_Model):
     }
     _parameter_order = PSF_Model._parameter_order + ("flux","weights")
     useable = True
+    model_integrated = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

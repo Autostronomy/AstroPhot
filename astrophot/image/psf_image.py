@@ -5,12 +5,12 @@ import numpy as np
 from torch.nn.functional import avg_pool2d
 
 from .image_object import Image, Image_List
+from .model_image import Model_Image
 from astropy.io import fits
 from .. import AP_config
 from ..errors import SpecificationConflict, InvalidData
 
 __all__ = ["PSF_Image"]
-
 
 class PSF_Image(Image):
     """Image object which represents a model of PSF (Point Spread Function).
@@ -50,9 +50,12 @@ class PSF_Image(Image):
         self.window.reference_planexy = (0,0)
         self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
         self.window.reference_imagexy = (0,0)
-        assert torch.all(
+        if not torch.all(
             (torch.tensor(self.data.shape) % 2) == 1
-        ), "psf must have odd shape"
+        ):
+            raise InvalidData("psf data must have odd shape")
+        if torch.any(self.data < 0):
+            raise InvalidData("psf data must be non-negative")
 
     def set_data(
         self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
@@ -134,7 +137,7 @@ class PSF_Image(Image):
             psf_upscale=self.psf_upscale,
         )
 
-    def get_window(self, **kwargs):
+    def get_window(self, window, **kwargs):
         """Returns the window of the PSF_Image instance.
 
         This method returns the window of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
@@ -146,7 +149,19 @@ class PSF_Image(Image):
             Window: The window associated with the PSF_Image instance.
         """
         return super().get_window(
+            window = window,
             psf_upscale=self.psf_upscale,
+        )
+
+    def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
+        """
+        Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
+        """
+        return Model_Image(
+            data=torch.zeros_like(self.data) if data is None else data,
+            header=self.header,
+            target_identity=self.identity,
+            **kwargs,
         )
 
     def to(self, dtype=None, device=None):

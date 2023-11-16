@@ -36,6 +36,8 @@ class PSF_Model(AstroPhot_Model):
     _parameter_order = ()
     model_type = f"psf {AstroPhot_Model.model_type}"
     useable = False
+    model_integrated = None
+    
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
 
@@ -190,29 +192,37 @@ class PSF_Model(AstroPhot_Model):
         if parameters is None:
             parameters = self.parameters
 
-        if "window" in self.psf_mode:
-            raise NotImplementedError("PSF convolution in sub-window not available yet")
-
         # Create an image to store pixel samples
         working_image = Model_Image(
             pixelscale=image.pixelscale, window=working_window
         )
-        # Evaluate the model on the image
-        reference, deep = self._sample_init(
-            image=working_image,
-            parameters=parameters,
-            center=torch.zeros_like(working_image.center),
-        )
-        # Super-resolve and integrate where needed
-        deep = self._sample_integrate(
-            deep,
-            reference,
-            working_image,
-            parameters,
-            center=torch.zeros_like(working_image.center),
-        )
-        # Add the sampled/integrated pixels to the requested image
-        working_image.data += deep
+        if self.model_integrated is True:
+            # Evaluate the model on the image
+            Coords = image.get_coordinate_meshgrid()
+            working_image.data = self.evaluate_model(
+                X=Coords[0], Y=Coords[1],
+                image=working_image,
+                parameters=parameters
+            )
+        elif self.model_integrated is False:
+            # Evaluate the model on the image
+            reference, deep = self._sample_init(
+                image=working_image,
+                parameters=parameters,
+                center=torch.zeros_like(working_image.center),
+            )
+            # Super-resolve and integrate where needed
+            deep = self._sample_integrate(
+                deep,
+                reference,
+                working_image,
+                parameters,
+                center=torch.zeros_like(working_image.center),
+            )
+            # Add the sampled/integrated pixels to the requested image
+            working_image.data += deep
+        else:
+            raise SpecificationConflict("PSF model 'model_integrated' should be either True or False")
 
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
@@ -253,7 +263,26 @@ class PSF_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-
+    def get_state(self, save_params = True):
+        """Returns a dictionary with a record of the current state of the
+        model.
+        
+        Specifically, the current parameter settings and the window for
+        this model. From this information it is possible for the model to
+        re-build itself lated when loading from disk. Note that the target
+        image is not saved, this must be reset when loading the model.
+        
+        """
+        state = super().get_state()
+        state["window"] = self.window.get_state()
+        if save_params:
+            state["parameters"] = self.parameters.get_state()
+        state["target_identity"] = self._target_identity
+        for key in self.track_attrs:
+            if getattr(self, key) != getattr(self.__class__, key):
+                state[key] = getattr(self, key)
+        return state
+    
     # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import radius_metric
@@ -265,5 +294,5 @@ class PSF_Model(AstroPhot_Model):
     from ._model_methods import build_parameters
     from ._model_methods import jacobian
     from ._model_methods import _chunk_jacobian
-    from ._model_methods import get_state
+    from ._model_methods import _chunk_image_jacobian
     from ._model_methods import load
