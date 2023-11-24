@@ -353,12 +353,25 @@ class TestGroup(unittest.TestCase):
 
     def test_groupmodel_saveload(self):
         np.random.seed(12345)
-        tar = make_basic_sersic()
+        tar = make_basic_sersic(N = 51, M=51)
 
+        psf = ap.models.Moffat_Star(
+            name="psf model 1",
+            target=tar,
+            parameters={
+                "center": {"value": [5, 5], "locked": True},
+                "n": 2.,
+                "Rd": 3.,
+                "I0": {"value": 0., "locked": True},
+            },
+        )
+        
         mod1 = ap.models.Sersic_Galaxy(
             name="base model 1",
             target=tar,
             parameters={"center": {"value": [5, 5], "locked": False}},
+            psf = psf,
+            psf_mode = "full",
         )
         mod2 = ap.models.Sersic_Galaxy(
             name="base model 2",
@@ -387,7 +400,7 @@ class TestGroup(unittest.TestCase):
         )
         self.assertEqual(len(smod.models), len(newmod.models), "Group model should load sub models")
 
-        self.assertEqual(newmod.parameters.size, 14, "Group model size should sum all parameters")
+        self.assertEqual(newmod.parameters.size, 16, "Group model size should sum all parameters")
 
         self.assertTrue(torch.all(newmod.parameters.vector_values() == smod.parameters.vector_values()), "Save/load should extract all parameters")
         
