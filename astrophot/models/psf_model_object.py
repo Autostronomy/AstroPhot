@@ -40,6 +40,9 @@ class PSF_Model(AstroPhot_Model):
     model_type = f"psf {AstroPhot_Model.model_type}"
     useable = False
     model_integrated = None
+
+    # The sampled PSF will be normalized to a total flux of 1 within the window
+    normalize_psf = True
     
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
@@ -227,11 +230,15 @@ class PSF_Model(AstroPhot_Model):
         else:
             raise SpecificationConflict("PSF model 'model_integrated' should be either True or False")
 
+        # normalize to total flux 1
+        if self.normalize_psf:
+            working_image.data /= torch.sum(working_image.data)
+        
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
 
         image += working_image
-
+        
         return image
 
     @property

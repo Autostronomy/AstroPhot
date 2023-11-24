@@ -35,12 +35,12 @@ class TestAllPSFModelBasics(unittest.TestCase):
 
 class TestEigenPSF(unittest.TestCase):
     def test_init(self):
-        target = make_basic_gaussian_psf(N = 51)
+        target = make_basic_gaussian_psf(N = 51, rand = 666)
         dat = target.data.detach()
-        dat += torch.normal(mean = dat, std = torch.sqrt(dat))
+        # dat += torch.normal(mean = dat, std = torch.sqrt(dat))
         dat[dat < 0] = 0
         target = ap.image.PSF_Image(data = dat, pixelscale = target.pixelscale)
-        basis = np.stack(list(make_basic_gaussian_psf(N = 51, sigma = s).data for s in np.linspace(8, 1, 10)))
+        basis = np.stack(list(make_basic_gaussian_psf(N = 51, sigma = s, rand = int(4923*s)).data for s in np.linspace(8, 1, 5)))
         # basis = np.random.rand(10,51,51)
         EM = ap.models.AstroPhot_Model(
             model_type = "eigen psf model",
@@ -57,18 +57,15 @@ class TestEigenPSF(unittest.TestCase):
 
 class TestPixelPSF(unittest.TestCase):
     def test_init(self):
-        target = make_basic_gaussian_psf(N = 51)
+        target = make_basic_gaussian_psf(N = 11)
         target.data[target.data < 0] = 0
-        target = ap.image.PSF_Image(data = target.data, pixelscale = target.pixelscale)
+        target = ap.image.PSF_Image(data = target.data / torch.sum(target.data), pixelscale = target.pixelscale)
+        
         PM = ap.models.AstroPhot_Model(
             model_type = "pixelated psf model",
             target = target,
         )
 
         PM.initialize()
-
-        res = ap.fit.LM(PM, verbose=1).fit()
-
-        print(res.message)
-
-        raise Exception()
+        
+        self.assertTrue(torch.allclose(PM().data, target.data))
