@@ -2,7 +2,7 @@ import unittest
 import astrophot as ap
 import torch
 import numpy as np
-from utils import make_basic_sersic, make_basic_gaussian
+from utils import make_basic_sersic, make_basic_gaussian, make_basic_gaussian_psf
 #torch.autograd.set_detect_anomaly(True)
 ######################################################################
 # Model Objects
@@ -355,9 +355,9 @@ class TestGroup(unittest.TestCase):
         np.random.seed(12345)
         tar = make_basic_sersic(N = 51, M=51)
 
-        psf = ap.models.Moffat_Star(
+        psf = ap.models.Moffat_PSF(
             name="psf model 1",
-            target=tar,
+            target=make_basic_gaussian_psf(N = 11),
             parameters={
                 "center": {"value": [5, 5], "locked": True},
                 "n": 2.,
