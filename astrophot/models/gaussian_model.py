@@ -288,7 +288,8 @@ class Gaussian_PSF(PSF_Model):
     }
     _parameter_order = PSF_Model._parameter_order + ("sigma", "flux")
     useable = True
-
+    model_integrated = False
+    
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target

@@ -103,16 +103,6 @@ class Sersic_Galaxy(Galaxy_Model):
             ),
             sersic_Ie_to_flux_torch
         )
-        # return sersic_Ie_to_flux_uncertainty_torch(
-        #     10 ** parameters["Ie"].value,
-        #     parameters["n"].value,
-        #     parameters["Re"].value,
-        #     parameters["q"].value,
-        #     (10 ** parameters["Ie"].value) * parameters["Ie"].uncertainty * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
-        #     parameters["n"].uncertainty,
-        #     parameters["Re"].uncertainty,
-        #     parameters["q"].uncertainty,
-        # )
 
     def _integrate_reference(self, image_data, image_header, parameters):
         tot = self.total_flux(parameters)
@@ -144,9 +134,11 @@ class Sersic_PSF(PSF_Model):
     parameter_specs = {
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
+        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0., "uncertainty": 0., "locked": True},
     }
-    _parameter_order = PSF_Model._parameter_order + ("n", "Re")
+    _parameter_order = PSF_Model._parameter_order + ("n", "Re", "Ie")
     useable = True
+    model_integrated = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -156,19 +148,10 @@ class Sersic_PSF(PSF_Model):
         super().initialize(target=target, parameters=parameters)
 
         parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re"), _x0_func
+            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
         )
 
     from ._shared_methods import sersic_radial_model as radial_model
-
-    @default_internal
-    def total_flux(self, parameters=None):
-        return sersic_Ie_to_flux_torch(
-            torch.ones_like(parameters["n"].value),
-            parameters["n"].value,
-            parameters["Re"].value,
-            torch.ones_like(parameters["n"].value),
-        )
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None):

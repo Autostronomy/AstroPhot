@@ -12,6 +12,7 @@ from ..image import (
 from ._shared_methods import select_target
 from ..utils.decorators import default_internal, ignore_numpy_warnings
 from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
+from ..errors import SpecificationConflict
 
 
 __all__ = ["PSF_Model"]
@@ -31,9 +32,11 @@ class PSF_Model(AstroPhot_Model):
     """
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
-    parameter_specs = {}
+    parameter_specs = {
+        "center": {"units": "arcsec", "value": (0.,0.), "uncertainty": (0.1, 0.1), "locked": True},
+    }
     # Fixed order of parameters for all methods that interact with the list of parameters
-    _parameter_order = ()
+    _parameter_order = ("center", )
     model_type = f"psf {AstroPhot_Model.model_type}"
     useable = False
     model_integrated = None
@@ -58,6 +61,7 @@ class PSF_Model(AstroPhot_Model):
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_chunksize = 10
+    image_chunksize = 1000
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3
@@ -65,8 +69,6 @@ class PSF_Model(AstroPhot_Model):
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
-        "psf_mode",
-        "psf_convolve_mode",
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
@@ -199,8 +201,9 @@ class PSF_Model(AstroPhot_Model):
         if self.model_integrated is True:
             # Evaluate the model on the image
             Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[..., None, None]
             working_image.data = self.evaluate_model(
-                X=Coords[0], Y=Coords[1],
+                X=X, Y=Y,
                 image=working_image,
                 parameters=parameters
             )
@@ -209,7 +212,7 @@ class PSF_Model(AstroPhot_Model):
             reference, deep = self._sample_init(
                 image=working_image,
                 parameters=parameters,
-                center=torch.zeros_like(working_image.center),
+                center=parameters["center"].value,
             )
             # Super-resolve and integrate where needed
             deep = self._sample_integrate(

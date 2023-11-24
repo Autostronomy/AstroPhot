@@ -130,7 +130,8 @@ class Nuker_PSF(PSF_Model):
         "gamma",
     )
     useable = True
-
+    model_integrated = False
+    
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target

@@ -6,6 +6,7 @@ from torch.nn.functional import avg_pool2d
 
 from .image_object import Image, Image_List
 from .model_image import Model_Image
+from .jacobian_image import Jacobian_Image
 from astropy.io import fits
 from .. import AP_config
 from ..errors import SpecificationConflict, InvalidData
@@ -31,6 +32,9 @@ class PSF_Image(Image):
         _save_image_list: Saves the image list to the PSF HDU header.
         reduce: Reduces the size of the image using a given scale factor.
     """
+
+    has_mask = False
+    has_variance = False
 
     def __init__(self, *args, **kwargs):
         """
@@ -153,6 +157,32 @@ class PSF_Image(Image):
             psf_upscale=self.psf_upscale,
         )
 
+    def jacobian_image(
+        self,
+        parameters: Optional[List[str]] = None,
+        data: Optional[torch.Tensor] = None,
+        **kwargs,
+    ):
+        """
+        Construct a blank `Jacobian_Image` object formatted like this current `PSF_Image` object. Mostly used internally.
+        """
+        if parameters is None:
+            data = None
+            parameters = []
+        elif data is None:
+            data = torch.zeros(
+                (*self.data.shape, len(parameters)),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+        return Jacobian_Image(
+            parameters=parameters,
+            target_identity=self.identity,
+            data=data,
+            header=self.header,
+            **kwargs,
+        )
+    
     def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
         """
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.

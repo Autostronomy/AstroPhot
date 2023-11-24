@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.autograd.functional import jacobian as torchjac
 
-from ..param import Parameter_Node
+from ..param import Parameter_Node, Param_Mask
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import (
     _shift_Lanczos_kernel_torch,
@@ -262,7 +262,6 @@ def jacobian(
 
     """
     if window is None:
-        print(self)
         window = self.window
     else:
         if isinstance(window, Window_List):

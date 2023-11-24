@@ -75,7 +75,8 @@ class RelSpline_PSF(PSF_Model):
     _parameter_order = PSF_Model._parameter_order + ("I0", "dI(R)")
     useable = True
     extend_profile = True
-
+    model_integrated = False
+    
     @default_internal
     def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y

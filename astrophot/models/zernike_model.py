@@ -21,7 +21,8 @@ class Zernike_PSF(PSF_Model):
     }
     _parameter_order = PSF_Model._parameter_order + ("Anm",)
     useable = True
-
+    model_integrated = False
+    
     def __init__(self, *, name=None, order_n=2, r_scale=None, **kwargs):
         super().__init__(name=name, **kwargs)
 

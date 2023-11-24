@@ -93,7 +93,7 @@ class Eigen_PSF(PSF_Model):
             X, Y = image.get_coordinate_meshgrid()
 
         psf_model = PSF_Image(
-            data = torch.sum(self.eigen_basis.detach() * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0),
+            data = torch.clamp(torch.sum(self.eigen_basis.detach() * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0), min = 0.),
             pixelscale = self.eigen_pixelscale.detach(),
         )
         
@@ -105,7 +105,6 @@ class Eigen_PSF(PSF_Model):
             torch.logical_and(pX > -0.5, pX < psf_model.data.shape[1]-0.5),
             torch.logical_and(pY > -0.5, pY < psf_model.data.shape[0]-0.5),
         )
-        print("choose points", torch.sum(select).item())
 
         # Zero everywhere outside the psf
         result = torch.zeros_like(X)

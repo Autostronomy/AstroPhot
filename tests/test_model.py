@@ -3,7 +3,7 @@ import astrophot as ap
 import torch
 import numpy as np
 from utils import make_basic_sersic, make_basic_gaussian
-torch.autograd.set_detect_anomaly(True)
+#torch.autograd.set_detect_anomaly(True)
 ######################################################################
 # Model Objects
 ######################################################################
@@ -211,37 +211,6 @@ class TestAllModelBasics(unittest.TestCase):
             )
             self.assertIsInstance(str(MODEL), str, "String representation should return string")
             self.assertIsInstance(repr(MODEL), str, "Repr should return string")
-
-class TestEigenPSF(unittest.TestCase):
-    def test_init(self):
-        target = make_basic_gaussian(N = 51, M = 51)
-        target.data[target.data < 0] = 0
-        target = ap.image.PSF_Image(data = target.data, pixelscale = target.pixelscale)
-        basis = np.stack(list(make_basic_gaussian(N = 51, M = 51, sigma = s).data for s in np.linspace(8, 1, 10)))
-        # basis = np.random.rand(10,51,51)
-        EM = ap.models.AstroPhot_Model(
-            model_type = "eigen psf model",
-            eigen_basis = basis,
-            eigen_pixelscale = 1,
-            target = target,
-        )
-
-        EM.initialize()
-
-class TestPixelPSF(unittest.TestCase):
-    def test_init(self):
-        target = make_basic_gaussian(N = 51, M = 51)
-        target.data[target.data < 0] = 0
-        target = ap.image.PSF_Image(data = target.data, pixelscale = target.pixelscale)
-        psf = make_basic_gaussian(N = 51, M = 51).data
-        psf[psf < 0] = 0
-        PM = ap.models.AstroPhot_Model(
-            model_type = "pixelated psf model",
-            psf = ap.image.PSF_Image(data = psf, pixelscale = 0.8),
-            target = target,
-        )
-
-        PM.initialize()
         
 class TestSersic(unittest.TestCase):
     def test_sersic_creation(self):
