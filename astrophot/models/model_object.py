@@ -650,7 +650,7 @@ class Component_Model(AstroPhot_Model):
             state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]
             self.set_aux_psf(
                 AstroPhot_Model(
-                    state["psf"]["name"],
+                    name=state["psf"]["name"],
                     filename=state["psf"],
                     target=self.target,
                 )
