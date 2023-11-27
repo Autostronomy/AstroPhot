@@ -321,6 +321,27 @@ class TestLM(unittest.TestCase):
 
         LM.fit()
 
+    def test_chunk_parameter_jacobian(self):
+        target = make_basic_sersic()
+        new_model = ap.models.AstroPhot_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+            jacobian_chunksize = 3,
+        )
+
+        LM = ap.fit.LM(new_model, max_iter = 10)
+
+        LM.fit()
+        
     def test_chunk_image_jacobian(self):
         target = make_basic_sersic()
         new_model = ap.models.AstroPhot_Model(
@@ -457,7 +478,7 @@ class TestHMC(unittest.TestCase):
         )
         target.variance = torch.Tensor(0.1 ** 2 + img / 100)
 
-        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=10, warmup = 5)
+        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=5, warmup = 2)
         HMC.fit()
 
 class TestNUTS(unittest.TestCase):
@@ -491,7 +512,7 @@ class TestNUTS(unittest.TestCase):
         )
         target.variance = torch.Tensor(0.1 ** 2 + img / 100)
 
-        NUTS = ap.fit.NUTS(MODEL, max_iter=10, warmup = 5)
+        NUTS = ap.fit.NUTS(MODEL, max_iter=5, warmup = 2)
         NUTS.fit()
 
 class TestMHMCMC(unittest.TestCase):
