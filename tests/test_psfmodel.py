@@ -40,8 +40,6 @@ class TestEigenPSF(unittest.TestCase):
         dat[dat < 0] = 0
         target = ap.image.PSF_Image(data = dat, pixelscale = target.pixelscale)
         basis = np.stack(list(make_basic_gaussian_psf(N = 51, sigma = s, rand = int(4923*s)).data for s in np.linspace(8, 1, 5)))
-        print(target.data)
-        print(basis)
         # basis = np.random.rand(10,51,51)
         EM = ap.models.AstroPhot_Model(
             model_type = "eigen psf model",

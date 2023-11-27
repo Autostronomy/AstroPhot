@@ -56,7 +56,9 @@ class Pixelated_PSF(PSF_Model):
         target_area = target[self.window]
         with Param_Unlock(parameters["pixels"]), Param_SoftLimits(parameters["pixels"]):
             if parameters["pixels"].value is None:
-                parameters["pixels"].value = torch.log10(torch.abs(target_area.data) / target.pixel_area)
+                dat = torch.abs(target_area.data)
+                dat[dat == 0] = torch.median(dat) * 1e-7
+                parameters["pixels"].value = torch.log10(dat / target.pixel_area)
             if parameters["pixels"].uncertainty is None:
                 parameters["pixels"].uncertainty = torch.abs(parameters["pixels"].value) * self.default_uncertainty
 

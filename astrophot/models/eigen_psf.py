@@ -40,7 +40,7 @@ class Eigen_PSF(PSF_Model):
 
     model_type = f"eigen {PSF_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux/arcsec^2)"},
+        "flux": {"units": "log10(flux/arcsec^2)", "locked": True},
         "weights": {"units": "unitless"},
     }
     _parameter_order = PSF_Model._parameter_order + ("flux","weights")
@@ -50,7 +50,7 @@ class Eigen_PSF(PSF_Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "eigen_basis" not in kwargs:
-            AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or use Pixelated_PSF model.")
+            AP_config.ap_logger.warning("Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or just use an empirical PSF image.")
             self.eigen_basis = torch.clone(self.target.data).unsqueeze(0)
             self.parameters["weights"].locked = True
         else:
@@ -60,7 +60,7 @@ class Eigen_PSF(PSF_Model):
                 device = AP_config.ap_device
             )
         if kwargs.get("normalize_eigen_basis", True):
-            self.eigen_basis = self.eigen_basis / torch.sum(self.eigen_basis, axis = 0)
+            self.eigen_basis = self.eigen_basis / torch.sum(self.eigen_basis, axis = (1,2)).unsqueeze(1).unsqueeze(2)
         self.eigen_pixelscale = torch.as_tensor(
             kwargs.get("eigen_pixelscale", 1. if self.target is None else self.target.pixelscale),
             dtype = AP_config.ap_dtype,
