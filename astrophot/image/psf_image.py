@@ -226,3 +226,16 @@ class PSF_Image(Image):
 
     def expand(self, padding):
         raise NotImplementedError("expand not available for PSF_Image")
+
+    def get_state(self):
+        state = super().get_state()
+        state["psf_upscale"] = self.psf_upscale.item()
+        state["type"] = "PSF_Image"
+        return state
+
+    def set_state(self, state):
+        super().set_state(state)
+        self.psf_upscale = torch.as_tensor(
+            state.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
+        )
+        

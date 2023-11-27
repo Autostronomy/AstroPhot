@@ -100,6 +100,7 @@ class Component_Model(AstroPhot_Model):
     track_attrs = [
         "psf_mode",
         "psf_convolve_mode",
+        "psf_subpixel_shift",
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
@@ -107,6 +108,7 @@ class Component_Model(AstroPhot_Model):
         "integrate_gridding",
         "integrate_quad_level",
         "jacobian_chunksize",
+        "image_chunksize",
         "softening",
     ]
     useable = False
@@ -436,6 +438,8 @@ class Component_Model(AstroPhot_Model):
         if save_params:
             state["parameters"] = self.parameters.get_state()
         state["target_identity"] = self._target_identity
+        if isinstance(self._psf, PSF_Image) or isinstance(self._psf, AstroPhot_Model):
+            state["psf"] = self._psf.get_state()
         for key in self.track_attrs:
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)

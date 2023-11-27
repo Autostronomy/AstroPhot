@@ -106,7 +106,7 @@ class Moffat_PSF(PSF_Model):
     parameter_specs = {
         "n": {"units": "none", "limits": (0.1, 10), "uncertainty": 0.05},
         "Rd": {"units": "arcsec", "limits": (0, None)},
-        "I0": {"units": "log10(flux/arcsec^2)"},
+        "I0": {"units": "log10(flux/arcsec^2)", "locked": True},
     }
     _parameter_order = PSF_Model._parameter_order + ("n", "Rd", "I0")
     useable = True

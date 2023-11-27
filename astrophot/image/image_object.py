@@ -45,6 +45,7 @@ class Image(object):
         origin: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
         identity: str = None,
+        state: Optional[dict] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
@@ -76,7 +77,10 @@ class Image(object):
         """
         self._data = None
 
-        if header is None:
+        if state is not None:
+            self.header = Image_Header(state = state["header"])
+            self.set_state(state)        
+        elif header is None:
             self.header = Image_Header(
                 data_shape=None if data is None else data.shape,
                 pixelscale=pixelscale,
@@ -95,10 +99,10 @@ class Image(object):
 
         if filename is not None:
             self.load(filename)
-            return
-
-        # set the data
-        self.data = data
+        elif state is None:
+            # set the data
+            self.data = data
+            
         self.to()
 
         # # Check that image data and header are in agreement (this requires talk back from GPU to CPU so is only used for testing)
@@ -350,6 +354,17 @@ class Image(object):
         self.data = pad(self.data, pad=pad_boundaries, mode="constant", value=0)
         self.header.expand(padding)
 
+    def get_state(self):
+        state = {}
+        state["type"] = "Image"
+        state["data"] = self.data.detach().cpu().tolist()
+        state["header"] = self.header.get_state()
+        return state
+
+    def set_state(self, state):
+        self.set_data(state["data"], require_shape = False)
+        self.header.set_state(state["header"])
+    
     def _save_image_list(self):
         img_header = self.header._save_image_list()
         image_list = [

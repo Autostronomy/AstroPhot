@@ -45,6 +45,7 @@ class Image_Header:
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
         note: Optional[str] = None,
         identity: str = None,
+        state: Optional[dict] = None,
         **kwargs: Any,
     ) -> None:
         # Record identity
@@ -53,16 +54,19 @@ class Image_Header:
         else:
             self.identity = identity
 
-        if filename is not None:
-            self.load(filename)
-            return
-
         # set Zeropoint
         self.zeropoint = zeropoint
 
         # set a note for the image
         self.note = note
         
+        if filename is not None:
+            self.load(filename)
+            return
+        elif state is not None:
+            self.set_state(state)
+            return
+
         # Set Window
         if window is None:
             data_shape = torch.as_tensor(
@@ -230,64 +234,7 @@ class Image_Header:
         return self.copy(
             window = self.window.rescale_pixel(scale),
             **kwargs,
-        )
-    
-    # def super_resolve(self, scale: int, **kwargs):
-    #     """Increase the resolution of the referenced image by the provided
-    #     scale (int).
-
-    #     """
-    #     assert isinstance(scale, int) or scale.dtype is torch.int32
-    #     if scale == 1:
-    #         return self
-
-    #     return super().copy(
-    #         data_shape=self.data_shape,
-    #         pixelscale=self.pixelscale / scale,
-    #         zeropoint=self.zeropoint,
-    #         note=self.note,
-    #         window=self.window.copy(),
-    #         identity=self.identity,
-    #         **kwargs,
-    #     )
-
-    # def reduce(self, scale: int, **kwargs):
-    #     """This operation will downsample an image by the factor given. If
-    #     scale = 2 then 2x2 blocks of pixels will be summed together to
-    #     form individual larger pixels. A new image object will be
-    #     returned with the appropriate pixelscale and data tensor. Note
-    #     that the window does not change in this operation since the
-    #     pixels are condensed, but the pixel size is increased
-    #     correspondingly.
-
-    #     Args:
-    #         scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
-
-    #     """
-    #     assert isinstance(scale, int) or scale.dtype is torch.int32
-    #     if scale == 1:
-    #         return self
-
-    #     return super().copy(
-    #         data_shape=self.data_shape,
-    #         pixelscale=self.pixelscale * scale,
-    #         zeropoint=self.zeropoint,
-    #         note=self.note,
-    #         window=self.window.copy(),
-    #         identity=self.identity,
-    #         **kwargs,
-    #     )
-
-    # def expand(self, padding: Tuple[float]) -> None:
-    #     """
-    #     Args:
-    #       padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
-    #     """
-    #     # fixme
-    #     padding = np.array(padding)
-    #     assert np.all(padding >= 0), "negative padding not allowed in expand method"
-    #     pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
-    #     self.window += tuple(padding)
+        )    
     
     def get_state(self):
         """Returns a dictionary with necessary information to recreate the
@@ -301,6 +248,11 @@ class Image_Header:
         if self.note is not None:
             state["note"] = self.note
         return state
+
+    def set_state(self, state):
+        self.zeropoint = state.get("zeropoint", self.zeropoint)
+        self.window = Window(state = state["window"])
+        self.note = state.get("note", self.note)
 
     def _save_image_list(self):
         """

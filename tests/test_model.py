@@ -250,6 +250,7 @@ class TestSersic(unittest.TestCase):
     def test_sersic_save_load(self):
 
         target = make_basic_sersic()
+        psf = make_basic_gaussian_psf()
         model = ap.models.AstroPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
@@ -261,6 +262,8 @@ class TestSersic(unittest.TestCase):
                 "Re": 5,
                 "Ie": 1,
             },
+            psf = psf,
+            psf_mode = "full",
             target=target,
         )
 

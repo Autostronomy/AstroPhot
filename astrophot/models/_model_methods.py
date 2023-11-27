@@ -14,7 +14,7 @@ from ..utils.interpolate import (
     curvature_kernel,
     interp2d,
 )
-from ..image import Model_Image, Target_Image, Window, Jacobian_Image, Window_List
+from ..image import Model_Image, Target_Image, Window, Jacobian_Image, Window_List, PSF_Image
 from ..utils.operations import (
     fft_convolve_torch,
     fft_convolve_multi_torch,
@@ -426,12 +426,15 @@ def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new
     self.parameters.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
     # Re-create the aux PSF model if there was one
     if "psf" in state:
-        state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]
-        self.set_aux_psf(
-            AstroPhot_Model(
-                name=state["psf"]["name"],
-                filename=state["psf"],
-                target=self.target,
+        if state["psf"].get("type", "AstroPhot_Model") == "PSF_Image":
+            self.psf = PSF_Image(state = state["psf"])
+        else:
+            state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]
+            self.set_aux_psf(
+                AstroPhot_Model(
+                    name=state["psf"]["name"],
+                    filename=state["psf"],
+                    target=self.target,
+                )
             )
-        )
     return state
