@@ -103,7 +103,7 @@ class Image(object):
             # set the data
             self.data = data
             
-        self.to()
+            self.to()
 
         # # Check that image data and header are in agreement (this requires talk back from GPU to CPU so is only used for testing)
         # assert np.all(np.flip(np.array(self.data.shape)[:2]) == self.window.pixel_shape.numpy()), f"data shape {np.flip(np.array(self.data.shape)[:2])}, window shape {self.window.pixel_shape.numpy()}"
