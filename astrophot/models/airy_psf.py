@@ -39,7 +39,7 @@ class Airy_PSF(PSF_Model):
     """
     model_type = f"airy {PSF_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)"},
+        "I0": {"units": "log10(flux/arcsec^2)", "locked": True},
         "aRL": {"units": "a/(R lambda)"}
     }
     _parameter_order = PSF_Model._parameter_order + ("I0", "aRL")
@@ -58,7 +58,7 @@ class Airy_PSF(PSF_Model):
         ):
             return
         target_area = target[self.window]
-        icenter = target_area.plane_to_pixel(torch.zeros_like(target_area.center))
+        icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         if parameters["I0"].value is None:
             with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
@@ -89,11 +89,5 @@ class Airy_PSF(PSF_Model):
 
         return (image.pixel_area * 10**parameters["I0"].value) * (2 * torch.special.bessel_j1(x) / x)**2
     
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-
-        r = self.radius_metric(X, Y, image, parameters)
-        return self.radial_model(r, image=image, parameters=parameters)
+    from ._shared_methods import radial_evaluate_model as evaluate_model
     

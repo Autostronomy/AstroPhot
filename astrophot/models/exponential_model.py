@@ -102,7 +102,7 @@ class Exponential_PSF(PSF_Model):
 
     model_type = f"exponential {PSF_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux/arcsec^2)", "locked": True},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = PSF_Model._parameter_order + ("Re", "Ie")
@@ -121,16 +121,7 @@ class Exponential_PSF(PSF_Model):
         )
 
     from ._shared_methods import exponential_radial_model as radial_model
-
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-        return self.radial_model(
-            self.radius_metric(X, Y, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Exponential_SuperEllipse(SuperEllipse_Galaxy):

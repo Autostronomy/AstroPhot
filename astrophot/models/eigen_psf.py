@@ -13,10 +13,10 @@ __all__ = ["Eigen_PSF"]
 
 class Eigen_PSF(PSF_Model):
     """point source model which uses multiple images as a basis for the
-    PSF as it's representation for point sources. Using bilinear
+    PSF as its representation for point sources. Using bilinear
     interpolation it will shift the PSF within a pixel to accurately
     represent the center location of a point source. There is no
-    funcitonal form for this object type as any image can be
+    functional form for this object type as any image can be
     supplied. Note that as an argument to the model at construction
     one can provide "psf" as an AstroPhot PSF_Image object. Since only
     bilinear interpolation is performed, it is recommended to provide
@@ -90,7 +90,8 @@ class Eigen_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
-            X, Y = image.get_coordinate_meshgrid()
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[..., None, None]
 
         psf_model = PSF_Image(
             data = torch.clamp(torch.sum(self.eigen_basis.detach() * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value)).unsqueeze(1).unsqueeze(2), axis = 0), min = 0.),
@@ -111,5 +112,8 @@ class Eigen_PSF(PSF_Model):
 
         # Use bilinear interpolation of the PSF at the requested coordinates
         result[select] = interp2d(psf_model.data, pX[select], pY[select])
+
+        # Ensure positive values
+        result = torch.clamp(result, min = 0.)
         
         return result * (image.pixel_area * 10 ** parameters["flux"].value)

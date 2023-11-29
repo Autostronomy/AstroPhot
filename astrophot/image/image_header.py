@@ -46,6 +46,7 @@ class Image_Header:
         note: Optional[str] = None,
         identity: str = None,
         state: Optional[dict] = None,
+        fits_state: Optional[dict] = None,
         **kwargs: Any,
     ) -> None:
         # Record identity
@@ -65,6 +66,9 @@ class Image_Header:
             return
         elif state is not None:
             self.set_state(state)
+            return
+        elif fits_state is not None:
+            self.set_fits_state(fits_state)
             return
 
         # Set Window

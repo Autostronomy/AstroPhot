@@ -25,6 +25,7 @@ class TestAllPSFModelBasics(unittest.TestCase):
                     MODEL[P].value,
                     f"Model type {model_type} parameter {P} should not be None after initialization",
                 )
+            print(MODEL.parameters)
             img = MODEL()
             self.assertTrue(
                 torch.all(torch.isfinite(img.data)),

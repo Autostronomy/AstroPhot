@@ -95,7 +95,7 @@ def parametric_initialize(
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
     target_dat = target_area.data.detach().cpu().numpy()
-    if isinstance(target, Target_Image) and target_area.has_mask:
+    if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     edge = np.concatenate(
@@ -181,7 +181,7 @@ def parametric_segment_initialize(
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
     target_dat = target_area.data.detach().cpu().numpy()
-    if isinstance(target, Target_Image) and target_area.has_mask:
+    if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     edge = np.concatenate(
@@ -274,6 +274,20 @@ def parametric_segment_initialize(
                 model[param].uncertainty = unc[param]
 
 
+# Evaluate_Model
+######################################################################
+@default_internal
+def radial_evaluate_model(self, X=None, Y=None, image=None, parameters=None):
+    if X is None:
+        Coords = image.get_coordinate_meshgrid()
+        X, Y = Coords - parameters["center"].value[..., None, None]
+    return self.radial_model(
+        self.radius_metric(X, Y, image=image, parameters=parameters),
+        image=image,
+        parameters=parameters,
+    )
+
+                
 # Exponential
 ######################################################################
 @default_internal
@@ -411,7 +425,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     target_dat = target_area.data.detach().cpu().numpy()
-    if isinstance(target, Target_Image) and target_area.has_mask:
+    if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     Coords = target_area.get_coordinate_meshgrid()
@@ -468,7 +482,7 @@ def spline_segment_initialize(
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
     target_dat = target_area.data.detach().cpu().numpy()
-    if isinstance(target, Target_Image) and target_area.has_mask:
+    if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     Coords = target_area.get_coordinate_meshgrid()
@@ -570,7 +584,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
 
     target_area = target[self.window]
     target_dat = target_area.data.detach().cpu().numpy()
-    if isinstance(target, Target_Image) and target_area.has_mask:
+    if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
     if parameters["I0"].value is None:

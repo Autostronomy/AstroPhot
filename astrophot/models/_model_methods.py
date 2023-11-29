@@ -20,6 +20,7 @@ from ..utils.operations import (
     fft_convolve_multi_torch,
     grid_integrate,
 )
+from ..errors import SpecificationConflict
 from .core_model import AstroPhot_Model
 from .. import AP_config
 
@@ -165,6 +166,50 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
         )
     return deep
 
+def _shift_psf(self, psf, shift, shift_method="bilinear", keep_pad = True):
+    if shift_method == "bilinear":
+        psf_data = torch.nn.functional.pad(psf.data, (1, 1, 1, 1))
+        X, Y = torch.meshgrid(
+            torch.arange(
+                psf_data.shape[1],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+            - shift[0],
+            torch.arange(
+                psf_data.shape[0],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+            - shift[1],
+            indexing="xy",
+        )
+        shift_psf = interp2d(psf_data, X.clone(), Y.clone())
+        if not keep_pad:
+            shift_psf = shift_psf[1:-1,1:-1]
+               
+    elif "lanczos" in shift_method:
+        lanczos_order = int(shift_method[shift_method.find(":") + 1 :])
+        psf_data = torch.nn.functional.pad(
+            psf.data, (lanczos_order, lanczos_order, lanczos_order, lanczos_order)
+        )
+        LL = _shift_Lanczos_kernel_torch(
+            -shift[0],
+            -shift[1],
+            lanczos_order,
+            AP_config.ap_dtype,
+            AP_config.ap_device,
+        )
+        shift_psf = torch.nn.functional.conv2d(
+            psf_data.view(1, 1, *psf_data.shape),
+            LL.view(1, 1, *LL.shape),
+            padding="same",
+        ).squeeze()
+        if not keep_pad:
+            shift_psf = shift_psf[lanczos_order:-lanczos_order,lanczos_order:-lanczos_order]
+    else:
+        raise SpecificationConflict(f"unrecognized subpixel shift method: {shift_method}")
+    return shift_psf
 
 def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
     """
@@ -173,46 +218,11 @@ def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
     psf: a PSF_Image object
     """
     if shift is not None:
-        if shift_method == "bilinear":
-            psf_data = torch.nn.functional.pad(psf.data, (1, 1, 1, 1))
-            X, Y = torch.meshgrid(
-                torch.arange(
-                    psf_data.shape[1],
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-                - shift[0],
-                torch.arange(
-                    psf_data.shape[0],
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-                - shift[1],
-                indexing="xy",
-            )
-            shift_psf = interp2d(psf_data, X.clone(), Y.clone())
-        elif "lanczos" in shift_method:
-            lanczos_order = int(shift_method[shift_method.find(":") + 1 :])
-            psf_data = torch.nn.functional.pad(
-                psf.data, (lanczos_order, lanczos_order, lanczos_order, lanczos_order)
-            )
-            LL = _shift_Lanczos_kernel_torch(
-                -shift[0],
-                -shift[1],
-                lanczos_order,
-                AP_config.ap_dtype,
-                AP_config.ap_device,
-            )
-            shift_psf = torch.nn.functional.conv2d(
-                psf_data.view(1, 1, *psf_data.shape),
-                LL.view(1, 1, *LL.shape),
-                padding="same",
-            ).squeeze()
-        else:
-            raise ValueError(f"unrecognized subpixel shift method: {shift_method}")
+        shift_psf = self._shift_psf(psf, shift, shift_method)
     else:
         shift_psf = psf.data
     shift_psf = shift_psf / torch.sum(shift_psf)
+    
     if self.psf_convolve_mode == "fft":
         image.data = fft_convolve_torch(image.data, shift_psf, img_prepadded=True)
     elif self.psf_convolve_mode == "direct":

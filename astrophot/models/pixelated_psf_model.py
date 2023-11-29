@@ -12,7 +12,7 @@ __all__ = ["Pixelated_PSF"]
 
 
 class Pixelated_PSF(PSF_Model):
-    """point source model which uses an image of the PSF as it's
+    """point source model which uses an image of the PSF as its
     representation for point sources. Using bilinear interpolation it
     will shift the PSF within a pixel to accurately represent the
     center location of a point source. There is no funcitonal form for
@@ -65,7 +65,8 @@ class Pixelated_PSF(PSF_Model):
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
         if X is None:
-            X, Y = image.get_coordinate_meshgrid()
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[..., None, None]
 
         # Convert coordinates into pixel locations in the psf image
         pX, pY = self.target.plane_to_pixel(X, Y)

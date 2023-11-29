@@ -469,8 +469,7 @@ class Target_Image(Image):
     def _save_image_list(self):
         image_list = super()._save_image_list()
         if self._psf is not None:
-            psf_header = fits.Header()
-            self.psf._save_image_list(image_list, psf_header)
+            self.psf._save_image_list(image_list)
         if self.has_weight:
             wgt_header = fits.Header()
             wgt_header["IMAGE"] = "WEIGHT"
@@ -495,12 +494,9 @@ class Target_Image(Image):
 
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.set_psf(
-                    PSF_Image(
-                        data=np.array(hdu.data, dtype=np.float64),
-                        psf_upscale=hdu.header["UPSCALE"],
-                        pixelscale=self.pixelscale / hdu.header["UPSCALE"],
-                    )
+                self.psf = PSF_Image(
+                    data=np.array(hdu.data, dtype=np.float64),
+                    fits_state=hdu.header,
                 )
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "WEIGHT":
                 self.set_weight(np.array(hdu.data, dtype=np.float64))

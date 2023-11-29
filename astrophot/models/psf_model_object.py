@@ -150,9 +150,23 @@ class PSF_Model(AstroPhot_Model):
 
         """
         if X is None or Y is None:
-            X, Y = image.get_coordinate_meshgrid()
+            Coords = image.get_coordinate_meshgrid()
+            X, Y = Coords - parameters["center"].value[..., None, None]
         return torch.zeros_like(X)  # do nothing in base model
 
+    def make_model_image(self, window: Optional[Window] = None):
+        """This is called to create a blank `Model_Image` object of the
+        correct format for this model. This is typically used
+        internally to construct the model image before filling the
+        pixel values with the model.
+
+        """
+        if window is None:
+            window = self.window
+        else:
+            window = self.window & window
+        return self.target[window].blank_copy()
+        
     def sample(
         self,
         image: Optional["Image"] = None,
@@ -198,8 +212,8 @@ class PSF_Model(AstroPhot_Model):
             parameters = self.parameters
 
         # Create an image to store pixel samples
-        working_image = Model_Image(
-            pixelscale=image.pixelscale, window=working_window
+        working_image = PSF_Image(
+            window=working_window
         )
         if self.model_integrated is True:
             # Evaluate the model on the image

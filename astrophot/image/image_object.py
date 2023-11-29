@@ -10,7 +10,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .window_object import Window, Window_List
 from .image_header import Image_Header
 from .. import AP_config
-from ..errors import SpecificationConflict, ConflicingWCS
+from ..errors import SpecificationConflict, ConflicingWCS, InvalidData
 
 __all__ = ["Image", "Image_List"]
 
@@ -46,6 +46,7 @@ class Image(object):
         center: Optional[Sequence] = None,
         identity: str = None,
         state: Optional[dict] = None,
+        fits_state: Optional[dict] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
@@ -79,8 +80,11 @@ class Image(object):
 
         if state is not None:
             self.header = Image_Header(state = state["header"])
-            self.set_state(state)        
+        elif fits_state is not None:
+            self.header = Image_Header(fits_state = fits_state)
         elif header is None:
+            if data is None and window is None and filename is None:
+                raise InvalidData("Image must have either data or a window to construct itself.")
             self.header = Image_Header(
                 data_shape=None if data is None else data.shape,
                 pixelscale=pixelscale,
@@ -99,9 +103,18 @@ class Image(object):
 
         if filename is not None:
             self.load(filename)
-        elif state is None:
+        elif state is not None:
+            self.set_state(state)            
+        else:
             # set the data
-            self.data = data
+            if data is None:
+                self.data = torch.zeros(
+                    torch.flip(self.window.pixel_shape,(0,)).detach().cpu().tolist(),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+            else:
+                self.data = data
             
             self.to()
 
@@ -384,8 +397,8 @@ class Image(object):
         for hdu in hdul:
             if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
                 self.set_data(np.array(hdu.data, dtype=np.float64), require_shape=False)
+                self.header.set_fits_state(hdu.header)
                 break
-        self.header.load(filename)
         return hdul
 
     def __sub__(self, other):

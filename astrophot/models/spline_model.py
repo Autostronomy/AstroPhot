@@ -84,16 +84,9 @@ class Spline_PSF(PSF_Model):
     def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-        return self.radial_model(
-            self.radius_metric(X, Y, image, parameters), image, parameters
-        )
-
     from ._shared_methods import spline_initialize as initialize
     from ._shared_methods import spline_radial_model as radial_model
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Spline_Warp(Warp_Galaxy):

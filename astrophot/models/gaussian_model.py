@@ -284,7 +284,7 @@ class Gaussian_PSF(PSF_Model):
     model_type = f"gaussian {PSF_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)"},
+        "flux": {"units": "log10(flux)", "locked": True},
     }
     _parameter_order = PSF_Model._parameter_order + ("sigma", "flux")
     useable = True
@@ -302,12 +302,7 @@ class Gaussian_PSF(PSF_Model):
         )
 
     from ._shared_methods import gaussian_radial_model as radial_model
-
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-        return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image, parameters)
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Gaussian_Ray(Ray_Galaxy):

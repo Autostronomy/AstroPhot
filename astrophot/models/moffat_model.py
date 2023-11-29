@@ -149,11 +149,4 @@ class Moffat_PSF(PSF_Model):
             moffat_I0_to_flux
         )
     
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-        return self.radial_model(
-            self.radius_metric(X, Y, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
+    from ._shared_methods import radial_evaluate_model as evaluate_model

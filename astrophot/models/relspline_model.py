@@ -69,7 +69,7 @@ class RelSpline_PSF(PSF_Model):
 
     model_type = f"relspline {PSF_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)"},
+        "I0": {"units": "log10(flux/arcsec^2)", "locked": True},
         "dI(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = PSF_Model._parameter_order + ("I0", "dI(R)")
@@ -81,13 +81,6 @@ class RelSpline_PSF(PSF_Model):
     def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-        return self.radial_model(
-            self.radius_metric(X, Y, image, parameters), image, parameters
-        )
-
     from ._shared_methods import relspline_initialize as initialize
     from ._shared_methods import relspline_radial_model as radial_model
+    from ._shared_methods import radial_evaluate_model as evaluate_model

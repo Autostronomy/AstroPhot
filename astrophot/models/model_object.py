@@ -175,7 +175,7 @@ class Component_Model(AstroPhot_Model):
         elif isinstance(val, AstroPhot_Model):
             self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(val, pixelscale = self.target.pixelscale, psf_upscale = 1)
+            self._psf = PSF_Image(val, pixelscale = self.target.pixelscale)
             AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AstroPhot_Model object instead.")
     
     # Initialization functions
@@ -311,24 +311,17 @@ class Component_Model(AstroPhot_Model):
 
         if "full" in self.psf_mode:
             if isinstance(self.psf, AstroPhot_Model):
-                psf = self.psf.sample(
-                    image=self.psf_aux_image,
+                psf = self.psf(
                     parameters=parameters[self.psf.name],
-                )
-                psf = PSF_Image(
-                    data=psf.data,
-                    pixelscale=psf.pixelscale,
-                    psf_upscale=torch.round(image.pixel_length / psf.pixel_length).int(),
                 )
             else:
                 psf = self.psf
+            psf_upscale = torch.round(image.pixel_length / psf.pixel_length).int()
             # Add border for psf convolution edge effects, will be cropped out later
             working_window.pad_pixel(psf.psf_border_int)
-            # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
-            working_pixelscale = image.pixelscale / psf.psf_upscale
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(
-                pixelscale=working_pixelscale, window=working_window
+                window=working_window
             )
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
@@ -361,7 +354,7 @@ class Component_Model(AstroPhot_Model):
             if self.psf_subpixel_shift != "none":
                 working_image.header.pixel_shift(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            working_image = working_image.reduce(psf.psf_upscale).crop(
+            working_image = working_image.reduce(psf_upscale).crop(
                 psf.psf_border_int
             )
 
@@ -453,6 +446,7 @@ class Component_Model(AstroPhot_Model):
     from ._model_methods import _sample_integrate
     from ._model_methods import _sample_convolve
     from ._model_methods import _integrate_reference
+    from ._model_methods import _shift_psf
     from ._model_methods import build_parameter_specs
     from ._model_methods import build_parameters
     from ._model_methods import jacobian

@@ -117,7 +117,7 @@ class Nuker_PSF(PSF_Model):
     model_type = f"nuker {PSF_Model.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)"},
+        "Ib": {"units": "log10(flux/arcsec^2)", "locked": True},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -149,16 +149,7 @@ class Nuker_PSF(PSF_Model):
         )
 
     from ._shared_methods import nuker_radial_model as radial_model
-
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            X, Y = image.get_coordinate_meshgrid()
-        return self.radial_model(
-            self.radius_metric(X, Y, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Nuker_SuperEllipse(SuperEllipse_Galaxy):
