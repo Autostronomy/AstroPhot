@@ -16,7 +16,7 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
+            metadata = {"note":"test image 1"},
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
@@ -24,7 +24,7 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
+            metadata = {"note":"test image 2"},
         )
 
         test_image = ap.image.Image_List((base_image1, base_image2))
@@ -46,7 +46,7 @@ class TestImageList(unittest.TestCase):
             self.assertEqual(
                 image.origin[1], original_image.origin[1], "image should track origin"
             )
-            self.assertEqual(image.note, original_image.note, "image should track note")
+            self.assertEqual(image.metadata["note"], original_image.metadata["note"], "image should track note")
 
         slicer = ap.image.Window_List(
             (ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)), ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)))
@@ -72,7 +72,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
@@ -80,7 +79,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
 
         test_image = ap.image.Image_List((base_image1, base_image2))
@@ -131,7 +129,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
@@ -139,7 +136,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
         test_image = ap.image.Image_List((base_image1, base_image2))
 
@@ -149,7 +145,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.ones(2),
-            note="test image 3",
         )
         arr4 = torch.zeros((15, 10))
         base_image4 = ap.image.Image(
@@ -157,7 +152,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.zeros(2),
-            note="test image 4",
         )
         second_image = ap.image.Image_List((base_image3, base_image4))
 
@@ -200,7 +194,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
@@ -208,7 +201,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
         test_image = ap.image.Image_List((base_image1, base_image2))
 
@@ -222,7 +214,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
@@ -230,7 +221,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
         test_image = ap.image.Image_List((base_image1, base_image2))
 
@@ -240,7 +230,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             reference_radec=torch.ones(2),
-            note="test image 2",
         )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Image_List((base_image1, bad_base_image2))
@@ -251,7 +240,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             reference_planexy=torch.ones(2),
-            note="test image 2",
         )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Image_List((base_image1, bad_base_image2))
@@ -262,7 +250,6 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             projection="orthographic",
-            note="test image 2",
         )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Image_List((base_image1, bad_base_image2))
@@ -278,7 +265,6 @@ class TestModelImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Model_Image(
@@ -286,7 +272,6 @@ class TestModelImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
 
         test_image = ap.image.Model_Image_List((base_image1, base_image2))
@@ -342,7 +327,6 @@ class TestModelImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Target_Image(
@@ -350,7 +334,6 @@ class TestModelImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
 
         with self.assertRaises(ap.errors.InvalidImage):
@@ -365,7 +348,6 @@ class TestTargetImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
             variance=torch.ones_like(arr1),
             mask=torch.zeros_like(arr1),
         )
@@ -375,7 +357,6 @@ class TestTargetImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
             variance=torch.ones_like(arr2),
             mask=torch.zeros_like(arr2),
         )
@@ -420,7 +401,6 @@ class TestTargetImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            note="test image 1",
             variance=torch.ones_like(arr1),
             mask=torch.zeros_like(arr1),
         )
@@ -430,7 +410,6 @@ class TestTargetImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            note="test image 2",
         )
         with self.assertRaises(ap.errors.InvalidImage):
             test_image = ap.image.Target_Image_List((base_image1, base_image2))
@@ -445,7 +424,6 @@ class TestJacobianImageList(unittest.TestCase):
             target_identity="target1",
             pixelscale=1.0,
             zeropoint=1.0,
-            note="test image 1",
             window=ap.image.Window(
                 origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((15, 10))
             ),
@@ -457,7 +435,6 @@ class TestJacobianImageList(unittest.TestCase):
             target_identity="target2",
             pixelscale=0.5,
             zeropoint=2.0,
-            note="test image 2",
             window=ap.image.Window(
                 origin=torch.zeros(2) + 0.2, pixel_shape=torch.tensor((10, 15))
             ),

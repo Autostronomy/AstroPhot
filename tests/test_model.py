@@ -156,7 +156,7 @@ class TestModel(unittest.TestCase):
         # Target that is not a target image
         arr = torch.zeros((10, 15))
         target = ap.image.Image(
-            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
+            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2)
         )
 
         with self.assertRaises(ap.errors.InvalidTarget):

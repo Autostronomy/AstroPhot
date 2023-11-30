@@ -27,7 +27,7 @@ class Image(object):
         window: an AstroPhot Window object which defines the spatial cooridnates on the sky
         filename: a filename from which to load the image.
         zeropoint: photometric zero point for converting from pixel flux to magnitude
-        note: a note about this image if any
+        metadata: Any information the user wishes to associate with this image, stored in a python dictionary
         origin: The origin of the image in the coordinate system.
     """
 
@@ -41,7 +41,7 @@ class Image(object):
         window: Optional[Window] = None,
         filename: Optional[str] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
-        note: Optional[str] = None,
+        metadata: Optional[dict] = None,
         origin: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
         identity: str = None,
@@ -65,8 +65,8 @@ class Image(object):
             The name of a file containing the image data. Default is None.
         zeropoint : float or None, optional
             The image's zeropoint, used for flux calibration. Default is None.
-        note : str or None, optional
-            A note describing the image. Default is None.
+        metadata : dict or None, optional
+            Any information the user wishes to associate with this image, stored in a python dictionary. Default is None.
         origin : numpy.ndarray or None, optional
             The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
         center : numpy.ndarray or None, optional
@@ -81,7 +81,8 @@ class Image(object):
         if state is not None:
             self.header = Image_Header(state = state["header"])
         elif fits_state is not None:
-            self.header = Image_Header(fits_state = fits_state)
+            self.set_fits_state(fits_state)
+            return
         elif header is None:
             if data is None and window is None and filename is None:
                 raise InvalidData("Image must have either data or a window to construct itself.")
@@ -92,7 +93,7 @@ class Image(object):
                 window=window,
                 filename=filename,
                 zeropoint=zeropoint,
-                note=note,
+                metadata=metadata,
                 origin=origin,
                 center=center,
                 identity=identity,
@@ -104,7 +105,9 @@ class Image(object):
         if filename is not None:
             self.load(filename)
         elif state is not None:
-            self.set_state(state)            
+            self.set_state(state)
+        elif fits_state is not None:
+            self.data = fits_state[0]["DATA"]
         else:
             # set the data
             if data is None:
@@ -199,8 +202,8 @@ class Image(object):
         return self.header.zeropoint
 
     @property
-    def note(self):
-        return self.header.note
+    def metadata(self):
+        return self.header.metadata
 
     @property
     def identity(self):
@@ -369,7 +372,7 @@ class Image(object):
 
     def get_state(self):
         state = {}
-        state["type"] = "Image"
+        state["type"] = self.__class__.__name__
         state["data"] = self.data.detach().cpu().tolist()
         state["header"] = self.header.get_state()
         return state
@@ -377,30 +380,38 @@ class Image(object):
     def set_state(self, state):
         self.set_data(state["data"], require_shape = False)
         self.header.set_state(state["header"])
-    
-    def _save_image_list(self):
-        img_header = self.header._save_image_list()
-        image_list = [
-            fits.PrimaryHDU(self._data.detach().cpu().numpy(), header=img_header)
-        ]
-        return image_list
 
-    def save(self, filename=None, overwrite=True):
-        image_list = self._save_image_list()
-        hdul = fits.HDUList(image_list)
+    def get_fits_state(self):
+        states = [{}]
+        states[0]["DATA"] = self.data.detach().cpu().numpy()
+        states[0]["HEADER"] = self.header.get_fits_state()
+        states[0]["HEADER"]["IMAGE"] = "PRIMARY"
+        return states
+
+    def set_fits_state(self, states):
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
+                self.header.set_fits_state(state["HEADER"])
+                break
+        
+    def save(self, filename = None, overwrite=True):
+        states = self.get_fits_state()
+        img_list = [
+            fits.PrimaryHDU(states[0]["DATA"], header = fits.Header(states[0]["HEADER"]))
+        ]
+        for state in states[1:]:
+            img_list.append(fits.ImageHDU(state["DATA"], header = fits.Header(state["HEADER"])))
+        hdul = fits.HDUList(img_list)
         if filename is not None:
             hdul.writeto(filename, overwrite=overwrite)
         return hdul
 
     def load(self, filename):
         hdul = fits.open(filename)
-        for hdu in hdul:
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
-                self.set_data(np.array(hdu.data, dtype=np.float64), require_shape=False)
-                self.header.set_fits_state(hdu.header)
-                break
-        return hdul
-
+        states = list({"DATA": hdu.data, "HEADER": hdu.header} for hdu in hdul)
+        self.set_fits_state(states)
+        
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other.window].copy()

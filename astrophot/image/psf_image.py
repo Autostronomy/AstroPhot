@@ -5,6 +5,7 @@ import numpy as np
 from torch.nn.functional import avg_pool2d
 
 from .image_object import Image, Image_List
+from .image_header import Image_Header
 from .model_image import Model_Image
 from .jacobian_image import Jacobian_Image
 from astropy.io import fits
@@ -144,8 +145,17 @@ class PSF_Image(Image):
 
     def expand(self, padding):
         raise NotImplementedError("expand not available for PSF_Image")
+    
+    def get_fits_state(self):
+        states = [{}]
+        states[0]["DATA"] = self.data.detach().cpu().numpy()
+        states[0]["HEADER"] = self.header.get_fits_state()
+        states[0]["HEADER"]["IMAGE"] = "PSF"
+        return states
 
-    def get_state(self):
-        state = super().get_state()
-        state["type"] = "PSF_Image"
-        return state        
+    def set_fits_state(self, states):
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PSF":
+                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
+                self.header = Image_Header(fits_state = state["HEADER"])
+                break

@@ -439,6 +439,7 @@ def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new
         if state["psf"].get("type", "AstroPhot_Model") == "PSF_Image":
             self.psf = PSF_Image(state = state["psf"])
         else:
+            print(state["psf"])
             state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]
             self.set_aux_psf(
                 AstroPhot_Model(

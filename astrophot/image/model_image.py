@@ -70,6 +70,28 @@ class Model_Image(Image):
         else:
             self.data = other
 
+    def get_state(self):
+        state = super().get_state()
+        state["target_identity"] = self.target_identity
+        return state
+    
+    def set_state(self, state):
+        super().set_state(state)
+        self.target_identity = target_identity
+
+    def get_fits_state(self):
+        states = super().get_fits_state()
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                state["HEADER"]["TRGTID"] = self.target_identity
+        return states
+
+    def set_fits_state(self, states):
+        super().set_fits_state(states)
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                self.target_identity = state["HEADER"]["TRGTID"]
+        
 
 ######################################################################
 class Model_Image_List(Image_List, Model_Image):

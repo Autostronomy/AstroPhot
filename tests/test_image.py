@@ -14,14 +14,14 @@ class TestImage(unittest.TestCase):
     def test_image_creation(self):
         arr = torch.zeros((10, 15))
         base_image = image.Image(
-            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), note="test image"
+            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2), metadata={"note": "test image"}
         )
 
         self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
         self.assertEqual(base_image.zeropoint, 1.0, "image should track zeropoint")
         self.assertEqual(base_image.origin[0], 0, "image should track origin")
         self.assertEqual(base_image.origin[1], 0, "image should track origin")
-        self.assertEqual(base_image.note, "test image", "image should track note")
+        self.assertEqual(base_image.metadata["note"], "test image", "image should track note")
 
         slicer = image.Window(origin = (3, 2), pixel_shape = (4, 5))
         sliced_image = base_image[slicer]
@@ -34,13 +34,13 @@ class TestImage(unittest.TestCase):
             base_image.origin[1], 0, "subimage should not change image origin"
         )
 
-        second_base_image = image.Image(data = arr, pixelscale=1.0, note="test image")
+        second_base_image = image.Image(data = arr, pixelscale=1.0, metadata={"note": "test image"})
         self.assertEqual(base_image.pixel_length, 1.0, "image should track pixelscale")
         self.assertIsNone(second_base_image.zeropoint, "image should track zeropoint")
         self.assertEqual(second_base_image.origin[0], 0, "image should track origin")
         self.assertEqual(second_base_image.origin[1], 0, "image should track origin")
         self.assertEqual(
-            second_base_image.note, "test image", "image should track note"
+            second_base_image.metadata["note"], "test image", "image should track note"
         )
         
     def test_copy(self):
@@ -50,7 +50,6 @@ class TestImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         copy_image = new_image.copy()
@@ -105,7 +104,6 @@ class TestImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.ones(2),
-            note="test image",
         )
         slicer = image.Window(origin = (0, 0), pixel_shape = (5, 5))
         sliced_image = base_image[slicer]
@@ -121,7 +119,6 @@ class TestImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=[3, 3],
-            note="second image",
         )
 
         # Test iadd
@@ -174,14 +171,12 @@ class TestImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.ones(2),
-            note="test image",
         )
         second_image = image.Image(
             data=torch.ones((5, 5)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=[3, 3],
-            note="second image",
         )
 
         new_img = base_image + second_image
@@ -211,7 +206,6 @@ class TestImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         # image reduction
@@ -264,7 +258,6 @@ class TestImage(unittest.TestCase):
             pixelscale=0.76,
             zeropoint=21.4,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         new_image.save("Test_AstroPhot.fits")
@@ -312,7 +305,6 @@ class TestImage(unittest.TestCase):
             pixelscale=0.76,
             zeropoint=21.4,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         self.assertIsInstance(str(new_image), str, "String representation should be a string!")
@@ -325,7 +317,6 @@ class TestImage(unittest.TestCase):
             pixelscale=0.76,
             zeropoint=21.4,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         # Change data badly
@@ -349,7 +340,6 @@ class TestTargetImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         self.assertTrue(new_image.has_variance, "target image should store variance")
@@ -371,7 +361,6 @@ class TestTargetImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
         self.assertTrue(new_image.has_mask, "target image should store mask")
 
@@ -391,7 +380,6 @@ class TestTargetImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
         self.assertTrue(new_image.has_psf, "target image should store variance")
         self.assertEqual(
@@ -415,7 +403,6 @@ class TestTargetImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
         smaller_image = new_image.reduce(3)
         self.assertEqual(smaller_image.data[0][0], 9, "reduction should sum flux")
@@ -431,7 +418,6 @@ class TestTargetImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         new_image.save("Test_target_AstroPhot.fits")
@@ -452,7 +438,6 @@ class TestTargetImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
 
         # bad variance
@@ -487,7 +472,6 @@ class TestPSFImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
             psf = psf_image,
         )
 
@@ -510,14 +494,12 @@ class TestModelImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
         other_image = image.Model_Image(
             data=5 * torch.ones((4, 4)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 4 + 0.1,
-            note="other image",
         )
 
         new_image.replace(other_image)
@@ -541,7 +523,6 @@ class TestModelImage(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
         new_image.shift_origin(torch.tensor((-0.1, -0.1), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device), is_prepadded=False)
 
@@ -569,7 +550,6 @@ class TestJacobianImage(unittest.TestCase):
             window=ap.image.Window(
                 origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
             ),
-            note="test image",
         )
         other_image = ap.image.Jacobian_Image(
             parameters=["b", "d"],
@@ -580,7 +560,6 @@ class TestJacobianImage(unittest.TestCase):
             window=ap.image.Window(
                 origin=torch.zeros(2) + 4 + 0.1, pixel_shape=torch.tensor((4, 4))
             ),
-            note="other image",
         )
 
         new_image += other_image
@@ -609,7 +588,6 @@ class TestJacobianImage(unittest.TestCase):
                 window=ap.image.Window(
                     origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
                 ),
-                note="test image",
             )
 
         # Adding a model image to a jacobian image
@@ -622,14 +600,12 @@ class TestJacobianImage(unittest.TestCase):
             window=ap.image.Window(
                 origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((32, 16))
             ),
-            note="test image",
         )
         bad_image = image.Model_Image(
             data=torch.ones((16, 32)),
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
-            note="test image",
         )
         with self.assertRaises(ap.errors.InvalidImage):
             new_image += bad_image

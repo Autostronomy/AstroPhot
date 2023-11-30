@@ -466,44 +466,53 @@ class Target_Image(Image):
         """
         raise NotImplementedError("expand not available for Target_Image yet")
 
-    def _save_image_list(self):
-        image_list = super()._save_image_list()
-        if self._psf is not None:
-            self.psf._save_image_list(image_list)
+    def get_state(self):
+        state = super().get_state()
+
         if self.has_weight:
-            wgt_header = fits.Header()
-            wgt_header["IMAGE"] = "WEIGHT"
-            image_list.append(
-                fits.ImageHDU(self._weight.detach().cpu().numpy(), header=wgt_header)
-            )
-        if self._mask is not None:
-            mask_header = fits.Header()
-            mask_header["IMAGE"] = "MASK"
-            image_list.append(
-                fits.ImageHDU(
-                    self._mask.detach().cpu().numpy().astype(int), header=mask_header
-                )
-            )
-        return image_list
+            state["weight"] = self.weight.detach().cpu().tolist()
+        if self.has_mask:
+            state["mask"] = self.mask.detach().cpu().tolist()
+        if self.has_psf:
+            state["psf"] = self.psf.get_state()
 
-    def load(self, filename):
-        """
-        Loads the `Target_Image` from a fits file. Currently this only works reliably from fits files which were created by `AstroPhot`.
-        """
-        hdul = super().load(filename)
+        return state
 
-        for hdu in hdul:
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.psf = PSF_Image(
-                    data=np.array(hdu.data, dtype=np.float64),
-                    fits_state=hdu.header,
-                )
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "WEIGHT":
-                self.set_weight(np.array(hdu.data, dtype=np.float64))
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
-                self.set_mask(np.array(hdu.data, dtype=bool))
-        return hdul
+    def set_state(self, state):
+        super().set_state(state)
 
+        self.weight = state.get("weight", None)
+        self.mask = state.get("mask", None)
+        if "psf" in state:
+            self.psf = PSF_Image(state = state["psf"])
+
+    def get_fits_state(self):
+        states = super().get_fits_state()
+        if self.has_weight:
+            states.append({
+                "DATA": self.weight.detach().cpu().numpy(),
+                "HEADER": {"IMAGE": "WEIGHT"},
+            })
+        if self.has_mask:
+            states.append({
+                "DATA": self.mask.detach().cpu().numpy(),
+                "HEADER": {"IMAGE": "MASK"},
+            })
+        if self.has_psf:
+            states += self.psf.get_fits_state()
+
+        return states
+
+    def set_fits_state(self, states):
+        super().set_fits_state(states)
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "WEIGHT":
+                self.weight = np.array(state["DATA"], dtype = np.float64)
+            if state["HEADER"]["IMAGE"] == "mask":
+                self.mask = np.array(state["DATA"], dtype = bool)
+            if state["HEADER"]["IMAGE"] == "PSF":
+                self.psf = PSF_Image(fits_state = states)
+                            
 
 class Target_Image_List(Image_List, Target_Image):
     def __init__(self, *args, **kwargs):
