@@ -39,7 +39,7 @@ class Airy_PSF(PSF_Model):
     """
     model_type = f"airy {PSF_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)", "locked": True},
+        "I0": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "aRL": {"units": "a/(R lambda)"}
     }
     _parameter_order = PSF_Model._parameter_order + ("I0", "aRL")

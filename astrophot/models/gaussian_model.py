@@ -284,7 +284,7 @@ class Gaussian_PSF(PSF_Model):
     model_type = f"gaussian {PSF_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)", "locked": True},
+        "flux": {"units": "log10(flux)", "value": 0., "locked": True},
     }
     _parameter_order = PSF_Model._parameter_order + ("sigma", "flux")
     useable = True

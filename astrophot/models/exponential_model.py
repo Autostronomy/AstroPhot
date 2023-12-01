@@ -102,7 +102,7 @@ class Exponential_PSF(PSF_Model):
 
     model_type = f"exponential {PSF_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)", "locked": True},
+        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = PSF_Model._parameter_order + ("Re", "Ie")

@@ -23,7 +23,7 @@ class Point_Source(Component_Model):
     """
     model_type = f"point {Component_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux/arcsec^2)"},
+        "flux": {"units": "log10(flux)"},
     }
     _parameter_order = Component_Model._parameter_order + ("flux",)
     useable = True
@@ -46,8 +46,19 @@ class Point_Source(Component_Model):
         if parameters["flux"].value is not None:
             return
         target_area = target[self.window]
+        target_dat = target_area.data.detach().cpu().numpy()
         with Param_Unlock(parameters["flux"]), Param_SoftLimits(parameters["flux"]):
-            parameters["flux"].value = torch.log10(torch.sum(target_area.data))
+            icenter = target_area.plane_to_pixel(parameters["center"].value)
+            edge = np.concatenate(
+                (
+                    target_dat[:, 0],
+                    target_dat[:, -1],
+                    target_dat[0, :],
+                    target_dat[-1, :],
+                )
+            )
+            edge_average = np.median(edge)
+            parameters["flux"].value = np.log10(np.abs(np.sum(target_dat - edge_average)))
             parameters["flux"].uncertainty = torch.std(target_area.data) / (np.log(10) * 10**parameters["flux"].value)
 
     # Psf convolution should be on by default since this is a delta function
@@ -125,18 +136,19 @@ class Point_Source(Component_Model):
         # Compute the center offset
         pixel_center = working_image.plane_to_pixel(parameters["center"].value)
         center_shift = pixel_center - torch.round(pixel_center)
-        working_image.header.pixel_shift(center_shift)
-        psf.window.reference_planexy = working_image.pixel_to_plane(torch.round(pixel_center))
+        #working_image.header.pixel_shift(center_shift)
+        psf.window.shift(working_image.pixel_to_plane(torch.round(pixel_center)))
         psf.data = self._shift_psf(psf = psf.data, shift = center_shift, shift_method = self.psf_subpixel_shift, keep_pad = False)
+        psf.data /= torch.sum(psf.data)    
         
         # Scale for psf flux
-        psf.data *= psf.pixel_area * 10**parameters["flux"].value
+        psf.data *= 10**parameters["flux"].value
 
         # Fill pixels with the PSF image
         working_image += psf
         
         # Shift image back to align with original pixel grid
-        working_image.header.pixel_shift(-center_shift)
+        #working_image.header.pixel_shift(-center_shift)
 
         # Return to image pixelscale
         working_image = working_image.reduce(psf_upscale)

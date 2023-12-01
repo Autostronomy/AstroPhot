@@ -117,7 +117,7 @@ class Nuker_PSF(PSF_Model):
     model_type = f"nuker {PSF_Model.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)", "locked": True},
+        "Ib": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},

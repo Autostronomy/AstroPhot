@@ -40,7 +40,7 @@ class Eigen_PSF(PSF_Model):
 
     model_type = f"eigen {PSF_Model.model_type}"
     parameter_specs = {
-        "flux": {"units": "log10(flux/arcsec^2)", "locked": True},
+        "flux": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "weights": {"units": "unitless"},
     }
     _parameter_order = PSF_Model._parameter_order + ("flux","weights")

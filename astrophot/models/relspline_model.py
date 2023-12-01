@@ -69,7 +69,7 @@ class RelSpline_PSF(PSF_Model):
 
     model_type = f"relspline {PSF_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)", "locked": True},
+        "I0": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "dI(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = PSF_Model._parameter_order + ("I0", "dI(R)")
