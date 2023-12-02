@@ -155,9 +155,10 @@ class Window(WCS):
         
     @property
     def shape(self):
-        S1 = self.pixel_shape.to(dtype=AP_config.ap_dtype)
+        dtype, device = self.pixelscale.dtype, self.pixelscale.device
+        S1 = self.pixel_shape.to(dtype=dtype, device=device)
         S1[1] = 0.
-        S2 = self.pixel_shape.to(dtype=AP_config.ap_dtype)
+        S2 = self.pixel_shape.to(dtype=dtype, device=device)
         S2[0] = 0.
         return torch.stack((
             torch.linalg.norm(self.pixelscale @ S1),
@@ -169,7 +170,7 @@ class Window(WCS):
             self._pixel_shape = None
             return
         shape = torch.as_tensor(
-            shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            shape, dtype=self.pixelscale.dtype, device=self.pixelscale.device
         )
         self.pixel_shape = shape / torch.sqrt(torch.sum(self.pixelscale**2, dim = 0))
         
@@ -188,7 +189,7 @@ class Window(WCS):
         
     @property
     def end(self):
-        return self.pixel_to_plane_delta(self.pixel_shape.to(dtype=AP_config.ap_dtype))
+        return self.pixel_to_plane_delta(self.pixel_shape.to(dtype=self.pixelscale.dtype,device=self.pixelscale.device))
 
     @property
     def origin(self):
@@ -509,7 +510,7 @@ class Window(WCS):
         return self
 
     def __str__(self):
-        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, pixelscale: {self.pixelscale.detach().tolist()}"
+        return f"window origin: {self.origin.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}, center: {self.center.detach().cpu().tolist()}, pixelscale: {self.pixelscale.detach().cpu().tolist()}"
 
     def __repr__(self):
         return f"window pixel_shape: {self.pixel_shape.detach().cpu().tolist()}, shape: {self.shape.detach().cpu().tolist()}\n" + super().__repr__()
