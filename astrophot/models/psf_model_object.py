@@ -212,7 +212,7 @@ class PSF_Model(AstroPhot_Model):
             parameters = self.parameters
 
         # Create an image to store pixel samples
-        working_image = PSF_Image(
+        working_image = Model_Image(
             window=working_window
         )
         if self.model_integrated is True:

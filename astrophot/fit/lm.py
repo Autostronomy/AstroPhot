@@ -231,7 +231,6 @@ class LM(BaseOptimizer):
         in chi2 is found. Used internally.
 
         """
-        print(self.model.parameters)
         Y0 = self.forward(parameters = self.current_state).flatten("data")
         J = self.jacobian(parameters = self.current_state).flatten("data")
         r = -self.W * (self.Y - Y0)
