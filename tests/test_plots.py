@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from astrophot import image
 import astrophot as ap
-from utils import make_basic_sersic
+from utils import make_basic_sersic, make_basic_gaussian_psf
 
 class TestPlots(unittest.TestCase):
     """
@@ -18,6 +18,14 @@ class TestPlots(unittest.TestCase):
         fig, ax = plt.subplots()
 
         ap.plots.target_image(fig, ax, target)
+        plt.close()
+
+    def test_psf_image(self):
+        target = make_basic_gaussian_psf()
+
+        fig, ax = plt.subplots()
+
+        ap.plots.psf_image(fig, ax, target)
         plt.close()
         
     def test_target_image_list(self):
