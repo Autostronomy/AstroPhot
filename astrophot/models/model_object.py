@@ -15,6 +15,7 @@ from ..image import (
     Window_List,
     Target_Image,
     Target_Image_List,
+    Image,
 )
 from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits, Param_Mask
 from ..utils.initialize import center_of_mass
@@ -244,8 +245,8 @@ class Component_Model(AstroPhot_Model):
         self,
         X: Optional[torch.Tensor] = None,
         Y: Optional[torch.Tensor] = None,
-        image: Optional["Image"] = None,
-        parameters: "Parameter_Node" = None,
+        image: Optional[Image] = None,
+        parameters: Parameter_Node = None,
         **kwargs,
     ):
         """Evaluate the model on every pixel in the given image. The
@@ -263,7 +264,7 @@ class Component_Model(AstroPhot_Model):
 
     def sample(
         self,
-        image: Optional["Image"] = None,
+        image: Optional[Image] = None,
         window: Optional[Window] = None,
         parameters: Optional[Parameter_Node] = None,
     ):

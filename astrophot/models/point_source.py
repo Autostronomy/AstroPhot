@@ -8,8 +8,9 @@ from .model_object import Component_Model
 from .core_model import AstroPhot_Model
 from .psf_model_object import PSF_Model
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..image import PSF_Image, Window, Model_Image
+from ..image import PSF_Image, Window, Model_Image, Image
 from ._shared_methods import select_target
+from ..errors import SpecificationConflict
 
 __all__ = ("Point_Source",)
 
@@ -71,7 +72,7 @@ class Point_Source(Component_Model):
     
     def sample(
         self,
-        image: Optional["Image"] = None,
+        image: Optional[Image] = None,
         window: Optional[Window] = None,
         parameters: Optional[Parameter_Node] = None,
     ):

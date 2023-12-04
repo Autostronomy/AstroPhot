@@ -9,7 +9,8 @@ from ._shared_methods import select_target
 from ..utils.initialize import isophotes
 from ..utils.angle_operations import Angle_Average
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..param import Param_Unlock, Param_SoftLimits
+from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
+from ..image import Image
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
@@ -43,7 +44,7 @@ class Edgeon_Model(Component_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
+        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
         if parameters["PA"].value is not None:
@@ -95,8 +96,8 @@ class Edgeon_Model(Component_Model):
         self,
         X=None,
         Y=None,
-        image: "Image" = None,
-        parameters: "Parameter_Node" = None,
+        image: Image = None,
+        parameters: Parameter_Node = None,
         **kwargs,
     ):
         if X is None:
@@ -128,7 +129,7 @@ class Edgeon_Sech(Edgeon_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
+        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
         if (parameters["I0"].value is not None) and (
@@ -187,7 +188,7 @@ class Edgeon_Isothermal(Edgeon_Sech):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
+        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
         if parameters["rs"].value is not None:

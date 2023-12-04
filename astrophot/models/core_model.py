@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import yaml
 
 from ..utils.conversions.optimization import cyclic_difference_np
-from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
+from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
 from ..utils.optimization import reduced_chi_squared
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import Model_Image, Window, Target_Image, Target_Image_List

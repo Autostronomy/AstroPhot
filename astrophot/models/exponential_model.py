@@ -18,6 +18,7 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
+from ..param import Parameter_Node
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import exponential_torch, exponential_np
@@ -72,7 +73,7 @@ class Exponential_Galaxy(Galaxy_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
+        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
 
