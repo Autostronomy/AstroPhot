@@ -50,12 +50,6 @@ class PSF_Image(Image):
         self.window.reference_planexy = (0,0)
         self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
         self.window.reference_imagexy = (0,0)
-        if not torch.all(
-            (torch.tensor(self.data.shape) % 2) == 1
-        ):
-            raise InvalidData("psf data must have odd shape")
-        if torch.any(self.data < 0):
-            raise InvalidData("psf data must be non-negative")
 
     def set_data(
         self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
@@ -67,7 +61,11 @@ class PSF_Image(Image):
         ):
             raise SpecificationConflict(f"psf must have odd shape, not {self.data.shape}")
         if torch.any(self.data < 0):
-            raise InvalidData("PSF image should have positive values.")
+            AP_config.ap_logger.warning("psf data should be non-negative")
+
+    def normalize(self):
+        """Normalizes the PSF image to have a sum of 1."""
+        self.data /= torch.sum(self.data)
 
     @property
     def psf_border_int(self):

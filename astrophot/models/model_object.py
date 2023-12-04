@@ -216,7 +216,7 @@ class Component_Model(AstroPhot_Model):
 
         # Convert center coordinates to target area array indices
         init_icenter = target_area.plane_to_pixel(parameters["center"].value)
-
+        
         # Compute center of mass in window
         COM = center_of_mass(
             (

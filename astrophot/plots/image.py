@@ -7,14 +7,14 @@ from matplotlib import pyplot as plt
 import matplotlib
 from scipy.stats import iqr
 
-from ..models import Group_Model, Sky_Model
+from ..models import Group_Model, Sky_Model, PSF_Model
 from ..image import Image_List, Window_List
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
 
-__all__ = ["target_image", "model_image", "residual_image", "model_window"]
+__all__ = ["target_image", "psf_image", "model_image", "residual_image", "model_window"]
 
 
 def target_image(fig, ax, target, window=None, **kwargs):
@@ -97,6 +97,63 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
     return fig, ax
 
+@torch.no_grad()
+def psf_image(
+    fig,
+    ax,
+    psf,
+    window=None,
+    cmap_levels=None,
+    flipx=False,
+    **kwargs,
+):
+    if isinstance(psf, PSF_Model):
+        psf = psf()
+    # recursive call for target image list
+    if isinstance(psf, Image_List):
+        for i in range(len(psf.image_list)):
+            psf_image(fig, ax[i], psf.image_list[i], window=window, **kwargs)
+        return fig, ax
+    
+    if window is None:
+        window = psf.window
+    if flipx:
+        ax.invert_xaxis()
+
+    # cut out the requested window
+    psf = psf[window]
+        
+    # Evaluate the model image
+    X, Y = psf.get_coordinate_corner_meshgrid()
+    X = X.detach().cpu().numpy()
+    Y = Y.detach().cpu().numpy()
+    psf = psf.data.detach().cpu().numpy()
+
+    # Default kwargs for image
+    imshow_kwargs = {
+        "cmap": cmap_grad,
+        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+    }
+
+    # Update with user provided kwargs
+    imshow_kwargs.update(kwargs)
+
+    # if requested, convert the continuous colourmap into discrete levels
+    if cmap_levels is not None:
+        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(
+            list(imshow_kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
+        )
+
+    # Plot the image
+    im = ax.pcolormesh(X, Y, psf, **imshow_kwargs)
+
+    # Enforce equal spacing on x y
+    ax.axis("equal")
+    ax.set_xlabel("PSF X [arcsec]")
+    ax.set_ylabel("PSF Y [arcsec]")
+
+    return fig, ax
+    
 
 @torch.no_grad()
 def model_image(
