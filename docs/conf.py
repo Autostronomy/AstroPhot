@@ -35,7 +35,7 @@ author = "Connor Stone"
 
 # Version information
 version = "0.14"
-release = "0.14.0"
+release = "0.14.1"
 
 # Patterns of files and directories to exclude
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
