@@ -207,6 +207,42 @@ class TestImageList(unittest.TestCase):
         self.assertIsInstance(str(test_image), str, "String representation should be a string!")
         self.assertIsInstance(repr(test_image), str, "Repr should be a string!")
 
+    def test_image_list_windowset(self):
+        arr1 = torch.zeros((10, 15))
+        base_image1 = ap.image.Image(
+            data=arr1,
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.zeros(2),
+            note="test image 1",
+        )
+        arr2 = torch.ones((15, 10))
+        base_image2 = ap.image.Image(
+            data=arr2,
+            pixelscale=0.5,
+            zeropoint=2.0,
+            origin=torch.ones(2),
+            note="test image 2",
+        )
+        test_image = ap.image.Image_List((base_image1, base_image2))
+        arr3 = torch.ones((10, 15))
+        base_image3 = ap.image.Image(
+            data=arr3,
+            pixelscale=1.0,
+            zeropoint=1.0,
+            origin=torch.ones(2),
+            note="test image 3",
+        )
+        arr4 = torch.zeros((15, 10))
+        base_image4 = ap.image.Image(
+            data=arr4,
+            pixelscale=0.5,
+            zeropoint=2.0,
+            origin=torch.zeros(2),
+            note="test image 4",
+        )
+        second_image = ap.image.Image_List((base_image3, base_image4), window = test_image.window)       
+
     def test_image_list_errors(self):
         arr1 = torch.zeros((10, 15))
         base_image1 = ap.image.Image(
@@ -223,7 +259,6 @@ class TestImageList(unittest.TestCase):
             origin=torch.ones(2),
         )
         test_image = ap.image.Image_List((base_image1, base_image2))
-
         # Bad ra dec reference point
         bad_base_image2 = ap.image.Image(
             data=arr2,
@@ -253,8 +288,6 @@ class TestImageList(unittest.TestCase):
         )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Image_List((base_image1, bad_base_image2))
-
-        
 
 
 class TestModelImageList(unittest.TestCase):
