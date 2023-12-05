@@ -1,6 +1,7 @@
 import sys
 import argparse
 import requests
+import torch
 from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, param, AP_config
 

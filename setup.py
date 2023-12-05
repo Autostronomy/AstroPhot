@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import astrophot.__init__ as ap
 import os
 
 def read(fname):
@@ -7,13 +6,13 @@ def read(fname):
 
 setup(
     name="astrophot",
-    version=ap.__version__,    
+    version=read("VERSION"),    
     description="A fast, flexible, differentiable, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry",
     long_description=read("README.md"),
     long_description_content_type='text/markdown',
     url="https://github.com/Autostronomy/AstroPhot",
-    author=ap.__author__,
-    author_email=ap.__email__,
+    author="Connor Stone",
+    author_email="connorstone628@gmail.com",
     license="GPL-3.0 license",
     packages=find_packages(),
     install_requires=["scipy",
