@@ -509,7 +509,7 @@ class Component_Model(AstroPhot_Model):
 
         pixel_shape = window.pixel_shape.detach().cpu().numpy()
         Ncells = np.int64(np.round(np.ceil(pixel_shape / self.image_chunksize)))
-        cellsize = np.int64(np.round(window.pixel_shape / Ncells))
+        cellsize = np.int64(np.round(pixel_shape / Ncells))
         
         for nx in range(Ncells[0]):
             for ny in range(Ncells[1]):
