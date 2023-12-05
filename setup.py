@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name="astrophot",
-    version=read("VERSION"),    
+    version=read("astrophot/VERSION"),    
     description="A fast, flexible, differentiable, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry",
     long_description=read("README.md"),
     long_description_content_type='text/markdown',
@@ -15,6 +15,7 @@ setup(
     author_email="connorstone628@gmail.com",
     license="GPL-3.0 license",
     packages=find_packages(),
+    package_data={'astrophot':['VERSION']},
     install_requires=["scipy",
                       "numpy",
                       "astropy",
