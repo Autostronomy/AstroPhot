@@ -426,9 +426,10 @@ class Image(object):
 
 
 class Image_List(Image):
-    def __init__(self, image_list):
+    def __init__(self, image_list, window = None):
         self.image_list = list(image_list)
         self.check_wcs()
+        self.window = window
         
     def check_wcs(self):
         """Ensure the WCS systems being used by all the windows in this list
@@ -450,6 +451,17 @@ class Image_List(Image):
     def window(self):
         return Window_List(list(image.window for image in self.image_list))
 
+    @window.setter
+    def window(self, window):
+        if window is None:
+            return
+        
+        if not isinstance(window, Window_List):
+            raise InvalidWindow("Target_List must take a Window_List object as its window")
+        
+        for i in range(len(self.image_list)):
+            self.image_list[i] = self.image_list[i][window.window_list[i]]
+            
     @property
     def pixelscale(self):
         return tuple(image.pixelscale for image in self.image_list)
