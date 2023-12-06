@@ -63,7 +63,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           verbose: true
           skip-existing: true
-      - name: Check pypi packages
+      - name: Check test pypi packages
         run: |
           sleep 3
           python -m pip install --upgrade pip
