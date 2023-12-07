@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "astrophot"
+dynamic = [
+        "dependencies",
+        "version"
+]
+authors = [
+  { name="Connor Stone", email="connorstone628@gmail.com" },
+]
+description = "A fast, flexible, automated, and differentiable astronomical image 2D forward modelling tool for precise parallel multi-wavelength photometry."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+keywords = [
+        "astrophot",
+        "photometry",
+        "astronomy",
+        "scientific computing",
+        "astrophysics",
+        "differentiable programming",
+        "pytorch"
+]
+classifiers=[
+        "Development Status :: 1 - Planning",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",  
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3"
+]
+
+[project.urls]
+Homepage = "https://autostronomy.github.io/AstroPhot/"
+Documentation = "https://autostronomy.github.io/AstroPhot/"
+Repository = "https://github.com/Autostronomy/AstroPhot"
+Issues = "https://github.com/Autostronomy/AstroPhot/issues"
+
+[project.scripts]
+astrophot = "astrophot:run_from_terminal"
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "astrophot/_version.py"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"

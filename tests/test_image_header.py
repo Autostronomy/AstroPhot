@@ -66,7 +66,7 @@ class TestImageHeader(unittest.TestCase):
 
         sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
         wcs_world = torch.tensor((sky_coord.ra.deg, sky_coord.dec.deg))
-        self.assertTrue(torch.allclose(torch.tensor(wcs.wcs.crpix), H.world_to_pixel(wcs_world)), "Astropy WCS initialization should map crval crpix coordinates")
+        self.assertTrue(torch.allclose(torch.tensor(wcs.wcs.crpix, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device), H.world_to_pixel(wcs_world)), "Astropy WCS initialization should map crval crpix coordinates")
         
         
     def test_image_header_wcs_roundtrip(self):

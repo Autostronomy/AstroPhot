@@ -3,6 +3,7 @@
 
 import os
 import sys
+import astrophot as ap
 
 # Add the package root to the system path to enable autodoc to find modules.
 sys.path.insert(0, os.path.abspath("../"))
@@ -34,8 +35,8 @@ copyright = "2023, Connor Stone"
 author = "Connor Stone"
 
 # Version information
-version = "0.14"
-release = "0.14.1"
+version = ap.__version__
+release = ap.__version__
 
 # Patterns of files and directories to exclude
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
