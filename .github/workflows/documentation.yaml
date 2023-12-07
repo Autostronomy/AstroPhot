@@ -16,6 +16,12 @@ jobs:
           cache: 'pip'
       - run: |
           pip install -r requirements.txt
+
+      - name: Install AstroPhot
+        run: |
+          cd $GITHUB_WORKSPACE/
+          pip install -e .
+          pip show astrophot          
           
       - name: Install dependencies
         run: |
