@@ -175,7 +175,7 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
         )
         deep[select] = intdeep
     else:
-        raise ValueError(
+        raise SpecificationConflict(
             f"{self.name} has unknown integration mode: {self.integrate_mode}. Should be one of: none, threshold"
         )
     return deep

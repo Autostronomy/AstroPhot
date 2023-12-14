@@ -91,10 +91,14 @@ class TestModel(unittest.TestCase):
         model.integrate_mode = "none"
         res = model()
         model.integrate_mode = "should raise"
-        self.assertRaises(ValueError, model)
+        self.assertRaises(ap.errors.SpecificationConflict, model)
+        model.integrate_mode = "none"
+        model.sampling_mode = "should raise"
+        self.assertRaises(ap.errors.SpecificationConflict, model)     
+        model.sampling_mode = "midpoint"   
 
         # test PSF modes
-        target.psf = np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]])
+        model.psf = np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]])
         model.integrate_mode = "none"
         model.psf_mode = "full"
         model.psf_convolve_mode = "direct"

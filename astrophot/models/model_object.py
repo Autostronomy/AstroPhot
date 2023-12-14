@@ -176,8 +176,8 @@ class Component_Model(AstroPhot_Model):
         elif isinstance(val, AstroPhot_Model):
             self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(val, pixelscale=self.target.pixelscale, psf_upscale=1)
-            AP_config.ap_logger.warn(
+            self._psf = PSF_Image(data=val, pixelscale=self.target.pixelscale, psf_upscale=1)
+            AP_config.ap_logger.warning(
                 "Setting PSF with pixel matrix, assuming target pixelscale is the same as "
                 "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
                 "or ap.models.AstroPhot_Model object instead."
