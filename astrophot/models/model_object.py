@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from .core_model import AstroPhot_Model
 from ..image import (
+    Image,
     Model_Image,
     Window,
     PSF_Image,
@@ -243,8 +244,8 @@ class Component_Model(AstroPhot_Model):
         self,
         X: Optional[torch.Tensor] = None,
         Y: Optional[torch.Tensor] = None,
-        image: Optional["Image"] = None,
-        parameters: "Parameter_Node" = None,
+        image: Optional[Image] = None,
+        parameters: Parameter_Node = None,
         **kwargs,
     ):
         """Evaluate the model on every pixel in the given image. The
@@ -262,7 +263,7 @@ class Component_Model(AstroPhot_Model):
 
     def sample(
         self,
-        image: Optional["Image"] = None,
+        image: Optional[Image] = None,
         window: Optional[Window] = None,
         parameters: Optional[Parameter_Node] = None,
     ):

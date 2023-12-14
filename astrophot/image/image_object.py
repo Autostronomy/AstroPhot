@@ -10,7 +10,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .window_object import Window, Window_List
 from .image_header import Image_Header
 from .. import AP_config
-from ..errors import SpecificationConflict, ConflicingWCS
+from ..errors import SpecificationConflict, ConflicingWCS, InvalidWindow
 
 __all__ = ["Image", "Image_List"]
 
@@ -34,7 +34,7 @@ class Image(object):
     def __init__(
         self,
         *,
-        data: Optional[Union[torch.Tensor]] = None,
+        data: Optional[torch.Tensor] = None,
         header: Optional[Image_Header] = None,
         wcs: Optional[AstropyWCS] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
@@ -168,6 +168,16 @@ class Image(object):
             torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the center.
         """
         return self.header.window.center
+    
+    @property
+    def size(self) -> torch.Tensor:
+        """
+        Returns the size of the image window, the number of pixels in the image.
+
+        Returns:
+            torch.Tensor: A 0D tensor containing the number of pixels.
+        """
+        return self.header.window.size
 
     @property
     def window(self):

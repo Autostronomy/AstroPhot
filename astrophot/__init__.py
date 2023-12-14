@@ -4,6 +4,7 @@ import requests
 import torch
 from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, param, AP_config
+
 from ._version import version as VERSION  # noqa
 
 # meta data
@@ -39,9 +40,7 @@ def run_from_terminal() -> None:
         None
 
     """
-    AP_config.ap_logger.debug(
-        "running from the terminal, not sure if it will catch me."
-    )
+    AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog="astrophot",
         description="Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/Autostronomy/AstroPhot",

@@ -13,6 +13,7 @@ from pyro.infer.mcmc.adaptation import WarmupAdapter, BlockMassMatrix
 from pyro.ops.welford import WelfordCovariance
 
 from .base import BaseOptimizer
+from ..models import AstroPhot_Model
 from .. import AP_config
 
 __all__ = ["HMC"]
@@ -82,7 +83,7 @@ class HMC(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AstroPhot_Model",
+        model: AstroPhot_Model,
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
         **kwargs
