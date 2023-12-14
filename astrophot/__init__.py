@@ -5,7 +5,14 @@ import torch
 from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, param, AP_config
 
-from ._version import version as VERSION  # noqa
+try:
+    from ._version import version as VERSION  # noqa
+except ModuleNotFoundError:
+    VERSION = "0.0.0"
+    print(
+        "WARNING: AstroPhot version number not found. This is likely because you are running AstroPhot from a source directory."
+    )
+
 
 # meta data
 __version__ = VERSION
