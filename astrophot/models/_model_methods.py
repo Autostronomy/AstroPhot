@@ -15,9 +15,10 @@ from ..utils.interpolate import (
 from ..image import Model_Image, Target_Image, Window
 from ..utils.operations import (
     fft_convolve_torch,
-    fft_convolve_multi_torch,
     grid_integrate,
+    single_quad_integrate,
 )
+from ..errors import SpecificationConflict
 from .. import AP_config
 
 
@@ -28,9 +29,7 @@ def angular_metric(self, X, Y, image=None, parameters=None):
 
 @default_internal
 def radius_metric(self, X, Y, image=None, parameters=None):
-    return torch.sqrt(
-        (X) ** 2 + (Y) ** 2 + self.softening**2
-    )
+    return torch.sqrt(X**2 + Y**2 + self.softening**2)
 
 
 @classmethod
@@ -73,7 +72,7 @@ def build_parameters(self):
 
 
 def _sample_init(self, image, parameters, center):
-    if self.sampling_mode == "midpoint" and max(image.data.shape) >= 100:
+    if self.sampling_mode == "midpoint":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
         mid = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
@@ -89,7 +88,33 @@ def _sample_init(self, image, parameters, center):
             mode="replicate",
         ).squeeze()
         return mid + curvature, mid
-    elif self.sampling_mode == "trapezoid" and max(image.data.shape) >= 100:
+    elif self.sampling_mode == "simpsons":
+        Coords = image.get_coordinate_simps_meshgrid()
+        X, Y = Coords - center[..., None, None]
+        dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
+        kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        # midpoint is just every other sample in the simpsons grid
+        mid = dens[1::2, 1::2]
+        simps = torch.nn.functional.conv2d(
+            dens.view(1, 1, *dens.shape), kernel, stride=2, padding="valid"
+        )
+        return mid.squeeze(), simps.squeeze()
+    elif "quad" in self.sampling_mode:
+        quad_level = int(self.sampling_mode[self.sampling_mode.find(":") + 1 :])
+        Coords = image.get_coordinate_meshgrid()
+        X, Y = Coords - center[..., None, None]
+        res, ref = single_quad_integrate(
+            X=X,
+            Y=Y,
+            image_header=image.header,
+            eval_brightness=self.evaluate_model,
+            eval_parameters=parameters,
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+            quad_level=quad_level,
+        )
+        return ref, res
+    elif self.sampling_mode == "trapezoid":
         Coords = image.get_coordinate_corner_meshgrid()
         X, Y = Coords - center[..., None, None]
         dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
@@ -115,16 +140,9 @@ def _sample_init(self, image, parameters, center):
         ).squeeze()
         return trapz + curvature, trapz
 
-    Coords = image.get_coordinate_simps_meshgrid()
-    X, Y = Coords - center[..., None, None]
-    dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
-    kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-    # midpoint is just every other sample in the simpsons grid
-    mid = dens[1::2, 1::2]
-    simps = torch.nn.functional.conv2d(
-        dens.view(1, 1, *dens.shape), kernel, stride=2, padding="valid"
+    raise SpecificationConflict(
+        f"{self.name} has unknown sampling mode: {self.sampling_mode}. Should be one of: midpoint, simpsons, quad:level, trapezoid"
     )
-    return mid.squeeze(), simps.squeeze()
 
 
 def _integrate_reference(self, image_data, image_header, parameters):
@@ -157,8 +175,8 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
         )
         deep[select] = intdeep
     else:
-        raise ValueError(
-            f"{self.name} has unknown integration mode: {self.integrate_mode}"
+        raise SpecificationConflict(
+            f"{self.name} has unknown integration mode: {self.integrate_mode}. Should be one of: none, threshold"
         )
     return deep
 
