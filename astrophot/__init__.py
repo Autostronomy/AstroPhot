@@ -4,10 +4,10 @@ import requests
 import torch
 from .parse_config import galfit_config, basic_config
 from . import models, image, plots, utils, fit, param, AP_config
-from ._version import version as VERSION  # noqa
+#from ._version import version as VERSION  # noqa
 
 # meta data
-__version__ = VERSION
+#__version__ = VERSION
 __author__ = "Connor Stone"
 __email__ = "connorstone628@gmail.com"
 

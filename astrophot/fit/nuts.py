@@ -135,7 +135,7 @@ class NUTS(BaseOptimizer):
 
         # Set up the NUTS sampler
         nuts_kwargs = {
-            "jit_compile": False,
+            "jit_compile": True,
             "ignore_jit_warnings": True,
             "step_size": self.epsilon,
             "full_mass": True,

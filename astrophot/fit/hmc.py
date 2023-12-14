@@ -134,7 +134,7 @@ class HMC(BaseOptimizer):
 
         # Set up the HMC sampler
         hmc_kwargs = {
-            "jit_compile": False,
+            "jit_compile": True,
             "ignore_jit_warnings": True,
             "full_mass": True,
             "step_size": self.epsilon,
