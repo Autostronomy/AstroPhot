@@ -74,13 +74,13 @@ class Component_Model(AstroPhot_Model):
     psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Method for initial sampling of model
-    sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
+    sampling_mode = "midpoint"  # midpoint, trapezoid, simpsons, quad:x (where x is a positive integer)
 
     # Level to which each pixel should be evaluated
     sampling_tolerance = 1e-2
 
     # Integration scope for model
-    integrate_mode = "threshold"  # none, threshold, full*
+    integrate_mode = "threshold"  # none, threshold
 
     # Maximum recursion depth when performing sub pixel integration
     integrate_max_depth = 3

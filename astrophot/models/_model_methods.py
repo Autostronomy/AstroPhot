@@ -141,7 +141,7 @@ def _sample_init(self, image, parameters, center):
         return trapz + curvature, trapz
 
     raise SpecificationConflict(
-        f"{self.name} has unknown sampling mode: {self.sampling_mode}"
+        f"{self.name} has unknown sampling mode: {self.sampling_mode}. Should be one of: midpoint, simpsons, quad:level, trapezoid"
     )
 
 
@@ -176,7 +176,7 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
         deep[select] = intdeep
     else:
         raise ValueError(
-            f"{self.name} has unknown integration mode: {self.integrate_mode}"
+            f"{self.name} has unknown integration mode: {self.integrate_mode}. Should be one of: none, threshold"
         )
     return deep
 
