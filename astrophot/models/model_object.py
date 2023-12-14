@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from .core_model import AstroPhot_Model
 from ..image import (
+    Image,
     Model_Image,
     Window,
     PSF_Image,
@@ -25,6 +26,7 @@ from .. import AP_config
 from ..errors import InvalidTarget
 
 __all__ = ["Component_Model"]
+
 
 class Component_Model(AstroPhot_Model):
     """Component_Model(name, target, window, locked, **kwargs)
@@ -114,7 +116,7 @@ class Component_Model(AstroPhot_Model):
 
     def __init__(self, *, name=None, **kwargs):
         self._target_identity = None
-        super().__init__(name=name,**kwargs)
+        super().__init__(name=name, **kwargs)
 
         self.psf = None
         self.psf_aux_image = None
@@ -129,7 +131,7 @@ class Component_Model(AstroPhot_Model):
 
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name = name)
+            self.load(kwargs["filename"], new_name=name)
             return
 
         self.parameter_specs = self.build_parameter_specs(
@@ -174,9 +176,13 @@ class Component_Model(AstroPhot_Model):
         elif isinstance(val, AstroPhot_Model):
             self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(val, pixelscale = self.target.pixelscale, psf_upscale = 1)
-            AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AstroPhot_Model object instead.")
-    
+            self._psf = PSF_Image(val, pixelscale=self.target.pixelscale, psf_upscale=1)
+            AP_config.ap_logger.warn(
+                "Setting PSF with pixel matrix, assuming target pixelscale is the same as "
+                "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
+                "or ap.models.AstroPhot_Model object instead."
+            )
+
     # Initialization functions
     ######################################################################
     @torch.no_grad()
@@ -204,7 +210,10 @@ class Component_Model(AstroPhot_Model):
 
         # Use center of window if a center hasn't been set yet
         if parameters["center"].value is None:
-            with Param_Unlock(parameters["center"]), Param_SoftLimits(parameters["center"]):
+            with (
+                Param_Unlock(parameters["center"]), 
+                Param_SoftLimits(parameters["center"]),
+            ):
                 parameters["center"].value = self.window.center
         else:
             return
@@ -243,7 +252,7 @@ class Component_Model(AstroPhot_Model):
         self,
         X: Optional[torch.Tensor] = None,
         Y: Optional[torch.Tensor] = None,
-        image: Optional["Image"] = None,
+        image: Optional[Image] = None,
         parameters: "Parameter_Node" = None,
         **kwargs,
     ):
@@ -262,7 +271,7 @@ class Component_Model(AstroPhot_Model):
 
     def sample(
         self,
-        image: Optional["Image"] = None,
+        image: Optional[Image] = None,
         window: Optional[Window] = None,
         parameters: Optional[Parameter_Node] = None,
     ):
@@ -318,7 +327,9 @@ class Component_Model(AstroPhot_Model):
                 psf = PSF_Image(
                     data=psf.data,
                     pixelscale=psf.pixelscale,
-                    psf_upscale=torch.round(image.pixel_length / psf.pixel_length).int(),
+                    psf_upscale=torch.round(
+                        image.pixel_length / psf.pixel_length
+                    ).int(),
                 )
             else:
                 psf = self.psf
@@ -366,7 +377,6 @@ class Component_Model(AstroPhot_Model):
             )
 
         else:
-
             # Create an image to store pixel samples
             working_image = Model_Image(
                 pixelscale=image.pixelscale, window=working_window
@@ -437,7 +447,10 @@ class Component_Model(AstroPhot_Model):
             window = self.window & window
 
         # skip jacobian calculation if no parameters match criteria
-        if torch.sum(self.parameters.vector_mask()) == 0 or window.overlap_frac(self.window) <= 0:
+        if (
+            torch.sum(self.parameters.vector_mask()) == 0
+            or window.overlap_frac(self.window) <= 0
+        ):
             return self.target[window].jacobian_image()
 
         # Set the parameters if provided and check the size of the parameter list
@@ -467,7 +480,9 @@ class Component_Model(AstroPhot_Model):
                 as_representation=as_representation,
                 window=window,
             ).data,
-            self.parameters.vector_representation().detach() if as_representation else self.parameters.vector_values().detach(),
+            self.parameters.vector_representation().detach()
+            if as_representation
+            else self.parameters.vector_values().detach(),
             strategy="forward-mode",
             vectorize=True,
             create_graph=False,
@@ -501,7 +516,7 @@ class Component_Model(AstroPhot_Model):
         `self.jacobian` function when appropriate.
 
         """
-        
+
         pids = self.parameters.vector_identities()
         jac_img = self.target[window].jacobian_image(
             parameters=pids,
@@ -510,11 +525,16 @@ class Component_Model(AstroPhot_Model):
         pixel_shape = window.pixel_shape.detach().cpu().numpy()
         Ncells = np.int64(np.round(np.ceil(pixel_shape / self.image_chunksize)))
         cellsize = np.int64(np.round(pixel_shape / Ncells))
-        
+
         for nx in range(Ncells[0]):
             for ny in range(Ncells[1]):
                 subwindow = window.copy()
-                subwindow.crop_to_pixel(((cellsize[0]*nx, min(pixel_shape[0],cellsize[0]*(nx+1))), (cellsize[1]*ny, min(pixel_shape[1], cellsize[1]*(ny+1)))))
+                subwindow.crop_to_pixel(
+                    (
+                        (cellsize[0] * nx, min(pixel_shape[0], cellsize[0] * (nx + 1))),
+                        (cellsize[1] * ny, min(pixel_shape[1], cellsize[1] * (ny + 1))),
+                    )
+                )
                 jac_img += self.jacobian(
                     parameters=None,
                     as_representation=as_representation,
@@ -523,7 +543,7 @@ class Component_Model(AstroPhot_Model):
                 )
 
         return jac_img
-        
+
     @torch.no_grad()
     def _chunk_jacobian(
         self,
@@ -551,8 +571,8 @@ class Component_Model(AstroPhot_Model):
         )
 
         for ichunk in range(0, len(pids), self.jacobian_chunksize):
-            mask = torch.zeros(len(pids), dtype = torch.bool, device = AP_config.ap_device)
-            mask[ichunk:ichunk+self.jacobian_chunksize] = True
+            mask = torch.zeros(len(pids), dtype=torch.bool, device=AP_config.ap_device)
+            mask[ichunk : ichunk + self.jacobian_chunksize] = True
             with Param_Mask(self.parameters, mask):
                 jac_img += self.jacobian(
                     parameters=None,
@@ -570,7 +590,9 @@ class Component_Model(AstroPhot_Model):
     @target.setter
     def target(self, tar):
         if not (tar is None or isinstance(tar, Target_Image)):
-            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
+            raise InvalidTarget(
+                "AstroPhot_Model target must be a Target_Image instance."
+            )
 
         # If a target image list is assigned, pick out the target appropriate for this model
         if isinstance(tar, Target_Image_List) and self._target_identity is not None:
@@ -579,7 +601,10 @@ class Component_Model(AstroPhot_Model):
                     usetar = subtar
                     break
             else:
-                raise InvalidTarget(f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}")
+                raise InvalidTarget(
+                    f"Could not find target in Target_Image_List with matching identity "
+                    f"to {self.name}: {self._target_identity}"
+                )
         else:
             usetar = tar
 
@@ -591,7 +616,7 @@ class Component_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-    def get_state(self, save_params = True):
+    def get_state(self, save_params=True):
         """Returns a dictionary with a record of the current state of the
         model.
 
@@ -608,13 +633,17 @@ class Component_Model(AstroPhot_Model):
             state["parameters"] = self.parameters.get_state()
         state["target_identity"] = self._target_identity
         if isinstance(self.psf, AstroPhot_Model):
-            state["psf"] = self.psf.get_state(save_params = False)
+            state["psf"] = self.psf.get_state(save_params=False)
         for key in self.track_attrs:
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
         return state
 
-    def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new_name = None):
+    def load(
+        self,
+        filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml",
+        new_name=None,
+    ):
         """Used to load the model from a saved state.
 
         Sets the model window to the saved value and updates all

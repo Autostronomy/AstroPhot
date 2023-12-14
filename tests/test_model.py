@@ -84,7 +84,9 @@ class TestModel(unittest.TestCase):
         res = model()
         model.sampling_mode = "trapezoid"
         res = model()
-        model.sampling_mode = "simpson"
+        model.sampling_mode = "simpsons"
+        res = model()
+        model.sampling_mode = "quad:3"
         res = model()
         model.integrate_mode = "none"
         res = model()
