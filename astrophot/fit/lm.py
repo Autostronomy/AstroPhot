@@ -224,7 +224,7 @@ class LM(BaseOptimizer):
         self.L = max(1e-9, self.L / self._Ldn)
         
     @torch.no_grad()
-    def step(self, chi2):
+    def step(self, chi2) -> torch.Tensor:
         """Performs one step of the LM algorithm. Computes Jacobian, infers
         hessian and gradient, solves for step vector and iterates on
         damping parameter magnitude until a step with some improvement
@@ -333,7 +333,7 @@ class LM(BaseOptimizer):
 
     @staticmethod
     @torch.no_grad()
-    def _h(L, grad, hess):
+    def _h(L, grad, hess) -> torch.Tensor:
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
 
         h = torch.linalg.solve(
@@ -344,7 +344,7 @@ class LM(BaseOptimizer):
         return h
 
     @torch.no_grad()
-    def _chi2(self, Ypred):
+    def _chi2(self, Ypred) -> torch.Tensor:
         if self.mask is None:
             return torch.sum(self.W * (self.Y - Ypred)**2) / self.ndf
         else:
@@ -352,7 +352,7 @@ class LM(BaseOptimizer):
             
 
     @torch.no_grad()
-    def update_hess_grad(self, natural = False):
+    def update_hess_grad(self, natural = False) -> None:
         """Updates the stored hessian matrix and gradient vector. This can be
         used to compute the quantities in thier natural parameter
         represntation. During normal optimization the hessian and
@@ -369,7 +369,7 @@ class LM(BaseOptimizer):
         self.grad = torch.matmul(J.T, self.W * (self.Y - Ypred))
         
     @torch.no_grad()
-    def fit(self):
+    def fit(self) -> BaseOptimizer:
         """This performs the fitting operation. It iterates the LM step
         function until convergence is reached. Includes a message
         after fitting to indicate how the fitting exited. Typically if
@@ -453,7 +453,7 @@ class LM(BaseOptimizer):
         return self._covariance_matrix
 
     @torch.no_grad()
-    def update_uncertainty(self):
+    def update_uncertainty(self) -> None:
         """Call this function after optimization to set the uncertainties for
         the parameters. This will use the diagonal of the covariance
         matrix to update the uncertainties. See the covariance_matrix

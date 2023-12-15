@@ -5,7 +5,6 @@ import io
 from torch.autograd.functional import jacobian
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 
 from .core_model import AstroPhot_Model
 from ..image import (
@@ -74,7 +73,9 @@ class Component_Model(AstroPhot_Model):
     psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Method for initial sampling of model
-    sampling_mode = "midpoint"  # midpoint, trapezoid, simpsons, quad:x (where x is a positive integer)
+    sampling_mode = (
+        "midpoint"  # midpoint, trapezoid, simpsons, quad:x (where x is a positive integer)
+    )
 
     # Level to which each pixel should be evaluated
     sampling_tolerance = 1e-2
@@ -134,9 +135,7 @@ class Component_Model(AstroPhot_Model):
             self.load(kwargs["filename"], new_name=name)
             return
 
-        self.parameter_specs = self.build_parameter_specs(
-            kwargs.get("parameters", None)
-        )
+        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
@@ -211,7 +210,7 @@ class Component_Model(AstroPhot_Model):
         # Use center of window if a center hasn't been set yet
         if parameters["center"].value is None:
             with (
-                Param_Unlock(parameters["center"]), 
+                Param_Unlock(parameters["center"]),
                 Param_SoftLimits(parameters["center"]),
             ):
                 parameters["center"].value = self.window.center
@@ -232,9 +231,7 @@ class Component_Model(AstroPhot_Model):
             ),
             target_area.data.detach().cpu().numpy(),
         )
-        if np.any(np.array(COM) < 0) or np.any(
-            np.array(COM) >= np.array(target_area.data.shape)
-        ):
+        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
             AP_config.ap_logger.warning("center of mass failed, using center of window")
             return
         COM = (COM[1], COM[0])
@@ -253,7 +250,7 @@ class Component_Model(AstroPhot_Model):
         X: Optional[torch.Tensor] = None,
         Y: Optional[torch.Tensor] = None,
         image: Optional[Image] = None,
-        parameters: "Parameter_Node" = None,
+        parameters: Parameter_Node = None,
         **kwargs,
     ):
         """Evaluate the model on every pixel in the given image. The
@@ -327,9 +324,7 @@ class Component_Model(AstroPhot_Model):
                 psf = PSF_Image(
                     data=psf.data,
                     pixelscale=psf.pixelscale,
-                    psf_upscale=torch.round(
-                        image.pixel_length / psf.pixel_length
-                    ).int(),
+                    psf_upscale=torch.round(image.pixel_length / psf.pixel_length).int(),
                 )
             else:
                 psf = self.psf
@@ -338,9 +333,7 @@ class Component_Model(AstroPhot_Model):
             # Determine the pixels scale at which to evalaute, this is smaller if the PSF is upscaled
             working_pixelscale = image.pixelscale / psf.psf_upscale
             # Make the image object to which the samples will be tracked
-            working_image = Model_Image(
-                pixelscale=working_pixelscale, window=working_window
-            )
+            working_image = Model_Image(pixelscale=working_pixelscale, window=working_window)
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
                 pixel_center = working_image.plane_to_pixel(parameters["center"].value)
@@ -364,23 +357,17 @@ class Component_Model(AstroPhot_Model):
             working_image.data += deep
 
             # Convolve the PSF
-            self._sample_convolve(
-                working_image, center_shift, psf, self.psf_subpixel_shift
-            )
+            self._sample_convolve(working_image, center_shift, psf, self.psf_subpixel_shift)
 
             # Shift image back to align with original pixel grid
             if self.psf_subpixel_shift != "none":
                 working_image.header.pixel_shift(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            working_image = working_image.reduce(psf.psf_upscale).crop(
-                psf.psf_border_int
-            )
+            working_image = working_image.reduce(psf.psf_upscale).crop(psf.psf_border_int)
 
         else:
             # Create an image to store pixel samples
-            working_image = Model_Image(
-                pixelscale=image.pixelscale, window=working_window
-            )
+            working_image = Model_Image(pixelscale=image.pixelscale, window=working_window)
             # Evaluate the model on the image
             reference, deep = self._sample_init(
                 image=working_image,
@@ -447,10 +434,7 @@ class Component_Model(AstroPhot_Model):
             window = self.window & window
 
         # skip jacobian calculation if no parameters match criteria
-        if (
-            torch.sum(self.parameters.vector_mask()) == 0
-            or window.overlap_frac(self.window) <= 0
-        ):
+        if torch.sum(self.parameters.vector_mask()) == 0 or window.overlap_frac(self.window) <= 0:
             return self.target[window].jacobian_image()
 
         # Set the parameters if provided and check the size of the parameter list
@@ -590,9 +574,7 @@ class Component_Model(AstroPhot_Model):
     @target.setter
     def target(self, tar):
         if not (tar is None or isinstance(tar, Target_Image)):
-            raise InvalidTarget(
-                "AstroPhot_Model target must be a Target_Image instance."
-            )
+            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
 
         # If a target image list is assigned, pick out the target appropriate for this model
         if isinstance(tar, Target_Image_List) and self._target_identity is not None:
