@@ -20,16 +20,16 @@ class TestWPCS(unittest.TestCase):
         )
 
         self.assertEqual(wcs_set.projection, "orthographic", "Provided projection was Orthographic")
-        self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10))), "World coordinates should be as provided")
+        self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "World coordinates should be as provided")
         self.assertNotEqual(wcs_blank.projection, "orthographic", "Not all WCS objects should be updated")
-        self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10))), "Not all WCS objects should be updated")
+        self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "Not all WCS objects should be updated")
 
         wcs_set = wcs_set.copy()
         
         self.assertEqual(wcs_set.projection, "orthographic", "Provided projection was Orthographic")
-        self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10))), "World coordinates should be as provided")
+        self.assertTrue(torch.all(wcs_set.reference_radec == torch.tensor((90,10), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "World coordinates should be as provided")
         self.assertNotEqual(wcs_blank.projection, "orthographic", "Not all WCS objects should be updated")
-        self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10))), "Not all WCS objects should be updated")
+        self.assertFalse(torch.all(wcs_blank.reference_radec == torch.tensor((90,10), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "Not all WCS objects should be updated")
 
     def test_wpcs_round_trip(self):
 
@@ -87,16 +87,16 @@ class TestPPCS(unittest.TestCase):
         self.assertTrue(torch.allclose(wcs_set.pixelscale, torch.tensor([[-0.173205, 0.1],[0.15,0.259808]], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "Provided pixelscale should be used")
         self.assertTrue(torch.allclose(wcs_set.reference_imageij, torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should be as provided")
         self.assertTrue(torch.allclose(wcs_set.reference_imagexy, torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should be as provided")
-        self.assertTrue(torch.allclose(wcs_set.plane_to_pixel(torch.tensor((0.12,0.45))), torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should map to pixel reference coordinates")
-        self.assertTrue(torch.allclose(wcs_set.pixel_to_plane(torch.tensor((5.,10.))), torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should map to plane reference coordinates")
+        self.assertTrue(torch.allclose(wcs_set.plane_to_pixel(torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should map to pixel reference coordinates")
+        self.assertTrue(torch.allclose(wcs_set.pixel_to_plane(torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should map to plane reference coordinates")
 
         wcs_set = wcs_set.copy()
 
         self.assertTrue(torch.allclose(wcs_set.pixelscale, torch.tensor([[-0.173205, 0.1],[0.15,0.259808]], dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "Provided pixelscale should be used")
         self.assertTrue(torch.allclose(wcs_set.reference_imageij, torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should be as provided")
         self.assertTrue(torch.allclose(wcs_set.reference_imagexy, torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should be as provided")
-        self.assertTrue(torch.allclose(wcs_set.plane_to_pixel(torch.tensor((0.12,0.45))), torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should map to pixel reference coordinates")
-        self.assertTrue(torch.allclose(wcs_set.pixel_to_plane(torch.tensor((5.,10.))), torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should map to plane reference coordinates")
+        self.assertTrue(torch.allclose(wcs_set.plane_to_pixel(torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "plane reference coordinates should map to pixel reference coordinates")
+        self.assertTrue(torch.allclose(wcs_set.pixel_to_plane(torch.tensor((5.,10.), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), torch.tensor((0.12,0.45), dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)), "pixel reference coordinates should map to plane reference coordinates")
         
 
         wcs_set.pixelscale = None

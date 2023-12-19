@@ -1,0 +1,100 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+  release:
+    types:
+      - published
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  dist:
+    name: Distribution build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build sdist and wheel
+        run: pipx run build
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist
+
+      - name: Check products
+        run: pipx run twine check dist/*
+
+  test-built-dist:
+    needs: [dist]
+    name: Test built distribution
+    runs-on: ubuntu-latest
+    environment: deploy-testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-python@v4.7.0
+        name: Install Python
+        with:
+          python-version: "3.10"
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+      - name: List contents of built dist
+        run: |
+          ls -ltrh
+          ls -ltrh dist
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.10
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true
+          skip-existing: true
+      - name: Check test pypi packages
+        run: |
+          sleep 3
+          python -m pip install --upgrade pip
+
+          echo "=== Testing wheel file ==="
+          # Install wheel to get dependencies and check import
+          python -m pip install --extra-index-url https://test.pypi.org/simple --upgrade --pre astrophot
+          python -c "import astrophot; print(astrophot.__version__)"
+          echo "=== Done testing wheel file ==="
+
+          echo "=== Testing source tar file ==="
+          # Install tar gz and check import
+          python -m pip uninstall --yes astrophot
+          python -m pip install --extra-index-url https://test.pypi.org/simple --upgrade --pre --no-binary=:all: astrophot
+          python -c "import astrophot; print(astrophot.__version__)"
+          echo "=== Done testing source tar file ==="
+
+  publish:
+    needs: [dist, test-built-dist]
+    name: Publish to PyPI
+    environment: deploy-pypi
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.8.10
+        if: startsWith(github.ref, 'refs/tags')

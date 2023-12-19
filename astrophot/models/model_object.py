@@ -11,13 +11,11 @@ from ..image import (
     Model_Image,
     Window,
     PSF_Image,
-    Jacobian_Image,
-    Window_List,
     Target_Image,
     Target_Image_List,
     Image,
 )
-from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits, Param_Mask
+from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
@@ -25,6 +23,7 @@ from .. import AP_config
 from ..errors import InvalidTarget
 
 __all__ = ["Component_Model"]
+
 
 class Component_Model(AstroPhot_Model):
     """Component_Model(name, target, window, locked, **kwargs)
@@ -116,7 +115,7 @@ class Component_Model(AstroPhot_Model):
 
     def __init__(self, *, name=None, **kwargs):
         self._target_identity = None
-        super().__init__(name=name,**kwargs)
+        super().__init__(name=name, **kwargs)
 
         self.psf = None
         self.psf_aux_image = None
@@ -131,12 +130,10 @@ class Component_Model(AstroPhot_Model):
 
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name = name)
+            self.load(kwargs["filename"], new_name=name)
             return
 
-        self.parameter_specs = self.build_parameter_specs(
-            kwargs.get("parameters", None)
-        )
+        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
@@ -176,9 +173,11 @@ class Component_Model(AstroPhot_Model):
         elif isinstance(val, AstroPhot_Model):
             self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(val, pixelscale = self.target.pixelscale)
-            AP_config.ap_logger.warn("Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AstroPhot_Model object instead.")
-    
+            self._psf = PSF_Image(val, pixelscale=self.target.pixelscale)
+            AP_config.ap_logger.warn(
+                "Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AstroPhot_Model object instead."
+            )
+
     # Initialization functions
     ######################################################################
     @torch.no_grad()
@@ -216,7 +215,7 @@ class Component_Model(AstroPhot_Model):
 
         # Convert center coordinates to target area array indices
         init_icenter = target_area.plane_to_pixel(parameters["center"].value)
-        
+
         # Compute center of mass in window
         COM = center_of_mass(
             (
@@ -225,9 +224,7 @@ class Component_Model(AstroPhot_Model):
             ),
             target_area.data.detach().cpu().numpy(),
         )
-        if np.any(np.array(COM) < 0) or np.any(
-            np.array(COM) >= np.array(target_area.data.shape)
-        ):
+        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
             AP_config.ap_logger.warning("center of mass failed, using center of window")
             return
         COM = (COM[1], COM[0])
@@ -321,9 +318,7 @@ class Component_Model(AstroPhot_Model):
             # Add border for psf convolution edge effects, will be cropped out later
             working_window.pad_pixel(psf.psf_border_int)
             # Make the image object to which the samples will be tracked
-            working_image = Model_Image(
-                window=working_window
-            )
+            working_image = Model_Image(window=working_window)
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
                 pixel_center = working_image.plane_to_pixel(parameters["center"].value)
@@ -347,24 +342,17 @@ class Component_Model(AstroPhot_Model):
             working_image.data += deep
 
             # Convolve the PSF
-            self._sample_convolve(
-                working_image, center_shift, psf, self.psf_subpixel_shift
-            )
+            self._sample_convolve(working_image, center_shift, psf, self.psf_subpixel_shift)
 
             # Shift image back to align with original pixel grid
             if self.psf_subpixel_shift != "none":
                 working_image.header.pixel_shift(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            working_image = working_image.reduce(psf_upscale).crop(
-                psf.psf_border_int
-            )
+            working_image = working_image.reduce(psf_upscale).crop(psf.psf_border_int)
 
         else:
-
             # Create an image to store pixel samples
-            working_image = Model_Image(
-                pixelscale=image.pixelscale, window=working_window
-            )
+            working_image = Model_Image(pixelscale=image.pixelscale, window=working_window)
             # Evaluate the model on the image
             reference, deep = self._sample_init(
                 image=working_image,
@@ -388,7 +376,7 @@ class Component_Model(AstroPhot_Model):
         image += working_image
 
         return image
-    
+
     @property
     def target(self):
         return self._target
@@ -405,7 +393,9 @@ class Component_Model(AstroPhot_Model):
                     usetar = subtar
                     break
             else:
-                raise InvalidTarget(f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}")
+                raise InvalidTarget(
+                    f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}"
+                )
         else:
             usetar = tar
 
@@ -417,15 +407,15 @@ class Component_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-    def get_state(self, save_params = True):
+    def get_state(self, save_params=True):
         """Returns a dictionary with a record of the current state of the
         model.
-        
+
         Specifically, the current parameter settings and the window for
         this model. From this information it is possible for the model to
         re-build itself lated when loading from disk. Note that the target
         image is not saved, this must be reset when loading the model.
-        
+
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
@@ -438,7 +428,7 @@ class Component_Model(AstroPhot_Model):
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
         return state
-    
+
     # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import radius_metric
