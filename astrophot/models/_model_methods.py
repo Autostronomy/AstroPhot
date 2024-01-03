@@ -17,8 +17,8 @@ from ..utils.interpolate import (
 from ..image import Model_Image, Target_Image, Window, Jacobian_Image, Window_List, PSF_Image
 from ..utils.operations import (
     fft_convolve_torch,
-    fft_convolve_multi_torch,
     grid_integrate,
+    single_quad_integrate,
 )
 from ..errors import SpecificationConflict
 from .core_model import AstroPhot_Model
@@ -32,9 +32,7 @@ def angular_metric(self, X, Y, image=None, parameters=None):
 
 @default_internal
 def radius_metric(self, X, Y, image=None, parameters=None):
-    return torch.sqrt(
-        (X) ** 2 + (Y) ** 2 + self.softening**2
-    )
+    return torch.sqrt(X**2 + Y**2 + self.softening**2)
 
 
 @classmethod
@@ -77,7 +75,7 @@ def build_parameters(self):
 
 
 def _sample_init(self, image, parameters, center):
-    if self.sampling_mode == "midpoint" and max(image.data.shape) >= 100:
+    if self.sampling_mode == "midpoint":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
         mid = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
@@ -93,19 +91,40 @@ def _sample_init(self, image, parameters, center):
             mode="replicate",
         ).squeeze()
         return mid + curvature, mid
-    elif self.sampling_mode == "trapezoid" and max(image.data.shape) >= 100:
+    elif self.sampling_mode == "simpsons":
+        Coords = image.get_coordinate_simps_meshgrid()
+        X, Y = Coords - center[..., None, None]
+        dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
+        kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        # midpoint is just every other sample in the simpsons grid
+        mid = dens[1::2, 1::2]
+        simps = torch.nn.functional.conv2d(
+            dens.view(1, 1, *dens.shape), kernel, stride=2, padding="valid"
+        )
+        return mid.squeeze(), simps.squeeze()
+    elif "quad" in self.sampling_mode:
+        quad_level = int(self.sampling_mode[self.sampling_mode.find(":") + 1 :])
+        Coords = image.get_coordinate_meshgrid()
+        X, Y = Coords - center[..., None, None]
+        res, ref = single_quad_integrate(
+            X=X,
+            Y=Y,
+            image_header=image.header,
+            eval_brightness=self.evaluate_model,
+            eval_parameters=parameters,
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+            quad_level=quad_level,
+        )
+        return ref, res
+    elif self.sampling_mode == "trapezoid":
         Coords = image.get_coordinate_corner_meshgrid()
         X, Y = Coords - center[..., None, None]
         dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
         kernel = (
-            torch.ones(
-                (1, 1, 2, 2), dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-            / 4.0
+            torch.ones((1, 1, 2, 2), dtype=AP_config.ap_dtype, device=AP_config.ap_device) / 4.0
         )
-        trapz = torch.nn.functional.conv2d(
-            dens.view(1, 1, *dens.shape), kernel, padding="valid"
-        )
+        trapz = torch.nn.functional.conv2d(dens.view(1, 1, *dens.shape), kernel, padding="valid")
         trapz = trapz.squeeze()
         kernel = curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
         curvature = torch.nn.functional.pad(
@@ -119,16 +138,9 @@ def _sample_init(self, image, parameters, center):
         ).squeeze()
         return trapz + curvature, trapz
 
-    Coords = image.get_coordinate_simps_meshgrid()
-    X, Y = Coords - center[..., None, None]
-    dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
-    kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-    # midpoint is just every other sample in the simpsons grid
-    mid = dens[1::2, 1::2]
-    simps = torch.nn.functional.conv2d(
-        dens.view(1, 1, *dens.shape), kernel, stride=2, padding="valid"
+    raise SpecificationConflict(
+        f"{self.name} has unknown sampling mode: {self.sampling_mode}. Should be one of: midpoint, simpsons, quad:level, trapezoid"
     )
-    return mid.squeeze(), simps.squeeze()
 
 
 def _integrate_reference(self, image_data, image_header, parameters):
@@ -161,12 +173,13 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
         )
         deep[select] = intdeep
     else:
-        raise ValueError(
-            f"{self.name} has unknown integration mode: {self.integrate_mode}"
+        raise SpecificationConflict(
+            f"{self.name} has unknown integration mode: {self.integrate_mode}. Should be one of: none, threshold"
         )
     return deep
 
-def _shift_psf(self, psf, shift, shift_method="bilinear", keep_pad = True):
+
+def _shift_psf(self, psf, shift, shift_method="bilinear", keep_pad=True):
     if shift_method == "bilinear":
         psf_data = torch.nn.functional.pad(psf.data, (1, 1, 1, 1))
         X, Y = torch.meshgrid(
@@ -186,8 +199,8 @@ def _shift_psf(self, psf, shift, shift_method="bilinear", keep_pad = True):
         )
         shift_psf = interp2d(psf_data, X.clone(), Y.clone())
         if not keep_pad:
-            shift_psf = shift_psf[1:-1,1:-1]
-               
+            shift_psf = shift_psf[1:-1, 1:-1]
+
     elif "lanczos" in shift_method:
         lanczos_order = int(shift_method[shift_method.find(":") + 1 :])
         psf_data = torch.nn.functional.pad(
@@ -206,10 +219,11 @@ def _shift_psf(self, psf, shift, shift_method="bilinear", keep_pad = True):
             padding="same",
         ).squeeze()
         if not keep_pad:
-            shift_psf = shift_psf[lanczos_order:-lanczos_order,lanczos_order:-lanczos_order]
+            shift_psf = shift_psf[lanczos_order:-lanczos_order, lanczos_order:-lanczos_order]
     else:
         raise SpecificationConflict(f"unrecognized subpixel shift method: {shift_method}")
     return shift_psf
+
 
 def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
     """
@@ -222,7 +236,7 @@ def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
     else:
         shift_psf = psf.data
     shift_psf = shift_psf / torch.sum(shift_psf)
-    
+
     if self.psf_convolve_mode == "fft":
         image.data = fft_convolve_torch(image.data, shift_psf, img_prepadded=True)
     elif self.psf_convolve_mode == "direct":
@@ -236,6 +250,7 @@ def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
         ).squeeze()
     else:
         raise ValueError(f"unrecognized psf_convolve_mode: {self.psf_convolve_mode}")
+
 
 @torch.no_grad()
 def jacobian(
@@ -266,7 +281,7 @@ def jacobian(
       window (Optional[Window]): A window object specifying the region of interest
                                  in the image.
       **kwargs: Additional keyword arguments.
-    
+
     Returns:
       Jacobian_Image: A Jacobian_Image object containing the computed Jacobian matrix.
 
@@ -309,7 +324,9 @@ def jacobian(
             as_representation=as_representation,
             window=window,
         ).data,
-        self.parameters.vector_representation().detach() if as_representation else self.parameters.vector_values().detach(),
+        self.parameters.vector_representation().detach()
+        if as_representation
+        else self.parameters.vector_values().detach(),
         strategy="forward-mode",
         vectorize=True,
         create_graph=False,
@@ -322,6 +339,7 @@ def jacobian(
     )
     return jac_img
 
+
 @torch.no_grad()
 def _chunk_image_jacobian(
     self,
@@ -331,7 +349,7 @@ def _chunk_image_jacobian(
     **kwargs,
 ):
     """Evaluates the Jacobian in smaller chunks to reduce memory usage.
-    
+
     For models acting on large windows it can be prohibitive to build
     the full Jacobian in a single pass. Instead this function breaks
     the image into chunks as determined by `self.image_chunksize`
@@ -342,27 +360,32 @@ def _chunk_image_jacobian(
     `self.jacobian` function when appropriate.
 
     """
-        
+
     pids = self.parameters.vector_identities()
     jac_img = self.target[window].jacobian_image(
         parameters=pids,
     )
-    
+
     pixel_shape = window.pixel_shape.detach().cpu().numpy()
     Ncells = np.int64(np.round(np.ceil(pixel_shape / self.image_chunksize)))
     cellsize = np.int64(np.round(window.pixel_shape / Ncells))
-        
+
     for nx in range(Ncells[0]):
         for ny in range(Ncells[1]):
             subwindow = window.copy()
-            subwindow.crop_to_pixel(((cellsize[0]*nx, min(pixel_shape[0],cellsize[0]*(nx+1))), (cellsize[1]*ny, min(pixel_shape[1], cellsize[1]*(ny+1)))))
+            subwindow.crop_to_pixel(
+                (
+                    (cellsize[0] * nx, min(pixel_shape[0], cellsize[0] * (nx + 1))),
+                    (cellsize[1] * ny, min(pixel_shape[1], cellsize[1] * (ny + 1))),
+                )
+            )
             jac_img += self.jacobian(
                 parameters=None,
                 as_representation=as_representation,
                 window=subwindow,
                 **kwargs,
             )
-            
+
     return jac_img
 
 
@@ -389,10 +412,10 @@ def _chunk_jacobian(
     jac_img = self.target[window].jacobian_image(
         parameters=pids,
     )
-    
+
     for ichunk in range(0, len(pids), self.jacobian_chunksize):
-        mask = torch.zeros(len(pids), dtype = torch.bool, device = AP_config.ap_device)
-        mask[ichunk:ichunk+self.jacobian_chunksize] = True
+        mask = torch.zeros(len(pids), dtype=torch.bool, device=AP_config.ap_device)
+        mask[ichunk : ichunk + self.jacobian_chunksize] = True
         with Param_Mask(self.parameters, mask):
             jac_img += self.jacobian(
                 parameters=None,
@@ -400,10 +423,11 @@ def _chunk_jacobian(
                 window=window,
                 **kwargs,
             )
-            
+
     return jac_img
 
-def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new_name = None):
+
+def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new_name=None):
     """Used to load the model from a saved state.
 
     Sets the model window to the saved value and updates all
@@ -437,7 +461,7 @@ def load(self, filename: Union[str, dict, io.TextIOBase] = "AstroPhot.yaml", new
     # Re-create the aux PSF model if there was one
     if "psf" in state:
         if state["psf"].get("type", "AstroPhot_Model") == "PSF_Image":
-            self.psf = PSF_Image(state = state["psf"])
+            self.psf = PSF_Image(state=state["psf"])
         else:
             print(state["psf"])
             state["psf"]["parameters"] = self.parameters[state["psf"]["name"]]

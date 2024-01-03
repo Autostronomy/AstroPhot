@@ -3,6 +3,8 @@ from .lm import *
 from .oldlm import *
 from .gradient import *
 from .iterative import *
+from .minifit import *
+
 try:
     from .hmc import *
     from .nuts import *

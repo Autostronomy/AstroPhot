@@ -29,7 +29,7 @@ class TestComponentModelFits(unittest.TestCase):
             true_params[5], IXX - true_params[3], IYY - true_params[4], true_params[6]
         )
         Z0 = ap.utils.parametric_profiles.sersic_np(
-            np.sqrt(QPAXX ** 2 + QPAYY ** 2),
+            np.sqrt(QPAXX**2 + QPAYY**2),
             true_params[0],
             true_params[1],
             true_params[2],
@@ -37,7 +37,7 @@ class TestComponentModelFits(unittest.TestCase):
         tar = ap.image.Target_Image(
             data=Z0,
             pixelscale=0.8,
-            variance=np.ones(Z0.shape) * (0.1 ** 2),
+            variance=np.ones(Z0.shape) * (0.1**2),
         )
 
         mod = ap.models.Sersic_Galaxy(
@@ -77,10 +77,10 @@ class TestComponentModelFits(unittest.TestCase):
         pixelscale = 0.8
         shape = (N + 10, N)
         true_params = {
-            "center": [shape[0]*pixelscale/2 - 3.3, shape[1]*pixelscale/2 + 5.3],
+            "center": [shape[0] * pixelscale / 2 - 3.3, shape[1] * pixelscale / 2 + 5.3],
             "n": 2,
             "Re": 10,
-            "Ie": 1.,
+            "Ie": 1.0,
             "q": 0.7,
             "PA": np.pi / 4,
         }
@@ -93,16 +93,16 @@ class TestComponentModelFits(unittest.TestCase):
             "PA": 0.0022,
         }
         tar = make_basic_sersic(
-            N = shape[0],
-            M = shape[1],
-            pixelscale = pixelscale,
-            x = true_params["center"][0],
-            y = true_params["center"][1],
-            n = true_params["n"],
-            Re = true_params["Re"],
-            Ie = true_params["Ie"],
-            q = true_params["q"],
-            PA = true_params["PA"],
+            N=shape[0],
+            M=shape[1],
+            pixelscale=pixelscale,
+            x=true_params["center"][0],
+            y=true_params["center"][1],
+            n=true_params["n"],
+            Re=true_params["Re"],
+            Ie=true_params["Ie"],
+            q=true_params["q"],
+            PA=true_params["PA"],
         )
 
         mod = ap.models.Sersic_Galaxy(
@@ -115,7 +115,7 @@ class TestComponentModelFits(unittest.TestCase):
         res = ap.fit.LM(model=mod, verbose=2).fit()
 
         res.update_uncertainty()
-        
+
         self.assertAlmostEqual(
             mod["center"].value[0].item() / true_params["center"][0],
             1,
@@ -236,7 +236,7 @@ class TestGroupModelFits(unittest.TestCase):
             true_params1[6],
         )
         Z0 = ap.utils.parametric_profiles.sersic_np(
-            np.sqrt(QPAXX ** 2 + QPAYY ** 2),
+            np.sqrt(QPAXX**2 + QPAYY**2),
             true_params1[0],
             true_params1[1],
             true_params1[2],
@@ -248,7 +248,7 @@ class TestGroupModelFits(unittest.TestCase):
             true_params2[6],
         )
         Z0 += ap.utils.parametric_profiles.sersic_np(
-            np.sqrt(QPAXX ** 2 + QPAYY ** 2),
+            np.sqrt(QPAXX**2 + QPAYY**2),
             true_params2[0],
             true_params2[1],
             true_params2[2],
@@ -257,7 +257,7 @@ class TestGroupModelFits(unittest.TestCase):
         tar = ap.image.Target_Image(
             data=Z0,
             pixelscale=0.8,
-            variance=np.ones(Z0.shape) * (0.1 ** 2),
+            variance=np.ones(Z0.shape) * (0.1**2),
         )
 
         mod1 = ap.models.Sersic_Galaxy(
@@ -271,9 +271,7 @@ class TestGroupModelFits(unittest.TestCase):
             parameters={"center": {"value": [2.1 + N / 2, -3.1 + (N + 10) / 2]}},
         )
 
-        smod = ap.models.Group_Model(
-            name="group model", models=[mod1, mod2], target=tar
-        )
+        smod = ap.models.Group_Model(name="group model", models=[mod1, mod2], target=tar)
 
         self.assertFalse(smod.locked, "default model should not be locked")
 
@@ -317,7 +315,7 @@ class TestLM(unittest.TestCase):
             target=target,
         )
 
-        LM = ap.fit.LM(new_model, max_iter = 10)
+        LM = ap.fit.LM(new_model, max_iter=10)
 
         LM.fit()
 
@@ -335,13 +333,13 @@ class TestLM(unittest.TestCase):
                 "Ie": 1,
             },
             target=target,
-            jacobian_chunksize = 3,
+            jacobian_chunksize=3,
         )
 
-        LM = ap.fit.LM(new_model, max_iter = 10)
+        LM = ap.fit.LM(new_model, max_iter=10)
 
         LM.fit()
-        
+
     def test_chunk_image_jacobian(self):
         target = make_basic_sersic()
         new_model = ap.models.AstroPhot_Model(
@@ -356,12 +354,37 @@ class TestLM(unittest.TestCase):
                 "Ie": 1,
             },
             target=target,
-            image_chunksize = 15,
+            image_chunksize=15,
         )
 
-        LM = ap.fit.LM(new_model, max_iter = 10)
+        LM = ap.fit.LM(new_model, max_iter=10)
 
         LM.fit()
+
+
+class TestMiniFit(unittest.TestCase):
+    def test_minifit(self):
+        target = make_basic_sersic()
+        new_model = ap.models.AstroPhot_Model(
+            name="test sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+
+        MF = ap.fit.MiniFit(
+            new_model, downsample_factor=2, method_quargs={"max_iter": 10}, verbose=1
+        )
+
+        MF.fit()
+
 
 class TestIter(unittest.TestCase):
     def test_iter_basic(self):
@@ -476,10 +499,11 @@ class TestHMC(unittest.TestCase):
             + np.random.normal(scale=0.1, size=img.shape)
             + np.random.normal(scale=np.sqrt(img) / 10)
         )
-        target.variance = torch.Tensor(0.1 ** 2 + img / 100)
+        target.variance = torch.Tensor(0.1**2 + img / 100)
 
-        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=5, warmup = 2)
+        HMC = ap.fit.HMC(MODEL, epsilon=1e-5, max_iter=5, warmup=2)
         HMC.fit()
+
 
 class TestNUTS(unittest.TestCase):
     def test_nuts_sample(self):
@@ -510,10 +534,11 @@ class TestNUTS(unittest.TestCase):
             + np.random.normal(scale=0.1, size=img.shape)
             + np.random.normal(scale=np.sqrt(img) / 10)
         )
-        target.variance = torch.Tensor(0.1 ** 2 + img / 100)
+        target.variance = torch.Tensor(0.1**2 + img / 100)
 
-        NUTS = ap.fit.NUTS(MODEL, max_iter=5, warmup = 2)
+        NUTS = ap.fit.NUTS(MODEL, max_iter=5, warmup=2)
         NUTS.fit()
+
 
 class TestMHMCMC(unittest.TestCase):
     def test_singlesersic(self):
@@ -544,7 +569,7 @@ class TestMHMCMC(unittest.TestCase):
             + np.random.normal(scale=0.1, size=img.shape)
             + np.random.normal(scale=np.sqrt(img) / 10)
         )
-        target.variance = torch.Tensor(0.1 ** 2 + img / 100)
+        target.variance = torch.Tensor(0.1**2 + img / 100)
 
         MHMCMC = ap.fit.MHMCMC(MODEL, epsilon=1e-4, max_iter=100)
         MHMCMC.fit()
@@ -554,6 +579,7 @@ class TestMHMCMC(unittest.TestCase):
             0.1,
             "MHMCMC should have nonzero acceptance for simple fits",
         )
+
 
 if __name__ == "__main__":
     unittest.main()

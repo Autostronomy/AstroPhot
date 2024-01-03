@@ -230,7 +230,7 @@ def grid_integrate(
         eval_parameters,
         dtype,
         device,
-        quad_level=quad_level+2,
+        quad_level=quad_level,
         gridding=gridding,
         _current_depth=_current_depth+1,
         max_depth=max_depth,

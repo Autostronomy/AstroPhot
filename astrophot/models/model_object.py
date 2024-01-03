@@ -4,10 +4,10 @@ import io
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 
 from .core_model import AstroPhot_Model
 from ..image import (
+    Image,
     Model_Image,
     Window,
     PSF_Image,
@@ -71,13 +71,15 @@ class Component_Model(AstroPhot_Model):
     psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Method for initial sampling of model
-    sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
+    sampling_mode = (
+        "midpoint"  # midpoint, trapezoid, simpsons, quad:x (where x is a positive integer)
+    )
 
     # Level to which each pixel should be evaluated
     sampling_tolerance = 1e-2
 
     # Integration scope for model
-    integrate_mode = "threshold"  # none, threshold, full*
+    integrate_mode = "threshold"  # none, threshold
 
     # Maximum recursion depth when performing sub pixel integration
     integrate_max_depth = 3
@@ -173,9 +175,11 @@ class Component_Model(AstroPhot_Model):
         elif isinstance(val, AstroPhot_Model):
             self.set_aux_psf(val)
         else:
-            self._psf = PSF_Image(val, pixelscale=self.target.pixelscale)
-            AP_config.ap_logger.warn(
-                "Setting PSF with pixel matrix, assuming target pixelscale is the same as PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image or ap.models.AstroPhot_Model object instead."
+            self._psf = PSF_Image(data=val, pixelscale=self.target.pixelscale)
+            AP_config.ap_logger.warning(
+                "Setting PSF with pixel matrix, assuming target pixelscale is the same as "
+                "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
+                "or ap.models.AstroPhot_Model object instead."
             )
 
     # Initialization functions
@@ -205,7 +209,10 @@ class Component_Model(AstroPhot_Model):
 
         # Use center of window if a center hasn't been set yet
         if parameters["center"].value is None:
-            with Param_Unlock(parameters["center"]), Param_SoftLimits(parameters["center"]):
+            with (
+                Param_Unlock(parameters["center"]),
+                Param_SoftLimits(parameters["center"]),
+            ):
                 parameters["center"].value = self.window.center
         else:
             return
@@ -394,7 +401,8 @@ class Component_Model(AstroPhot_Model):
                     break
             else:
                 raise InvalidTarget(
-                    f"Could not find target in Target_Image_List with matching identity to {self.name}: {self._target_identity}"
+                    f"Could not find target in Target_Image_List with matching identity "
+                    f"to {self.name}: {self._target_identity}"
                 )
         else:
             usetar = tar
