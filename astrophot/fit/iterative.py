@@ -11,6 +11,7 @@ from scipy.optimize import minimize
 from scipy.special import gammainc
 
 from .base import BaseOptimizer
+from ..models import AstroPhot_Model
 from .lm import LM
 from ..param import Param_Mask
 from .. import AP_config
@@ -43,8 +44,8 @@ class Iter(BaseOptimizer):
 
     def __init__(
         self,
-        model: "AstroPhot_Model",
-        method: "BaseOptimizer" = LM,
+        model: AstroPhot_Model,
+        method: BaseOptimizer = LM,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
         method_kwargs: Dict[str, Any] = {},
