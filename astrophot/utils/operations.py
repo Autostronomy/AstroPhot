@@ -184,7 +184,6 @@ def grid_integrate(
     resolution.
 
     """
-
     # perform quadrature integration on the given pixels
     res, ref = single_quad_integrate(
         X,

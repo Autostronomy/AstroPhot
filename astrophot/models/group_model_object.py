@@ -8,20 +8,22 @@ import matplotlib.pyplot as plt
 
 from .core_model import AstroPhot_Model
 from ..image import (
+    Image,
     Model_Image,
     Model_Image_List,
     Target_Image,
     Image_List,
     Window,
     Window_List,
+    Jacobian_Image,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from ..param import Parameter_Node
+from ..errors import InvalidTarget
 from .. import AP_config
 
 __all__ = ["Group_Model"]
-
 
 class Group_Model(AstroPhot_Model):
     """Model object which represents a list of other models. For each
@@ -126,7 +128,7 @@ class Group_Model(AstroPhot_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target: Optional["Target_Image"] = None, parameters=None, **kwargs
+        self, target: Optional[Image] = None, parameters=None, **kwargs
     ):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
@@ -146,7 +148,7 @@ class Group_Model(AstroPhot_Model):
 
     def sample(
         self,
-        image: Optional["Image"] = None,
+        image: Optional[Image] = None,
         window: Optional[Window] = None,
         parameters: Optional["Parameter_Node"] = None,
     ):
@@ -197,7 +199,7 @@ class Group_Model(AstroPhot_Model):
         self,
         parameters: Optional[torch.Tensor] = None,
         as_representation: bool = False,
-        pass_jacobian: Optional["Jacobian_Image"] = None,
+        pass_jacobian: Optional[Jacobian_Image] = None,
         window: Optional[Window] = None,
         **kwargs,
     ):
@@ -279,7 +281,7 @@ class Group_Model(AstroPhot_Model):
         and its parameters.
 
         """
-        state = super().get_state()
+        state = super().get_state(save_params = save_params)
         if save_params:
             state["parameters"] = self.parameters.get_state()
         if "models" not in state:

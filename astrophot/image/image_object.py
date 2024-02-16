@@ -10,7 +10,7 @@ from astropy.wcs import WCS as AstropyWCS
 from .window_object import Window, Window_List
 from .image_header import Image_Header
 from .. import AP_config
-from ..errors import SpecificationConflict, ConflicingWCS, InvalidWindow
+from ..errors import SpecificationConflict, ConflicingWCS, InvalidData, InvalidWindow
 
 __all__ = ["Image", "Image_List"]
 
@@ -27,7 +27,7 @@ class Image(object):
         window: an AstroPhot Window object which defines the spatial cooridnates on the sky
         filename: a filename from which to load the image.
         zeropoint: photometric zero point for converting from pixel flux to magnitude
-        note: a note about this image if any
+        metadata: Any information the user wishes to associate with this image, stored in a python dictionary
         origin: The origin of the image in the coordinate system.
     """
 
@@ -41,10 +41,12 @@ class Image(object):
         window: Optional[Window] = None,
         filename: Optional[str] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
-        note: Optional[str] = None,
+        metadata: Optional[dict] = None,
         origin: Optional[Sequence] = None,
         center: Optional[Sequence] = None,
         identity: str = None,
+        state: Optional[dict] = None,
+        fits_state: Optional[dict] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
@@ -63,8 +65,8 @@ class Image(object):
             The name of a file containing the image data. Default is None.
         zeropoint : float or None, optional
             The image's zeropoint, used for flux calibration. Default is None.
-        note : str or None, optional
-            A note describing the image. Default is None.
+        metadata : dict or None, optional
+            Any information the user wishes to associate with this image, stored in a python dictionary. Default is None.
         origin : numpy.ndarray or None, optional
             The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
         center : numpy.ndarray or None, optional
@@ -76,7 +78,14 @@ class Image(object):
         """
         self._data = None
 
-        if header is None:
+        if state is not None:
+            self.header = Image_Header(state=state["header"])
+        elif fits_state is not None:
+            self.set_fits_state(fits_state)
+            return
+        elif header is None:
+            if data is None and window is None and filename is None:
+                raise InvalidData("Image must have either data or a window to construct itself.")
             self.header = Image_Header(
                 data_shape=None if data is None else data.shape,
                 pixelscale=pixelscale,
@@ -84,7 +93,7 @@ class Image(object):
                 window=window,
                 filename=filename,
                 zeropoint=zeropoint,
-                note=note,
+                metadata=metadata,
                 origin=origin,
                 center=center,
                 identity=identity,
@@ -95,11 +104,22 @@ class Image(object):
 
         if filename is not None:
             self.load(filename)
-            return
+        elif state is not None:
+            self.set_state(state)
+        elif fits_state is not None:
+            self.data = fits_state[0]["DATA"]
+        else:
+            # set the data
+            if data is None:
+                self.data = torch.zeros(
+                    torch.flip(self.window.pixel_shape, (0,)).detach().cpu().tolist(),
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
+                )
+            else:
+                self.data = data
 
-        # set the data
-        self.data = data
-        self.to()
+            self.to()
 
         # # Check that image data and header are in agreement (this requires talk back from GPU to CPU so is only used for testing)
         # assert np.all(np.flip(np.array(self.data.shape)[:2]) == self.window.pixel_shape.numpy()), f"data shape {np.flip(np.array(self.data.shape)[:2])}, window shape {self.window.pixel_shape.numpy()}"
@@ -118,24 +138,34 @@ class Image(object):
 
     def world_to_plane(self, *args, **kwargs):
         return self.window.world_to_plane(*args, **kwargs)
+
     def plane_to_world(self, *args, **kwargs):
         return self.window.plane_to_world(*args, **kwargs)
+
     def plane_to_pixel(self, *args, **kwargs):
         return self.window.plane_to_pixel(*args, **kwargs)
+
     def pixel_to_plane(self, *args, **kwargs):
         return self.window.pixel_to_plane(*args, **kwargs)
+
     def plane_to_pixel_delta(self, *args, **kwargs):
         return self.window.plane_to_pixel_delta(*args, **kwargs)
+
     def pixel_to_plane_delta(self, *args, **kwargs):
         return self.window.pixel_to_plane_delta(*args, **kwargs)
+
     def world_to_pixel(self, *args, **kwargs):
         return self.window.world_to_pixel(*args, **kwargs)
+
     def pixel_to_world(self, *args, **kwargs):
         return self.window.pixel_to_world(*args, **kwargs)
+
     def get_coordinate_meshgrid(self):
         return self.window.get_coordinate_meshgrid()
+
     def get_coordinate_corner_meshgrid(self):
         return self.window.get_coordinate_corner_meshgrid()
+
     def get_coordinate_simps_meshgrid(self):
         return self.window.get_coordinate_simps_meshgrid()
 
@@ -168,7 +198,7 @@ class Image(object):
             torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the center.
         """
         return self.header.window.center
-    
+
     @property
     def size(self) -> torch.Tensor:
         """
@@ -192,8 +222,8 @@ class Image(object):
         return self.header.zeropoint
 
     @property
-    def note(self):
-        return self.header.note
+    def metadata(self):
+        return self.header.metadata
 
     @property
     def identity(self):
@@ -211,9 +241,7 @@ class Image(object):
         """Set the image data."""
         self.set_data(data)
 
-    def set_data(
-        self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
-    ):
+    def set_data(self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True):
         """
         Set the image data.
 
@@ -225,18 +253,16 @@ class Image(object):
             SpecificationConflict: If `require_shape` is `True` and the shape of the data is different from the current data.
         """
         if self._data is not None and require_shape and data.shape != self._data.shape:
-            raise SpecificationConflict(f"Attempting to change image data with tensor that has a different shape! ({data.shape} vs {self._data.shape}) Use 'require_shape = False' if this is desired behaviour.")
-        
-        if data is None:
-            self.data = torch.tensor(
-                (), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            raise SpecificationConflict(
+                f"Attempting to change image data with tensor that has a different shape! ({data.shape} vs {self._data.shape}) Use 'require_shape = False' if this is desired behaviour."
             )
+
+        if data is None:
+            self.data = torch.tensor((), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         elif isinstance(data, torch.Tensor):
             self._data = data.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         else:
-            self._data = torch.as_tensor(
-                data, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+            self._data = torch.as_tensor(data, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
 
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
@@ -333,7 +359,9 @@ class Image(object):
             scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
 
         """
-        if not isinstance(scale, int) and not (isinstance(scale, torch.Tensor) and scale.dtype is torch.int32):
+        if not isinstance(scale, int) and not (
+            isinstance(scale, torch.Tensor) and scale.dtype is torch.int32
+        ):
             raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
         if scale == 1:
             return self
@@ -360,28 +388,45 @@ class Image(object):
         self.data = pad(self.data, pad=pad_boundaries, mode="constant", value=0)
         self.header.expand(padding)
 
-    def _save_image_list(self):
-        img_header = self.header._save_image_list()
-        image_list = [
-            fits.PrimaryHDU(self._data.detach().cpu().numpy(), header=img_header)
-        ]
-        return image_list
+    def get_state(self):
+        state = {}
+        state["type"] = self.__class__.__name__
+        state["data"] = self.data.detach().cpu().tolist()
+        state["header"] = self.header.get_state()
+        return state
+
+    def set_state(self, state):
+        self.set_data(state["data"], require_shape=False)
+        self.header.set_state(state["header"])
+
+    def get_fits_state(self):
+        states = [{}]
+        states[0]["DATA"] = self.data.detach().cpu().numpy()
+        states[0]["HEADER"] = self.header.get_fits_state()
+        states[0]["HEADER"]["IMAGE"] = "PRIMARY"
+        return states
+
+    def set_fits_state(self, states):
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
+                self.header.set_fits_state(state["HEADER"])
+                break
 
     def save(self, filename=None, overwrite=True):
-        image_list = self._save_image_list()
-        hdul = fits.HDUList(image_list)
+        states = self.get_fits_state()
+        img_list = [fits.PrimaryHDU(states[0]["DATA"], header=fits.Header(states[0]["HEADER"]))]
+        for state in states[1:]:
+            img_list.append(fits.ImageHDU(state["DATA"], header=fits.Header(state["HEADER"])))
+        hdul = fits.HDUList(img_list)
         if filename is not None:
             hdul.writeto(filename, overwrite=overwrite)
         return hdul
 
     def load(self, filename):
         hdul = fits.open(filename)
-        for hdu in hdul:
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PRIMARY":
-                self.set_data(np.array(hdu.data, dtype=np.float64), require_shape=False)
-                break
-        self.header.load(filename)
-        return hdul
+        states = list({"DATA": hdu.data, "HEADER": hdu.header} for hdu in hdul)
+        self.set_fits_state(states)
 
     def __sub__(self, other):
         if isinstance(other, Image):
@@ -436,11 +481,11 @@ class Image(object):
 
 
 class Image_List(Image):
-    def __init__(self, image_list, window = None):
+    def __init__(self, image_list, window=None):
         self.image_list = list(image_list)
         self.check_wcs()
         self.window = window
-        
+
     def check_wcs(self):
         """Ensure the WCS systems being used by all the windows in this list
         are consistent with each other. They should all project world
@@ -449,13 +494,19 @@ class Image_List(Image):
         """
         ref = torch.stack(tuple(I.window.reference_radec for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            raise ConflicingWCS("Reference (world) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS(
+                "Reference (world) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means."
+            )
         ref = torch.stack(tuple(I.window.reference_planexy for I in self.image_list))
         if not torch.allclose(ref, ref[0]):
-            raise ConflicingWCS("Reference (tangent plane) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS(
+                "Reference (tangent plane) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means."
+            )
 
         if len(set(I.window.projection for I in self.image_list)) > 1:
-            raise ConflicingWCS("Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.")
+            raise ConflicingWCS(
+                "Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means."
+            )
 
     @property
     def window(self):
@@ -465,13 +516,13 @@ class Image_List(Image):
     def window(self, window):
         if window is None:
             return
-        
+
         if not isinstance(window, Window_List):
             raise InvalidWindow("Target_List must take a Window_List object as its window")
-        
+
         for i in range(len(self.image_list)):
             self.image_list[i] = self.image_list[i][window.window_list[i]]
-            
+
     @property
     def pixelscale(self):
         return tuple(image.pixelscale for image in self.image_list)
@@ -510,9 +561,7 @@ class Image_List(Image):
                 if other.identity == self_image.identity:
                     return i
             else:
-                raise ValueError(
-                    "Could not find identity match between image list and input image"
-                )
+                raise ValueError("Could not find identity match between image list and input image")
         raise NotImplementedError(f"Image_List cannot get index for {type(other)}")
 
     def to(self, dtype=None, device=None):
@@ -531,9 +580,7 @@ class Image_List(Image):
         return tuple(image.get_coordinate_meshgrid() for image in self.image_list)
 
     def get_coordinate_corner_meshgrid(self):
-        return tuple(
-            image.get_coordinate_corner_meshgrid() for image in self.image_list
-        )
+        return tuple(image.get_coordinate_corner_meshgrid() for image in self.image_list)
 
     def get_coordinate_simps_meshgrid(self):
         return tuple(image.get_coordinate_simps_meshgrid() for image in self.image_list)
@@ -607,14 +654,10 @@ class Image_List(Image):
         raise ValueError("Unrecognized Image_List getitem request!")
 
     def __str__(self):
-        return f"image list of:\n" + "\n".join(
-            image.__str__() for image in self.image_list
-        )
+        return f"image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
 
     def __repr__(self):
-        return f"image list of:\n" + "\n".join(
-            image.__repr__() for image in self.image_list
-        )
+        return f"image list of:\n" + "\n".join(image.__repr__() for image in self.image_list)
 
     def __iter__(self):
         return (img for img in self.image_list)

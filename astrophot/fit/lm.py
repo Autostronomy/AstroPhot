@@ -193,7 +193,7 @@ class LM(BaseOptimizer):
         self.Y = self.model.target[self.fit_window].flatten("data")
         
         # Degrees of freedom
-        self.ndf = len(self.Y) - len(self.current_state)
+        self.ndf = max(1., len(self.Y) - len(self.current_state))
 
         # 1 / (2 * sigma^2)
         if model.target.has_variance:
@@ -205,7 +205,7 @@ class LM(BaseOptimizer):
         if model.target.has_mask:
             mask = self.model.target[self.fit_window].flatten("mask")
             self.mask = torch.logical_not(mask)
-            self.ndf -= torch.sum(mask).item()
+            self.ndf = max(1., self.ndf - torch.sum(mask).item())
         else:
             self.mask = None
 
@@ -231,7 +231,6 @@ class LM(BaseOptimizer):
         in chi2 is found. Used internally.
 
         """
-
         Y0 = self.forward(parameters = self.current_state).flatten("data")
         J = self.jacobian(parameters = self.current_state).flatten("data")
         r = -self.W * (self.Y - Y0)
@@ -255,8 +254,11 @@ class LM(BaseOptimizer):
 
             # Compute goedesic acceleration
             Y1 = self.forward(parameters = self.current_state + d*h).flatten("data")
+            
             rh = -self.W * (self.Y - Y1)
+            
             rpp = (2 / d) * ((rh - r) / d - self.W*(J @ h))
+            
             if self.L > 1e-4:
                 a = -self._h(self.L, J.T @ rpp, self.hess) / 2
             else:
@@ -265,6 +267,7 @@ class LM(BaseOptimizer):
             # Evaluate new step
             ha = h + a*self.acceleration
             Y1 = self.forward(parameters = self.current_state + ha).flatten("data")
+            
             # Compute and report chi^2
             chi2 = self._chi2(Y1.detach()).item()
             if self.verbose > 1:

@@ -28,8 +28,8 @@ class Image_Header:
           The name of a file containing the image data. Default is None.
       zeropoint : float or None, optional
           The image's zeropoint, used for flux calibration. Default is None.
-      note : str or None, optional
-          A note describing the image. Default is None.
+      metadata : dict or None, optional
+          Any information the user wishes to associate with this image, stored in a python dictionary. Default is None.
     
     """
 
@@ -43,8 +43,10 @@ class Image_Header:
         window: Optional[Window] = None,
         filename: Optional[str] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
-        note: Optional[str] = None,
+        metadata: Optional[dict] = None,
         identity: str = None,
+        state: Optional[dict] = None,
+        fits_state: Optional[dict] = None,
         **kwargs: Any,
     ) -> None:
         # Record identity
@@ -53,16 +55,22 @@ class Image_Header:
         else:
             self.identity = identity
 
-        if filename is not None:
-            self.load(filename)
-            return
-
         # set Zeropoint
         self.zeropoint = zeropoint
 
-        # set a note for the image
-        self.note = note
+        # set metadata for the image
+        self.metadata = metadata
         
+        if filename is not None:
+            self.load(filename)
+            return
+        elif state is not None:
+            self.set_state(state)
+            return
+        elif fits_state is not None:
+            self.set_fits_state(fits_state)
+            return
+
         # Set Window
         if window is None:
             data_shape = torch.as_tensor(
@@ -182,7 +190,7 @@ class Image_Header:
         """
         copy_kwargs = {
             "zeropoint": self.zeropoint,
-            "note": self.note,
+            "metadata": self.metadata,
             "window": self.window.copy(),
             "identity": self.identity,
         }
@@ -230,64 +238,7 @@ class Image_Header:
         return self.copy(
             window = self.window.rescale_pixel(scale),
             **kwargs,
-        )
-    
-    # def super_resolve(self, scale: int, **kwargs):
-    #     """Increase the resolution of the referenced image by the provided
-    #     scale (int).
-
-    #     """
-    #     assert isinstance(scale, int) or scale.dtype is torch.int32
-    #     if scale == 1:
-    #         return self
-
-    #     return super().copy(
-    #         data_shape=self.data_shape,
-    #         pixelscale=self.pixelscale / scale,
-    #         zeropoint=self.zeropoint,
-    #         note=self.note,
-    #         window=self.window.copy(),
-    #         identity=self.identity,
-    #         **kwargs,
-    #     )
-
-    # def reduce(self, scale: int, **kwargs):
-    #     """This operation will downsample an image by the factor given. If
-    #     scale = 2 then 2x2 blocks of pixels will be summed together to
-    #     form individual larger pixels. A new image object will be
-    #     returned with the appropriate pixelscale and data tensor. Note
-    #     that the window does not change in this operation since the
-    #     pixels are condensed, but the pixel size is increased
-    #     correspondingly.
-
-    #     Args:
-    #         scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
-
-    #     """
-    #     assert isinstance(scale, int) or scale.dtype is torch.int32
-    #     if scale == 1:
-    #         return self
-
-    #     return super().copy(
-    #         data_shape=self.data_shape,
-    #         pixelscale=self.pixelscale * scale,
-    #         zeropoint=self.zeropoint,
-    #         note=self.note,
-    #         window=self.window.copy(),
-    #         identity=self.identity,
-    #         **kwargs,
-    #     )
-
-    # def expand(self, padding: Tuple[float]) -> None:
-    #     """
-    #     Args:
-    #       padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
-    #     """
-    #     # fixme
-    #     padding = np.array(padding)
-    #     assert np.all(padding >= 0), "negative padding not allowed in expand method"
-    #     pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
-    #     self.window += tuple(padding)
+        )    
     
     def get_state(self):
         """Returns a dictionary with necessary information to recreate the
@@ -298,10 +249,32 @@ class Image_Header:
         if self.zeropoint is not None:
             state["zeropoint"] = self.zeropoint.item()
         state["window"] = self.window.get_state()
-        if self.note is not None:
-            state["note"] = self.note
+        if self.metadata is not None:
+            state["metadata"] = self.metadata
         return state
 
+    def set_state(self, state):
+        self.zeropoint = state.get("zeropoint", self.zeropoint)
+        self.window = Window(state = state["window"])
+        self.metadata = state.get("metadata", self.metadata)
+
+    def get_fits_state(self):
+        state = {}
+        state.update(self.window.get_fits_state())
+        if not self.zeropoint is None:
+            state["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
+        if not self.metadata is None:
+            state["METADATA"] = str(self.metadata)
+        return state
+
+    def set_fits_state(self, state):
+        """
+        Updates the state of the Image_Header using information saved in a FITS header (more generally, a properly formatted dictionary will also work but not yet).
+        """
+        self.zeropoint = eval(state.get("ZEROPNT", "None"))
+        self.metadata = state.get("METADATA", None)
+        self.window = Window(fits_state=state)
+        
     def _save_image_list(self):
         """
         Constructs a FITS header object which has the necessary information to recreate the Image_Header object.
@@ -311,18 +284,10 @@ class Image_Header:
         img_header["WINDOW"] = str(self.window.get_state())
         if not self.zeropoint is None:
             img_header["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
-        if not self.note is None:
-            img_header["NOTE"] = str(self.note)
+        if not self.metadata is None:
+            img_header["METADATA"] = str(self.metadata)
         return img_header
 
-    def set_fits_state(self, state):
-        """
-        Updates the state of the Image_Header using information saved in a FITS header (more generally, a properly formatted dictionary will also work).
-        """
-        self.zeropoint = eval(state.get("ZEROPNT", "None"))
-        self.note = state.get("NOTE", None)
-        self.window = Window(state=eval(state["WINDOW"]))
-        
     def save(self, filename=None, overwrite=True):
         """
         Save header to a FITS file.
@@ -350,8 +315,8 @@ class Image_Header:
         keys = ["pixel_shape", "pixelscale", "reference_imageij", "reference_imagexy"]
         if "zeropoint" in state:
             keys.append("zeropoint")
-        if "note" in state:
-            keys.append("note")
+        if "metadata" in state:
+            keys.append("metadata")
         return "\n".join(f"{key}: {state[key]}" for key in keys)
 
     def __repr__(self):

@@ -267,7 +267,7 @@ class Target_Image(Image):
 
     def set_variance(self, variance):
         """
-        Provide a variance tensor for the image. Variance is equal to $\sigma^2$. This should have the same shape as the data.
+        Provide a variance tensor for the image. Variance is equal to $\\sigma^2$. This should have the same shape as the data.
         """
         if variance is None:
             self._weight = None
@@ -275,7 +275,7 @@ class Target_Image(Image):
         self.set_weight(1 / variance)
 
     def set_weight(self, weight):
-        """Provide a weight tensor for the image. Weight is equal to $\frac{1}{\sigma^2}$. This should have the same
+        """Provide a weight tensor for the image. Weight is equal to $\\frac{1}{\\sigma^2}$. This should have the same
         shape as the data.
 
         """
@@ -283,13 +283,13 @@ class Target_Image(Image):
             self._weight = None
             return
         if weight.shape != self.data.shape:
-            raise SpecificationConflict(f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})")
+            raise SpecificationConflict(
+                f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
+            )
         self._weight = (
             weight.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
             if isinstance(weight, torch.Tensor)
-            else torch.as_tensor(
-                weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+            else torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
 
     def set_psf(self, psf, psf_upscale=1):
@@ -324,7 +324,9 @@ class Target_Image(Image):
             self._mask = None
             return
         if mask.shape != self.data.shape:
-            raise SpecificationConflict(f"mask must have same shape as data ({mask.shape} vs {self.data.shape})")
+            raise SpecificationConflict(
+                f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
+            )
         self._mask = (
             mask.to(dtype=torch.bool, device=AP_config.ap_device)
             if isinstance(mask, torch.Tensor)
@@ -466,54 +468,65 @@ class Target_Image(Image):
         """
         raise NotImplementedError("expand not available for Target_Image yet")
 
-    def _save_image_list(self):
-        image_list = super()._save_image_list()
-        if self._psf is not None:
-            psf_header = fits.Header()
-            self.psf._save_image_list(image_list, psf_header)
+    def get_state(self):
+        state = super().get_state()
+
         if self.has_weight:
-            wgt_header = fits.Header()
-            wgt_header["IMAGE"] = "WEIGHT"
-            image_list.append(
-                fits.ImageHDU(self._weight.detach().cpu().numpy(), header=wgt_header)
-            )
-        if self._mask is not None:
-            mask_header = fits.Header()
-            mask_header["IMAGE"] = "MASK"
-            image_list.append(
-                fits.ImageHDU(
-                    self._mask.detach().cpu().numpy().astype(int), header=mask_header
-                )
-            )
-        return image_list
+            state["weight"] = self.weight.detach().cpu().tolist()
+        if self.has_mask:
+            state["mask"] = self.mask.detach().cpu().tolist()
+        if self.has_psf:
+            state["psf"] = self.psf.get_state()
 
-    def load(self, filename):
-        """
-        Loads the `Target_Image` from a fits file. Currently this only works reliably from fits files which were created by `AstroPhot`.
-        """
-        hdul = super().load(filename)
+        return state
 
-        for hdu in hdul:
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "PSF":
-                self.set_psf(
-                    PSF_Image(
-                        data=np.array(hdu.data, dtype=np.float64),
-                        psf_upscale=hdu.header["UPSCALE"],
-                        pixelscale=self.pixelscale / hdu.header["UPSCALE"],
-                    )
-                )
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "WEIGHT":
-                self.set_weight(np.array(hdu.data, dtype=np.float64))
-            if "IMAGE" in hdu.header and hdu.header["IMAGE"] == "MASK":
-                self.set_mask(np.array(hdu.data, dtype=bool))
-        return hdul
+    def set_state(self, state):
+        super().set_state(state)
+
+        self.weight = state.get("weight", None)
+        self.mask = state.get("mask", None)
+        if "psf" in state:
+            self.psf = PSF_Image(state=state["psf"])
+
+    def get_fits_state(self):
+        states = super().get_fits_state()
+        if self.has_weight:
+            states.append(
+                {
+                    "DATA": self.weight.detach().cpu().numpy(),
+                    "HEADER": {"IMAGE": "WEIGHT"},
+                }
+            )
+        if self.has_mask:
+            states.append(
+                {
+                    "DATA": self.mask.detach().cpu().numpy(),
+                    "HEADER": {"IMAGE": "MASK"},
+                }
+            )
+        if self.has_psf:
+            states += self.psf.get_fits_state()
+
+        return states
+
+    def set_fits_state(self, states):
+        super().set_fits_state(states)
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "WEIGHT":
+                self.weight = np.array(state["DATA"], dtype=np.float64)
+            if state["HEADER"]["IMAGE"] == "mask":
+                self.mask = np.array(state["DATA"], dtype=bool)
+            if state["HEADER"]["IMAGE"] == "PSF":
+                self.psf = PSF_Image(fits_state=states)
 
 
 class Target_Image_List(Image_List, Target_Image):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not all(isinstance(image, Target_Image) for image in self.image_list):
-            raise InvalidImage(f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.image_list)}")
+            raise InvalidImage(
+                f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.image_list)}"
+            )
 
     @property
     def variance(self):
@@ -541,25 +554,18 @@ class Target_Image_List(Image_List, Target_Image):
     def has_weight(self):
         return any(image.has_weight for image in self.image_list)
 
-    def jacobian_image(
-        self, parameters: List[str], data: Optional[List[torch.Tensor]] = None
-    ):
+    def jacobian_image(self, parameters: List[str], data: Optional[List[torch.Tensor]] = None):
         if data is None:
             data = [None] * len(self.image_list)
         return Jacobian_Image_List(
-            list(
-                image.jacobian_image(parameters, dat)
-                for image, dat in zip(self.image_list, data)
-            )
+            list(image.jacobian_image(parameters, dat) for image, dat in zip(self.image_list, data))
         )
 
     def model_image(self, data: Optional[List[torch.Tensor]] = None):
         if data is None:
             data = [None] * len(self.image_list)
         return Model_Image_List(
-            list(
-                image.model_image(data=dat) for image, dat in zip(self.image_list, data)
-            )
+            list(image.model_image(data=dat) for image, dat in zip(self.image_list, data))
         )
 
     def match_indices(self, other):

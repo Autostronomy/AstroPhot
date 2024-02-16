@@ -3,14 +3,13 @@ import numpy as np
 
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
-from .star_model_object import Star_Model
+from .psf_model_object import PSF_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
-__all__ = ("Airy_Star",)
+__all__ = ("Airy_PSF",)
 
-
-class Airy_Star(Star_Model):
+class Airy_PSF(PSF_Model):
     """The Airy disk is an analytic description of the diffraction pattern
     for a circular aperture.
 
@@ -33,19 +32,20 @@ class Airy_Star(Star_Model):
     position from the center of the pattern, :math:`R` is the distance
     from the circular aperture to the observation plane.
 
-    In the `Airy_Star` class we combine the parameters
+    In the `Airy_PSF` class we combine the parameters
     :math:`a,R,\\lambda` into a single ratio to be optimized (or fixed
     by the optical configuration).
 
     """
-    model_type = f"airy {Star_Model.model_type}"
+    model_type = f"airy {PSF_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)"},
+        "I0": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "aRL": {"units": "a/(R lambda)"}
     }
-    _parameter_order = Star_Model._parameter_order + ("I0", "aRL")
+    _parameter_order = PSF_Model._parameter_order + ("I0", "aRL")
     useable = True
-
+    model_integrated = False
+    
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -89,12 +89,5 @@ class Airy_Star(Star_Model):
 
         return (image.pixel_area * 10**parameters["I0"].value) * (2 * torch.special.bessel_j1(x) / x)**2
     
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-
-        r = self.radius_metric(X, Y, image, parameters)
-        return self.radial_model(r, image=image, parameters=parameters)
+    from ._shared_methods import radial_evaluate_model as evaluate_model
     

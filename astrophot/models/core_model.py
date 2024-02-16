@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import yaml
 
 from ..utils.conversions.optimization import cyclic_difference_np
-from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5
+from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
 from ..utils.optimization import reduced_chi_squared
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import Model_Image, Window, Target_Image, Target_Image_List
@@ -204,7 +204,7 @@ class AstroPhot_Model(object):
     def negative_log_likelihood(
         self,
         parameters=None,
-            as_representation=False,
+        as_representation=False,
     ):
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window. 
@@ -328,7 +328,7 @@ class AstroPhot_Model(object):
         """Detailed string representation for the model."""
         return yaml.dump(self.get_state(), indent=2)
 
-    def get_state(self):
+    def get_state(self, *args, **kwargs):
         """Returns a dictionary of the state of the model with its name,
         type, parameters, and other important infomration. This
         dictionary is what gets saved when a model saves to disk.

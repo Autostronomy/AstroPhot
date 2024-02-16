@@ -320,7 +320,7 @@ def interp2d(
 
     # Convert coordinates to pixel indices
     h, w = im.shape
-
+    
     # reshape for indexing purposes
     start_shape = x.shape
     x = x.view(-1)

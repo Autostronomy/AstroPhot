@@ -11,7 +11,7 @@ from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
     Axis_Ratio_Cartesian,
 )
-from ..param import Param_Unlock, Param_SoftLimits
+from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 from .model_object import Component_Model
 from ._shared_methods import select_target
 
@@ -59,7 +59,7 @@ class Galaxy_Model(Component_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
+        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
 
@@ -121,7 +121,7 @@ class Galaxy_Model(Component_Model):
 
     @default_internal
     def evaluate_model(
-        self, X=None, Y=None, image=None, parameters: "Parameter_Node" = None, **kwargs
+        self, X=None, Y=None, image=None, parameters: Parameter_Node = None, **kwargs
     ):
         if X is None or Y is None:
             Coords = image.get_coordinate_meshgrid()

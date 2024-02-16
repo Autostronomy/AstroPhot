@@ -6,23 +6,23 @@ from scipy.special import binom
 
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
-from .star_model_object import Star_Model
+from .psf_model_object import PSF_Model
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 from ..errors import SpecificationConflict
 
-__all__ = ("Zernike_Star",)
+__all__ = ("Zernike_PSF",)
 
+class Zernike_PSF(PSF_Model):
 
-class Zernike_Star(Star_Model):
-
-    model_type = f"zernike {Star_Model.model_type}"
+    model_type = f"zernike {PSF_Model.model_type}"
     parameter_specs = {
         "Anm": {"units": "flux/arcsec^2"},
     }
-    _parameter_order = Star_Model._parameter_order + ("Anm",)
+    _parameter_order = PSF_Model._parameter_order + ("Anm",)
     useable = True
-
+    model_integrated = False
+    
     def __init__(self, *, name=None, order_n=2, r_scale=None, **kwargs):
         super().__init__(name=name, **kwargs)
 

@@ -93,12 +93,16 @@ class Window(WCS):
         center=None,
         center_radec=None,
         state=None,
+        fits_state=None,
         wcs=None,
         **kwargs,
     ):
         # If loading from a previous state, simply update values and end init
         if state is not None:
             self.set_state(state)
+            return
+        if fits_state is not None:
+            self.set_fits_state(fits_state)
             return
 
         # Collect the shape of the window
@@ -315,6 +319,17 @@ class Window(WCS):
         super().set_state(state)
         self.pixel_shape = torch.tensor(
             state["pixel_shape"], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+
+    def get_fits_state(self):
+        state = super().get_fits_state()
+        state["PXL_SHPE"] = str(self.pixel_shape.detach().cpu().tolist())
+        return state
+
+    def set_fits_state(self, state):
+        super().set_fits_state(state)
+        self.pixel_shape = torch.tensor(
+            eval(state["PXL_SHPE"]), dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
     def crop_pixel(self, pixels):
