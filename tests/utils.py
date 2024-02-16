@@ -92,13 +92,15 @@ def make_basic_gaussian(
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
     )
 
-    MODEL = ap.models.Gaussian_Star(
-        name="basic gaussian star",
+    MODEL = ap.models.Gaussian_Galaxy(
+        name="basic gaussian source",
         target=target,
         parameters={
             "center": [x, y],
             "sigma": sigma,
             "flux": flux,
+            "PA": {"value": 0., "locked": True},
+            "q": {"value": 0.99, "locked": True},
         },
     )
 
@@ -109,5 +111,24 @@ def make_basic_gaussian(
         + np.random.normal(scale=np.sqrt(img) / 10)
     )
     target.variance = 0.1 ** 2 + img / 100
+
+    return target
+
+
+def make_basic_gaussian_psf(
+    N=25,
+    pixelscale=0.8,
+    sigma=3,
+    rand=12345,
+):
+
+    np.random.seed(rand)
+    psf = ap.utils.initialize.gaussian_psf(sigma / pixelscale, N, pixelscale)
+    psf += np.random.normal(scale = psf / 2)
+    psf[psf < 0] = 0
+    target = ap.image.PSF_Image(
+        data=psf / np.sum(psf),
+        pixelscale=pixelscale,
+    )
 
     return target

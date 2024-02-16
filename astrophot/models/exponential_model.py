@@ -8,7 +8,7 @@ from scipy.optimize import minimize
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
-from .star_model_object import Star_Model
+from .psf_model_object import PSF_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
@@ -18,6 +18,7 @@ from ._shared_methods import (
     parametric_segment_initialize,
     select_target,
 )
+from ..param import Parameter_Node
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import exponential_torch, exponential_np
@@ -25,7 +26,7 @@ from ..utils.conversions.coordinates import Rotate_Cartesian
 
 __all__ = [
     "Exponential_Galaxy",
-    "Exponential_Star",
+    "Exponential_PSF",
     "Exponential_SuperEllipse",
     "Exponential_SuperEllipse_Warp",
     "Exponential_Warp",
@@ -72,7 +73,7 @@ class Exponential_Galaxy(Galaxy_Model):
     @select_target
     @default_internal
     def initialize(
-        self, target=None, parameters: Optional["Parameter_Node"] = None, **kwargs
+        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
     ):
         super().initialize(target=target, parameters=parameters)
 
@@ -83,8 +84,8 @@ class Exponential_Galaxy(Galaxy_Model):
     from ._shared_methods import exponential_radial_model as radial_model
 
 
-class Exponential_Star(Star_Model):
-    """basic star model with a exponential profile for the radial light
+class Exponential_PSF(PSF_Model):
+    """basic point source model with a exponential profile for the radial light
     profile.
 
     I(R) = Ie * exp(-b1(R/Re - 1))
@@ -100,14 +101,15 @@ class Exponential_Star(Star_Model):
 
     """
 
-    model_type = f"exponential {Star_Model.model_type}"
+    model_type = f"exponential {PSF_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
-    _parameter_order = Star_Model._parameter_order + ("Re", "Ie")
+    _parameter_order = PSF_Model._parameter_order + ("Re", "Ie")
     useable = True
-
+    model_integrated = False
+    
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -120,17 +122,7 @@ class Exponential_Star(Star_Model):
         )
 
     from ._shared_methods import exponential_radial_model as radial_model
-
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        return self.radial_model(
-            self.radius_metric(X, Y, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Exponential_SuperEllipse(SuperEllipse_Galaxy):

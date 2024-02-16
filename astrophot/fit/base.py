@@ -122,7 +122,7 @@ class BaseOptimizer(object):
         """
         N = np.isfinite(self.loss_history)
         if np.sum(N) == 0:
-            AP_config.ap_logger.warn(
+            AP_config.ap_logger.warning(
                 "Getting optimizer res with no real loss history, using current state"
             )
             return self.current_state.detach().cpu().numpy()

@@ -5,12 +5,14 @@ import numpy as np
 from torch.nn.functional import avg_pool2d
 
 from .image_object import Image, Image_List
+from .image_header import Image_Header
+from .model_image import Model_Image
+from .jacobian_image import Jacobian_Image
 from astropy.io import fits
 from .. import AP_config
 from ..errors import SpecificationConflict, InvalidData
 
 __all__ = ["PSF_Image"]
-
 
 class PSF_Image(Image):
     """Image object which represents a model of PSF (Point Spread Function).
@@ -22,7 +24,6 @@ class PSF_Image(Image):
 
     Attributes:
         data (torch.Tensor): The image data of the PSF.
-        psf_upscale (torch.Tensor): Upscaling factor of the PSF. Default is 1.
         identity (str): The identity of the image. Default is None.
 
     Methods:
@@ -32,6 +33,9 @@ class PSF_Image(Image):
         reduce: Reduces the size of the image using a given scale factor.
     """
 
+    has_mask = False
+    has_variance = False
+
     def __init__(self, *args, **kwargs):
         """
         Initializes the PSF_Image class.
@@ -39,17 +43,13 @@ class PSF_Image(Image):
         Args:
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
-                psf_upscale (int, optional): Upscaling factor of the PSF. Default is 1.
                 band (str, optional): The band of the image. Default is None.
         """
-        self.psf_upscale = torch.as_tensor(
-            kwargs.get("psf_upscale", 1), dtype=torch.int32, device=AP_config.ap_device
-        )
         super().__init__(*args, **kwargs)
-        self.reference_radec = (0,0)
-        self.reference_planexy = (0,0)
-        self.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
-        self.reference_imagexy = (0,0)
+        self.window.reference_radec = (0,0)
+        self.window.reference_planexy = (0,0)
+        self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
+        self.window.reference_imagexy = (0,0)
 
     def set_data(
         self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
@@ -61,8 +61,12 @@ class PSF_Image(Image):
         ):
             raise SpecificationConflict(f"psf must have odd shape, not {self.data.shape}")
         if torch.any(self.data < 0):
-            raise InvalidData("PSF image should have positive values.")
-        
+            AP_config.ap_logger.warning("psf data should be non-negative")
+
+    def normalize(self):
+        """Normalizes the PSF image to have a sum of 1."""
+        self.data /= torch.sum(self.data)
+
     @property
     def psf_border_int(self):
         """Calculates and returns the border size of the PSF image in integer
@@ -83,98 +87,73 @@ class PSF_Image(Image):
                     ),
                     (0,),
                 )
-                / self.psf_upscale
             )
             / 2
         ).int()
 
-    def _save_image_list(self, image_list, psf_header):
+    def _save_image_list(self, image_list):
         """Saves the image list to the PSF HDU header.
 
         Args:
             image_list (list): The list of images to be saved.
             psf_header (astropy.io.fits.Header): The header of the PSF HDU.
         """
-        psf_header["IMAGE"] = "PSF"
-        psf_header["UPSCALE"] = int(self.psf_upscale.detach().cpu().item())
+        img_header = self.header._save_image_list()
+        img_header["IMAGE"] = "PSF"
         image_list.append(
-            fits.ImageHDU(self.data.detach().cpu().numpy(), header=psf_header)
+            fits.ImageHDU(self.data.detach().cpu().numpy(), header=img_header)
         )
 
-    def copy(self, **kwargs):
-        """Creates a copy of the PSF_Image instance.
-
-        This method generates a copy of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
-
-        Args:
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            PSF_Image: A copy of the current PSF_Image instance.
+    def jacobian_image(
+        self,
+        parameters: Optional[List[str]] = None,
+        data: Optional[torch.Tensor] = None,
+        **kwargs,
+    ):
         """
-        return super().copy(
-            psf_upscale=self.psf_upscale,
+        Construct a blank `Jacobian_Image` object formatted like this current `PSF_Image` object. Mostly used internally.
+        """
+        if parameters is None:
+            data = None
+            parameters = []
+        elif data is None:
+            data = torch.zeros(
+                (*self.data.shape, len(parameters)),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+        return Jacobian_Image(
+            parameters=parameters,
+            target_identity=self.identity,
+            data=data,
+            header=self.header,
+            **kwargs,
         )
-
-    def blank_copy(self, **kwargs):
-        """Creates a blank copy of the PSF_Image instance.
-
-        This method generates a blank copy of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
-
-        Args:
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            PSF_Image: A blank copy of the current PSF_Image instance with the same properties but no data.
+    
+    def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
         """
-        return super().blank_copy(
-            psf_upscale=self.psf_upscale,
+        Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
+        """
+        return Model_Image(
+            data=torch.zeros_like(self.data) if data is None else data,
+            header=self.header,
+            target_identity=self.identity,
+            **kwargs,
         )
-
-    def get_window(self, **kwargs):
-        """Returns the window of the PSF_Image instance.
-
-        This method returns the window of the PSF_Image object while maintaining the 'psf_upscale' and 'band' properties.
-
-        Args:
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            Window: The window associated with the PSF_Image instance.
-        """
-        return super().get_window(
-            psf_upscale=self.psf_upscale,
-        )
-
-    def to(self, dtype=None, device=None):
-        """Transfers the PSF_Image instance to the specified device and modifies its data type.
-
-        This method changes the data type of the PSF_Image object and moves it to a specified device.
-        If no device is provided, it defaults to 'AP_config.ap_device'.
-
-        Args:
-            dtype (torch.dtype, optional): The desired data type to which the PSF_Image instance should be converted.
-            device (torch.device, optional): The desired device to which the PSF_Image instance should be moved.
-        """
-        if device is None:
-            device = AP_config.ap_device
-        self.psf_upscale = self.psf_upscale.to(device=device)
-        super().to(dtype=dtype, device=device)
-
-    def reduce(self, scale, **kwargs):
-        """Reduces the size of the image using a given scale factor.
-
-        This method is used to perform a reduction in the size of the PSF image. The new upscaling factor
-        is calculated by dividing the existing upscaling factor with the provided scale factor.
-
-        Args:
-            scale (float): The scale factor by which the size of the PSF image needs to be reduced.
-            **kwargs: Arbitrary keyword arguments. This can be used to pass additional parameters required by the method.
-
-        Returns:
-            PSF_Image: A new instance of PSF_Image class with the reduced image size.
-        """
-        return super().reduce(scale, psf_upscale=self.psf_upscale / scale, **kwargs)
 
     def expand(self, padding):
         raise NotImplementedError("expand not available for PSF_Image")
+    
+    def get_fits_state(self):
+        states = [{}]
+        states[0]["DATA"] = self.data.detach().cpu().numpy()
+        states[0]["HEADER"] = self.header.get_fits_state()
+        states[0]["HEADER"]["IMAGE"] = "PSF"
+        return states
+
+    def set_fits_state(self, states):
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PSF":
+                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
+                self.header = Image_Header(fits_state = state["HEADER"])
+                break

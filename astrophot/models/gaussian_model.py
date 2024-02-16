@@ -7,7 +7,7 @@ from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from .star_model_object import Star_Model
+from .psf_model_object import PSF_Model
 from ._shared_methods import (
     parametric_initialize,
     parametric_segment_initialize,
@@ -23,7 +23,7 @@ __all__ = [
     "Gaussian_FourierEllipse",
     "Gaussian_FourierEllipse_Warp",
     "Gaussian_Warp",
-    "Gaussian_Star",
+    "Gaussian_PSF",
 ]
 
 
@@ -265,8 +265,8 @@ class Gaussian_Warp(Warp_Galaxy):
     from ._shared_methods import gaussian_radial_model as radial_model
 
 
-class Gaussian_Star(Star_Model):
-    """Basica star model with a Gaussian as the radial light profile. The
+class Gaussian_PSF(PSF_Model):
+    """Basic point source model with a Gaussian as the radial light profile. The
     gaussian radial profile is defined as:
 
     I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
@@ -281,14 +281,15 @@ class Gaussian_Star(Star_Model):
 
     """
 
-    model_type = f"gaussian {Star_Model.model_type}"
+    model_type = f"gaussian {PSF_Model.model_type}"
     parameter_specs = {
         "sigma": {"units": "arcsec", "limits": (0, None)},
-        "flux": {"units": "log10(flux)"},
+        "flux": {"units": "log10(flux)", "value": 0., "locked": True},
     }
-    _parameter_order = Star_Model._parameter_order + ("sigma", "flux")
+    _parameter_order = PSF_Model._parameter_order + ("sigma", "flux")
     useable = True
-
+    model_integrated = False
+    
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -301,13 +302,7 @@ class Gaussian_Star(Star_Model):
         )
 
     from ._shared_methods import gaussian_radial_model as radial_model
-
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        return self.radial_model(torch.sqrt(X ** 2 + Y ** 2), image, parameters)
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Gaussian_Ray(Ray_Galaxy):

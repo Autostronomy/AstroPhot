@@ -110,7 +110,7 @@ def parametric_initialize(
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
     icenter = target_area.plane_to_pixel(parameters["center"].value)
-
+        
     # Collect isophotes for 1D fit
     iso_info = isophotes(
         target_dat - edge_average,
@@ -274,6 +274,20 @@ def parametric_segment_initialize(
                 model[param].uncertainty = unc[param]
 
 
+# Evaluate_Model
+######################################################################
+@default_internal
+def radial_evaluate_model(self, X=None, Y=None, image=None, parameters=None):
+    if X is None:
+        Coords = image.get_coordinate_meshgrid()
+        X, Y = Coords - parameters["center"].value[..., None, None]
+    return self.radial_model(
+        self.radius_metric(X, Y, image=image, parameters=parameters),
+        image=image,
+        parameters=parameters,
+    )
+
+                
 # Exponential
 ######################################################################
 @default_internal

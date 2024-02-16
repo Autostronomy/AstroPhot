@@ -240,7 +240,7 @@ class Parameter_Node(Node):
 
         """
         if self.leaf:
-            return self.identities[self.mask.detach().cpu().numpy()].flatten()
+            return self.identities[self.vector_mask().detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
         vec = tuple(node.vector_identities() for node in flat.values())
         if len(vec) > 0:
@@ -253,7 +253,7 @@ class Parameter_Node(Node):
 
         """
         if self.leaf:
-            return self.names[self.mask.detach().cpu().numpy()].flatten()
+            return self.names[self.vector_mask().detach().cpu().numpy()].flatten()
         flat = self.flat(include_locked = False, include_links = False)
         vec = tuple(node.vector_names() for node in flat.values())
         if len(vec) > 0:

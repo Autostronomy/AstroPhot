@@ -43,6 +43,32 @@ class Jacobian_Image(Image):
             parameters=self.parameters, target_identity=self.target_identity, **kwargs
         )
 
+    def get_state(self):
+        state = super().get_state()
+        state["target_identity"] = self.target_identity
+        state["parameters"] = self.parameters
+        return state
+
+    def set_state(self, state):
+        super().set_state(state)
+        self.target_identity = state["target_identity"]
+        self.parameters = state["parameters"]
+
+    def get_fits_state(self):
+        states = super().get_fits_state()
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                state["HEADER"]["TRGTID"] = self.target_identity
+                state["HEADER"]["PARAMS"] = str(self.parameters)
+        return states
+
+    def set_fits_state(self, states):
+        super().set_fits_state(states)
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                self.target_identity = state["HEADER"]["TRGTID"]
+                self.parameters = eval(state["HEADER"]["params"])
+        
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
 

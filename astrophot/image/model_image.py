@@ -20,16 +20,8 @@ class Model_Image(Image):
 
     """
 
-    def __init__(self, pixelscale=None, data=None, window=None, **kwargs):
-        if data is None and window is None:
-            raise InvalidData("Model_Image must have either data or a window to construct itself.")
-        if data is None:
-            data = torch.zeros(
-                torch.flip(window.pixel_shape,(0,)).detach().cpu().tolist(),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
-        super().__init__(data=data, pixelscale=pixelscale, window=window, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.target_identity = kwargs.get("target_identity", None)
         self.to()
 
@@ -78,6 +70,28 @@ class Model_Image(Image):
         else:
             self.data = other
 
+    def get_state(self):
+        state = super().get_state()
+        state["target_identity"] = self.target_identity
+        return state
+    
+    def set_state(self, state):
+        super().set_state(state)
+        self.target_identity = target_identity
+
+    def get_fits_state(self):
+        states = super().get_fits_state()
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                state["HEADER"]["TRGTID"] = self.target_identity
+        return states
+
+    def set_fits_state(self, states):
+        super().set_fits_state(states)
+        for state in states:
+            if state["HEADER"]["IMAGE"] == "PRIMARY":
+                self.target_identity = state["HEADER"]["TRGTID"]
+        
 
 ######################################################################
 class Model_Image_List(Image_List, Model_Image):

@@ -1,13 +1,11 @@
 import torch
 import numpy as np
-from scipy.stats import iqr
-from scipy.optimize import minimize
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
-from .star_model_object import Star_Model
+from .psf_model_object import PSF_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from ._shared_methods import (
@@ -24,7 +22,7 @@ from ..utils.conversions.functions import sersic_Ie_to_flux_torch, general_uncer
 
 __all__ = [
     "Sersic_Galaxy",
-    "Sersic_Star",
+    "Sersic_PSF",
     "Sersic_Warp",
     "Sersic_SuperEllipse",
     "Sersic_FourierEllipse",
@@ -105,16 +103,6 @@ class Sersic_Galaxy(Galaxy_Model):
             ),
             sersic_Ie_to_flux_torch
         )
-        # return sersic_Ie_to_flux_uncertainty_torch(
-        #     10 ** parameters["Ie"].value,
-        #     parameters["n"].value,
-        #     parameters["Re"].value,
-        #     parameters["q"].value,
-        #     (10 ** parameters["Ie"].value) * parameters["Ie"].uncertainty * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
-        #     parameters["n"].uncertainty,
-        #     parameters["Re"].uncertainty,
-        #     parameters["q"].uncertainty,
-        # )
 
     def _integrate_reference(self, image_data, image_header, parameters):
         tot = self.total_flux(parameters)
@@ -123,8 +111,8 @@ class Sersic_Galaxy(Galaxy_Model):
     from ._shared_methods import sersic_radial_model as radial_model
 
 
-class Sersic_Star(Star_Model):
-    """basic star model with a sersic profile for the radial light
+class Sersic_PSF(PSF_Model):
+    """basic point source model with a sersic profile for the radial light
     profile. The functional form of the Sersic profile is defined as:
 
     I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
@@ -142,14 +130,15 @@ class Sersic_Star(Star_Model):
 
     """
 
-    model_type = f"sersic {Star_Model.model_type}"
+    model_type = f"sersic {PSF_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
+        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0., "uncertainty": 0., "locked": True},
     }
-    _parameter_order = Star_Model._parameter_order + ("n", "Re", "Ie")
+    _parameter_order = PSF_Model._parameter_order + ("n", "Re", "Ie")
     useable = True
+    model_integrated = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -163,26 +152,7 @@ class Sersic_Star(Star_Model):
         )
 
     from ._shared_methods import sersic_radial_model as radial_model
-
-    @default_internal
-    def total_flux(self, parameters=None):
-        return sersic_Ie_to_flux_torch(
-            10 ** parameters["Ie"].value,
-            parameters["n"].value,
-            parameters["Re"].value,
-            torch.ones_like(parameters["n"].value),
-        )
-
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        return self.radial_model(
-            self.radius_metric(X, Y, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Sersic_SuperEllipse(SuperEllipse_Galaxy):

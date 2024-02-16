@@ -5,7 +5,7 @@ from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from .star_model_object import Star_Model
+from .psf_model_object import PSF_Model
 from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from ._shared_methods import spline_segment_initialize, select_target
@@ -13,7 +13,7 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 
 __all__ = [
     "Spline_Galaxy",
-    "Spline_Star",
+    "Spline_PSF",
     "Spline_Warp",
     "Spline_SuperEllipse",
     "Spline_FourierEllipse",
@@ -54,7 +54,7 @@ class Spline_Galaxy(Galaxy_Model):
     from ._shared_methods import spline_radial_model as radial_model
 
 
-class Spline_Star(Star_Model):
+class Spline_PSF(PSF_Model):
     """star model with a spline radial light profile. The light
     profile is defined as a cubic spline interpolation of the stored
     brightness values:
@@ -71,26 +71,22 @@ class Spline_Star(Star_Model):
 
     """
 
-    model_type = f"spline {Star_Model.model_type}"
+    model_type = f"spline {PSF_Model.model_type}"
     parameter_specs = {
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = Star_Model._parameter_order + ("I(R)",)
+    _parameter_order = PSF_Model._parameter_order + ("I(R)",)
     useable = True
     extend_profile = True
-
+    model_integrated = False
+    
     @default_internal
     def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        return self.radial_model(
-            self.radius_metric(X, Y, image, parameters), image, parameters
-        )
-
     from ._shared_methods import spline_initialize as initialize
     from ._shared_methods import spline_radial_model as radial_model
+    from ._shared_methods import radial_evaluate_model as evaluate_model
 
 
 class Spline_Warp(Warp_Galaxy):
