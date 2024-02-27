@@ -55,7 +55,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sky = np.nanmedian(dat)
-    noise = iqr(dat[np.isfinite(dat)]) / 2
+    noise = iqr(dat[np.isfinite(dat)], rng=(16, 84)) / 2
+    if noise == 0:
+        noise = np.nanstd(dat)
     vmin = sky - 5 * noise
     vmax = sky + 5 * noise
 
@@ -97,6 +99,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
     return fig, ax
 
+
 @torch.no_grad()
 def psf_image(
     fig,
@@ -114,7 +117,7 @@ def psf_image(
         for i in range(len(psf.image_list)):
             psf_image(fig, ax[i], psf.image_list[i], window=window, **kwargs)
         return fig, ax
-    
+
     if window is None:
         window = psf.window
     if flipx:
@@ -122,7 +125,7 @@ def psf_image(
 
     # cut out the requested window
     psf = psf[window]
-        
+
     # Evaluate the model image
     X, Y = psf.get_coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
@@ -153,7 +156,7 @@ def psf_image(
     ax.set_ylabel("PSF Y [arcsec]")
 
     return fig, ax
-    
+
 
 @torch.no_grad()
 def model_image(
@@ -241,7 +244,7 @@ def model_image(
 
     # cut out the requested window
     sample_image = sample_image[window]
-        
+
     # Evaluate the model image
     X, Y = sample_image.get_coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
@@ -265,9 +268,7 @@ def model_image(
 
     # If zeropoint is available, convert to surface brightness units
     if target.zeropoint is not None and magunits:
-        sample_image = flux_to_sb(
-            sample_image, target.pixel_area.item(), target.zeropoint.item()
-        )
+        sample_image = flux_to_sb(sample_image, target.pixel_area.item(), target.zeropoint.item())
         del imshow_kwargs["norm"]
         imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
 
@@ -386,9 +387,7 @@ def residual_image(
         residuals[target[window].mask.detach().cpu().numpy()] = np.nan
     if center_residuals:
         residuals -= np.nanmedian(residuals)
-    residuals = np.arctan(
-        residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2)
-    )
+    residuals = np.arctan(residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2))
     extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
     imshow_kwargs = {
         "cmap": cmap_div,
@@ -406,9 +405,7 @@ def residual_image(
             default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
         else:
             default_label = f"tan$^{{-1}}$(Target - {model.name})"
-        clb = fig.colorbar(
-            im, ax=ax, label=default_label if clb_label is None else clb_label
-        )
+        clb = fig.colorbar(im, ax=ax, label=default_label if clb_label is None else clb_label)
         clb.ax.set_yticks([])
         clb.ax.set_yticklabels([])
     return fig, ax
@@ -417,9 +414,7 @@ def residual_image(
 def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
     if isinstance(ax, np.ndarray):
         for i, axitem in enumerate(ax):
-            model_window(
-                fig, axitem, model, target=model.target.image_list[i], **kwargs
-            )
+            model_window(fig, axitem, model, target=model.target.image_list[i], **kwargs)
         return fig, ax
 
     if isinstance(model, Group_Model):
