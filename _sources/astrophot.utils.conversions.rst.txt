@@ -1,0 +1,53 @@
+astrophot.utils.conversions package
+===================================
+
+Submodules
+----------
+
+astrophot.utils.conversions.coordinates module
+----------------------------------------------
+
+.. automodule:: astrophot.utils.conversions.coordinates
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.conversions.dict\_to\_hdf5 module
+-------------------------------------------------
+
+.. automodule:: astrophot.utils.conversions.dict_to_hdf5
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.conversions.functions module
+--------------------------------------------
+
+.. automodule:: astrophot.utils.conversions.functions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.conversions.optimization module
+-----------------------------------------------
+
+.. automodule:: astrophot.utils.conversions.optimization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.conversions.units module
+----------------------------------------
+
+.. automodule:: astrophot.utils.conversions.units
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.utils.conversions
+   :members:
+   :undoc-members:
+   :show-inheritance:

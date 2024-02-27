@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.models.model_object &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.models.model_object</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.models.model_object</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">io</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">.core_model</span> <span class="kn">import</span> <span class="n">AstroPhot_Model</span>
+<span class="kn">from</span> <span class="nn">..image</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Image</span><span class="p">,</span>
+    <span class="n">Model_Image</span><span class="p">,</span>
+    <span class="n">Window</span><span class="p">,</span>
+    <span class="n">PSF_Image</span><span class="p">,</span>
+    <span class="n">Target_Image</span><span class="p">,</span>
+    <span class="n">Target_Image_List</span><span class="p">,</span>
+    <span class="n">Image</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..param</span> <span class="kn">import</span> <span class="n">Parameter_Node</span><span class="p">,</span> <span class="n">Param_Unlock</span><span class="p">,</span> <span class="n">Param_SoftLimits</span>
+<span class="kn">from</span> <span class="nn">..utils.initialize</span> <span class="kn">import</span> <span class="n">center_of_mass</span>
+<span class="kn">from</span> <span class="nn">..utils.decorators</span> <span class="kn">import</span> <span class="n">ignore_numpy_warnings</span><span class="p">,</span> <span class="n">default_internal</span>
+<span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">select_target</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">InvalidTarget</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Component_Model&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Component_Model">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.model_object.Component_Model">[docs]</a>
+<span class="k">class</span> <span class="nc">Component_Model</span><span class="p">(</span><span class="n">AstroPhot_Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Component_Model(name, target, window, locked, **kwargs)</span>
+
+<span class="sd">    Component_Model is a base class for models that represent single</span>
+<span class="sd">    objects or parametric forms. It provides the basis for subclassing</span>
+<span class="sd">    models and requires the definition of parameters, initialization,</span>
+<span class="sd">    and model evaluation functions. This class also handles</span>
+<span class="sd">    integration, PSF convolution, and computing the Jacobian matrix.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">      parameter_specs (dict): Specifications for the model parameters.</span>
+<span class="sd">      _parameter_order (tuple): Fixed order of parameters.</span>
+<span class="sd">      psf_mode (str): Technique and scope for PSF convolution.</span>
+<span class="sd">      sampling_mode (str): Method for initial sampling of model. Can be one of midpoint, trapezoid, simpson. Default: midpoint</span>
+<span class="sd">      sampling_tolerance (float): accuracy to which each pixel should be evaluated. Default: 1e-2</span>
+<span class="sd">      integrate_mode (str): Integration scope for the model. One of none, threshold, full where threshold will select which pixels to integrate while full (in development) will integrate all pixels. Default: threshold</span>
+<span class="sd">      integrate_max_depth (int): Maximum recursion depth when performing sub pixel integration.</span>
+<span class="sd">      integrate_gridding (int): Amount by which to subdivide pixels when doing recursive pixel integration.</span>
+<span class="sd">      integrate_quad_level (int): The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher.</span>
+<span class="sd">      softening (float): Softening length used for numerical stability and integration stability to avoid discontinuities (near R=0). Effectively has units of arcsec. Default: 1e-5</span>
+<span class="sd">      jacobian_chunksize (int): Maximum size of parameter list before jacobian will be broken into smaller chunks.</span>
+<span class="sd">      special_kwargs (list): Parameters which are treated specially by the model object and should not be updated directly.</span>
+<span class="sd">      useable (bool): Indicates if the model is useable.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">      initialize: Determine initial values for the center coordinates.</span>
+<span class="sd">      sample: Evaluate the model on the space covered by an image object.</span>
+<span class="sd">      jacobian: Compute the Jacobian matrix for this model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;uncertainty&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]},</span>
+    <span class="p">}</span>
+    <span class="c1"># Fixed order of parameters for all methods that interact with the list of parameters</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;center&quot;</span><span class="p">,)</span>
+
+    <span class="c1"># Scope for PSF convolution</span>
+    <span class="n">psf_mode</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>  <span class="c1"># none, full</span>
+    <span class="c1"># Technique for PSF convolution</span>
+    <span class="n">psf_convolve_mode</span> <span class="o">=</span> <span class="s2">&quot;fft&quot;</span>  <span class="c1"># fft, direct</span>
+    <span class="c1"># Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges</span>
+    <span class="n">psf_subpixel_shift</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span>  <span class="c1"># bilinear, lanczos:2, lanczos:3, lanczos:5, none</span>
+
+    <span class="c1"># Method for initial sampling of model</span>
+    <span class="n">sampling_mode</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;midpoint&quot;</span>  <span class="c1"># midpoint, trapezoid, simpsons, quad:x (where x is a positive integer)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Level to which each pixel should be evaluated</span>
+    <span class="n">sampling_tolerance</span> <span class="o">=</span> <span class="mf">1e-2</span>
+
+    <span class="c1"># Integration scope for model</span>
+    <span class="n">integrate_mode</span> <span class="o">=</span> <span class="s2">&quot;threshold&quot;</span>  <span class="c1"># none, threshold</span>
+
+    <span class="c1"># Maximum recursion depth when performing sub pixel integration</span>
+    <span class="n">integrate_max_depth</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="c1"># Amount by which to subdivide pixels when doing recursive pixel integration</span>
+    <span class="n">integrate_gridding</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="c1"># The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher</span>
+    <span class="n">integrate_quad_level</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="c1"># Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory</span>
+    <span class="n">jacobian_chunksize</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">image_chunksize</span> <span class="o">=</span> <span class="mi">1000</span>
+
+    <span class="c1"># Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)</span>
+    <span class="n">softening</span> <span class="o">=</span> <span class="mf">1e-3</span>
+
+    <span class="c1"># Parameters which are treated specially by the model object and should not be updated directly when initializing</span>
+    <span class="n">special_kwargs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">,</span> <span class="s2">&quot;model_type&quot;</span><span class="p">]</span>
+    <span class="n">track_attrs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;psf_mode&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;psf_convolve_mode&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;psf_subpixel_shift&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sampling_mode&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sampling_tolerance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;integrate_mode&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;integrate_max_depth&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;integrate_gridding&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;integrate_quad_level&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;jacobian_chunksize&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;image_chunksize&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;softening&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target_identity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">psf</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psf_aux_image</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Set any user defined attributes for the model</span>
+        <span class="k">for</span> <span class="n">kwarg</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>  <span class="c1"># fixme move to core model?</span>
+            <span class="c1"># Skip parameters with special behaviour</span>
+            <span class="k">if</span> <span class="n">kwarg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_kwargs</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Set the model parameter</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwarg</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">kwarg</span><span class="p">])</span>
+
+        <span class="c1"># If loading from a file, get model configuration then exit __init__</span>
+        <span class="k">if</span> <span class="s2">&quot;filename&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">],</span> <span class="n">new_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_specs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_parameter_specs</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_parameters</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Component_Model.set_aux_psf">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.model_object.Component_Model.set_aux_psf">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_aux_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aux_psf</span><span class="p">,</span> <span class="n">add_parameters</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the PSF for this model as an auxiliary psf model. This psf</span>
+<span class="sd">        model will be resampled as part of the model sampling step to</span>
+<span class="sd">        track changes made during fitting.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          aux_psf: The auxiliary psf model</span>
+<span class="sd">          add_parameters: if true, the parameters of the auxiliary psf model will become model parameters for this model as well.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="n">aux_psf</span>
+
+        <span class="k">if</span> <span class="n">add_parameters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">aux_psf</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">psf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">psf</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span>
+
+    <span class="nd">@psf</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">PSF_Image</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">AstroPhot_Model</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_aux_psf</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="n">PSF_Image</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">val</span><span class="p">,</span> <span class="n">pixelscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">)</span>
+            <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Setting PSF with pixel matrix, assuming target pixelscale is the same as &quot;</span>
+                <span class="s2">&quot;PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image &quot;</span>
+                <span class="s2">&quot;or ap.models.AstroPhot_Model object instead.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Initialization functions</span>
+    <span class="c1">######################################################################</span>
+<div class="viewcode-block" id="Component_Model.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.model_object.Component_Model.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Target_Image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Parameter_Node</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine initial values for the center coordinates. This is done</span>
+<span class="sd">        with a local center of mass search which iterates by finding</span>
+<span class="sd">        the center of light in a window, then iteratively updates</span>
+<span class="sd">        until the iterations move by less than a pixel.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="c1"># Get the sub-image area corresponding to the model image</span>
+        <span class="n">target_area</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">]</span>
+
+        <span class="c1"># Use center of window if a center hasn&#39;t been set yet</span>
+        <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="p">(</span>
+                <span class="n">Param_Unlock</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]),</span>
+                <span class="n">Param_SoftLimits</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]),</span>
+            <span class="p">):</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">center</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">locked</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Convert center coordinates to target area array indices</span>
+        <span class="n">init_icenter</span> <span class="o">=</span> <span class="n">target_area</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># Compute center of mass in window</span>
+        <span class="n">COM</span> <span class="o">=</span> <span class="n">center_of_mass</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">init_icenter</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                <span class="n">init_icenter</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="p">),</span>
+            <span class="n">target_area</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">COM</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">COM</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">target_area</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)):</span>
+            <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;center of mass failed, using center of window&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">COM</span> <span class="o">=</span> <span class="p">(</span><span class="n">COM</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">COM</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># Convert center of mass indices to coordinates</span>
+        <span class="n">COM_center</span> <span class="o">=</span> <span class="n">target_area</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">COM</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set the new coordinates as the model center</span>
+        <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">COM_center</span></div>
+
+
+    <span class="c1"># Fit loop functions</span>
+    <span class="c1">######################################################################</span>
+<div class="viewcode-block" id="Component_Model.evaluate_model">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.model_object.Component_Model.evaluate_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">evaluate_model</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">X</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">Y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Image</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameter_Node</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the model on every pixel in the given image. The</span>
+<span class="sd">        basemodel object simply returns zeros, this function should be</span>
+<span class="sd">        overloaded by subclasses.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          image (Image): The image defining the set of pixels on which to evaluate the model</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Coords</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">get_coordinate_meshgrid</span><span class="p">()</span>
+            <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">Coords</span> <span class="o">-</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>  <span class="c1"># do nothing in base model</span></div>
+
+
+<div class="viewcode-block" id="Component_Model.sample">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.model_object.Component_Model.sample">[docs]</a>
+    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Image</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Window</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Parameter_Node</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the model on the space covered by an image object. This</span>
+<span class="sd">        function properly calls integration methods and PSF</span>
+<span class="sd">        convolution. This should not be overloaded except in special</span>
+<span class="sd">        cases.</span>
+
+<span class="sd">        This function is designed to compute the model on a given</span>
+<span class="sd">        image or within a specified window. It takes care of sub-pixel</span>
+<span class="sd">        sampling, recursive integration for high curvature regions,</span>
+<span class="sd">        PSF convolution, and proper alignment of the computed model</span>
+<span class="sd">        with the original pixel grid. The final model is then added to</span>
+<span class="sd">        the requested image.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          image (Optional[Image]): An AstroPhot Image object (likely a Model_Image)</span>
+<span class="sd">                                     on which to evaluate the model values. If not</span>
+<span class="sd">                                     provided, a new Model_Image object will be created.</span>
+<span class="sd">          window (Optional[Window]): A window within which to evaluate the model.</span>
+<span class="sd">                                   Should only be used if a subset of the full image</span>
+<span class="sd">                                   is needed. If not provided, the entire image will</span>
+<span class="sd">                                   be used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          Image: The image with the computed model values.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Image on which to evaluate model</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_model_image</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
+
+        <span class="c1"># Window within which to evaluate model</span>
+        <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">working_window</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">working_window</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Parameters with which to evaluate the model</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+
+        <span class="k">if</span> <span class="s2">&quot;window&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_mode</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;PSF convolution in sub-window not available yet&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;full&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_mode</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">,</span> <span class="n">AstroPhot_Model</span><span class="p">):</span>
+                <span class="n">psf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">(</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">name</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">psf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span>
+            <span class="n">psf_upscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">pixel_length</span> <span class="o">/</span> <span class="n">psf</span><span class="o">.</span><span class="n">pixel_length</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+            <span class="c1"># Add border for psf convolution edge effects, will be cropped out later</span>
+            <span class="n">working_window</span><span class="o">.</span><span class="n">pad_pixel</span><span class="p">(</span><span class="n">psf</span><span class="o">.</span><span class="n">psf_border_int</span><span class="p">)</span>
+            <span class="c1"># Make the image object to which the samples will be tracked</span>
+            <span class="n">working_image</span> <span class="o">=</span> <span class="n">Model_Image</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">working_window</span><span class="p">)</span>
+            <span class="c1"># Sub pixel shift to align the model with the center of a pixel</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_subpixel_shift</span> <span class="o">!=</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                <span class="n">pixel_center</span> <span class="o">=</span> <span class="n">working_image</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="n">center_shift</span> <span class="o">=</span> <span class="n">pixel_center</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">pixel_center</span><span class="p">)</span>
+                <span class="n">working_image</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">pixel_shift</span><span class="p">(</span><span class="n">center_shift</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">center_shift</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># Evaluate the model at the current resolution</span>
+            <span class="n">reference</span><span class="p">,</span> <span class="n">deep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_init</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">working_image</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">center</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># If needed, super-resolve the image in areas of high curvature so pixels are properly sampled</span>
+            <span class="n">deep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_integrate</span><span class="p">(</span>
+                <span class="n">deep</span><span class="p">,</span> <span class="n">reference</span><span class="p">,</span> <span class="n">working_image</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">)</span>
+
+            <span class="c1"># update the image with the integrated pixels</span>
+            <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">+=</span> <span class="n">deep</span>
+
+            <span class="c1"># Convolve the PSF</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_convolve</span><span class="p">(</span><span class="n">working_image</span><span class="p">,</span> <span class="n">center_shift</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_subpixel_shift</span><span class="p">)</span>
+
+            <span class="c1"># Shift image back to align with original pixel grid</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_subpixel_shift</span> <span class="o">!=</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                <span class="n">working_image</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">pixel_shift</span><span class="p">(</span><span class="o">-</span><span class="n">center_shift</span><span class="p">)</span>
+            <span class="c1"># Add the sampled/integrated/convolved pixels to the requested image</span>
+            <span class="n">working_image</span> <span class="o">=</span> <span class="n">working_image</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">psf_upscale</span><span class="p">)</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span><span class="n">psf</span><span class="o">.</span><span class="n">psf_border_int</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Create an image to store pixel samples</span>
+            <span class="n">working_image</span> <span class="o">=</span> <span class="n">Model_Image</span><span class="p">(</span><span class="n">pixelscale</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">working_window</span><span class="p">)</span>
+            <span class="c1"># Evaluate the model on the image</span>
+            <span class="n">reference</span><span class="p">,</span> <span class="n">deep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_init</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">working_image</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">center</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Super-resolve and integrate where needed</span>
+            <span class="n">deep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_integrate</span><span class="p">(</span>
+                <span class="n">deep</span><span class="p">,</span>
+                <span class="n">reference</span><span class="p">,</span>
+                <span class="n">working_image</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="p">,</span>
+                <span class="n">center</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Add the sampled/integrated pixels to the requested image</span>
+            <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">+=</span> <span class="n">deep</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="n">image</span> <span class="o">+=</span> <span class="n">working_image</span>
+
+        <span class="k">return</span> <span class="n">image</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span>
+
+    <span class="nd">@target</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tar</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">tar</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tar</span><span class="p">,</span> <span class="n">Target_Image</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">InvalidTarget</span><span class="p">(</span><span class="s2">&quot;AstroPhot_Model target must be a Target_Image instance.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># If a target image list is assigned, pick out the target appropriate for this model</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tar</span><span class="p">,</span> <span class="n">Target_Image_List</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_identity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">subtar</span> <span class="ow">in</span> <span class="n">tar</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">subtar</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_identity</span><span class="p">:</span>
+                    <span class="n">usetar</span> <span class="o">=</span> <span class="n">subtar</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidTarget</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Could not find target in Target_Image_List with matching identity &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_target_identity</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">usetar</span> <span class="o">=</span> <span class="n">tar</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="n">usetar</span>
+
+        <span class="c1"># Remember the target identity to use</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_identity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="o">.</span><span class="n">identity</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<div class="viewcode-block" id="Component_Model.get_state">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.model_object.Component_Model.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_params</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a dictionary with a record of the current state of the</span>
+<span class="sd">        model.</span>
+
+<span class="sd">        Specifically, the current parameter settings and the window for</span>
+<span class="sd">        this model. From this information it is possible for the model to</span>
+<span class="sd">        re-build itself lated when loading from disk. Note that the target</span>
+<span class="sd">        image is not saved, this must be reset when loading the model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;window&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">save_params</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;target_identity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_identity</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="p">,</span> <span class="n">PSF_Image</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="p">,</span> <span class="n">AstroPhot_Model</span><span class="p">):</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;psf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_attrs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="n">state</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+    <span class="c1"># Extra background methods for the basemodel</span>
+    <span class="c1">######################################################################</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">radius_metric</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">angular_metric</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_sample_init</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_sample_integrate</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_sample_convolve</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_integrate_reference</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_shift_psf</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">build_parameter_specs</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">build_parameters</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">jacobian</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_chunk_jacobian</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">_chunk_image_jacobian</span>
+    <span class="kn">from</span> <span class="nn">._model_methods</span> <span class="kn">import</span> <span class="n">load</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

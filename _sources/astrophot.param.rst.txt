@@ -1,0 +1,37 @@
+astrophot.param package
+=======================
+
+Submodules
+----------
+
+astrophot.param.base module
+---------------------------
+
+.. automodule:: astrophot.param.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.param.param\_context module
+-------------------------------------
+
+.. automodule:: astrophot.param.param_context
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.param.parameter module
+--------------------------------
+
+.. automodule:: astrophot.param.parameter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.param
+   :members:
+   :undoc-members:
+   :show-inheritance:

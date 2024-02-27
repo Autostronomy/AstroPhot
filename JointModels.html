@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Joint Modelling &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Custom model objects" href="CustomModels.html" />
+    <link rel="prev" title="Model Zoo" href="ModelZoo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html">Getting Started with AstroPhot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GroupModels.html">Group Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FittingMethods.html">Fitting Methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ModelZoo.html">Model Zoo</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Joint Modelling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Joint-models-with-multiple-models">Joint models with multiple models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Dithered-images">Dithered images</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Stacked-images">Stacked images</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Time-series">Time series</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CustomModels.html">Custom model objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AdvancedPSFModels.html">Advanced PSF modeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ConstrainedModels.html">Constrained Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="tutorials.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Joint Modelling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/JointModels.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Joint-Modelling">
+<h1>Joint Modelling<a class="headerlink" href="#Joint-Modelling" title="Link to this heading"></a></h1>
+<p>In this tutorial you will learn how to set up a joint modelling fit which encoporates the data from multiple images. These use <code class="docutils literal notranslate"><span class="pre">Group_Model</span></code> objects just like in the <code class="docutils literal notranslate"><span class="pre">GroupModels.ipynb</span></code> tutorial, the main difference being how the <code class="docutils literal notranslate"><span class="pre">Target_Image</span></code> object is constructed and that more care must be taken when assigning targets to models.</p>
+<p>It is, of course, more work to set up a fit across multiple target images. However, the tradeoff can be well worth it. Perhaps there is space-based data with high resolution, but groundbased data has better S/N. Or perhaps each band individually does not have enough signal for a confident fit, but all three together just might. Perhaps colour information is of paramount importance for a science goal, one would hope that both bands could be treated on equal footing but in a consistent way when
+extracting profile information. There are a number of reasons why one might wish to try and fit a multi image picture of a galaxy simultaneously.</p>
+<p>When fitting multiple bands one often resorts to forced photometry, somtimes also blurring each image to the same approximate PSF. With AstroPhot this is entirely unecessary as one can fit each image in its native PSF simultaneously. The final fits are more meaningful and can encorporate all of the available structure information.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import astrophot as ap
+import numpy as np
+import torch
+from astropy.io import fits
+from astropy.wcs import WCS
+import matplotlib.pyplot as plt
+from scipy.stats import iqr
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># First we need some data to work with, let&#39;s use LEDA 41136 as our example galaxy
+
+# The images must be aligned to a common coordinate system. From the DESI Legacy survey we are extracting
+# each image from a common center coordinate, so we set the center as (0,0) for all the images and they
+# should be aligned.
+
+# It is also important to have a good estimate of the variance and the PSF for each image since these
+# affect the relative weight of each image. For the tutorial we use simple approximations, but in
+# science level analysis one should endeavor to get the best measure available for these.
+
+# Our first image is from the DESI Legacy-Survey r-band. This image has a pixelscale of 0.262 arcsec/pixel and is 500 pixels across
+lrimg = fits.open(&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra=187.3119&amp;dec=12.9783&amp;size=500&amp;layer=ls-dr9&amp;pixscale=0.262&amp;bands=r&quot;)
+target_r = ap.image.Target_Image(
+    data = np.array(lrimg[0].data, dtype = np.float64),
+    zeropoint = 22.5,
+    variance = np.ones((500,500))*0.008**2, # Here we just use the IQR^2 of the pixel values as the variance, for science data one would use a more accurate variance value
+    psf = ap.utils.initialize.gaussian_psf(1.12/2.355, 51, 0.262), # we construct a basic gaussian psf for each image by giving the simga (arcsec), image width (pixels), and pixelscale (arcsec/pixel)
+    wcs = WCS(lrimg[0].header), # note pixelscale and origin not needed when we have a WCS object!
+)
+
+
+# The second image is a unWISE W1 band image. This image has a pixelscale of 2.75 arcsec/pixel and is 52 pixels across
+lw1img = fits.open(&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra=187.3119&amp;dec=12.9783&amp;size=52&amp;layer=unwise-neo7&amp;pixscale=2.75&amp;bands=1&quot;)
+target_W1 = ap.image.Target_Image(
+    data = np.array(lw1img[0].data, dtype = np.float64),
+    zeropoint = 25.199,
+    variance = np.ones((52,52))*4.9**2,
+    psf = ap.utils.initialize.gaussian_psf(6.1/2.355, 21, 2.75),
+    wcs = WCS(lw1img[0].header),
+    reference_radec = target_r.window.reference_radec,
+)
+
+# The third image is a GALEX NUV band image. This image has a pixelscale of 1.5 arcsec/pixel and is 90 pixels across
+lnuvimg = fits.open(&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra=187.3119&amp;dec=12.9783&amp;size=90&amp;layer=galex&amp;pixscale=1.5&amp;bands=n&quot;)
+target_NUV = ap.image.Target_Image(
+    data = np.array(lnuvimg[0].data, dtype = np.float64),
+    zeropoint = 20.08,
+    variance = np.ones((90,90))*0.0007**2,
+    psf = ap.utils.initialize.gaussian_psf(5.4/2.355, 21, 1.5),
+    wcs = WCS(lnuvimg[0].header),
+    reference_radec = target_r.window.reference_radec,
+)
+
+fig1, ax1 = plt.subplots(1, 3, figsize = (18,6))
+ap.plots.target_image(fig1, ax1[0], target_r, flipx=True)
+ax1[0].set_title(&quot;r-band image&quot;)
+ap.plots.target_image(fig1, ax1[1], target_W1, flipx=True)
+ax1[1].set_title(&quot;W1-band image&quot;)
+ap.plots.target_image(fig1, ax1[2], target_NUV, flipx=True)
+ax1[2].set_title(&quot;NUV-band image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_2_0.png" src="_images/JointModels_2_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The joint model will need a target to try and fit, but now that we have multiple images the &quot;target&quot; is
+# a Target_Image_List object which points to all three.
+target_full = ap.image.Target_Image_List((target_r, target_W1, target_NUV))
+# It doesn&#39;t really need any other information since everything is already available in the individual targets
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># To make things easy to start, lets just fit a sersic model to all three. In principle one can use arbitrary
+# group models designed for each band individually, but that would be unecessarily complex for a tutorial
+
+model_r = ap.models.AstroPhot_Model(
+    name = &quot;rband model&quot;,
+    model_type = &quot;sersic galaxy model&quot;,
+    target = target_r,
+    psf_mode = &quot;full&quot;,
+)
+model_W1 = ap.models.AstroPhot_Model(
+    name = &quot;W1band model&quot;,
+    model_type = &quot;sersic galaxy model&quot;,
+    target = target_W1,
+    psf_mode = &quot;full&quot;,
+)
+model_NUV = ap.models.AstroPhot_Model(
+    name = &quot;NUVband model&quot;,
+    model_type = &quot;sersic galaxy model&quot;,
+    target = target_NUV,
+    psf_mode = &quot;full&quot;,
+)
+
+# At this point we would just be fitting three separate models at the same time, not very interesting. Next
+# we add constraints so that some parameters are shared between all the models. It makes sense to fix
+# structure parameters while letting brightness parameters vary between bands so that&#39;s what we do here.
+for p in [&quot;center&quot;, &quot;q&quot;, &quot;PA&quot;, &quot;n&quot;, &quot;Re&quot;]:
+    model_W1[p].value = model_r[p]
+    model_NUV[p].value = model_r[p]
+# Now every model will have a unique Ie, but every other parameter is shared for all three
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># We can now make the joint model object
+
+model_full = ap.models.AstroPhot_Model(
+    name = &quot;LEDA 41136&quot;,
+    model_type = &quot;group model&quot;,
+    models = [model_r, model_W1, model_NUV],
+    target = target_full,
+)
+
+model_full.initialize()
+model_full.parameters
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+LEDA 41136 (id-139661923063312, branch node):
+  rband model (id-139661922982592, branch node):
+    center (id-139661922981632): [0.21677164199709864, -0.47034190698980183] +- [0.1, 0.1] [arcsec]
+    q (id-139661922983024): 0.9 +- 0.03 [b/a], limits: (0.0, 1.0)
+    PA (id-139661922983168): 1.386887726106293 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+    n (id-139661922982640): 1.0720748935487394 +- 0.05 [none], limits: (0.36, 8.0)
+    Re (id-139661922982688): 9.047655380833957 +- 0.41400325572857677 [arcsec], limits: (0.0, None)
+    Ie (id-139661922982736): -0.12079968251684366 +- 0.043376861997004995 [log10(flux/arcsec^2)]
+  W1band model (id-139661922983120, branch node):
+    center (id-139661922982544) points to: center (id-139661922981632): [0.21677164199709864, -0.47034190698980183] +- [0.1, 0.1] [arcsec]
+    q (id-139661922982496) points to: q (id-139661922983024): 0.9 +- 0.03 [b/a], limits: (0.0, 1.0)
+    PA (id-139661922983456) points to: PA (id-139661922983168): 1.386887726106293 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+    n (id-139661922983360) points to: n (id-139661922982640): 1.0720748935487394 +- 0.05 [none], limits: (0.36, 8.0)
+    Re (id-139661922983504) points to: Re (id-139661922982688): 9.047655380833957 +- 0.41400325572857677 [arcsec], limits: (0.0, None)
+    Ie (id-139661922981968): 0.7879837357819668 +- 0.03183580672695283 [log10(flux/arcsec^2)]
+  NUVband model (id-139661922982784, branch node):
+    center (id-139661922981824) points to: center (id-139661922981632): [0.21677164199709864, -0.47034190698980183] +- [0.1, 0.1] [arcsec]
+    q (id-139661922981872) points to: q (id-139661922983024): 0.9 +- 0.03 [b/a], limits: (0.0, 1.0)
+    PA (id-139661922981920) points to: PA (id-139661922983168): 1.386887726106293 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+    n (id-139661922982256) points to: n (id-139661922982640): 1.0720748935487394 +- 0.05 [none], limits: (0.36, 8.0)
+    Re (id-139661922982304) points to: Re (id-139661922982688): 9.047655380833957 +- 0.41400325572857677 [arcsec], limits: (0.0, None)
+    Ie (id-139661922982352): -2.913826861038511 +- 0.03999511262409872 [log10(flux/arcsec^2)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>result = ap.fit.LM(model_full, verbose = 1).fit()
+print(result.message)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Chi^2/DoF: 93.53242795091455, L: 1.0
+Chi^2/DoF: 93.50844275942052, L: 1.6666666666666667
+Chi^2/DoF: 93.453630117515, L: 0.5555555555555556
+Chi^2/DoF: 93.43431256708485, L: 0.9259259259259259
+Chi^2/DoF: 93.38585378785417, L: 0.30864197530864196
+Chi^2/DoF: 93.27190504545823, L: 0.10288065843621398
+Chi^2/DoF: 93.24541501708919, L: 0.034293552812071325
+Chi^2/DoF: 93.24379870728976, L: 4.704191057897301e-05
+Chi^2/DoF: 93.24379754092445, L: 1.7422929844064077e-06
+Final Chi^2/DoF: 93.2437975378008, L: 2.1509789930943304e-08. Converged: success
+success
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># here we plot the results of the fitting, notice that each band has a different PSF and pixelscale. Also, notice
+# that the colour bars represent significantly different ranges since each model was allowed to fit its own Ie.
+# meanwhile the center, PA, q, and Re is the same for every model.
+fig1, ax1 = plt.subplots(1, 3, figsize = (18,6))
+ap.plots.model_image(fig1, ax1, model_full, flipx=True)
+ax1[0].set_title(&quot;r-band model image&quot;)
+ax1[1].set_title(&quot;W1-band model image&quot;)
+ax1[2].set_title(&quot;NUV-band model image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_7_0.png" src="_images/JointModels_7_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># We can also plot the residual images. As can be seen, the galaxy is fit in all three bands simultaneously
+# with the majority of the light removed in all bands. A residual can be seen in the r band. This is likely
+# due to there being more structure in the r-band than just a sersic. The W1 and NUV bands look excellent though
+fig1, ax1 = plt.subplots(1, 3, figsize = (18,6))
+ap.plots.residual_image(fig1, ax1, model_full, flipx=True)
+ax1[0].set_title(&quot;r-band residual image&quot;)
+ax1[1].set_title(&quot;W1-band residual image&quot;)
+ax1[2].set_title(&quot;NUV-band residual image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_8_0.png" src="_images/JointModels_8_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Save a joint model just like any other model
+model_full.save(&quot;jointsave.yaml&quot;)
+
+# This code cant run because it would create a bunch of models with names that already exist.
+# You can test it in a new file if you like
+#############################################
+# # Load the joint model just like any other
+# model_reload = ap.models.AstroPhot_Model(
+#     name = &quot;reload LEDA 41136&quot;,
+#     filename = &quot;jointsave.yaml&quot;,
+# )
+
+# # However, targets are not saved when saving a model, so those must be re-assigned manually
+# # Assign the group target
+# model_reload.target = target_full
+# # Assign the sub-model targets
+# model_reload.models[&quot;rband model&quot;].target = target_r
+# model_reload.models[&quot;W1band model&quot;].target = target_W1
+# model_reload.models[&quot;NUVband model&quot;].target = target_NUV
+
+# # You must also update the full model window before proceeding
+# model_reload.update_window()
+
+# # Plot everything again to check its working
+# fig1, ax1 = plt.subplots(2, 3, figsize = (18,12))
+# ap.plots.model_image(fig1, ax1[0], model_reload, flipx=True)
+# ax1[0][0].set_title(&quot;r-band model image&quot;)
+# ax1[0][1].set_title(&quot;W1-band model image&quot;)
+# ax1[0][2].set_title(&quot;NUV-band model image&quot;)
+# ap.plots.residual_image(fig1, ax1[1], model_reload, flipx=True)
+# ax1[1][0].set_title(&quot;r-band residual image&quot;)
+# ax1[1][1].set_title(&quot;W1-band residual image&quot;)
+# ax1[1][2].set_title(&quot;NUV-band residual image&quot;)
+# plt.show()
+</pre></div>
+</div>
+</div>
+<section id="Joint-models-with-multiple-models">
+<h2>Joint models with multiple models<a class="headerlink" href="#Joint-models-with-multiple-models" title="Link to this heading"></a></h2>
+<p>If you want to analyze more than a single astronomical object, you will need to combine many models for each image in a reasonable structure. There are a number of ways to do this that will work, though may not be as scalable. For small images, just about any arrangement is fine when using the LM optimizer. But as images and number of models scales very large, it may be neccessary to sub divide the problem to save memory. To do this you should arrange your models in a hierarchy so that AstroPhot
+has some information about the structure of your problem. There are two ways to do this. First, you can create a group of models where each sub-model is a group which holds all the objects for one image. Second, you can create a group of models where each sub-model is a group which holds all the representations of a single astronomical object across each image. The second method is preferred. See the diagram below to help clarify what this means.</p>
+<p><a class="reference external" href="https://raw.githubusercontent.com/Autostronomy/AstroPhot/main/media/groupjointmodels.png">JointGroupModels</a></p>
+<p>Here we will see an example of a multiband fit of an image which has multiple astronomical objects.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># First we need some data to work with, let&#39;s use another LEDA object, this time a group of galaxies: LEDA 389779, 389797, 389681
+
+RA = 320.5003
+DEC = -57.4585
+# Our first image is from the DESI Legacy-Survey r-band. This image has a pixelscale of 0.262 arcsec/pixel
+rsize = 250
+rimg = fits.open(f&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra={RA}&amp;dec={DEC}&amp;size={rsize}&amp;layer=ls-dr9&amp;pixscale=0.262&amp;bands=r&quot;)
+rwcs = WCS(rimg[0].header)
+
+# dont do this unless you&#39;ve read and understand the coordinates explainer in the docs!
+ref_loc = rwcs.pixel_to_world(0,0)
+target_r.header.reference_radec = (ref_loc.ra.deg, ref_loc.dec.deg)
+
+# Now we make our targets
+target_r = ap.image.Target_Image(
+    data = np.array(rimg[0].data, dtype = np.float64),
+    zeropoint = 22.5,
+    variance = np.ones((rsize,rsize))*0.008**2, # note that the variance is important to ensure all images are compared with proper statistical weight. Here we just use the IQR^2 of the pixel values as the variance, for science data one would use a more accurate variance value
+    psf = ap.utils.initialize.gaussian_psf(1.12/2.355, 51, 0.262), # we construct a basic gaussian psf for each image by giving the simga (arcsec), image width (pixels), and pixelscale (arcsec/pixel)
+    wcs = rwcs,
+)
+
+# The second image is a unWISE W1 band image. This image has a pixelscale of 2.75 arcsec/pixel
+wsize = 25
+w1img = fits.open(f&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra={RA}&amp;dec={DEC}&amp;size={wsize}&amp;layer=unwise-neo7&amp;pixscale=2.75&amp;bands=1&quot;)
+target_W1 = ap.image.Target_Image(
+    data = np.array(w1img[0].data, dtype = np.float64),
+    zeropoint = 25.199,
+    variance = np.ones((wsize,wsize))*4.9**2,
+    psf = ap.utils.initialize.gaussian_psf(6.1/2.355, 21, 2.75),
+    wcs = WCS(w1img[0].header),
+    reference_radec = target_r.window.reference_radec,
+)
+
+# The third image is a GALEX NUV band image. This image has a pixelscale of 1.5 arcsec/pixel
+gsize = 40
+nuvimg = fits.open(f&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra={RA}&amp;dec={DEC}&amp;size={gsize}&amp;layer=galex&amp;pixscale=1.5&amp;bands=n&quot;)
+target_NUV = ap.image.Target_Image(
+    data = np.array(nuvimg[0].data, dtype = np.float64),
+    zeropoint = 20.08,
+    variance = np.ones((gsize,gsize))*0.0007**2,
+    psf = ap.utils.initialize.gaussian_psf(5.4/2.355, 21, 1.5),
+    wcs = WCS(nuvimg[0].header),
+    reference_radec = target_r.window.reference_radec,
+)
+target_full = ap.image.Target_Image_List((target_r, target_W1, target_NUV))
+
+fig1, ax1 = plt.subplots(1, 3, figsize = (18,6))
+ap.plots.target_image(fig1, ax1, target_full, flipx=True)
+ax1[0].set_title(&quot;r-band image&quot;)
+ax1[1].set_title(&quot;W1-band image&quot;)
+ax1[2].set_title(&quot;NUV-band image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_11_0.png" src="_images/JointModels_11_0.png" />
+</div>
+</div>
+<p>There is barely any signal in the GALEX data and it would be entirely impossible to analyze on its own. With simultaneous multiband fitting it is a breeze to get relatively robust results!</p>
+<p>Next we need to construct models for each galaxy. This is understandably more complex than in the single band case, since now we have three times the amout of data to keep track of. Recall that we will create a number of joint models to represent each astronomical object, then put them all together in a larger group model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Here we enter the window parameters by hand, in general one would use a segmentation map or
+# some other automated proceedure to pick out the area for many objects
+windows = [
+    {&quot;r&quot;:[[72,152],[140,234]], &quot;W1&quot;: [[4,19],[12,25]], &quot;NUV&quot;: [[9,28],[20,39]]},
+    {&quot;r&quot;:[[43,155],[138,237]], &quot;W1&quot;: [[1,17],[12,25]], &quot;NUV&quot;: [[4,22],[19,39]]},
+    {&quot;r&quot;:[[115,210],[100,228]], &quot;W1&quot;: [[8,23],[8,25]], &quot;NUV&quot;: [[17,35],[13,38]]},
+    {&quot;r&quot;:[[69,170],[10,115]], &quot;W1&quot;: [[5,19],[0,14]], &quot;NUV&quot;: [[8,30],[1,18]]},
+]
+
+model_list = []
+
+for i, window in enumerate(windows):
+    # create the submodels for this object
+    sub_list = []
+    sub_list.append(
+        ap.models.AstroPhot_Model(
+            name = f&quot;rband model {i}&quot;,
+            model_type = &quot;spline galaxy model&quot;, # we use spline models for the r-band since it is well resolved
+            target = target_r,
+            window = window[&quot;r&quot;],
+            psf_mode = &quot;full&quot;,
+            parameters = {&quot;q&quot;: 0.3},
+        )
+    )
+    sub_list.append(
+        ap.models.AstroPhot_Model(
+            name = f&quot;W1band model {i}&quot;,
+            model_type = &quot;sersic galaxy model&quot;, # we use sersic models for W1 and NUV since there isn&#39;t much visible detail, a simple model is sufficient
+            target = target_W1,
+            window = window[&quot;W1&quot;],
+            psf_mode = &quot;full&quot;,
+            parameters = {&quot;q&quot;: 0.3},
+        )
+    )
+    sub_list.append(
+        ap.models.AstroPhot_Model(
+            name = f&quot;NUVband model {i}&quot;,
+            model_type = &quot;sersic galaxy model&quot;,
+            target = target_NUV,
+            window = window[&quot;NUV&quot;],
+            psf_mode = &quot;full&quot;,
+            parameters = {&quot;q&quot;: 0.3},
+        )
+    )
+    # ensure equality constraints
+    # across all bands, same center, q, PA
+    for p in [&quot;center&quot;, &quot;q&quot;, &quot;PA&quot;]:
+        sub_list[1][p].value = sub_list[0][p]
+        sub_list[2][p].value = sub_list[0][p]
+    # across W1 and NUV, same n, Re
+    sub_list[2][&quot;n&quot;].value = sub_list[1][&quot;n&quot;]
+    sub_list[2][&quot;Re&quot;].value = sub_list[1][&quot;Re&quot;]
+
+    # Make the multiband model for this object
+    model_list.append(
+        ap.models.AstroPhot_Model(
+            name = f&quot;model {i}&quot;,
+            model_type = &quot;group model&quot;,
+            target = target_full,
+            models = sub_list,
+        )
+    )
+# Make the full model for this system of objects
+MODEL = ap.models.AstroPhot_Model(
+    name = f&quot;full model&quot;,
+    model_type = &quot;group model&quot;,
+    target = target_full,
+    models = model_list,
+)
+fig, ax = plt.subplots(1,3, figsize = (16,5))
+ap.plots.target_image(fig, ax, MODEL.target, flipx=True)
+ap.plots.model_window(fig, ax, MODEL)
+ax[0].set_title(&quot;r-band image&quot;)
+ax[1].set_title(&quot;W1-band image&quot;)
+ax[2].set_title(&quot;NUV-band image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_13_0.png" src="_images/JointModels_13_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>MODEL.initialize()
+
+result = ap.fit.Iter(MODEL, verbose = 1, method_kwargs = {&quot;max_iter&quot;: 10}).fit()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.3001839066294432
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.1015244463853218
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.0782412765169271
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.0760216336233632
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.0730443159945982
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.0727074380851473
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.0726172066008164
+--------iter-------
+model 0
+model 1
+model 2
+model 3
+Update Chi^2 with new parameters
+Loss: 1.0725539750112738
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig1, ax1 = plt.subplots(1, 3, figsize = (18,4))
+ap.plots.model_image(fig1, ax1, MODEL, flipx=True)
+ax1[0].set_title(&quot;r-band model image&quot;)
+ax1[1].set_title(&quot;W1-band model image&quot;)
+ax1[2].set_title(&quot;NUV-band model image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: divide by zero encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: invalid value encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_15_1.png" src="_images/JointModels_15_1.png" />
+</div>
+</div>
+<p>The models look pretty good! The power of multiband fitting lets us know that we have extracted all the available information here, no forced photometry required! Some notes though, since we didn’t fit a sky model, the colourbars are quite extreme, normally they would be in the range 30 - 20. Also for the r-band there may be noticible noise at very low SB (~50) this is due to FFT convolution and is unavoidable in any code.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, ax = plt.subplots(1, 3, figsize = (18,6))
+ap.plots.residual_image(fig, ax, MODEL, flipx=True)
+ax[0].set_title(&quot;r-band residual image&quot;)
+ax[1].set_title(&quot;W1-band residual image&quot;)
+ax[2].set_title(&quot;NUV-band residual image&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/JointModels_17_0.png" src="_images/JointModels_17_0.png" />
+</div>
+</div>
+<p>Unfortunately the residuals do not look very good, in this case it is because of poor alignment in the three images. Ensuring they are all on the same coordinate system is very important. We will update this section in the future with a better example that actually gets a good result. For now, this tutorial still shows how to set up a multi-band fit and serves as a warning to make sure you have good coordinates!</p>
+<section id="Dithered-images">
+<h3>Dithered images<a class="headerlink" href="#Dithered-images" title="Link to this heading"></a></h3>
+<p>Note that it is not necessary to use images from different bands. Using dithered images one can effectively achieve higher resolution. It is possible to simultaneously fit dithered images with AstroPhot instead of postprocessing the two images together. This will of course be slower, but may be worthwhile for cases where extra care is needed.</p>
+</section>
+<section id="Stacked-images">
+<h3>Stacked images<a class="headerlink" href="#Stacked-images" title="Link to this heading"></a></h3>
+<p>Like dithered images, one may wish to combine the statistical power of multiple images but for some reason it is not clear how to add them (for example they are at different rotations). In this case one can simply have AstroPhot fit the images simultaneously. Again this is slower than if the image could be combined, but should extract all the statistical power from the data!</p>
+</section>
+<section id="Time-series">
+<h3>Time series<a class="headerlink" href="#Time-series" title="Link to this heading"></a></h3>
+<p>Some objects change over time. For example they may get brighter and dimmer, or may have a transient feature appear. However, the structure of an object may remain constant. An example of this is a supernova and its host galaxy. The host galaxy likely doesn’t change across images, but the supernova does. It is possible to fit a time series dataset with a shared galaxy model across multiple images, and a shared position for the supernova, but a variable brightness for the supernova over each
+image.</p>
+<p>It is possible to get quite creative with joint models as they allow one to fix selective features of a model over a wide range of data. If you have a situation which may benefit from joint modelling but are having a hard time determining how to format everything, please do contact us!</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ModelZoo.html" class="btn btn-neutral float-left" title="Model Zoo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="CustomModels.html" class="btn btn-neutral float-right" title="Custom model objects" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

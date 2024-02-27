@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.plots package &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="astrophot.utils package" href="astrophot.utils.html" />
+    <link rel="prev" title="astrophot.parse_config package" href="astrophot.parse_config.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">astrophot</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="astrophot.html">astrophot package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="astrophot.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="astrophot.errors.html">astrophot.errors package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.fit.html">astrophot.fit package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.image.html">astrophot.image package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.models.html">astrophot.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.param.html">astrophot.param package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.parse_config.html">astrophot.parse_config package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">astrophot.plots package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.utils.html">astrophot.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot.AP_config">astrophot.AP_config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">astrophot</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.html">astrophot package</a></li>
+      <li class="breadcrumb-item active">astrophot.plots package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/astrophot.plots.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="astrophot-plots-package">
+<h1>astrophot.plots package<a class="headerlink" href="#astrophot-plots-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.plots.diagnostic">
+<span id="astrophot-plots-diagnostic-module"></span><h2>astrophot.plots.diagnostic module<a class="headerlink" href="#module-astrophot.plots.diagnostic" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.diagnostic.covariance_matrix">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.diagnostic.</span></span><span class="sig-name descname"><span class="pre">covariance_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">covariance_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(10,</span> <span class="pre">10)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ellipse_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'g'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showticks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/diagnostic.html#covariance_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.diagnostic.covariance_matrix" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.plots.image">
+<span id="astrophot-plots-image-module"></span><h2>astrophot.plots.image module<a class="headerlink" href="#module-astrophot.plots.image" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.image.model_image">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.image.</span></span><span class="sig-name descname"><span class="pre">model_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showcbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flipx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">magunits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_full_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/image.html#model_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.image.model_image" title="Link to this definition"></a></dt>
+<dd><p>This function is used to generate a model image and display it using the provided figure and axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<em>matplotlib.figure.Figure</em>) – The figure object in which the image will be displayed.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The axes object on which the image will be plotted.</p></li>
+<li><p><strong>model</strong> (<em>Model</em>) – The model object used to generate a model image if <cite>sample_image</cite> is not provided.</p></li>
+<li><p><strong>sample_image</strong> (<a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image" title="astrophot.image.image_object.Image"><em>Image</em></a><em> or </em><a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image_List" title="astrophot.image.image_object.Image_List"><em>Image_List</em></a><em>, </em><em>optional</em>) – The image or list of images to be displayed.
+If <cite>None</cite>, a model image is generated using the provided <cite>model</cite>. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>window</strong> (<a class="reference internal" href="astrophot.image.html#astrophot.image.window_object.Window" title="astrophot.image.window_object.Window"><em>Window</em></a><em>, </em><em>optional</em>) – The window through which the image is viewed. If <cite>None</cite>, the window of the
+provided <cite>model</cite> is used. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>target</strong> (<em>Target</em><em>, </em><em>optional</em>) – The target or list of targets for the image or image list.
+If <cite>None</cite>, the target of the <cite>model</cite> is used. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>showcbar</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to show the color bar. Defaults to <cite>True</cite>.</p></li>
+<li><p><strong>target_mask</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to apply the mask of the target. If <cite>True</cite> and if the target has a mask,
+the mask is applied to the image. Defaults to <cite>False</cite>.</p></li>
+<li><p><strong>cmap_levels</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of discrete levels to convert the continuous color map to.
+If not <cite>None</cite>, the color map is converted to a ListedColormap with the specified number of levels.
+Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>sample_full_image</strong> – If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.</p></li>
+<li><p><strong>**kwargs</strong> – Arbitrary keyword arguments. These are used to override the default imshow_kwargs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure object containing the displayed image.
+ax (matplotlib.axes.Axes): The axes object containing the displayed image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>fig (matplotlib.figure.Figure)</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <cite>sample_image</cite> is an <cite>Image_List</cite>, this function will recursively call itself for each image in the list,
+with the corresponding target and window. The <cite>showcbar</cite> parameter and <cite>kwargs</cite> are passed unchanged to each recursive call.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.image.model_window">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.image.</span></span><span class="sig-name descname"><span class="pre">model_window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rectangle_linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/image.html#model_window"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.image.model_window" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.image.psf_image">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.image.</span></span><span class="sig-name descname"><span class="pre">psf_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flipx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/image.html#psf_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.image.psf_image" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.image.residual_image">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.image.</span></span><span class="sig-name descname"><span class="pre">residual_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showcbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_residuals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clb_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_residuals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flipx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_full_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/image.html#residual_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.image.residual_image" title="Link to this definition"></a></dt>
+<dd><p>This function is used to calculate and display the residuals of a model image with respect to a target image.
+The residuals are calculated as the difference between the target image and the sample image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<em>matplotlib.figure.Figure</em>) – The figure object in which the residuals will be displayed.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The axes object on which the residuals will be plotted.</p></li>
+<li><p><strong>model</strong> (<em>Model</em>) – The model object used to generate a model image if <cite>sample_image</cite> is not provided.</p></li>
+<li><p><strong>target</strong> (<em>Target</em><em> or </em><a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image_List" title="astrophot.image.image_object.Image_List"><em>Image_List</em></a><em>, </em><em>optional</em>) – The target or list of targets for the image or image list.
+If <cite>None</cite>, the target of the <cite>model</cite> is used. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>sample_image</strong> (<a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image" title="astrophot.image.image_object.Image"><em>Image</em></a><em> or </em><a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image_List" title="astrophot.image.image_object.Image_List"><em>Image_List</em></a><em>, </em><em>optional</em>) – The image or list of images from which residuals will be calculated.
+If <cite>None</cite>, a model image is generated using the provided <cite>model</cite>. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>showcbar</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to show the color bar. Defaults to <cite>True</cite>.</p></li>
+<li><p><strong>window</strong> (<a class="reference internal" href="astrophot.image.html#astrophot.image.window_object.Window" title="astrophot.image.window_object.Window"><em>Window</em></a><em> or </em><a class="reference internal" href="astrophot.image.html#astrophot.image.window_object.Window_List" title="astrophot.image.window_object.Window_List"><em>Window_List</em></a><em>, </em><em>optional</em>) – The window through which the image is viewed. If <cite>None</cite>, the window of the
+provided <cite>model</cite> is used. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>center_residuals</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to subtract the median of the residuals. If <cite>True</cite>, the median is subtracted
+from the residuals. Defaults to <cite>False</cite>.</p></li>
+<li><p><strong>clb_label</strong> (<em>str</em><em>, </em><em>optional</em>) – The label for the colorbar. If <cite>None</cite>, a default label is used based on the normalization of the
+residuals. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>normalize_residuals</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to normalize the residuals. If <cite>True</cite>, residuals are divided by the square root
+of the variance of the target. Defaults to <cite>False</cite>.</p></li>
+<li><p><strong>sample_full_image</strong> – If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.</p></li>
+<li><p><strong>**kwargs</strong> – Arbitrary keyword arguments. These are used to override the default imshow_kwargs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure object containing the displayed residuals.
+ax (matplotlib.axes.Axes): The axes object containing the displayed residuals.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>fig (matplotlib.figure.Figure)</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <cite>window</cite>, <cite>target</cite>, or <cite>sample_image</cite> are lists, this function will recursively call itself for each element in the list,
+with the corresponding window, target, and sample image. The <cite>showcbar</cite>, <cite>center_residuals</cite>, and <cite>kwargs</cite> are passed unchanged to
+each recursive call.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.image.target_image">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.image.</span></span><span class="sig-name descname"><span class="pre">target_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/image.html#target_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.image.target_image" title="Link to this definition"></a></dt>
+<dd><p>This function is used to display a target image using the provided figure and axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<em>matplotlib.figure.Figure</em>) – The figure object in which the target image will be displayed.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The axes object on which the target image will be plotted.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image" title="astrophot.image.image_object.Image"><em>Image</em></a><em> or </em><a class="reference internal" href="astrophot.image.html#astrophot.image.image_object.Image_List" title="astrophot.image.image_object.Image_List"><em>Image_List</em></a>) – The image or list of images to be displayed.</p></li>
+<li><p><strong>window</strong> (<a class="reference internal" href="astrophot.image.html#astrophot.image.window_object.Window" title="astrophot.image.window_object.Window"><em>Window</em></a><em>, </em><em>optional</em>) – The window through which the image is viewed. If <cite>None</cite>, the window of the
+provided <cite>target</cite> is used. Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – Arbitrary keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure object containing the displayed target image.
+ax (matplotlib.axes.Axes): The axes object containing the displayed target image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>fig (matplotlib.figure.Figure)</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <cite>target</cite> is an <cite>Image_List</cite>, this function will recursively call itself for each image in the list.
+The <cite>window</cite> parameter and <cite>kwargs</cite> are passed unchanged to each recursive call.</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.plots.profile">
+<span id="astrophot-plots-profile-module"></span><h2>astrophot.plots.profile module<a class="headerlink" href="#module-astrophot.plots.profile" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.profile.radial_light_profile">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.profile.</span></span><span class="sig-name descname"><span class="pre">radial_light_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rad_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'arcsec'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doassert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/profile.html#radial_light_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.profile.radial_light_profile" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.profile.radial_median_profile">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.profile.</span></span><span class="sig-name descname"><span class="pre">radial_median_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">count_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_profile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rad_unit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'arcsec'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doassert</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/profile.html#radial_median_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.profile.radial_median_profile" title="Link to this definition"></a></dt>
+<dd><p>Plot an SB profile by taking flux median at each radius.</p>
+<p>Using the coordinate transforms defined by the model object,
+assigns a radius to each pixel then bins the pixel-radii and
+computes the median in each bin. This gives a simple
+representation of the image data if one were to simply average the
+pixels along isophotes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> – matplotlib figure object</p></li>
+<li><p><strong>ax</strong> – matplotlib axis object</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><em>AstroPhot_Model</em></a>) – Model object from which to determine the radial binning. Also provides the target image to extract the data</p></li>
+<li><p><strong>count_limit</strong> (<em>int</em>) – The limit of pixels in a bin, below which uncertainties are not computed. Default: 10</p></li>
+<li><p><strong>return_profile</strong> (<em>bool</em>) – Instead of just returning the fig and ax object, will return the extracted profile formatted as: Rbins (the radial bin edges), medians (the median in each bin), scatter (the 16-84 quartile range / 2), count (the number of pixels in each bin). Default: False</p></li>
+<li><p><strong>rad_unit</strong> (<em>str</em>) – The name of the physical radius units. Default: “arcsec”</p></li>
+<li><p><strong>doassert</strong> (<em>bool</em>) – If any requirements are imposed on which kind of profile can be plotted, this activates them. Default: True</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.profile.ray_light_profile">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.profile.</span></span><span class="sig-name descname"><span class="pre">ray_light_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rad_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'arcsec'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doassert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/profile.html#ray_light_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.profile.ray_light_profile" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.profile.warp_phase_profile">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.profile.</span></span><span class="sig-name descname"><span class="pre">warp_phase_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rad_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'arcsec'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doassert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/profile.html#warp_phase_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.profile.warp_phase_profile" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.profile.wedge_light_profile">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.profile.</span></span><span class="sig-name descname"><span class="pre">wedge_light_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rad_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'arcsec'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doassert</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/profile.html#wedge_light_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.profile.wedge_light_profile" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.plots.shared_elements">
+<span id="astrophot-plots-shared-elements-module"></span><h2>astrophot.plots.shared_elements module<a class="headerlink" href="#module-astrophot.plots.shared_elements" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.shared_elements.AddLogo">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.shared_elements.</span></span><span class="sig-name descname"><span class="pre">AddLogo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.8,</span> <span class="pre">0.01,</span> <span class="pre">0.1688,</span> <span class="pre">0.037]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">white</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/shared_elements.html#AddLogo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.shared_elements.AddLogo" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.shared_elements.AddScale">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.shared_elements.</span></span><span class="sig-name descname"><span class="pre">AddScale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lower</span> <span class="pre">right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/shared_elements.html#AddScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.shared_elements.AddScale" title="Link to this definition"></a></dt>
+<dd><p>ax: figure axis object
+img_width: image width in arcseconds
+loc: location to put hte scale bar</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.plots.shared_elements.LSBImage">
+<span class="sig-prename descclassname"><span class="pre">astrophot.plots.shared_elements.</span></span><span class="sig-name descname"><span class="pre">LSBImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/plots/shared_elements.html#LSBImage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.plots.shared_elements.LSBImage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.plots.visuals">
+<span id="astrophot-plots-visuals-module"></span><h2>astrophot.plots.visuals module<a class="headerlink" href="#module-astrophot.plots.visuals" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.plots">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-astrophot.plots" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="astrophot.parse_config.html" class="btn btn-neutral float-left" title="astrophot.parse_config package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="astrophot.utils.html" class="btn btn-neutral float-right" title="astrophot.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

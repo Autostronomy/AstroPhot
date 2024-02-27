@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.image.target_image &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.image.target_image</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.image.target_image</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">torch.nn.functional</span> <span class="kn">import</span> <span class="n">avg_pool2d</span>
+
+<span class="kn">from</span> <span class="nn">.image_object</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">Image_List</span>
+<span class="kn">from</span> <span class="nn">.jacobian_image</span> <span class="kn">import</span> <span class="n">Jacobian_Image</span><span class="p">,</span> <span class="n">Jacobian_Image_List</span>
+<span class="kn">from</span> <span class="nn">.model_image</span> <span class="kn">import</span> <span class="n">Model_Image</span><span class="p">,</span> <span class="n">Model_Image_List</span>
+<span class="kn">from</span> <span class="nn">.psf_image</span> <span class="kn">import</span> <span class="n">PSF_Image</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">SpecificationConflict</span><span class="p">,</span> <span class="n">InvalidImage</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Target_Image&quot;</span><span class="p">,</span> <span class="s2">&quot;Target_Image_List&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Target_Image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image">[docs]</a>
+<span class="k">class</span> <span class="nc">Target_Image</span><span class="p">(</span><span class="n">Image</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Image object which represents the data to be fit by a model. It can</span>
+<span class="sd">    include a variance image, mask, and PSF as anciliary data which</span>
+<span class="sd">    describes the target image.</span>
+
+<span class="sd">    Target images are a basic unit of data in `AstroPhot`, they store</span>
+<span class="sd">    the information collected from telescopes for which models are to</span>
+<span class="sd">    be fit. There is minimial functionality in the `Target_Image`</span>
+<span class="sd">    object itself, it is mostly defined in terms of how other objects</span>
+<span class="sd">    interact with it.</span>
+
+<span class="sd">    Basic usage:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">      import astrophot as ap</span>
+
+<span class="sd">      # Create target image</span>
+<span class="sd">      image = ap.image.Target_Image(</span>
+<span class="sd">          data = &lt;pixel data&gt;,</span>
+<span class="sd">          wcs = &lt;astropy WCS object&gt;,</span>
+<span class="sd">          variance = &lt;pixel uncertainties&gt;,</span>
+<span class="sd">          psf = &lt;point spread function as PSF_Image object&gt;,</span>
+<span class="sd">          mask = &lt;pixels to ignore&gt;,</span>
+<span class="sd">      )</span>
+
+<span class="sd">      # Display the data</span>
+<span class="sd">      fig, ax = plt.subplots()</span>
+<span class="sd">      ap.plots.target_image(fig, ax, image)</span>
+<span class="sd">      plt.show()</span>
+
+<span class="sd">      # Save the image</span>
+<span class="sd">      image.save(&quot;mytarget.fits&quot;)</span>
+
+<span class="sd">      # Load the image</span>
+<span class="sd">      image2 = ap.image.Target_Image(filename = &quot;mytarget.fits&quot;)</span>
+
+<span class="sd">      # Make low resolution version</span>
+<span class="sd">      lowrez = image.reduce(2)</span>
+
+<span class="sd">    Some important information to keep in mind. First, providing an</span>
+<span class="sd">    `astropy WCS` object is the best way to keep track of coordinates</span>
+<span class="sd">    and pixel scale properties, especially when dealing with</span>
+<span class="sd">    multi-band data. If images have relative positioning, rotation,</span>
+<span class="sd">    pixel sizes, field of view this will all be handled automatically</span>
+<span class="sd">    by taking advantage of `WCS` objects. Second, Providing accurate</span>
+<span class="sd">    variance (or weight) maps is critical to getting a good fit to the</span>
+<span class="sd">    data. This is a very common source of issues so it is worthwhile</span>
+<span class="sd">    to review literature on how best to construct such a map. A good</span>
+<span class="sd">    starting place is the FAQ for GALFIT:</span>
+<span class="sd">    https://users.obs.carnegiescience.edu/peng/work/galfit/CHI2.html</span>
+<span class="sd">    which is an excellent resource for all things image modeling. Just</span>
+<span class="sd">    note that `AstroPhot` uses variance or weight maps, not sigma</span>
+<span class="sd">    images. `AstroPhot` will not crete a variance map for the user, by</span>
+<span class="sd">    default it will just assume uniform variance which is rarely</span>
+<span class="sd">    accurate. Third, The PSF pixelscale must be a multiple of the</span>
+<span class="sd">    image pixelscale. So if the image has a pixelscale of 1 then the</span>
+<span class="sd">    PSF must have a pixelscale of 1, 1/2, 1/3, etc for anything to</span>
+<span class="sd">    work out. Note that if the PSF pixelscale is finer than the image,</span>
+<span class="sd">    then all modelling will be done at the higher resolution. This is</span>
+<span class="sd">    recommended for accuracy though it can mean higher memory</span>
+<span class="sd">    consumption.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_weight</span> <span class="ow">and</span> <span class="s2">&quot;weight&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_variance</span> <span class="ow">and</span> <span class="s2">&quot;variance&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_variance</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variance&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_psf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_psf</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;psf&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;psf_upscale&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Set nan pixels to be masked automatically</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">standard_deviation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stores the standard deviation of the image pixels. This represents</span>
+<span class="sd">        the uncertainty in each pixel value. It should always have the</span>
+<span class="sd">        same shape as the image data. In the case where the standard</span>
+<span class="sd">        deviation is not known, a tensor of ones will be created to</span>
+<span class="sd">        stand in as the standard deviation values.</span>
+
+<span class="sd">        The standard deviation is not stored directly, instead it is</span>
+<span class="sd">        computed as :math:`\\sqrt{1/W}` where :math:`W` is the</span>
+<span class="sd">        weights.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_variance</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">variance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stores the variance of the image pixels. This represents the</span>
+<span class="sd">        uncertainty in each pixel value. It should always have the</span>
+<span class="sd">        same shape as the image data. In the case where the variance</span>
+<span class="sd">        is not known, a tensor of ones will be created to stand in as</span>
+<span class="sd">        the variance values.</span>
+
+<span class="sd">        The variance is not stored directly, instead it is</span>
+<span class="sd">        computed as :math:`\\frac{1}{W}` where :math:`W` is the</span>
+<span class="sd">        weights.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_variance</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="nd">@variance</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">variance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variance</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_variance</span><span class="p">(</span><span class="n">variance</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_variance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns True when the image object has stored variance values. If</span>
+<span class="sd">        this is False and the variance property is called then a</span>
+<span class="sd">        tensor of ones will be returned.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stores the weight of the image pixels. This represents the</span>
+<span class="sd">        uncertainty in each pixel value. It should always have the</span>
+<span class="sd">        same shape as the image data. In the case where the weight</span>
+<span class="sd">        is not known, a tensor of ones will be created to stand in as</span>
+<span class="sd">        the weight values.</span>
+
+<span class="sd">        The weights are used to proprtionately scale residuals in the</span>
+<span class="sd">        likelihood. Most commonly this shows up as a :math:`\\chi^2`</span>
+<span class="sd">        like:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">          \\chi^2 = (\\vec{y} - \\vec{f(\\theta)})^TW(\\vec{y} - \\vec{f(\\theta)})</span>
+
+<span class="sd">        which can be optimized to find parameter values. Using the</span>
+<span class="sd">        Jacobian, which in this case is the derivative of every pixel</span>
+<span class="sd">        wrt every parameter, the weight matrix also appears in the</span>
+<span class="sd">        gradient:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">          \\vec{g} = J^TW(\\vec{y} - \\vec{f(\\theta)})</span>
+
+<span class="sd">        and the hessian approximation used in Levenberg-Marquardt:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">          H \\approx J^TWJ</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_weight</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="nd">@weight</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns True when the image object has stored weight values. If</span>
+<span class="sd">        this is False and the weight property is called then a</span>
+<span class="sd">        tensor of ones will be returned.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The mask stores a tensor of boolean values which indicate any</span>
+<span class="sd">        pixels to be ignored. These pixels will be skipped in</span>
+<span class="sd">        likelihood evaluations and in parameter optimization. It is</span>
+<span class="sd">        common practice to mask pixels with pathological values such</span>
+<span class="sd">        as due to cosmic rays or satelites passing through the image.</span>
+
+<span class="sd">        In a mask, a True value indicates that the pixel is masked and</span>
+<span class="sd">        should be ignored. False indicates a normal pixel which will</span>
+<span class="sd">        inter into most calculaitons.</span>
+
+<span class="sd">        If no mask is provided, all pixels are assumed valid.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+
+    <span class="nd">@mask</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Single boolean to indicate if a mask has been provided by the user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">psf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stores the point-spread-function for this target. This should be a</span>
+<span class="sd">        `PSF_Image` object which represents the scattering of a point</span>
+<span class="sd">        source of light. It can also be an `AstroPhot_Model` object</span>
+<span class="sd">        which will contribute its own parameters to an optimization</span>
+<span class="sd">        problem.</span>
+
+<span class="sd">        The PSF stored for a `Target_Image` object is passed to all</span>
+<span class="sd">        models applied to that target which have a `psf_mode` that is</span>
+<span class="sd">        not `none`. This means they will all use the same PSF</span>
+<span class="sd">        model. If one wishes to define a variable PSF across an image,</span>
+<span class="sd">        then they should pass the PSF objects to the `AstroPhot_Model`&#39;s</span>
+<span class="sd">        directly instead of to a `Target_Image`.</span>
+
+<span class="sd">        Raises:</span>
+
+<span class="sd">          AttributeError: if this is called without a PSF defined</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_psf</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;This image does not have a PSF&quot;</span><span class="p">)</span>
+
+    <span class="nd">@psf</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psf</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_psf</span><span class="p">(</span><span class="n">psf</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Target_Image.set_variance">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.set_variance">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_variance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variance</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provide a variance tensor for the image. Variance is equal to $\\sigma^2$. This should have the same shape as the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">variance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">variance</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.set_weight">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.set_weight">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Provide a weight tensor for the image. Weight is equal to $\\frac{1}{\\sigma^2}$. This should have the same</span>
+<span class="sd">        shape as the data.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">weight</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpecificationConflict</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;weight/variance must have same shape as data (</span><span class="si">{</span><span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">weight</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.set_psf">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.set_psf">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="n">psf_upscale</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Provide a psf for the `Target_Image`. This is stored and passed to</span>
+<span class="sd">        models which need to be convolved.</span>
+
+<span class="sd">        The PSF doesn&#39;t need to have the same pixelscale as the</span>
+<span class="sd">        image. It should be some multiple of the resolution of the</span>
+<span class="sd">        `Target_Image` though. So if the image has a pixelscale of 1,</span>
+<span class="sd">        the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">psf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psf</span><span class="p">,</span> <span class="n">PSF_Image</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="n">psf</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="n">PSF_Image</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">psf</span><span class="p">,</span>
+            <span class="n">psf_upscale</span><span class="o">=</span><span class="n">psf_upscale</span><span class="p">,</span>
+            <span class="n">pixelscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">/</span> <span class="n">psf_upscale</span><span class="p">,</span>
+            <span class="n">identity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.set_mask">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.set_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the boolean mask which will indicate which pixels to ignore. A mask value of True means the pixel will be ignored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpecificationConflict</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;mask must have same shape as data (</span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.to">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.to">[docs]</a>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts the stored `Target_Image` data, variance, psf, etc to a</span>
+<span class="sd">        given data type and device.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_weight</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_psf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.or_mask">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.or_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">or_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Combines the currently stored mask with a provided new mask using the boolean `or` operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.and_mask">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.and_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">and_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Combines the currently stored mask with a provided new mask using the boolean `and` operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Produce a copy of this image with all of the same properties. This</span>
+<span class="sd">        can be used when one wishes to make temporary modifications to</span>
+<span class="sd">        an image and then will want the original again.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span>
+            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">,</span>
+            <span class="n">psf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.blank_copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.blank_copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">blank_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Produces a blank copy of the image which has the same properties</span>
+<span class="sd">        except that its data is not filled with zeros.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">blank_copy</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">,</span> <span class="n">psf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.get_window">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.get_window">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a sub-region of the image as defined by a window on the sky.&quot;&quot;&quot;</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">get_self_indices</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_window</span><span class="p">(</span>
+            <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_weight</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">psf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psf</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.jacobian_image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.jacobian_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">jacobian_image</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a blank `Jacobian_Image` object formatted like this current `Target_Image` object. Mostly used internally.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Jacobian_Image</span><span class="p">(</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">target_identity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">header</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.model_image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.model_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">model_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Model_Image</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">data</span><span class="p">,</span>
+            <span class="n">header</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+            <span class="n">target_identity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.reduce">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.reduce">[docs]</a>
+    <span class="k">def</span> <span class="nf">reduce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a new `Target_Image` object with a reduced resolution</span>
+<span class="sd">        compared to the current image. `scale` should be an integer</span>
+<span class="sd">        indicating how much to reduce the resolution. If the</span>
+<span class="sd">        `Target_Image` was originally (48,48) pixels across with a</span>
+<span class="sd">        pixelscale of 1 and `reduce(2)` is called then the image will</span>
+<span class="sd">        be (24,24) pixels and the pixelscale will be 2. If `reduce(3)`</span>
+<span class="sd">        is called then the returned image will be (16,16) pixels</span>
+<span class="sd">        across and the pixelscale will be 3.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">MS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">scale</span>
+        <span class="n">NS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">scale</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+            <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+            <span class="n">variance</span><span class="o">=</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">variance</span><span class="p">[:</span> <span class="n">MS</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="p">:</span> <span class="n">NS</span> <span class="o">*</span> <span class="n">scale</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">MS</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">NS</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_variance</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[:</span> <span class="n">MS</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="p">:</span> <span class="n">NS</span> <span class="o">*</span> <span class="n">scale</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">MS</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">NS</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">),</span>
+            <span class="n">psf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_psf</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.expand">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.expand">[docs]</a>
+    <span class="k">def</span> <span class="nf">expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">padding</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `Target_Image` doesn&#39;t have expand yet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;expand not available for Target_Image yet&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_weight</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_psf</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;psf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;psf&quot;</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">psf</span> <span class="o">=</span> <span class="n">PSF_Image</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;psf&quot;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.get_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.get_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_fits_state</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_weight</span><span class="p">:</span>
+            <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;DATA&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+                    <span class="s2">&quot;HEADER&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">:</span> <span class="s2">&quot;WEIGHT&quot;</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mask</span><span class="p">:</span>
+            <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;DATA&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+                    <span class="s2">&quot;HEADER&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">:</span> <span class="s2">&quot;MASK&quot;</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_psf</span><span class="p">:</span>
+            <span class="n">states</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">get_fits_state</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">states</span></div>
+
+
+<div class="viewcode-block" id="Target_Image.set_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image.set_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_fits_state</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;WEIGHT&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;DATA&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;DATA&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;PSF&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">psf</span> <span class="o">=</span> <span class="n">PSF_Image</span><span class="p">(</span><span class="n">fits_state</span><span class="o">=</span><span class="n">states</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Target_Image_List">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List">[docs]</a>
+<span class="k">class</span> <span class="nc">Target_Image_List</span><span class="p">(</span><span class="n">Image_List</span><span class="p">,</span> <span class="n">Target_Image</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">Target_Image</span><span class="p">)</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidImage</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Target_Image_List can only hold Target_Image objects, not </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">image</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">image</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">variance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">variance</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@variance</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">variance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variance</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">variance</span><span class="p">):</span>
+            <span class="n">image</span><span class="o">.</span><span class="n">set_variance</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_variance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">has_variance</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">weight</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@weight</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">wgt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+            <span class="n">image</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">wgt</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">has_weight</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Target_Image_List.jacobian_image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.jacobian_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">jacobian_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Jacobian_Image_List</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">jacobian_image</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span> <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">dat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image_List.model_image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.model_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">model_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Model_Image_List</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">model_image</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">dat</span><span class="p">)</span> <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">dat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image_List.match_indices">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.match_indices">[docs]</a>
+    <span class="k">def</span> <span class="nf">match_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">isi</span><span class="p">,</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                        <span class="n">indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">isi</span><span class="p">)</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target_Image</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">isi</span><span class="p">,</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                    <span class="n">indices</span> <span class="o">=</span> <span class="n">isi</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">indices</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other_image</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target_Image</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                    <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other</span>
+                    <span class="k">break</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+                        <span class="k">break</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                    <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">self_image</span><span class="p">,</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+                <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other_image</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other_image</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Target_Image</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                    <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other_image</span>
+                        <span class="k">break</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">identity</span><span class="p">:</span>
+                    <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">self_image</span><span class="p">,</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+                <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other_image</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">mask</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@mask</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">M</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+            <span class="n">image</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">has_mask</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">psf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">psf</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@psf</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psf</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">P</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">psf</span><span class="p">):</span>
+            <span class="n">image</span><span class="o">.</span><span class="n">set_psf</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">has_psf</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">psf_border</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">psf_border</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">psf_border_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">psf_border_int</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Target_Image_List.set_variance">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.set_variance">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_variance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">[</span><span class="n">img</span><span class="p">]</span><span class="o">.</span><span class="n">set_variance</span><span class="p">(</span><span class="n">variance</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image_List.set_psf">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.set_psf">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_psf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">[</span><span class="n">img</span><span class="p">]</span><span class="o">.</span><span class="n">set_psf</span><span class="p">(</span><span class="n">psf</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image_List.set_mask">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.set_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">[</span><span class="n">img</span><span class="p">]</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Target_Image_List.or_mask">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.or_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">or_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Target_Image_List.and_mask">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.target_image.Target_Image_List.and_mask">[docs]</a>
+    <span class="k">def</span> <span class="nf">and_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

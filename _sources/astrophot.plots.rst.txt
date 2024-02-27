@@ -1,0 +1,53 @@
+astrophot.plots package
+=======================
+
+Submodules
+----------
+
+astrophot.plots.diagnostic module
+---------------------------------
+
+.. automodule:: astrophot.plots.diagnostic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.plots.image module
+----------------------------
+
+.. automodule:: astrophot.plots.image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.plots.profile module
+------------------------------
+
+.. automodule:: astrophot.plots.profile
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.plots.shared\_elements module
+---------------------------------------
+
+.. automodule:: astrophot.plots.shared_elements
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.plots.visuals module
+------------------------------
+
+.. automodule:: astrophot.plots.visuals
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.plots
+   :members:
+   :undoc-members:
+   :show-inheritance:

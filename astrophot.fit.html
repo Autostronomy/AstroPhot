@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.fit package &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="astrophot.image package" href="astrophot.image.html" />
+    <link rel="prev" title="astrophot.errors package" href="astrophot.errors.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">astrophot</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="astrophot.html">astrophot package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="astrophot.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="astrophot.errors.html">astrophot.errors package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">astrophot.fit package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.image.html">astrophot.image package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.models.html">astrophot.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.param.html">astrophot.param package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.parse_config.html">astrophot.parse_config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.plots.html">astrophot.plots package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.utils.html">astrophot.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot.AP_config">astrophot.AP_config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">astrophot</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.html">astrophot package</a></li>
+      <li class="breadcrumb-item active">astrophot.fit package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/astrophot.fit.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="astrophot-fit-package">
+<h1>astrophot.fit package<a class="headerlink" href="#astrophot-fit-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.fit.base">
+<span id="astrophot-fit-base-module"></span><h2>astrophot.fit.base module<a class="headerlink" href="#module-astrophot.fit.base" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.base.</span></span><span class="sig-name descname"><span class="pre">BaseOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_tolerance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.image.html#astrophot.image.window_object.Window" title="astrophot.image.window_object.Window"><span class="pre">Window</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base optimizer object that other optimizers inherit from. Ensures consistent signature for the classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]</p></li>
+<li><p><strong>initial_state</strong> – optional initialization for the parameters as a 1D tensor [tensor]</p></li>
+<li><p><strong>max_iter</strong> – maximum allowed number of iterations [int]</p></li>
+<li><p><strong>relative_tolerance</strong> – tolerance for counting success steps as: 0 &lt; (Chi2^2 - Chi1^2)/Chi1^2 &lt; tol [float]</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer.chi2contour">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chi2contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.682689492137</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer.chi2contour"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer.chi2contour" title="Link to this definition"></a></dt>
+<dd><p>Calculates the chi^2 contour for the given number of parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_params</strong> (<em>int</em>) – The number of parameters.</p></li>
+<li><p><strong>confidence</strong> (<em>float</em><em>, </em><em>optional</em>) – The confidence interval (default is 0.682689492137).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The calculated chi^2 contour value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If unable to compute the Chi^2 contour for the given number of parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer.chi2min">
+<span class="sig-name descname"><span class="pre">chi2min</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer.chi2min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer.chi2min" title="Link to this definition"></a></dt>
+<dd><p>Returns the minimum value of chi^2 loss in the loss history.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Minimum value of chi^2 loss.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><span class="pre">BaseOptimizer</span></a></span></span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer.fit" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – Error is raised if this method is not implemented in a subclass of BaseOptimizer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer.res">
+<span class="sig-name descname"><span class="pre">res</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer.res"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer.res" title="Link to this definition"></a></dt>
+<dd><p>Returns the value of lambda (regularization strength) at which minimum chi^2 loss was achieved.</p>
+<p>Returns: ndarray which is the Value of lambda at which minimum chi^2 loss was achieved.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer.res_loss">
+<span class="sig-name descname"><span class="pre">res_loss</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer.res_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer.res_loss" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.base.BaseOptimizer.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/base.html#BaseOptimizer.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.base.BaseOptimizer.step" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>current_state</strong> (<em>torch.Tensor</em><em>, </em><em>optional</em>) – Current state of the model parameters. Defaults to None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – Error is raised if this method is not implemented in a subclass of BaseOptimizer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.gp">
+<span id="astrophot-fit-gp-module"></span><h2>astrophot.fit.gp module<a class="headerlink" href="#module-astrophot.fit.gp" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.fit.gradient">
+<span id="astrophot-fit-gradient-module"></span><h2>astrophot.fit.gradient module<a class="headerlink" href="#module-astrophot.fit.gradient" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.gradient.</span></span><span class="sig-name descname"><span class="pre">Grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/gradient.html#Grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.gradient.Grad" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>A gradient descent optimization wrapper for AstroPhot_Model objects.</p>
+<p>The default method is “NAdam”, a variant of the Adam optimization algorithm.
+This optimizer uses a combination of gradient descent and Nesterov momentum for faster convergence.
+The optimizer is instantiated with a set of initial parameters and optimization options provided by the user.
+The <cite>fit</cite> method performs the optimization, taking a series of gradient steps until a stopping criteria is met.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><em>AstroPhot_Model</em></a>) – an AstroPhot_Model object with which to perform optimization.</p></li>
+<li><p><strong>initial_state</strong> (<em>torch.Tensor</em><em>, </em><em>optional</em>) – an optional initial state for optimization.</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – the optimization method to use for the update step. Defaults to “NAdam”.</p></li>
+<li><p><strong>patience</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – the number of iterations without improvement before the optimizer will exit early. Defaults to None.</p></li>
+<li><p><strong>optim_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – a dictionary of keyword arguments to pass to the pytorch optimizer.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.model" title="Link to this definition"></a></dt>
+<dd><p>the AstroPhot_Model object to optimize.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model">AstroPhot_Model</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.current_state">
+<span class="sig-name descname"><span class="pre">current_state</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.current_state" title="Link to this definition"></a></dt>
+<dd><p>the current state of the parameters being optimized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.iteration">
+<span class="sig-name descname"><span class="pre">iteration</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.iteration" title="Link to this definition"></a></dt>
+<dd><p>the number of iterations performed during the optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.loss_history">
+<span class="sig-name descname"><span class="pre">loss_history</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.loss_history" title="Link to this definition"></a></dt>
+<dd><p>the history of loss values at each iteration of the optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.lambda_history">
+<span class="sig-name descname"><span class="pre">lambda_history</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.lambda_history" title="Link to this definition"></a></dt>
+<dd><p>the history of parameter values at each iteration of the optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.optimizer">
+<span class="sig-name descname"><span class="pre">optimizer</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.optimizer" title="Link to this definition"></a></dt>
+<dd><p>the PyTorch optimizer object being used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.optimizer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.patience">
+<span class="sig-name descname"><span class="pre">patience</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.patience" title="Link to this definition"></a></dt>
+<dd><p>the number of iterations without improvement before the optimizer will exit early.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.method">
+<span class="sig-name descname"><span class="pre">method</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.method" title="Link to this definition"></a></dt>
+<dd><p>the optimization method being used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.optim_kwargs">
+<span class="sig-name descname"><span class="pre">optim_kwargs</span></span><a class="headerlink" href="#astrophot.fit.gradient.Grad.optim_kwargs" title="Link to this definition"></a></dt>
+<dd><p>the dictionary of keyword arguments passed to the PyTorch optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.compute_loss">
+<span class="sig-name descname"><span class="pre">compute_loss</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/fit/gradient.html#Grad.compute_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.gradient.Grad.compute_loss" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><span class="pre">BaseOptimizer</span></a></span></span><a class="reference internal" href="_modules/astrophot/fit/gradient.html#Grad.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.gradient.Grad.fit" title="Link to this definition"></a></dt>
+<dd><p>Perform an iterative fit of the model parameters using the specified optimizer.</p>
+<p>The fit procedure continues until a stopping criteria is met,
+such as the maximum number of iterations being reached,
+or no improvement being made after a specified number of iterations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.gradient.Grad.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/gradient.html#Grad.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.gradient.Grad.step" title="Link to this definition"></a></dt>
+<dd><p>Take a single gradient step. Take a single gradient step.</p>
+<p>Computes the loss function of the model,
+computes the gradient of the parameters using automatic differentiation,
+and takes a step with the PyTorch optimizer.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.hmc">
+<span id="astrophot-fit-hmc-module"></span><h2>astrophot.fit.hmc module<a class="headerlink" href="#module-astrophot.fit.hmc" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.hmc.HMC">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.hmc.</span></span><span class="sig-name descname"><span class="pre">HMC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/hmc.html#HMC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.hmc.HMC" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>Hamiltonian Monte-Carlo sampler wrapper for the Pyro package.</p>
+<p>This MCMC algorithm uses gradients of the Chi^2 to more
+efficiently explore the probability distribution. Consider using
+the NUTS sampler instead of HMC, as it is generally better in most
+aspects.</p>
+<p>More information on HMC can be found at:
+<a class="reference external" href="https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo">https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo</a>,
+<a class="reference external" href="https://arxiv.org/abs/1701.02434">https://arxiv.org/abs/1701.02434</a>, and
+<a class="reference external" href="http://www.mcmchandbook.net/HandbookChapter5.pdf">http://www.mcmchandbook.net/HandbookChapter5.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><em>AstroPhot_Model</em></a>) – The model which will be sampled.</p></li>
+<li><p><strong>initial_state</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>]</em><em>, </em><em>optional</em>) – A 1D array with the values for each parameter in the model. These values should be in the form of “as_representation” in the model. Defaults to None.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of sampling steps to perform. Defaults to 1000.</p></li>
+<li><p><strong>epsilon</strong> (<em>float</em><em>, </em><em>optional</em>) – The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.</p></li>
+<li><p><strong>leapfrog_steps</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 20.</p></li>
+<li><p><strong>inv_mass</strong> (<em>float</em><em> or </em><em>array</em><em>, </em><em>optional</em>) – Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.</p></li>
+<li><p><strong>progress_bar</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to display a progress bar during sampling. Defaults to True.</p></li>
+<li><p><strong>prior</strong> (<em>distribution</em><em>, </em><em>optional</em>) – Prior distribution for the parameters. Defaults to None.</p></li>
+<li><p><strong>warmup</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of warmup steps before actual sampling begins. Defaults to 100.</p></li>
+<li><p><strong>hmc_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional keyword arguments for the HMC sampler. Defaults to {}.</p></li>
+<li><p><strong>mcmc_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional keyword arguments for the MCMC process. Defaults to {}.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.hmc.HMC.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/hmc.html#HMC.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.hmc.HMC.fit" title="Link to this definition"></a></dt>
+<dd><p>Performs MCMC sampling using Hamiltonian Monte-Carlo step.</p>
+<p>Records the chain for later examination.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>torch.Tensor</em><em>, </em><em>optional</em>) – Model parameters as a 1D tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of the HMC class with updated chain.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#astrophot.fit.hmc.HMC" title="astrophot.fit.hmc.HMC">HMC</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.iterative">
+<span id="astrophot-fit-iterative-module"></span><h2>astrophot.fit.iterative module<a class="headerlink" href="#module-astrophot.fit.iterative" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.iterative.</span></span><span class="sig-name descname"><span class="pre">Iter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model:</span> <span class="pre">~astrophot.models.core_model.AstroPhot_Model,</span> <span class="pre">method:</span> <span class="pre">~astrophot.fit.base.BaseOptimizer</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'astrophot.fit.lm.LM'&gt;,</span> <span class="pre">initial_state:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">max_iter:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">100,</span> <span class="pre">method_kwargs:</span> <span class="pre">~typing.Dict[str,</span> <span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">{},</span> <span class="pre">**kwargs:</span> <span class="pre">~typing.Dict[str,</span> <span class="pre">~typing.Any]</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>Optimizer wrapper that performs optimization iteratively.</p>
+<p>This optimizer applies a different optimizer to a group model iteratively.
+It can be used for complex fits or when the number of models to fit is too large to fit in memory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – An <cite>AstroPhot_Model</cite> object to perform optimization on.</p></li>
+<li><p><strong>method</strong> – The optimizer class to apply at each iteration step.</p></li>
+<li><p><strong>initial_state</strong> – Optional initial state for optimization, defaults to None.</p></li>
+<li><p><strong>max_iter</strong> – Maximum number of iterations, defaults to 100.</p></li>
+<li><p><strong>method_kwargs</strong> – Keyword arguments to pass to <cite>method</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.ndf">
+<span class="sig-name descname"><span class="pre">ndf</span></span><a class="headerlink" href="#astrophot.fit.iterative.Iter.ndf" title="Link to this definition"></a></dt>
+<dd><p>Degrees of freedom of the data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.method">
+<span class="sig-name descname"><span class="pre">method</span></span><a class="headerlink" href="#astrophot.fit.iterative.Iter.method" title="Link to this definition"></a></dt>
+<dd><p>The optimizer class to apply at each iteration step. Default: Levenberg-Marquardt</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.method_kwargs">
+<span class="sig-name descname"><span class="pre">method_kwargs</span></span><a class="headerlink" href="#astrophot.fit.iterative.Iter.method_kwargs" title="Link to this definition"></a></dt>
+<dd><p>Keyword arguments to pass to <cite>method</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.iteration">
+<span class="sig-name descname"><span class="pre">iteration</span></span><a class="headerlink" href="#astrophot.fit.iterative.Iter.iteration" title="Link to this definition"></a></dt>
+<dd><p>The number of iterations performed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.lambda_history">
+<span class="sig-name descname"><span class="pre">lambda_history</span></span><a class="headerlink" href="#astrophot.fit.iterative.Iter.lambda_history" title="Link to this definition"></a></dt>
+<dd><p>A list of the states at each iteration step.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.loss_history">
+<span class="sig-name descname"><span class="pre">loss_history</span></span><a class="headerlink" href="#astrophot.fit.iterative.Iter.loss_history" title="Link to this definition"></a></dt>
+<dd><p>A list of the losses at each iteration step</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><span class="pre">BaseOptimizer</span></a></span></span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit the models to the target.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter.step" title="Link to this definition"></a></dt>
+<dd><p>Perform a single iteration of optimization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter.sub_step">
+<span class="sig-name descname"><span class="pre">sub_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter.sub_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter.sub_step" title="Link to this definition"></a></dt>
+<dd><p>Perform optimization for a single model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model</strong> – The model to perform optimization on.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter_LM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.iterative.</span></span><span class="sig-name descname"><span class="pre">Iter_LM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'random'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LM_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter_LM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter_LM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>Optimization wrapper that call LM optimizer on subsets of variables.</p>
+<p>Iter_LM takes the full set of parameters for a model and breaks
+them down into chunks as specified by the user. It then calls
+Levenberg-Marquardt optimization on the subset of parameters, and
+iterates through all subsets until every parameter has been
+optimized. It cycles through these chunks until convergence. This
+method is very powerful in situations where the full optimization
+problem cannot fit in memory, or where the optimization problem is
+too complex to tackle as a single large problem. In full LM
+optimization a single problematic parameter can ripple into issues
+with every other parameter, so breaking the problem down can
+sometimes make an otherwise intractable problem easier. For small
+problems with only a few models, it is likely better to optimize
+the full problem with LM as, when it works, LM is faster than the
+Iter_LM method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chunks</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>tuple</em><em>]</em>) – Specify how to break down the model parameters. If an integer, at each iteration the algorithm will break the parameters into groups of that size. If a tuple, should be a tuple of tuples of strings which give an explicit pairing of parameters to optimize, note that it is allowed to have variable size chunks this way. Default: 50</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – How to iterate through the chunks. Should be one of: random, sequential. Default: random</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter_LM.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter_LM.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter_LM.fit" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – Error is raised if this method is not implemented in a subclass of BaseOptimizer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.iterative.Iter_LM.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/iterative.html#Iter_LM.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.iterative.Iter_LM.step" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>current_state</strong> (<em>torch.Tensor</em><em>, </em><em>optional</em>) – Current state of the model parameters. Defaults to None.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – Error is raised if this method is not implemented in a subclass of BaseOptimizer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.lm">
+<span id="astrophot-fit-lm-module"></span><h2>astrophot.fit.lm module<a class="headerlink" href="#module-astrophot.fit.lm" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.lm.</span></span><span class="sig-name descname"><span class="pre">LM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_tolerance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>The LM class is an implementation of the Levenberg-Marquardt
+optimization algorithm. This method is used to solve non-linear
+least squares problems and is known for its robustness and
+efficiency.</p>
+<p>The Levenberg-Marquardt (LM) algorithm is an iterative method used
+for solving non-linear least squares problems. It can be seen as a
+combination of the Gauss-Newton method and the gradient descent
+method: it works like the Gauss-Newton method when the parameters
+are approximately near a minimum, and like the gradient descent method
+when the parameters are far from their optimal values.</p>
+<p>The cost function that the LM algorithm tries to minimize is of
+the form:</p>
+<div class="math notranslate nohighlight">
+\[f(\boldsymbol{\beta}) = \frac{1}{2}\sum_{i=1}^{N} r_i(\boldsymbol{\beta})^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span> is the vector of parameters,
+<span class="math notranslate nohighlight">\(r_i\)</span> are the residuals, and <span class="math notranslate nohighlight">\(N\)</span> is the number of
+observations.</p>
+<p>The LM algorithm iteratively performs the following update to the parameters:</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\beta}_{n+1} = \boldsymbol{\beta}_{n} - (J^T J + \lambda diag(J^T J))^{-1} J^T \boldsymbol{r}\]</div>
+<dl class="simple">
+<dt>where:</dt><dd><ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(J\)</span> is the Jacobian matrix whose elements are <span class="math notranslate nohighlight">\(J_{ij} = \frac{\partial r_i}{\partial \beta_j}\)</span>,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\boldsymbol{r}\)</span> is the vector of residuals <span class="math notranslate nohighlight">\(r_i(\boldsymbol{\beta})\)</span>,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\lambda\)</span> is a damping factor which is adjusted at each iteration.</p></li>
+</ul>
+</dd>
+</dl>
+<p>When <span class="math notranslate nohighlight">\(\lambda = 0\)</span> this can be seen as the Gauss-Newton
+method. In the limit that <span class="math notranslate nohighlight">\(\lambda\)</span> is large, the
+<span class="math notranslate nohighlight">\(J^T J\)</span> matrix (an approximation of the Hessian) becomes
+subdominant and the update essentially points along <span class="math notranslate nohighlight">\(J^T
+\boldsymbol{r}\)</span> which is the gradient. In this scenario the
+gradient descent direction is also modified by the <span class="math notranslate nohighlight">\(\lambda
+diag(J^T J)\)</span> scaling which in some sense makes each gradient
+unitless and further improves the step. Note as well that as
+<span class="math notranslate nohighlight">\(\lambda\)</span> gets larger the step taken will be smaller, which
+helps to ensure convergence when the initial guess of the
+parameters are far from the optimal solution.</p>
+<p>Note that the residuals <span class="math notranslate nohighlight">\(r_i\)</span> are typically also scaled by
+the variance of the pixels, but this does not change the equations
+above. For a detailed explanation of the LM method see the article
+by Henri Gavin on which much of the AstroPhot LM implementation is
+based:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">Gavin2019</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">The</span> <span class="n">Levenberg</span><span class="o">-</span><span class="n">Marquardt</span> <span class="n">algorithm</span> <span class="k">for</span> <span class="n">nonlinear</span> <span class="n">least</span> <span class="n">squares</span> <span class="n">curve</span><span class="o">-</span><span class="n">fitting</span> <span class="n">problems</span><span class="p">},</span>
+    <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Gavin</span><span class="p">,</span> <span class="n">Henri</span> <span class="n">P</span><span class="p">},</span>
+    <span class="n">journal</span><span class="o">=</span><span class="p">{</span><span class="n">Department</span> <span class="n">of</span> <span class="n">Civil</span> <span class="ow">and</span> <span class="n">Environmental</span> <span class="n">Engineering</span><span class="p">,</span> <span class="n">Duke</span> <span class="n">University</span><span class="p">},</span>
+    <span class="n">volume</span><span class="o">=</span><span class="p">{</span><span class="mi">19</span><span class="p">},</span>
+    <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2019</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>as well as the paper on LM geodesic acceleration by Mark
+Transtrum:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">Tanstrum2012</span><span class="p">,</span>
+   <span class="n">author</span> <span class="o">=</span> <span class="p">{{</span><span class="n">Transtrum</span><span class="p">},</span> <span class="n">Mark</span> <span class="n">K</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Sethna</span><span class="p">},</span> <span class="n">James</span> <span class="n">P</span><span class="o">.</span><span class="p">},</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}&quot;</span><span class="p">,</span>
+     <span class="n">year</span> <span class="o">=</span> <span class="mi">2012</span><span class="p">,</span>
+      <span class="n">doi</span> <span class="o">=</span> <span class="p">{</span><span class="mf">10.48550</span><span class="o">/</span><span class="n">arXiv</span><span class="mf">.1201.5885</span><span class="p">},</span>
+   <span class="n">adsurl</span> <span class="o">=</span> <span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ui</span><span class="o">.</span><span class="n">adsabs</span><span class="o">.</span><span class="n">harvard</span><span class="o">.</span><span class="n">edu</span><span class="o">/</span><span class="nb">abs</span><span class="o">/</span><span class="mi">2012</span><span class="n">arXiv1201</span><span class="mf">.5885</span><span class="n">T</span><span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The damping factor <span class="math notranslate nohighlight">\(\lambda\)</span> is adjusted at each iteration:
+it is effectively increased when we are far from the solution, and
+decreased when we are close to it. In practice, the algorithm
+attempts to pick the smallest <span class="math notranslate nohighlight">\(\lambda\)</span> that is can while
+making sure that the <span class="math notranslate nohighlight">\(\chi^2\)</span> decreases at each step.</p>
+<p>The main advantage of the LM algorithm is its adaptability. When
+the current estimate is far from the optimum, the algorithm
+behaves like a gradient descent to ensure global
+convergence. However, when it is close to the optimum, it behaves
+like Gauss-Newton, which provides fast local convergence.</p>
+<p>In practice, the algorithm is typically implemented with various
+enhancements to improve its performance. For example, the Jacobian
+may be approximated with finite differences, geodesic acceleration
+can be used to speed up convergence, and more sophisticated
+strategies can be used to adjust the damping factor <span class="math notranslate nohighlight">\(\lambda\)</span>.</p>
+<p>The exact performance of the LM algorithm will depend on the
+nature of the problem, including the complexity of the function
+f(x), the quality of the initial estimate x0, and the distribution
+of the data.</p>
+<p>The LM class implemented for AstroPhot takes a model, initial
+state, and various other optional parameters as inputs and seeks
+to find the parameters that minimize the cost function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – The model to be optimized.</p></li>
+<li><p><strong>initial_state</strong> (<em>Sequence</em>) – Initial values for the parameters to be optimized.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em>) – Maximum number of iterations for the algorithm.</p></li>
+<li><p><strong>relative_tolerance</strong> (<em>float</em>) – Tolerance level for relative change in cost function value to trigger termination of the algorithm.</p></li>
+<li><p><strong>fit_parameters_identity</strong> – Used to select a subset of parameters. This is mostly used internally.</p></li>
+<li><p><strong>verbose</strong> – Controls the verbosity of the output during optimization. A higher value results in more detailed output. If not provided, defaults to 0 (no output).</p></li>
+<li><p><strong>max_step_iter</strong> (<em>optional</em>) – The maximum number of steps while searching for chi^2 improvement on a single Jacobian evaluation. Default is 10.</p></li>
+<li><p><strong>curvature_limit</strong> (<em>optional</em>) – Controls how cautious the optimizer is for changing curvature. It should be a number greater than 0, where smaller is more cautious. Default is 1.</p></li>
+<li><p><strong>Ldn</strong> (<em>Lup and</em>) – These adjust the step sizes for the damping parameter. Default is 5 and 3 respectively.</p></li>
+<li><p><strong>L0</strong> (<em>optional</em>) – This is the starting damping parameter. For easy problems with good initialization, this can be set lower. Default is 1.</p></li>
+<li><p><strong>acceleration</strong> (<em>optional</em>) – Controls the use of geodesic acceleration, which can be helpful in some scenarios. Set 1 for full acceleration, 0 for no acceleration. Default is 0.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Here is some basic usage of the LM optimizer:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">astrophot</span> <span class="k">as</span> <span class="nn">ap</span>
+<span class="c1"># build model</span>
+<span class="c1"># ...</span>
+
+<span class="c1"># Initialize model parameters</span>
+<span class="n">model</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="c1"># Fit the parameters</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">fit</span><span class="o">.</span><span class="n">lm</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Check that a minimum was found</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+
+<span class="c1"># See the minimum chi^2 value</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;min chi2: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">res_loss</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Update parameter uncertainties</span>
+<span class="n">result</span><span class="o">.</span><span class="n">update_uncertainty</span><span class="p">()</span>
+
+<span class="c1"># Extract multivariate Gaussian of uncertainties</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">res</span><span class="p">()</span>
+<span class="n">cov</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">covariance_matrix</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.Ldn">
+<span class="sig-name descname"><span class="pre">Ldn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM.Ldn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM.Ldn" title="Link to this definition"></a></dt>
+<dd><p>Decreases the damping parameter for more Gauss-Newton like steps. Used internally.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.Lup">
+<span class="sig-name descname"><span class="pre">Lup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM.Lup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM.Lup" title="Link to this definition"></a></dt>
+<dd><p>Increases the damping parameter for more gradient-like steps. Used internally.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.covariance_matrix">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">covariance_matrix</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tensor</span></em><a class="headerlink" href="#astrophot.fit.lm.LM.covariance_matrix" title="Link to this definition"></a></dt>
+<dd><p>The covariance matrix for the model at the current
+parameters. This can be used to construct a full Gaussian PDF
+for the parameters using: <span class="math notranslate nohighlight">\(\mathcal{N}(\mu,\Sigma)\)</span>
+where <span class="math notranslate nohighlight">\(\mu\)</span> is the optimized parameters and
+<span class="math notranslate nohighlight">\(\Sigma\)</span> is the covariance matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><span class="pre">BaseOptimizer</span></a></span></span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM.fit" title="Link to this definition"></a></dt>
+<dd><p>This performs the fitting operation. It iterates the LM step
+function until convergence is reached. Includes a message
+after fitting to indicate how the fitting exited. Typically if
+the message returns a “success” then the algorithm found a
+minimum. This may be the desired solution, or a pathological
+local minimum, this often depends on the initial conditions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chi2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM.step" title="Link to this definition"></a></dt>
+<dd><p>Performs one step of the LM algorithm. Computes Jacobian, infers
+hessian and gradient, solves for step vector and iterates on
+damping parameter magnitude until a step with some improvement
+in chi2 is found. Used internally.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.update_hess_grad">
+<span class="sig-name descname"><span class="pre">update_hess_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">natural</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM.update_hess_grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM.update_hess_grad" title="Link to this definition"></a></dt>
+<dd><p>Updates the stored hessian matrix and gradient vector. This can be
+used to compute the quantities in thier natural parameter
+represntation. During normal optimization the hessian and
+gradient are computed in a re-mapped parameter space where
+parameters are defined form -inf to inf.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.lm.LM.update_uncertainty">
+<span class="sig-name descname"><span class="pre">update_uncertainty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/lm.html#LM.update_uncertainty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.lm.LM.update_uncertainty" title="Link to this definition"></a></dt>
+<dd><p>Call this function after optimization to set the uncertainties for
+the parameters. This will use the diagonal of the covariance
+matrix to update the uncertainties. See the covariance_matrix
+function for the full representation of the uncertainties.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.mhmcmc">
+<span id="astrophot-fit-mhmcmc-module"></span><h2>astrophot.fit.mhmcmc module<a class="headerlink" href="#module-astrophot.fit.mhmcmc" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.mhmcmc.</span></span><span class="sig-name descname"><span class="pre">MHMCMC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/mhmcmc.html#MHMCMC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>Metropolis-Hastings Markov-Chain Monte-Carlo sampler, based on:
+<a class="reference external" href="https://en.wikipedia.org/wiki/Metropolis-Hastings_algorithm">https://en.wikipedia.org/wiki/Metropolis-Hastings_algorithm</a> . This
+is a naive implimentation of a standard MCMC, it is far from
+optimal and should not be used for anything but the most basic
+scenarios.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><em>AstroPhot_Model</em></a>) – The model which will be sampled.</p></li>
+<li><p><strong>initial_state</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>]</em>) – A 1D array with the values for each parameter in the model. Note that these values should be in the form of “as_representation” in the model.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em>) – The number of sampling steps to perform. Default 1000</p></li>
+<li><p><strong>epsilon</strong> (<em>float</em><em> or </em><em>array</em>) – The random step length to take at each iteration. This is the standard deviation for the normal distribution sampling. Default 1e-2</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC.accept">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">accept</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_alpha</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/mhmcmc.html#MHMCMC.accept"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC.accept" title="Link to this definition"></a></dt>
+<dd><p>Evaluates randomly if a given proposal is accepted. This is done in log space which is more natural for the evaluation in the step.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC.acceptance">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">acceptance</span></span><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC.acceptance" title="Link to this definition"></a></dt>
+<dd><p>Returns the ratio of accepted states to total states sampled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC.append_chain">
+<span class="sig-name descname"><span class="pre">append_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/mhmcmc.html#MHMCMC.append_chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC.append_chain" title="Link to this definition"></a></dt>
+<dd><p>Add a state vector to the MCMC chain</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart_chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/mhmcmc.html#MHMCMC.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC.fit" title="Link to this definition"></a></dt>
+<dd><p>Performs the MCMC sampling using a Metropolis Hastings acceptance step and records the chain for later examination.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC.sample">
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/mhmcmc.html#MHMCMC.sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC.sample" title="Link to this definition"></a></dt>
+<dd><p>Samples the model at the proposed state vector values</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.mhmcmc.MHMCMC.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/fit/mhmcmc.html#MHMCMC.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.mhmcmc.MHMCMC.step" title="Link to this definition"></a></dt>
+<dd><p>Takes one step of the HMC sampler by integrating along a path initiated with a random momentum.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.minifit">
+<span id="astrophot-fit-minifit-module"></span><h2>astrophot.fit.minifit module<a class="headerlink" href="#module-astrophot.fit.minifit" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.minifit.MiniFit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.minifit.</span></span><span class="sig-name descname"><span class="pre">MiniFit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model:</span> <span class="pre">~astrophot.models.core_model.AstroPhot_Model,</span> <span class="pre">downsample_factor:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">max_pixels:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">10000,</span> <span class="pre">method:</span> <span class="pre">~astrophot.fit.base.BaseOptimizer</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'astrophot.fit.lm.LM'&gt;,</span> <span class="pre">initial_state:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">method_kwargs:</span> <span class="pre">~typing.Dict[str,</span> <span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">{},</span> <span class="pre">**kwargs:</span> <span class="pre">~typing.Dict[str,</span> <span class="pre">~typing.Any]</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/minifit.html#MiniFit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.minifit.MiniFit" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.minifit.MiniFit.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><span class="pre">BaseOptimizer</span></a></span></span><a class="reference internal" href="_modules/astrophot/fit/minifit.html#MiniFit.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.minifit.MiniFit.fit" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – Error is raised if this method is not implemented in a subclass of BaseOptimizer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.nuts">
+<span id="astrophot-fit-nuts-module"></span><h2>astrophot.fit.nuts module<a class="headerlink" href="#module-astrophot.fit.nuts" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.nuts.NUTS">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.nuts.</span></span><span class="sig-name descname"><span class="pre">NUTS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/nuts.html#NUTS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.nuts.NUTS" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>No U-Turn Sampler (NUTS) implementation for Hamiltonian Monte Carlo
+(HMC) based MCMC sampling.</p>
+<p>This is a wrapper for the Pyro package: <a class="reference external" href="https://docs.pyro.ai/en/stable/index.html">https://docs.pyro.ai/en/stable/index.html</a></p>
+<p>The NUTS class provides an implementation of the No-U-Turn Sampler
+(NUTS) algorithm, which is a variation of the Hamiltonian Monte
+Carlo (HMC) method for Markov Chain Monte Carlo (MCMC)
+sampling. This implementation uses the Pyro library to perform the
+sampling. The NUTS algorithm utilizes gradients of the target
+distribution to more efficiently explore the probability
+distribution of the model.</p>
+<p>More information on HMC and NUTS can be found at:
+<a class="reference external" href="https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo">https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo</a>,
+<a class="reference external" href="https://arxiv.org/abs/1701.02434">https://arxiv.org/abs/1701.02434</a>, and
+<a class="reference external" href="http://www.mcmchandbook.net/HandbookChapter5.pdf">http://www.mcmchandbook.net/HandbookChapter5.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><em>AstroPhot_Model</em></a>) – The model which will be sampled.</p></li>
+<li><p><strong>initial_state</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>]</em><em>, </em><em>optional</em>) – A 1D array with the values for each parameter in the model. These values should be in the form of “as_representation” in the model. Defaults to None.</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of sampling steps to perform. Defaults to 1000.</p></li>
+<li><p><strong>epsilon</strong> (<em>float</em><em>, </em><em>optional</em>) – The step size for the NUTS sampler. Defaults to 1e-3.</p></li>
+<li><p><strong>inv_mass</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em><em>, </em><em>optional</em>) – Inverse Mass matrix (covariance matrix) for the Hamiltonian system. Defaults to None.</p></li>
+<li><p><strong>progress_bar</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, display a progress bar during sampling. Defaults to True.</p></li>
+<li><p><strong>prior</strong> (<em>Optional</em><em>[</em><em>Distribution</em><em>]</em><em>, </em><em>optional</em>) – Prior distribution for the model parameters. Defaults to None.</p></li>
+<li><p><strong>warmup</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of warmup (or burn-in) steps to perform before sampling. Defaults to 100.</p></li>
+<li><p><strong>nuts_kwargs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – A dictionary of additional keyword arguments to pass to the NUTS sampler. Defaults to {}.</p></li>
+<li><p><strong>mcmc_kwargs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>, </em><em>optional</em>) – A dictionary of additional keyword arguments to pass to the MCMC function. Defaults to {}.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">fit(state</span></span></dt>
+<dd><p>Optional[torch.Tensor] = None, nsamples: Optional[int] = None, restart_chain: bool = True) -&gt; ‘NUTS’:
+Performs the MCMC sampling using a NUTS HMC and records the chain for later examination.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.nuts.NUTS.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart_chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/nuts.html#NUTS.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.nuts.NUTS.fit" title="Link to this definition"></a></dt>
+<dd><p>Performs the MCMC sampling using a NUTS HMC and records the chain for later examination.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit.oldlm">
+<span id="astrophot-fit-oldlm-module"></span><h2>astrophot.fit.oldlm module<a class="headerlink" href="#module-astrophot.fit.oldlm" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.LM_Constraint">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.oldlm.</span></span><span class="sig-name descname"><span class="pre">LM_Constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constraint_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraint_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">representation_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce_ndf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#LM_Constraint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.LM_Constraint" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Add an arbitrary constraint to the LM optimization algorithm.</p>
+<p>Expresses a constraint between parameters in the LM optimization
+routine. Constraints may be used to bias parameters to have
+certain behaviour, for example you may require the radius of one
+model to be larger than that of another, or may require two models
+to have the same position on the sky. The constraints defined in
+this object are fuzzy constraints and so can be broken to some
+degree, the amount of constraint breaking is determined my how
+informative the data is and how strong the constraint weight is
+set. To create a constraint, first construct a function which
+takes as argument a 1D tensor of the model parameters and gives as
+output a real number (or 1D tensor of real numbers) which is zero
+when the constraint is satisfied and non-zero increasing based on
+how much the constraint is violated. For example:</p>
+<dl class="simple">
+<dt>def example_constraint(P):</dt><dd><p>return (P[1] - P[0]) * (P[1] &gt; P[0]).int()</p>
+</dd>
+</dl>
+<p>which enforces that parameter 1 is less than parameter 0. Note
+that we do not use any control flow “if” statements and instead
+incorporate the condition through multiplication, this is
+important as it allows pytorch to compute derivatives through the
+expression and performs far faster on GPU since no communication
+is needed back and forth to handle the if-statement. Keep this in
+mind while constructing your constraint function. Also, make sure
+that any math operations are performed by pytorch so it can
+construct a computational graph. Bayond the requirement that the
+constraint be differentiable, there is no limitation on what
+constraints can be built with this system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>constraint_func</strong> (<em>Callable</em><em>[</em><em>torch.Tensor</em><em>, </em><em>torch.Tensor</em><em>]</em>) – python function which takes in a 1D tensor of parameters and generates real values in a tensor.</p></li>
+<li><p><strong>constraint_args</strong> (<em>Optional</em><em>[</em><em>tuple</em><em>]</em>) – An optional tuple of arguments for the constraint function that will be unpacked when calling the function.</p></li>
+<li><p><strong>weight</strong> (<em>torch.Tensor</em>) – The weight of this constraint in the range (0,inf). Smaller values mean a stronger constraint, larger values mean a weaker constraint. Default 1.</p></li>
+<li><p><strong>representation_parameters</strong> (<em>bool</em>) – if the constraint_func expects the parameters in the form of their representation or their standard value. Default False</p></li>
+<li><p><strong>out_len</strong> (<em>int</em>) – the length of the output tensor by constraint_func. Default 1</p></li>
+<li><p><strong>reference_value</strong> (<em>torch.Tensor</em>) – The value at which the constraint is satisfied. Default 0.</p></li>
+<li><p><strong>reduce_ndf</strong> (<em>float</em>) – Amount by which to reduce the degrees of freedom. Default 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.LM_Constraint.jacobian">
+<span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#LM_Constraint.jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.LM_Constraint.jacobian" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.fit.oldlm.</span></span><span class="sig-name descname"><span class="pre">oldLM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><span class="pre">AstroPhot_Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_parameters_identity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.fit.base.BaseOptimizer" title="astrophot.fit.base.BaseOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptimizer</span></code></a></p>
+<p>based heavily on:
+&#64;article{gavin2019levenberg,</p>
+<blockquote>
+<div><p>title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},
+author={Gavin, Henri P},
+journal={Department of Civil and Environmental Engineering, Duke University},
+volume={19},
+year={2019}</p>
+</div></blockquote>
+<p>}</p>
+<p>The Levenberg-Marquardt algorithm bridges the gap between a
+gradient descent optimizer and a Newton’s Method optimizer. The
+Hessian for the Newton’s Method update is too complex to evaluate
+with automatic differentiation (memory scales roughly as
+parameters^2 * pixels^2) and so an approximation is made using the
+Jacobian of the image pixels wrt to the parameters of the
+model. Automatic differentiation provides an exact Jacobian as
+opposed to a finite differences approximation.</p>
+<p>Once a Hessian H and gradient G have been determined, the update
+step is defined as h which is the solution to the linear equation:</p>
+<p>(H + L*I)h = G</p>
+<p>where L is the Levenberg-Marquardt damping parameter and I is the
+identity matrix. For small L this is just the Newton’s method, for
+large L this is just a small gradient descent step (approximately
+h = grad/L). The method implimented is modified from Gavin 2019.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="astrophot.models.html#astrophot.models.core_model.AstroPhot_Model" title="astrophot.models.core_model.AstroPhot_Model"><em>AstroPhot_Model</em></a>) – object with which to perform optimization</p></li>
+<li><p><strong>initial_state</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>]</em>) – an initial state for optimization</p></li>
+<li><p><strong>epsilon4</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – approximation accuracy requirement, for any rho &lt; epsilon4 the step will be rejected. Default 0.1</p></li>
+<li><p><strong>epsilon5</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – numerical stability factor, added to the diagonal of the Hessian. Default 1e-8</p></li>
+<li><p><strong>constraints</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference internal" href="#astrophot.fit.oldlm.LM_Constraint" title="astrophot.fit.oldlm.LM_Constraint"><em>LM_Constraint</em></a><em>,</em><em>tuple</em><em>[</em><a class="reference internal" href="#astrophot.fit.oldlm.LM_Constraint" title="astrophot.fit.oldlm.LM_Constraint"><em>LM_Constraint</em></a><em>]</em><em>]</em><em>]</em>) – Constraint objects which control the fitting process.</p></li>
+<li><p><strong>L0</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – initial value for L factor in (H +L*I)h = G. Default 1.</p></li>
+<li><p><strong>Lup</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – amount to increase L when rejecting an update step. Default 11.</p></li>
+<li><p><strong>Ldn</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – amount to decrease L when accetping an update step. Default 9.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.L_dn">
+<span class="sig-name descname"><span class="pre">L_dn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ldn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.L_dn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.L_dn" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.L_up">
+<span class="sig-name descname"><span class="pre">L_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Lup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.L_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.L_up" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.accept_history">
+<span class="sig-name descname"><span class="pre">accept_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.accept_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.accept_history" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.covariance_matrix">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">covariance_matrix</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tensor</span></em><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.covariance_matrix" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.fit" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – Error is raised if this method is not implemented in a subclass of BaseOptimizer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.progress_history">
+<span class="sig-name descname"><span class="pre">progress_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.progress_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.progress_history" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.rho">
+<span class="sig-name descname"><span class="pre">rho</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.rho"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.rho" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.step" title="Link to this definition"></a></dt>
+<dd><p>Levenberg-Marquardt update step</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.take_low_rho_step">
+<span class="sig-name descname"><span class="pre">take_low_rho_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.take_low_rho_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.take_low_rho_step" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.undo_step">
+<span class="sig-name descname"><span class="pre">undo_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.undo_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.undo_step" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_J_AD">
+<span class="sig-name descname"><span class="pre">update_J_AD</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_J_AD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_J_AD" title="Link to this definition"></a></dt>
+<dd><p>Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_J_Broyden">
+<span class="sig-name descname"><span class="pre">update_J_Broyden</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yph</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_J_Broyden"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_J_Broyden" title="Link to this definition"></a></dt>
+<dd><p>Use the Broyden update to approximate the new Jacobian tensor at the current state. Less accurate, but far faster.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_J_natural">
+<span class="sig-name descname"><span class="pre">update_J_natural</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_J_natural"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_J_natural" title="Link to this definition"></a></dt>
+<dd><p>Update the jacobian using automatic differentiation, produces an accurate jacobian at the current state. Use this method to get the jacobian in the parameter space instead of representation space.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_Yp">
+<span class="sig-name descname"><span class="pre">update_Yp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_Yp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_Yp" title="Link to this definition"></a></dt>
+<dd><p>Updates the current model values for each pixel</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_chi2">
+<span class="sig-name descname"><span class="pre">update_chi2</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_chi2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_chi2" title="Link to this definition"></a></dt>
+<dd><p>Updates the chi squared / ndf value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_grad">
+<span class="sig-name descname"><span class="pre">update_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Yph</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_grad" title="Link to this definition"></a></dt>
+<dd><p>Update the gradient using the model evaluation on all pixels</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_h">
+<span class="sig-name descname"><span class="pre">update_h</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_h"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_h" title="Link to this definition"></a></dt>
+<dd><p>Solves the LM update linear equation (H + L*I)h = G to determine
+the proposal for how to adjust the parameters to decrease the
+chi2.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_hess">
+<span class="sig-name descname"><span class="pre">update_hess</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_hess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_hess" title="Link to this definition"></a></dt>
+<dd><p>Update the Hessian using the jacobian most recently computed on the image.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.fit.oldlm.oldLM.update_uncertainty">
+<span class="sig-name descname"><span class="pre">update_uncertainty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/fit/oldlm.html#oldLM.update_uncertainty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.fit.oldlm.oldLM.update_uncertainty" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.fit">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-astrophot.fit" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="astrophot.errors.html" class="btn btn-neutral float-left" title="astrophot.errors package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="astrophot.image.html" class="btn btn-neutral float-right" title="astrophot.image package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

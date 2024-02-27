@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.utils.isophote.integrate &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.utils.isophote.integrate</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.utils.isophote.integrate</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="fluxdens_to_fluxsum">
+<a class="viewcode-back" href="../../../../astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.fluxdens_to_fluxsum">[docs]</a>
+<span class="k">def</span> <span class="nf">fluxdens_to_fluxsum</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">axisratio</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Integrate a flux density profile</span>
+
+<span class="sd">    R: semi-major axis length (arcsec)</span>
+<span class="sd">    I: flux density (flux/arcsec^2)</span>
+<span class="sd">    axisratio: b/a profile</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+    <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">I</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">axisratio</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)):</span>
+        <span class="n">S</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">trapz</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">I</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">R</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">axisratio</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">R</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="o">+</span> <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">S</span></div>
+
+
+
+<div class="viewcode-block" id="fluxdens_to_fluxsum_errorprop">
+<a class="viewcode-back" href="../../../../astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.fluxdens_to_fluxsum_errorprop">[docs]</a>
+<span class="k">def</span> <span class="nf">fluxdens_to_fluxsum_errorprop</span><span class="p">(</span>
+    <span class="n">R</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">IE</span><span class="p">,</span> <span class="n">axisratio</span><span class="p">,</span> <span class="n">axisratioE</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">symmetric_error</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Integrate a flux density profile</span>
+
+<span class="sd">    R: semi-major axis length (arcsec)</span>
+<span class="sd">    I: flux density (flux/arcsec^2)</span>
+<span class="sd">    axisratio: b/a profile</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">axisratioE</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">axisratioE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+
+    <span class="c1"># Create container for the monte-carlo iterations</span>
+    <span class="n">sum_results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)))</span> <span class="o">-</span> <span class="mf">99.999</span>
+    <span class="n">I_CHOOSE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">I</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">I_CHOOSE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">symmetric_error</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">I_CHOOSE</span><span class="p">]</span> <span class="o">=</span> <span class="n">fluxdens_to_fluxsum</span><span class="p">(</span>
+        <span class="n">R</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">I</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">axisratio</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="c1"># Randomly sampled SB profile</span>
+        <span class="n">tempI</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">I</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">IE</span><span class="p">))</span>
+        <span class="c1"># Randomly sampled axis ratio profile</span>
+        <span class="n">tempq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">axisratio</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">axisratioE</span><span class="p">)),</span>
+            <span class="n">a_min</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+            <span class="n">a_max</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Compute COG with sampled data</span>
+        <span class="n">sum_results</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">I_CHOOSE</span><span class="p">]</span> <span class="o">=</span> <span class="n">fluxdens_to_fluxsum</span><span class="p">(</span>
+            <span class="n">R</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">tempI</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">tempq</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Condense monte-carlo evaluations into profile and uncertainty envelope</span>
+    <span class="n">sum_lower</span> <span class="o">=</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">sum_results</span><span class="p">,</span> <span class="mf">0.317310507863</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">sum_upper</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">sum_results</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">0.317310507863</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Return requested uncertainty format</span>
+    <span class="k">if</span> <span class="n">symmetric_error</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sum_lower</span> <span class="o">+</span> <span class="n">sum_upper</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sum_lower</span><span class="p">,</span> <span class="n">sum_upper</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_Fmode_integrand</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
+    <span class="n">fsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;Am&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;Phim&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">]))</span>
+    <span class="p">)</span>
+    <span class="n">dfsum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]</span>
+        <span class="o">*</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;Am&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]</span>
+        <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;Phim&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">]))</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">fsum</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+        <span class="n">fsum</span>
+    <span class="p">)</span> <span class="o">*</span> <span class="n">dfsum</span>
+
+
+<div class="viewcode-block" id="Fmode_Areas">
+<a class="viewcode-back" href="../../../../astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.Fmode_Areas">[docs]</a>
+<span class="k">def</span> <span class="nf">Fmode_Areas</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)):</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">quad</span><span class="p">(</span><span class="n">_Fmode_integrand</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">i</span><span class="p">],))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">A</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Fmode_fluxdens_to_fluxsum">
+<a class="viewcode-back" href="../../../../astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.Fmode_fluxdens_to_fluxsum">[docs]</a>
+<span class="k">def</span> <span class="nf">Fmode_fluxdens_to_fluxsum</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">A</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Integrate a flux density profile, with isophotes including Fourier perturbations.</span>
+
+<span class="sd">    Arguments</span>
+<span class="sd">    ---------</span>
+<span class="sd">    R: arcsec</span>
+<span class="sd">      semi-major axis length</span>
+
+<span class="sd">    I: flux/arcsec^2</span>
+<span class="sd">      flux density</span>
+
+<span class="sd">    parameters: list of dictionaries</span>
+<span class="sd">      list of dictionary of isophote shape parameters for each radius.</span>
+<span class="sd">      formatted as</span>
+
+<span class="sd">      .. code-block:: python</span>
+
+<span class="sd">        {&#39;ellip&#39;: ellipticity,</span>
+<span class="sd">         &#39;m&#39;: list of modes used,</span>
+<span class="sd">         &#39;Am&#39;: list of mode powers,</span>
+<span class="sd">         &#39;Phim&#39;: list of mode phases</span>
+
+<span class="sd">      }</span>
+
+<span class="sd">      entries for each radius.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))):</span>
+        <span class="k">return</span> <span class="n">fluxdens_to_fluxsum</span><span class="p">(</span>
+            <span class="n">R</span><span class="p">,</span>
+            <span class="n">I</span><span class="p">,</span>
+            <span class="mf">1.0</span>
+            <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;ellip&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)))),</span>
+        <span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">A</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">Fmode_Areas</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+    <span class="c1"># update the Area calculation to be scaled by the ellipticity</span>
+    <span class="n">Aq</span> <span class="o">=</span> <span class="n">A</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">parameters</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;ellip&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))))</span>
+    <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">I</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">Aq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">Adiff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Aq</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">Aq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">Aq</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)):</span>
+        <span class="n">S</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">trapz</span><span class="p">(</span><span class="n">I</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Adiff</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">R</span><span class="p">[:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">S</span></div>
+
+
+
+<div class="viewcode-block" id="Fmode_fluxdens_to_fluxsum_errorprop">
+<a class="viewcode-back" href="../../../../astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.Fmode_fluxdens_to_fluxsum_errorprop">[docs]</a>
+<span class="k">def</span> <span class="nf">Fmode_fluxdens_to_fluxsum_errorprop</span><span class="p">(</span>
+    <span class="n">R</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">IE</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">symmetric_error</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Integrate a flux density profile, with isophotes including Fourier perturbations.</span>
+
+<span class="sd">    Arguments</span>
+<span class="sd">    ---------</span>
+<span class="sd">    R: arcsec</span>
+<span class="sd">      semi-major axis length</span>
+
+<span class="sd">    I: flux/arcsec^2</span>
+<span class="sd">      flux density</span>
+
+<span class="sd">    parameters: list of dictionaries</span>
+<span class="sd">      list of dictionary of isophote shape parameters for each radius.</span>
+<span class="sd">      formatted as</span>
+
+<span class="sd">      .. code-block:: python</span>
+
+<span class="sd">        {&#39;ellip&#39;: ellipticity,</span>
+<span class="sd">         &#39;m&#39;: list of modes used,</span>
+<span class="sd">         &#39;Am&#39;: list of mode powers,</span>
+<span class="sd">         &#39;Phim&#39;: list of mode phases</span>
+
+<span class="sd">      }</span>
+
+<span class="sd">      entries for each radius.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s2">&quot;ellip err&quot;</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;ellip err&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))):</span>
+        <span class="k">return</span> <span class="n">fluxdens_to_fluxsum_errorprop</span><span class="p">(</span>
+            <span class="n">R</span><span class="p">,</span>
+            <span class="n">I</span><span class="p">,</span>
+            <span class="n">IE</span><span class="p">,</span>
+            <span class="mf">1.0</span>
+            <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;ellip&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)))),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;ellip err&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)))),</span>
+            <span class="n">N</span><span class="o">=</span><span class="n">N</span><span class="p">,</span>
+            <span class="n">symmetric_error</span><span class="o">=</span><span class="n">symmetric_error</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Create container for the monte-carlo iterations</span>
+    <span class="n">sum_results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">R</span><span class="p">)))</span> <span class="o">-</span> <span class="mf">99.999</span>
+    <span class="n">I_CHOOSE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">I</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">I_CHOOSE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">symmetric_error</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">cut_parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">compress</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">I_CHOOSE</span><span class="p">))</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">Fmode_Areas</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">cut_parameters</span><span class="p">)</span>
+    <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">I_CHOOSE</span><span class="p">]</span> <span class="o">=</span> <span class="n">Fmode_fluxdens_to_fluxsum</span><span class="p">(</span>
+        <span class="n">R</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">I</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">cut_parameters</span><span class="p">,</span> <span class="n">A</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="c1"># Randomly sampled SB profile</span>
+        <span class="n">tempI</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">I</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">IE</span><span class="p">))</span>
+        <span class="c1"># Randomly sampled axis ratio profile</span>
+        <span class="n">temp_parameters</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">cut_parameters</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cut_parameters</span><span class="p">)):</span>
+            <span class="n">temp_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;ellip&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+                    <span class="n">loc</span><span class="o">=</span><span class="n">cut_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;ellip&quot;</span><span class="p">],</span>
+                    <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">cut_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;ellip err&quot;</span><span class="p">]),</span>
+                <span class="p">),</span>
+                <span class="n">a_min</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+                <span class="n">a_max</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">1e-3</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># Compute COG with sampled data</span>
+        <span class="n">sum_results</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">I_CHOOSE</span><span class="p">]</span> <span class="o">=</span> <span class="n">Fmode_fluxdens_to_fluxsum</span><span class="p">(</span>
+            <span class="n">R</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">tempI</span><span class="p">[</span><span class="n">I_CHOOSE</span><span class="p">],</span> <span class="n">temp_parameters</span><span class="p">,</span> <span class="n">A</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Condense monte-carlo evaluations into profile and uncertainty envelope</span>
+    <span class="n">sum_lower</span> <span class="o">=</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">sum_results</span><span class="p">,</span> <span class="mf">0.317310507863</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">sum_upper</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">sum_results</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">0.317310507863</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Return requested uncertainty format</span>
+    <span class="k">if</span> <span class="n">symmetric_error</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sum_lower</span> <span class="o">+</span> <span class="n">sum_upper</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sum_results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sum_lower</span><span class="p">,</span> <span class="n">sum_upper</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

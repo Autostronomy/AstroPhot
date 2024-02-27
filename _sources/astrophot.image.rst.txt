@@ -1,0 +1,77 @@
+astrophot.image package
+=======================
+
+Submodules
+----------
+
+astrophot.image.image\_header module
+------------------------------------
+
+.. automodule:: astrophot.image.image_header
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.image\_object module
+------------------------------------
+
+.. automodule:: astrophot.image.image_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.jacobian\_image module
+--------------------------------------
+
+.. automodule:: astrophot.image.jacobian_image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.model\_image module
+-----------------------------------
+
+.. automodule:: astrophot.image.model_image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.psf\_image module
+---------------------------------
+
+.. automodule:: astrophot.image.psf_image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.target\_image module
+------------------------------------
+
+.. automodule:: astrophot.image.target_image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.wcs module
+--------------------------
+
+.. automodule:: astrophot.image.wcs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.image.window\_object module
+-------------------------------------
+
+.. automodule:: astrophot.image.window_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.image
+   :members:
+   :undoc-members:
+   :show-inheritance:

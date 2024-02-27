@@ -1,0 +1,71 @@
+astrophot.utils package
+=======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   astrophot.utils.conversions
+   astrophot.utils.initialize
+   astrophot.utils.isophote
+
+Submodules
+----------
+
+astrophot.utils.angle\_operations module
+----------------------------------------
+
+.. automodule:: astrophot.utils.angle_operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.decorators module
+---------------------------------
+
+.. automodule:: astrophot.utils.decorators
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.interpolate module
+----------------------------------
+
+.. automodule:: astrophot.utils.interpolate
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.operations module
+---------------------------------
+
+.. automodule:: astrophot.utils.operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.optimization module
+-----------------------------------
+
+.. automodule:: astrophot.utils.optimization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.parametric\_profiles module
+-------------------------------------------
+
+.. automodule:: astrophot.utils.parametric_profiles
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:

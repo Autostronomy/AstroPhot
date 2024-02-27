@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.fit.nuts &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.fit.nuts</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.fit.nuts</h1><div class="highlight"><pre>
+<span></span><span class="c1"># No U-Turn Sampler variant of Hamiltonian Monte-Carlo</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">pyro</span>
+<span class="kn">import</span> <span class="nn">pyro.distributions</span> <span class="k">as</span> <span class="nn">dist</span>
+<span class="kn">from</span> <span class="nn">pyro.infer</span> <span class="kn">import</span> <span class="n">MCMC</span> <span class="k">as</span> <span class="n">pyro_MCMC</span>
+<span class="kn">from</span> <span class="nn">pyro.infer</span> <span class="kn">import</span> <span class="n">NUTS</span> <span class="k">as</span> <span class="n">pyro_NUTS</span>
+<span class="kn">from</span> <span class="nn">pyro.infer.mcmc.adaptation</span> <span class="kn">import</span> <span class="n">WarmupAdapter</span><span class="p">,</span> <span class="n">BlockMassMatrix</span>
+<span class="kn">from</span> <span class="nn">pyro.ops.welford</span> <span class="kn">import</span> <span class="n">WelfordCovariance</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">BaseOptimizer</span>
+<span class="kn">from</span> <span class="nn">..models</span> <span class="kn">import</span> <span class="n">AstroPhot_Model</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NUTS&quot;</span><span class="p">]</span>
+
+<span class="c1">###########################################</span>
+<span class="c1"># !Overwrite pyro configuration behavior!</span>
+<span class="c1"># currently this is the only way to provide</span>
+<span class="c1"># mass matrix manually</span>
+<span class="c1">###########################################</span>
+<span class="k">def</span> <span class="nf">new_configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass_matrix_shape</span><span class="p">,</span> <span class="n">adapt_mass_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{}):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets up an initial mass matrix.</span>
+
+<span class="sd">    :param dict mass_matrix_shape: a dict that maps tuples of site names to the shape of</span>
+<span class="sd">        the corresponding mass matrix. Each tuple of site names corresponds to a block.</span>
+<span class="sd">    :param bool adapt_mass_matrix: a flag to decide whether an adaptation scheme will be used.</span>
+<span class="sd">    :param dict options: tensor options to construct the initial mass matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inverse_mass_matrix</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">site_names</span><span class="p">,</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">mass_matrix_shape</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mass_matrix_size</span><span class="p">[</span><span class="n">site_names</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">diagonal</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="n">inverse_mass_matrix</span><span class="p">[</span><span class="n">site_names</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_scale</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diagonal</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_scale</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">adapt_mass_matrix</span><span class="p">:</span>
+            <span class="n">adapt_scheme</span> <span class="o">=</span> <span class="n">WelfordCovariance</span><span class="p">(</span><span class="n">diagonal</span><span class="o">=</span><span class="n">diagonal</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_adapt_scheme</span><span class="p">[</span><span class="n">site_names</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapt_scheme</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inverse_mass_matrix</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inverse_mass_matrix</span> <span class="o">=</span> <span class="n">inverse_mass_matrix</span>
+
+
+<span class="n">BlockMassMatrix</span><span class="o">.</span><span class="n">configure</span> <span class="o">=</span> <span class="n">new_configure</span>
+<span class="c1">############################################</span>
+
+
+<div class="viewcode-block" id="NUTS">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.nuts.NUTS">[docs]</a>
+<span class="k">class</span> <span class="nc">NUTS</span><span class="p">(</span><span class="n">BaseOptimizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;No U-Turn Sampler (NUTS) implementation for Hamiltonian Monte Carlo</span>
+<span class="sd">    (HMC) based MCMC sampling.</span>
+
+<span class="sd">    This is a wrapper for the Pyro package: https://docs.pyro.ai/en/stable/index.html</span>
+
+<span class="sd">    The NUTS class provides an implementation of the No-U-Turn Sampler</span>
+<span class="sd">    (NUTS) algorithm, which is a variation of the Hamiltonian Monte</span>
+<span class="sd">    Carlo (HMC) method for Markov Chain Monte Carlo (MCMC)</span>
+<span class="sd">    sampling. This implementation uses the Pyro library to perform the</span>
+<span class="sd">    sampling. The NUTS algorithm utilizes gradients of the target</span>
+<span class="sd">    distribution to more efficiently explore the probability</span>
+<span class="sd">    distribution of the model.</span>
+
+<span class="sd">    More information on HMC and NUTS can be found at:</span>
+<span class="sd">    https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo,</span>
+<span class="sd">    https://arxiv.org/abs/1701.02434, and</span>
+<span class="sd">    http://www.mcmchandbook.net/HandbookChapter5.pdf</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (AstroPhot_Model): The model which will be sampled.</span>
+<span class="sd">        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of &quot;as_representation&quot; in the model. Defaults to None.</span>
+<span class="sd">        max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.</span>
+<span class="sd">        epsilon (float, optional): The step size for the NUTS sampler. Defaults to 1e-3.</span>
+<span class="sd">        inv_mass (Optional[Tensor], optional): Inverse Mass matrix (covariance matrix) for the Hamiltonian system. Defaults to None.</span>
+<span class="sd">        progress_bar (bool, optional): If True, display a progress bar during sampling. Defaults to True.</span>
+<span class="sd">        prior (Optional[Distribution], optional): Prior distribution for the model parameters. Defaults to None.</span>
+<span class="sd">        warmup (int, optional): Number of warmup (or burn-in) steps to perform before sampling. Defaults to 100.</span>
+<span class="sd">        nuts_kwargs (Dict[str, Any], optional): A dictionary of additional keyword arguments to pass to the NUTS sampler. Defaults to {}.</span>
+<span class="sd">        mcmc_kwargs (Dict[str, Any], optional): A dictionary of additional keyword arguments to pass to the MCMC function. Defaults to {}.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        fit(state: Optional[torch.Tensor] = None, nsamples: Optional[int] = None, restart_chain: bool = True) -&gt; &#39;NUTS&#39;:</span>
+<span class="sd">            Performs the MCMC sampling using a NUTS HMC and records the chain for later examination.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">AstroPhot_Model</span><span class="p">,</span>
+        <span class="n">initial_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">initial_state</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inv_mass</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;inv_mass&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epsilon&quot;</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">progress_bar</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;progress_bar&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prior&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;warmup&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nuts_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nuts_kwargs&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mcmc_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mcmc_kwargs&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+<div class="viewcode-block" id="NUTS.fit">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.nuts.NUTS.fit">[docs]</a>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">nsamples</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">restart_chain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs the MCMC sampling using a NUTS HMC and records the chain for later examination.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">prior</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">pyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">prior</span><span class="p">)</span>
+            <span class="c1"># Log-likelihood function</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">flat_detach</span><span class="p">()</span>
+            <span class="n">log_likelihood_value</span> <span class="o">=</span> <span class="o">-</span><span class="n">model</span><span class="o">.</span><span class="n">negative_log_likelihood</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">as_representation</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="c1"># Observe the log-likelihood</span>
+            <span class="n">pyro</span><span class="o">.</span><span class="n">factor</span><span class="p">(</span><span class="s2">&quot;obs&quot;</span><span class="p">,</span> <span class="n">log_likelihood_value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e2</span>
+                <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Set up the NUTS sampler</span>
+        <span class="n">nuts_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;jit_compile&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;ignore_jit_warnings&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;step_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span>
+            <span class="s2">&quot;full_mass&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;adapt_step_size&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;adapt_mass_matrix&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">nuts_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nuts_kwargs</span><span class="p">)</span>
+        <span class="n">nuts_kernel</span> <span class="o">=</span> <span class="n">pyro_NUTS</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="o">**</span><span class="n">nuts_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_mass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nuts_kernel</span><span class="o">.</span><span class="n">mass_matrix_adapter</span><span class="o">.</span><span class="n">inverse_mass_matrix</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,):</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_mass</span>
+            <span class="p">}</span>
+
+        <span class="c1"># Provide an initial guess for the parameters</span>
+        <span class="n">init_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">vector_representation</span><span class="p">()}</span>
+
+        <span class="c1"># Run MCMC with the NUTS sampler and the initial guess</span>
+        <span class="n">mcmc_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;num_samples&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="s2">&quot;warmup_steps&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span><span class="p">,</span>
+            <span class="s2">&quot;initial_params&quot;</span><span class="p">:</span> <span class="n">init_params</span><span class="p">,</span>
+            <span class="s2">&quot;disable_progbar&quot;</span><span class="p">:</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_bar</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">mcmc_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmc_kwargs</span><span class="p">)</span>
+        <span class="n">mcmc</span> <span class="o">=</span> <span class="n">pyro_MCMC</span><span class="p">(</span><span class="n">nuts_kernel</span><span class="p">,</span> <span class="o">**</span><span class="n">mcmc_kwargs</span><span class="p">)</span>
+
+        <span class="n">mcmc</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span>
+
+        <span class="c1"># Extract posterior samples</span>
+        <span class="n">chain</span> <span class="o">=</span> <span class="n">mcmc</span><span class="o">.</span><span class="n">get_samples</span><span class="p">()[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chain</span><span class="p">)):</span>
+                <span class="n">chain</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">vector_transform_rep_to_val</span><span class="p">(</span><span class="n">chain</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain</span> <span class="o">=</span> <span class="n">chain</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

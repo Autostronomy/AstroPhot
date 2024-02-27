@@ -1,0 +1,45 @@
+astrophot.utils.initialize package
+==================================
+
+Submodules
+----------
+
+astrophot.utils.initialize.center module
+----------------------------------------
+
+.. automodule:: astrophot.utils.initialize.center
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.initialize.construct\_psf module
+------------------------------------------------
+
+.. automodule:: astrophot.utils.initialize.construct_psf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.initialize.initialize module
+--------------------------------------------
+
+.. automodule:: astrophot.utils.initialize.initialize
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.utils.initialize.segmentation\_map module
+---------------------------------------------------
+
+.. automodule:: astrophot.utils.initialize.segmentation_map
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.utils.initialize
+   :members:
+   :undoc-members:
+   :show-inheritance:

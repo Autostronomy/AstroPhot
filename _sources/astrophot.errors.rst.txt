@@ -1,0 +1,53 @@
+astrophot.errors package
+========================
+
+Submodules
+----------
+
+astrophot.errors.base module
+----------------------------
+
+.. automodule:: astrophot.errors.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.errors.fit module
+---------------------------
+
+.. automodule:: astrophot.errors.fit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.errors.image module
+-----------------------------
+
+.. automodule:: astrophot.errors.image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.errors.models module
+------------------------------
+
+.. automodule:: astrophot.errors.models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.errors.param module
+-----------------------------
+
+.. automodule:: astrophot.errors.param
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.errors
+   :members:
+   :undoc-members:
+   :show-inheritance:

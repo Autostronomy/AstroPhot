@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started with AstroPhot &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Group Models" href="GroupModels.html" />
+    <link rel="prev" title="Tutorials" href="tutorials.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Getting Started with AstroPhot</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Your-first-model">Your first model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Giving-the-model-a-Target">Giving the model a Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Update-uncertainty-estimates">Update uncertainty estimates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Giving-the-model-a-specific-target-window">Giving the model a specific target window</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Setting-parameter-constraints">Setting parameter constraints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Basic-things-to-do-with-a-model">Basic things to do with a model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Load-target-with-WCS-information">Load target with WCS information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Using-GPU-acceleration">Using GPU acceleration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Boost-GPU-acceleration-with-single-precision-float32">Boost GPU acceleration with single precision float32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Tracking-output">Tracking output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="GroupModels.html">Group Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FittingMethods.html">Fitting Methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ModelZoo.html">Model Zoo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="JointModels.html">Joint Modelling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CustomModels.html">Custom model objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AdvancedPSFModels.html">Advanced PSF modeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ConstrainedModels.html">Constrained Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="tutorials.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Getting Started with AstroPhot</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/GettingStarted.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Getting-Started-with-AstroPhot">
+<h1>Getting Started with AstroPhot<a class="headerlink" href="#Getting-Started-with-AstroPhot" title="Link to this heading"></a></h1>
+<p>In this notebook you will walk through the very basics of AstroPhot functionality. Here you will learn how to make models; how to set them up for fitting; and how to view the results. These core elements will come up every time you use AstroPhot, though in future notebooks you will learn how to take advantage of the advanced features in AstroPhot.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%load_ext autoreload
+%autoreload 2
+
+import os
+import astrophot as ap
+import numpy as np
+import torch
+from astropy.io import fits
+from astropy.wcs import WCS
+import matplotlib.pyplot as plt
+from time import time
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+<section id="Your-first-model">
+<h2>Your first model<a class="headerlink" href="#Your-first-model" title="Link to this heading"></a></h2>
+<p>The basic format for making an AstroPhot model is given below. Once a model object is constructed, it can be manipulated and updated in various ways.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model1 = ap.models.AstroPhot_Model(
+    name = &quot;model1&quot;, # every model must have a unique name
+    model_type = &quot;sersic galaxy model&quot;, # this specifies the kind of model
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;n&quot;: 2, &quot;Re&quot;: 10, &quot;Ie&quot;: 1}, # here we set initial values for each parameter
+    target = ap.image.Target_Image(data = np.zeros((100,100)), zeropoint = 22.5, pixelscale = 1.), # every model needs a target, more on this later
+)
+model1.initialize() # before using the model it is good practice to call initialize so the model can get itself ready
+
+# We can print the model&#39;s current state
+model1.parameters
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+model1 (id-139838705334832, branch node):
+  center (id-139838705336224): [50.0, 50.0] +- [0.1, 0.1] [arcsec]
+  q (id-139838705336272): 0.6 +- 0.03 [b/a], limits: (0.0, 1.0)
+  PA (id-139838705335360): 1.0471975511965976 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+  n (id-139838705335312): 2.0 +- 0.05 [none], limits: (0.36, 8.0)
+  Re (id-139838705335120): 10.0 [arcsec], limits: (0.0, None)
+  Ie (id-139838705334880): 1.0 [log10(flux/arcsec^2)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># AstroPhot has built in methods to plot relevant information. We didn&#39;t specify the region on the sky for
+# this model to focus on, so we just made a 100x100 window. Unless you are very lucky this wont
+# line up with what you&#39;re trying to fit, so next we&#39;ll see how to give the model a target.
+
+fig, ax = plt.subplots(figsize = (8,7))
+ap.plots.model_image(fig, ax, model1)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_4_0.png" src="_images/GettingStarted_4_0.png" />
+</div>
+</div>
+</section>
+<section id="Giving-the-model-a-Target">
+<h2>Giving the model a Target<a class="headerlink" href="#Giving-the-model-a-Target" title="Link to this heading"></a></h2>
+<p>Typically, the main goal when constructing an AstroPhot model is to fit to an image. We need to give the model access to the image and some information about it to get started.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># first let&#39;s download an image to play with
+hdu = fits.open(&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra=36.3684&amp;dec=-25.6389&amp;size=700&amp;layer=ls-dr9&amp;pixscale=0.262&amp;bands=r&quot;)
+target_data = np.array(hdu[0].data, dtype = np.float64)
+
+# Create a target object with specified pixelscale and zeropoint
+target = ap.image.Target_Image(
+    data = target_data,
+    pixelscale = 0.262, # Every target image needs to know it&#39;s pixelscale in arcsec/pixel
+    zeropoint = 22.5, # optionally, you can give a zeropoint to tell AstroPhot what the pixel flux units are
+    variance = np.ones(target_data.shape)/1e3, # set the variance for this image (in general it should be more accurate than this)
+)
+
+# The default AstroPhot target plotting method uses log scaling in bright areas and histogram scaling in faint areas
+fig3, ax3 = plt.subplots(figsize = (8,8))
+ap.plots.target_image(fig3, ax3, target)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_6_0.png" src="_images/GettingStarted_6_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># This model now has a target that it will attempt to match
+model2 = ap.models.AstroPhot_Model(
+    name = &quot;model with target&quot;,
+    model_type = &quot;sersic galaxy model&quot;, # feel free to swap out sersic with other profile types
+    target = target, # now the model knows what its trying to match
+)
+
+# Instead of giving initial values for all the parameters, it is possible to simply call &quot;initialize&quot; and AstroPhot
+# will try to guess initial values for every parameter assuming the galaxy is roughly centered. It is also possible
+# to set just a few parameters and let AstroPhot try to figure out the rest. For example you could give it an initial
+# Guess for the center and it will work from there.
+model2.initialize()
+
+# Plotting the initial parameters and residuals, we see it gets the rough shape of the galaxy right, but still has some fitting to do
+fig4, ax4 = plt.subplots(1, 2, figsize = (16,6))
+ap.plots.model_image(fig4, ax4[0], model2)
+ap.plots.residual_image(fig4, ax4[1], model2)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_7_0.png" src="_images/GettingStarted_7_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Now that the model has been set up with a target and initialized with parameter values, it is time to fit the image
+result = ap.fit.LM(model2, verbose = 1).fit()
+
+# See that we use ap.fit.LM, this is the Levenberg-Marquardt Chi^2 minimization method, it is the recommended technique
+# for most least-squares problems. However, there are situations in which different optimizers may be more desireable
+# so the ap.fit package includes a few options to pick from. The various fitting methods will be described in a
+# different tutorial.
+print(&quot;Fit message:&quot;,result.message) # the fitter will return a message about its convergence
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Chi^2/DoF: 4.494716462352153, L: 1.0
+Chi^2/DoF: 4.339082715360147, L: 0.3333333333333333
+Chi^2/DoF: 4.3222279012182305, L: 0.1111111111111111
+Chi^2/DoF: 4.313906158991822, L: 0.012345679012345678
+Chi^2/DoF: 4.312875437280312, L: 0.004115226337448559
+Chi^2/DoF: 4.312869646011014, L: 0.0013717421124828531
+Final Chi^2/DoF: 4.312869602557773, L: 0.0013717421124828531. Converged: success
+Fit message: success
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># we now plot the fitted model and the image residuals
+fig5, ax5 = plt.subplots(1, 2, figsize = (16,6))
+ap.plots.model_image(fig5, ax5[0], model2)
+ap.plots.residual_image(fig5, ax5[1], model2)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_9_0.png" src="_images/GettingStarted_9_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot surface brightness profile
+
+# we now plot the model profile and a data profile. The model profile is determined from the model parameters
+# the data profile is determined by taking the median of pixel values at a given radius. Notice that the model
+# profile is slightly higher than the data profile? This is because there are other objects in the image which
+# are not being modelled, the data profile uses a median so they are ignored, but for the model we fit all pixels.
+fig10, ax10 = plt.subplots(figsize = (8,8))
+ap.plots.radial_light_profile(fig10, ax10, model2)
+ap.plots.radial_median_profile(fig10, ax10, model2)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: invalid value encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_10_1.png" src="_images/GettingStarted_10_1.png" />
+</div>
+</div>
+</section>
+<section id="Update-uncertainty-estimates">
+<h2>Update uncertainty estimates<a class="headerlink" href="#Update-uncertainty-estimates" title="Link to this heading"></a></h2>
+<p>After running a fit, the <code class="docutils literal notranslate"><span class="pre">ap.fit.LM</span></code> optimizer can update the uncertainty for each parameter. In fact it can return the full covariance matrix if needed. For a demo of what can be done with the covariance matrix see the <code class="docutils literal notranslate"><span class="pre">FittingMethods</span></code> tutorial. One important note is that the variance image needs to be correct for the uncertainties to be meaningful!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>result.update_uncertainty()
+print(model2)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+model with target:
+center: [92.75304634795759, 95.23034304378245] +- [0.004359051318281125, 0.006030986815076221] [arcsec]
+q: 0.7413373268710105 +- 0.0019329002334917123 [b/a], limits: (0.0, 1.0)
+PA: 0.13903032682507765 +- 0.004290960855449874 [radians], limits: (0.0, 3.141592653589793), cyclic
+n: 1.8401262808603205 +- 0.005940701772439054 [none], limits: (0.36, 8.0)
+Re: 17.28106113469953 +- 0.0711600795473191 [arcsec], limits: (0.0, None)
+Ie: 0.12068188558964421 +- 0.002746970254451334 [log10(flux/arcsec^2)]
+</pre></div></div>
+</div>
+<p>Note that these uncertainties are pure statistical uncertainties that come from evaluating the structure of the <span class="math notranslate nohighlight">\(\chi^2\)</span> minimum. Systematic uncertainties are not included and these often significantly outweigh the standard errors. As can be seen in the residual plot above, there is certainly plenty of unmodelled structure there. Use caution when interpreting the errors from these fits.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot the uncertainty matrix
+
+# While the scale of the uncertainty may not be meaningful if the image variance is not accurate, we
+# can still see how the covariance of the parameters plays out in a given fit.
+fig, ax = ap.plots.covariance_matrix(
+    result.covariance_matrix.detach().cpu().numpy(),
+    model2.parameters.vector_values().detach().cpu().numpy(),
+    model2.parameters.vector_names(),
+)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_14_0.png" src="_images/GettingStarted_14_0.png" />
+</div>
+</div>
+</section>
+<section id="Giving-the-model-a-specific-target-window">
+<h2>Giving the model a specific target window<a class="headerlink" href="#Giving-the-model-a-specific-target-window" title="Link to this heading"></a></h2>
+<p>Sometimes an object isn’t nicely centered in the image, and may not even be the dominant object in the image. It is therefore nice to be able to specify what part of the image we should analyze.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># note, we don&#39;t provide a name here. A unique name will automatically be generated using the model type
+model3 = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic galaxy model&quot;,
+    target = target,
+    window = [[480, 595],[555, 665]], # this is a region in pixel coordinates ((xmin,xmax),(ymin,ymax))
+)
+
+print(f&quot;automatically generated name: &#39;{model3.name}&#39;&quot;)
+
+# We can plot the &quot;model window&quot; to show us what part of the image will be analyzed by that model
+fig6, ax6 = plt.subplots(figsize = (8,8))
+ap.plots.target_image(fig6, ax6, model3.target)
+ap.plots.model_window(fig6, ax6, model3)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+automatically generated name: &#39;sersic galaxy model [0]&#39;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_16_1.png" src="_images/GettingStarted_16_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model3.initialize()
+
+result = ap.fit.LM(model3, verbose = 1).fit()
+print(result.message)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Chi^2/DoF: 0.6119243780351328, L: 1.0
+Chi^2/DoF: 0.5551486092528747, L: 1.6666666666666667
+Chi^2/DoF: 0.5386851217189315, L: 2.777777777777778
+Chi^2/DoF: 0.1597173539331742, L: 0.925925925925926
+Chi^2/DoF: 0.07406870012600149, L: 0.308641975308642
+Chi^2/DoF: 0.06926614323562733, L: 0.5144032921810701
+Chi^2/DoF: 0.06515336357042033, L: 0.1714677640603567
+Chi^2/DoF: 0.05300504667024191, L: 0.05715592135345223
+Chi^2/DoF: 0.04661918306782161, L: 0.019051973784484078
+Chi^2/DoF: 0.044908700210954854, L: 0.006350657928161359
+Chi^2/DoF: 0.04488048236179702, L: 8.711464922032044e-06
+Chi^2/DoF: 0.04488027245099304, L: 1.1949883294968512e-08
+Final Chi^2/DoF: 0.04488027047505036, L: 1.1949883294968512e-08. Converged: success
+success
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Note that when only a window is fit, the default plotting methods will only show that window
+fig7, ax7 = plt.subplots(1, 2, figsize = (16,6))
+ap.plots.model_image(fig7, ax7[0], model3)
+ap.plots.residual_image(fig7, ax7[1], model3)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_18_0.png" src="_images/GettingStarted_18_0.png" />
+</div>
+</div>
+</section>
+<section id="Setting-parameter-constraints">
+<h2>Setting parameter constraints<a class="headerlink" href="#Setting-parameter-constraints" title="Link to this heading"></a></h2>
+<p>A common feature of fitting parameters is that they have some constraint on their behaviour and cannot be sampled at any value from (-inf, inf). AstroPhot circumvents this by remapping any constrained parameter to a space where it can take any real value, at least for the sake of fitting. For most parameters these constraints are applied by default; for example the axis ratio q is required to be in the range (0,1). Other parameters, such as the position angle (PA) are cyclic, they can be in the
+range (0,pi) but also can wrap around. It is possible to manually set these constraints while constructing a model.</p>
+<p>In general adding constraints makes fitting more difficult. There is a chance that the fitting process runs up against a constraint boundary and gets stuck. However, sometimes adding constraints is necessary and so the capability is included.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># here we make a sersic model that can only have q and n in a narrow range
+# Also, we give PA and initial value and lock that so it does not change during fitting
+constrained_param_model = ap.models.AstroPhot_Model(
+    name = &quot;constrained parameters&quot;, model_type = &quot;sersic galaxy model&quot;,
+    parameters = {
+        &quot;q&quot;: {&quot;limits&quot;: [0.4,0.6]},
+        &quot;n&quot;: {&quot;limits&quot;: [2,3]},
+        &quot;PA&quot;: {&quot;value&quot;: 60*np.pi/180, &quot;locked&quot;: True},
+    }
+)
+</pre></div>
+</div>
+</div>
+<p>Aside from constraints on an individual parameter, it is sometimes desireable to have different models share parameter values. For example you may wish to combine multiple simple models into a more complex model (more on that in a different tutorial), and you may wish for them all to have the same center. This can be accomplished with “equality constraints” as shown below.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># model 1 is a sersic model
+model_1 = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;PA&quot;: np.pi/4}
+)
+# model 2 is an exponential model
+model_2 = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential galaxy model&quot;,
+)
+
+# Here we add the constraint for &quot;PA&quot; to be the same for each model.
+# In doing so we provide the model and parameter name which should
+# be connected.
+model_2[&quot;PA&quot;].value = model_1[&quot;PA&quot;]
+
+# Here we can see how the two models now both can modify this parameter
+print(&quot;initial values: model_1 PA&quot;, model_1[&quot;PA&quot;].value.item(), &quot;model_2 PA&quot;, model_2[&quot;PA&quot;].value.item())
+# Now we modify the PA for model_1
+model_1[&quot;PA&quot;].value = np.pi/3
+print(&quot;change model_1: model_1 PA&quot;, model_1[&quot;PA&quot;].value.item(), &quot;model_2 PA&quot;, model_2[&quot;PA&quot;].value.item())
+# Similarly we modify the PA for model_2
+model_2[&quot;PA&quot;].value = np.pi/2
+print(&quot;change model_2: model_1 PA&quot;, model_1[&quot;PA&quot;].value.item(), &quot;model_2 PA&quot;, model_2[&quot;PA&quot;].value.item())
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+initial values: model_1 PA 0.7853981633974483 model_2 PA 0.7853981633974483
+change model_1: model_1 PA 1.0471975511965976 model_2 PA 1.0471975511965976
+change model_2: model_1 PA 1.5707963267948966 model_2 PA 1.5707963267948966
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Keep in mind that both models have full control over the parameter, it is listed in both of
+# their &quot;parameter_order&quot; tuples.
+print(&quot;model_1 parameters: &quot;, model_1.parameter_order)
+print(&quot;model_2 parameters: &quot;, model_2.parameter_order)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+model_1 parameters:  (&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+model_2 parameters:  (&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+</pre></div></div>
+</div>
+</section>
+<section id="Basic-things-to-do-with-a-model">
+<h2>Basic things to do with a model<a class="headerlink" href="#Basic-things-to-do-with-a-model" title="Link to this heading"></a></h2>
+<p>Now that we know how to create a model and fit it to an image, lets get to know the model a bit better.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Save the model to a file
+
+model2.save() # will default to save as AstroPhot.yaml
+
+with open(&quot;AstroPhot.yaml&quot;, &quot;r&quot;) as f:
+    print(f.read()) # show what the saved file looks like
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+model_type: sersic galaxy model
+name: model with target
+parameters:
+  identity: 139834988763216
+  name: model with target
+  nodes:
+  - identity: 139834991184864
+    name: center
+    shape:
+    - 2
+    uncertainty:
+    - 0.004359051318281125
+    - 0.006030986815076221
+    units: arcsec
+    value:
+    - 92.75304634795759
+    - 95.23034304378245
+  - identity: 139834991185104
+    limits:
+    - 0.0
+    - 1.0
+    name: q
+    shape: []
+    uncertainty: 0.0019329002334917123
+    units: b/a
+    value: 0.7413373268710105
+  - cyclic: true
+    identity: 139834991185008
+    limits:
+    - 0.0
+    - 3.141592653589793
+    name: PA
+    shape: []
+    uncertainty: 0.004290960855449874
+    units: radians
+    value: 0.13903032682507765
+  - identity: 139834991184336
+    limits:
+    - 0.36
+    - 8.0
+    name: n
+    shape: []
+    uncertainty: 0.005940701772439054
+    units: none
+    value: 1.8401262808603205
+  - identity: 139834991184384
+    limits:
+    - 0.0
+    - null
+    name: Re
+    shape: []
+    uncertainty: 0.0711600795473191
+    units: arcsec
+    value: 17.28106113469953
+  - identity: 139834991184720
+    name: Ie
+    shape: []
+    uncertainty: 0.002746970254451334
+    units: log10(flux/arcsec^2)
+    value: 0.12068188558964421
+  units: none
+target_identity: &#39;139834990972304&#39;
+window:
+  pixel_shape:
+  - 700
+  - 700
+  pixelscale:
+  - - 0.262
+    - 0.0
+  - - 0.0
+    - 0.262
+  projection: gnomonic
+  reference_imageij:
+  - -0.5
+  - -0.5
+  reference_imagexy:
+  - 0.0
+  - 0.0
+  reference_planexy:
+  - 0.0
+  - 0.0
+  reference_radec:
+  - 0.0
+  - 0.0
+
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># load a model from a file
+
+# note that the target still must be specified, only the parameters are saved
+model4 = ap.models.AstroPhot_Model(name = &quot;new name&quot;, filename = &quot;AstroPhot.yaml&quot;, target = target)
+print(model4) # can see that it has been constructed with all the same parameters as the saved model2.
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+model with target:
+center: [92.75304634795759, 95.23034304378245] +- [0.004359051318281125, 0.006030986815076221] [arcsec]
+q: 0.7413373268710105 +- 0.0019329002334917123 [b/a], limits: (0.0, 1.0)
+PA: 0.13903032682507765 +- 0.004290960855449874 [radians], limits: (0.0, 3.141592653589793), cyclic
+n: 1.8401262808603205 +- 0.005940701772439054 [none], limits: (0.36, 8.0)
+Re: 17.28106113469953 +- 0.0711600795473191 [arcsec], limits: (0.0, None)
+Ie: 0.12068188558964421 +- 0.002746970254451334 [log10(flux/arcsec^2)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Save the model image to a file
+
+model_image_sample = model2()
+model_image_sample.save(&quot;model2.fits&quot;)
+
+saved_image_hdu = fits.open(&quot;model2.fits&quot;)
+fig, ax = plt.subplots(figsize = (8,8))
+ax.imshow(
+    np.log10(saved_image_hdu[0].data),
+    origin = &quot;lower&quot;,
+    cmap = &quot;plasma&quot;,
+)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_27_0.png" src="_images/GettingStarted_27_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot model image with discrete levels
+
+# this is very useful for visualizing subtle features and for eyeballing the brightness at a given location.
+# just add the &quot;cmap_levels&quot; keyword to the model_image call and tell it how many levels you want
+fig11, ax11 = plt.subplots(figsize = (8, 8))
+ap.plots.model_image(fig11, ax11, model2, cmap_levels = 15)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_28_0.png" src="_images/GettingStarted_28_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Save and load a target image
+
+target.save(&quot;target.fits&quot;)
+
+new_target = ap.image.Target_Image(filename = &quot;target.fits&quot;)
+
+fig, ax = plt.subplots(figsize = (8,8))
+ap.plots.target_image(fig, ax, new_target)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_29_0.png" src="_images/GettingStarted_29_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Give the model new parameter values manually
+
+print(&quot;parameter input order: &quot;, model4.parameter_order) # use this to see what order you have to give the parameters as input
+
+# plot the old model
+fig9, ax9 = plt.subplots(1,2,figsize = (16,6))
+ap.plots.model_image(fig9, ax9[0], model4)
+T = ax9[0].set_title(&quot;parameters as loaded&quot;)
+
+# update and plot the new parameters
+new_parameters = torch.tensor([75, 110, 0.4, 20*np.pi/180, 3, 25, 0.12]) # note that the center parameter needs two values as input
+model4.initialize() # initialize must be called before optimization, or any other activity in which parameters are updated
+model4.parameters.vector_set_values(new_parameters) # full_sample will update the parameters, then run sample and return the model image
+ap.plots.model_image(fig9, ax9[1], model4)
+T = ax9[1].set_title(&quot;new parameter values&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+parameter input order:  (&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_30_1.png" src="_images/GettingStarted_30_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Access the model image pixels directly
+
+fig2, ax2 = plt.subplots(figsize = (8,8))
+
+pixels = model4().data.detach().cpu().numpy()# model4.model_image.data is the pytorch stored model image pixel values. Calling detach().cpu().numpy() is needed to get the data out of pytorch and in a usable form
+
+im = plt.imshow(
+    np.log10(pixels), # take log10 for better dynamic range
+    origin = &quot;lower&quot;,
+    cmap = ap.plots.visuals.cmap_grad, # gradient colourmap default for AstroPhot
+)
+plt.colorbar(im)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_31_0.png" src="_images/GettingStarted_31_0.png" />
+</div>
+</div>
+</section>
+<section id="Load-target-with-WCS-information">
+<h2>Load target with WCS information<a class="headerlink" href="#Load-target-with-WCS-information" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># first let&#39;s download an image to play with
+hdu = fits.open(&quot;https://www.legacysurvey.org/viewer/fits-cutout?ra=36.3684&amp;dec=-25.6389&amp;size=700&amp;layer=ls-dr9&amp;pixscale=0.262&amp;bands=r&quot;)
+target_data = np.array(hdu[0].data, dtype = np.float64)
+
+wcs = WCS(hdu[0].header)
+
+# Create a target object with WCS which will specify the pixelscale and origin for us!
+target = ap.image.Target_Image(
+    data = target_data,
+    zeropoint = 22.5,
+    wcs = wcs,
+)
+
+fig3, ax3 = plt.subplots(figsize = (8,8))
+ap.plots.target_image(fig3, ax3, target, flipx=True) # note we flip the x-axis since RA coordinats are backwards
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/GettingStarted_33_0.png" src="_images/GettingStarted_33_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Models can be constructed by providing model_type, or by creating the desired class directly
+
+#                     notice this is no longer &quot;AstroPhot_Model&quot;
+model1_v2 = ap.models.Sersic_Galaxy(
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;n&quot;: 2, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = ap.image.Target_Image(data=np.zeros((100,100)), pixelscale = 1),
+    psf_mode = &quot;full&quot;, # only change is the psf_mode
+)
+
+# This will be the same as model1, except note that the &quot;psf_mode&quot; keyword is now tracked since it isn&#39;t a default value
+print(model1_v2)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+sersic galaxy model [5]:
+center: [50.0, 50.0] +- [0.1, 0.1] [arcsec]
+q: 0.6 +- 0.03 [b/a], limits: (0.0, 1.0)
+PA: 1.0471975511965976 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+n: 2.0 +- 0.05 [none], limits: (0.36, 8.0)
+Re: 10.0 [arcsec], limits: (0.0, None)
+Ie: 1.0 [log10(flux/arcsec^2)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># List all the available model names
+
+# AstroPhot keeps track of all the subclasses of the AstroPhot_Model object, this list will
+# include all models even ones added by the user
+print(ap.models.AstroPhot_Model.List_Model_Names(useable = True)) # set useable = None for all models, or useable = False for only base classes
+print(&quot;---------------------------&quot;)
+# It is also possible to get all sub models of a specific Type
+print(&quot;only warp models: &quot;, ap.models.Warp_Galaxy.List_Model_Names())
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;sersic psf model&#39;, &#39;pixelated psf model&#39;, &#39;zernike psf model&#39;, &#39;spline psf model&#39;, &#39;relspline psf model&#39;, &#39;exponential psf model&#39;, &#39;gaussian psf model&#39;, &#39;eigen psf model&#39;, &#39;nuker psf model&#39;, &#39;moffat psf model&#39;, &#39;airy psf model&#39;, &#39;isothermal sech2 edgeon model&#39;, &#39;group model&#39;, &#39;point model&#39;, &#39;plane sky model&#39;, &#39;flat sky model&#39;, &#39;sersic galaxy model&#39;, &#39;sersic wedge galaxy model&#39;, &#39;spline wedge galaxy model&#39;, &#39;exponential wedge galaxy model&#39;, &#39;gaussian wedge galaxy model&#39;, &#39;nuker wedge galaxy model&#39;, &#39;spline galaxy model&#39;, &#39;relspline galaxy model&#39;, &#39;sersic superellipse galaxy model&#39;, &#39;spline superellipse galaxy model&#39;, &#39;exponential superellipse galaxy model&#39;, &#39;gaussian superellipse galaxy model&#39;, &#39;nuker superellipse galaxy model&#39;, &#39;exponential galaxy model&#39;, &#39;gaussian galaxy model&#39;, &#39;sersic warp galaxy model&#39;, &#39;spline warp galaxy model&#39;, &#39;sersic superellipse warp galaxy model&#39;, &#39;spline superellipse warp galaxy model&#39;, &#39;exponential superellipse warp galaxy model&#39;, &#39;gaussian superellipse warp galaxy model&#39;, &#39;nuker superellipse warp galaxy model&#39;, &#39;exponential warp galaxy model&#39;, &#39;gaussian warp galaxy model&#39;, &#39;sersic fourier warp galaxy model&#39;, &#39;spline fourier warp galaxy model&#39;, &#39;exponential fourier warp galaxy model&#39;, &#39;gaussian fourier warp galaxy model&#39;, &#39;nuker fourier warp galaxy model&#39;, &#39;nuker warp galaxy model&#39;, &#39;sersic fourier galaxy model&#39;, &#39;spline fourier galaxy model&#39;, &#39;exponential fourier galaxy model&#39;, &#39;gaussian fourier galaxy model&#39;, &#39;nuker fourier galaxy model&#39;, &#39;nuker galaxy model&#39;, &#39;moffat galaxy model&#39;, &#39;sersic ray galaxy model&#39;, &#39;spline ray galaxy model&#39;, &#39;exponential ray galaxy model&#39;, &#39;gaussian ray galaxy model&#39;, &#39;nuker ray galaxy model&#39;]
+---------------------------
+only warp models:  [&#39;sersic warp galaxy model&#39;, &#39;spline warp galaxy model&#39;, &#39;superellipse warp galaxy model&#39;, &#39;sersic superellipse warp galaxy model&#39;, &#39;spline superellipse warp galaxy model&#39;, &#39;exponential superellipse warp galaxy model&#39;, &#39;gaussian superellipse warp galaxy model&#39;, &#39;nuker superellipse warp galaxy model&#39;, &#39;exponential warp galaxy model&#39;, &#39;gaussian warp galaxy model&#39;, &#39;fourier warp galaxy model&#39;, &#39;sersic fourier warp galaxy model&#39;, &#39;spline fourier warp galaxy model&#39;, &#39;exponential fourier warp galaxy model&#39;, &#39;gaussian fourier warp galaxy model&#39;, &#39;nuker fourier warp galaxy model&#39;, &#39;nuker warp galaxy model&#39;]
+</pre></div></div>
+</div>
+</section>
+<section id="Using-GPU-acceleration">
+<h2>Using GPU acceleration<a class="headerlink" href="#Using-GPU-acceleration" title="Link to this heading"></a></h2>
+<p>This one is easy! If you have a cuda enabled GPU available, AstroPhot will just automatically detect it and use that device.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># check if AstroPhot has detected your GPU
+print(ap.AP_config.ap_device) # most likely this will say &quot;cpu&quot; unless you already have a cuda GPU,
+# in which case it should say &quot;cuda:0&quot;
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+cpu
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># If you have a GPU but want to use the cpu for some reason, just set:
+ap.AP_config.ap_device = &quot;cpu&quot;
+# BEFORE creating anything else (models, images, etc.)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Boost-GPU-acceleration-with-single-precision-float32">
+<h2>Boost GPU acceleration with single precision float32<a class="headerlink" href="#Boost-GPU-acceleration-with-single-precision-float32" title="Link to this heading"></a></h2>
+<p>If you are using a GPU you can get significant performance increases in both memory and speed by switching from double precision (the AstroPhot default) to single precision floating point numbers. The trade off is reduced precision, this can cause some unexpected behaviors. For example an optimizer may keep iterating forever if it is trying to optimize down to a precision below what the float32 will track. Typically, numbers with float32 are good down to 6 places and AstroPhot by default only
+attempts to minimize the Chi^2 to 3 places. However, to ensure the fit is secure to 3 places it often checks what is happenening down at 4 or 5 places. Hence, issues can arise. For the most part you can go ahead with float32 and if you run into a weird bug, try on float64 before looking further.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Again do this BEFORE creating anything else
+ap.AP_config.ap_dtype = torch.float32
+
+# Now new AstroPhot objects will be made with single bit precision
+W1 = ap.image.Window(origin = [0,0], pixel_shape = [1,1], pixelscale = 1)
+print(&quot;now a single:&quot;, W1.origin.dtype)
+
+# Here we switch back to double precision
+ap.AP_config.ap_dtype = torch.float64
+W2 = ap.image.Window(origin = [0,0], pixel_shape = [1,1], pixelscale = 1)
+print(&quot;back to double:&quot;, W2.origin.dtype)
+print(&quot;old window is still single:&quot;, W1.origin.dtype)
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+now a single: torch.float32
+back to double: torch.float64
+old window is still single: torch.float32
+</pre></div></div>
+</div>
+<p>See how the window created as a float32 stays that way? That’s really bad to have lying around! Make sure to change the data type before creating anything!</p>
+</section>
+<section id="Tracking-output">
+<h2>Tracking output<a class="headerlink" href="#Tracking-output" title="Link to this heading"></a></h2>
+<p>The AstroPhot optimizers, and ocasionally the other AstroPhot objects, will provide status updates about themselves which can be very useful for debugging problems or just keeping tabs on progress. There are a number of use cases for AstroPhot, each having different desired output behaviors. To accomodate all users, AstroPhot implements a general logging system. The object <code class="docutils literal notranslate"><span class="pre">ap.AP_config.ap_logger</span></code> is a logging object which by default writes to AstroPhot.log in the local directory. As the user,
+you can set that logger to be any logging object you like for arbitrary complexity. Most users will, however, simply want to control the filename, or have it output to screen instead of a file. Below you can see examples of how to do that.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># note that the log file will be where these tutorial notebooks are in your filesystem
+
+# Here we change the settings so AstroPhot only prints to a log file
+ap.AP_config.set_logging_output(stdout = False, filename = &quot;AstroPhot.log&quot;)
+ap.AP_config.ap_logger.info(&quot;message 1: this should only appear in the AstroPhot log file&quot;)
+
+# Here we change the settings so AstroPhot only prints to console
+ap.AP_config.set_logging_output(stdout = True, filename = None)
+ap.AP_config.ap_logger.info(&quot;message 2: this should only print to the console&quot;)
+
+# Here we change the settings so AstroPhot prints to both, which is the default
+ap.AP_config.set_logging_output(stdout = True, filename = &quot;AstroPhot.log&quot;)
+ap.AP_config.ap_logger.info(&quot;message 3: this should appear in both the console and the log file&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+message 2: this should only print to the console
+message 3: this should appear in both the console and the log file
+</pre></div></div>
+</div>
+<p>You can also change the logging level and/or formatter for the stdout and filename options (see <code class="docutils literal notranslate"><span class="pre">help(ap.AP_config.set_logging_output)</span></code> for details). However, at that point you may want to simply make your own logger object and assign it to the <code class="docutils literal notranslate"><span class="pre">ap.AP_config.ap_logger</span></code> variable.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorials.html" class="btn btn-neutral float-left" title="Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="GroupModels.html" class="btn btn-neutral float-right" title="Group Models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

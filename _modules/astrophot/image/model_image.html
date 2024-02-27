@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.image.model_image &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.image.model_image</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.image.model_image</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">.image_object</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">Image_List</span>
+<span class="kn">from</span> <span class="nn">.window_object</span> <span class="kn">import</span> <span class="n">Window</span>
+<span class="kn">from</span> <span class="nn">..utils.interpolate</span> <span class="kn">import</span> <span class="n">shift_Lanczos_torch</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">InvalidData</span><span class="p">,</span> <span class="n">SpecificationConflict</span><span class="p">,</span> <span class="n">InvalidImage</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Model_Image&quot;</span><span class="p">,</span> <span class="s2">&quot;Model_Image_List&quot;</span><span class="p">]</span>
+
+
+<span class="c1">######################################################################</span>
+<div class="viewcode-block" id="Model_Image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image">[docs]</a>
+<span class="k">class</span> <span class="nc">Model_Image</span><span class="p">(</span><span class="n">Image</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Image object which represents the sampling of a model at the given</span>
+<span class="sd">    coordinates of the image. Extra arithmetic operations are</span>
+<span class="sd">    available which can update model values in the image. The whole</span>
+<span class="sd">    model can be shifted by less than a pixel to account for sub-pixel</span>
+<span class="sd">    accuracy.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target_identity&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Model_Image.clear_image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.clear_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">clear_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.shift_origin">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.shift_origin">[docs]</a>
+    <span class="k">def</span> <span class="nf">shift_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">is_prepadded</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
+        <span class="n">pix_shift</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel_delta</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pix_shift</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Shifts larger than 1 pixel are currently not handled&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">shift_Lanczos_torch</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">pix_shift</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">pix_shift</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="nb">min</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="mi">10</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+            <span class="n">img_prepadded</span><span class="o">=</span><span class="n">is_prepadded</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.get_window">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.get_window">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="n">Window</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_window</span><span class="p">(</span>
+            <span class="n">window</span><span class="p">,</span> <span class="n">target_identity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.reduce">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.reduce">[docs]</a>
+    <span class="k">def</span> <span class="nf">reduce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">target_identity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.replace">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.replace">[docs]</a>
+    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">overlap_frac</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">window</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>  <span class="c1"># fixme control flow</span>
+                <span class="k">return</span>
+            <span class="n">other_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">get_other_indices</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="n">self_indices</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">get_other_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">self_indices</span><span class="p">]</span><span class="o">.</span><span class="n">nelement</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">other_indices</span><span class="p">]</span><span class="o">.</span><span class="n">nelement</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">self_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">other_indices</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Window</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">get_self_indices</span><span class="p">(</span><span class="n">other</span><span class="p">)]</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">other</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;target_identity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+    
+<div class="viewcode-block" id="Model_Image.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">=</span> <span class="n">target_identity</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.get_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.get_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_fits_state</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;PRIMARY&quot;</span><span class="p">:</span>
+                <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;TRGTID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span>
+        <span class="k">return</span> <span class="n">states</span></div>
+
+
+<div class="viewcode-block" id="Model_Image.set_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image.set_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_fits_state</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;IMAGE&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;PRIMARY&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;HEADER&quot;</span><span class="p">][</span><span class="s2">&quot;TRGTID&quot;</span><span class="p">]</span></div>
+</div>
+
+        
+
+<span class="c1">######################################################################</span>
+<div class="viewcode-block" id="Model_Image_List">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image_List">[docs]</a>
+<span class="k">class</span> <span class="nc">Model_Image_List</span><span class="p">(</span><span class="n">Image_List</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">)</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidImage</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model_Image_List can only hold Model_Image objects, not </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">image</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">image</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Model_Image_List.clear_image">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image_List.clear_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">clear_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+            <span class="n">image</span><span class="o">.</span><span class="n">clear_image</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Model_Image_List.shift_origin">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image_List.shift_origin">[docs]</a>
+    <span class="k">def</span> <span class="nf">shift_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Model_Image_List.replace">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.model_image.Model_Image_List.replace">[docs]</a>
+    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">oth</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+                <span class="n">image</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">oth</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">oth</span><span class="p">,</span> <span class="n">dat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                <span class="n">image</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">oth</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target_identity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">target_identity</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">tar_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">tar_id</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">targets</span>
+
+    <span class="k">def</span> <span class="fm">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span><span class="p">,</span> <span class="n">zip_self_image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">zip_self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">target_identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other_image</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">zip_self_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">zip_self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">target_identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">self_image</span><span class="p">,</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+                <span class="n">self_image</span> <span class="o">-=</span> <span class="n">other_image</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image_List</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">other_image</span><span class="p">,</span> <span class="n">zip_self_image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">zip_self_image</span> <span class="o">+=</span> <span class="n">other_image</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other_image</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">target_identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other_image</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other_image</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_identity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">self_image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">target_identity</span> <span class="o">==</span> <span class="n">self_image</span><span class="o">.</span><span class="n">target_identity</span><span class="p">:</span>
+                        <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">self_image</span><span class="p">,</span> <span class="n">other_image</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_list</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+                <span class="n">self_image</span> <span class="o">+=</span> <span class="n">other_image</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

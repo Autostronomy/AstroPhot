@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.utils.operations &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.utils.operations</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.utils.operations</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.convolution</span> <span class="kn">import</span> <span class="n">convolve</span><span class="p">,</span> <span class="n">convolve_fft</span>
+<span class="kn">from</span> <span class="nn">scipy.fft</span> <span class="kn">import</span> <span class="n">next_fast_len</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">roots_legendre</span>
+
+
+<div class="viewcode-block" id="fft_convolve_torch">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.fft_convolve_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">fft_convolve_torch</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="n">psf_fft</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">img_prepadded</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># Ensure everything is tensor</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+    <span class="n">psf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">psf</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">img_prepadded</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">next_fast_len</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">psf</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+        <span class="p">)</span>  <span class="c1"># list(int(d + (p + 1) / 2) for d, p in zip(img.size(), psf.size()))</span>
+
+    <span class="n">img_f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">psf_fft</span><span class="p">:</span>
+        <span class="n">psf_f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">psf</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">psf_f</span> <span class="o">=</span> <span class="n">psf</span>
+
+    <span class="n">conv_f</span> <span class="o">=</span> <span class="n">img_f</span> <span class="o">*</span> <span class="n">psf_f</span>
+    <span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft2</span><span class="p">(</span><span class="n">conv_f</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="c1"># Roll the tensor to correct centering and crop to original image size</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span>
+        <span class="n">conv</span><span class="p">,</span>
+        <span class="n">shifts</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="nb">int</span><span class="p">((</span><span class="n">psf</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="nb">int</span><span class="p">((</span><span class="n">psf</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)),</span>
+        <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">)[:</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">1</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="fft_convolve_multi_torch">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.fft_convolve_multi_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">fft_convolve_multi_torch</span><span class="p">(</span>
+    <span class="n">img</span><span class="p">,</span> <span class="n">kernels</span><span class="p">,</span> <span class="n">kernel_fft</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">img_prepadded</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+    <span class="c1"># Ensure everything is tensor</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kernels</span><span class="p">)):</span>
+        <span class="n">kernels</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">kernels</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">img_prepadded</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">kernels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()))</span>
+
+    <span class="n">img_f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">kernel_fft</span><span class="p">:</span>
+        <span class="n">kernels_f</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">kernels</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">psf_f</span> <span class="o">=</span> <span class="n">psf</span>
+
+    <span class="n">conv_f</span> <span class="o">=</span> <span class="n">img_f</span>
+
+    <span class="k">for</span> <span class="n">kernel_f</span> <span class="ow">in</span> <span class="n">kernels_f</span><span class="p">:</span>
+        <span class="n">conv_f</span> <span class="o">*=</span> <span class="n">kernel_f</span>
+
+    <span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft2</span><span class="p">(</span><span class="n">conv_f</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="c1"># Roll the tensor to correct centering and crop to original image size</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span>
+        <span class="n">conv</span><span class="p">,</span>
+        <span class="n">shifts</span><span class="o">=</span><span class="p">(</span>
+            <span class="o">-</span><span class="nb">int</span><span class="p">((</span><span class="nb">sum</span><span class="p">(</span><span class="n">kernel</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">kernels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="o">-</span><span class="nb">int</span><span class="p">((</span><span class="nb">sum</span><span class="p">(</span><span class="n">kernel</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">kernels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">),</span>
+        <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">)[:</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">1</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="displacement_spacing">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.displacement_spacing">[docs]</a>
+<span class="k">def</span> <span class="nf">displacement_spacing</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+        <span class="o">-</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">),</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">),</span> <span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="displacement_grid">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.displacement_grid">[docs]</a>
+<span class="k">def</span> <span class="nf">displacement_grid</span><span class="p">(</span><span class="n">Nx</span><span class="p">,</span> <span class="n">Ny</span><span class="p">,</span> <span class="n">pixelscale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+    <span class="n">px</span> <span class="o">=</span> <span class="n">displacement_spacing</span><span class="p">(</span><span class="n">Nx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">py</span> <span class="o">=</span> <span class="n">displacement_spacing</span><span class="p">(</span><span class="n">Ny</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">PX</span><span class="p">,</span> <span class="n">PY</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">pixelscale</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">PX</span><span class="p">,</span> <span class="n">PY</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">PX</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="quad_table">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.quad_table">[docs]</a>
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">quad_table</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    from: https://pomax.github.io/bezierinfo/legendre-gauss.html</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">abscissa</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">roots_legendre</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+    <span class="n">w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">abscissa</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">)</span>
+
+    <span class="n">W</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="mf">4.0</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">p</span> <span class="o">@</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">W</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="single_quad_integrate">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.single_quad_integrate">[docs]</a>
+<span class="k">def</span> <span class="nf">single_quad_integrate</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image_header</span><span class="p">,</span> <span class="n">eval_brightness</span><span class="p">,</span> <span class="n">eval_parameters</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">quad_level</span><span class="o">=</span><span class="mi">3</span>
+<span class="p">):</span>
+
+    <span class="c1"># collect gaussian quadrature weights</span>
+    <span class="n">abscissaX</span><span class="p">,</span> <span class="n">abscissaY</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">quad_table</span><span class="p">(</span>
+        <span class="n">quad_level</span><span class="p">,</span> <span class="n">image_header</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span>
+    <span class="p">)</span>
+    <span class="c1"># Specify coordinates at which to evaluate function</span>
+    <span class="n">Xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">quad_level</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">abscissaX</span>
+    <span class="n">Ys</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">quad_level</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">abscissaY</span>
+
+    <span class="c1"># Evaluate the model at the quadrature points</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">eval_brightness</span><span class="p">(</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">Xs</span><span class="p">,</span>
+        <span class="n">Y</span><span class="o">=</span><span class="n">Ys</span><span class="p">,</span>
+        <span class="n">image</span><span class="o">=</span><span class="n">image_header</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">eval_parameters</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Reference flux for pixel is simply the mean of the evaluations</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">(</span><span class="n">quad_level</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span> <span class="c1">#res.mean(axis=-1) # # alternative, use midpoint</span>
+    
+    <span class="c1"># Apply the weights and reduce to original pixel space</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">res</span> <span class="o">*</span> <span class="n">weight</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">ref</span></div>
+
+
+<div class="viewcode-block" id="grid_integrate">
+<a class="viewcode-back" href="../../../astrophot.utils.html#astrophot.utils.operations.grid_integrate">[docs]</a>
+<span class="k">def</span> <span class="nf">grid_integrate</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span>
+    <span class="n">Y</span><span class="p">,</span>
+    <span class="n">image_header</span><span class="p">,</span>
+    <span class="n">eval_brightness</span><span class="p">,</span>
+    <span class="n">eval_parameters</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
+    <span class="n">quad_level</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">gridding</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">_current_depth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">max_depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">reference</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The grid_integrate function performs adaptive quadrature</span>
+<span class="sd">    integration over a given pixel grid, offering precision control</span>
+<span class="sd">    where it is needed most.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      X (torch.Tensor): A 2D tensor representing the x-coordinates of the grid on which the function will be integrated.</span>
+<span class="sd">      Y (torch.Tensor): A 2D tensor representing the y-coordinates of the grid on which the function will be integrated.</span>
+<span class="sd">      image_header (ImageHeader): An object containing meta-information about the image.</span>
+<span class="sd">      eval_brightness (callable): A function that evaluates the brightness at each grid point. This function should be compatible with PyTorch tensor operations.</span>
+<span class="sd">      eval_parameters (Parameter_Group): An object containing parameters that are passed to the eval_brightness function.</span>
+<span class="sd">      dtype (torch.dtype): The data type of the output tensor. The dtype argument should be a valid PyTorch data type.</span>
+<span class="sd">      device (torch.device): The device on which to perform the computations. The device argument should be a valid PyTorch device.</span>
+<span class="sd">      quad_level (int, optional): The initial level of quadrature used in the integration. Defaults to 3.</span>
+<span class="sd">      gridding (int, optional): The factor by which the grid is subdivided when the integration error for a pixel is above the allowed threshold. Defaults to 5.</span>
+<span class="sd">      _current_depth (int, optional): The current depth level of the grid subdivision. Used for recursive calls to the function. Defaults to 1.</span>
+<span class="sd">      max_depth (int, optional): The maximum depth level of grid subdivision. Once this level is reached, no further subdivision is performed. Defaults to 2.</span>
+<span class="sd">      reference (torch.Tensor or None, optional): A scalar value that represents the allowed threshold for the integration error. </span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      torch.Tensor: A tensor of the same shape as X and Y that represents the result of the integration on the grid.</span>
+
+<span class="sd">    This function operates by first performing a quadrature</span>
+<span class="sd">    integration over the given pixels. If the maximum depth level has</span>
+<span class="sd">    been reached, it simply returns the result. Otherwise, it</span>
+<span class="sd">    calculates the integration error for each pixel and selects those</span>
+<span class="sd">    that have an error above the allowed threshold. For pixels that</span>
+<span class="sd">    have low error, the result is set as computed. For those with high</span>
+<span class="sd">    error, it sets up a finer sampling grid and recursively evaluates</span>
+<span class="sd">    the quadrature integration on it. Finally, it integrates the</span>
+<span class="sd">    results from the finer sampling grid back to the current</span>
+<span class="sd">    resolution.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># perform quadrature integration on the given pixels</span>
+    <span class="n">res</span><span class="p">,</span> <span class="n">ref</span> <span class="o">=</span> <span class="n">single_quad_integrate</span><span class="p">(</span>
+        <span class="n">X</span><span class="p">,</span>
+        <span class="n">Y</span><span class="p">,</span>
+        <span class="n">image_header</span><span class="p">,</span>
+        <span class="n">eval_brightness</span><span class="p">,</span>
+        <span class="n">eval_parameters</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">,</span>
+        <span class="n">quad_level</span><span class="o">=</span><span class="n">quad_level</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># if the max depth is reached, simply return the integrated pixels</span>
+    <span class="k">if</span> <span class="n">_current_depth</span> <span class="o">&gt;=</span> <span class="n">max_depth</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="c1"># Begin integral</span>
+    <span class="n">integral</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="c1"># Select pixels which have errors above the allowed threshold</span>
+    <span class="n">select</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">res</span> <span class="o">-</span> <span class="n">ref</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">reference</span>
+
+    <span class="c1"># For pixels with low error, set the results as computed</span>
+    <span class="n">integral</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">select</span><span class="p">)]</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">select</span><span class="p">)]</span>
+
+    <span class="c1"># Set up sub-gridding to super resolve problem pixels</span>
+    <span class="n">stepx</span><span class="p">,</span> <span class="n">stepy</span> <span class="o">=</span> <span class="n">displacement_grid</span><span class="p">(</span>
+        <span class="n">gridding</span><span class="p">,</span> <span class="n">gridding</span><span class="p">,</span> <span class="n">image_header</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span>
+    <span class="p">)</span>
+    <span class="c1"># Write out the coordinates for the super resolved pixels</span>
+    <span class="n">subgridX</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+        <span class="n">X</span><span class="p">[</span><span class="n">select</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">gridding</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="n">stepx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">subgridY</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+        <span class="n">Y</span><span class="p">[</span><span class="n">select</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">gridding</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="n">stepy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Recursively evaluate the quadrature integration on the finer sampling grid</span>
+    <span class="n">subgridres</span> <span class="o">=</span> <span class="n">grid_integrate</span><span class="p">(</span>
+        <span class="n">subgridX</span><span class="p">,</span>
+        <span class="n">subgridY</span><span class="p">,</span>
+        <span class="n">image_header</span><span class="o">.</span><span class="n">rescale_pixel</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">gridding</span><span class="p">),</span>
+        <span class="n">eval_brightness</span><span class="p">,</span>
+        <span class="n">eval_parameters</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">,</span>
+        <span class="n">quad_level</span><span class="o">=</span><span class="n">quad_level</span><span class="p">,</span>
+        <span class="n">gridding</span><span class="o">=</span><span class="n">gridding</span><span class="p">,</span>
+        <span class="n">_current_depth</span><span class="o">=</span><span class="n">_current_depth</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">max_depth</span><span class="o">=</span><span class="n">max_depth</span><span class="p">,</span>
+        <span class="n">reference</span><span class="o">=</span><span class="n">reference</span> <span class="o">*</span> <span class="n">gridding</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>        
+    <span class="p">)</span>
+
+    <span class="c1"># Integrate the finer sampling grid back to current resolution</span>
+    <span class="n">integral</span><span class="p">[</span><span class="n">select</span><span class="p">]</span> <span class="o">=</span> <span class="n">subgridres</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+
+    <span class="k">return</span> <span class="n">integral</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

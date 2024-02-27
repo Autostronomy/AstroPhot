@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.image.window_object &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.image.window_object</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.image.window_object</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span> <span class="k">as</span> <span class="n">AstropyWCS</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">..utils.conversions.coordinates</span> <span class="kn">import</span> <span class="n">Rotate_Cartesian</span>
+<span class="kn">from</span> <span class="nn">.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">ConflicingWCS</span><span class="p">,</span> <span class="n">SpecificationConflict</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Window&quot;</span><span class="p">,</span> <span class="s2">&quot;Window_List&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Window">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window">[docs]</a>
+<span class="k">class</span> <span class="nc">Window</span><span class="p">(</span><span class="n">WCS</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;class to define a window on the sky in coordinate space. These</span>
+<span class="sd">    windows can undergo arithmetic and preserve logical behavior. Image</span>
+<span class="sd">    objects can also be indexed using windows and will return an</span>
+<span class="sd">    appropriate subsection of their data.</span>
+
+<span class="sd">    There are several ways to tell a Window object where to</span>
+<span class="sd">    place itself. The simplest method is to pass an</span>
+<span class="sd">    Astropy WCS object such as::</span>
+
+<span class="sd">      H = ap.image.Window(wcs = wcs)</span>
+
+<span class="sd">    this will automatically place your image at the correct RA, DEC</span>
+<span class="sd">    and assign the correct pixel scale, etc. WARNING, it will default to</span>
+<span class="sd">    setting the reference RA DEC at the reference RA DEC of the wcs</span>
+<span class="sd">    object; if you have multiple images you should force them all to</span>
+<span class="sd">    have the same reference world coordinate by passing</span>
+<span class="sd">    ``reference_radec = (ra, dec)``. See the :doc:`coordinates`</span>
+<span class="sd">    documentation for more details. There are several other ways to</span>
+<span class="sd">    initialize a window. If you provide ``origin_radec`` then</span>
+<span class="sd">    it will place the image origin at the requested RA DEC</span>
+<span class="sd">    coordinates. If you provide ``center_radec`` then it will place</span>
+<span class="sd">    the image center at the requested RA DEC coordiantes. Note that in</span>
+<span class="sd">    these cases the fixed point between the pixel grid and image plane</span>
+<span class="sd">    is different (pixel origin and center respectively); so if you</span>
+<span class="sd">    have rotated pixels in your pixel scale matrix then everything</span>
+<span class="sd">    will be rotated about different points (pixel origin and center</span>
+<span class="sd">    respectively). If you provide ``origin`` or ``center`` then those</span>
+<span class="sd">    are coordiantes in the tangent plane (arcsec) and they will</span>
+<span class="sd">    correspondingly become fixed points. For arbitrary control over</span>
+<span class="sd">    the pixel positioning, use ``reference_imageij`` and</span>
+<span class="sd">    ``reference_imagexy`` to fix the pixel and tangent plane</span>
+<span class="sd">    coordinates respectively to each other, any rotation or shear will</span>
+<span class="sd">    happen about that fixed point.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      origin : Sequence or None, optional</span>
+<span class="sd">          The origin of the image in the tangent plane coordinate system</span>
+<span class="sd">          (arcsec), as a 1D array of length 2. Default is None.</span>
+<span class="sd">      origin_radec : Sequence or None, optional</span>
+<span class="sd">          The origin of the image in the world coordinate system (RA,</span>
+<span class="sd">          DEC in degrees), as a 1D array of length 2. Default is None.</span>
+<span class="sd">      center : Sequence or None, optional</span>
+<span class="sd">          The center of the image in the tangent plane coordinate system</span>
+<span class="sd">          (arcsec), as a 1D array of length 2. Default is None.</span>
+<span class="sd">      center_radec : Sequence or None, optional</span>
+<span class="sd">          The center of the image in the world coordinate system (RA,</span>
+<span class="sd">          DEC in degrees), as a 1D array of length 2. Default is None.</span>
+<span class="sd">      wcs: An astropy.wcs.WCS object which gives information about the</span>
+<span class="sd">          origin and orientation of the window.</span>
+<span class="sd">      reference_radec: world coordinates on the celestial sphere (RA,</span>
+<span class="sd">          DEC in degrees) where the tangent plane makes contact. This should</span>
+<span class="sd">          be the same for every image in multi-image analysis.</span>
+<span class="sd">      reference_planexy: tangent plane coordinates (arcsec) where it</span>
+<span class="sd">          makes contact with the celesial sphere. This should typically be</span>
+<span class="sd">          (0,0) though that is not stricktly enforced (it is assumed if not</span>
+<span class="sd">          given). This reference coordinate should be the same for all</span>
+<span class="sd">          images in multi-image analysis.</span>
+<span class="sd">      reference_imageij: pixel coordinates about which the image is</span>
+<span class="sd">          defined. For example in an Astropy WCS object the wcs.wcs.crpix</span>
+<span class="sd">          array gives the pixel coordinate reference point for which the</span>
+<span class="sd">          world coordinate mapping (wcs.wcs.crval) is defined. One may think</span>
+<span class="sd">          of the referenced pixel location as being &quot;pinned&quot; to the tangent</span>
+<span class="sd">          plane. This may be different for each image in multi-image</span>
+<span class="sd">          analysis..</span>
+<span class="sd">      reference_imagexy: tangent plane coordinates (arcsec) about</span>
+<span class="sd">          which the image is defined. This is the pivot point about which the</span>
+<span class="sd">          pixelscale matrix operates, therefore if the pixelscale matrix</span>
+<span class="sd">          defines a rotation then this is the coordinate about which the</span>
+<span class="sd">          rotation will be performed. This may be different for each image in</span>
+<span class="sd">          multi-image analysis.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">pixel_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">origin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">origin_radec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">center</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">center_radec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">fits_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">wcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># If loading from a previous state, simply update values and end init</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">fits_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_fits_state</span><span class="p">(</span><span class="n">fits_state</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Collect the shape of the window</span>
+        <span class="k">if</span> <span class="n">pixel_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">pixel_shape</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_shape</span>
+
+        <span class="c1"># Determine relative positioning of tangent plane and pixel grid. Also world coordinates and tangent plane</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">sum</span><span class="p">(</span><span class="n">C</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">C</span> <span class="ow">in</span> <span class="p">[</span><span class="n">wcs</span><span class="p">,</span> <span class="n">origin_radec</span><span class="p">,</span> <span class="n">center_radec</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">center</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpecificationConflict</span><span class="p">(</span>
+                <span class="s2">&quot;Please provide only one reference position for the window, otherwise the placement is ambiguous&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Image coordinates provided by WCS</span>
+        <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">wcs</span><span class="o">=</span><span class="n">wcs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Image reference position from RA and DEC of image origin</span>
+        <span class="k">elif</span> <span class="n">origin_radec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Origin given, it is reference point</span>
+            <span class="n">origin_radec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">origin_radec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+            <span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">,</span> <span class="n">origin_radec</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_to_plane</span><span class="p">(</span><span class="n">origin_radec</span><span class="p">)</span>
+        <span class="c1"># Image reference position from RA and DEC of image center</span>
+        <span class="k">elif</span> <span class="n">center_radec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pix_center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mf">0.5</span>
+            <span class="n">center_radec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">center_radec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+            <span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">,</span> <span class="n">center_radec</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_to_plane</span><span class="p">(</span><span class="n">center_radec</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="n">pix_center</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">=</span> <span class="n">center</span>
+        <span class="c1"># Image reference position from tangent plane position of image origin</span>
+        <span class="k">elif</span> <span class="n">origin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;reference_imageij&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="s2">&quot;reference_imagexy&quot;</span><span class="p">:</span> <span class="n">origin</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Image reference position from tangent plane position of image center</span>
+        <span class="k">elif</span> <span class="n">center</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pix_center</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mf">0.5</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;reference_imageij&quot;</span><span class="p">:</span> <span class="n">pix_center</span><span class="p">,</span>
+                    <span class="s2">&quot;reference_imagexy&quot;</span><span class="p">:</span> <span class="n">center</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Image origin assumed to be at tangent plane origin</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">S1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">S1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">S2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">S2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">@</span> <span class="n">S1</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">@</span> <span class="n">S2</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@shape</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_shape</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">shape</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_shape</span>
+
+    <span class="nd">@pixel_shape</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">pixel_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_shape</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The number of pixels in the window&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">end</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane_delta</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">origin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">/</span> <span class="mi">2</span>
+
+<div class="viewcode-block" id="Window.copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">copy_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;pixel_shape&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">)}</span>
+        <span class="n">copy_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="o">**</span><span class="n">copy_kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.to">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.to">[docs]</a>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.rescale_pixel">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.rescale_pixel">[docs]</a>
+    <span class="k">def</span> <span class="nf">rescale_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span>
+            <span class="n">pixelscale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span>
+            <span class="n">pixel_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">//</span> <span class="n">scale</span><span class="p">,</span>
+            <span class="n">reference_imageij</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">_get_indices</span><span class="p">(</span><span class="n">ref_window</span><span class="p">,</span> <span class="n">obj_window</span><span class="p">):</span>
+        <span class="n">other_origin_pix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">ref_window</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">obj_window</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+        <span class="n">new_origin_pix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">other_origin_pix</span><span class="p">),</span> <span class="n">other_origin_pix</span><span class="p">)</span>
+
+        <span class="n">other_pixel_end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+            <span class="n">ref_window</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">obj_window</span><span class="o">.</span><span class="n">origin</span> <span class="o">+</span> <span class="n">obj_window</span><span class="o">.</span><span class="n">end</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+        <span class="n">new_pixel_end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">ref_window</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">,</span> <span class="n">other_pixel_end</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="n">new_origin_pix</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_pixel_end</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">slice</span><span class="p">(</span>
+            <span class="n">new_origin_pix</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">new_pixel_end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Window.get_self_indices">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_self_indices">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_self_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an index slicing tuple for obj corresponding to this window</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Window</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">window</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.get_other_indices">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_other_indices">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_other_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an index slicing tuple for obj corresponding to this window</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Window</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indices</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indices</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">window</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.overlap_frac">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.overlap_frac">[docs]</a>
+    <span class="k">def</span> <span class="nf">overlap_frac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">overlap</span> <span class="o">=</span> <span class="bp">self</span> <span class="o">&amp;</span> <span class="n">other</span>
+        <span class="n">overlap_area</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">overlap</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">full_area</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="n">overlap_area</span>
+        <span class="k">return</span> <span class="n">overlap_area</span> <span class="o">/</span> <span class="n">full_area</span></div>
+
+
+<div class="viewcode-block" id="Window.shift">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.shift">[docs]</a>
+    <span class="k">def</span> <span class="nf">shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Shift the location of the window by a specified amount in tangent plane coordinates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">+</span> <span class="n">shift</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Window.pixel_shift">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.pixel_shift">[docs]</a>
+    <span class="k">def</span> <span class="nf">pixel_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Shift the location of the window by a specified amount in pixel grid coordinates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="n">shift</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Window.get_astropywcs">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_astropywcs">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_astropywcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">wargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;NAXIS&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;NAXIS1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;NAXIS2&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CTYPE1&quot;</span><span class="p">:</span> <span class="s2">&quot;RA---TAN&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CTYPE2&quot;</span><span class="p">:</span> <span class="s2">&quot;DEC--TAN&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CRVAL1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CRVAL2&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CRPIX1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CRPIX2&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CD1_1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CD1_2&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CD2_1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="s2">&quot;CD2_2&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="n">wargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">AstropyWCS</span><span class="p">(</span><span class="n">wargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;pixel_shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="Window.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;pixel_shape&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.get_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_fits_state</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;PXL_SHPE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="Window.set_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.set_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_fits_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="nb">eval</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;PXL_SHPE&quot;</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.crop_pixel">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.crop_pixel">[docs]</a>
+    <span class="k">def</span> <span class="nf">crop_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        [crop all sides] or</span>
+<span class="sd">        [crop x, crop y] or</span>
+<span class="sd">        [crop x low, crop y low, crop x high, crop y high]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pixels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="n">pixels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pix_shift</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pix_shift</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="n">pix_shift</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>  <span class="c1"># different crop on all sides</span>
+            <span class="n">pixels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">-</span> <span class="n">pixels</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">pixels</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="n">pixels</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized pixel crop format: </span><span class="si">{</span><span class="n">pixels</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Window.crop_to_pixel">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.crop_to_pixel">[docs]</a>
+    <span class="k">def</span> <span class="nf">crop_to_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        format: [[xmin, xmax],[ymin,ymax]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pixels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="n">pixels</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">pixels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pixels</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Window.pad_pixel">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.pad_pixel">[docs]</a>
+    <span class="k">def</span> <span class="nf">pad_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        [pad all sides] or</span>
+<span class="sd">        [pad x, pad y] or</span>
+<span class="sd">        [pad x low, pad y low, pad x high, pad y high]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pixels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">+</span> <span class="n">pixels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pix_shift</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pix_shift</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">+</span> <span class="n">pix_shift</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>  <span class="c1"># different crop on all sides</span>
+            <span class="n">pixels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">+</span> <span class="n">pixels</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">pixels</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">+</span> <span class="n">pixels</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized pixel crop format: </span><span class="si">{</span><span class="n">pixels</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Window.get_coordinate_meshgrid">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_coordinate_meshgrid">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">get_coordinate_meshgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a meshgrid with tangent plane coordinates for the center</span>
+<span class="sd">        of every pixel.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">)</span>
+        <span class="n">xsteps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pix</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="n">ysteps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pix</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+        <span class="n">meshx</span><span class="p">,</span> <span class="n">meshy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">xsteps</span><span class="p">,</span>
+            <span class="n">ysteps</span><span class="p">,</span>
+            <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">Coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">meshx</span><span class="p">,</span> <span class="n">meshy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">Coords</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.get_coordinate_corner_meshgrid">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_coordinate_corner_meshgrid">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">get_coordinate_corner_meshgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a meshgrid with tangent plane coordinates for the corners</span>
+<span class="sd">        of every pixel.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">)</span>
+        <span class="n">xsteps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="p">)</span>
+        <span class="n">ysteps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pix</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="p">)</span>
+        <span class="n">meshx</span><span class="p">,</span> <span class="n">meshy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">xsteps</span><span class="p">,</span>
+            <span class="n">ysteps</span><span class="p">,</span>
+            <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">Coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">meshx</span><span class="p">,</span> <span class="n">meshy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">Coords</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window.get_coordinate_simps_meshgrid">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window.get_coordinate_simps_meshgrid">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">get_coordinate_simps_meshgrid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a meshgrid with tangent plane coordinates for performing</span>
+<span class="sd">        simpsons method pixel integration (all corners, centers, and</span>
+<span class="sd">        middle of each edge). This is approximately 4 times more</span>
+<span class="sd">        points than the standard :meth:`get_coordinate_meshgrid`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">)</span>
+        <span class="n">xsteps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">0.5</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">pix</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="p">)</span>
+        <span class="n">ysteps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">0.5</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">pix</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="p">)</span>
+        <span class="n">meshx</span><span class="p">,</span> <span class="n">meshy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">xsteps</span><span class="p">,</span>
+            <span class="n">ysteps</span><span class="p">,</span>
+            <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">Coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">meshx</span><span class="p">,</span> <span class="n">meshy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">Coords</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Window Comparison operators</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">projection</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">))</span>
+                    <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">))</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># fixme more checks?</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="c1"># Window interaction operators</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">other_origin_pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span>
+        <span class="n">new_origin_pix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">other_origin_pix</span><span class="p">),</span> <span class="n">other_origin_pix</span><span class="p">)</span>
+
+        <span class="n">other_pixel_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">new_pixel_end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">),</span> <span class="n">other_pixel_end</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span>
+            <span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">new_origin_pix</span><span class="p">),</span>
+            <span class="n">pixel_shape</span><span class="o">=</span><span class="n">new_pixel_end</span> <span class="o">-</span> <span class="n">new_origin_pix</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__ior__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">other_origin_pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span>
+        <span class="n">new_origin_pix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">other_origin_pix</span><span class="p">),</span> <span class="n">other_origin_pix</span><span class="p">)</span>
+
+        <span class="n">other_pixel_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">new_pixel_end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">),</span> <span class="n">other_pixel_end</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="p">(</span><span class="n">new_origin_pix</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">new_pixel_end</span> <span class="o">-</span> <span class="n">new_origin_pix</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">other_origin_pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span>
+        <span class="n">new_origin_pix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">other_origin_pix</span><span class="p">),</span> <span class="n">other_origin_pix</span><span class="p">)</span>
+
+        <span class="n">other_pixel_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">new_pixel_end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">other_pixel_end</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span>
+            <span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">new_origin_pix</span><span class="p">),</span>
+            <span class="n">pixel_shape</span><span class="o">=</span><span class="n">new_pixel_end</span> <span class="o">-</span> <span class="n">new_origin_pix</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__iand__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">other_origin_pix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span>
+        <span class="n">new_origin_pix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">other_origin_pix</span><span class="p">),</span> <span class="n">other_origin_pix</span><span class="p">)</span>
+
+        <span class="n">other_pixel_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">origin</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">new_pixel_end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">),</span> <span class="n">other_pixel_end</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">-</span> <span class="p">(</span><span class="n">new_origin_pix</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">new_pixel_end</span> <span class="o">-</span> <span class="n">new_origin_pix</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;window origin: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, shape: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, center: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, pixelscale: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;window pixel_shape: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, shape: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Window_List">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List">[docs]</a>
+<span class="k">class</span> <span class="nc">Window_List</span><span class="p">(</span><span class="n">Window</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">window_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">window_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">window_list</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_wcs</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Window_List.check_wcs">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List.check_wcs">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_wcs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure the WCS systems being used by all the windows in this list</span>
+<span class="sd">        are consistent with each other. They should all project world</span>
+<span class="sd">        coordinates onto the same tangent plane.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">windows</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">W</span><span class="o">.</span><span class="n">reference_radec</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_list</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">windows</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">windows</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">ConflicingWCS</span><span class="p">(</span>
+                <span class="s2">&quot;Reference (world) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">reference_planexy</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_list</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">ConflicingWCS</span><span class="p">(</span>
+                <span class="s2">&quot;Reference (tangent plane) coordinate mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">projection</span> <span class="k">for</span> <span class="n">W</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_list</span><span class="p">)))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ConflicingWCS</span><span class="p">(</span>
+                <span class="s2">&quot;Projection mismatch! All windows in Window_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means.&quot;</span>
+            <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">origin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">origin</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">center</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Window_List.shift_origin">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List.shift_origin">[docs]</a>
+    <span class="k">def</span> <span class="nf">shift_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;shift origin not implemented for window list&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window_List.copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Window_List.to">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List.to">[docs]</a>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="k">for</span> <span class="n">window</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">window</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window_List.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span> <span class="k">for</span> <span class="n">window</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Window_List.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.window_object.Window_List.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Window</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">st</span><span class="p">)</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">state</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Window interaction operators</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">new_windows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">((</span><span class="n">sw</span> <span class="o">|</span> <span class="n">ow</span><span class="p">)</span> <span class="k">for</span> <span class="n">sw</span><span class="p">,</span> <span class="n">ow</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">window_list</span><span class="o">=</span><span class="n">new_windows</span><span class="p">)</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__ior__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">sw</span><span class="p">,</span> <span class="n">ow</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="n">sw</span> <span class="o">|=</span> <span class="n">ow</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">new_windows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">((</span><span class="n">sw</span> <span class="o">&amp;</span> <span class="n">ow</span><span class="p">)</span> <span class="k">for</span> <span class="n">sw</span><span class="p">,</span> <span class="n">ow</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">window_list</span><span class="o">=</span><span class="n">new_windows</span><span class="p">)</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__iand__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">sw</span><span class="p">,</span> <span class="n">ow</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="n">sw</span> <span class="o">&amp;=</span> <span class="n">ow</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="c1"># Window Comparison operators</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">((</span><span class="n">sw</span> <span class="o">==</span> <span class="n">ow</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">sw</span><span class="p">,</span> <span class="n">ow</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">win</span> <span class="k">for</span> <span class="n">win</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Window List: </span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">window</span><span class="p">)</span> <span class="k">for</span> <span class="n">window</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Window List: </span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">window</span><span class="p">)</span> <span class="k">for</span> <span class="n">window</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

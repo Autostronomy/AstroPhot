@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.models.gaussian_model &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.models.gaussian_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.models.gaussian_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.galaxy_model_object</span> <span class="kn">import</span> <span class="n">Galaxy_Model</span>
+<span class="kn">from</span> <span class="nn">.warp_model</span> <span class="kn">import</span> <span class="n">Warp_Galaxy</span>
+<span class="kn">from</span> <span class="nn">.superellipse_model</span> <span class="kn">import</span> <span class="n">SuperEllipse_Galaxy</span><span class="p">,</span> <span class="n">SuperEllipse_Warp</span>
+<span class="kn">from</span> <span class="nn">.foureirellipse_model</span> <span class="kn">import</span> <span class="n">FourierEllipse_Galaxy</span><span class="p">,</span> <span class="n">FourierEllipse_Warp</span>
+<span class="kn">from</span> <span class="nn">.ray_model</span> <span class="kn">import</span> <span class="n">Ray_Galaxy</span>
+<span class="kn">from</span> <span class="nn">.wedge_model</span> <span class="kn">import</span> <span class="n">Wedge_Galaxy</span>
+<span class="kn">from</span> <span class="nn">.psf_model_object</span> <span class="kn">import</span> <span class="n">PSF_Model</span>
+<span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">parametric_initialize</span><span class="p">,</span>
+    <span class="n">parametric_segment_initialize</span><span class="p">,</span>
+    <span class="n">select_target</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..utils.decorators</span> <span class="kn">import</span> <span class="n">ignore_numpy_warnings</span><span class="p">,</span> <span class="n">default_internal</span>
+<span class="kn">from</span> <span class="nn">..utils.parametric_profiles</span> <span class="kn">import</span> <span class="n">gaussian_torch</span><span class="p">,</span> <span class="n">gaussian_np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Gaussian_Galaxy&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian_SuperEllipse&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian_SuperEllipse_Warp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian_FourierEllipse&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian_FourierEllipse_Warp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian_Warp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian_PSF&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_x0_func</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">F</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">R</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">F</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_wrap_gauss</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">flu</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gaussian_np</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">flu</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Gaussian_Galaxy">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_Galaxy">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_Galaxy</span><span class="p">(</span><span class="n">Galaxy_Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Basic galaxy model with Gaussian as the radial light profile. The</span>
+<span class="sd">    gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">Galaxy_Model</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Galaxy_Model</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Gaussian_Galaxy.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_Galaxy.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span></div>
+
+
+
+<div class="viewcode-block" id="Gaussian_SuperEllipse">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_SuperEllipse">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_SuperEllipse</span><span class="p">(</span><span class="n">SuperEllipse_Galaxy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Super ellipse galaxy model with Gaussian as the radial light</span>
+<span class="sd">    profile.The gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">SuperEllipse_Galaxy</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">SuperEllipse_Galaxy</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Gaussian_SuperEllipse.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_SuperEllipse.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span></div>
+
+
+
+<div class="viewcode-block" id="Gaussian_SuperEllipse_Warp">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_SuperEllipse_Warp">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_SuperEllipse_Warp</span><span class="p">(</span><span class="n">SuperEllipse_Warp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;super ellipse warp galaxy model with a gaussian profile for the</span>
+<span class="sd">    radial light profile. The gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">SuperEllipse_Warp</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">SuperEllipse_Warp</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Gaussian_SuperEllipse_Warp.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_SuperEllipse_Warp.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span></div>
+
+
+
+<div class="viewcode-block" id="Gaussian_FourierEllipse">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_FourierEllipse">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_FourierEllipse</span><span class="p">(</span><span class="n">FourierEllipse_Galaxy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;fourier mode perturbations to ellipse galaxy model with a gaussian</span>
+<span class="sd">    profile for the radial light profile. The gaussian radial profile</span>
+<span class="sd">    is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">FourierEllipse_Galaxy</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">FourierEllipse_Galaxy</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Gaussian_FourierEllipse.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_FourierEllipse.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span></div>
+
+
+
+<div class="viewcode-block" id="Gaussian_FourierEllipse_Warp">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_FourierEllipse_Warp">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_FourierEllipse_Warp</span><span class="p">(</span><span class="n">FourierEllipse_Warp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;fourier mode perturbations to ellipse galaxy model with a gaussian</span>
+<span class="sd">    profile for the radial light profile. The gaussian radial profile</span>
+<span class="sd">    is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">FourierEllipse_Warp</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">FourierEllipse_Warp</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Gaussian_FourierEllipse_Warp.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_FourierEllipse_Warp.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span></div>
+
+
+
+<div class="viewcode-block" id="Gaussian_Warp">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_Warp">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_Warp</span><span class="p">(</span><span class="n">Warp_Galaxy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coordinate warped galaxy model with Gaussian as the radial light</span>
+<span class="sd">    profile. The gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">Warp_Galaxy</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Warp_Galaxy</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Gaussian_Warp.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_Warp.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span></div>
+
+
+
+<div class="viewcode-block" id="Gaussian_PSF">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_PSF">[docs]</a>
+<span class="k">class</span> <span class="nc">Gaussian_PSF</span><span class="p">(</span><span class="n">PSF_Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Basic point source model with a Gaussian as the radial light profile. The</span>
+<span class="sd">    gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">PSF_Model</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span> <span class="s2">&quot;locked&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">PSF_Model</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">model_integrated</span> <span class="o">=</span> <span class="kc">False</span>
+    
+<div class="viewcode-block" id="Gaussian_PSF.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.gaussian_model.Gaussian_PSF.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">_wrap_gauss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">_x0_func</span>
+        <span class="p">)</span></div>
+
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_radial_model</span> <span class="k">as</span> <span class="n">radial_model</span>
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">radial_evaluate_model</span> <span class="k">as</span> <span class="n">evaluate_model</span></div>
+
+
+
+<span class="k">class</span> <span class="nc">Gaussian_Ray</span><span class="p">(</span><span class="n">Ray_Galaxy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ray galaxy model with a gaussian profile for the radial light</span>
+<span class="sd">    model. The gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">Ray_Galaxy</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Ray_Galaxy</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_segment_initialize</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">prof_func</span><span class="o">=</span><span class="n">_wrap_gauss</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span>
+            <span class="n">x0_func</span><span class="o">=</span><span class="n">_x0_func</span><span class="p">,</span>
+            <span class="n">segments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rays</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_iradial_model</span> <span class="k">as</span> <span class="n">iradial_model</span>
+
+
+<span class="k">class</span> <span class="nc">Gaussian_Wedge</span><span class="p">(</span><span class="n">Wedge_Galaxy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;wedge galaxy model with a gaussian profile for the radial light</span>
+<span class="sd">    model. The gaussian radial profile is defined as:</span>
+
+<span class="sd">    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)</span>
+
+<span class="sd">    where I(R) is the prightness as a function of semi-major axis</span>
+<span class="sd">    length, F is the total flux in the model, R is the semi-major</span>
+<span class="sd">    axis, and S is the standard deviation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        sigma: standard deviation of the gaussian profile, must be a positive value</span>
+<span class="sd">        flux: the total flux in the gaussian model, represented as the log of the total</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gaussian </span><span class="si">{</span><span class="n">Wedge_Galaxy</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)},</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Wedge_Galaxy</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">parametric_segment_initialize</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">target</span><span class="p">,</span>
+            <span class="n">_wrap_gauss</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;flux&quot;</span><span class="p">),</span>
+            <span class="n">_x0_func</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wedges</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">gaussian_iradial_model</span> <span class="k">as</span> <span class="n">iradial_model</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

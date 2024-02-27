@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.utils.conversions.functions &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.utils.conversions.functions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.utils.conversions.functions</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">gamma</span>
+<span class="kn">from</span> <span class="nn">torch.special</span> <span class="kn">import</span> <span class="n">gammaln</span>
+
+
+<div class="viewcode-block" id="sersic_n_to_b">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_n_to_b">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the `b(n)` for a sersic model. This factor ensures that</span>
+<span class="sd">    the :math:`R_e` and :math:`I_e` parameters do in fact correspond</span>
+<span class="sd">    to the half light values and not some other scale</span>
+<span class="sd">    radius/intensity.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="o">+</span> <span class="mi">4</span> <span class="o">/</span> <span class="p">(</span><span class="mi">405</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
+        <span class="o">+</span> <span class="mi">46</span> <span class="o">/</span> <span class="p">(</span><span class="mi">25515</span> <span class="o">*</span> <span class="n">n</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="o">+</span> <span class="mi">131</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1148175</span> <span class="o">*</span> <span class="n">n</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="o">-</span> <span class="mi">2194697</span> <span class="o">/</span> <span class="p">(</span><span class="mi">30690717750</span> <span class="o">*</span> <span class="n">n</span> <span class="o">**</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_I0_to_flux_np">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_I0_to_flux_np">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_I0_to_flux_np</span><span class="p">(</span><span class="n">I0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the total flux integrated to infinity for a 2D eliptical</span>
+<span class="sd">    sersic given the :math:`I_0,n,R_s,q` parameters which uniquely</span>
+<span class="sd">    define the profile (:math:`I_0` is the central intensity in</span>
+<span class="sd">    flux/arcsec^2). Note that :math:`R_s` is not the effective radius,</span>
+<span class="sd">    but in fact the scale radius in the more straightforward sersic</span>
+<span class="sd">    representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_0e^{-(R/R_s)^{1/n}}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      I0: central intensity (flux/arcsec^2)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">I0</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_flux_to_I0_np">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_I0_np">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_flux_to_I0_np</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the central intensity (flux/arcsec^2) for a 2D eliptical</span>
+<span class="sd">    sersic given the :math:`F,n,R_s,q` parameters which uniquely</span>
+<span class="sd">    define the profile (:math:`F` is the total flux integrated to</span>
+<span class="sd">    infinity). Note that :math:`R_s` is not the effective radius, but</span>
+<span class="sd">    in fact the scale radius in the more straightforward sersic</span>
+<span class="sd">    representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_0e^{-(R/R_s)^{1/n}}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      flux: total flux integrated to infinity (flux)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">flux</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_Ie_to_flux_np">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_Ie_to_flux_np">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_Ie_to_flux_np</span><span class="p">(</span><span class="n">Ie</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the total flux integrated to infinity for a 2D eliptical</span>
+<span class="sd">    sersic given the :math:`I_e,n,R_e,q` parameters which uniquely</span>
+<span class="sd">    define the profile (:math:`I_e` is the intensity at :math:`R_e` in</span>
+<span class="sd">    flux/arcsec^2). Note that :math:`R_e` is the effective radius in</span>
+<span class="sd">    the sersic representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      Ie: intensity at the effective radius (flux/arcsec^2)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bn</span> <span class="o">=</span> <span class="n">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">Ie</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bn</span><span class="p">)</span> <span class="o">*</span> <span class="n">bn</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_flux_to_Ie_np">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_Ie_np">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_flux_to_Ie_np</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the intensity at :math:`R_e` (flux/arcsec^2) for a 2D</span>
+<span class="sd">    eliptical sersic given the :math:`F,n,R_e,q` parameters which</span>
+<span class="sd">    uniquely define the profile (:math:`F` is the total flux</span>
+<span class="sd">    integrated to infinity). Note that :math:`R_e` is the effective</span>
+<span class="sd">    radius in the sersic representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      flux: flux integrated to infinity (flux)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bn</span> <span class="o">=</span> <span class="n">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">flux</span> <span class="o">/</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bn</span><span class="p">)</span> <span class="o">*</span> <span class="n">bn</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_inv_np">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_inv_np">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_inv_np</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">Re</span><span class="p">,</span> <span class="n">Ie</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert the sersic profile. Compute the radius coresponding to a</span>
+<span class="sd">    given intensity for a pure sersic profile.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bn</span> <span class="o">=</span> <span class="n">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Re</span> <span class="o">*</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">bn</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">I</span> <span class="o">/</span> <span class="n">Ie</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="n">n</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_I0_to_flux_torch">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_I0_to_flux_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_I0_to_flux_torch</span><span class="p">(</span><span class="n">I0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the total flux integrated to infinity for a 2D eliptical</span>
+<span class="sd">    sersic given the :math:`I_0,n,R_s,q` parameters which uniquely</span>
+<span class="sd">    define the profile (:math:`I_0` is the central intensity in</span>
+<span class="sd">    flux/arcsec^2). Note that :math:`R_s` is not the effective radius,</span>
+<span class="sd">    but in fact the scale radius in the more straightforward sersic</span>
+<span class="sd">    representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_0e^{-(R/R_s)^{1/n}}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      I0: central intensity (flux/arcsec^2)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">I0</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">gammaln</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_flux_to_I0_torch">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_I0_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_flux_to_I0_torch</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the central intensity (flux/arcsec^2) for a 2D eliptical</span>
+<span class="sd">    sersic given the :math:`F,n,R_s,q` parameters which uniquely</span>
+<span class="sd">    define the profile (:math:`F` is the total flux integrated to</span>
+<span class="sd">    infinity). Note that :math:`R_s` is not the effective radius, but</span>
+<span class="sd">    in fact the scale radius in the more straightforward sersic</span>
+<span class="sd">    representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_0e^{-(R/R_s)^{1/n}}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      flux: total flux integrated to infinity (flux)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">flux</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">q</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">gammaln</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_Ie_to_flux_torch">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_Ie_to_flux_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_Ie_to_flux_torch</span><span class="p">(</span><span class="n">Ie</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the total flux integrated to infinity for a 2D eliptical</span>
+<span class="sd">    sersic given the :math:`I_e,n,R_e,q` parameters which uniquely</span>
+<span class="sd">    define the profile (:math:`I_e` is the intensity at :math:`R_e` in</span>
+<span class="sd">    flux/arcsec^2). Note that :math:`R_e` is the effective radius in</span>
+<span class="sd">    the sersic representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      Ie: intensity at the effective radius (flux/arcsec^2)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bn</span> <span class="o">=</span> <span class="n">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="mi">2</span>
+        <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        <span class="o">*</span> <span class="n">Ie</span>
+        <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="o">*</span> <span class="n">q</span>
+        <span class="o">*</span> <span class="n">n</span>
+        <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bn</span><span class="p">)</span> <span class="o">*</span> <span class="n">bn</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span>
+        <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">gammaln</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sersic_flux_to_Ie_torch">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_Ie_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_flux_to_Ie_torch</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the intensity at :math:`R_e` (flux/arcsec^2) for a 2D</span>
+<span class="sd">    eliptical sersic given the :math:`F,n,R_e,q` parameters which</span>
+<span class="sd">    uniquely define the profile (:math:`F` is the total flux</span>
+<span class="sd">    integrated to infinity). Note that :math:`R_e` is the effective</span>
+<span class="sd">    radius in the sersic representation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">      flux: flux integrated to infinity (flux)</span>
+<span class="sd">      n: sersic index</span>
+<span class="sd">      R: Scale radius</span>
+<span class="sd">      q: axis ratio (b/a)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bn</span> <span class="o">=</span> <span class="n">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">flux</span> <span class="o">/</span> <span class="p">(</span>
+        <span class="mi">2</span>
+        <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="o">*</span> <span class="n">q</span>
+        <span class="o">*</span> <span class="n">n</span>
+        <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bn</span><span class="p">)</span> <span class="o">*</span> <span class="n">bn</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span>
+        <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">gammaln</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sersic_inv_torch">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_inv_torch">[docs]</a>
+<span class="k">def</span> <span class="nf">sersic_inv_torch</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">Re</span><span class="p">,</span> <span class="n">Ie</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Invert the sersic profile. Compute the radius coresponding to a</span>
+<span class="sd">    given intensity for a pure sersic profile.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bn</span> <span class="o">=</span> <span class="n">sersic_n_to_b</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Re</span> <span class="o">*</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">bn</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">I</span> <span class="o">/</span> <span class="n">Ie</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="n">n</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="moffat_I0_to_flux">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.moffat_I0_to_flux">[docs]</a>
+<span class="k">def</span> <span class="nf">moffat_I0_to_flux</span><span class="p">(</span><span class="n">I0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">rd</span><span class="p">,</span> <span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the total flux integrated to infinity for a moffat profile.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      I0: central intensity (flux/arcsec^2)</span>
+<span class="sd">      n: moffat curvature parameter (unitless)</span>
+<span class="sd">      rd: scale radius</span>
+<span class="sd">      q: axis ratio</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">I0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">rd</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">q</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="general_uncertainty_prop">
+<a class="viewcode-back" href="../../../../astrophot.utils.conversions.html#astrophot.utils.conversions.functions.general_uncertainty_prop">[docs]</a>
+<span class="k">def</span> <span class="nf">general_uncertainty_prop</span><span class="p">(</span>
+        <span class="n">param_tuple</span><span class="p">,</span> <span class="c1">#tuple of parameter values</span>
+        <span class="n">param_err_tuple</span><span class="p">,</span> <span class="c1"># tuple of parameter uncertainties</span>
+        <span class="n">forward</span> <span class="c1"># forward function through which to get uncertainty</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple function to propogate uncertainty using the standard first</span>
+<span class="sd">    order error propogation method with autodiff derivatives. The encodes:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">      \\sigma_f^2 = \sum_i \\left(\\frac{df}{dx_i}\\sigma_i\\right)^2</span>
+
+<span class="sd">    where `i` indexes over all the parameters of the function `f`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      param_tuple (tuple): A tuple of the inputs to the function as pytorch tensors.</span>
+<span class="sd">      param_err_tuple (tuple): A tuple of uncertainties (sigma) for the input parameters.</span>
+<span class="sd">      forward (func): The function through which to propogate uncertainty, should be of the form: `f(*x) -&gt; y` where `x` is the `param_tuple` as given and `y` is a scalar.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Make a new set of parameters which track uncertainty</span>
+    <span class="n">new_params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">param_tuple</span><span class="p">:</span>
+        <span class="n">newp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="n">newp</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">new_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newp</span><span class="p">)</span>
+    <span class="c1"># propogate forward and compute derivatives</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">new_params</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="c1"># Add all the error contributions in quadrature</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_params</span><span class="p">)):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">new_params</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">grad</span> <span class="o">*</span> <span class="n">param_err_tuple</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

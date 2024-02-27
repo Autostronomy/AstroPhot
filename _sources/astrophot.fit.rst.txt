@@ -1,0 +1,93 @@
+astrophot.fit package
+=====================
+
+Submodules
+----------
+
+astrophot.fit.base module
+-------------------------
+
+.. automodule:: astrophot.fit.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.gp module
+-----------------------
+
+.. automodule:: astrophot.fit.gp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.gradient module
+-----------------------------
+
+.. automodule:: astrophot.fit.gradient
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.hmc module
+------------------------
+
+.. automodule:: astrophot.fit.hmc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.iterative module
+------------------------------
+
+.. automodule:: astrophot.fit.iterative
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.lm module
+-----------------------
+
+.. automodule:: astrophot.fit.lm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.mhmcmc module
+---------------------------
+
+.. automodule:: astrophot.fit.mhmcmc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.minifit module
+----------------------------
+
+.. automodule:: astrophot.fit.minifit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.nuts module
+-------------------------
+
+.. automodule:: astrophot.fit.nuts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.fit.oldlm module
+--------------------------
+
+.. automodule:: astrophot.fit.oldlm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.fit
+   :members:
+   :undoc-members:
+   :show-inheritance:

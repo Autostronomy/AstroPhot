@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.param package &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="astrophot.parse_config package" href="astrophot.parse_config.html" />
+    <link rel="prev" title="astrophot.models package" href="astrophot.models.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">astrophot</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="astrophot.html">astrophot package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="astrophot.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="astrophot.errors.html">astrophot.errors package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.fit.html">astrophot.fit package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.image.html">astrophot.image package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.models.html">astrophot.models package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">astrophot.param package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.parse_config.html">astrophot.parse_config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.plots.html">astrophot.plots package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.utils.html">astrophot.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot.AP_config">astrophot.AP_config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">astrophot</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.html">astrophot package</a></li>
+      <li class="breadcrumb-item active">astrophot.param package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/astrophot.param.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="astrophot-param-package">
+<h1>astrophot.param package<a class="headerlink" href="#astrophot-param-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.param.base">
+<span id="astrophot-param-base-module"></span><h2>astrophot.param.base module<a class="headerlink" href="#module-astrophot.param.base" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.param.base.Node">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.param.base.</span></span><span class="sig-name descname"><span class="pre">Node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base node object in the Directed Acyclic Graph (DAG).</p>
+<p>The base Node object handles storing the DAG nodes and links
+between them. An important part of the DAG system is to be able to
+find all the leaf nodes, which is done using the <cite>flat</cite> function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the node, this should identify it uniquely in the local context it will be used in.</p></li>
+<li><p><strong>locked</strong> (<em>bool</em>) – Records if the node is locked, this is relevant for some other operations which only act on unlocked nodes.</p></li>
+<li><p><strong>link</strong> (<em>tuple</em><em>[</em><a class="reference internal" href="#astrophot.param.base.Node" title="astrophot.param.base.Node"><em>Node</em></a><em>]</em>) – A tuple of node objects which this node will be linked to on initialization.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.branch">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">branch</span></span><a class="headerlink" href="#astrophot.param.base.Node.branch" title="Link to this definition"></a></dt>
+<dd><p>Returns True when the current node is a branch node (not a leaf node, is linked to more nodes).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.dump">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node.dump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node.dump" title="Link to this definition"></a></dt>
+<dd><p>Simply unlinks all nodes that the current node is linked with.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.flat">
+<span class="sig-name descname"><span class="pre">flat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_locked</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node.flat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node.flat" title="Link to this definition"></a></dt>
+<dd><p>Searches the DAG from this node and collects other nodes in the
+graph. By default it will include all leaf nodes only, however
+it can be directed to only collect leaf nodes that are not
+locked, it can also be directed to collect all nodes instead
+of just leaf nodes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.get_state">
+<span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node.get_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node.get_state" title="Link to this definition"></a></dt>
+<dd><p>Returns a dictionary with state information about this node. From
+that dictionary the node can reconstruct itself, or form
+another node which is a copy of this one.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.global_unlock">
+<span class="sig-name descname"><span class="pre">global_unlock</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#astrophot.param.base.Node.global_unlock" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.identity">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">identity</span></span><a class="headerlink" href="#astrophot.param.base.Node.identity" title="Link to this definition"></a></dt>
+<dd><p>A read only property of the node which does not change over it’s
+lifetime that uniquely identifies it relative to other
+nodes. By default this just uses the <code class="docutils literal notranslate"><span class="pre">id(self)</span></code> though for
+the purpose of saving/loading it may not always be this way.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.leaf">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">leaf</span></span><a class="headerlink" href="#astrophot.param.base.Node.leaf" title="Link to this definition"></a></dt>
+<dd><p>Returns True when the current node is a leaf node.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.link">
+<span class="sig-name descname"><span class="pre">link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">nodes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node.link"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node.link" title="Link to this definition"></a></dt>
+<dd><p>Creates a directed link from the current node to the provided
+node(s) in the input. This function will also check that the
+linked node does not exist higher up in the DAG to the current
+node, if that is the case then a cycle has formed which breaks
+the DAG structure and could cause problems. An error will be
+thrown in this case.</p>
+<p>The linked node is added to a <code class="docutils literal notranslate"><span class="pre">nodes</span></code> dictionary that each
+node stores. This makes it easy to check which nodes are
+linked to each other.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.set_state">
+<span class="sig-name descname"><span class="pre">set_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node.set_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node.set_state" title="Link to this definition"></a></dt>
+<dd><p>Used to set the state of the node for the purpose of
+loading/copying. This uses the dictionary produced by
+<code class="docutils literal notranslate"><span class="pre">get_state</span></code> to re-create itself.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.unlink">
+<span class="sig-name descname"><span class="pre">unlink</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">nodes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/base.html#Node.unlink"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.base.Node.unlink" title="Link to this definition"></a></dt>
+<dd><p>Undoes the linking of two nodes. Note that this could sever the
+connection of many nodes to each other if the current node was
+the only link between two branches.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.base.Node.value">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#astrophot.param.base.Node.value" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.param.param_context">
+<span id="astrophot-param-param-context-module"></span><h2>astrophot.param.param_context module<a class="headerlink" href="#module-astrophot.param.param_context" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.param.param_context.Param_Mask">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.param.param_context.</span></span><span class="sig-name descname"><span class="pre">Param_Mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/param_context.html#Param_Mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.param_context.Param_Mask" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Temporarily mask parameters.</p>
+<p>Select a subset of parameters to be used through the “vector”
+interface of the DAG. The context is initialized with a
+Parameter_Node object (<code class="docutils literal notranslate"><span class="pre">P</span></code>) and a torch tensor (<code class="docutils literal notranslate"><span class="pre">M</span></code>) where the
+size of the mask should be equal to the current vector
+representation of the parameter (<code class="docutils literal notranslate"><span class="pre">M.numel()</span> <span class="pre">==</span>
+<span class="pre">P.vector_values().numel()</span></code>). The mask tensor should be of
+<code class="docutils literal notranslate"><span class="pre">torch.bool</span></code> dtype where <code class="docutils literal notranslate"><span class="pre">True</span></code> indicates to keep using that
+parameter and <code class="docutils literal notranslate"><span class="pre">False</span></code> indicates to hide that parameter value.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">Param_Mask</span></code> contexts can be nested and will behave
+accordingly (the mask tensor will need to match the vector size
+within the previous context). As an example, imagine there is a
+parameter node <code class="docutils literal notranslate"><span class="pre">P</span></code> which has five sub-nodes each with a single
+value, one could nest contexts like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">M1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">Param_Mask</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">M1</span><span class="p">):</span>
+  <span class="c1"># Now P behaves as if it only has 3 elements</span>
+  <span class="n">M2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">Param_Mask</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">M2</span><span class="p">):</span>
+    <span class="c1"># Now P behaves as if it only has 2 elements</span>
+    <span class="n">P</span><span class="o">.</span><span class="n">vector_values</span><span class="p">()</span> <span class="c1"># returns tensor with 2 elements</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.param.param_context.Param_SoftLimits">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.param.param_context.</span></span><span class="sig-name descname"><span class="pre">Param_SoftLimits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/param_context.html#Param_SoftLimits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.param_context.Param_SoftLimits" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Temporarily allow writing parameter values outside limits.</p>
+<p>Values outside the limits will be quietly (no error/warning
+raised) shifted until they are within the boundaries of the
+parameter limits. Since the limits are non-inclusive, the soft
+limits will actually move a parameter by 0.001 into the parameter
+range. For example the axis ratio <code class="docutils literal notranslate"><span class="pre">q</span></code> has limits from (0,1) so
+if one were to write: <code class="docutils literal notranslate"><span class="pre">q.value</span> <span class="pre">=</span> <span class="pre">2</span></code> then the actual value that
+gets written would be <code class="docutils literal notranslate"><span class="pre">0.999</span></code>.</p>
+<p>Cyclic parameters are not affected by this, any value outside the
+range is always (Param_SoftLimits context or not) wrapped back
+into the range using modulo arithmetic.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.param.param_context.Param_Unlock">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.param.param_context.</span></span><span class="sig-name descname"><span class="pre">Param_Unlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/param_context.html#Param_Unlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.param_context.Param_Unlock" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Temporarily unlock a parameter.</p>
+<p>Context manager to unlock a parameter temporarily. Inside the
+context, the parameter will behave as unlocked regardless of its
+initial condition. Upon exiting the context, the parameter will
+return to its previous locked state regardless of any changes
+made by the user to the lock state.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.param.parameter">
+<span id="astrophot-param-parameter-module"></span><h2>astrophot.param.parameter module<a class="headerlink" href="#module-astrophot.param.parameter" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">astrophot.param.parameter.</span></span><span class="sig-name descname"><span class="pre">Parameter_Node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#astrophot.param.base.Node" title="astrophot.param.base.Node"><code class="xref py py-class docutils literal notranslate"><span class="pre">Node</span></code></a></p>
+<p>A node representing parameters and their relative structure.</p>
+<p>The Parameter_Node object stores all information relevant for the
+parameters of a model. At a high level the Parameter_Node
+accomplishes two tasks. The first task is to store the actual
+parameter values, these are represented as pytorch tensors which
+can have any shape; these are leaf nodes. The second task is to
+store the relationship between parameters in a graph structure;
+these are branch nodes. The two tasks are handled by the same type
+of object since there is some overlap between them where a branch
+node acts like a leaf node in certain contexts.</p>
+<p>There are various quantities that a Parameter_Node tracks which
+can be provided as arguments or updated later.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The value of a node represents the tensor which will be used by models to compute their projection into the pixels of an image. These can be quite complex, see further down for more details.</p></li>
+<li><p><strong>cyclic</strong> (<em>bool</em>) – Records if the value of a node is cyclic, meaning that if it is updated outside it’s limits it should be wrapped back into the limits.</p></li>
+<li><p><strong>limits</strong> (<em>Tuple</em><em>[</em><em>Tensor</em><em> or </em><em>None</em><em>, </em><em>Tensor</em><em> or </em><em>None</em><em>]</em>) – Tracks if a parameter has constraints on the range of values it can take. The first element is the lower limit, the second element is the upper limit. The two elements should either be None (no limit) or tensors with the same shape as the value.</p></li>
+<li><p><strong>units</strong> (<em>str</em>) – The units of the parameter value.</p></li>
+<li><p><strong>uncertainty</strong> (<em>Tensor</em><em> or </em><em>None</em>) – represents the uncertainty of the parameter value. This should be None (no uncertainty) or a Tensor with the same shape as the value.</p></li>
+<li><p><strong>prof</strong> (<em>Tensor</em><em> or </em><em>None</em>) – This is a profile of values which has no explicit meaning, but can be used to store information which should be kept alongside the value. For example in a spline model the position of the spline points may be a <code class="docutils literal notranslate"><span class="pre">prof</span></code> while the flux at each node is the value to be optimized.</p></li>
+<li><p><strong>shape</strong> (<em>Tuple</em><em> or </em><em>None</em>) – Can be used to set the shape of the value (number of elements/dimensions). If not provided then the shape will be set by the first time a value is given. Once a shape has been set, if a value is given which cannot be coerced into that shape, then an error will be thrown.</p></li>
+</ul>
+</dd>
+</dl>
+<p>The <code class="docutils literal notranslate"><span class="pre">value</span></code> of a Parameter_Node is somewhat complicated, there
+are a number of states it can take on. The most straightforward is
+just a Tensor, if a Tensor (or just an iterable like a list or
+numpy.ndarray) is provided then the node is required to be a leaf
+node and it will store the value to be accessed later by other
+parts of AstroPhot. Another option is to set the value as another
+node (they will automatically be linked), in this case the node’s
+<code class="docutils literal notranslate"><span class="pre">value</span></code> is just a wrapper to call for the <code class="docutils literal notranslate"><span class="pre">value</span></code> of the
+linked node. Finally, the value may be a function which allows for
+arbitrarily complex values to be computed from other node’s
+values. The function must take as an argument the current
+Parameter_Node instance and return a Tensor. Here are some
+examples of the various ways of interacting with the <code class="docutils literal notranslate"><span class="pre">value</span></code> for a hypothetical parameter <code class="docutils literal notranslate"><span class="pre">P</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mf">1.</span> <span class="c1"># Will create a tensor with value 1.</span>
+<span class="n">P</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">P2</span> <span class="c1"># calling P.value will actually call P2.value</span>
+<span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;P2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">P</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">compute_value</span> <span class="c1"># calling P.value will call the function as: compute_value(P) which will return P2.value**2</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.flat_detach">
+<span class="sig-name descname"><span class="pre">flat_detach</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.flat_detach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.flat_detach" title="Link to this definition"></a></dt>
+<dd><p>Due to the system used to track and update values in the DAG, some
+parts of the computational graph used to determine gradients
+may linger after calling .backward on a model using the
+parameters. This function essentially resets all the leaf
+values so that the full computational graph is freed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.get_state">
+<span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.get_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.get_state" title="Link to this definition"></a></dt>
+<dd><p>Return the values representing the current state of the parameter,
+this can be used to re-load the state later from memory.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.identities">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">identities</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.identities" title="Link to this definition"></a></dt>
+<dd><p>This creates a numpy array of strings which uniquely identify
+every element in the parameter vector. For example a
+<code class="docutils literal notranslate"><span class="pre">center</span></code> parameter with two components [x,y] would have
+identities be <code class="docutils literal notranslate"><span class="pre">np.array([&quot;123456:0&quot;,</span> <span class="pre">&quot;123456:1&quot;])</span></code> where the
+first part is the unique id for the Parameter_Node object and
+the second number indexes where in the value tensor it refers
+to.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.limits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">limits</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.limits" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.mask">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mask</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.mask" title="Link to this definition"></a></dt>
+<dd><p>The mask tensor is stored internally and it cuts out some values
+from the parameter. This is used by the <code class="docutils literal notranslate"><span class="pre">vector</span></code> methods in
+the class to give the parameter DAG a dynamic shape.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.names">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">names</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.names" title="Link to this definition"></a></dt>
+<dd><p>Returns a numpy array of names for all the elements of the
+<code class="docutils literal notranslate"><span class="pre">vector</span></code> representation where the name is determined by the
+name of the parameters. Note that this does not create a
+unique name for each element and this should only be used for
+graphical purposes on small parameter DAGs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.print_params">
+<span class="sig-name descname"><span class="pre">print_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_locked</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_prof</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.print_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.print_params" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.prof">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prof</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.prof" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.set_state">
+<span class="sig-name descname"><span class="pre">set_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.set_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.set_state" title="Link to this definition"></a></dt>
+<dd><p>Update the state of the parameter given a state variable which
+holds all information about a variable.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.shape" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.to" title="Link to this definition"></a></dt>
+<dd><p>updates the datatype or device of this parameter</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.uncertainty">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uncertainty</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.uncertainty" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.value">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.value" title="Link to this definition"></a></dt>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">value</span></code> of a Parameter_Node is somewhat complicated, there
+are a number of states it can take on. The most
+straightforward is just a Tensor, if a Tensor (or just an
+iterable like a list or numpy.ndarray) is provided then the
+node is required to be a leaf node and it will store the value
+to be accessed later by other parts of AstroPhot. Another
+option is to set the value as another node (they will
+automatically be linked), in this case the node’s <code class="docutils literal notranslate"><span class="pre">value</span></code> is
+just a wrapper to call for the <code class="docutils literal notranslate"><span class="pre">value</span></code> of the linked
+node. Finally, the value may be a function which allows for
+arbitrarily complex values to be computed from other node’s
+values. The function must take as an argument the current
+Parameter_Node instance and return a Tensor. Here are some
+examples of the various ways of interacting with the <code class="docutils literal notranslate"><span class="pre">value</span></code>
+for a hypothetical parameter <code class="docutils literal notranslate"><span class="pre">P</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mf">1.</span> <span class="c1"># Will create a tensor with value 1.</span>
+<span class="n">P</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">P2</span> <span class="c1"># calling P.value will actually call P2.value</span>
+<span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;P2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">P</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">compute_value</span> <span class="c1"># calling P.value will call the function as: compute_value(P) which will return P2.value**2</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_identities">
+<span class="sig-name descname"><span class="pre">vector_identities</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_identities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_identities" title="Link to this definition"></a></dt>
+<dd><p>This returns a vector (see vector_values) with the identities for
+each leaf node.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_mask">
+<span class="sig-name descname"><span class="pre">vector_mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_mask" title="Link to this definition"></a></dt>
+<dd><p>This returns a vector (see vector_values) with the mask for each
+leaf node. Note however that the mask is not itself masked,
+this vector is always the full size of the unmasked parameter
+DAG.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_names">
+<span class="sig-name descname"><span class="pre">vector_names</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_names"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_names" title="Link to this definition"></a></dt>
+<dd><p>This returns a vector (see vector_values) with the names for each
+leaf node.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_representation">
+<span class="sig-name descname"><span class="pre">vector_representation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_representation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_representation" title="Link to this definition"></a></dt>
+<dd><p>This returns a vector (see vector_values) with the representation
+for each leaf node. The representation is an alternative view
+of each value which is mapped into the (-inf, inf) range where
+optimization is more stable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_set_mask">
+<span class="sig-name descname"><span class="pre">vector_set_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_set_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_set_mask" title="Link to this definition"></a></dt>
+<dd><p>Update the mask vector for this parameter DAG (see
+vector_set_values). Note again that the mask vector is always
+the full size of the DAG.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_set_representation">
+<span class="sig-name descname"><span class="pre">vector_set_representation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rep</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_set_representation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_set_representation" title="Link to this definition"></a></dt>
+<dd><p>Update the representation vector for this parameter DAG (see
+vector_set_values).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_set_uncertainty">
+<span class="sig-name descname"><span class="pre">vector_set_uncertainty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uncertainty</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_set_uncertainty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_set_uncertainty" title="Link to this definition"></a></dt>
+<dd><p>Update the uncertainty vector for this parameter DAG (see
+vector_set_values).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_set_values">
+<span class="sig-name descname"><span class="pre">vector_set_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_set_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_set_values" title="Link to this definition"></a></dt>
+<dd><p>This function allows one to update the full vector of values in a
+single call by providing a tensor of the appropriate size. The
+input will be separated so that the correct elements are
+passed to the correct leaf nodes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_transform_rep_to_val">
+<span class="sig-name descname"><span class="pre">vector_transform_rep_to_val</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rep</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_transform_rep_to_val"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_transform_rep_to_val" title="Link to this definition"></a></dt>
+<dd><p>Used to transform between the <code class="docutils literal notranslate"><span class="pre">vector_values</span></code> and
+<code class="docutils literal notranslate"><span class="pre">vector_representation</span></code> views of the elements in the DAG
+leafs. This transforms from representation to value.</p>
+<p>The transformation is done based on the limits of each
+parameter leaf. If no limits are provided then the
+representation and value are equivalent. If both are given
+then a <code class="docutils literal notranslate"><span class="pre">tan</span></code> and <code class="docutils literal notranslate"><span class="pre">arctan</span></code> are used to convert between the
+finite range and the infinite range. If the limits are
+one-sided then the transformation: <code class="docutils literal notranslate"><span class="pre">newvalue</span> <span class="pre">=</span> <span class="pre">value</span> <span class="pre">-</span> <span class="pre">1</span> <span class="pre">/</span>
+<span class="pre">(value</span> <span class="pre">-</span> <span class="pre">limit)</span></code> is used.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_transform_val_to_rep">
+<span class="sig-name descname"><span class="pre">vector_transform_val_to_rep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_transform_val_to_rep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_transform_val_to_rep" title="Link to this definition"></a></dt>
+<dd><p>Used to transform between the <code class="docutils literal notranslate"><span class="pre">vector_values</span></code> and
+<code class="docutils literal notranslate"><span class="pre">vector_representation</span></code> views of the elements in the DAG
+leafs. This transforms from value to representation.</p>
+<p>The transformation is done based on the limits of each
+parameter leaf. If no limits are provided then the
+representation and value are equivalent. If both are given
+then a <code class="docutils literal notranslate"><span class="pre">tan</span></code> and <code class="docutils literal notranslate"><span class="pre">arctan</span></code> are used to convert between the
+finite range and the infinite range. If the limits are
+one-sided then the transformation: <code class="docutils literal notranslate"><span class="pre">newvalue</span> <span class="pre">=</span> <span class="pre">value</span> <span class="pre">-</span> <span class="pre">1</span> <span class="pre">/</span>
+<span class="pre">(value</span> <span class="pre">-</span> <span class="pre">limit)</span></code> is used.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_uncertainty">
+<span class="sig-name descname"><span class="pre">vector_uncertainty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_uncertainty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_uncertainty" title="Link to this definition"></a></dt>
+<dd><p>This returns a vector (see vector_values) with the uncertainty for
+each leaf node.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="astrophot.param.parameter.Parameter_Node.vector_values">
+<span class="sig-name descname"><span class="pre">vector_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/param/parameter.html#Parameter_Node.vector_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.param.parameter.Parameter_Node.vector_values" title="Link to this definition"></a></dt>
+<dd><p>The vector representation is for values which correspond to
+fundamental inputs to the parameter DAG. Since the DAG may
+have linked nodes, or functions which produce values derived
+from other node values, the collection of all “values” is not
+necessarily of use for some methods such as fitting
+algorithms. The vector representation is useful for optimizers
+as it gives a fundamental representation of the parameter
+DAG. The vector_values function returns a vector of the
+<code class="docutils literal notranslate"><span class="pre">value</span></code> for each leaf node.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-astrophot.param">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-astrophot.param" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="astrophot.models.html" class="btn btn-neutral float-left" title="astrophot.models package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="astrophot.parse_config.html" class="btn btn-neutral float-right" title="astrophot.parse_config package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

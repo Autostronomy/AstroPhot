@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.utils.initialize package &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="astrophot.utils.isophote package" href="astrophot.utils.isophote.html" />
+    <link rel="prev" title="astrophot.utils.conversions package" href="astrophot.utils.conversions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">astrophot</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="astrophot.html">astrophot package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="astrophot.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="astrophot.errors.html">astrophot.errors package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.fit.html">astrophot.fit package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.image.html">astrophot.image package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.models.html">astrophot.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.param.html">astrophot.param package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.parse_config.html">astrophot.parse_config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.plots.html">astrophot.plots package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="astrophot.utils.html">astrophot.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot.AP_config">astrophot.AP_config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">astrophot</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.html">astrophot package</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.utils.html">astrophot.utils package</a></li>
+      <li class="breadcrumb-item active">astrophot.utils.initialize package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/astrophot.utils.initialize.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="astrophot-utils-initialize-package">
+<h1>astrophot.utils.initialize package<a class="headerlink" href="#astrophot-utils-initialize-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.utils.initialize.center">
+<span id="astrophot-utils-initialize-center-module"></span><h2>astrophot.utils.initialize.center module<a class="headerlink" href="#module-astrophot.utils.initialize.center" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.center.GaussianDensity_Peak">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.center.</span></span><span class="sig-name descname"><span class="pre">GaussianDensity_Peak</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/center.html#GaussianDensity_Peak"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.center.GaussianDensity_Peak" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.center.Lanczos_peak">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.center.</span></span><span class="sig-name descname"><span class="pre">Lanczos_peak</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lanczos_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/center.html#Lanczos_peak"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.center.Lanczos_peak" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.center.center_of_mass">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.center.</span></span><span class="sig-name descname"><span class="pre">center_of_mass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/center.html#center_of_mass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.center.center_of_mass" title="Link to this definition"></a></dt>
+<dd><p>Iterative light weighted center of mass optimization. Each step
+determines the light weighted center of mass within a small
+window. The new center is used to create a new window. This
+continues until the center no longer updates or an image boundary
+is reached.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.initialize.construct_psf">
+<span id="astrophot-utils-initialize-construct-psf-module"></span><h2>astrophot.utils.initialize.construct_psf module<a class="headerlink" href="#module-astrophot.utils.initialize.construct_psf" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.construct_psf.construct_psf">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.construct_psf.</span></span><span class="sig-name descname"><span class="pre">construct_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky_est</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">51</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lanczos_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/construct_psf.html#construct_psf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.construct_psf.construct_psf" title="Link to this definition"></a></dt>
+<dd><p>Given a list of initial guesses for star center locations, finds
+the interpolated flux peak, re-centers the stars such that they
+are exactly on a pixel center, then median stacks the normalized
+stars to determine an average PSF.</p>
+<p>Note that all coordinates in this function are pixel
+coordinates. That is, the image[0][0] pixel is at location (0,0)
+and the image[2][7] pixel is at location (2,7) in this coordinate
+system.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.construct_psf.gaussian_psf">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.construct_psf.</span></span><span class="sig-name descname"><span class="pre">gaussian_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixelscale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/construct_psf.html#gaussian_psf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.construct_psf.gaussian_psf" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.construct_psf.moffat_psf">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.construct_psf.</span></span><span class="sig-name descname"><span class="pre">moffat_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixelscale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/construct_psf.html#moffat_psf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.construct_psf.moffat_psf" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.utils.initialize.initialize">
+<span id="astrophot-utils-initialize-initialize-module"></span><h2>astrophot.utils.initialize.initialize module<a class="headerlink" href="#module-astrophot.utils.initialize.initialize" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.initialize.isophotes">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.initialize.</span></span><span class="sig-name descname"><span class="pre">isophotes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_isophotes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">more</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/initialize.html#isophotes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.initialize.isophotes" title="Link to this definition"></a></dt>
+<dd><p>Method for quickly extracting a small number of elliptical
+isophotes for the sake of initializing other models.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.initialize.segmentation_map">
+<span id="astrophot-utils-initialize-segmentation-map-module"></span><h2>astrophot.utils.initialize.segmentation_map module<a class="headerlink" href="#module-astrophot.utils.initialize.segmentation_map" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.segmentation_map.PA_from_segmentation_map">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.segmentation_map.</span></span><span class="sig-name descname"><span class="pre">PA_from_segmentation_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index_seg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index_img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0,)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">north</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5707963267948966</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/segmentation_map.html#PA_from_segmentation_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.segmentation_map.PA_from_segmentation_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.segmentation_map.centroids_from_segmentation_map">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.segmentation_map.</span></span><span class="sig-name descname"><span class="pre">centroids_from_segmentation_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index_seg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index_img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0,)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/segmentation_map.html#centroids_from_segmentation_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.segmentation_map.centroids_from_segmentation_map" title="Link to this definition"></a></dt>
+<dd><p>identify centroid centers for all segments in a segmentation map</p>
+<p>For each segment in the map, computes a flux weighted centroid in
+pixel space. A dictionary of pixel centers is produced where the
+keys of the dictionary correspond to the segment id’s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seg_map</strong> (<em>Union</em><em>[</em><em>np.ndarray</em><em>, </em><em>str</em><em>]</em>) – A segmentation map which gives the object identity for each pixel</p></li>
+<li><p><strong>image</strong> (<em>Union</em><em>[</em><em>np.ndarray</em><em>, </em><em>str</em><em>]</em>) – An Image which will be used in the light weighted center of mass calculation</p></li>
+<li><p><strong>hdul_index_seg</strong> (<em>int</em>) – If reading from a fits file this is the hdu list index at which the map is found. Default: 0</p></li>
+<li><p><strong>hdul_index_img</strong> (<em>int</em>) – If reading from a fits file this is the hdu list index at which the image is found. Default: 0</p></li>
+<li><p><strong>skip_index</strong> (<em>tuple</em>) – Lists which identities (if any) in the segmentation map should be ignored. Default (0,)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dictionary of centroid positions matched to each segment ID. The centroids are in pixel coordinates</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>centroids (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.segmentation_map.filter_windows">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.segmentation_map.</span></span><span class="sig-name descname"><span class="pre">filter_windows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_flux</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_flux</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/segmentation_map.html#filter_windows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.segmentation_map.filter_windows" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.segmentation_map.q_from_segmentation_map">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.segmentation_map.</span></span><span class="sig-name descname"><span class="pre">q_from_segmentation_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index_seg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index_img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0,)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">north</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5707963267948966</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/segmentation_map.html#q_from_segmentation_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.segmentation_map.q_from_segmentation_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.segmentation_map.scale_windows">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.segmentation_map.</span></span><span class="sig-name descname"><span class="pre">scale_windows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expand_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expand_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/segmentation_map.html#scale_windows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.segmentation_map.scale_windows" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.initialize.segmentation_map.windows_from_segmentation_map">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.initialize.segmentation_map.</span></span><span class="sig-name descname"><span class="pre">windows_from_segmentation_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hdul_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/initialize/segmentation_map.html#windows_from_segmentation_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.initialize.segmentation_map.windows_from_segmentation_map" title="Link to this definition"></a></dt>
+<dd><p>Convert a segmentation map into boinding boxes</p>
+<p>Takes a segmentation map as input and uses the segmentation ids to
+determine bounding boxes for every object. Scales the bounding
+boxes according to given factors and returns the coordinates.</p>
+<p>each window is formatted as a list of lists with:
+window = [[xmin,xmax],[ymin,ymax]]</p>
+<p>expand_scale changes the base window by the given
+factor. expand_border is added afterwards on all sides (so an
+expand border of 1 will add 2 to the total width of the window.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.initialize">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-astrophot.utils.initialize" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="astrophot.utils.conversions.html" class="btn btn-neutral float-left" title="astrophot.utils.conversions package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="astrophot.utils.isophote.html" class="btn btn-neutral float-right" title="astrophot.utils.isophote package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

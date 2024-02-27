@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.utils.conversions package &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="astrophot.utils.initialize package" href="astrophot.utils.initialize.html" />
+    <link rel="prev" title="astrophot.utils package" href="astrophot.utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">astrophot</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="astrophot.html">astrophot package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="astrophot.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="astrophot.errors.html">astrophot.errors package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.fit.html">astrophot.fit package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.image.html">astrophot.image package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.models.html">astrophot.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.param.html">astrophot.param package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.parse_config.html">astrophot.parse_config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.plots.html">astrophot.plots package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="astrophot.utils.html">astrophot.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot.AP_config">astrophot.AP_config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">astrophot</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.html">astrophot package</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.utils.html">astrophot.utils package</a></li>
+      <li class="breadcrumb-item active">astrophot.utils.conversions package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/astrophot.utils.conversions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="astrophot-utils-conversions-package">
+<h1>astrophot.utils.conversions package<a class="headerlink" href="#astrophot-utils-conversions-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.utils.conversions.coordinates">
+<span id="astrophot-utils-conversions-coordinates-module"></span><h2>astrophot.utils.conversions.coordinates module<a class="headerlink" href="#module-astrophot.utils.conversions.coordinates" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.coordinates.Axis_Ratio_Cartesian">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.coordinates.</span></span><span class="sig-name descname"><span class="pre">Axis_Ratio_Cartesian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inv_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/coordinates.html#Axis_Ratio_Cartesian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.coordinates.Axis_Ratio_Cartesian" title="Link to this definition"></a></dt>
+<dd><p>Applies the transformation: R(theta) Q R(-theta)
+where R is the rotation matrix and Q is the matrix which scales the y component by 1/q.
+This effectively counter-rotates the coordinates so that the angle theta is along the x-axis
+then applies the y-axis scaling, then re-rotates everything back to where it was.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.coordinates.Axis_Ratio_Cartesian_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.coordinates.</span></span><span class="sig-name descname"><span class="pre">Axis_Ratio_Cartesian_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inv_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/coordinates.html#Axis_Ratio_Cartesian_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.coordinates.Axis_Ratio_Cartesian_np" title="Link to this definition"></a></dt>
+<dd><p>Applies the transformation: R(theta) Q R(-theta)
+where R is the rotation matrix and Q is the matrix which scales the y component by 1/q.
+This effectively counter-rotates the coordinates so that the angle theta is along the x-axis
+then applies the y-axis scaling, then re-rotates everything back to where it was.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.coordinates.Rotate_Cartesian">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.coordinates.</span></span><span class="sig-name descname"><span class="pre">Rotate_Cartesian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/coordinates.html#Rotate_Cartesian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.coordinates.Rotate_Cartesian" title="Link to this definition"></a></dt>
+<dd><p>Applies a rotation matrix to the X,Y coordinates</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.coordinates.Rotate_Cartesian_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.coordinates.</span></span><span class="sig-name descname"><span class="pre">Rotate_Cartesian_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/coordinates.html#Rotate_Cartesian_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.coordinates.Rotate_Cartesian_np" title="Link to this definition"></a></dt>
+<dd><p>Applies a rotation matrix to the X,Y coordinates</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.conversions.dict_to_hdf5">
+<span id="astrophot-utils-conversions-dict-to-hdf5-module"></span><h2>astrophot.utils.conversions.dict_to_hdf5 module<a class="headerlink" href="#module-astrophot.utils.conversions.dict_to_hdf5" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.dict_to_hdf5.dict_to_hdf5">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.dict_to_hdf5.</span></span><span class="sig-name descname"><span class="pre">dict_to_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/dict_to_hdf5.html#dict_to_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.dict_to_hdf5.dict_to_hdf5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.dict_to_hdf5.hdf5_to_dict">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.dict_to_hdf5.</span></span><span class="sig-name descname"><span class="pre">hdf5_to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/dict_to_hdf5.html#hdf5_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.dict_to_hdf5.hdf5_to_dict" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.dict_to_hdf5.to_hdf5_has_None">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.dict_to_hdf5.</span></span><span class="sig-name descname"><span class="pre">to_hdf5_has_None</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/dict_to_hdf5.html#to_hdf5_has_None"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.dict_to_hdf5.to_hdf5_has_None" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.utils.conversions.functions">
+<span id="astrophot-utils-conversions-functions-module"></span><h2>astrophot.utils.conversions.functions module<a class="headerlink" href="#module-astrophot.utils.conversions.functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.general_uncertainty_prop">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">general_uncertainty_prop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_err_tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#general_uncertainty_prop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.general_uncertainty_prop" title="Link to this definition"></a></dt>
+<dd><p>Simple function to propogate uncertainty using the standard first
+order error propogation method with autodiff derivatives. The encodes:</p>
+<div class="math notranslate nohighlight">
+\[\sigma_f^2 = \sum_i \left(\frac{df}{dx_i}\sigma_i\right)^2\]</div>
+<p>where <cite>i</cite> indexes over all the parameters of the function <cite>f</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_tuple</strong> (<em>tuple</em>) – A tuple of the inputs to the function as pytorch tensors.</p></li>
+<li><p><strong>param_err_tuple</strong> (<em>tuple</em>) – A tuple of uncertainties (sigma) for the input parameters.</p></li>
+<li><p><strong>forward</strong> (<em>func</em>) – The function through which to propogate uncertainty, should be of the form: <cite>f(*x) -&gt; y</cite> where <cite>x</cite> is the <cite>param_tuple</cite> as given and <cite>y</cite> is a scalar.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.moffat_I0_to_flux">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">moffat_I0_to_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#moffat_I0_to_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.moffat_I0_to_flux" title="Link to this definition"></a></dt>
+<dd><p>Compute the total flux integrated to infinity for a moffat profile.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>I0</strong> – central intensity (flux/arcsec^2)</p></li>
+<li><p><strong>n</strong> – moffat curvature parameter (unitless)</p></li>
+<li><p><strong>rd</strong> – scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_I0_to_flux_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_I0_to_flux_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_I0_to_flux_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_I0_to_flux_np" title="Link to this definition"></a></dt>
+<dd><p>Compute the total flux integrated to infinity for a 2D eliptical
+sersic given the <span class="math notranslate nohighlight">\(I_0,n,R_s,q\)</span> parameters which uniquely
+define the profile (<span class="math notranslate nohighlight">\(I_0\)</span> is the central intensity in
+flux/arcsec^2). Note that <span class="math notranslate nohighlight">\(R_s\)</span> is not the effective radius,
+but in fact the scale radius in the more straightforward sersic
+representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_0e^{-(R/R_s)^{1/n}}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>I0</strong> – central intensity (flux/arcsec^2)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_I0_to_flux_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_I0_to_flux_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_I0_to_flux_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_I0_to_flux_torch" title="Link to this definition"></a></dt>
+<dd><p>Compute the total flux integrated to infinity for a 2D eliptical
+sersic given the <span class="math notranslate nohighlight">\(I_0,n,R_s,q\)</span> parameters which uniquely
+define the profile (<span class="math notranslate nohighlight">\(I_0\)</span> is the central intensity in
+flux/arcsec^2). Note that <span class="math notranslate nohighlight">\(R_s\)</span> is not the effective radius,
+but in fact the scale radius in the more straightforward sersic
+representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_0e^{-(R/R_s)^{1/n}}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>I0</strong> – central intensity (flux/arcsec^2)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_Ie_to_flux_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_Ie_to_flux_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_Ie_to_flux_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_Ie_to_flux_np" title="Link to this definition"></a></dt>
+<dd><p>Compute the total flux integrated to infinity for a 2D eliptical
+sersic given the <span class="math notranslate nohighlight">\(I_e,n,R_e,q\)</span> parameters which uniquely
+define the profile (<span class="math notranslate nohighlight">\(I_e\)</span> is the intensity at <span class="math notranslate nohighlight">\(R_e\)</span> in
+flux/arcsec^2). Note that <span class="math notranslate nohighlight">\(R_e\)</span> is the effective radius in
+the sersic representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ie</strong> – intensity at the effective radius (flux/arcsec^2)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_Ie_to_flux_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_Ie_to_flux_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_Ie_to_flux_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_Ie_to_flux_torch" title="Link to this definition"></a></dt>
+<dd><p>Compute the total flux integrated to infinity for a 2D eliptical
+sersic given the <span class="math notranslate nohighlight">\(I_e,n,R_e,q\)</span> parameters which uniquely
+define the profile (<span class="math notranslate nohighlight">\(I_e\)</span> is the intensity at <span class="math notranslate nohighlight">\(R_e\)</span> in
+flux/arcsec^2). Note that <span class="math notranslate nohighlight">\(R_e\)</span> is the effective radius in
+the sersic representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ie</strong> – intensity at the effective radius (flux/arcsec^2)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_flux_to_I0_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_flux_to_I0_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_flux_to_I0_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_flux_to_I0_np" title="Link to this definition"></a></dt>
+<dd><p>Compute the central intensity (flux/arcsec^2) for a 2D eliptical
+sersic given the <span class="math notranslate nohighlight">\(F,n,R_s,q\)</span> parameters which uniquely
+define the profile (<span class="math notranslate nohighlight">\(F\)</span> is the total flux integrated to
+infinity). Note that <span class="math notranslate nohighlight">\(R_s\)</span> is not the effective radius, but
+in fact the scale radius in the more straightforward sersic
+representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_0e^{-(R/R_s)^{1/n}}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> – total flux integrated to infinity (flux)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_flux_to_I0_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_flux_to_I0_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_flux_to_I0_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_flux_to_I0_torch" title="Link to this definition"></a></dt>
+<dd><p>Compute the central intensity (flux/arcsec^2) for a 2D eliptical
+sersic given the <span class="math notranslate nohighlight">\(F,n,R_s,q\)</span> parameters which uniquely
+define the profile (<span class="math notranslate nohighlight">\(F\)</span> is the total flux integrated to
+infinity). Note that <span class="math notranslate nohighlight">\(R_s\)</span> is not the effective radius, but
+in fact the scale radius in the more straightforward sersic
+representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_0e^{-(R/R_s)^{1/n}}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> – total flux integrated to infinity (flux)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_flux_to_Ie_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_flux_to_Ie_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_flux_to_Ie_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_flux_to_Ie_np" title="Link to this definition"></a></dt>
+<dd><p>Compute the intensity at <span class="math notranslate nohighlight">\(R_e\)</span> (flux/arcsec^2) for a 2D
+eliptical sersic given the <span class="math notranslate nohighlight">\(F,n,R_e,q\)</span> parameters which
+uniquely define the profile (<span class="math notranslate nohighlight">\(F\)</span> is the total flux
+integrated to infinity). Note that <span class="math notranslate nohighlight">\(R_e\)</span> is the effective
+radius in the sersic representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> – flux integrated to infinity (flux)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_flux_to_Ie_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_flux_to_Ie_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_flux_to_Ie_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_flux_to_Ie_torch" title="Link to this definition"></a></dt>
+<dd><p>Compute the intensity at <span class="math notranslate nohighlight">\(R_e\)</span> (flux/arcsec^2) for a 2D
+eliptical sersic given the <span class="math notranslate nohighlight">\(F,n,R_e,q\)</span> parameters which
+uniquely define the profile (<span class="math notranslate nohighlight">\(F\)</span> is the total flux
+integrated to infinity). Note that <span class="math notranslate nohighlight">\(R_e\)</span> is the effective
+radius in the sersic representation:</p>
+<div class="math notranslate nohighlight">
+\[I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> – flux integrated to infinity (flux)</p></li>
+<li><p><strong>n</strong> – sersic index</p></li>
+<li><p><strong>R</strong> – Scale radius</p></li>
+<li><p><strong>q</strong> – axis ratio (b/a)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_inv_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_inv_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_inv_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_inv_np" title="Link to this definition"></a></dt>
+<dd><p>Invert the sersic profile. Compute the radius coresponding to a
+given intensity for a pure sersic profile.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_inv_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_inv_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_inv_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_inv_torch" title="Link to this definition"></a></dt>
+<dd><p>Invert the sersic profile. Compute the radius coresponding to a
+given intensity for a pure sersic profile.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.functions.sersic_n_to_b">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.functions.</span></span><span class="sig-name descname"><span class="pre">sersic_n_to_b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/functions.html#sersic_n_to_b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.functions.sersic_n_to_b" title="Link to this definition"></a></dt>
+<dd><p>Compute the <cite>b(n)</cite> for a sersic model. This factor ensures that
+the <span class="math notranslate nohighlight">\(R_e\)</span> and <span class="math notranslate nohighlight">\(I_e\)</span> parameters do in fact correspond
+to the half light values and not some other scale
+radius/intensity.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.conversions.optimization">
+<span id="astrophot-utils-conversions-optimization-module"></span><h2>astrophot.utils.conversions.optimization module<a class="headerlink" href="#module-astrophot.utils.conversions.optimization" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.boundaries">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">boundaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#boundaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.boundaries" title="Link to this definition"></a></dt>
+<dd><p>val in limits expanded to range -inf to inf</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.cyclic_boundaries">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">cyclic_boundaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#cyclic_boundaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.cyclic_boundaries" title="Link to this definition"></a></dt>
+<dd><p>Applies cyclic boundary conditions to the input value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.cyclic_difference_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">cyclic_difference_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#cyclic_difference_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.cyclic_difference_np" title="Link to this definition"></a></dt>
+<dd><p>Applies the difference operation between two values with cyclic
+boundary conditions.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.cyclic_difference_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">cyclic_difference_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#cyclic_difference_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.cyclic_difference_torch" title="Link to this definition"></a></dt>
+<dd><p>Applies the difference operation between two values with cyclic
+boundary conditions.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.d_boundaries_dval">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">d_boundaries_dval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#d_boundaries_dval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.d_boundaries_dval" title="Link to this definition"></a></dt>
+<dd><p>derivative of: val in limits expanded to range -inf to inf</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.d_inv_boundaries_dval">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">d_inv_boundaries_dval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#d_inv_boundaries_dval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.d_inv_boundaries_dval" title="Link to this definition"></a></dt>
+<dd><p>derivative of: val in range -inf to inf compressed to within the limits</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.optimization.inv_boundaries">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.optimization.</span></span><span class="sig-name descname"><span class="pre">inv_boundaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/optimization.html#inv_boundaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.optimization.inv_boundaries" title="Link to this definition"></a></dt>
+<dd><p>val in range -inf to inf compressed to within the limits</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.conversions.units">
+<span id="astrophot-utils-conversions-units-module"></span><h2>astrophot.utils.conversions.units module<a class="headerlink" href="#module-astrophot.utils.conversions.units" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.PA_shift_convention">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">PA_shift_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pa</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rad'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#PA_shift_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.PA_shift_convention" title="Link to this definition"></a></dt>
+<dd><p>Alternates between standard mathematical convention for angles, and astronomical position angle convention.
+The standard convention is to measure angles counter-clockwise relative to the positive x-axis
+The astronomical convention is to measure angles counter-clockwise relative to the positive y-axis</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.flux_to_mag">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">flux_to_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zeropoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#flux_to_mag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.flux_to_mag" title="Link to this definition"></a></dt>
+<dd><p>Converts a flux total into logarithmic magnitude units.</p>
+<div class="math notranslate nohighlight">
+\[m = -2.5\log_{10}(flux) + z.p.\]</div>
+<p>where <span class="math notranslate nohighlight">\(z.p.\)</span> is the zeropoint.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.flux_to_sb">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">flux_to_sb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zeropoint</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#flux_to_sb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.flux_to_sb" title="Link to this definition"></a></dt>
+<dd><p>Conversion from flux units to logarithmic surface brightness
+units.</p>
+<div class="math notranslate nohighlight">
+\[\mu = -2.5\log_{10}(flux) + z.p. + 2.5\log_{10}(A)\]</div>
+<p>where <span class="math notranslate nohighlight">\(z.p.\)</span> is the zeropoint and <span class="math notranslate nohighlight">\(A\)</span> is the area of a pixel.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.mag_to_flux">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">mag_to_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zeropoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#mag_to_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.mag_to_flux" title="Link to this definition"></a></dt>
+<dd><p>converts logarithmic magnitude units into a flux total.</p>
+<div class="math notranslate nohighlight">
+\[flux = 10^{-(m - z.p.)/2.5}\]</div>
+<p>where <span class="math notranslate nohighlight">\(z.p.\)</span> is the zeropoint.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.mag_to_magperarcsec2">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">mag_to_magperarcsec2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#mag_to_magperarcsec2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.mag_to_magperarcsec2" title="Link to this definition"></a></dt>
+<dd><p>Converts mag to mag/arcsec^2
+m: mag
+a: semi major axis radius (arcsec)
+b: semi minor axis radius (arcsec)
+A: pre-calculated area (arcsec^2)
+returns: mag/arcsec^2</p>
+<div class="math notranslate nohighlight">
+\[\mu = m + 2.5\log_{10}(A)\]</div>
+<p>where <span class="math notranslate nohighlight">\(A\)</span> is an area in arcsec^2.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.magperarcsec2_to_mag">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">magperarcsec2_to_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#magperarcsec2_to_mag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.magperarcsec2_to_mag" title="Link to this definition"></a></dt>
+<dd><p>Converts mag/arcsec^2 to mag
+mu: mag/arcsec^2
+a: semi major axis radius (arcsec)
+b: semi minor axis radius (arcsec)
+A: pre-calculated area (arcsec^2)
+returns: mag</p>
+<div class="math notranslate nohighlight">
+\[m = \mu -2.5\log_{10}(A)\]</div>
+<p>where <span class="math notranslate nohighlight">\(A\)</span> is an area in arcsec^2.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.conversions.units.sb_to_flux">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.conversions.units.</span></span><span class="sig-name descname"><span class="pre">sb_to_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zeropoint</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/conversions/units.html#sb_to_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.conversions.units.sb_to_flux" title="Link to this definition"></a></dt>
+<dd><p>Converts logarithmic surface brightness units into flux units.</p>
+<div class="math notranslate nohighlight">
+\[flux = A 10^{-(\mu - z.p.)/2.5}\]</div>
+<p>where <span class="math notranslate nohighlight">\(z.p.\)</span> is the zeropoint and <span class="math notranslate nohighlight">\(A\)</span> is the area of a pixel.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.conversions">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-astrophot.utils.conversions" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="astrophot.utils.html" class="btn btn-neutral float-left" title="astrophot.utils package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="astrophot.utils.initialize.html" class="btn btn-neutral float-right" title="astrophot.utils.initialize package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

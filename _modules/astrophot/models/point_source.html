@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.models.point_source &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.models.point_source</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.models.point_source</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..param</span> <span class="kn">import</span> <span class="n">Param_Unlock</span><span class="p">,</span> <span class="n">Param_SoftLimits</span><span class="p">,</span> <span class="n">Parameter_Node</span>
+<span class="kn">from</span> <span class="nn">.model_object</span> <span class="kn">import</span> <span class="n">Component_Model</span>
+<span class="kn">from</span> <span class="nn">.core_model</span> <span class="kn">import</span> <span class="n">AstroPhot_Model</span>
+<span class="kn">from</span> <span class="nn">.psf_model_object</span> <span class="kn">import</span> <span class="n">PSF_Model</span>
+<span class="kn">from</span> <span class="nn">..utils.decorators</span> <span class="kn">import</span> <span class="n">ignore_numpy_warnings</span><span class="p">,</span> <span class="n">default_internal</span>
+<span class="kn">from</span> <span class="nn">..image</span> <span class="kn">import</span> <span class="n">PSF_Image</span><span class="p">,</span> <span class="n">Window</span><span class="p">,</span> <span class="n">Model_Image</span><span class="p">,</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">select_target</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">SpecificationConflict</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Point_Source&quot;</span><span class="p">,)</span>
+
+<div class="viewcode-block" id="Point_Source">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.point_source.Point_Source">[docs]</a>
+<span class="k">class</span> <span class="nc">Point_Source</span><span class="p">(</span><span class="n">Component_Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Describes a point source in the image, this is a delta function at</span>
+<span class="sd">    some position in the sky. This is typically used to describe</span>
+<span class="sd">    stars, supernovae, very small galaxies, quasars, asteroids or any</span>
+<span class="sd">    other object which can essentially be entirely described by a</span>
+<span class="sd">    position and total flux (no structure).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;point </span><span class="si">{</span><span class="n">Component_Model</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;log10(flux)&quot;</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Component_Model</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;flux&quot;</span><span class="p">,)</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Point_Source needs psf information&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Point_Source.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.point_source.Point_Source.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">target_area</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">]</span>
+        <span class="n">target_dat</span> <span class="o">=</span> <span class="n">target_area</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">Param_Unlock</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]),</span> <span class="n">Param_SoftLimits</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]):</span>
+            <span class="n">icenter</span> <span class="o">=</span> <span class="n">target_area</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">edge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">target_dat</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                    <span class="n">target_dat</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">target_dat</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
+                    <span class="n">target_dat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">edge_average</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target_dat</span> <span class="o">-</span> <span class="n">edge_average</span><span class="p">)))</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">target_area</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Psf convolution should be on by default since this is a delta function</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">psf_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;full&quot;</span>
+    <span class="nd">@psf_mode</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">psf_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+<div class="viewcode-block" id="Point_Source.sample">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.point_source.Point_Source.sample">[docs]</a>
+    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Image</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Window</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Parameter_Node</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the model on the space covered by an image object. This</span>
+<span class="sd">        function properly calls integration methods and PSF</span>
+<span class="sd">        convolution. This should not be overloaded except in special</span>
+<span class="sd">        cases.</span>
+
+<span class="sd">        This function is designed to compute the model on a given</span>
+<span class="sd">        image or within a specified window. It takes care of sub-pixel</span>
+<span class="sd">        sampling, recursive integration for high curvature regions,</span>
+<span class="sd">        PSF convolution, and proper alignment of the computed model</span>
+<span class="sd">        with the original pixel grid. The final model is then added to</span>
+<span class="sd">        the requested image.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          image (Optional[Image]): An AstroPhot Image object (likely a Model_Image)</span>
+<span class="sd">                                     on which to evaluate the model values. If not</span>
+<span class="sd">                                     provided, a new Model_Image object will be created.</span>
+<span class="sd">          window (Optional[Window]): A window within which to evaluate the model.</span>
+<span class="sd">                                   Should only be used if a subset of the full image</span>
+<span class="sd">                                   is needed. If not provided, the entire image will</span>
+<span class="sd">                                   be used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          Image: The image with the computed model values.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Image on which to evaluate model</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_model_image</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
+
+        <span class="c1"># Window within which to evaluate model</span>
+        <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">working_window</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">working_window</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Parameters with which to evaluate the model</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+
+        <span class="c1"># Sample the PSF pixels</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">,</span> <span class="n">AstroPhot_Model</span><span class="p">):</span>
+            <span class="c1"># Adjust for supersampled PSF</span>
+            <span class="n">psf_upscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">pixel_length</span> <span class="o">/</span> <span class="n">working_window</span><span class="o">.</span><span class="n">pixel_length</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+            <span class="n">working_window</span> <span class="o">=</span> <span class="n">working_window</span><span class="o">.</span><span class="n">rescale_pixel</span><span class="p">(</span><span class="n">psf_upscale</span><span class="p">)</span>
+            <span class="n">working_window</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            
+            <span class="c1"># Make the image object to which the samples will be tracked</span>
+            <span class="n">working_image</span> <span class="o">=</span> <span class="n">Model_Image</span><span class="p">(</span>
+                <span class="n">window</span><span class="o">=</span><span class="n">working_window</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Fill the image using the PSF model</span>
+            <span class="n">psf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">(</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="n">working_image</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">name</span><span class="p">],</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Scale for point source flux</span>
+            <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">*=</span> <span class="mi">10</span><span class="o">**</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+            <span class="c1"># Return to original coordinates</span>
+            <span class="n">working_image</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">,</span> <span class="n">PSF_Image</span><span class="p">):</span>
+            <span class="n">psf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="c1"># Adjust for supersampled PSF</span>
+            <span class="n">psf_upscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">psf</span><span class="o">.</span><span class="n">pixel_length</span> <span class="o">/</span> <span class="n">working_window</span><span class="o">.</span><span class="n">pixel_length</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+            <span class="n">working_window</span> <span class="o">=</span> <span class="n">working_window</span><span class="o">.</span><span class="n">rescale_pixel</span><span class="p">(</span><span class="n">psf_upscale</span><span class="p">)</span>
+            
+            <span class="c1"># Make the image object to which the samples will be tracked</span>
+            <span class="n">working_image</span> <span class="o">=</span> <span class="n">Model_Image</span><span class="p">(</span>
+                <span class="n">window</span><span class="o">=</span><span class="n">working_window</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Compute the center offset</span>
+            <span class="n">pixel_center</span> <span class="o">=</span> <span class="n">working_image</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">center_shift</span> <span class="o">=</span> <span class="n">pixel_center</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">pixel_center</span><span class="p">)</span>
+            <span class="c1">#working_image.header.pixel_shift(center_shift)</span>
+            <span class="n">psf</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">working_image</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">pixel_center</span><span class="p">)))</span>
+            <span class="n">psf</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shift_psf</span><span class="p">(</span><span class="n">psf</span> <span class="o">=</span> <span class="n">psf</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">shift</span> <span class="o">=</span> <span class="n">center_shift</span><span class="p">,</span> <span class="n">shift_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_subpixel_shift</span><span class="p">,</span> <span class="n">keep_pad</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">psf</span><span class="o">.</span><span class="n">data</span> <span class="o">/=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">psf</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>    
+            
+            <span class="c1"># Scale for psf flux</span>
+            <span class="n">psf</span><span class="o">.</span><span class="n">data</span> <span class="o">*=</span> <span class="mi">10</span><span class="o">**</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            
+            <span class="c1"># Fill pixels with the PSF image</span>
+            <span class="n">working_image</span> <span class="o">+=</span> <span class="n">psf</span>
+            
+            <span class="c1"># Shift image back to align with original pixel grid</span>
+            <span class="c1">#working_image.header.pixel_shift(-center_shift)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SpecificationConflict</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Point_Source must have a psf that is either an AstroPhot_Model or a PSF_Image. not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Return to image pixelscale</span>
+        <span class="n">working_image</span> <span class="o">=</span> <span class="n">working_image</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">psf_upscale</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">working_image</span><span class="o">.</span><span class="n">data</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="c1"># Add the sampled/integrated/convolved pixels to the requested image</span>
+        <span class="n">image</span> <span class="o">+=</span> <span class="n">working_image</span>
+
+        <span class="k">return</span> <span class="n">image</span>        </div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,229 @@
+astrophot.models package
+========================
+
+Submodules
+----------
+
+astrophot.models.airy\_psf module
+---------------------------------
+
+.. automodule:: astrophot.models.airy_psf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.core\_model module
+-----------------------------------
+
+.. automodule:: astrophot.models.core_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.edgeon\_model module
+-------------------------------------
+
+.. automodule:: astrophot.models.edgeon_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.eigen\_psf module
+----------------------------------
+
+.. automodule:: astrophot.models.eigen_psf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.exponential\_model module
+------------------------------------------
+
+.. automodule:: astrophot.models.exponential_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.flatsky\_model module
+--------------------------------------
+
+.. automodule:: astrophot.models.flatsky_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.foureirellipse\_model module
+---------------------------------------------
+
+.. automodule:: astrophot.models.foureirellipse_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.galaxy\_model\_object module
+---------------------------------------------
+
+.. automodule:: astrophot.models.galaxy_model_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.gaussian\_model module
+---------------------------------------
+
+.. automodule:: astrophot.models.gaussian_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.group\_model\_object module
+--------------------------------------------
+
+.. automodule:: astrophot.models.group_model_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.group\_psf\_model module
+-----------------------------------------
+
+.. automodule:: astrophot.models.group_psf_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.model\_object module
+-------------------------------------
+
+.. automodule:: astrophot.models.model_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.moffat\_model module
+-------------------------------------
+
+.. automodule:: astrophot.models.moffat_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.nuker\_model module
+------------------------------------
+
+.. automodule:: astrophot.models.nuker_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.pixelated\_psf\_model module
+---------------------------------------------
+
+.. automodule:: astrophot.models.pixelated_psf_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.planesky\_model module
+---------------------------------------
+
+.. automodule:: astrophot.models.planesky_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.point\_source module
+-------------------------------------
+
+.. automodule:: astrophot.models.point_source
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.psf\_model\_object module
+------------------------------------------
+
+.. automodule:: astrophot.models.psf_model_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.ray\_model module
+----------------------------------
+
+.. automodule:: astrophot.models.ray_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.relspline\_model module
+----------------------------------------
+
+.. automodule:: astrophot.models.relspline_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.sersic\_model module
+-------------------------------------
+
+.. automodule:: astrophot.models.sersic_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.sky\_model\_object module
+------------------------------------------
+
+.. automodule:: astrophot.models.sky_model_object
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.spline\_model module
+-------------------------------------
+
+.. automodule:: astrophot.models.spline_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.superellipse\_model module
+-------------------------------------------
+
+.. automodule:: astrophot.models.superellipse_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.warp\_model module
+-----------------------------------
+
+.. automodule:: astrophot.models.warp_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.wedge\_model module
+------------------------------------
+
+.. automodule:: astrophot.models.wedge_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.models.zernike\_model module
+--------------------------------------
+
+.. automodule:: astrophot.models.zernike_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.models
+   :members:
+   :undoc-members:
+   :show-inheritance:

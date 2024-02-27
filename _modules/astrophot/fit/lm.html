@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.fit.lm &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.fit.lm</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.fit.lm</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Levenberg-Marquardt algorithm</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.autograd.functional</span> <span class="kn">import</span> <span class="n">jacobian</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">BaseOptimizer</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">OptimizeStop</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;LM&quot;</span><span class="p">,)</span>
+
+
+<div class="viewcode-block" id="LM">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM">[docs]</a>
+<span class="k">class</span> <span class="nc">LM</span><span class="p">(</span><span class="n">BaseOptimizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The LM class is an implementation of the Levenberg-Marquardt</span>
+<span class="sd">    optimization algorithm. This method is used to solve non-linear</span>
+<span class="sd">    least squares problems and is known for its robustness and</span>
+<span class="sd">    efficiency.</span>
+
+<span class="sd">    The Levenberg-Marquardt (LM) algorithm is an iterative method used</span>
+<span class="sd">    for solving non-linear least squares problems. It can be seen as a</span>
+<span class="sd">    combination of the Gauss-Newton method and the gradient descent</span>
+<span class="sd">    method: it works like the Gauss-Newton method when the parameters</span>
+<span class="sd">    are approximately near a minimum, and like the gradient descent method</span>
+<span class="sd">    when the parameters are far from their optimal values.</span>
+
+<span class="sd">    The cost function that the LM algorithm tries to minimize is of</span>
+<span class="sd">    the form:</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">        f(\\boldsymbol{\\beta}) = \\frac{1}{2}\\sum_{i=1}^{N} r_i(\\boldsymbol{\\beta})^2</span>
+
+<span class="sd">    where :math:`\\boldsymbol{\\beta}` is the vector of parameters,</span>
+<span class="sd">    :math:`r_i` are the residuals, and :math:`N` is the number of</span>
+<span class="sd">    observations.</span>
+
+<span class="sd">    The LM algorithm iteratively performs the following update to the parameters:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \\boldsymbol{\\beta}_{n+1} = \\boldsymbol{\\beta}_{n} - (J^T J + \\lambda diag(J^T J))^{-1} J^T \\boldsymbol{r}</span>
+
+<span class="sd">    where:</span>
+<span class="sd">        - :math:`J` is the Jacobian matrix whose elements are :math:`J_{ij} = \\frac{\\partial r_i}{\\partial \\beta_j}`,</span>
+<span class="sd">        - :math:`\\boldsymbol{r}` is the vector of residuals :math:`r_i(\\boldsymbol{\\beta})`,</span>
+<span class="sd">        - :math:`\\lambda` is a damping factor which is adjusted at each iteration. </span>
+
+<span class="sd">    When :math:`\\lambda = 0` this can be seen as the Gauss-Newton</span>
+<span class="sd">    method. In the limit that :math:`\\lambda` is large, the</span>
+<span class="sd">    :math:`J^T J` matrix (an approximation of the Hessian) becomes</span>
+<span class="sd">    subdominant and the update essentially points along :math:`J^T</span>
+<span class="sd">    \\boldsymbol{r}` which is the gradient. In this scenario the</span>
+<span class="sd">    gradient descent direction is also modified by the :math:`\\lambda</span>
+<span class="sd">    diag(J^T J)` scaling which in some sense makes each gradient</span>
+<span class="sd">    unitless and further improves the step. Note as well that as</span>
+<span class="sd">    :math:`\\lambda` gets larger the step taken will be smaller, which</span>
+<span class="sd">    helps to ensure convergence when the initial guess of the</span>
+<span class="sd">    parameters are far from the optimal solution.</span>
+
+<span class="sd">    Note that the residuals :math:`r_i` are typically also scaled by</span>
+<span class="sd">    the variance of the pixels, but this does not change the equations</span>
+<span class="sd">    above. For a detailed explanation of the LM method see the article</span>
+<span class="sd">    by Henri Gavin on which much of the AstroPhot LM implementation is</span>
+<span class="sd">    based::</span>
+<span class="sd">    </span>
+<span class="sd">        @article{Gavin2019,</span>
+<span class="sd">            title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},</span>
+<span class="sd">            author={Gavin, Henri P},</span>
+<span class="sd">            journal={Department of Civil and Environmental Engineering, Duke University},</span>
+<span class="sd">            volume={19},</span>
+<span class="sd">            year={2019}</span>
+<span class="sd">        }</span>
+
+<span class="sd">    as well as the paper on LM geodesic acceleration by Mark</span>
+<span class="sd">    Transtrum::</span>
+<span class="sd">    </span>
+<span class="sd">        @article{Tanstrum2012,</span>
+<span class="sd">           author = {{Transtrum}, Mark K. and {Sethna}, James P.},</span>
+<span class="sd">            title = &quot;{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}&quot;,</span>
+<span class="sd">             year = 2012,</span>
+<span class="sd">              doi = {10.48550/arXiv.1201.5885},</span>
+<span class="sd">           adsurl = {https://ui.adsabs.harvard.edu/abs/2012arXiv1201.5885T},</span>
+<span class="sd">        }</span>
+
+<span class="sd">    The damping factor :math:`\\lambda` is adjusted at each iteration:</span>
+<span class="sd">    it is effectively increased when we are far from the solution, and</span>
+<span class="sd">    decreased when we are close to it. In practice, the algorithm</span>
+<span class="sd">    attempts to pick the smallest :math:`\\lambda` that is can while</span>
+<span class="sd">    making sure that the :math:`\\chi^2` decreases at each step.</span>
+
+<span class="sd">    The main advantage of the LM algorithm is its adaptability. When</span>
+<span class="sd">    the current estimate is far from the optimum, the algorithm</span>
+<span class="sd">    behaves like a gradient descent to ensure global</span>
+<span class="sd">    convergence. However, when it is close to the optimum, it behaves</span>
+<span class="sd">    like Gauss-Newton, which provides fast local convergence.</span>
+
+<span class="sd">    In practice, the algorithm is typically implemented with various</span>
+<span class="sd">    enhancements to improve its performance. For example, the Jacobian</span>
+<span class="sd">    may be approximated with finite differences, geodesic acceleration</span>
+<span class="sd">    can be used to speed up convergence, and more sophisticated</span>
+<span class="sd">    strategies can be used to adjust the damping factor :math:`\\lambda`.</span>
+
+<span class="sd">    The exact performance of the LM algorithm will depend on the</span>
+<span class="sd">    nature of the problem, including the complexity of the function</span>
+<span class="sd">    f(x), the quality of the initial estimate x0, and the distribution</span>
+<span class="sd">    of the data.</span>
+
+<span class="sd">    The LM class implemented for AstroPhot takes a model, initial</span>
+<span class="sd">    state, and various other optional parameters as inputs and seeks</span>
+<span class="sd">    to find the parameters that minimize the cost function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model: The model to be optimized.</span>
+<span class="sd">      initial_state (Sequence): Initial values for the parameters to be optimized.</span>
+<span class="sd">      max_iter (int): Maximum number of iterations for the algorithm.</span>
+<span class="sd">      relative_tolerance (float): Tolerance level for relative change in cost function value to trigger termination of the algorithm.</span>
+<span class="sd">      fit_parameters_identity: Used to select a subset of parameters. This is mostly used internally.</span>
+<span class="sd">      verbose: Controls the verbosity of the output during optimization. A higher value results in more detailed output. If not provided, defaults to 0 (no output).</span>
+<span class="sd">      max_step_iter (optional): The maximum number of steps while searching for chi^2 improvement on a single Jacobian evaluation. Default is 10.</span>
+<span class="sd">      curvature_limit (optional): Controls how cautious the optimizer is for changing curvature. It should be a number greater than 0, where smaller is more cautious. Default is 1.</span>
+<span class="sd">      Lup and Ldn (optional): These adjust the step sizes for the damping parameter. Default is 5 and 3 respectively.</span>
+<span class="sd">      L0 (optional): This is the starting damping parameter. For easy problems with good initialization, this can be set lower. Default is 1.</span>
+<span class="sd">      acceleration (optional): Controls the use of geodesic acceleration, which can be helpful in some scenarios. Set 1 for full acceleration, 0 for no acceleration. Default is 0.</span>
+
+<span class="sd">    Here is some basic usage of the LM optimizer:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">      import astrophot as ap</span>
+<span class="sd">      # build model</span>
+<span class="sd">      # ...</span>
+<span class="sd">      </span>
+<span class="sd">      # Initialize model parameters</span>
+<span class="sd">      model.initialize()</span>
+
+<span class="sd">      # Fit the parameters</span>
+<span class="sd">      result = ap.fit.lm(model, verbose = 1)</span>
+
+<span class="sd">      # Check that a minimum was found</span>
+<span class="sd">      print(result.message)</span>
+
+<span class="sd">      # See the minimum chi^2 value</span>
+<span class="sd">      print(f&quot;min chi2: {result.res_loss()}&quot;)</span>
+<span class="sd">      </span>
+<span class="sd">      # Update parameter uncertainties</span>
+<span class="sd">      result.update_uncertainty()</span>
+
+<span class="sd">      # Extract multivariate Gaussian of uncertainties</span>
+<span class="sd">      mu = result.res()</span>
+<span class="sd">      cov = result.covariance_matrix</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">initial_state</span><span class="p">:</span> <span class="n">Sequence</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+            <span class="n">relative_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">initial_state</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">relative_tolerance</span> <span class="o">=</span> <span class="n">relative_tolerance</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># The forward model which computes the output image given input parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forward</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">as_representation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Compute the jacobian in representation units (defined for -inf, inf)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jacobian</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">jacobian</span><span class="p">,</span> <span class="n">as_representation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jacobian_natural</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">jacobian</span><span class="p">,</span> <span class="n">as_representation</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Maximum number of iterations of the algorithm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="c1"># Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_step_iter</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max_step_iter&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="c1"># sets how cautious the optimizer is for changing curvature, should be number greater than 0, where smaller is more cautious</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curvature_limit</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;curvature_limit&quot;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span> 
+        <span class="c1"># These are the adjustment step sized for the damping parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Lup</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Lup&quot;</span><span class="p">,</span> <span class="mf">5.</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Ldn</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Ldn&quot;</span><span class="p">,</span> <span class="mf">3.</span><span class="p">)</span>
+        <span class="c1"># This is the starting damping parameter, for easy problems with good initialization, this can be set lower</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;L0&quot;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+        <span class="c1"># Geodesic acceleration is helpful in some scenarios. By default it is turned off. Set 1 for full acceleration, 0 for no acceleration.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;acceleration&quot;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+        <span class="c1"># Initialize optimizer atributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_window</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Degrees of freedom</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndf</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">))</span>
+
+        <span class="c1"># 1 / (2 * sigma^2)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">has_variance</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_window</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">)</span>
+
+        <span class="c1"># mask</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">has_mask</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_window</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ndf</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndf</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># variable to store covariance matrix if it is ever computed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="LM.Lup">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM.Lup">[docs]</a>
+    <span class="k">def</span> <span class="nf">Lup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Increases the damping parameter for more gradient-like steps. Used internally.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1e9</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Lup</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LM.Ldn">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM.Ldn">[docs]</a>
+    <span class="k">def</span> <span class="nf">Ldn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decreases the damping parameter for more Gauss-Newton like steps. Used internally.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-9</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ldn</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="LM.step">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM.step">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Performs one step of the LM algorithm. Computes Jacobian, infers</span>
+<span class="sd">        hessian and gradient, solves for step vector and iterates on</span>
+<span class="sd">        damping parameter magnitude until a step with some improvement</span>
+<span class="sd">        in chi2 is found. Used internally.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Y0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jacobian</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">-</span> <span class="n">Y0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hess</span> <span class="o">=</span> <span class="n">J</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">J</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">J</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">-</span> <span class="n">Y0</span><span class="p">))</span>
+        
+        <span class="n">init_chi2</span> <span class="o">=</span> <span class="n">chi2</span>
+        <span class="n">nostep</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">),</span> <span class="n">init_chi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="n">scarry_best</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_chi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+        <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="k">for</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_step_iter</span><span class="p">):</span>
+            <span class="c1"># In a scenario where LM is having a hard time proposing a good step, but the damping is really low, just jump up to normal damping levels</span>
+            <span class="k">if</span> <span class="n">iteration</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_step_iter</span><span class="o">/</span><span class="mi">2</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">&lt;</span> <span class="mf">1e-3</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="mf">1.</span>
+
+            <span class="c1"># compute LM update step</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hess</span><span class="p">)</span>
+
+            <span class="c1"># Compute goedesic acceleration</span>
+            <span class="n">Y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">+</span> <span class="n">d</span><span class="o">*</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+            
+            <span class="n">rh</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">-</span> <span class="n">Y1</span><span class="p">)</span>
+            
+            <span class="n">rpp</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">d</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">rh</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="n">d</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">*</span><span class="p">(</span><span class="n">J</span> <span class="o">@</span> <span class="n">h</span><span class="p">))</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">&gt;</span> <span class="mf">1e-4</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">J</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">rpp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hess</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
+            <span class="c1"># Evaluate new step</span>
+            <span class="n">ha</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">acceleration</span>
+            <span class="n">Y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">+</span> <span class="n">ha</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Compute and report chi^2</span>
+            <span class="n">chi2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chi2</span><span class="p">(</span><span class="n">Y1</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sub step L: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="si">}</span><span class="s2">, Chi^2/DoF: </span><span class="si">{</span><span class="n">chi2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Skip if chi^2 is nan</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">chi2</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Skip due to non-finite values&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Lup</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;better&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;worse&quot;</span>
+                <span class="k">continue</span>
+            
+            <span class="c1"># Keep track of chi^2 improvement even if it fails curvature test</span>
+            <span class="k">if</span> <span class="n">chi2</span> <span class="o">&lt;=</span> <span class="n">scarry_best</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">scarry_best</span> <span class="o">=</span> <span class="p">(</span><span class="n">ha</span><span class="p">,</span> <span class="n">chi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+                <span class="n">nostep</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Check for high curvature, in which case linear approximation is not valid. avoid this step</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rho</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">curvature_limit</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Skip due to large curvature&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Lup</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;better&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;worse&quot;</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Check for Chi^2 improvement</span>
+            <span class="k">if</span> <span class="n">chi2</span> <span class="o">&lt;=</span> <span class="n">best</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;new best chi^2&quot;</span><span class="p">)</span>
+                <span class="n">best</span> <span class="o">=</span> <span class="p">(</span><span class="n">ha</span><span class="p">,</span> <span class="n">chi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+                <span class="n">nostep</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Ldn</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">&lt;=</span> <span class="mf">1e-8</span> <span class="ow">or</span> <span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;worse&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;better&quot;</span>
+            <span class="k">elif</span> <span class="n">chi2</span> <span class="o">&gt;</span> <span class="n">best</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">direction</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;worse&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;chi^2 is worse&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Lup</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="mf">1e9</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;worse&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="c1"># If a step substantially improves the chi^2, stop searching for better step, simply exit the loop and accept the good step</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">best</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">init_chi2</span><span class="p">)</span> <span class="o">/</span> <span class="n">init_chi2</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Large step taken, ending search for good step&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">nostep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">scarry_best</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;no low curvature step found, taking high curvature step&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">scarry_best</span>
+            <span class="k">raise</span> <span class="n">OptimizeStop</span><span class="p">(</span><span class="s2">&quot;Could not find step to improve chi^2&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">best</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">_h</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">hess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">I</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">grad</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">grad</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">grad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">hess</span> <span class="o">+</span> <span class="mf">1e-2</span> <span class="o">*</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">I</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">I</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+            <span class="n">grad</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">h</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">_chi2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ypred</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">-</span> <span class="n">Ypred</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndf</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">-</span> <span class="n">Ypred</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndf</span>
+            
+
+<div class="viewcode-block" id="LM.update_hess_grad">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM.update_hess_grad">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">update_hess_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">natural</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the stored hessian matrix and gradient vector. This can be</span>
+<span class="sd">        used to compute the quantities in thier natural parameter</span>
+<span class="sd">        represntation. During normal optimization the hessian and</span>
+<span class="sd">        gradient are computed in a re-mapped parameter space where</span>
+<span class="sd">        parameters are defined form -inf to inf.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">natural</span><span class="p">:</span>
+            <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jacobian_natural</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">vector_transform_rep_to_val</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">))</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jacobian</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="n">Ypred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hess</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">J</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">J</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">J</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">-</span> <span class="n">Ypred</span><span class="p">))</span></div>
+
+        
+<div class="viewcode-block" id="LM.fit">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM.fit">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseOptimizer</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This performs the fitting operation. It iterates the LM step</span>
+<span class="sd">        function until convergence is reached. Includes a message</span>
+<span class="sd">        after fitting to indicate how the fitting exited. Typically if</span>
+<span class="sd">        the message returns a &quot;success&quot; then the algorithm found a</span>
+<span class="sd">        minimum. This may be the desired solution, or a pathological</span>
+<span class="sd">        local minimum, this often depends on the initial conditions.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No parameters to optimize. Exiting fit&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chi2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L_history</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_history</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()]</span>
+        
+        <span class="k">for</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chi^2/DoF: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">, L: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">chi2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">except</span> <span class="n">OptimizeStop</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Could not find step to improve Chi^2, stopping&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+</span> <span class="s2">&quot;fail. Could not find step to improve Chi^2&quot;</span>
+                <span class="k">break</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">+</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">L_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambda_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">Ldn</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">relative_tolerance</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+</span> <span class="s2">&quot;success&quot;</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">10</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">relative_tolerance</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+</span> <span class="s2">&quot;success by immobility. Convergence not guaranteed&quot;</span>
+                    <span class="k">break</span>
+                
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+</span> <span class="s2">&quot;fail. Maximum iterations&quot;</span>
+                
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final Chi^2/DoF: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">, L: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">L_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">. Converged: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">vector_set_representation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">covariance_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The covariance matrix for the model at the current</span>
+<span class="sd">        parameters. This can be used to construct a full Gaussian PDF</span>
+<span class="sd">        for the parameters using: :math:`\\mathcal{N}(\\mu,\\Sigma)`</span>
+<span class="sd">        where :math:`\\mu` is the optimized parameters and</span>
+<span class="sd">        :math:`\\Sigma` is the covariance matrix.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_hess_grad</span><span class="p">(</span><span class="n">natural</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hess</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected.&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hess</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grad</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+            <span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hess</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hess</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_matrix</span>
+
+<div class="viewcode-block" id="LM.update_uncertainty">
+<a class="viewcode-back" href="../../../astrophot.fit.html#astrophot.fit.lm.LM.update_uncertainty">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">update_uncertainty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Call this function after optimization to set the uncertainties for</span>
+<span class="sd">        the parameters. This will use the diagonal of the covariance</span>
+<span class="sd">        matrix to update the uncertainties. See the covariance_matrix</span>
+<span class="sd">        function for the full representation of the uncertainties.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set the uncertainty for each parameter</span>
+        <span class="n">cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cov</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">vector_set_uncertainty</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to update uncertainty due to: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to update uncertainty due to non finite covariance matrix&quot;</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

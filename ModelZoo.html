@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Zoo &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Joint Modelling" href="JointModels.html" />
+    <link rel="prev" title="Fitting Methods" href="FittingMethods.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html">Getting Started with AstroPhot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GroupModels.html">Group Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FittingMethods.html">Fitting Methods</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Model Zoo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Sky-Models">Sky Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Flat-Sky-Model">Flat Sky Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Plane-Sky-Model">Plane Sky Model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Point-Source-Function-(PSF)-Models">Point Source Function (PSF) Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Pixelated-point-source">Pixelated point source</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-PSF">Gaussian PSF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Moffat-PSF">Moffat PSF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Airy-disk-PSF">Airy disk PSF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Zernike-Polynomial-PSF">Zernike Polynomial PSF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Eigen-basis-PSF-point-source">Eigen basis PSF point source</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#The-Point-Source-Model">The Point Source Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Point-Source-using-PSF_Image">Point Source using PSF_Image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Point-Source-using-PSF-model">Point Source using PSF model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Galaxy-Models">Galaxy Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-Galaxy-Model">Spline Galaxy Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-Galaxy-Model">Sersic Galaxy Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-Galaxy-Model">Exponential Galaxy Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-Galaxy-Model">Gaussian Galaxy Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Nuker-Galaxy-Model">Nuker Galaxy Model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Edge-on-model">Edge on model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Super-Ellipse-Models">Super Ellipse Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-SuperEllipse">Spline SuperEllipse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-SuperEllipse">Sersic SuperEllipse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-SuperEllipse">Exponential SuperEllipse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-SuperEllipse">Gaussian SuperEllipse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Nuker-SuperEllipse">Nuker SuperEllipse</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Fourier-Ellipse-Models">Fourier Ellipse Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-Fourier">Spline Fourier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-Fourier">Sersic Fourier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-Fourier">Exponential Fourier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-Fourier">Gaussian Fourier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Nuker-Fourier">Nuker Fourier</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Warp-Model">Warp Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-Warp">Spline Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-Warp">Sersic Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-Warp">Exponential Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-Warp">Gaussian Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Nuker-Warp">Nuker Warp</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Ray-Model">Ray Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-Ray">Spline Ray</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-Ray">Sersic Ray</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-Ray">Exponential Ray</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-Ray">Gaussian Ray</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Nuker-Ray">Nuker Ray</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Wedge-Model">Wedge Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-Wedge">Spline Wedge</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#High-Order-Warp-Models">High Order Warp Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-SuperEllipse-Warp">Spline SuperEllipse Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-SuperEllipse-Warp">Sersic SuperEllipse Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-SuperEllipse-Warp">Exponential SuperEllipse Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gaussian-SuperEllipse-Warp">Gaussian SuperEllipse Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Spline-Fourier-Warp">Spline Fourier Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Sersic-Fourier-Warp">Sersic Fourier Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Exponential-Fourier-Warp">Exponential Fourier Warp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gassian-Fourier-Warp">Gassian Fourier Warp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="JointModels.html">Joint Modelling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CustomModels.html">Custom model objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AdvancedPSFModels.html">Advanced PSF modeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ConstrainedModels.html">Constrained Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="tutorials.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Model Zoo</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ModelZoo.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Model-Zoo">
+<h1>Model Zoo<a class="headerlink" href="#Model-Zoo" title="Link to this heading"></a></h1>
+<p>In this notebook you will see every kind of model in AstroPhot. Printed in each cell will also be the list of parameters which the model looks for while fitting. Many models have unique capabilities and features, this will be introduced here, though fully taking advantage of them will be dependent on your science case.</p>
+<p>For a family tree of all the AstroPhot models see <a class="reference external" href="https://github.com/Autostronomy/AstroPhot/blob/main/media/AstroPhotModelOrgchart.png">this link</a></p>
+<p>Note, we will not be covering <code class="docutils literal notranslate"><span class="pre">Group_Model</span></code> here as that requires a dedicated discussion. See the dedicated notebook for that.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%load_ext autoreload
+%autoreload 2
+
+import astrophot as ap
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+%matplotlib inline
+basic_target = ap.image.Target_Image(data=np.zeros((100,100)), pixelscale = 1, zeropoint = 20)
+</pre></div>
+</div>
+</div>
+<section id="Sky-Models">
+<h2>Sky Models<a class="headerlink" href="#Sky-Models" title="Link to this heading"></a></h2>
+<section id="Flat-Sky-Model">
+<h3>Flat Sky Model<a class="headerlink" href="#Flat-Sky-Model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;flat sky model&quot;,
+    parameters = {&quot;center&quot;:[50,50], &quot;F&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(figsize = (7,6))
+ap.plots.model_image(fig, ax, M)
+ax.set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;F&#39;,)
+(&#39;log10(flux/arcsec^2)&#39;,)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_4_1.png" src="_images/ModelZoo_4_1.png" />
+</div>
+</div>
+</section>
+<section id="Plane-Sky-Model">
+<h3>Plane Sky Model<a class="headerlink" href="#Plane-Sky-Model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;plane sky model&quot;,
+    parameters = {&quot;center&quot;:[50,50], &quot;F&quot;: 10, &quot;delta&quot;: [1e-2,2e-2]},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(figsize = (7,6))
+ap.plots.model_image(fig, ax, M)
+ax.set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;F&#39;, &#39;delta&#39;)
+(&#39;flux/arcsec^2&#39;, &#39;flux/arcsec&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_6_1.png" src="_images/ModelZoo_6_1.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Point-Source-Function-(PSF)-Models">
+<h2>Point Source Function (PSF) Models<a class="headerlink" href="#Point-Source-Function-(PSF)-Models" title="Link to this heading"></a></h2>
+<p>These models are well suited to describe stars or any other point like source of light, they may also be used to convolve with other models during optimization. Some things to keep in mind about PSF models:</p>
+<ul class="simple">
+<li><p>Their “target” should be a PSF_Image</p></li>
+<li><p>They are always centered at (0,0) so there is no need to optimize the center position</p></li>
+<li><p>Their total flux is typically normalized to 1, so no need to optimize any normalization parameters</p></li>
+<li><p>They can be used in a lot of places that a PSF_Image can be used, such as the convolution kernel for a model</p></li>
+</ul>
+<p>They behave a bit differently than other models, see the point source model further down. A PSF describes the abstract point source light distribution, to actually model a star in a field you will need a point source object (further down) which is convolved by a PSF model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>np.random.seed(124)
+psf = ap.utils.initialize.gaussian_psf(3., 101, 1.)
+psf[50] += np.mean(psf)
+psf[:,50] += np.mean(psf)
+psf += 1e-10
+psf += np.random.normal(scale = psf / 3)
+psf[psf &lt; 0] = ap.utils.initialize.gaussian_psf(3., 101, 1.)[psf &lt; 0] + 1e-10
+
+psf_target = ap.image.PSF_Image(
+    data=psf / np.sum(psf),
+    pixelscale=1,
+)
+fig, ax = plt.subplots()
+ap.plots.psf_image(fig, ax, psf_target)
+ax.set_title(&quot;mock empirical PSF&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_8_0.png" src="_images/ModelZoo_8_0.png" />
+</div>
+</div>
+<section id="Pixelated-point-source">
+<h3>Pixelated point source<a class="headerlink" href="#Pixelated-point-source" title="Link to this heading"></a></h3>
+<p>Note that in this model you can define an arbitrary pixel map, for the sake of demonstration we build an extremely oversimplified mock diffraction spike model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from scipy.special import sinc
+xx, yy = np.meshgrid(np.linspace(-50,50,101), np.linspace(-50,50,101))
+x = np.sqrt(xx**2 + yy**2)/15
+PSF = np.zeros_like(x)+1e-6
+wgt = np.array((0.0001,0.01,1.,0.01,0.0001))
+PSF[48:53] += (sinc(x[48:53])**2) * wgt.reshape((-1,1))
+PSF[:,48:53] += (sinc(x[:,48:53])**2) * wgt
+PSF = ap.image.PSF_Image(data = PSF, pixelscale=psf_target.pixelscale)
+
+M = ap.models.AstroPhot_Model(
+    model_type = &quot;pixelated psf model&quot;,
+    target = psf_target,
+    parameters = {&quot;pixels&quot;: np.log10(PSF.data / psf_target.pixel_area)},
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.psf_image(fig, ax[0], M)
+x = np.linspace(0,49,99)/20
+ax[1].plot(x, sinc(x)**2 + 1e-5)
+ax[1].set_yscale(&quot;log&quot;)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;pixels&#39;,)
+(&#39;log10(flux/arcsec^2)&#39;,)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_10_1.png" src="_images/ModelZoo_10_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-PSF">
+<h3>Gaussian PSF<a class="headerlink" href="#Gaussian-PSF" title="Link to this heading"></a></h3>
+<p>Never a great PSF model, but the Gaussian is simple. This makes it a good starting choice to get results before stepping up the complexity level.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian psf model&quot;,
+    parameters = {&quot;sigma&quot;: 10},
+    target = psf_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.psf_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig, ax[1], M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;sigma&#39;,)
+(&#39;arcsec&#39;,)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_12_1.png" src="_images/ModelZoo_12_1.png" />
+</div>
+</div>
+</section>
+<section id="Moffat-PSF">
+<h3>Moffat PSF<a class="headerlink" href="#Moffat-PSF" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;moffat psf model&quot;,
+    parameters = {&quot;n&quot;: 2., &quot;Rd&quot;: 10.},
+    target = psf_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.psf_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig, ax[1], M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;n&#39;, &#39;Rd&#39;)
+(&#39;none&#39;, &#39;arcsec&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_14_1.png" src="_images/ModelZoo_14_1.png" />
+</div>
+</div>
+</section>
+<section id="Airy-disk-PSF">
+<h3>Airy disk PSF<a class="headerlink" href="#Airy-disk-PSF" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;airy psf model&quot;,
+    parameters = {&quot;aRL&quot;: 1./20},
+    target = psf_target,
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.psf_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig, ax[1], M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;aRL&#39;,)
+(&#39;a/(R lambda)&#39;,)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_16_1.png" src="_images/ModelZoo_16_1.png" />
+</div>
+</div>
+</section>
+<section id="Zernike-Polynomial-PSF">
+<h3>Zernike Polynomial PSF<a class="headerlink" href="#Zernike-Polynomial-PSF" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;zernike psf model&quot;,
+    order_n = 4,
+    integrate_mode = &quot;none&quot;,
+    target = psf_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, axarr = plt.subplots(3,5, figsize = (18, 10))
+for i, ax in enumerate(axarr.flatten()):
+    Anm = torch.zeros_like(M[&quot;Anm&quot;].value)
+    Anm[0] = 1.
+    Anm[i] = 1.
+    M[&quot;Anm&quot;].value = Anm
+    ax.set_title(f&quot;n: {M.nm_list[i][0]} m: {M.nm_list[i][1]}&quot;)
+    ap.plots.psf_image(fig, ax, M, norm = None)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;Anm&#39;,)
+(&#39;flux/arcsec^2&#39;,)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_18_1.png" src="_images/ModelZoo_18_1.png" />
+</div>
+</div>
+</section>
+<section id="Eigen-basis-PSF-point-source">
+<h3>Eigen basis PSF point source<a class="headerlink" href="#Eigen-basis-PSF-point-source" title="Link to this heading"></a></h3>
+<p>An eigen basis is a set of images which can be combined to form a PSF model. The eigen basis model makes it possible to fit the coefficients for the basis as model parameters. In fact the zernike polynomials are a kind of basis, so we will use them as input to the eigen psf model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>super_basic_target = ap.image.Target_Image(data=np.zeros((101,101)), pixelscale = 1)
+Z = ap.models.AstroPhot_Model(
+    model_type = &quot;zernike psf model&quot;,
+    order_n = 4,
+    integrate_mode = &quot;none&quot;,
+    target = psf_target
+)
+Z.initialize()
+basis = []
+for i in range(10):
+    Anm = torch.zeros_like(Z[&quot;Anm&quot;].value)
+    Anm[0] = 1.
+    Anm[i] = 1.
+    Z[&quot;Anm&quot;].value = Anm
+    basis.append(Z().data)
+basis = torch.stack(basis)
+
+W = np.linspace(1,0.1,10)
+M = ap.models.AstroPhot_Model(
+    model_type = &quot;eigen psf model&quot;,
+    eigen_basis = basis,
+    eigen_pixelscale = 1,
+    parameters = {&quot;weights&quot;: W},
+    target = psf_target,
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.psf_image(fig, ax[0], M, norm = None)
+W = np.random.rand(10)
+M[&quot;weights&quot;].value = W
+ap.plots.psf_image(fig, ax[1], M, norm = None)
+ax[0].set_title(M.name)
+ax[1].set_title(&quot;random weights&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;weights&#39;,)
+(&#39;unitless&#39;,)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_20_1.png" src="_images/ModelZoo_20_1.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="The-Point-Source-Model">
+<h2>The Point Source Model<a class="headerlink" href="#The-Point-Source-Model" title="Link to this heading"></a></h2>
+<p>This model is used to represent point sources in the sky. It is effectively a delta function at a given position with a given flux. Otherwise it has no structure. You must provide it a PSF model so that it can project into the sky.</p>
+<section id="Point-Source-using-PSF_Image">
+<h3>Point Source using PSF_Image<a class="headerlink" href="#Point-Source-using-PSF_Image" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;point model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;flux&quot;: 1},
+    psf = psf_target,
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(figsize = (7,6))
+ap.plots.model_image(fig, ax, M)
+ax.set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_23_1.png" src="_images/ModelZoo_23_1.png" />
+</div>
+</div>
+</section>
+<section id="Point-Source-using-PSF-model">
+<h3>Point Source using PSF model<a class="headerlink" href="#Point-Source-using-PSF-model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>psf = ap.models.AstroPhot_Model(
+    model_type = &quot;moffat psf model&quot;,
+    parameters = {&quot;n&quot;: 2., &quot;Rd&quot;: 10.},
+    target = psf_target
+)
+psf.initialize()
+
+M = ap.models.AstroPhot_Model(
+    model_type = &quot;point model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;flux&quot;: 1},
+    psf = psf,
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+# Note that the PSF model now shows up as a &quot;parameter&quot; for the point model. In fact this is just a pointer to the PSF parameter graph which you can see by printing the parameters
+print(M.parameters)
+
+fig, ax = plt.subplots(figsize = (7,6))
+ap.plots.model_image(fig, ax, M)
+ax.set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;moffat psf model [0]&#39;, &#39;center&#39;, &#39;flux&#39;)
+(&#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+point model [1]:
+center: [0.0, 0.0] +- [0.1, 0.1] [arcsec], locked
+n: 2.0 +- 0.05 [none], limits: (0.1, 10.0)
+Rd: 10.0 [arcsec], limits: (0.0, None)
+I0: 0.0 [log10(flux/arcsec^2)], locked
+center: [50.0, 50.0] +- [0.1, 0.1] [arcsec]
+flux: 1.0 [log10(flux)]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_25_1.png" src="_images/ModelZoo_25_1.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Galaxy-Models">
+<h2>Galaxy Models<a class="headerlink" href="#Galaxy-Models" title="Link to this heading"></a></h2>
+<section id="Spline-Galaxy-Model">
+<h3>Spline Galaxy Model<a class="headerlink" href="#Spline-Galaxy-Model" title="Link to this heading"></a></h3>
+<p>This model has a radial surface brightness profile which can take on any function (that can be represented as a spline). This is somewhat like elliptical isophote fitting, though it is more precise in its definition of the SB model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Here we make an arbitrary spline profile out of a sine wave and a line
+x = np.linspace(0,10,14)
+spline_profile = np.sin(x*2+2)/20 + 1 - x/20
+# Here we write down some corresponding radii for the points in the non-parametric profile. AstroPhot will make
+# radii to match an input profile, but it is generally better to manually provide values so you have some control
+# over their placement. Just note that it is assumed the first point will be at R = 0.
+NP_prof = [0] + list(np.logspace(np.log10(2),np.log10(50),13))
+
+M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;I(R)&quot;: {&quot;value&quot;: spline_profile, &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_28_1.png" src="_images/ModelZoo_28_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-Galaxy-Model">
+<h3>Sersic Galaxy Model<a class="headerlink" href="#Sersic-Galaxy-Model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;n&quot;: 3, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_30_1.png" src="_images/ModelZoo_30_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-Galaxy-Model">
+<h3>Exponential Galaxy Model<a class="headerlink" href="#Exponential-Galaxy-Model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_32_1.png" src="_images/ModelZoo_32_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-Galaxy-Model">
+<h3>Gaussian Galaxy Model<a class="headerlink" href="#Gaussian-Galaxy-Model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;sigma&quot;: 20, &quot;flux&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_34_1.png" src="_images/ModelZoo_34_1.png" />
+</div>
+</div>
+</section>
+<section id="Nuker-Galaxy-Model">
+<h3>Nuker Galaxy Model<a class="headerlink" href="#Nuker-Galaxy-Model" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;nuker galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;Rb&quot;: 10., &quot;Ib&quot;: 1., &quot;alpha&quot;: 4., &quot;beta&quot;: 3., &quot;gamma&quot;: -0.2},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;Rb&#39;, &#39;Ib&#39;, &#39;alpha&#39;, &#39;beta&#39;, &#39;gamma&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;, &#39;none&#39;, &#39;none&#39;, &#39;none&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: divide by zero encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_36_2.png" src="_images/ModelZoo_36_2.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Edge-on-model">
+<h2>Edge on model<a class="headerlink" href="#Edge-on-model" title="Link to this heading"></a></h2>
+<p>Currently there is only one dedicared edge on model, the self gravitating isothermal disk from van der Kruit &amp; Searle 1981. If you know of another common edge on model, feel free to let us know and we can add it in!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;isothermal sech2 edgeon model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;PA&quot;: 60*np.pi/180, &quot;I0&quot;: 0., &quot;hs&quot;: 3., &quot;rs&quot;: 5.},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;PA&#39;, &#39;I0&#39;, &#39;hs&#39;, &#39;rs&#39;)
+(&#39;arcsec&#39;, &#39;rad&#39;, &#39;log10(flux/arcsec^2)&#39;, &#39;arcsec&#39;, &#39;arcsec&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_38_1.png" src="_images/ModelZoo_38_1.png" />
+</div>
+</div>
+</section>
+<section id="Super-Ellipse-Models">
+<h2>Super Ellipse Models<a class="headerlink" href="#Super-Ellipse-Models" title="Link to this heading"></a></h2>
+<p>A super ellipse is a regular ellipse, except the radius metric changes from R = sqrt(x^2 + y^2) to the more general: R = (x^C + y<sup>C)</sup>1/C. The parameter C = 2 for a regular ellipse, for 0&lt;C&lt;2 the shape becomes more “disky” and for C &gt; 2 the shape becomes more “boxy.” In AstroPhot we use the parameter C0 = C-2 for simplicity.</p>
+<section id="Spline-SuperEllipse">
+<h3>Spline SuperEllipse<a class="headerlink" href="#Spline-SuperEllipse" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline superellipse galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;C0&quot;: 2, &quot;I(R)&quot;: {&quot;value&quot;: spline_profile, &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;C0&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;C-2&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_41_1.png" src="_images/ModelZoo_41_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-SuperEllipse">
+<h3>Sersic SuperEllipse<a class="headerlink" href="#Sersic-SuperEllipse" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic superellipse galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;C0&quot;: 2, &quot;n&quot;: 3, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;C0&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;C-2&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_43_1.png" src="_images/ModelZoo_43_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-SuperEllipse">
+<h3>Exponential SuperEllipse<a class="headerlink" href="#Exponential-SuperEllipse" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential superellipse galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;C0&quot;: 2, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;C0&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;C-2&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_45_1.png" src="_images/ModelZoo_45_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-SuperEllipse">
+<h3>Gaussian SuperEllipse<a class="headerlink" href="#Gaussian-SuperEllipse" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian superellipse galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;C0&quot;: 2, &quot;sigma&quot;: 20, &quot;flux&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;C0&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;C-2&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_47_1.png" src="_images/ModelZoo_47_1.png" />
+</div>
+</div>
+</section>
+<section id="Nuker-SuperEllipse">
+<h3>Nuker SuperEllipse<a class="headerlink" href="#Nuker-SuperEllipse" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;nuker superellipse galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;C0&quot;: 2, &quot;Rb&quot;: 10., &quot;Ib&quot;: 1., &quot;alpha&quot;: 4., &quot;beta&quot;: 3., &quot;gamma&quot;: -0.2},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;C0&#39;, &#39;Rb&#39;, &#39;Ib&#39;, &#39;alpha&#39;, &#39;beta&#39;, &#39;gamma&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;C-2&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;, &#39;none&#39;, &#39;none&#39;, &#39;none&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: divide by zero encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_49_2.png" src="_images/ModelZoo_49_2.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Fourier-Ellipse-Models">
+<h2>Fourier Ellipse Models<a class="headerlink" href="#Fourier-Ellipse-Models" title="Link to this heading"></a></h2>
+<p>A Fourier ellipse is a scaling on the radius values as a function of theta. It takes the form: <span class="math notranslate nohighlight">\(R' = R * exp(\sum_m am*cos(m*theta + phim))\)</span>, where am and phim are the parameters which describe the Fourier perturbations. Using the “modes” argument as a tuple, users can select which Fourier modes are used. As a rough intuition: mode 1 acts like a shift of the model; mode 2 acts like ellipticity; mode 3 makes a lopsided model (triangular in the extreme); and mode 4 makes peanut/diamond
+perturbations.</p>
+<section id="Spline-Fourier">
+<h3>Spline Fourier<a class="headerlink" href="#Spline-Fourier" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fourier_am = np.array([0.1, 0.3, -0.2])
+fourier_phim = np.array([10*np.pi/180, 0, 40*np.pi/180])
+M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline fourier galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;I(R)&quot;: {&quot;value&quot;: spline_profile, &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_52_1.png" src="_images/ModelZoo_52_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-Fourier">
+<h3>Sersic Fourier<a class="headerlink" href="#Sersic-Fourier" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic fourier galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;n&quot;: 3, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_54_1.png" src="_images/ModelZoo_54_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-Fourier">
+<h3>Exponential Fourier<a class="headerlink" href="#Exponential-Fourier" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential fourier galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_56_1.png" src="_images/ModelZoo_56_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-Fourier">
+<h3>Gaussian Fourier<a class="headerlink" href="#Gaussian-Fourier" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian fourier galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;sigma&quot;: 20, &quot;flux&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_58_1.png" src="_images/ModelZoo_58_1.png" />
+</div>
+</div>
+</section>
+<section id="Nuker-Fourier">
+<h3>Nuker Fourier<a class="headerlink" href="#Nuker-Fourier" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;nuker fourier galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;Rb&quot;: 10., &quot;Ib&quot;: 1., &quot;alpha&quot;: 4., &quot;beta&quot;: 3., &quot;gamma&quot;: -0.2},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;Rb&#39;, &#39;Ib&#39;, &#39;alpha&#39;, &#39;beta&#39;, &#39;gamma&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;, &#39;none&#39;, &#39;none&#39;, &#39;none&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: divide by zero encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_60_2.png" src="_images/ModelZoo_60_2.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Warp-Model">
+<h2>Warp Model<a class="headerlink" href="#Warp-Model" title="Link to this heading"></a></h2>
+<p>A warp model performs a radially varying coordinate transform. Essentially instead of applying a rotation matrix <strong>Rot</strong> on all coordinates X,Y we instead construct a unique rotation matrix for each coordinate pair <strong>Rot(R)</strong> where <span class="math notranslate nohighlight">\(R = \sqrt(X^2 + Y^2)\)</span>. We also apply a radially dependent axis ratio <strong>q(R)</strong> to all the coordinates:</p>
+<p><span class="math notranslate nohighlight">\(R = \sqrt(X^2 + Y^2)\)</span></p>
+<p><span class="math notranslate nohighlight">\(X, Y = Rotate(X, Y, PA(R))\)</span></p>
+<p><span class="math notranslate nohighlight">\(Y = Y / q(R)\)</span></p>
+<p>The net effect is a radially varying PA and axis ratio which allows the model to represent spiral arms, bulges, or other features that change the apparent shape of a galaxy in a radially varying way.</p>
+<section id="Spline-Warp">
+<h3>Spline Warp<a class="headerlink" href="#Spline-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>warp_q = np.linspace(0.1,0.4,14)
+warp_pa = np.linspace(0,np.pi-0.2,14)
+M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;I(R)&quot;: {&quot;value&quot;: spline_profile, &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_63_1.png" src="_images/ModelZoo_63_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-Warp">
+<h3>Sersic Warp<a class="headerlink" href="#Sersic-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;n&quot;: 3, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_65_1.png" src="_images/ModelZoo_65_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-Warp">
+<h3>Exponential Warp<a class="headerlink" href="#Exponential-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_67_1.png" src="_images/ModelZoo_67_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-Warp">
+<h3>Gaussian Warp<a class="headerlink" href="#Gaussian-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;sigma&quot;: 30, &quot;flux&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_69_1.png" src="_images/ModelZoo_69_1.png" />
+</div>
+</div>
+</section>
+<section id="Nuker-Warp">
+<h3>Nuker Warp<a class="headerlink" href="#Nuker-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;nuker warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;Rb&quot;: 10., &quot;Ib&quot;: 1., &quot;alpha&quot;: 4., &quot;beta&quot;: 3., &quot;gamma&quot;: -0.2},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;Rb&#39;, &#39;Ib&#39;, &#39;alpha&#39;, &#39;beta&#39;, &#39;gamma&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;, &#39;none&#39;, &#39;none&#39;, &#39;none&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/utils/conversions/units.py:16: RuntimeWarning: divide by zero encountered in log10
+  return -2.5 * np.log10(flux) + zeropoint + 2.5 * np.log10(pixel_area)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_71_2.png" src="_images/ModelZoo_71_2.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Ray-Model">
+<h2>Ray Model<a class="headerlink" href="#Ray-Model" title="Link to this heading"></a></h2>
+<p>A ray model allows the user to break the galaxy up into regions that can be fit separately. There are two basic kinds of ray model: symmetric and asymetric. A symmetric ray model (symmetric_rays = True) assumes 180 degree symmetry of the galaxy and so each ray is reflected through the center. This means that essentially the major axes and the minor axes are being fit separately. For an asymmetric ray model (symmetric_rays = False) each ray is it’s own profile to be fit separately.</p>
+<p>In a ray model there is a smooth boundary between the rays. This smoothness is acomplished by applying a <span class="math notranslate nohighlight">\((\cos(r*theta)+1)/2\)</span> weight to each profile, where r is dependent on the number of rays and theta is shifted to center on each ray in turn. The exact cosine weighting is dependent on if the rays are symmetric and if there is an even or odd number of rays.</p>
+<section id="Spline-Ray">
+<h3>Spline Ray<a class="headerlink" href="#Spline-Ray" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline ray galaxy model&quot;,
+    symmetric_rays = True,
+    rays = 2,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;I(R)&quot;: {&quot;value&quot;: np.array([spline_profile*2, spline_profile]), &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.ray_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_74_1.png" src="_images/ModelZoo_74_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-Ray">
+<h3>Sersic Ray<a class="headerlink" href="#Sersic-Ray" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic ray galaxy model&quot;,
+    symmetric_rays = True,
+    rays = 2,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;n&quot;: [1,3], &quot;Re&quot;: [10,5],&quot;Ie&quot;: [1,0.5]},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.ray_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_76_1.png" src="_images/ModelZoo_76_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-Ray">
+<h3>Exponential Ray<a class="headerlink" href="#Exponential-Ray" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential ray galaxy model&quot;,
+    symmetric_rays = True,
+    rays = 2,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;Re&quot;: [10,5], &quot;Ie&quot;: [1,2]},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.ray_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_78_1.png" src="_images/ModelZoo_78_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-Ray">
+<h3>Gaussian Ray<a class="headerlink" href="#Gaussian-Ray" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian ray galaxy model&quot;,
+    symmetric_rays = True,
+    rays = 2,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;sigma&quot;: [10,20], &quot;flux&quot;: [1.5,1.]},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.ray_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_80_1.png" src="_images/ModelZoo_80_1.png" />
+</div>
+</div>
+</section>
+<section id="Nuker-Ray">
+<h3>Nuker Ray<a class="headerlink" href="#Nuker-Ray" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;nuker ray galaxy model&quot;,
+    symmetric_rays = True,
+    rays = 2,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;Rb&quot;: [10.,1.], &quot;Ib&quot;: [1.,0.], &quot;alpha&quot;: [4.,1.], &quot;beta&quot;: [3.,1.], &quot;gamma&quot;: [-0.2,0.2]},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.ray_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;Rb&#39;, &#39;Ib&#39;, &#39;alpha&#39;, &#39;beta&#39;, &#39;gamma&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;, &#39;none&#39;, &#39;none&#39;, &#39;none&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/connor/Programming/AstroPhot/astrophot/plots/profile.py:197: RuntimeWarning: divide by zero encountered in log10
+  np.log10(model.iradial_model(r, xx).detach().cpu().numpy()),
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_82_2.png" src="_images/ModelZoo_82_2.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Wedge-Model">
+<h2>Wedge Model<a class="headerlink" href="#Wedge-Model" title="Link to this heading"></a></h2>
+<p>A wedge model behaves just like a ray model, except the boundaries are sharp. This has the advantage that the wedges can be very different in brightness without the “smoothing” from the ray model washing out the dimmer one. It also has the advantage of less “mixing” of information between the rays, each one can be counted on to have fit only the pixels in it’s wedge without any influence from a neighbor. However, it has the disadvantage that the discontinuity at the boundary makes fitting behave
+strangely when a bright spot lays near the boundary.</p>
+<section id="Spline-Wedge">
+<h3>Spline Wedge<a class="headerlink" href="#Spline-Wedge" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline wedge galaxy model&quot;,
+    symmetric_wedges = True,
+    wedges = 2,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;I(R)&quot;: {&quot;value&quot;: np.array([spline_profile, spline_profile*2]), &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.wedge_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_85_1.png" src="_images/ModelZoo_85_1.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="High-Order-Warp-Models">
+<h2>High Order Warp Models<a class="headerlink" href="#High-Order-Warp-Models" title="Link to this heading"></a></h2>
+<p>The models below combine the Warp coordinate transform with radial behaviour transforms: SuperEllipse and Fourier. These higher order models can create higly complex shapes, though their scientific use-case is less clear. They are included for completeness as they may be useful in some specific instances. These models are also included to demonstrate the flexibility in making AstroPhot models, in a future tutorial we will discuss how to make your own model types.</p>
+<section id="Spline-SuperEllipse-Warp">
+<h3>Spline SuperEllipse Warp<a class="headerlink" href="#Spline-SuperEllipse-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline superellipse warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;C0&quot;: 2, &quot;I(R)&quot;: {&quot;value&quot;: spline_profile, &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;C0&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;C-2&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_88_1.png" src="_images/ModelZoo_88_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-SuperEllipse-Warp">
+<h3>Sersic SuperEllipse Warp<a class="headerlink" href="#Sersic-SuperEllipse-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic superellipse warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;C0&quot;: 2, &quot;n&quot;: 3, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;C0&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;C-2&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_90_1.png" src="_images/ModelZoo_90_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-SuperEllipse-Warp">
+<h3>Exponential SuperEllipse Warp<a class="headerlink" href="#Exponential-SuperEllipse-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential superellipse warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;C0&quot;: 2, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;C0&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;C-2&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_92_1.png" src="_images/ModelZoo_92_1.png" />
+</div>
+</div>
+</section>
+<section id="Gaussian-SuperEllipse-Warp">
+<h3>Gaussian SuperEllipse Warp<a class="headerlink" href="#Gaussian-SuperEllipse-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian superellipse warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;C0&quot;: 2, &quot;sigma&quot;: 30, &quot;flux&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;C0&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;C-2&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_94_1.png" src="_images/ModelZoo_94_1.png" />
+</div>
+</div>
+</section>
+<section id="Spline-Fourier-Warp">
+<h3>Spline Fourier Warp<a class="headerlink" href="#Spline-Fourier-Warp" title="Link to this heading"></a></h3>
+<p>not sure how this abomination would fit a galaxy, but you are welcome to try</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;spline fourier warp galaxy model&quot;,
+    modes = (1,3,4),
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;I(R)&quot;: {&quot;value&quot;: spline_profile, &quot;prof&quot;: NP_prof}},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;I(R)&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_96_1.png" src="_images/ModelZoo_96_1.png" />
+</div>
+</div>
+</section>
+<section id="Sersic-Fourier-Warp">
+<h3>Sersic Fourier Warp<a class="headerlink" href="#Sersic-Fourier-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;sersic fourier warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;n&quot;: 3, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;n&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;none&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_98_1.png" src="_images/ModelZoo_98_1.png" />
+</div>
+</div>
+</section>
+<section id="Exponential-Fourier-Warp">
+<h3>Exponential Fourier Warp<a class="headerlink" href="#Exponential-Fourier-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;exponential fourier warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;Re&quot;: 10, &quot;Ie&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;Re&#39;, &#39;Ie&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux/arcsec^2)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_100_1.png" src="_images/ModelZoo_100_1.png" />
+</div>
+</div>
+</section>
+<section id="Gassian-Fourier-Warp">
+<h3>Gassian Fourier Warp<a class="headerlink" href="#Gassian-Fourier-Warp" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>M = ap.models.AstroPhot_Model(
+    model_type = &quot;gaussian fourier warp galaxy model&quot;,
+    parameters = {&quot;center&quot;: [50,50], &quot;q&quot;: 0.6, &quot;PA&quot;: 60*np.pi/180, &quot;q(R)&quot;: warp_q, &quot;PA(R)&quot;: warp_pa, &quot;am&quot;: fourier_am, &quot;phim&quot;: fourier_phim, &quot;sigma&quot;: 20, &quot;flux&quot;: 1},
+    target = basic_target
+)
+print(M.parameter_order)
+print(tuple(P.units for P in M.parameters))
+M.initialize()
+
+fig, ax = plt.subplots(1,2, figsize = (14,6))
+ap.plots.model_image(fig, ax[0], M)
+ap.plots.radial_light_profile(fig,ax[1],M)
+ax[0].set_title(M.name)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;center&#39;, &#39;q&#39;, &#39;PA&#39;, &#39;q(R)&#39;, &#39;PA(R)&#39;, &#39;am&#39;, &#39;phim&#39;, &#39;sigma&#39;, &#39;flux&#39;)
+(&#39;arcsec&#39;, &#39;b/a&#39;, &#39;radians&#39;, &#39;b/a&#39;, &#39;rad&#39;, &#39;none&#39;, &#39;radians&#39;, &#39;arcsec&#39;, &#39;log10(flux)&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ModelZoo_102_1.png" src="_images/ModelZoo_102_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="FittingMethods.html" class="btn btn-neutral float-left" title="Fitting Methods" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="JointModels.html" class="btn btn-neutral float-right" title="Joint Modelling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

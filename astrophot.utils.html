@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.utils package &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="astrophot.utils.conversions package" href="astrophot.utils.conversions.html" />
+    <link rel="prev" title="astrophot.plots package" href="astrophot.plots.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">astrophot</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="astrophot.html">astrophot package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="astrophot.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="astrophot.errors.html">astrophot.errors package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.fit.html">astrophot.fit package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.image.html">astrophot.image package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.models.html">astrophot.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.param.html">astrophot.param package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.parse_config.html">astrophot.parse_config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="astrophot.plots.html">astrophot.plots package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">astrophot.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot.AP_config">astrophot.AP_config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.html#module-astrophot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">astrophot</a></li>
+          <li class="breadcrumb-item"><a href="astrophot.html">astrophot package</a></li>
+      <li class="breadcrumb-item active">astrophot.utils package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/astrophot.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="astrophot-utils-package">
+<h1>astrophot.utils package<a class="headerlink" href="#astrophot-utils-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="astrophot.utils.conversions.html">astrophot.utils.conversions package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#module-astrophot.utils.conversions.coordinates">astrophot.utils.conversions.coordinates module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.coordinates.Axis_Ratio_Cartesian"><code class="docutils literal notranslate"><span class="pre">Axis_Ratio_Cartesian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.coordinates.Axis_Ratio_Cartesian_np"><code class="docutils literal notranslate"><span class="pre">Axis_Ratio_Cartesian_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.coordinates.Rotate_Cartesian"><code class="docutils literal notranslate"><span class="pre">Rotate_Cartesian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.coordinates.Rotate_Cartesian_np"><code class="docutils literal notranslate"><span class="pre">Rotate_Cartesian_np()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#module-astrophot.utils.conversions.dict_to_hdf5">astrophot.utils.conversions.dict_to_hdf5 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.dict_to_hdf5.dict_to_hdf5"><code class="docutils literal notranslate"><span class="pre">dict_to_hdf5()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.dict_to_hdf5.hdf5_to_dict"><code class="docutils literal notranslate"><span class="pre">hdf5_to_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.dict_to_hdf5.to_hdf5_has_None"><code class="docutils literal notranslate"><span class="pre">to_hdf5_has_None()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#module-astrophot.utils.conversions.functions">astrophot.utils.conversions.functions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.general_uncertainty_prop"><code class="docutils literal notranslate"><span class="pre">general_uncertainty_prop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.moffat_I0_to_flux"><code class="docutils literal notranslate"><span class="pre">moffat_I0_to_flux()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_I0_to_flux_np"><code class="docutils literal notranslate"><span class="pre">sersic_I0_to_flux_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_I0_to_flux_torch"><code class="docutils literal notranslate"><span class="pre">sersic_I0_to_flux_torch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_Ie_to_flux_np"><code class="docutils literal notranslate"><span class="pre">sersic_Ie_to_flux_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_Ie_to_flux_torch"><code class="docutils literal notranslate"><span class="pre">sersic_Ie_to_flux_torch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_I0_np"><code class="docutils literal notranslate"><span class="pre">sersic_flux_to_I0_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_I0_torch"><code class="docutils literal notranslate"><span class="pre">sersic_flux_to_I0_torch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_Ie_np"><code class="docutils literal notranslate"><span class="pre">sersic_flux_to_Ie_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_flux_to_Ie_torch"><code class="docutils literal notranslate"><span class="pre">sersic_flux_to_Ie_torch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_inv_np"><code class="docutils literal notranslate"><span class="pre">sersic_inv_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_inv_torch"><code class="docutils literal notranslate"><span class="pre">sersic_inv_torch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.functions.sersic_n_to_b"><code class="docutils literal notranslate"><span class="pre">sersic_n_to_b()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#module-astrophot.utils.conversions.optimization">astrophot.utils.conversions.optimization module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.boundaries"><code class="docutils literal notranslate"><span class="pre">boundaries()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.cyclic_boundaries"><code class="docutils literal notranslate"><span class="pre">cyclic_boundaries()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.cyclic_difference_np"><code class="docutils literal notranslate"><span class="pre">cyclic_difference_np()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.cyclic_difference_torch"><code class="docutils literal notranslate"><span class="pre">cyclic_difference_torch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.d_boundaries_dval"><code class="docutils literal notranslate"><span class="pre">d_boundaries_dval()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.d_inv_boundaries_dval"><code class="docutils literal notranslate"><span class="pre">d_inv_boundaries_dval()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.optimization.inv_boundaries"><code class="docutils literal notranslate"><span class="pre">inv_boundaries()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#module-astrophot.utils.conversions.units">astrophot.utils.conversions.units module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.PA_shift_convention"><code class="docutils literal notranslate"><span class="pre">PA_shift_convention()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.flux_to_mag"><code class="docutils literal notranslate"><span class="pre">flux_to_mag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.flux_to_sb"><code class="docutils literal notranslate"><span class="pre">flux_to_sb()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.mag_to_flux"><code class="docutils literal notranslate"><span class="pre">mag_to_flux()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.mag_to_magperarcsec2"><code class="docutils literal notranslate"><span class="pre">mag_to_magperarcsec2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.magperarcsec2_to_mag"><code class="docutils literal notranslate"><span class="pre">magperarcsec2_to_mag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.conversions.html#astrophot.utils.conversions.units.sb_to_flux"><code class="docutils literal notranslate"><span class="pre">sb_to_flux()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.conversions.html#module-astrophot.utils.conversions">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="astrophot.utils.initialize.html">astrophot.utils.initialize package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.initialize.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.initialize.html#module-astrophot.utils.initialize.center">astrophot.utils.initialize.center module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.center.GaussianDensity_Peak"><code class="docutils literal notranslate"><span class="pre">GaussianDensity_Peak()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.center.Lanczos_peak"><code class="docutils literal notranslate"><span class="pre">Lanczos_peak()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.center.center_of_mass"><code class="docutils literal notranslate"><span class="pre">center_of_mass()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.initialize.html#module-astrophot.utils.initialize.construct_psf">astrophot.utils.initialize.construct_psf module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.construct_psf.construct_psf"><code class="docutils literal notranslate"><span class="pre">construct_psf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.construct_psf.gaussian_psf"><code class="docutils literal notranslate"><span class="pre">gaussian_psf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.construct_psf.moffat_psf"><code class="docutils literal notranslate"><span class="pre">moffat_psf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.initialize.html#module-astrophot.utils.initialize.initialize">astrophot.utils.initialize.initialize module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.initialize.isophotes"><code class="docutils literal notranslate"><span class="pre">isophotes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.initialize.html#module-astrophot.utils.initialize.segmentation_map">astrophot.utils.initialize.segmentation_map module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.segmentation_map.PA_from_segmentation_map"><code class="docutils literal notranslate"><span class="pre">PA_from_segmentation_map()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.segmentation_map.centroids_from_segmentation_map"><code class="docutils literal notranslate"><span class="pre">centroids_from_segmentation_map()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.segmentation_map.filter_windows"><code class="docutils literal notranslate"><span class="pre">filter_windows()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.segmentation_map.q_from_segmentation_map"><code class="docutils literal notranslate"><span class="pre">q_from_segmentation_map()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.segmentation_map.scale_windows"><code class="docutils literal notranslate"><span class="pre">scale_windows()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.initialize.html#astrophot.utils.initialize.segmentation_map.windows_from_segmentation_map"><code class="docutils literal notranslate"><span class="pre">windows_from_segmentation_map()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.initialize.html#module-astrophot.utils.initialize">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="astrophot.utils.isophote.html">astrophot.utils.isophote package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.isophote.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.isophote.html#module-astrophot.utils.isophote.ellipse">astrophot.utils.isophote.ellipse module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.ellipse.Rscale_Fmodes"><code class="docutils literal notranslate"><span class="pre">Rscale_Fmodes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.ellipse.Rscale_SuperEllipse"><code class="docutils literal notranslate"><span class="pre">Rscale_SuperEllipse()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.ellipse.parametric_Fmodes"><code class="docutils literal notranslate"><span class="pre">parametric_Fmodes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.ellipse.parametric_SuperEllipse"><code class="docutils literal notranslate"><span class="pre">parametric_SuperEllipse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.isophote.html#module-astrophot.utils.isophote.extract">astrophot.utils.isophote.extract module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.extract.Sigma_Clip_Upper"><code class="docutils literal notranslate"><span class="pre">Sigma_Clip_Upper()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.isophote.html#module-astrophot.utils.isophote.integrate">astrophot.utils.isophote.integrate module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.Fmode_Areas"><code class="docutils literal notranslate"><span class="pre">Fmode_Areas()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.Fmode_fluxdens_to_fluxsum"><code class="docutils literal notranslate"><span class="pre">Fmode_fluxdens_to_fluxsum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.Fmode_fluxdens_to_fluxsum_errorprop"><code class="docutils literal notranslate"><span class="pre">Fmode_fluxdens_to_fluxsum_errorprop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.fluxdens_to_fluxsum"><code class="docutils literal notranslate"><span class="pre">fluxdens_to_fluxsum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="astrophot.utils.isophote.html#astrophot.utils.isophote.integrate.fluxdens_to_fluxsum_errorprop"><code class="docutils literal notranslate"><span class="pre">fluxdens_to_fluxsum_errorprop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="astrophot.utils.isophote.html#module-astrophot.utils.isophote">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-astrophot.utils.angle_operations">
+<span id="astrophot-utils-angle-operations-module"></span><h2>astrophot.utils.angle_operations module<a class="headerlink" href="#module-astrophot.utils.angle_operations" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.angle_operations.Angle_Average">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.angle_operations.</span></span><span class="sig-name descname"><span class="pre">Angle_Average</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/angle_operations.html#Angle_Average"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.angle_operations.Angle_Average" title="Link to this definition"></a></dt>
+<dd><p>Compute the average for a list of angles, which may wrap around a cyclic boundary.</p>
+<p>a: list of angles in the range [0,2pi]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.angle_operations.Angle_COM_PA">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.angle_operations.</span></span><span class="sig-name descname"><span class="pre">Angle_COM_PA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/angle_operations.html#Angle_COM_PA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.angle_operations.Angle_COM_PA" title="Link to this definition"></a></dt>
+<dd><p>Performs a center of angular mass calculation by using the flux as
+weights to compute a position angle which accounts for the general
+“direction” of the light. This PA is computed mod pi since these
+are 180 degree rotation symmetric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flux</strong> – the weight values for each element (by assumption, pixel fluxes) in a 2D array</p></li>
+<li><p><strong>X</strong> – x coordinate of the flux points. Assumed centered pixel indices if not given</p></li>
+<li><p><strong>Y</strong> – y coordinate of the flux points. Assumed centered pixel indices if not given</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.angle_operations.Angle_Median">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.angle_operations.</span></span><span class="sig-name descname"><span class="pre">Angle_Median</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/angle_operations.html#Angle_Median"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.angle_operations.Angle_Median" title="Link to this definition"></a></dt>
+<dd><p>Compute the median for a list of angles, which may wrap around a cyclic boundary.</p>
+<p>a: list of angles in the range [0,2pi]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.angle_operations.Angle_Scatter">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.angle_operations.</span></span><span class="sig-name descname"><span class="pre">Angle_Scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/angle_operations.html#Angle_Scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.angle_operations.Angle_Scatter" title="Link to this definition"></a></dt>
+<dd><p>Compute the scatter for a list of angles, which may wrap around a cyclic boundary.</p>
+<p>a: list of angles in the range [0,2pi]</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.decorators">
+<span id="astrophot-utils-decorators-module"></span><h2>astrophot.utils.decorators module<a class="headerlink" href="#module-astrophot.utils.decorators" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.decorators.default_internal">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.decorators.</span></span><span class="sig-name descname"><span class="pre">default_internal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/decorators.html#default_internal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.decorators.default_internal" title="Link to this definition"></a></dt>
+<dd><p>This decorator inspects the input parameters for a function which
+expects to recieve <cite>image</cite> and <cite>parameters</cite> arguments. If either
+of these are not given, then the model can use its default values
+for the parameters assuming the <cite>image</cite> is the internal <cite>target</cite>
+object and the <cite>parameters</cite> are the internally stored parameters.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.decorators.ignore_numpy_warnings">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.decorators.</span></span><span class="sig-name descname"><span class="pre">ignore_numpy_warnings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/decorators.html#ignore_numpy_warnings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.decorators.ignore_numpy_warnings" title="Link to this definition"></a></dt>
+<dd><p>This decorator is used to turn off numpy warnings. This should
+only be used in initialize scripts which often run heuristic code
+to determine initial parameter values. These heuristics may
+encounter log(0) or sqrt(-1) or other numerical artifacts and
+should handle them before returning. This decorator simply cleans
+up that processes to minimize clutter in the output.</p>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils.interpolate">
+<span id="astrophot-utils-interpolate-module"></span><h2>astrophot.utils.interpolate module<a class="headerlink" href="#module-astrophot.utils.interpolate" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.Lanczos_kernel">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">Lanczos_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#Lanczos_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.Lanczos_kernel" title="Link to this definition"></a></dt>
+<dd><p>Kernel function for Lanczos interpolation, defines the
+interpolation behavior between pixels.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.Lanczos_kernel_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">Lanczos_kernel_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#Lanczos_kernel_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.Lanczos_kernel_np" title="Link to this definition"></a></dt>
+<dd><p>convolution kernel for shifting all pixels in a grid by some
+sub-pixel length.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.cubic_spline_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">cubic_spline_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'const'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#cubic_spline_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.cubic_spline_torch" title="Link to this definition"></a></dt>
+<dd><p>Compute the 1D cubic spline interpolation for the given data points
+using PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – A 1D tensor representing the x-coordinates of the known data points.</p></li>
+<li><p><strong>y</strong> (<em>Tensor</em>) – A 1D tensor representing the y-coordinates of the known data points.</p></li>
+<li><p><strong>xs</strong> (<em>Tensor</em>) – A 1D tensor representing the x-coordinates of the positions where
+the cubic spline function should be evaluated.</p></li>
+<li><p><strong>extend</strong> (<em>str</em><em>, </em><em>optional</em>) – The method for handling extrapolation, either “const” or “linear”.
+Default is “const”.
+“const”: Use the value of the last known data point for extrapolation.
+“linear”: Use linear extrapolation based on the last two known data points.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 1D tensor representing the interpolated values at the specified positions (xs).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.curvature_kernel">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">curvature_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#curvature_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.curvature_kernel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.interp1d_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">interp1d_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#interp1d_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.interp1d_torch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.interp2d">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">interp2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#interp2d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.interp2d" title="Link to this definition"></a></dt>
+<dd><p>Interpolates a 2D image at specified coordinates.
+Similar to <cite>torch.nn.functional.grid_sample</cite> with <cite>align_corners=False</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im</strong> (<em>Tensor</em>) – A 2D tensor representing the image.</p></li>
+<li><p><strong>x</strong> (<em>Tensor</em>) – A tensor of x coordinates (in pixel space) at which to interpolate.</p></li>
+<li><p><strong>y</strong> (<em>Tensor</em>) – A tensor of y coordinates (in pixel space) at which to interpolate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor with the same shape as <cite>x</cite> and <cite>y</cite> containing the interpolated values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.interpolate_Lanczos">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">interpolate_Lanczos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#interpolate_Lanczos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.interpolate_Lanczos" title="Link to this definition"></a></dt>
+<dd><p>Perform Lanczos interpolation on an image at a series of specified points.
+<a class="reference external" href="https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html">https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.interpolate_Lanczos_grid">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">interpolate_Lanczos_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#interpolate_Lanczos_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.interpolate_Lanczos_grid" title="Link to this definition"></a></dt>
+<dd><p>Perform Lanczos interpolation at a grid of points.
+<a class="reference external" href="https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html">https://pixinsight.com/doc/docs/InterpolationAlgorithms/InterpolationAlgorithms.html</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.interpolate_bicubic">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">interpolate_bicubic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#interpolate_bicubic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.interpolate_bicubic" title="Link to this definition"></a></dt>
+<dd><p>wrapper for scipy bivariate spline interpolation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.point_Lanczos">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">point_Lanczos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#point_Lanczos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.point_Lanczos" title="Link to this definition"></a></dt>
+<dd><p>Apply Lanczos interpolation to evaluate a single point.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.shift_Lanczos_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">shift_Lanczos_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#shift_Lanczos_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.shift_Lanczos_np" title="Link to this definition"></a></dt>
+<dd><p>Apply Lanczos interpolation to shift by less than a pixel in x and
+y.</p>
+<p>I: the image
+dx: amount by which the grid will be moved in the x-axis (the “data” is fixed and the grid moves). Should be a value from (-0.5,0.5)
+dy: amount by which the grid will be moved in the y-axis (the “data” is fixed and the grid moves). Should be a value from (-0.5,0.5)
+scale: dictates size of the Lanczos kernel. Full kernel size is 2*scale+1</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.shift_Lanczos_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">shift_Lanczos_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_prepadded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#shift_Lanczos_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.shift_Lanczos_torch" title="Link to this definition"></a></dt>
+<dd><p>Apply Lanczos interpolation to shift by less than a pixel in x and
+y.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.interpolate.simpsons_kernel">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">simpsons_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/interpolate.html#simpsons_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.interpolate.simpsons_kernel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.utils.operations">
+<span id="astrophot-utils-operations-module"></span><h2>astrophot.utils.operations module<a class="headerlink" href="#module-astrophot.utils.operations" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.displacement_grid">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">displacement_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixelscale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#displacement_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.displacement_grid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.displacement_spacing">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">displacement_spacing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#displacement_spacing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.displacement_spacing" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.fft_convolve_multi_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">fft_convolve_multi_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_fft</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_prepadded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#fft_convolve_multi_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.fft_convolve_multi_torch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.fft_convolve_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">fft_convolve_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_fft</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_prepadded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#fft_convolve_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.fft_convolve_torch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.grid_integrate">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">grid_integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_brightness</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quad_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gridding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_current_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#grid_integrate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.grid_integrate" title="Link to this definition"></a></dt>
+<dd><p>The grid_integrate function performs adaptive quadrature
+integration over a given pixel grid, offering precision control
+where it is needed most.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>torch.Tensor</em>) – A 2D tensor representing the x-coordinates of the grid on which the function will be integrated.</p></li>
+<li><p><strong>Y</strong> (<em>torch.Tensor</em>) – A 2D tensor representing the y-coordinates of the grid on which the function will be integrated.</p></li>
+<li><p><strong>image_header</strong> (<em>ImageHeader</em>) – An object containing meta-information about the image.</p></li>
+<li><p><strong>eval_brightness</strong> (<em>callable</em>) – A function that evaluates the brightness at each grid point. This function should be compatible with PyTorch tensor operations.</p></li>
+<li><p><strong>eval_parameters</strong> (<em>Parameter_Group</em>) – An object containing parameters that are passed to the eval_brightness function.</p></li>
+<li><p><strong>dtype</strong> (<em>torch.dtype</em>) – The data type of the output tensor. The dtype argument should be a valid PyTorch data type.</p></li>
+<li><p><strong>device</strong> (<em>torch.device</em>) – The device on which to perform the computations. The device argument should be a valid PyTorch device.</p></li>
+<li><p><strong>quad_level</strong> (<em>int</em><em>, </em><em>optional</em>) – The initial level of quadrature used in the integration. Defaults to 3.</p></li>
+<li><p><strong>gridding</strong> (<em>int</em><em>, </em><em>optional</em>) – The factor by which the grid is subdivided when the integration error for a pixel is above the allowed threshold. Defaults to 5.</p></li>
+<li><p><strong>_current_depth</strong> (<em>int</em><em>, </em><em>optional</em>) – The current depth level of the grid subdivision. Used for recursive calls to the function. Defaults to 1.</p></li>
+<li><p><strong>max_depth</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum depth level of grid subdivision. Once this level is reached, no further subdivision is performed. Defaults to 2.</p></li>
+<li><p><strong>reference</strong> (<em>torch.Tensor</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – A scalar value that represents the allowed threshold for the integration error.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tensor of the same shape as X and Y that represents the result of the integration on the grid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+<p>This function operates by first performing a quadrature
+integration over the given pixels. If the maximum depth level has
+been reached, it simply returns the result. Otherwise, it
+calculates the integration error for each pixel and selects those
+that have an error above the allowed threshold. For pixels that
+have low error, the result is set as computed. For those with high
+error, it sets up a finer sampling grid and recursively evaluates
+the quadrature integration on it. Finally, it integrates the
+results from the finer sampling grid back to the current
+resolution.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.quad_table">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">quad_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#quad_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.quad_table" title="Link to this definition"></a></dt>
+<dd><p>from: <a class="reference external" href="https://pomax.github.io/bezierinfo/legendre-gauss.html">https://pomax.github.io/bezierinfo/legendre-gauss.html</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.operations.single_quad_integrate">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.operations.</span></span><span class="sig-name descname"><span class="pre">single_quad_integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_brightness</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quad_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/operations.html#single_quad_integrate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.operations.single_quad_integrate" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.utils.optimization">
+<span id="astrophot-utils-optimization-module"></span><h2>astrophot.utils.optimization module<a class="headerlink" href="#module-astrophot.utils.optimization" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.optimization.chi_squared">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.optimization.</span></span><span class="sig-name descname"><span class="pre">chi_squared</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/optimization.html#chi_squared"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.optimization.chi_squared" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.optimization.reduced_chi_squared">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.optimization.</span></span><span class="sig-name descname"><span class="pre">reduced_chi_squared</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/optimization.html#reduced_chi_squared"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.optimization.reduced_chi_squared" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-astrophot.utils.parametric_profiles">
+<span id="astrophot-utils-parametric-profiles-module"></span><h2>astrophot.utils.parametric_profiles module<a class="headerlink" href="#module-astrophot.utils.parametric_profiles" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.exponential_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">exponential_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#exponential_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.exponential_np" title="Link to this definition"></a></dt>
+<dd><p>Exponential 1d profile function, works more generally with numpy
+operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii array at which to evaluate the sersic function</p></li>
+<li><p><strong>Re</strong> – Effective radius in the same units as R</p></li>
+<li><p><strong>Ie</strong> – Effective surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.exponential_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">exponential_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#exponential_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.exponential_torch" title="Link to this definition"></a></dt>
+<dd><p>Exponential 1d profile function, specifically designed for pytorch
+operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the sersic function</p></li>
+<li><p><strong>Re</strong> – Effective radius in the same units as R</p></li>
+<li><p><strong>Ie</strong> – Effective surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.gaussian_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">gaussian_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#gaussian_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.gaussian_np" title="Link to this definition"></a></dt>
+<dd><p>Gaussian 1d profile function, works more generally with numpy
+operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii array at which to evaluate the sersic function</p></li>
+<li><p><strong>sigma</strong> – standard deviation of the gaussian in the same units as R</p></li>
+<li><p><strong>I0</strong> – central surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.gaussian_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">gaussian_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#gaussian_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.gaussian_torch" title="Link to this definition"></a></dt>
+<dd><p>Gaussian 1d profile function, specifically designed for pytorch
+operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the sersic function</p></li>
+<li><p><strong>sigma</strong> – standard deviation of the gaussian in the same units as R</p></li>
+<li><p><strong>I0</strong> – central surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.moffat_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">moffat_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#moffat_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.moffat_np" title="Link to this definition"></a></dt>
+<dd><p>Moffat 1d profile function, works with numpy operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the moffat function</p></li>
+<li><p><strong>n</strong> – concentration index</p></li>
+<li><p><strong>Rd</strong> – scale length in the same units as R</p></li>
+<li><p><strong>I0</strong> – central surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.moffat_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">moffat_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#moffat_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.moffat_torch" title="Link to this definition"></a></dt>
+<dd><p>Moffat 1d profile function, specifically designed for pytorch
+operations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the moffat function</p></li>
+<li><p><strong>n</strong> – concentration index</p></li>
+<li><p><strong>Rd</strong> – scale length in the same units as R</p></li>
+<li><p><strong>I0</strong> – central surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.nuker_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">nuker_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ib</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#nuker_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.nuker_np" title="Link to this definition"></a></dt>
+<dd><p>Nuker 1d profile function, works with numpy functions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the nuker function</p></li>
+<li><p><strong>Ib</strong> – brightness at the scale length, represented as the log of the brightness divided by pixel scale squared.</p></li>
+<li><p><strong>Rb</strong> – scale length radius</p></li>
+<li><p><strong>alpha</strong> – sharpness of transition between power law slopes</p></li>
+<li><p><strong>beta</strong> – outer power law slope</p></li>
+<li><p><strong>gamma</strong> – inner power law slope</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.nuker_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">nuker_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ib</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#nuker_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.nuker_torch" title="Link to this definition"></a></dt>
+<dd><p>Nuker 1d profile function, specifically designed for pytorch
+operations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the nuker function</p></li>
+<li><p><strong>Ib</strong> – brightness at the scale length, represented as the log of the brightness divided by pixel scale squared.</p></li>
+<li><p><strong>Rb</strong> – scale length radius</p></li>
+<li><p><strong>alpha</strong> – sharpness of transition between power law slopes</p></li>
+<li><p><strong>beta</strong> – outer power law slope</p></li>
+<li><p><strong>gamma</strong> – inner power law slope</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.sersic_np">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">sersic_np</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#sersic_np"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.sersic_np" title="Link to this definition"></a></dt>
+<dd><p>Sersic 1d profile function, works more generally with numpy
+operations. In the event that impossible values are passed to the
+function it returns large values to guide optimizers away from
+such values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii array at which to evaluate the sersic function</p></li>
+<li><p><strong>n</strong> – sersic index restricted to n &gt; 0.36</p></li>
+<li><p><strong>Re</strong> – Effective radius in the same units as R</p></li>
+<li><p><strong>Ie</strong> – Effective surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.sersic_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">sersic_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#sersic_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.sersic_torch" title="Link to this definition"></a></dt>
+<dd><p>Seric 1d profile function, specifically designed for pytorch
+operations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the sersic function</p></li>
+<li><p><strong>n</strong> – sersic index restricted to n &gt; 0.36</p></li>
+<li><p><strong>Re</strong> – Effective radius in the same units as R</p></li>
+<li><p><strong>Ie</strong> – Effective surface density</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="astrophot.utils.parametric_profiles.spline_torch">
+<span class="sig-prename descclassname"><span class="pre">astrophot.utils.parametric_profiles.</span></span><span class="sig-name descname"><span class="pre">spline_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profI</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/astrophot/utils/parametric_profiles.html#spline_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#astrophot.utils.parametric_profiles.spline_torch" title="Link to this definition"></a></dt>
+<dd><p>Spline 1d profile function, cubic spline between points up
+to second last point beyond which is linear, specifically designed
+for pytorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R</strong> – Radii tensor at which to evaluate the sersic function</p></li>
+<li><p><strong>profR</strong> – radius values for the surface density profile in the same units as R</p></li>
+<li><p><strong>profI</strong> – surface density values for the surface density profile</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-astrophot.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-astrophot.utils" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="astrophot.plots.html" class="btn btn-neutral float-left" title="astrophot.plots package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="astrophot.utils.conversions.html" class="btn btn-neutral float-right" title="astrophot.utils.conversions package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

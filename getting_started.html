@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorials" href="tutorials.html" />
+    <link rel="prev" title="Installation" href="install.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-astrophot-code-philosophy">Basic AstroPhot code philosophy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-tutorials">Using the Tutorials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-org-chart">Model Org Chart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detailed-documentation">Detailed Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<p>First follow the installation instructions, then come here to learn how to use AstroPhot for the first time.</p>
+<section id="basic-astrophot-code-philosophy">
+<h2>Basic AstroPhot code philosophy<a class="headerlink" href="#basic-astrophot-code-philosophy" title="Link to this heading"></a></h2>
+<p>AstroPhot is a modular and object oriented astronomical image modelling package. Modularity means that it is relatively simple to change or replace one aspect of the code without breaking everything else. A modular framework makes the code extensible to a wide range of photometry applications, though it comes with a small performance penalty (which is made up for by the powerful pytorch backend). As an object oriented package that means the code can be interfaced more intuitively. For example if you have two image objects <cite>image1</cite> and <cite>image2</cite> it is possible to combine them with a plus sign: <cite>image3 = image1 + image2</cite> and the behaviour should be as expected. Most interfaces to AstroPhot functionality have relatively intuitive names and try to behave the way you would expect. This makes the experience more user friendly hopefully meaning that you can quickly take advantage of the powerful features avaialable.</p>
+<p>One of the core components of AstroPhot is the model objects, these are organized in a class hierarchy with several layers of inheritance. While this is not considered best programming practice for many situations, in AstroPhot it is very intentional and we think helpful to users. With this hierarchy it is very easy to customize a model to suit your needs without needing to rewrite a great deal of code. Simply access the point in the hierarcy which most closely matches your desired result and make minor modifications. In the tutorials you can see how detailed models can be implemented with only a few lines of code even though the user has complete freedom to change any aspect of the model.</p>
+</section>
+<section id="install">
+<h2>Install<a class="headerlink" href="#install" title="Link to this heading"></a></h2>
+<p>For most users, you can just run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">astrophot</span>
+</pre></div>
+</div>
+<p>If you wish to help with the development, then see the <a class="reference external" href="https://github.com/Autostronomy/AstroPhot/blob/main/CONTRIBUTING.md">contributing guide</a>.</p>
+</section>
+<section id="using-the-tutorials">
+<h2>Using the Tutorials<a class="headerlink" href="#using-the-tutorials" title="Link to this heading"></a></h2>
+<p>The easiest way to get started using AstroPhot is to try running the jupyter notebook tutorials. Simply make a new directory where you want to run the tutorials then run the:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">astrophot</span> <span class="n">tutorials</span>
+</pre></div>
+</div>
+<p>command to download the AstroPhot tutorials. If you run into difficulty with this, you can also access the tutorials directly at <a class="reference internal" href="tutorials.html"><span class="doc">Tutorials</span></a> to download as PDFs. Once you have the tutorials, start a jupyter session and run through them. The recommended order is:</p>
+<ol class="arabic simple">
+<li><p>GettingStarted</p></li>
+<li><p>GroupModels</p></li>
+<li><p>FittingMethods</p></li>
+<li><p>ModelZoo</p></li>
+<li><p>JointModels</p></li>
+<li><p>CustomModels</p></li>
+<li><p>AdvancedPSFModels</p></li>
+</ol>
+<p>When downloading the tutorials, you will also get a file called <code class="docutils literal notranslate"><span class="pre">simple_config.py</span></code>, this is an example AstroPhot config file. Configuration files are an alternate interface to the AstroPhot functionality. They are somewhat more limited in capacity, but very easy to interface with. See the guide on configuration files here: <a class="reference internal" href="configfile_interface.html"><span class="doc">Configuration File Interface</span></a> .</p>
+</section>
+<section id="model-org-chart">
+<h2>Model Org Chart<a class="headerlink" href="#model-org-chart" title="Link to this heading"></a></h2>
+<p>As a quick reference for what kinds of models are available in AstroPhot, the org chart shows you the class hierarchy where the leaf nodes at the bottom are the models that can actually be used. Following different paths through the hierarchy gives models with different properties. Just use the second line at each step in the flow chart to construct the name. For example one could follow a fairly direct path to get a <code class="docutils literal notranslate"><span class="pre">sersic</span> <span class="pre">galaxy</span> <span class="pre">model</span></code>, or a more complex path to get a <code class="docutils literal notranslate"><span class="pre">nuker</span> <span class="pre">fourier</span> <span class="pre">warp</span> <span class="pre">galaxy</span> <span class="pre">model</span></code>. Note that the <code class="docutils literal notranslate"><span class="pre">Component_Model</span></code> object doesn’t have an identifier, it is really meant to hide in the background while its subclasses do the work.</p>
+<a class="reference internal image-reference" href="https://github.com/Autostronomy/AstroPhot/blob/main/media/AstroPhotModelOrgchart.png?raw=true"><img alt="AstroPhot Model Org Chart" src="https://github.com/Autostronomy/AstroPhot/blob/main/media/AstroPhotModelOrgchart.png?raw=true" style="width: 100%;" /></a>
+</section>
+<section id="detailed-documentation">
+<h2>Detailed Documentation<a class="headerlink" href="#detailed-documentation" title="Link to this heading"></a></h2>
+<p>Detailed documentation can be found by navigating the <code class="docutils literal notranslate"><span class="pre">astrophot</span></code> link tree on the left. Currently it is not very organized, but detailed information can be found on just about every AstroPhot system there. Further organization will come to make it easier to navigate. For now you can also just search the model type you are interested in, in the search bar.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="install.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

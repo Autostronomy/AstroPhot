@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coordinates &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Troubleshooting" href="troubleshooting.html" />
+    <link rel="prev" title="Constrained Models" href="ConstrainedModels.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Coordinates</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#projection-systems">Projection Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#talking-to-the-world">Talking to the world</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coordinate-reference-points">Coordinate reference points</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Coordinates</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/coordinates.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="coordinates">
+<h1>Coordinates<a class="headerlink" href="#coordinates" title="Link to this heading"></a></h1>
+<p>Coordinate systems in astronomy can be complicated, AstroPhot is no
+different. Here we explain how coordinate systems are handled to help
+you avoid possible pitfalls.</p>
+<section id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Link to this heading"></a></h2>
+<p>There are three main coordinate systems to think about.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">world</span></code> coordinates are the classic (RA, DEC) that many
+astronomical sources are represented in. These should always be
+used in degree units as far as AstroPhot is concerned.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plane</span></code> coordinates are the tangent plane on which AstroPhot
+performs its calculations. Working on a plane makes everything
+linear and does not introduce a noticible effect for small enough
+images. In the tangent plane everything should be represented in
+arcsecond units.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pixel</span></code> coordinates are specific to each image, they start at
+(0,0) in the center of the [0,0] indexed pixel. These are
+effectively unitless, a step of 1 in pixel coordinates is the same
+as changing an index by 1. Though image array indexing is flipped
+so pixel coordinate (3,10) represents the center of the index
+[10,3] pixel. It is a convention for most images that the first
+axis indexes vertically and the second axis indexis horizontally,
+if this is not the case for oyur images you can apply a transpose
+before passing the data to AstroPhot. Also, in the pixel coordinate
+system the values are represented by floating point numbers and so
+(1.3,2.8) is a valid pixel coordinate that is just partway between
+pixel centers.</p></li>
+</ol>
+<p>Tranformations exist in AstroPhot for converting <code class="docutils literal notranslate"><span class="pre">world</span></code> to/from
+<code class="docutils literal notranslate"><span class="pre">plane</span></code> and for converting <code class="docutils literal notranslate"><span class="pre">plane</span></code> to/from <code class="docutils literal notranslate"><span class="pre">pixel</span></code>. The best way
+to interface with these is to use the <code class="docutils literal notranslate"><span class="pre">image.window.world_to_plane</span></code>
+for any AstroPhot image object (you may similarly swap <code class="docutils literal notranslate"><span class="pre">world</span></code>,
+<code class="docutils literal notranslate"><span class="pre">plane</span></code>, and <code class="docutils literal notranslate"><span class="pre">pixel</span></code>).</p>
+<p>One gotcha to keep in mind with regards to <code class="docutils literal notranslate"><span class="pre">world_to_plane</span></code> and
+<code class="docutils literal notranslate"><span class="pre">plane_to_world</span></code> is that AstroPhot needs to know the reference
+(RA_0, DEC_0) where the tangent plane meets with the celestial
+sphere. You can set this by including <code class="docutils literal notranslate"><span class="pre">reference_radec</span> <span class="pre">=</span> <span class="pre">(RA_0,</span>
+<span class="pre">DEC_0)</span></code> as an argument in an image you create.  If a reference is not
+given, then one will be assumed based on available information. Note
+that if you are doing simultaneous multi-image analysis you should
+ensure that the <code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> is same for all images!</p>
+</section>
+<section id="projection-systems">
+<h2>Projection Systems<a class="headerlink" href="#projection-systems" title="Link to this heading"></a></h2>
+<p>AstroPhot currently implements three coordinate reference systems:
+Gnomonic, Orthographic, and Steriographic. The default projection is
+the Gnomonic, which represents the perspective of an observer at the
+center of a sphere projected onto a plane. For the exact
+implementation by AstroPhot see the <a class="reference external" href="https://mathworld.wolfram.com/GnomonicProjection.html">Wolfram MathWorld</a> page.</p>
+<p>On small scales the choice of projection doesn’t matter. For very
+large images the effect may be detectable, though it is likely
+insignificant compared to other effects in an image. Just like the
+<code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> you can choose your projection system in an image
+you construct by passing <code class="docutils literal notranslate"><span class="pre">projection</span> <span class="pre">=</span> <span class="pre">'gnomonic'</span></code> as an argument.
+Just like with the reference coordinate, for images to “talk” to each
+other they should have the same projection.</p>
+<p>If you really want to change the projection after an image has
+been created (warning, this may cause serious missalignments between
+images), you can force it to update with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">image</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="s1">&#39;steriographic&#39;</span>
+</pre></div>
+</div>
+<p>which would change the projection to steriographic. The image won’t
+recompute its position in the new projection system, it will just use
+new equations going forward. Hence the potential to seriously mess up
+your image alignmnt if this is done after some calculations have
+already been performed.</p>
+</section>
+<section id="talking-to-the-world">
+<h2>Talking to the world<a class="headerlink" href="#talking-to-the-world" title="Link to this heading"></a></h2>
+<p>If you have images with WCS information then you will want to use this
+to map images onto the same tangent plane. Often this will take the
+form of information in a FITS file, which can easily be accessed using
+Astropy like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;myimage.fits&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>That is somewhat described in the basics section, however there are
+some more features you can take advantage of. When creating an image
+in AstroPhot, you need to tell it some basic properties so that the
+image knows how to place itself in the tangent plane. Using the
+Astropy WCS object above you can recover the reference coordinates
+of the image in (RA, DEC), for an example Astropy wcs object you could
+accomplish this with:</p>
+<blockquote>
+<div><p>ra, dec = wcs.wcs.crval</p>
+</div></blockquote>
+<p>meaning that you know the world position of the reference RA, Dec
+of the image WCS.  To have
+AstroPhot place the image at the right location in the tangent plane
+you can use the <code class="docutils literal notranslate"><span class="pre">wcs</span></code> argument when constructing the image:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">Target_Image</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+    <span class="n">reference_radec</span> <span class="o">=</span> <span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">),</span>
+    <span class="n">wcs</span> <span class="o">=</span> <span class="n">wcs</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>AstroPhot will set the reference RA, DEC to these coordinates and also
+set the image in the correct position. A more explicit alternative is
+to just say what the reference coordinate should be. That would look
+something like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">Target_Image</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+    <span class="n">pixelscale</span> <span class="o">=</span> <span class="n">pixelscale</span><span class="p">,</span>
+    <span class="n">reference_radec</span> <span class="o">=</span> <span class="p">(</span><span class="n">ra</span><span class="p">,</span><span class="n">dec</span><span class="p">),</span>
+    <span class="n">reference_imagexy</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>which uniquely defines the position of the image in the coordinate
+system. Remember that the <code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> should be the same for
+all images in a multi-image analysis, while <code class="docutils literal notranslate"><span class="pre">reference_imagexy</span></code>
+specifies the position of a particular image.  Another similar option is to set
+<code class="docutils literal notranslate"><span class="pre">center_radec</span></code> like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">Target_Image</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+    <span class="n">pixelscale</span> <span class="o">=</span> <span class="n">pixelscale</span><span class="p">,</span>
+    <span class="n">reference_radec</span> <span class="o">=</span> <span class="p">(</span><span class="n">ra</span><span class="p">,</span><span class="n">dec</span><span class="p">),</span>
+    <span class="n">center_radec</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_ra</span><span class="p">,</span> <span class="n">c_dec</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>You may also have a catalogue of objects that you would like to
+project into the image. The easiest way to do this if you already have
+an image object is to call the <code class="docutils literal notranslate"><span class="pre">world_to_plane</span></code> functions
+manually. Say for example that you know the object position as an
+Astropy <code class="docutils literal notranslate"><span class="pre">SkyCoord</span></code> object, and you want to use this to set the
+center position of a sersic model. That would look like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">AstroPhot_Model</span><span class="p">(</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;knowloc&quot;</span><span class="p">,</span>
+    <span class="n">model_type</span> <span class="o">=</span> <span class="s2">&quot;sersic galaxy model&quot;</span><span class="p">,</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">image</span><span class="p">,</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">world_to_plane</span><span class="p">(</span><span class="n">obj_pos</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">obj_pos</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">deg</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Which will start the object at the correct position in the image given
+its world coordinates. As you can see, the <code class="docutils literal notranslate"><span class="pre">center</span></code> and in fact all
+parameters for AstroPhot models are defined in the tangent plane. This
+means that if you have optimized a model and you would like to present
+its position in world coordinates that can be compared with other
+sources, you will need to do the opposite operation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">world_position</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">plane_to_world</span><span class="p">(</span><span class="n">model</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>That should assign <code class="docutils literal notranslate"><span class="pre">world_position</span></code> the coordinates in RA and DEC
+(degrees), assuming that you initialized the image with a WCS or by
+other means ensured that the world coordinates being used are
+correct. If you never gave AstroPhot the information it needs, then it
+likely assumed a reference position of (0,0) in the world coordinate
+system.</p>
+</section>
+<section id="coordinate-reference-points">
+<h2>Coordinate reference points<a class="headerlink" href="#coordinate-reference-points" title="Link to this heading"></a></h2>
+<p>As stated earlier, there are essentially three coordinate systems in
+AstroPhot: <code class="docutils literal notranslate"><span class="pre">world</span></code>, <code class="docutils literal notranslate"><span class="pre">plane</span></code>, and <code class="docutils literal notranslate"><span class="pre">pixel</span></code>. To uniquely specify
+the transformation from <code class="docutils literal notranslate"><span class="pre">world</span></code> to <code class="docutils literal notranslate"><span class="pre">plane</span></code> AstroPhot keeps track
+of two vectors: <code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> and <code class="docutils literal notranslate"><span class="pre">reference_planexy</span></code>. These
+variables are stored in all <code class="docutils literal notranslate"><span class="pre">Image_Header</span></code> objects and essentially
+pin down the mapping such that one coordinate will get mapped to the
+other. All other coordinates follow from the projection system assumed
+(i.e., Gnomonic). It is possible to specify these variables directly
+when constructing an image, or implicitly if you give some other
+relevant information (e.g., an Astropy WCS). AstroPhot Window objects
+also keep track of two more vectors: <code class="docutils literal notranslate"><span class="pre">reference_imageij</span></code> and
+<code class="docutils literal notranslate"><span class="pre">reference_imagexy</span></code>. These variables control where an image is
+placed in the tangent plane and represent a fixed point between the
+pixel coordinates and the tangent plane coordinates. If your pixel
+scale matrix includes a rotation then the rotation will be performed
+about this position.</p>
+<p>All together, these reference positions define how pixels are mapped
+in AstroPhot. This level of generality is overkill for analyzing a
+single image, so AstroPhot makes reasonable assumptions about these
+reference points if you don’t specify them all. This makes it easy to
+do single image analysis without thinking too much about the
+coordinate systems. However, for multi-band or multi-epoch imaging it
+is critical to be absolutely clear about these coordinate
+transformations so that images can be aligned properly on the sky. As
+an intuitive explanation, think of <code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> and
+<code class="docutils literal notranslate"><span class="pre">reference_planexy</span></code> as defining the coordinate system that is shared
+between images, while <code class="docutils literal notranslate"><span class="pre">reference_imageij</span></code> and <code class="docutils literal notranslate"><span class="pre">reference_imagexy</span></code>
+specify where a single image is located. As such, in multi-image
+analysis if you wish to use world coordinates, you should explitcitly
+pass the same <code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> and <code class="docutils literal notranslate"><span class="pre">reference_planexy</span></code> to every
+image so that the same coordinate system is defined for all of them
+(the same tangent plane at the same point on the celestial sphere). If
+you aren’t going to interact with world coordinates, you can ignore
+those reference points entirely and it won’t affect your images.</p>
+<p>Below is a summary of the reference coordinates and their meaning:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_radec</span></code> world coordinates on the celestial sphere (RA,
+DEC in degrees) where the tangent plane makes contact. This should
+be the same for every image in a multi-image analysis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_planexy</span></code> tangent plane coordinates (arcsec) where it
+makes contact with the celesial sphere. This should typically be
+(0,0) though that is not stricktly enforced (it is assumed if not
+given). This reference coordinate should be the same for all
+images in a multi-image analysis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_imageij</span></code> pixel coordinates about which the image is
+defined. For example in an Astropy WCS object the wcs.wcs.crpix
+array gives the pixel coordinate reference point for which the
+world coordinate mapping (wcs.wcs.crval) is defined. One may think
+of the referenced pixel location as being “pinned” to the tangent
+plane. This may be different for each image in a multi-image
+analysis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_imagexy</span></code> tangent plane coordinates (arcsec) about
+which the image is defined. This is the pivot point about which the
+pixelscale matrix operates, therefore if the pixelscale matrix
+defines a rotation then this is the coordinate about which the
+rotation will be performed. This may be different for each image in
+a multi-image analysis.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ConstrainedModels.html" class="btn btn-neutral float-left" title="Constrained Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="troubleshooting.html" class="btn btn-neutral float-right" title="Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

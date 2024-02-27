@@ -1,0 +1,37 @@
+astrophot.parse\_config package
+===============================
+
+Submodules
+----------
+
+astrophot.parse\_config.basic\_config module
+--------------------------------------------
+
+.. automodule:: astrophot.parse_config.basic_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.parse\_config.galfit\_config module
+---------------------------------------------
+
+.. automodule:: astrophot.parse_config.galfit_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+astrophot.parse\_config.shared\_methods module
+----------------------------------------------
+
+.. automodule:: astrophot.parse_config.shared_methods
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot.parse_config
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.models.foureirellipse_model &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.models.foureirellipse_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.models.foureirellipse_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils.decorators</span> <span class="kn">import</span> <span class="n">ignore_numpy_warnings</span><span class="p">,</span> <span class="n">default_internal</span>
+<span class="kn">from</span> <span class="nn">.galaxy_model_object</span> <span class="kn">import</span> <span class="n">Galaxy_Model</span>
+<span class="kn">from</span> <span class="nn">.warp_model</span> <span class="kn">import</span> <span class="n">Warp_Galaxy</span>
+<span class="kn">from</span> <span class="nn">._shared_methods</span> <span class="kn">import</span> <span class="n">select_target</span>
+<span class="kn">from</span> <span class="nn">..param</span> <span class="kn">import</span> <span class="n">Param_Unlock</span><span class="p">,</span> <span class="n">Param_SoftLimits</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;FourierEllipse_Galaxy&quot;</span><span class="p">,</span> <span class="s2">&quot;FourierEllipse_Warp&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="FourierEllipse_Galaxy">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Galaxy">[docs]</a>
+<span class="k">class</span> <span class="nc">FourierEllipse_Galaxy</span><span class="p">(</span><span class="n">Galaxy_Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Expanded galaxy model which includes a Fourier transformation in</span>
+<span class="sd">    its radius metric. This allows for the expression of arbitrarily</span>
+<span class="sd">    complex isophotes instead of pure ellipses. This is a common</span>
+<span class="sd">    extension of the standard elliptical representation. The form of</span>
+<span class="sd">    the Fourier perturbations is:</span>
+
+<span class="sd">    R&#39; = R * exp(sum_m(a_m * cos(m * theta + phi_m)))</span>
+
+<span class="sd">    where R&#39; is the new radius value, R is the original ellipse</span>
+<span class="sd">    radius, a_m is the amplitude of the m&#39;th Fourier mode, m is the</span>
+<span class="sd">    index of the Fourier mode, theta is the angle around the ellipse,</span>
+<span class="sd">    and phi_m is the phase of the m&#39;th fourier mode. This</span>
+<span class="sd">    representation is somewhat different from other Fourier mode</span>
+<span class="sd">    implimentations where instead of an expoenntial it is just 1 +</span>
+<span class="sd">    sum_m(...), we opt for this formulation as it is more numerically</span>
+<span class="sd">    stable. It cannot ever produce negative radii, but to first order</span>
+<span class="sd">    the two representation are the same as can be seen by a Taylor</span>
+<span class="sd">    expansion of exp(x) = 1 + x + O(x^2).</span>
+
+<span class="sd">    One can create extrememly complex shapes using different Fourier</span>
+<span class="sd">    modes, however usually it is only low order modes that are of</span>
+<span class="sd">    interest. For intuition, the first Fourier mode is roughly</span>
+<span class="sd">    equivalent to a lopsided galaxy, one side will be compressed and</span>
+<span class="sd">    the opposite side will be expanded. The second mode is almost</span>
+<span class="sd">    never used as it is nearly degenerate with ellipticity. The third</span>
+<span class="sd">    mode is an alternate kind of lopsidedness for a galaxy which makes</span>
+<span class="sd">    it somewhat triangular, meaning that it is wider on one side than</span>
+<span class="sd">    the other. The fourth mode is similar to a boxyness/diskyness</span>
+<span class="sd">    parameter which tends to make more pronounced peanut shapes since</span>
+<span class="sd">    it is more rounded than a superellipse representation. Modes</span>
+<span class="sd">    higher than 4 are only useful in very specialized situations. In</span>
+<span class="sd">    general one should consider carefully why the Fourier modes are</span>
+<span class="sd">    being used for the science case at hand.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        am: Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.</span>
+<span class="sd">        phi_m: Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis. It is cyclically defined in the range [0,2pi)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;fourier </span><span class="si">{</span><span class="n">Galaxy_Model</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;am&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">},</span>
+        <span class="s2">&quot;phim&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;radians&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">),</span> <span class="s2">&quot;cyclic&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Galaxy_Model</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;am&quot;</span><span class="p">,</span> <span class="s2">&quot;phim&quot;</span><span class="p">)</span>
+    <span class="n">modes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">track_attrs</span> <span class="o">=</span> <span class="n">Galaxy_Model</span><span class="o">.</span><span class="n">track_attrs</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;modes&quot;</span><span class="p">]</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modes&quot;</span><span class="p">,</span> <span class="n">FourierEllipse_Galaxy</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FourierEllipse_Galaxy.angular_metric">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Galaxy.angular_metric">[docs]</a>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">angular_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FourierEllipse_Galaxy.radius_metric">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Galaxy.radius_metric">[docs]</a>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">radius_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">radius_metric</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angular_metric</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">R</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">theta</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FourierEllipse_Galaxy.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Galaxy.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">Param_Unlock</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]),</span> <span class="n">Param_SoftLimits</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">default_uncertainty</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">)),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">with</span> <span class="n">Param_Unlock</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]),</span> <span class="n">Param_SoftLimits</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span> <span class="c1"># Uncertainty assumed to be 5 degreees if not provided</span>
+                    <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">)),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="FourierEllipse_Warp">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Warp">[docs]</a>
+<span class="k">class</span> <span class="nc">FourierEllipse_Warp</span><span class="p">(</span><span class="n">Warp_Galaxy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Expanded warp galaxy model which includes a Fourier transformation</span>
+<span class="sd">    in its radius metric. This allows for the expression of</span>
+<span class="sd">    arbitrarily complex isophotes instead of pure ellipses. This is a</span>
+<span class="sd">    common extension of the standard elliptical representation. The</span>
+<span class="sd">    form of the Fourier perturbations is:</span>
+
+<span class="sd">    R&#39; = R * exp(sum_m(a_m * cos(m * theta + phi_m)))</span>
+
+<span class="sd">    where R&#39; is the new radius value, R is the original ellipse</span>
+<span class="sd">    radius, a_m is the amplitude of the m&#39;th Fourier mode, m is the</span>
+<span class="sd">    index of the Fourier mode, theta is the angle around the ellipse,</span>
+<span class="sd">    and phi_m is the phase of the m&#39;th fourier mode. This</span>
+<span class="sd">    representation is somewhat different from other Fourier mode</span>
+<span class="sd">    implimentations where instead of an expoenntial it is just 1 +</span>
+<span class="sd">    sum_m(...), we opt for this formulation as it is more numerically</span>
+<span class="sd">    stable. It cannot ever produce negative radii, but to first order</span>
+<span class="sd">    the two representation are the same as can be seen by a Taylor</span>
+<span class="sd">    expansion of exp(x) = 1 + x + O(x^2).</span>
+
+<span class="sd">    One can create extrememly complex shapes using different Fourier</span>
+<span class="sd">    modes, however usually it is only low order modes that are of</span>
+<span class="sd">    interest. For intuition, the first Fourier mode is roughly</span>
+<span class="sd">    equivalent to a lopsided galaxy, one side will be compressed and</span>
+<span class="sd">    the opposite side will be expanded. The second mode is almost</span>
+<span class="sd">    never used as it is nearly degenerate with ellipticity. The third</span>
+<span class="sd">    mode is an alternate kind of lopsidedness for a galaxy which makes</span>
+<span class="sd">    it somewhat triangular, meaning that it is wider on one side than</span>
+<span class="sd">    the other. The fourth mode is similar to a boxyness/diskyness</span>
+<span class="sd">    parameter which tends to make more pronounced peanut shapes since</span>
+<span class="sd">    it is more rounded than a superellipse representation. Modes</span>
+<span class="sd">    higher than 4 are only useful in very specialized situations. In</span>
+<span class="sd">    general one should consider carefully why the Fourier modes are</span>
+<span class="sd">    being used for the science case at hand.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        am: Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.</span>
+<span class="sd">        phi_m: Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis. It is cyclically defined in the range [0,2pi)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_type</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;fourier </span><span class="si">{</span><span class="n">Warp_Galaxy</span><span class="o">.</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">parameter_specs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;am&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">},</span>
+        <span class="s2">&quot;phim&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;radians&quot;</span><span class="p">,</span> <span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">),</span> <span class="s2">&quot;cyclic&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">_parameter_order</span> <span class="o">=</span> <span class="n">Warp_Galaxy</span><span class="o">.</span><span class="n">_parameter_order</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;am&quot;</span><span class="p">,</span> <span class="s2">&quot;phim&quot;</span><span class="p">)</span>
+    <span class="n">modes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">track_attrs</span> <span class="o">=</span> <span class="n">Galaxy_Model</span><span class="o">.</span><span class="n">track_attrs</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;modes&quot;</span><span class="p">]</span>
+    <span class="n">useable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modes&quot;</span><span class="p">,</span> <span class="n">FourierEllipse_Warp</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FourierEllipse_Warp.angular_metric">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Warp.angular_metric">[docs]</a>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">angular_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FourierEllipse_Warp.radius_metric">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Warp.radius_metric">[docs]</a>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">radius_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">radius_metric</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angular_metric</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">R</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">theta</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FourierEllipse_Warp.initialize">
+<a class="viewcode-back" href="../../../astrophot.models.html#astrophot.models.foureirellipse_model.FourierEllipse_Warp.initialize">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@ignore_numpy_warnings</span>
+    <span class="nd">@select_target</span>
+    <span class="nd">@default_internal</span>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">Param_Unlock</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]),</span> <span class="n">Param_SoftLimits</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;am&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">default_uncertainty</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">)),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">with</span> <span class="n">Param_Unlock</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]),</span> <span class="n">Param_SoftLimits</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;phim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">)),</span><span class="c1"># Uncertainty assumed to be 5 degreees if not provided</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+                <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

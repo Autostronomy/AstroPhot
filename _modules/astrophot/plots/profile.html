@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.plots.profile &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.plots.profile</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.plots.profile</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">binned_statistic</span><span class="p">,</span> <span class="n">iqr</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">..models</span> <span class="kn">import</span> <span class="n">Warp_Galaxy</span>
+<span class="kn">from</span> <span class="nn">..utils.conversions.units</span> <span class="kn">import</span> <span class="n">flux_to_sb</span>
+<span class="kn">from</span> <span class="nn">.visuals</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">InvalidModel</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;radial_light_profile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;radial_median_profile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ray_light_profile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;wedge_light_profile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;warp_phase_profile&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="radial_light_profile">
+<a class="viewcode-back" href="../../../astrophot.plots.html#astrophot.plots.profile.radial_light_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">radial_light_profile</span><span class="p">(</span>
+    <span class="n">fig</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">rad_unit</span><span class="o">=</span><span class="s2">&quot;arcsec&quot;</span><span class="p">,</span>
+    <span class="n">extend_profile</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">R0</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">doassert</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">plot_kwargs</span><span class="o">=</span><span class="p">{},</span>
+<span class="p">):</span>
+    <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+        <span class="n">R0</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">shape</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">extend_profile</span><span class="p">,</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">resolution</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">radial_model</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">zeropoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">flux_to_sb</span><span class="p">(</span>
+            <span class="n">flux</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">pixel_area</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">zeropoint</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">flux</span><span class="p">)</span>
+
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="n">main_pallet</span><span class="p">[</span><span class="s2">&quot;primary1&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> profile&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">plot_kwargs</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">xx</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">yy</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">zeropoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Surface Brightness [mag/arcsec$^2$]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ax</span><span class="o">.</span><span class="n">yaxis_inverted</span><span class="p">():</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;log$_</span><span class="si">{10}</span><span class="s2">$(flux/arcsec$^2$)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Radius [</span><span class="si">{</span><span class="n">rad_unit</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">R0</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+
+
+<div class="viewcode-block" id="radial_median_profile">
+<a class="viewcode-back" href="../../../astrophot.plots.html#astrophot.plots.profile.radial_median_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">radial_median_profile</span><span class="p">(</span>
+    <span class="n">fig</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;AstroPhot_Model&quot;</span><span class="p">,</span>
+    <span class="n">count_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">return_profile</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">rad_unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;arcsec&quot;</span><span class="p">,</span>
+    <span class="n">doassert</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">plot_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot an SB profile by taking flux median at each radius.</span>
+
+<span class="sd">    Using the coordinate transforms defined by the model object,</span>
+<span class="sd">    assigns a radius to each pixel then bins the pixel-radii and</span>
+<span class="sd">    computes the median in each bin. This gives a simple</span>
+<span class="sd">    representation of the image data if one were to simply average the</span>
+<span class="sd">    pixels along isophotes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fig: matplotlib figure object</span>
+<span class="sd">      ax: matplotlib axis object</span>
+<span class="sd">      model (AstroPhot_Model): Model object from which to determine the radial binning. Also provides the target image to extract the data</span>
+<span class="sd">      count_limit (int): The limit of pixels in a bin, below which uncertainties are not computed. Default: 10</span>
+<span class="sd">      return_profile (bool): Instead of just returning the fig and ax object, will return the extracted profile formatted as: Rbins (the radial bin edges), medians (the median in each bin), scatter (the 16-84 quartile range / 2), count (the number of pixels in each bin). Default: False</span>
+<span class="sd">      rad_unit (str): The name of the physical radius units. Default: &quot;arcsec&quot;</span>
+<span class="sd">      doassert (bool): If any requirements are imposed on which kind of profile can be plotted, this activates them. Default: True</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">Rlast_phys</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">shape</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="n">Rlast_pix</span> <span class="o">=</span> <span class="n">Rlast_phys</span> <span class="o">/</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">pixel_length</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="n">Rbins</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">Rbins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Rlast_pix</span><span class="p">:</span>
+        <span class="n">Rbins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Rbins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">Rbins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">))</span>
+    <span class="n">Rbins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Rbins</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">window</span><span class="p">]</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">get_coordinate_meshgrid</span><span class="p">()</span> <span class="o">-</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transform_coordinates</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">radius_metric</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="n">count</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">binnum</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span>
+        <span class="n">R</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">statistic</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span>
+        <span class="n">bins</span><span class="o">=</span><span class="n">Rbins</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">stat</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">binnum</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span>
+        <span class="n">R</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">statistic</span><span class="o">=</span><span class="s2">&quot;median&quot;</span><span class="p">,</span>
+        <span class="n">bins</span><span class="o">=</span><span class="n">Rbins</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">stat</span><span class="p">[</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="n">scat</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">binnum</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span>
+        <span class="n">R</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">statistic</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">iqr</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">84</span><span class="p">)),</span>
+        <span class="n">bins</span><span class="o">=</span><span class="n">Rbins</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">scat</span><span class="p">[</span><span class="n">count</span> <span class="o">&gt;</span> <span class="n">count_limit</span><span class="p">]</span> <span class="o">/=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">count</span><span class="p">[</span><span class="n">count</span> <span class="o">&gt;</span> <span class="n">count_limit</span><span class="p">])</span>
+    <span class="n">scat</span><span class="p">[</span><span class="n">count</span> <span class="o">&lt;=</span> <span class="n">count_limit</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">zeropoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">flux_to_sb</span><span class="p">(</span>
+            <span class="n">stat</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">pixel_area</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">model</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">zeropoint</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Surface Brightness [mag/arcsec$^2$]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ax</span><span class="o">.</span><span class="n">yaxis_inverted</span><span class="p">():</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">stat</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;log$_</span><span class="si">{10}</span><span class="s2">$(flux/arcsec^2)&quot;</span><span class="p">)</span>
+
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;linewidth&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;elinewidth&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="n">main_pallet</span><span class="p">[</span><span class="s2">&quot;primary2&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;data profile&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">plot_kwargs</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">Rbins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">Rbins</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">stat</span><span class="p">,</span>
+        <span class="n">yerr</span><span class="o">=</span><span class="n">scat</span><span class="p">,</span>
+        <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Radius [</span><span class="si">{</span><span class="n">rad_unit</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_profile</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Rbins</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">scat</span><span class="p">,</span> <span class="n">count</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+
+
+<div class="viewcode-block" id="ray_light_profile">
+<a class="viewcode-back" href="../../../astrophot.plots.html#astrophot.plots.profile.ray_light_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">ray_light_profile</span><span class="p">(</span>
+    <span class="n">fig</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">rad_unit</span><span class="o">=</span><span class="s2">&quot;arcsec&quot;</span><span class="p">,</span>
+    <span class="n">extend_profile</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">doassert</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">shape</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">extend_profile</span><span class="p">,</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">resolution</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">rays</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">rays</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">main_pallet</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;primary</span><span class="si">{</span><span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">cmap_grad</span><span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="n">model</span><span class="o">.</span><span class="n">rays</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">xx</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">iradial_model</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">xx</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()),</span>
+                <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> profile </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;log$_</span><span class="si">{10}</span><span class="s2">$(flux)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Radius [</span><span class="si">{</span><span class="n">rad_unit</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+
+
+<div class="viewcode-block" id="wedge_light_profile">
+<a class="viewcode-back" href="../../../astrophot.plots.html#astrophot.plots.profile.wedge_light_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">wedge_light_profile</span><span class="p">(</span>
+    <span class="n">fig</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">rad_unit</span><span class="o">=</span><span class="s2">&quot;arcsec&quot;</span><span class="p">,</span>
+    <span class="n">extend_profile</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">doassert</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">shape</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">extend_profile</span><span class="p">,</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">resolution</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">wedges</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">wedges</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">main_pallet</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;primary</span><span class="si">{</span><span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">cmap_grad</span><span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="n">model</span><span class="o">.</span><span class="n">wedges</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">xx</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">iradial_model</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">xx</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()),</span>
+                <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> profile </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;log$_</span><span class="si">{10}</span><span class="s2">$(flux)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Radius [</span><span class="si">{</span><span class="n">rad_unit</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+
+
+<div class="viewcode-block" id="warp_phase_profile">
+<a class="viewcode-back" href="../../../astrophot.plots.html#astrophot.plots.profile.warp_phase_profile">[docs]</a>
+<span class="k">def</span> <span class="nf">warp_phase_profile</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">rad_unit</span><span class="o">=</span><span class="s2">&quot;arcsec&quot;</span><span class="p">,</span> <span class="n">doassert</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">doassert</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Warp_Galaxy</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidModel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;warp_phase_profile must be given a &#39;Warp_Galaxy&#39; object. Not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">profR</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">[</span><span class="s2">&quot;q(R)&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+        <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">main_pallet</span><span class="p">[</span><span class="s2">&quot;primary1&quot;</span><span class="p">],</span>
+        <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> axis ratio&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">profR</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">[</span><span class="s2">&quot;PA(R)&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+        <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">main_pallet</span><span class="p">[</span><span class="s2">&quot;secondary1&quot;</span><span class="p">],</span>
+        <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> position angle&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;q [b/a], PA [rad/$</span><span class="se">\\</span><span class="s2">pi$]&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Radius [</span><span class="si">{</span><span class="n">rad_unit</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

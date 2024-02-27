@@ -1,0 +1,36 @@
+astrophot package
+=================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   astrophot.errors
+   astrophot.fit
+   astrophot.image
+   astrophot.models
+   astrophot.param
+   astrophot.parse_config
+   astrophot.plots
+   astrophot.utils
+
+Submodules
+----------
+
+astrophot.AP\_config module
+---------------------------
+
+.. automodule:: astrophot.AP_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: astrophot
+   :members:
+   :undoc-members:
+   :show-inheritance:

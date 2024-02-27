@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Constrained Models &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+
+  
+    <link rel="shortcut icon" href="_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Coordinates" href="coordinates.html" />
+    <link rel="prev" title="Advanced PSF modeling" href="AdvancedPSFModels.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="GettingStarted.html">Getting Started with AstroPhot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="GroupModels.html">Group Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FittingMethods.html">Fitting Methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ModelZoo.html">Model Zoo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="JointModels.html">Joint Modelling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CustomModels.html">Custom model objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AdvancedPSFModels.html">Advanced PSF modeling</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Constrained Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Range-limits">Range limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Equality-constraints">Equality constraints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Function-constraints">Function constraints</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="tutorials.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Constrained Models</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ConstrainedModels.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Constrained-Models">
+<h1>Constrained Models<a class="headerlink" href="#Constrained-Models" title="Link to this heading"></a></h1>
+<p>AstroPhot models can have very complex constraints which allow for specialized and powerful fitting problems to be solved. Here you will learn how to take advantage of these capabilities.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import astrophot as ap
+import numpy as np
+import torch
+from astropy.io import fits
+import matplotlib.pyplot as plt
+from time import time
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+<section id="Range-limits">
+<h2>Range limits<a class="headerlink" href="#Range-limits" title="Link to this heading"></a></h2>
+<p>The simplest form of constraint on a parameter is to restrict its range to within some limit. This is done at creation of the variable and you simply indicate the endpoints (non-inclusive) of the limits.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>target = ap.image.Target_Image(data = np.zeros((100,100)), center = [0,0], pixelscale = 1)
+gal1 = ap.models.AstroPhot_Model(
+    name = &quot;galaxy1&quot;,
+    model_type = &quot;sersic galaxy model&quot;,
+    parameters = {
+        &quot;center&quot;: {&quot;value&quot;: [0,0], &quot;limits&quot;: [[-10,-20], [10,20]]}, # here we set the limits, note it can be different for each value
+    },
+    target = target,
+)
+
+# Now if we try to set a value outside the range we get an error
+try:
+    gal1[&quot;center&quot;].value = [25,25]
+except ap.errors.InvalidParameter as e:
+    print(&quot;got an AssertionError with message: &quot;, e)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+got an AssertionError with message:  center has upper limit [10.0, 20.0]
+</pre></div></div>
+</div>
+<p>Internal functions in AstroPhot track these limits and so will not go outside those limits under normal circumstances (contact us if you find it happening!).</p>
+</section>
+<section id="Equality-constraints">
+<h2>Equality constraints<a class="headerlink" href="#Equality-constraints" title="Link to this heading"></a></h2>
+<p>Another form of constraint is an equality constraint. You can fix one parameter to track another’s value so that they will always be equal.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>target = ap.image.Target_Image(data = np.zeros((100,100)), center = [0,0], pixelscale = 1)
+gal1 = ap.models.AstroPhot_Model(
+    name = &quot;galaxy1&quot;,
+    model_type = &quot;sersic galaxy model&quot;,
+    parameters = {&quot;center&quot;: [-25,-25], &quot;PA&quot;: 0, &quot;q&quot;: 0.9, &quot;n&quot;: 2, &quot;Re&quot;: 5, &quot;Ie&quot;: 1.},
+    target = target,
+)
+gal2 = ap.models.AstroPhot_Model(
+    name = &quot;galaxy2&quot;,
+    model_type = &quot;sersic galaxy model&quot;,
+    parameters = {&quot;center&quot;: [25,25], &quot;PA&quot;: 0, &quot;q&quot;: 0.9, &quot;Ie&quot;: 1.},
+    target = target,
+)
+
+# here we set the equality constraint, setting the values for gal2 equal to the parameters of gal1
+gal2[&quot;n&quot;].value = gal1[&quot;n&quot;]
+gal2[&quot;Re&quot;].value = gal1[&quot;Re&quot;]
+
+# we make a group model to use both star models together
+gals = ap.models.AstroPhot_Model(
+    name = &quot;gals&quot;,
+    model_type = &quot;group model&quot;,
+    models = [gal1, gal2],
+    target = target,
+)
+
+print(gals.parameters)
+
+fig, ax = plt.subplots()
+ap.plots.model_image(fig, ax, gals)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+gals:
+center: [-25.0, -25.0] +- [0.1, 0.1] [arcsec]
+q: 0.9 +- 0.03 [b/a], limits: (0.0, 1.0)
+PA: 0.0 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+n: 2.0 +- 0.05 [none], limits: (0.36, 8.0)
+Re: 5.0 [arcsec], limits: (0.0, None)
+Ie: 1.0 [log10(flux/arcsec^2)]
+center: [25.0, 25.0] +- [0.1, 0.1] [arcsec]
+q: 0.9 +- 0.03 [b/a], limits: (0.0, 1.0)
+PA: 0.0 +- 0.06 [radians], limits: (0.0, 3.141592653589793), cyclic
+Ie: 1.0 [log10(flux/arcsec^2)]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ConstrainedModels_6_1.png" src="_images/ConstrainedModels_6_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># We can now change a parameter value and both models will change
+gal1[&quot;n&quot;].value = 1
+
+fig, ax = plt.subplots()
+ap.plots.model_image(fig, ax, gals)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ConstrainedModels_7_0.png" src="_images/ConstrainedModels_7_0.png" />
+</div>
+</div>
+<p>Now that these two parameters are linked, optimization algorithms in AstroPhot will take this into account and fit the constrained set of parameters.</p>
+</section>
+<section id="Function-constraints">
+<h2>Function constraints<a class="headerlink" href="#Function-constraints" title="Link to this heading"></a></h2>
+<p>In some situations one may be able to impose a constraint on a set of parameters using some function. Some concrete examples of this include:</p>
+<ul class="simple">
+<li><p>A spatially varying PSF can be forced to obey some smoothing function such as a plane or spline</p></li>
+<li><p>The SED of a multiband fit may be constrained to follow some pre-determined form</p></li>
+<li><p>An astrometry correction in multi-image fitting can be included for each image to ensure precise alignment</p></li>
+</ul>
+<p>The possibilities with this kind of constraint capability are quite extensive. If you do something creative with these functional constraints please let us know!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Here we will demo a spatially varying PSF where the moffat &quot;n&quot; parameter changes across the image
+target = ap.image.Target_Image(data = np.zeros((100,100)), center = [0,0], pixelscale = 1)
+
+psf_target = ap.image.PSF_Image(data = np.zeros((25,25)), pixelscale = 1)
+
+# First we make all the star objects
+allstars = []
+allpsfs = []
+for x in [-30,0,30]:
+    for y in [-30,0,30]:
+        allpsfs.append(
+            ap.models.AstroPhot_Model(
+                name = &quot;psf&quot;,
+                model_type = &quot;moffat psf model&quot;,
+                parameters = {&quot;Rd&quot;: 2},
+                target = psf_target,
+            )
+        )
+        allstars.append(
+            ap.models.AstroPhot_Model(
+                name = f&quot;star {x} {y}&quot;,
+                model_type = &quot;point model&quot;,
+                parameters = {&quot;center&quot;: [x,y], &quot;flux&quot;: 1},
+                target = target,
+                psf = allpsfs[-1],
+            )
+        )
+        allpsfs[-1][&quot;n&quot;].link(allstars[-1][&quot;center&quot;])# see we need to link the center as well so that it can be used in the function
+
+# we link the Rd parameter for all the PSFs so that they are the same
+for psf in allpsfs[1:]:
+    psf[&quot;Rd&quot;].value = allpsfs[0][&quot;Rd&quot;]
+
+# next we need the parameters for the spatially varying PSF plane
+P_intercept = ap.param.Parameter_Node(
+    name = &quot;intercept&quot;,
+    value = 3,
+)
+P_slope = ap.param.Parameter_Node(
+    name = &quot;slope&quot;,
+    value = [1/50, -1/50],
+)
+
+# next we define the function which takes the parameters as input and returns the value for n
+def constrained_moffat_n(params):
+    return params[&quot;intercept&quot;].value + torch.sum(params[&quot;slope&quot;].value * params[&quot;center&quot;].value)
+
+# finally we assign this parameter function to the &quot;n&quot; parameter for each moffat
+for psf in allpsfs:
+    psf[&quot;n&quot;].value = constrained_moffat_n
+    psf[&quot;n&quot;].link(P_intercept)
+    psf[&quot;n&quot;].link(P_slope)
+
+# A group model holds all the stars together
+MODEL = ap.models.AstroPhot_Model(
+    name = &quot;spatial PSF&quot;,
+    model_type = &quot;group model&quot;,
+    models = allstars,
+    target = target,
+)
+
+fig, ax = plt.subplots()
+ap.plots.model_image(fig, ax, MODEL)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/ConstrainedModels_10_0.png" src="_images/ConstrainedModels_10_0.png" />
+</div>
+</div>
+<p>See how the PSF parameters vary across the image, this model could now be optimized to fit some data and the parameters of the plane (<code class="docutils literal notranslate"><span class="pre">intercept</span></code> and <code class="docutils literal notranslate"><span class="pre">slope</span></code>) will be optimized alongside everything else to give the best possible optimized parameter values accounting for everything in the image!</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="AdvancedPSFModels.html" class="btn btn-neutral float-left" title="Advanced PSF modeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coordinates.html" class="btn btn-neutral float-right" title="Coordinates" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

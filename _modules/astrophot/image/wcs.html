@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astrophot.image.wcs &mdash; AstroPhot 0.1.dev1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/AP_logo_favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=6aee1ebc"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            AstroPhot
+          </a>
+              <div class="version">
+                0.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coordinates.html">Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../citation.html">Citing AstroPhot</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">astrophot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configfile_interface.html">Configuration File Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">LICENSE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">AstroPhot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../astrophot.html">astrophot</a></li>
+      <li class="breadcrumb-item active">astrophot.image.wcs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astrophot.image.wcs</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">AP_config</span>
+<span class="kn">from</span> <span class="nn">..utils.conversions.units</span> <span class="kn">import</span> <span class="n">deg_to_arcsec</span>
+<span class="kn">from</span> <span class="nn">..errors</span> <span class="kn">import</span> <span class="n">SpecificationConflict</span><span class="p">,</span> <span class="n">InvalidWCS</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;WPCS&quot;</span><span class="p">,</span> <span class="s2">&quot;PPCS&quot;</span><span class="p">,</span> <span class="s2">&quot;WCS&quot;</span><span class="p">)</span>
+
+<span class="n">deg_to_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+<span class="n">rad_to_deg</span> <span class="o">=</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+<span class="n">rad_to_arcsec</span> <span class="o">=</span> <span class="n">rad_to_deg</span> <span class="o">*</span> <span class="mi">3600</span>
+<span class="n">arcsec_to_rad</span> <span class="o">=</span> <span class="n">deg_to_rad</span> <span class="o">/</span> <span class="mi">3600</span>
+
+<div class="viewcode-block" id="WPCS">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS">[docs]</a>
+<span class="k">class</span> <span class="nc">WPCS</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;World to Plane Coordinate System in AstroPhot.</span>
+
+<span class="sd">    AstroPhot performs its operations on a tangent plane to the</span>
+<span class="sd">    celestial sphere, this class handles projections between the sphere and the</span>
+<span class="sd">    tangent plane. It holds variables for the reference (RA,DEC) where</span>
+<span class="sd">    the tangent plane contacts the sphere, and the type of projection</span>
+<span class="sd">    being performed. Note that (RA,DEC) coordinates should always be</span>
+<span class="sd">    in degrees while the tangent plane is in arcsecs.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">      reference_radec: The reference (RA,DEC) coordinates in degrees where the tangent plane contacts the sphere.</span>
+<span class="sd">      reference_planexy: The reference tangent plane coordinates in arcsec where the tangent plane contacts the sphere.</span>
+<span class="sd">      projection: The projection system used to convert from (RA,DEC) onto the tangent plane. Should be one of: gnomonic (default), orthographic, steriographic</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0). This is in units of arcsec.</span>
+    <span class="n">softening</span> <span class="o">=</span> <span class="mf">1e-3</span>
+    
+    <span class="n">default_reference_radec</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">default_reference_planexy</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">default_projection</span> <span class="o">=</span> <span class="s2">&quot;gnomonic&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;projection&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_projection</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_radec</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_planexy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_planexy</span><span class="p">)</span>
+        
+        
+<div class="viewcode-block" id="WPCS.world_to_plane">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.world_to_plane">[docs]</a>
+    <span class="k">def</span> <span class="nf">world_to_plane</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take a coordinate on the world coordinate system, also called the</span>
+<span class="sd">        celesial sphere, (RA, DEC in degrees) and transform it to the</span>
+<span class="sd">        cooresponding tangent plane coordinate</span>
+<span class="sd">        (arcsec). Transformation is done based on the chosen</span>
+<span class="sd">        projection (default gnomonic) and reference positions. See the</span>
+<span class="sd">        :doc:`coordinates` documentation for more details on how the</span>
+<span class="sd">        transformation is performed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">world_DEC</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_to_plane</span><span class="p">(</span><span class="o">*</span><span class="n">world_RA</span><span class="p">))</span>
+
+        <span class="n">world_RA</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">world_RA</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+        <span class="n">world_DEC</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">world_DEC</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="s2">&quot;gnomonic&quot;</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_to_plane_gnomonic</span><span class="p">(</span>
+                <span class="n">world_RA</span><span class="p">,</span>
+                <span class="n">world_DEC</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="s2">&quot;orthographic&quot;</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_to_plane_orthographic</span><span class="p">(</span>
+                <span class="n">world_RA</span><span class="p">,</span>
+                <span class="n">world_DEC</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="s2">&quot;steriographic&quot;</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_to_plane_steriographic</span><span class="p">(</span>
+                <span class="n">world_RA</span><span class="p">,</span>
+                <span class="n">world_DEC</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+    
+
+<div class="viewcode-block" id="WPCS.plane_to_world">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.plane_to_world">[docs]</a>
+    <span class="k">def</span> <span class="nf">plane_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take a coordinate on the tangent plane (arcsec), and transform it</span>
+<span class="sd">        to the cooresponding world coordinate (RA, DEC in</span>
+<span class="sd">        degrees). Transformation is done based on the chosen</span>
+<span class="sd">        projection (default gnomonic) and reference positions. See the</span>
+<span class="sd">        :doc:`coordinates` documentation for more details on how the</span>
+<span class="sd">        transformation is performed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">plane_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plane_to_world</span><span class="p">(</span><span class="o">*</span><span class="n">plane_x</span><span class="p">))</span>
+        <span class="n">plane_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">plane_x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+        <span class="n">plane_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">plane_y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="s2">&quot;gnomonic&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plane_to_world_gnomonic</span><span class="p">(</span>
+                <span class="n">plane_x</span><span class="p">,</span>
+                <span class="n">plane_y</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="s2">&quot;orthographic&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plane_to_world_orthographic</span><span class="p">(</span>
+                <span class="n">plane_x</span><span class="p">,</span>
+                <span class="n">plane_y</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">==</span> <span class="s2">&quot;steriographic&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plane_to_world_steriographic</span><span class="p">(</span>
+                <span class="n">plane_x</span><span class="p">,</span>
+                <span class="n">plane_y</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">projection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The mathematical projection formula which described how world coordinates are mapped to the tangent plane.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_projection</span>
+
+    <span class="nd">@projection</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">proj</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s2">&quot;gnomonic&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;steriographic&quot;</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidWCS</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized projection: </span><span class="si">{</span><span class="n">proj</span><span class="si">}</span><span class="s2">. Should be one of: gnomonic, orthographic, steriographic&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_projection</span> <span class="o">=</span> <span class="n">proj</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_radec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        RA DEC (world) coordinates where the tangent plane meets the celestial sphere. These should be in degrees.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span>
+
+    <span class="nd">@reference_radec</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reference_radec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radec</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">radec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_planexy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        x y tangent plane coordinates where the tangent plane meets the celestial sphere. These should be in arcsec.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_planexy</span>
+
+    <span class="nd">@reference_planexy</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reference_planexy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planexy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_planexy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">planexy</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_project_world_to_plane</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Recurring core calculation in all the projections from world to plane.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          world_RA: Right ascension in degrees</span>
+<span class="sd">          world_DEC: Declination in degrees</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">((</span><span class="n">world_RA</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">rad_to_arcsec</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+                <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">((</span><span class="n">world_RA</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">rad_to_arcsec</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_project_plane_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Recurring core calculation in all the projections from plane to world.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          plane_x: tangent plane x coordinate in arcseconds.</span>
+<span class="sd">          plane_y: tangent plane y coordinate in arcseconds.</span>
+<span class="sd">          rho: polar radius on tangent plane.</span>
+<span class="sd">          c: coordinate term dependent on the projection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span>
+                <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span>
+                    <span class="n">plane_x</span> <span class="o">*</span> <span class="n">arcsec_to_rad</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">c</span><span class="p">),</span>
+                    <span class="n">rho</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">plane_y</span>
+                    <span class="o">*</span> <span class="n">arcsec_to_rad</span>
+                    <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+                    <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">c</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">rad_to_deg</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span>
+                <span class="p">)</span>
+                <span class="o">+</span> <span class="n">plane_y</span>
+                <span class="o">*</span> <span class="n">arcsec_to_rad</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+                <span class="o">/</span> <span class="n">rho</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">rad_to_deg</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_world_to_plane_gnomonic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Gnomonic projection: (RA,DEC) to tangent plane.</span>
+
+<span class="sd">        Performs Gnomonic projection of (RA,DEC) coordinates onto a</span>
+<span class="sd">        tangent plane. The tangent plane makes contact at the location</span>
+<span class="sd">        of the `reference_radec` variable. In a gnomonic projection,</span>
+<span class="sd">        great circles are mapped to straight lines. The gnomonic</span>
+<span class="sd">        projection represents the image formed by a spherical lens,</span>
+<span class="sd">        and is sometimes known as the rectilinear projection.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          world_RA: Right ascension in degrees</span>
+<span class="sd">          world_DEC: Declination in degrees</span>
+
+<span class="sd">        See: https://mathworld.wolfram.com/GnomonicProjection.html</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+            <span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+            <span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">world_RA</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">deg_to_rad</span>
+        <span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_world_to_plane</span><span class="p">(</span><span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="n">C</span><span class="p">,</span> <span class="n">y</span> <span class="o">/</span> <span class="n">C</span>
+
+    <span class="k">def</span> <span class="nf">_plane_to_world_gnomonic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inverse Gnomonic projection: tangent plane to (RA,DEC).</span>
+
+<span class="sd">        Performs the inverse Gnomonic projection of tangent plane</span>
+<span class="sd">        coordinates into (RA,DEC) coordinates. The tangent plane makes</span>
+<span class="sd">        contact at the location of the `reference_radec` variable. In</span>
+<span class="sd">        a gnomonic projection, great circles are mapped to straight</span>
+<span class="sd">        lines. The gnomonic projection represents the image formed by</span>
+<span class="sd">        a spherical lens, and is sometimes known as the rectilinear</span>
+<span class="sd">        projection.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          plane_x: tangent plane x coordinate in arcseconds.</span>
+<span class="sd">          plane_y: tangent plane y coordinate in arcseconds.</span>
+
+<span class="sd">        See: https://mathworld.wolfram.com/GnomonicProjection.html</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">plane_x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">plane_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">softening</span><span class="p">)</span> <span class="o">*</span> <span class="n">arcsec_to_rad</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+
+        <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_plane_to_world</span><span class="p">(</span><span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span>
+
+    <span class="k">def</span> <span class="nf">_world_to_plane_steriographic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Steriographic projection: (RA,DEC) to tangent plane</span>
+
+<span class="sd">        Performs Steriographic projection of (RA,DEC) coordinates onto</span>
+<span class="sd">        a tangent plane. The tangent plane makes contact at the</span>
+<span class="sd">        location of the `reference_radec` variable. The steriographic</span>
+<span class="sd">        projection preserves circles and angle measures.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          world_RA: Right ascension in degrees</span>
+<span class="sd">          world_DEC: Declination in degrees</span>
+
+<span class="sd">        See: https://mathworld.wolfram.com/StereographicProjection.html</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">1</span>
+            <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">world_DEC</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">((</span><span class="n">world_RA</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">deg_to_rad</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_world_to_plane</span><span class="p">(</span><span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="n">C</span><span class="p">,</span> <span class="n">y</span> <span class="o">/</span> <span class="n">C</span>
+
+    <span class="k">def</span> <span class="nf">_plane_to_world_steriographic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inverse Steriographic projection: tangent plane to (RA,DEC).</span>
+
+<span class="sd">        Performs the inverse Steriographic projection of tangent plane</span>
+<span class="sd">        coordinates into (RA,DEC) coordinates. The tangent plane makes</span>
+<span class="sd">        contact at the location of the `reference_radec` variable. The</span>
+<span class="sd">        steriographic projection preserves circles and angle measures.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          plane_x: tangent plane x coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.</span>
+<span class="sd">          plane_y: tangent plane y coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.</span>
+
+<span class="sd">        See: https://mathworld.wolfram.com/StereographicProjection.html</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">plane_x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">plane_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">softening</span><span class="p">)</span> <span class="o">*</span> <span class="n">arcsec_to_rad</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">rho</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_plane_to_world</span><span class="p">(</span><span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span>
+
+    <span class="k">def</span> <span class="nf">_world_to_plane_orthographic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Orthographic projection: (RA,DEC) to tangent plane</span>
+
+<span class="sd">        Performs Orthographic projection of (RA,DEC) coordinates onto</span>
+<span class="sd">        a tangent plane. The tangent plane makes contact at the</span>
+<span class="sd">        location of the `reference_radec` variable. The point of</span>
+<span class="sd">        perspective for the orthographic projection is at infinite</span>
+<span class="sd">        distance. This projection is perhaps better suited to</span>
+<span class="sd">        represent the view of an exoplanet, however it is included</span>
+<span class="sd">        here for completeness.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          world_RA: Right ascension in degrees</span>
+<span class="sd">          world_DEC: Declination in degrees</span>
+
+<span class="sd">        See: https://mathworld.wolfram.com/OrthographicProjection.html</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_world_to_plane</span><span class="p">(</span><span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+    <span class="k">def</span> <span class="nf">_plane_to_world_orthographic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inverse Orthographic projection: tangent plane to (RA,DEC).</span>
+
+<span class="sd">        Performs the inverse Orthographic projection of tangent plane</span>
+<span class="sd">        coordinates into (RA,DEC) coordinates. The tangent plane makes</span>
+<span class="sd">        contact at the location of the `reference_radec` variable. The</span>
+<span class="sd">        point of perspective for the orthographic projection is at</span>
+<span class="sd">        infinite distance. This projection is perhaps better suited to</span>
+<span class="sd">        represent the view of an exoplanet, however it is included</span>
+<span class="sd">        here for completeness.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          plane_x: tangent plane x coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.</span>
+<span class="sd">          plane_y: tangent plane y coordinate in arcseconds. The origin of the tangent plane is the contact point with the sphere, represented by `reference_radec`.</span>
+
+<span class="sd">        See: https://mathworld.wolfram.com/OrthographicProjection.html</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">plane_x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">plane_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">softening</span><span class="p">)</span> <span class="o">*</span> <span class="n">arcsec_to_rad</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+
+        <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_plane_to_world</span><span class="p">(</span><span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span>
+
+<div class="viewcode-block" id="WPCS.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a dictionary with the information needed to recreate the</span>
+<span class="sd">        WPCS object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;projection&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
+            <span class="s2">&quot;reference_radec&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;reference_planexy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="WPCS.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Takes a state dictionary and re-creates the state of the WPCS</span>
+<span class="sd">        object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;projection&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_projection</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_radec</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_planexy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_planexy</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WPCS.get_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.get_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Similar to get_state, except specifically tailored to be stored in a FITS format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;PROJ&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
+            <span class="s2">&quot;REFRADEC&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="s2">&quot;REFPLNXY&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="WPCS.set_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.set_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads and applies the state from the get_fits_state function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;PROJ&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;REFRADEC&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;REFPLNXY&quot;</span><span class="p">])</span></div>
+
+        
+<div class="viewcode-block" id="WPCS.copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a copy of the WPCS object with the same projection</span>
+<span class="sd">        paramaters.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">copy_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;projection&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
+            <span class="s2">&quot;reference_radec&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">,</span>
+            <span class="s2">&quot;reference_planexy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">copy_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">copy_kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="WPCS.to">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WPCS.to">[docs]</a>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert all stored tensors to a new device and data type</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_radec</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_planexy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_planexy</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;WPCS reference_radec: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, reference_planexy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;WPCS reference_radec: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, reference_planexy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, projection: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="PPCS">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS">[docs]</a>
+<span class="k">class</span> <span class="nc">PPCS</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    plane to pixel coordinate system</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">      pixelscale : float or None, optional</span>
+<span class="sd">          The physical scale of the pixels in the image, this is</span>
+<span class="sd">          represented as a matrix which projects pixel units into sky</span>
+<span class="sd">          units: :math:`pixelscale @ pixel_vec = sky_vec`. The pixel</span>
+<span class="sd">          scale matrix can be thought of in four components:</span>
+<span class="sd">          :math:`\vec{s} @ F @ R @ S` where :math:`\vec{s}` is the side</span>
+<span class="sd">          length of the pixels, :math:`F` is a diagonal matrix of {1,-1}</span>
+<span class="sd">          which flips the axes orientation, :math:`R` is a rotation</span>
+<span class="sd">          matrix, and :math:`S` is a shear matrix which turns</span>
+<span class="sd">          rectangular pixels into parallelograms. Default is None.      </span>
+<span class="sd">      reference_imageij : Sequence or None, optional</span>
+<span class="sd">          The pixel coordinate at which the image is fixed to the</span>
+<span class="sd">          tangent plane. By default this is (-0.5, -0.5) or the bottom</span>
+<span class="sd">          corner of the [0,0] indexed pixel.</span>
+<span class="sd">      reference_imagexy : Sequence or None, optional</span>
+<span class="sd">          The tangent plane coordinate at which the image is fixed,</span>
+<span class="sd">          corresponding to the reference_imageij coordinate. These two</span>
+<span class="sd">          reference points ar pinned together, any rotations would occur</span>
+<span class="sd">          about this point. By default this is (0., 0.).</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">default_reference_imageij</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">default_reference_imagexy</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">default_pixelscale</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">wcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pixelscale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_imageij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_imageij</span><span class="p">)</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_imagexy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_imagexy</span><span class="p">)</span>
+
+        <span class="c1"># Collect the pixelscale of the pixel grid</span>
+        <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pixelscale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">=</span> <span class="n">deg_to_arcsec</span> <span class="o">*</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_scale_matrix</span>
+        <span class="k">elif</span> <span class="n">pixelscale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pixelscale</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Overriding WCS pixelscale with manual input! To remove this message, either let WCS define pixelscale, or input full pixelscale matrix&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">=</span> <span class="n">pixelscale</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Assuming pixelscale of 1! To remove this message please provide the pixelscale explicitly&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_pixelscale</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixelscale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Matrix defining the shape of pixels in the tangent plane, these</span>
+<span class="sd">        can be any parallelogram defined by the matrix.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span>
+
+    <span class="nd">@pixelscale</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">pixelscale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pix</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">pix</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span><span class="o">.</span><span class="n">item</span><span class="p">()]],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_area</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_area</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale_inv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The area inside a pixel in arcsec^2</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_area</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The approximate length of a pixel, which is just</span>
+<span class="sd">        sqrt(pixel_area). For square pixels this is the actual pixel</span>
+<span class="sd">        length, for rectangular pixels it is a kind of average.</span>
+
+<span class="sd">        The pixel_length is typically not used for exact calculations</span>
+<span class="sd">        and instead sets a size scale within an image.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_length</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_imageij</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;pixel coordinates where the pixel grid is fixed to the tangent</span>
+<span class="sd">        plane. These should be in pixel units where (0,0) is the</span>
+<span class="sd">        center of the [0,0] indexed pixel. However, it is still in xy</span>
+<span class="sd">        format, meaning that the first index gives translations in the</span>
+<span class="sd">        x-axis (horizontal-axis) of the image.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imageij</span>
+
+    <span class="nd">@reference_imageij</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reference_imageij</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">imageij</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imageij</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">imageij</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_imagexy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;plane coordinates where the image grid is fixed to the tangent</span>
+<span class="sd">        plane. These should be in arcsec.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imagexy</span>
+
+    <span class="nd">@reference_imagexy</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reference_imagexy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">imagexy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imagexy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">imagexy</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PPCS.pixel_to_plane">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.pixel_to_plane">[docs]</a>
+    <span class="k">def</span> <span class="nf">pixel_to_plane</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel_i</span><span class="p">,</span> <span class="n">pixel_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take in a coordinate on the regular pixel grid, where 0,0 is the</span>
+<span class="sd">        center of the [0,0] indexed pixel. This coordinate is</span>
+<span class="sd">        transformed into the tangent plane coordinate system (arcsec)</span>
+<span class="sd">        based on the pixel scale and reference positions. If the pixel</span>
+<span class="sd">        scale matrix is :math:`P`, the reference pixel is</span>
+<span class="sd">        :math:`\vec{r}_{pix}`, the reference tangent plane point is</span>
+<span class="sd">        :math:`\vec{r}_{tan}`, and the coordinate to transform is</span>
+<span class="sd">        :math:`\vec{c}_{pix}` then the coordinate in the tangent plane</span>
+<span class="sd">        is:</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \vec{c}_{tan} = [P(\vec{c}_{pix} - \vec{r}_{pix})] + \vec{r}_{tan}</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pixel_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_i</span><span class="p">))</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">pixel_i</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">pixel_j</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pixel_i</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pixel_j</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PPCS.plane_to_pixel">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.plane_to_pixel">[docs]</a>
+    <span class="k">def</span> <span class="nf">plane_to_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_x</span><span class="p">,</span> <span class="n">plane_y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take a coordinate on the tangent plane (arcsec) and transform it to</span>
+<span class="sd">        the cooresponding pixel grid coordinate (pixel units where</span>
+<span class="sd">        (0,0) is the [0,0] indexed pixel). Transformation is done</span>
+<span class="sd">        based on the pixel scale and reference positions. If the pixel</span>
+<span class="sd">        scale matrix is :math:`P`, the reference pixel is</span>
+<span class="sd">        :math:`\vec{r}_{pix}`, the reference tangent plane point is</span>
+<span class="sd">        :math:`\vec{r}_{tan}`, and the coordinate to transform is</span>
+<span class="sd">        :math:`\vec{c}_{tan}` then the coordinate in the pixel grid</span>
+<span class="sd">        is:</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \vec{c}_{pix} = [P^{-1}(\vec{c}_{tan} - \vec{r}_{tan})] + \vec{r}_{pix}</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">plane_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="o">*</span><span class="n">plane_x</span><span class="p">))</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale_inv</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">plane_x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">plane_y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">plane_x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">plane_y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PPCS.pixel_to_plane_delta">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.pixel_to_plane_delta">[docs]</a>
+    <span class="k">def</span> <span class="nf">pixel_to_plane_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel_delta_i</span><span class="p">,</span> <span class="n">pixel_delta_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take a translation in pixel space and determine the cooresponding</span>
+<span class="sd">        translation in the tangent plane (arcsec). Essentially this performs</span>
+<span class="sd">        the pixel scale matrix multiplication without any reference</span>
+<span class="sd">        coordinates applied.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pixel_delta_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane_delta</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_delta_i</span><span class="p">))</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">pixel_delta_i</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">pixel_delta_j</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))))</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pixel_delta_i</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pixel_delta_j</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PPCS.plane_to_pixel_delta">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.plane_to_pixel_delta">[docs]</a>
+    <span class="k">def</span> <span class="nf">plane_to_pixel_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane_delta_x</span><span class="p">,</span> <span class="n">plane_delta_y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take a translation in tangent plane space (arcsec) and determine</span>
+<span class="sd">        the cooresponding translation in pixel space. Essentially this</span>
+<span class="sd">        performs the pixel scale matrix multiplication without any</span>
+<span class="sd">        reference coordinates applied.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">plane_delta_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel_delta</span><span class="p">(</span><span class="o">*</span><span class="n">plane_delta_x</span><span class="p">))</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale_inv</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">plane_delta_x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">plane_delta_y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))))</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">plane_delta_x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">plane_delta_y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="PPCS.copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a copy of the PPCS object with the same projection</span>
+<span class="sd">        paramaters.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">copy_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;pixelscale&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span>
+            <span class="s2">&quot;reference_imageij&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">,</span>
+            <span class="s2">&quot;reference_imagexy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">copy_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">copy_kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="PPCS.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;pixelscale&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;reference_imageij&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;reference_imagexy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="PPCS.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pixelscale&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_pixelscale</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_imageij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_imageij</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_imagexy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_reference_imagexy</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="PPCS.get_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.get_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Similar to get_state, except specifically tailored to be stored in a FITS format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;PXLSCALE&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="s2">&quot;REFIMGIJ&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="s2">&quot;REFIMGXY&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="PPCS.set_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.set_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads and applies the state from the get_fits_state function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;PXLSCALE&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;REFIMGIJ&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;REFIMGXY&quot;</span><span class="p">])</span></div>
+
+        
+<div class="viewcode-block" id="PPCS.to">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.PPCS.to">[docs]</a>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert all stored tensors to a new device and data type</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixelscale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imageij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imageij</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imagexy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_imagexy</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PPCS reference_imageij: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, reference_imagexy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PPCS reference_imageij: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, reference_imagexy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">, pixelscale: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+        
+<div class="viewcode-block" id="WCS">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS">[docs]</a>
+<span class="k">class</span> <span class="nc">WCS</span><span class="p">(</span><span class="n">WPCS</span><span class="p">,</span> <span class="n">PPCS</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Full world coordinate system defines mappings from world to tangent plane to pixel grid and all other variations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">wcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;state&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">])</span>
+            <span class="k">return</span>
+        
+        <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">ctype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;RA---TAN&quot;</span><span class="p">:</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">ctype</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;DEC--TAN&quot;</span><span class="p">:</span>
+                <span class="n">AP_config</span><span class="o">.</span><span class="n">ap_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot.&quot;</span><span class="p">)</span>
+                
+        <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_radec&quot;</span><span class="p">,</span> <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crval</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reference_imageij&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crpix</span>
+            <span class="n">WPCS</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">wcs</span><span class="o">=</span><span class="n">wcs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">sky_coord</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="o">*</span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crpix</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reference_imagexy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_to_plane</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="n">sky_coord</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">sky_coord</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">deg</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">AP_config</span><span class="o">.</span><span class="n">ap_device</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">WPCS</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            
+        <span class="n">PPCS</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">wcs</span><span class="o">=</span><span class="n">wcs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="WCS.world_to_pixel">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.world_to_pixel">[docs]</a>
+    <span class="k">def</span> <span class="nf">world_to_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A wrapper which applies :meth:`world_to_plane` then</span>
+<span class="sd">        :meth:`plane_to_pixel`, see those methods for further</span>
+<span class="sd">        information.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">world_DEC</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_to_pixel</span><span class="p">(</span><span class="o">*</span><span class="n">world_RA</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_pixel</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">world_to_plane</span><span class="p">(</span><span class="n">world_RA</span><span class="p">,</span> <span class="n">world_DEC</span><span class="p">))</span></div>
+
+    
+<div class="viewcode-block" id="WCS.pixel_to_world">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.pixel_to_world">[docs]</a>
+    <span class="k">def</span> <span class="nf">pixel_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel_i</span><span class="p">,</span> <span class="n">pixel_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A wrapper which applies :meth:`pixel_to_plane` then</span>
+<span class="sd">        :meth:`plane_to_world`, see those methods for further</span>
+<span class="sd">        information.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pixel_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_i</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plane_to_world</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_plane</span><span class="p">(</span><span class="n">pixel_i</span><span class="p">,</span> <span class="n">pixel_j</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="WCS.copy">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">copy_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;pixelscale&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelscale</span><span class="p">,</span>
+            <span class="s2">&quot;reference_imageij&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imageij</span><span class="p">,</span>
+            <span class="s2">&quot;reference_imagexy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_imagexy</span><span class="p">,</span>
+            <span class="s2">&quot;projection&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
+            <span class="s2">&quot;reference_radec&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_radec</span><span class="p">,</span>
+            <span class="s2">&quot;reference_planexy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_planexy</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">copy_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">copy_kwargs</span><span class="p">,</span>     
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WCS.to">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.to">[docs]</a>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">WPCS</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">PPCS</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WCS.get_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.get_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">WPCS</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">PPCS</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="WCS.set_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.set_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">WPCS</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+        <span class="n">PPCS</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="WCS.get_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.get_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Similar to get_state, except specifically tailored to be stored in a FITS format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">WPCS</span><span class="o">.</span><span class="n">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">PPCS</span><span class="o">.</span><span class="n">get_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+
+    
+<div class="viewcode-block" id="WCS.set_fits_state">
+<a class="viewcode-back" href="../../../astrophot.image.html#astrophot.image.wcs.WCS.set_fits_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads and applies the state from the get_fits_state function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">WPCS</span><span class="o">.</span><span class="n">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+        <span class="n">PPCS</span><span class="o">.</span><span class="n">set_fits_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span></div>
+
+        
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;WCS:</span><span class="se">\n</span><span class="si">{</span><span class="n">WPCS</span><span class="o">.</span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">PPCS</span><span class="o">.</span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;WCS:</span><span class="se">\n</span><span class="si">{</span><span class="n">WPCS</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">PPCS</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Connor Stone.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
