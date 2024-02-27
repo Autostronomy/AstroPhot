@@ -95,7 +95,8 @@ class Target_Image(Image):
             self.set_psf(kwargs.get("psf", None), kwargs.get("psf_upscale", 1))
 
         # Set nan pixels to be masked automatically
-        self.set_mask(torch.logical_or(self.mask, torch.isnan(self.data)))
+        if torch.any(torch.isnan(self.data)).item():
+            self.set_mask(torch.logical_or(self.mask, torch.isnan(self.data)))
 
     @property
     def standard_deviation(self):
@@ -507,7 +508,7 @@ class Target_Image(Image):
         if self.has_mask:
             states.append(
                 {
-                    "DATA": self.mask.detach().cpu().numpy(),
+                    "DATA": self.mask.detach().cpu().numpy().astype(int),
                     "HEADER": {"IMAGE": "MASK"},
                 }
             )
