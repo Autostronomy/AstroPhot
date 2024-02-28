@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from .conversions.functions import sersic_n_to_b
-from .interpolate import cubic_spline_torch, interp1d_torch
+from .interpolate import cubic_spline_torch
 
 
 def sersic_torch(R, n, Re, Ie):
@@ -45,9 +45,7 @@ def gaussian_torch(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / torch.sqrt(2 * np.pi * sigma ** 2)) * torch.exp(
-        -0.5 * torch.pow(R / sigma, 2)
-    )
+    return (I0 / torch.sqrt(2 * np.pi * sigma**2)) * torch.exp(-0.5 * torch.pow(R / sigma, 2))
 
 
 def gaussian_np(R, sigma, I0):
@@ -59,7 +57,7 @@ def gaussian_np(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / np.sqrt(2 * np.pi * sigma ** 2)) * np.exp(-0.5 * ((R / sigma) ** 2))
+    return (I0 / np.sqrt(2 * np.pi * sigma**2)) * np.exp(-0.5 * ((R / sigma) ** 2))
 
 
 def exponential_torch(R, Re, Ie):
@@ -72,8 +70,7 @@ def exponential_torch(R, Re, Ie):
         Ie: Effective surface density
     """
     return Ie * torch.exp(
-        -sersic_n_to_b(torch.tensor(1.0, dtype=R.dtype, device=R.device))
-        * ((R / Re) - 1.0)
+        -sersic_n_to_b(torch.tensor(1.0, dtype=R.dtype, device=R.device)) * ((R / Re) - 1.0)
     )
 
 
@@ -173,8 +170,7 @@ def spline_torch(R, profR, profI, extend):
     if extend:
         res[R > profR[-1]] = 10 ** (
             profI[-2]
-            + (R[R > profR[-1]] - profR[-2])
-            * ((profI[-1] - profI[-2]) / (profR[-1] - profR[-2]))
+            + (R[R > profR[-1]] - profR[-2]) * ((profI[-1] - profI[-2]) / (profR[-1] - profR[-2]))
         )
     else:
         res[R > profR[-1]] = 0

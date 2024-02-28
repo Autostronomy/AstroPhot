@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
@@ -17,7 +16,7 @@ class SuperEllipse_Galaxy(Galaxy_Model):
 
     R = (|X|^C + |Y|^C)^(1/C)
 
-    where R is the new distance metric, X Y are the coordiantes, and C
+    where R is the new distance metric, X Y are the coordinates, and C
     is the coefficient for the superellipse. C can take on any value
     greater than zero where C = 2 is the standard distance metric, 0 <
     C < 2 creates disky or pointed perturbations to an ellipse, and C
@@ -33,7 +32,7 @@ class SuperEllipse_Galaxy(Galaxy_Model):
         "C0": {"units": "C-2", "value": 0.0, "uncertainty": 1e-2, "limits": (-2, None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("C0",)
-    useable = False
+    usable = False
 
     @default_internal
     def radius_metric(self, X, Y, image=None, parameters=None):
@@ -53,7 +52,7 @@ class SuperEllipse_Warp(Warp_Galaxy):
 
     R = (|X|^C + |Y|^C)^(1/C)
 
-    where R is the new distance metric, X Y are the coordiantes, and C
+    where R is the new distance metric, X Y are the coordinates, and C
     is the coefficient for the superellipse. C can take on any value
     greater than zero where C = 2 is the standard distance metric, 0 <
     C < 2 creates disky or pointed perturbations to an ellipse, and C
@@ -70,7 +69,7 @@ class SuperEllipse_Warp(Warp_Galaxy):
         "C0": {"units": "C-2", "value": 0.0, "uncertainty": 1e-2, "limits": (-2, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("C0",)
-    useable = False
+    usable = False
 
     @default_internal
     def radius_metric(self, X, Y, image=None, parameters=None):

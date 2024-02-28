@@ -4,6 +4,7 @@ from ..errors import InvalidParameter
 
 __all__ = ["Node"]
 
+
 class Node(ABC):
     """Base node object in the Directed Acyclic Graph (DAG).
 
@@ -17,8 +18,9 @@ class Node(ABC):
       link (tuple[Node]): A tuple of node objects which this node will be linked to on initialization.
 
     """
+
     global_unlock = False
-    
+
     def __init__(self, name, **kwargs):
         if ":" in name:
             raise ValueError(f"Node names must not have ':' character. Cannot use name: {name}")
@@ -47,9 +49,11 @@ class Node(ABC):
         for node in nodes:
             for subnode_id in node.flat(include_locked=True, include_links=True).keys():
                 if self.identity == subnode_id:
-                    raise InvalidParameter("Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle")
+                    raise InvalidParameter(
+                        "Parameter structure must be Directed Acyclic Graph! Adding this node would create a cycle"
+                    )
             self.nodes[node.name] = node
-            
+
     def unlink(self, *nodes):
         """Undoes the linking of two nodes. Note that this could sever the
         connection of many nodes to each other if the current node was
@@ -60,22 +64,17 @@ class Node(ABC):
             del self.nodes[node.name]
 
     def dump(self):
-        """Simply unlinks all nodes that the current node is linked with.
-
-        """
+        """Simply unlinks all nodes that the current node is linked with."""
         self.unlink(*self.nodes.values())
 
     @property
     def leaf(self):
-        """Returns True when the current node is a leaf node.
-
-        """
+        """Returns True when the current node is a leaf node."""
         return len(self.nodes) == 0
+
     @property
     def branch(self):
-        """Returns True when the current node is a branch node (not a leaf node, is linked to more nodes).
-
-        """
+        """Returns True when the current node is a branch node (not a leaf node, is linked to more nodes)."""
         return len(self.nodes) > 0
 
     def __getitem__(self, key):
@@ -103,7 +102,7 @@ class Node(ABC):
                 if key == node.identity:
                     return node
         raise KeyError(f"Unrecognized key for '{self.name}': {key}")
-                
+
     def __contains__(self, key):
         """Check if a node has a link directly to another node. A check like
         ``"second_node" in first_node`` would return true only if
@@ -131,7 +130,7 @@ class Node(ABC):
             return self._identity
         except AttributeError:
             return id(self)
-    
+
     def get_state(self):
         """Returns a dictionary with state information about this node. From
         that dictionary the node can reconstruct itself, or form
@@ -158,18 +157,17 @@ class Node(ABC):
         self._identity = state["identity"]
         if "nodes" in state:
             for node in state["nodes"]:
-                self.link(self.__class__(name = node["name"], state = node))
+                self.link(self.__class__(name=node["name"], state=node))
         self.locked = state.get("locked", False)
-        
+
     def __iter__(self):
         return filter(lambda n: not n.locked, self.nodes.values())
-    
+
     @property
     @abstractmethod
-    def value(self):
-        ...
+    def value(self): ...
 
-    def flat(self, include_locked = True, include_links = False):
+    def flat(self, include_locked=True, include_links=False):
         """Searches the DAG from this node and collects other nodes in the
         graph. By default it will include all leaf nodes only, however
         it can be directed to only collect leaf nodes that are not
@@ -194,5 +192,10 @@ class Node(ABC):
 
     def __str__(self):
         return f"Node: {self.name}"
+
     def __repr__(self):
-        return f"Node: {self.name} " + ("locked" if self.locked else "unlocked") + ("" if self.leaf else " {" + ";".join(repr(node) for node in self.nodes) + "}")
+        return (
+            f"Node: {self.name} "
+            + ("locked" if self.locked else "unlocked")
+            + ("" if self.leaf else " {" + ";".join(repr(node) for node in self.nodes) + "}")
+        )

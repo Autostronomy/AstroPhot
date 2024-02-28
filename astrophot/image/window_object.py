@@ -1,9 +1,7 @@
-import numpy as np
 import torch
 from astropy.wcs import WCS as AstropyWCS
 
 from .. import AP_config
-from ..utils.conversions.coordinates import Rotate_Cartesian
 from .wcs import WCS
 from ..errors import ConflicingWCS, SpecificationConflict
 
@@ -32,13 +30,13 @@ class Window(WCS):
     initialize a window. If you provide ``origin_radec`` then
     it will place the image origin at the requested RA DEC
     coordinates. If you provide ``center_radec`` then it will place
-    the image center at the requested RA DEC coordiantes. Note that in
+    the image center at the requested RA DEC coordinates. Note that in
     these cases the fixed point between the pixel grid and image plane
     is different (pixel origin and center respectively); so if you
     have rotated pixels in your pixel scale matrix then everything
     will be rotated about different points (pixel origin and center
     respectively). If you provide ``origin`` or ``center`` then those
-    are coordiantes in the tangent plane (arcsec) and they will
+    are coordinates in the tangent plane (arcsec) and they will
     correspondingly become fixed points. For arbitrary control over
     the pixel positioning, use ``reference_imageij`` and
     ``reference_imagexy`` to fix the pixel and tangent plane
@@ -329,7 +327,9 @@ class Window(WCS):
     def set_fits_state(self, state):
         super().set_fits_state(state)
         self.pixel_shape = torch.tensor(
-            eval(state["PXL_SHPE"]), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            eval(state["PXL_SHPE"]),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
         )
 
     def crop_pixel(self, pixels):

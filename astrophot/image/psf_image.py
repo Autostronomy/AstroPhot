@@ -2,17 +2,17 @@ from typing import List, Optional, Union
 
 import torch
 import numpy as np
-from torch.nn.functional import avg_pool2d
 
-from .image_object import Image, Image_List
+from .image_object import Image
 from .image_header import Image_Header
 from .model_image import Model_Image
 from .jacobian_image import Jacobian_Image
 from astropy.io import fits
 from .. import AP_config
-from ..errors import SpecificationConflict, InvalidData
+from ..errors import SpecificationConflict
 
 __all__ = ["PSF_Image"]
+
 
 class PSF_Image(Image):
     """Image object which represents a model of PSF (Point Spread Function).
@@ -46,19 +46,15 @@ class PSF_Image(Image):
                 band (str, optional): The band of the image. Default is None.
         """
         super().__init__(*args, **kwargs)
-        self.window.reference_radec = (0,0)
-        self.window.reference_planexy = (0,0)
-        self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype = float) - 1.) / 2
-        self.window.reference_imagexy = (0,0)
+        self.window.reference_radec = (0, 0)
+        self.window.reference_planexy = (0, 0)
+        self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype=float) - 1.0) / 2
+        self.window.reference_imagexy = (0, 0)
 
-    def set_data(
-        self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True
-    ):
-        super().set_data(data = data, require_shape = require_shape)
-        
-        if torch.any(
-            (torch.tensor(self.data.shape) % 2) != 1
-        ):
+    def set_data(self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True):
+        super().set_data(data=data, require_shape=require_shape)
+
+        if torch.any((torch.tensor(self.data.shape) % 2) != 1):
             raise SpecificationConflict(f"psf must have odd shape, not {self.data.shape}")
         if torch.any(self.data < 0):
             AP_config.ap_logger.warning("psf data should be non-negative")
@@ -100,9 +96,7 @@ class PSF_Image(Image):
         """
         img_header = self.header._save_image_list()
         img_header["IMAGE"] = "PSF"
-        image_list.append(
-            fits.ImageHDU(self.data.detach().cpu().numpy(), header=img_header)
-        )
+        image_list.append(fits.ImageHDU(self.data.detach().cpu().numpy(), header=img_header))
 
     def jacobian_image(
         self,
@@ -129,7 +123,7 @@ class PSF_Image(Image):
             header=self.header,
             **kwargs,
         )
-    
+
     def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
         """
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
@@ -143,7 +137,7 @@ class PSF_Image(Image):
 
     def expand(self, padding):
         raise NotImplementedError("expand not available for PSF_Image")
-    
+
     def get_fits_state(self):
         states = [{}]
         states[0]["DATA"] = self.data.detach().cpu().numpy()
@@ -155,5 +149,5 @@ class PSF_Image(Image):
         for state in states:
             if state["HEADER"]["IMAGE"] == "PSF":
                 self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
-                self.header = Image_Header(fits_state = state["HEADER"])
+                self.header = Image_Header(fits_state=state["HEADER"])
                 break

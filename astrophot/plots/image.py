@@ -1,13 +1,12 @@
 import numpy as np
 import torch
 
-from astropy.visualization import HistEqStretch, ImageNormalize, LogStretch, SqrtStretch
-from matplotlib.patches import Rectangle, Polygon
-from matplotlib import pyplot as plt
+from astropy.visualization import HistEqStretch, ImageNormalize
+from matplotlib.patches import Polygon
 import matplotlib
 from scipy.stats import iqr
 
-from ..models import Group_Model, Sky_Model, PSF_Model
+from ..models import Group_Model, PSF_Model
 from ..image import Image_List, Window_List
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
@@ -290,7 +289,7 @@ def model_image(
             clb = fig.colorbar(im, ax=ax, label="Surface Brightness [mag/arcsec$^2$]")
             clb.ax.invert_yaxis()
         else:
-            clb = fig.colorbar(im, ax=ax, label=f"log$_{{10}}$(flux)")
+            clb = fig.colorbar(im, ax=ax, label="log$_{10}$(flux)")
 
     return fig, ax
 

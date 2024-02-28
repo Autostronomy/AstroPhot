@@ -39,9 +39,7 @@ class Grad(BaseOptimizer):
 
     """
 
-    def __init__(
-        self, model: "AstroPhot_Model", initial_state: Sequence = None, **kwargs
-    ) -> None:
+    def __init__(self, model: "AstroPhot_Model", initial_state: Sequence = None, **kwargs) -> None:
         """Initialize the gradient descent optimizer.
 
         Args:
@@ -61,7 +59,7 @@ class Grad(BaseOptimizer):
         self.report_freq = kwargs.get("report_freq", 10)
 
         # Default learning rate if none given. Equalt to 1 / sqrt(parames)
-        if not "lr" in self.optim_kwargs:
+        if "lr" not in self.optim_kwargs:
             self.optim_kwargs["lr"] = 0.1 / (len(self.current_state) ** (0.5))
 
         # Instantiates the appropriate pytorch optimizer with the initial state and user provided kwargs
@@ -71,9 +69,7 @@ class Grad(BaseOptimizer):
         )
 
     def compute_loss(self) -> torch.Tensor:
-        Ym = self.model(parameters=self.current_state, as_representation=True).flatten(
-            "data"
-        )
+        Ym = self.model(parameters=self.current_state, as_representation=True).flatten("data")
         Yt = self.model.target[self.model.window].flatten("data")
         W = (
             self.model.target[self.model.window].flatten("variance")
@@ -102,7 +98,7 @@ class Grad(BaseOptimizer):
 
         self.optimizer.zero_grad()
         self.model.parameters.flat_detach()
-        
+
         loss = self.compute_loss()
 
         loss.backward()
@@ -136,8 +132,7 @@ class Grad(BaseOptimizer):
                     break
                 if (
                     self.patience is not None
-                    and (len(self.loss_history) - np.argmin(self.loss_history))
-                    > self.patience
+                    and (len(self.loss_history) - np.argmin(self.loss_history)) > self.patience
                 ):
                     self.message = self.message + " fail no improvement"
                     break

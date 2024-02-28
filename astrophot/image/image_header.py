@@ -18,8 +18,8 @@ class Image_Header:
     AstroPhot what is contained in an image array of pixels. This
     includes coordinate systems and how to transform between them (see
     :doc:`coordinates`). The image header will also know the image
-    zeropoint if that data is avaialble.
-    
+    zeropoint if that data is available.
+
     Args:
       window : Window or None, optional
           A Window object defining the area of the image in the coordinate
@@ -30,11 +30,11 @@ class Image_Header:
           The image's zeropoint, used for flux calibration. Default is None.
       metadata : dict or None, optional
           Any information the user wishes to associate with this image, stored in a python dictionary. Default is None.
-    
+
     """
 
-    north = np.pi / 2.
-    
+    north = np.pi / 2.0
+
     def __init__(
         self,
         *,
@@ -60,7 +60,7 @@ class Image_Header:
 
         # set metadata for the image
         self.metadata = metadata
-        
+
         if filename is not None:
             self.load(filename)
             return
@@ -73,9 +73,7 @@ class Image_Header:
 
         # Set Window
         if window is None:
-            data_shape = torch.as_tensor(
-                data_shape, dtype=torch.int32, device=AP_config.ap_device
-            )
+            data_shape = torch.as_tensor(data_shape, dtype=torch.int32, device=AP_config.ap_device)
             # If window is not provided, create one based on provided information
             self.window = Window(
                 pixel_shape=torch.flip(data_shape, (0,)),
@@ -85,7 +83,7 @@ class Image_Header:
         else:
             # When the Window object is provided
             self.window = window
-            
+
     @property
     def zeropoint(self):
         """The photometric zeropoint of the image, used as a flux reference
@@ -105,7 +103,7 @@ class Image_Header:
             .clone()
             .detach()
         )
-    
+
     @property
     def origin(self) -> torch.Tensor:
         """
@@ -136,40 +134,51 @@ class Image_Header:
         """
         return self.window.center
 
-
     def world_to_plane(self, *args, **kwargs):
         return self.window.world_to_plane(*args, **kwargs)
+
     def plane_to_world(self, *args, **kwargs):
         return self.window.plane_to_world(*args, **kwargs)
+
     def plane_to_pixel(self, *args, **kwargs):
         return self.window.plane_to_pixel(*args, **kwargs)
+
     def pixel_to_plane(self, *args, **kwargs):
         return self.window.pixel_to_plane(*args, **kwargs)
+
     def plane_to_pixel_delta(self, *args, **kwargs):
         return self.window.plane_to_pixel_delta(*args, **kwargs)
+
     def pixel_to_plane_delta(self, *args, **kwargs):
         return self.window.pixel_to_plane_delta(*args, **kwargs)
+
     def world_to_pixel(self, *args, **kwargs):
         return self.window.world_to_pixel(*args, **kwargs)
+
     def pixel_to_world(self, *args, **kwargs):
         return self.window.pixel_to_world(*args, **kwargs)
+
     def get_coordinate_meshgrid(self):
         return self.window.get_coordinate_meshgrid()
+
     def get_coordinate_corner_meshgrid(self):
         return self.window.get_coordinate_corner_meshgrid()
+
     def get_coordinate_simps_meshgrid(self):
         return self.window.get_coordinate_simps_meshgrid()
 
     @property
     def pixelscale(self):
         return self.window.pixelscale
+
     @property
     def pixel_length(self):
         return self.window.pixel_length
+
     @property
     def pixel_area(self):
         return self.window.pixel_area
-    
+
     def shift(self, shift):
         """Adjust the position of the image described by the header. This will
         not adjust the data represented by the header, only the
@@ -198,7 +207,7 @@ class Image_Header:
         return self.__class__(**copy_kwargs)
 
     def get_window(self, window, **kwargs):
-        """Get a sub-region of the image as defined by a window on the sky."""        
+        """Get a sub-region of the image as defined by a window on the sky."""
         copy_kwargs = {
             "window": self.window & window,
         }
@@ -234,12 +243,12 @@ class Image_Header:
     def rescale_pixel(self, scale: int, **kwargs):
         if scale == 1:
             return self
-        
+
         return self.copy(
-            window = self.window.rescale_pixel(scale),
+            window=self.window.rescale_pixel(scale),
             **kwargs,
-        )    
-    
+        )
+
     def get_state(self):
         """Returns a dictionary with necessary information to recreate the
         Image_Header object.
@@ -255,15 +264,15 @@ class Image_Header:
 
     def set_state(self, state):
         self.zeropoint = state.get("zeropoint", self.zeropoint)
-        self.window = Window(state = state["window"])
+        self.window = Window(state=state["window"])
         self.metadata = state.get("metadata", self.metadata)
 
     def get_fits_state(self):
         state = {}
         state.update(self.window.get_fits_state())
-        if not self.zeropoint is None:
+        if self.zeropoint is not None:
             state["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
-        if not self.metadata is None:
+        if self.metadata is not None:
             state["METADATA"] = str(self.metadata)
         return state
 
@@ -274,7 +283,7 @@ class Image_Header:
         self.zeropoint = eval(state.get("ZEROPNT", "None"))
         self.metadata = state.get("METADATA", None)
         self.window = Window(fits_state=state)
-        
+
     def _save_image_list(self):
         """
         Constructs a FITS header object which has the necessary information to recreate the Image_Header object.
@@ -282,9 +291,9 @@ class Image_Header:
         img_header = fits.Header()
         img_header["IMAGE"] = "PRIMARY"
         img_header["WINDOW"] = str(self.window.get_state())
-        if not self.zeropoint is None:
+        if self.zeropoint is not None:
             img_header["ZEROPNT"] = str(self.zeropoint.detach().cpu().item())
-        if not self.metadata is None:
+        if self.metadata is not None:
             img_header["METADATA"] = str(self.metadata)
         return img_header
 

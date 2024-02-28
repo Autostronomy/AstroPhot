@@ -1,9 +1,6 @@
 from typing import Optional
 
 import torch
-import numpy as np
-from scipy.stats import iqr
-from scipy.optimize import minimize
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
@@ -11,7 +8,6 @@ from .ray_model import Ray_Galaxy
 from .psf_model_object import PSF_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from .ray_model import Ray_Galaxy
 from .wedge_model import Wedge_Galaxy
 from ._shared_methods import (
     parametric_initialize,
@@ -19,10 +15,8 @@ from ._shared_methods import (
     select_target,
 )
 from ..param import Parameter_Node
-from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.parametric_profiles import exponential_torch, exponential_np
-from ..utils.conversions.coordinates import Rotate_Cartesian
+from ..utils.parametric_profiles import exponential_np
 
 __all__ = [
     "Exponential_Galaxy",
@@ -40,7 +34,7 @@ def _x0_func(model_params, R, F):
 
 
 def _wrap_exp(R, re, ie):
-    return exponential_np(R, re, 10 ** ie)
+    return exponential_np(R, re, 10**ie)
 
 
 class Exponential_Galaxy(Galaxy_Model):
@@ -66,20 +60,16 @@ class Exponential_Galaxy(Galaxy_Model):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(
-        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
-    ):
+    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -103,13 +93,13 @@ class Exponential_PSF(PSF_Model):
 
     model_type = f"exponential {PSF_Model.model_type}"
     parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
+        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = PSF_Model._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
     model_integrated = False
-    
+
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -117,9 +107,7 @@ class Exponential_PSF(PSF_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
     from ._shared_methods import radial_evaluate_model as evaluate_model
@@ -148,7 +136,7 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -157,9 +145,7 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -187,7 +173,7 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -196,16 +182,14 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
 
 class Exponential_FourierEllipse(FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with an
-    expoential profile for the radial light profile.
+    exponential profile for the radial light profile.
 
     I(R) = Ie * exp(-b1(R/Re - 1))
 
@@ -226,7 +210,7 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -235,9 +219,7 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -265,7 +247,7 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -274,9 +256,7 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -304,7 +284,7 @@ class Exponential_Warp(Warp_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -313,9 +293,7 @@ class Exponential_Warp(Warp_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
 
     from ._shared_methods import exponential_radial_model as radial_model
 
@@ -343,7 +321,7 @@ class Exponential_Ray(Ray_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -388,7 +366,7 @@ class Exponential_Wedge(Wedge_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings

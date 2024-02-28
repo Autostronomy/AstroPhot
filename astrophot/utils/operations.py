@@ -1,10 +1,6 @@
 from functools import lru_cache
-from typing import Callable, Optional
 
 import torch
-import matplotlib.pyplot as plt
-import numpy as np
-from astropy.convolution import convolve, convolve_fft
 from scipy.fft import next_fast_len
 from scipy.special import roots_legendre
 
@@ -18,8 +14,7 @@ def fft_convolve_torch(img, psf, psf_fft=False, img_prepadded=False):
         s = img.size()
     else:
         s = tuple(
-            next_fast_len(int(d + (p + 1) / 2), real=True)
-            for d, p in zip(img.size(), psf.size())
+            next_fast_len(int(d + (p + 1) / 2), real=True) for d, p in zip(img.size(), psf.size())
         )  # list(int(d + (p + 1) / 2) for d, p in zip(img.size(), psf.size()))
 
     img_f = torch.fft.rfft2(img, s=s)
@@ -79,9 +74,7 @@ def fft_convolve_multi_torch(
 
 
 def displacement_spacing(N, dtype=torch.float64, device="cpu"):
-    return torch.linspace(
-        -(N - 1) / (2 * N), (N - 1) / (2 * N), N, dtype=dtype, device=device
-    )
+    return torch.linspace(-(N - 1) / (2 * N), (N - 1) / (2 * N), N, dtype=dtype, device=device)
 
 
 def displacement_grid(Nx, Ny, pixelscale=None, dtype=torch.float64, device="cpu"):
@@ -114,12 +107,10 @@ def single_quad_integrate(
 ):
 
     # collect gaussian quadrature weights
-    abscissaX, abscissaY, weight = quad_table(
-        quad_level, image_header.pixelscale, dtype, device
-    )
+    abscissaX, abscissaY, weight = quad_table(quad_level, image_header.pixelscale, dtype, device)
     # Specify coordinates at which to evaluate function
-    Xs = torch.repeat_interleave(X[..., None], quad_level ** 2, -1) + abscissaX
-    Ys = torch.repeat_interleave(Y[..., None], quad_level ** 2, -1) + abscissaY
+    Xs = torch.repeat_interleave(X[..., None], quad_level**2, -1) + abscissaX
+    Ys = torch.repeat_interleave(Y[..., None], quad_level**2, -1) + abscissaY
 
     # Evaluate the model at the quadrature points
     res = eval_brightness(
@@ -130,12 +121,13 @@ def single_quad_integrate(
     )
 
     # Reference flux for pixel is simply the mean of the evaluations
-    ref = res[..., (quad_level**2) // 2] #res.mean(axis=-1) # # alternative, use midpoint
-    
+    ref = res[..., (quad_level**2) // 2]  # res.mean(axis=-1) # # alternative, use midpoint
+
     # Apply the weights and reduce to original pixel space
     res = (res * weight).sum(axis=-1)
 
     return res, ref
+
 
 def grid_integrate(
     X,
@@ -167,7 +159,7 @@ def grid_integrate(
       gridding (int, optional): The factor by which the grid is subdivided when the integration error for a pixel is above the allowed threshold. Defaults to 5.
       _current_depth (int, optional): The current depth level of the grid subdivision. Used for recursive calls to the function. Defaults to 1.
       max_depth (int, optional): The maximum depth level of grid subdivision. Once this level is reached, no further subdivision is performed. Defaults to 2.
-      reference (torch.Tensor or None, optional): A scalar value that represents the allowed threshold for the integration error. 
+      reference (torch.Tensor or None, optional): A scalar value that represents the allowed threshold for the integration error.
 
     Returns:
       torch.Tensor: A tensor of the same shape as X and Y that represents the result of the integration on the grid.
@@ -210,31 +202,25 @@ def grid_integrate(
     integral[torch.logical_not(select)] = res[torch.logical_not(select)]
 
     # Set up sub-gridding to super resolve problem pixels
-    stepx, stepy = displacement_grid(
-        gridding, gridding, image_header.pixelscale, dtype, device
-    )
+    stepx, stepy = displacement_grid(gridding, gridding, image_header.pixelscale, dtype, device)
     # Write out the coordinates for the super resolved pixels
-    subgridX = torch.repeat_interleave(
-        X[select].unsqueeze(-1), gridding ** 2, -1
-    ) + stepx.reshape(-1)
-    subgridY = torch.repeat_interleave(
-        Y[select].unsqueeze(-1), gridding ** 2, -1
-    ) + stepy.reshape(-1)
+    subgridX = torch.repeat_interleave(X[select].unsqueeze(-1), gridding**2, -1) + stepx.reshape(-1)
+    subgridY = torch.repeat_interleave(Y[select].unsqueeze(-1), gridding**2, -1) + stepy.reshape(-1)
 
     # Recursively evaluate the quadrature integration on the finer sampling grid
     subgridres = grid_integrate(
         subgridX,
         subgridY,
-        image_header.rescale_pixel(1/gridding),
+        image_header.rescale_pixel(1 / gridding),
         eval_brightness,
         eval_parameters,
         dtype,
         device,
         quad_level=quad_level,
         gridding=gridding,
-        _current_depth=_current_depth+1,
+        _current_depth=_current_depth + 1,
         max_depth=max_depth,
-        reference=reference * gridding**2,        
+        reference=reference * gridding**2,
     )
 
     # Integrate the finer sampling grid back to current resolution

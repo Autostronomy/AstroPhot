@@ -13,7 +13,6 @@ from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 from ..image import Image
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
-    Axis_Ratio_Cartesian,
 )
 
 __all__ = ["Edgeon_Model"]
@@ -37,15 +36,13 @@ class Edgeon_Model(Component_Model):
         },
     }
     _parameter_order = Component_Model._parameter_order + ("PA",)
-    useable = False
+    usable = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(
-        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
-    ):
+    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
         super().initialize(target=target, parameters=parameters)
         if parameters["PA"].value is not None:
             return
@@ -75,10 +72,7 @@ class Edgeon_Model(Component_Model):
                 -(
                     (
                         Angle_Average(
-                            list(
-                                iso["phase2"]
-                                for iso in iso_info[-int(len(iso_info) / 3) :]
-                            )
+                            list(iso["phase2"] for iso in iso_info[-int(len(iso_info) / 3) :])
                         )
                         / 2
                     )
@@ -122,19 +116,15 @@ class Edgeon_Sech(Edgeon_Model):
         "hs": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Edgeon_Model._parameter_order + ("I0", "hs")
-    useable = False
+    usable = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(
-        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
-    ):
+    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
         super().initialize(target=target, parameters=parameters)
-        if (parameters["I0"].value is not None) and (
-            parameters["hs"].value is not None
-        ):
+        if (parameters["I0"].value is not None) and (parameters["hs"].value is not None):
             return
         target_area = target[self.window]
         icenter = target_area.plane_to_pixel(parameters["center"].value)
@@ -181,15 +171,13 @@ class Edgeon_Isothermal(Edgeon_Sech):
         "rs": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Edgeon_Sech._parameter_order + ("rs",)
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(
-        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
-    ):
+    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
         super().initialize(target=target, parameters=parameters)
         if parameters["rs"].value is not None:
             return
@@ -200,8 +188,4 @@ class Edgeon_Isothermal(Edgeon_Sech):
     @default_internal
     def radial_model(self, R, image=None, parameters=None):
         Rscaled = torch.abs((R + self.softening) / parameters["rs"].value)
-        return (
-            Rscaled
-            * torch.exp(-Rscaled)
-            * torch.special.scaled_modified_bessel_k1(Rscaled)
-        )
+        return Rscaled * torch.exp(-Rscaled) * torch.special.scaled_modified_bessel_k1(Rscaled)

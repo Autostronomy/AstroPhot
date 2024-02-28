@@ -1,5 +1,4 @@
 from typing import Optional, Union, Any, Sequence, Tuple
-from copy import deepcopy
 
 import torch
 from torch.nn.functional import pad
@@ -24,7 +23,7 @@ class Image(object):
     Parameters:
         data: the matrix of pixel values for the image
         pixelscale: the length of one side of a pixel in arcsec/pixel
-        window: an AstroPhot Window object which defines the spatial cooridnates on the sky
+        window: an AstroPhot Window object which defines the spatial coordinates on the sky
         filename: a filename from which to load the image.
         zeropoint: photometric zero point for converting from pixel flux to magnitude
         metadata: Any information the user wishes to associate with this image, stored in a python dictionary
@@ -654,10 +653,10 @@ class Image_List(Image):
         raise ValueError("Unrecognized Image_List getitem request!")
 
     def __str__(self):
-        return f"image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
+        return "image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
 
     def __repr__(self):
-        return f"image list of:\n" + "\n".join(image.__repr__() for image in self.image_list)
+        return "image list of:\n" + "\n".join(image.__repr__() for image in self.image_list)
 
     def __iter__(self):
         return (img for img in self.image_list)

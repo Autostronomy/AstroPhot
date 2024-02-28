@@ -37,4 +37,3 @@ Issues
 ------
 
 For any install issues contact connorstone628@gmail.com for help. The code has been unit tested on Linux, Windows, and Mac machines.
-

@@ -1,0 +1,26 @@
+# Table of contents
+# Learn more at https://jupyterbook.org/customize/toc.html
+
+format: jb-book
+root: index
+chapters:
+  - file: getting_started
+  - file: install
+  - file: tutorials/index
+    sections:
+      - file: tutorials/GettingStarted
+      - file: tutorials/ModelZoo
+      - file: tutorials/GroupModels
+      - file: tutorials/BasicPSFModels
+      - file: tutorials/JointModels
+      - file: tutorials/FittingMethods
+      - file: tutorials/AdvancedPSFModels
+      - file: tutorials/CustomModels
+      - file: tutorials/ConstrainedModels
+  - file: coordinates
+  - file: configfile_interface
+  - file: troubleshooting
+  - file: contributing
+  - file: citation
+  - file: license
+  - file: modules

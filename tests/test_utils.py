@@ -4,8 +4,6 @@ import torch
 import h5py
 from scipy.signal import fftconvolve
 from scipy.special import gamma
-from torch.special import gammaln
-from scipy.interpolate import RectBivariateSpline
 import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian
 
@@ -58,64 +56,67 @@ class TestOptimize(unittest.TestCase):
 
         # with variance
         # with mask
-        mask = torch.zeros(10, dtype=torch.bool, device = ap.AP_config.ap_device)
+        mask = torch.zeros(10, dtype=torch.bool, device=ap.AP_config.ap_device)
         mask[2] = 1
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            mask=mask, variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            mask=mask,
+            variance=2 * torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
         )
         self.assertEqual(chi2, 4.5, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
             params=3,
             mask=mask,
-            variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            variance=2 * torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
         )
         self.assertEqual(chi2_red.item(), 0.75, "Chi squared calculation incorrect")
 
         # no mask
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            variance=2 * torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
         )
         self.assertEqual(chi2, 5, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            params=3, variance=2 * torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            params=3,
+            variance=2 * torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
         )
         self.assertEqual(chi2_red.item(), 5 / 7, "Chi squared calculation incorrect")
 
         # no variance
         # with mask
-        mask = torch.zeros(10, dtype=torch.bool, device = ap.AP_config.ap_device)
+        mask = torch.zeros(10, dtype=torch.bool, device=ap.AP_config.ap_device)
         mask[2] = 1
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            mask=mask
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            mask=mask,
         )
         self.assertEqual(chi2.item(), 9, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            params=3, mask=mask
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            params=3,
+            mask=mask,
         )
         self.assertEqual(chi2_red.item(), 1.5, "Chi squared calculation incorrect")
 
         # no mask
         chi2 = ap.utils.optimization.chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device)
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
         )
         self.assertEqual(chi2.item(), 10, "Chi squared calculation incorrect")
         chi2_red = ap.utils.optimization.reduced_chi_squared(
-            torch.ones(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            torch.zeros(10, dtype = ap.AP_config.ap_dtype, device = ap.AP_config.ap_device),
-            params=3
+            torch.ones(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            torch.zeros(10, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device),
+            params=3,
         )
         self.assertEqual(chi2_red.item(), 10 / 7, "Chi squared calculation incorrect")
 
@@ -145,35 +146,27 @@ class TestSegtoWindow(unittest.TestCase):
         segmap[50:90, 17:35] = 2
         segmap[26:34, 80:85] = 3
 
-        centroids = ap.utils.initialize.centroids_from_segmentation_map(
-            segmap, image=segmap
-        )
+        centroids = ap.utils.initialize.centroids_from_segmentation_map(segmap, image=segmap)
 
         PAs = ap.utils.initialize.PA_from_segmentation_map(
-            segmap, image=segmap, centroids = centroids,
+            segmap,
+            image=segmap,
+            centroids=centroids,
         )
         qs = ap.utils.initialize.q_from_segmentation_map(
-            segmap, image=segmap, centroids = centroids,
+            segmap,
+            image=segmap,
+            centroids=centroids,
         )
 
         windows = ap.utils.initialize.windows_from_segmentation_map(segmap)
 
-        self.assertEqual(
-            len(windows), 3, "should ignore zero index, but find all three windows"
-        )
-        self.assertEqual(
-            len(centroids), 3, "should ignore zero index, but find all three windows"
-        )
-        self.assertEqual(
-            len(PAs), 3, "should ignore zero index, but find all three windows"
-        )
-        self.assertEqual(
-            len(qs), 3, "should ignore zero index, but find all three windows"
-        )
+        self.assertEqual(len(windows), 3, "should ignore zero index, but find all three windows")
+        self.assertEqual(len(centroids), 3, "should ignore zero index, but find all three windows")
+        self.assertEqual(len(PAs), 3, "should ignore zero index, but find all three windows")
+        self.assertEqual(len(qs), 3, "should ignore zero index, but find all three windows")
 
-        self.assertEqual(
-            windows[1], [[20, 29], [5, 8]], "Windows should be identified by index"
-        )
+        self.assertEqual(windows[1], [[20, 29], [5, 8]], "Windows should be identified by index")
 
         # scale windows
 
@@ -181,9 +174,7 @@ class TestSegtoWindow(unittest.TestCase):
             windows, image_shape=(100, 100), expand_scale=2, expand_border=3
         )
 
-        self.assertEqual(
-            new_windows[2], [[5, 45], [27, 100]], "Windows should scale appropriately"
-        )
+        self.assertEqual(new_windows[2], [[5, 45], [27, 100]], "Windows should scale appropriately")
 
         filtered_windows = ap.utils.initialize.filter_windows(
             new_windows, min_size=10, max_size=80, min_area=30, max_area=1000
@@ -264,27 +255,21 @@ class TestConversions(unittest.TestCase):
 
         # mag to magperarcsec2 with area A defined
         self.assertAlmostEqual(
-            ap.utils.conversions.units.mag_to_magperarcsec2(
-                1.0, a=None, b=None, A=1.0, R=None
-            ),
+            ap.utils.conversions.units.mag_to_magperarcsec2(1.0, a=None, b=None, A=1.0, R=None),
             (1.0 + 2.5 * np.log10(1.0)),
             msg="mag incorrectly converted to mag/arcsec^2 (area A given)",
         )
 
         # mag to magperarcsec2 with radius R given (assumes circular)
         self.assertAlmostEqual(
-            ap.utils.conversions.units.mag_to_magperarcsec2(
-                1.0, a=None, b=None, A=None, R=1.0
-            ),
+            ap.utils.conversions.units.mag_to_magperarcsec2(1.0, a=None, b=None, A=None, R=1.0),
             (1.0 + 2.5 * np.log10(np.pi)),
             msg="mag incorrectly converted to mag/arcsec^2 (radius R given)",
         )
 
         # mag to magperarcsec2 with semi major and minor axes defined (a, and b)
         self.assertAlmostEqual(
-            ap.utils.conversions.units.mag_to_magperarcsec2(
-                1.0, a=1.0, b=1.0, A=None, R=None
-            ),
+            ap.utils.conversions.units.mag_to_magperarcsec2(1.0, a=1.0, b=1.0, A=None, R=None),
             (1.0 + 2.5 * np.log10(np.pi)),
             msg="mag incorrectly converted to mag/arcsec^2 (area A given)",
         )
@@ -332,9 +317,7 @@ class TestConversions(unittest.TestCase):
         # convert dict to hdf5
         target = make_basic_sersic().data.detach().cpu().numpy()[0]
         d = {"sersic": target.tolist()}
-        ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(
-            h=h5py.File("mytestfile2.hdf5", "w"), D=d
-        )
+        ap.utils.conversions.dict_to_hdf5.dict_to_hdf5(h=h5py.File("mytestfile2.hdf5", "w"), D=d)
         self.assertEqual(
             (list(h5py.File("mytestfile2.hdf5", "r"))),
             (list(d)),
@@ -407,9 +390,7 @@ class TestConversions(unittest.TestCase):
                 decimals=7,
             ),
             torch.round(
-                torch.tensor(
-                    [[2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2)]]
-                ),
+                torch.tensor([[2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2)]]),
                 decimals=7,
             ),
             msg="Error converting sersic effective intensity to flux (torch)",
@@ -422,9 +403,7 @@ class TestConversions(unittest.TestCase):
                 decimals=7,
             ),
             torch.round(
-                torch.tensor(
-                    [[1 / (2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2))]]
-                ),
+                torch.tensor([[1 / (2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2))]]),
                 decimals=7,
             ),
             msg="Error converting sersic flux to effective intensity (torch)",
@@ -432,14 +411,11 @@ class TestConversions(unittest.TestCase):
 
         # inverse sersic - torch
         self.assertEqual(
-            torch.round(
-                ap.utils.conversions.functions.sersic_inv_np(tv, tv, tv, tv), decimals=7
-            ),
-            torch.round(
-                torch.tensor([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]), decimals=7
-            ),
+            torch.round(ap.utils.conversions.functions.sersic_inv_np(tv, tv, tv, tv), decimals=7),
+            torch.round(torch.tensor([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]), decimals=7),
             msg="Error computing inverse sersic function (torch)",
         )
+
     def test_general_derivative(self):
 
         res = ap.utils.conversions.functions.general_uncertainty_prop(
@@ -448,7 +424,12 @@ class TestConversions(unittest.TestCase):
             ap.utils.conversions.functions.sersic_Ie_to_flux_torch,
         )
 
-        self.assertAlmostEqual(res.detach().cpu().numpy(), 1.8105, 3, "General uncertianty prop should compute uncertainty")
+        self.assertAlmostEqual(
+            res.detach().cpu().numpy(),
+            1.8105,
+            3,
+            "General uncertianty prop should compute uncertainty",
+        )
 
 
 class TestInterpolate(unittest.TestCase):
@@ -456,15 +437,9 @@ class TestInterpolate(unittest.TestCase):
 
         # Lanczos kernel interpolation on the center point of a gaussian (10., 10.)
         model = make_basic_gaussian(x=10.0, y=10.0).data.detach().cpu().numpy()
-        lanczos_interp = ap.utils.interpolate.point_Lanczos(
-            model, 10.0, 10.0, scale=0.8
-        )
-        self.assertTrue(
-            np.all(np.isfinite(model)), msg="gaussian model returning nonfinite values"
-        )
-        self.assertLess(
-            lanczos_interp, 1.0, msg="Lanczos interpolation greater than total flux"
-        )
+        lanczos_interp = ap.utils.interpolate.point_Lanczos(model, 10.0, 10.0, scale=0.8)
+        self.assertTrue(np.all(np.isfinite(model)), msg="gaussian model returning nonfinite values")
+        self.assertLess(lanczos_interp, 1.0, msg="Lanczos interpolation greater than total flux")
         self.assertTrue(
             np.isfinite(lanczos_interp),
             msg="Lanczos interpolate returning nonfinite values",
@@ -495,15 +470,15 @@ class TestAngleOperations(unittest.TestCase):
             N=50,
             M=50,
             pixelscale=pixelscale,
-            x=24.5*pixelscale,
-            y=24.5*pixelscale,
-            PA = 115 * np.pi / 180,
+            x=24.5 * pixelscale,
+            y=24.5 * pixelscale,
+            PA=115 * np.pi / 180,
         )
 
         res = ap.utils.angle_operations.Angle_COM_PA(tar.data.detach().cpu().numpy())
 
-        self.assertAlmostEqual(res + np.pi/2, 115 * np.pi / 180, delta = 0.1)
-        
-        
+        self.assertAlmostEqual(res + np.pi / 2, 115 * np.pi / 180, delta=0.1)
+
+
 if __name__ == "__main__":
     unittest.main()

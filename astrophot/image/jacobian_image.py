@@ -1,8 +1,6 @@
-import warnings
-from typing import Optional, Union, List
+from typing import List
 
 import torch
-from torch.nn.functional import pad
 
 from .image_object import Image, Image_List
 from .. import AP_config
@@ -68,7 +66,7 @@ class Jacobian_Image(Image):
             if state["HEADER"]["IMAGE"] == "PRIMARY":
                 self.target_identity = state["HEADER"]["TRGTID"]
                 self.parameters = eval(state["HEADER"]["params"])
-        
+
     def __add__(self, other):
         raise NotImplementedError("Jacobian images cannot add like this, use +=")
 
@@ -141,7 +139,9 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
         if len(self.image_list) > 1:
             for image in self.image_list[1:]:
                 if self.image_list[0].parameters != image.parameters:
-                    raise SpecificationConflict("Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used.")
+                    raise SpecificationConflict(
+                        "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
+                    )
         return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
 
     def __add__(self, other):

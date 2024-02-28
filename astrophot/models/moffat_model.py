@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
 from .psf_model_object import PSF_Model
@@ -44,7 +43,7 @@ class Moffat_Galaxy(Galaxy_Model):
         "I0": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("n", "Rd", "I0")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -53,9 +52,7 @@ class Moffat_Galaxy(Galaxy_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
 
     @default_internal
     def total_flux(self, parameters=None):
@@ -65,22 +62,27 @@ class Moffat_Galaxy(Galaxy_Model):
             parameters["Rd"].value,
             parameters["q"].value,
         )
+
     @default_internal
     def total_flux_uncertainty(self, parameters=None):
         return general_uncertainty_prop(
-            (10 ** parameters["I0"].value,
-             parameters["n"].value,
-             parameters["Rd"].value,
-             parameters["q"].value
+            (
+                10 ** parameters["I0"].value,
+                parameters["n"].value,
+                parameters["Rd"].value,
+                parameters["q"].value,
             ),
-            ((10 ** parameters["I0"].value) * parameters["I0"].uncertainty * torch.log(10*torch.ones_like(parameters["I0"].value)),
-             parameters["n"].uncertainty,
-             parameters["Rd"].uncertainty,
-             parameters["q"].uncertainty
+            (
+                (10 ** parameters["I0"].value)
+                * parameters["I0"].uncertainty
+                * torch.log(10 * torch.ones_like(parameters["I0"].value)),
+                parameters["n"].uncertainty,
+                parameters["Rd"].uncertainty,
+                parameters["q"].uncertainty,
             ),
-            moffat_I0_to_flux
+            moffat_I0_to_flux,
         )
-    
+
     from ._shared_methods import moffat_radial_model as radial_model
 
 
@@ -106,12 +108,12 @@ class Moffat_PSF(PSF_Model):
     parameter_specs = {
         "n": {"units": "none", "limits": (0.1, 10), "uncertainty": 0.05},
         "Rd": {"units": "arcsec", "limits": (0, None)},
-        "I0": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
+        "I0": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
     }
     _parameter_order = PSF_Model._parameter_order + ("n", "Rd", "I0")
-    useable = True
+    usable = True
     model_integrated = False
-    
+
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -119,9 +121,7 @@ class Moffat_PSF(PSF_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
 
     from ._shared_methods import moffat_radial_model as radial_model
 
@@ -133,20 +133,25 @@ class Moffat_PSF(PSF_Model):
             parameters["Rd"].value,
             torch.ones_like(parameters["n"].value),
         )
+
     @default_internal
     def total_flux_uncertainty(self, parameters=None):
         return general_uncertainty_prop(
-            (10 ** parameters["I0"].value,
-             parameters["n"].value,
-             parameters["Rd"].value,
-             torch.ones_like(parameters["n"].value)
+            (
+                10 ** parameters["I0"].value,
+                parameters["n"].value,
+                parameters["Rd"].value,
+                torch.ones_like(parameters["n"].value),
             ),
-            ((10 ** parameters["I0"].value) * parameters["I0"].uncertainty * torch.log(10*torch.ones_like(parameters["I0"].value)),
-             parameters["n"].uncertainty,
-             parameters["Rd"].uncertainty,
-             torch.zeros_like(parameters["n"].value)
+            (
+                (10 ** parameters["I0"].value)
+                * parameters["I0"].uncertainty
+                * torch.log(10 * torch.ones_like(parameters["I0"].value)),
+                parameters["n"].uncertainty,
+                parameters["Rd"].uncertainty,
+                torch.zeros_like(parameters["n"].value),
             ),
-            moffat_I0_to_flux
+            moffat_I0_to_flux,
         )
-    
+
     from ._shared_methods import radial_evaluate_model as evaluate_model

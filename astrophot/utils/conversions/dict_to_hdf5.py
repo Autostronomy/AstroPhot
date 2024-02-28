@@ -1,6 +1,3 @@
-from typing import Iterable
-
-
 def to_hdf5_has_None(l):
     for i in range(len(l)):
         if hasattr(l[i], "__iter__") and not isinstance(l[i], str):

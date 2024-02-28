@@ -1,11 +1,10 @@
 import torch
-import numpy as np
 
 from .. import AP_config
 from .image_object import Image, Image_List
 from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
-from ..errors import InvalidData, SpecificationConflict, InvalidImage
+from ..errors import InvalidImage
 
 __all__ = ["Model_Image", "Model_Image_List"]
 
@@ -32,9 +31,7 @@ class Model_Image(Image):
         self.window.shift(shift)
         pix_shift = self.plane_to_pixel_delta(shift)
         if torch.any(torch.abs(pix_shift) > 1):
-            raise NotImplementedError(
-                "Shifts larger than 1 pixel are currently not handled"
-            )
+            raise NotImplementedError("Shifts larger than 1 pixel are currently not handled")
         self.data = shift_Lanczos_torch(
             self.data,
             pix_shift[0],
@@ -46,9 +43,7 @@ class Model_Image(Image):
         )
 
     def get_window(self, window: Window, **kwargs):
-        return super().get_window(
-            window, target_identity=self.target_identity, **kwargs
-        )
+        return super().get_window(window, target_identity=self.target_identity, **kwargs)
 
     def reduce(self, scale, **kwargs):
         return super().reduce(scale, target_identity=self.target_identity, **kwargs)
@@ -59,10 +54,7 @@ class Model_Image(Image):
                 return
             other_indices = self.window.get_other_indices(other)
             self_indices = other.window.get_other_indices(self)
-            if (
-                self.data[self_indices].nelement() == 0
-                or other.data[other_indices].nelement() == 0
-            ):
+            if self.data[self_indices].nelement() == 0 or other.data[other_indices].nelement() == 0:
                 return
             self.data[self_indices] = other.data[other_indices]
         elif isinstance(other, Window):
@@ -74,7 +66,7 @@ class Model_Image(Image):
         state = super().get_state()
         state["target_identity"] = self.target_identity
         return state
-    
+
     def set_state(self, state):
         super().set_state(state)
         self.target_identity = target_identity
@@ -91,14 +83,16 @@ class Model_Image(Image):
         for state in states:
             if state["HEADER"]["IMAGE"] == "PRIMARY":
                 self.target_identity = state["HEADER"]["TRGTID"]
-        
+
 
 ######################################################################
 class Model_Image_List(Image_List, Model_Image):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not all(isinstance(image, Model_Image) for image in self.image_list):
-            raise InvalidImage(f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}")
+            raise InvalidImage(
+                f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}"
+            )
 
     def clear_image(self):
         for image in self.image_list:

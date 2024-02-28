@@ -2,7 +2,6 @@ from functools import partial
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from scipy.stats import binned_statistic, iqr
 
 from .. import AP_config
@@ -40,9 +39,7 @@ def radial_light_profile(
     )
     flux = model.radial_model(xx).detach().cpu().numpy()
     if model.target.zeropoint is not None:
-        yy = flux_to_sb(
-            flux, model.target.pixel_area.item(), model.target.zeropoint.item()
-        )
+        yy = flux_to_sb(flux, model.target.pixel_area.item(), model.target.zeropoint.item())
     else:
         yy = np.log10(flux)
 
@@ -139,9 +136,7 @@ def radial_median_profile(
     scat[count <= count_limit] = 0
 
     if model.target.zeropoint is not None:
-        stat = flux_to_sb(
-            stat, model.target.pixel_area.item(), model.target.zeropoint.item()
-        )
+        stat = flux_to_sb(stat, model.target.pixel_area.item(), model.target.zeropoint.item())
         ax.set_ylabel("Surface Brightness [mag/arcsec$^2$]")
         if not ax.yaxis_inverted():
             ax.invert_yaxis()
@@ -153,7 +148,7 @@ def radial_median_profile(
         "linewidth": 0,
         "elinewidth": 1,
         "color": main_pallet["primary2"],
-        "label": f"data profile",
+        "label": "data profile",
     }
     kwargs.update(plot_kwargs)
     ax.errorbar(
@@ -243,7 +238,9 @@ def wedge_light_profile(
 def warp_phase_profile(fig, ax, model, rad_unit="arcsec", doassert=True):
     if doassert:
         if not isinstance(model, Warp_Galaxy):
-            raise InvalidModel(f"warp_phase_profile must be given a 'Warp_Galaxy' object. Not {type(model)}")
+            raise InvalidModel(
+                f"warp_phase_profile must be given a 'Warp_Galaxy' object. Not {type(model)}"
+            )
 
     ax.plot(
         model.profR,

@@ -1,25 +1,19 @@
-from copy import deepcopy
-from typing import Optional, Sequence
-from collections import OrderedDict
-
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-
 from .group_model_object import Group_Model
 from ..image import PSF_Image
 from ..errors import InvalidTarget
 
 __all__ = ["PSF_Group_Model"]
 
+
 class PSF_Group_Model(Group_Model):
 
     model_type = f"psf {Group_Model.model_type}"
-    useable = True
-    
+    usable = True
+
     @property
     def psf_mode(self):
         return "none"
+
     @psf_mode.setter
     def psf_mode(self, value):
         pass

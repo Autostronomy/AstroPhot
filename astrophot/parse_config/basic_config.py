@@ -16,7 +16,7 @@ def GetOptions(c):
     for var in dir(c):
         if var.startswith("ap_"):
             val = getattr(c, var)
-            if not val is None:
+            if val is not None:
                 newoptions[var] = val
     return newoptions
 
@@ -56,9 +56,7 @@ def basic_config(config_file):
         target_origin = config.get("ap_target_origin", None)
 
         if variance_file is not None:
-            var_data = np.array(
-                fits.open(target_file)[target_hdu].data, dtype=np.float64
-            )
+            var_data = np.array(fits.open(target_file)[target_hdu].data, dtype=np.float64)
         else:
             var_data = None
         if target_file is not None:

@@ -24,7 +24,7 @@ class Flat_Sky(Sky_Model):
         "F": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Sky_Model._parameter_order + ("F",)
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -35,7 +35,9 @@ class Flat_Sky(Sky_Model):
 
         with Param_Unlock(parameters["F"]), Param_SoftLimits(parameters["F"]):
             if parameters["F"].value is None:
-                parameters["F"].value = torch.log10(torch.median(target[self.window].data) / target.pixel_area)
+                parameters["F"].value = torch.log10(
+                    torch.median(target[self.window].data) / target.pixel_area
+                )
             if parameters["F"].uncertainty is None:
                 parameters["F"].uncertainty = (
                     (

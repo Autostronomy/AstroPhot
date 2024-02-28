@@ -1,6 +1,4 @@
 # Metropolis-Hasting Markov-Chain Monte-Carlo
-import os
-from time import time
 from typing import Optional, Sequence
 import torch
 from tqdm import tqdm
@@ -14,7 +12,7 @@ __all__ = ["MHMCMC"]
 class MHMCMC(BaseOptimizer):
     """Metropolis-Hastings Markov-Chain Monte-Carlo sampler, based on:
     https://en.wikipedia.org/wiki/Metropolis-Hastings_algorithm . This
-    is a naive implimentation of a standard MCMC, it is far from
+    is a naive implementation of a standard MCMC, it is far from
     optimal and should not be used for anything but the most basic
     scenarios.
 
@@ -83,11 +81,7 @@ class MHMCMC(BaseOptimizer):
         """
 
         self.chain.append(
-            self.model.parameters.vector_transform_rep_to_val(state)
-            .detach()
-            .cpu()
-            .clone()
-            .numpy()
+            self.model.parameters.vector_transform_rep_to_val(state).detach().cpu().clone().numpy()
         )
 
     @staticmethod
@@ -102,9 +96,7 @@ class MHMCMC(BaseOptimizer):
         """
         Samples the model at the proposed state vector values
         """
-        return self.model.negative_log_likelihood(
-            parameters=state, as_representation=True
-        )
+        return self.model.negative_log_likelihood(parameters=state, as_representation=True)
 
     @torch.no_grad()
     def step(self, state: torch.Tensor, chi2: torch.Tensor) -> torch.Tensor:

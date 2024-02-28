@@ -1,8 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap, ListedColormap
-import matplotlib
-import os
+from matplotlib.colors import LinearSegmentedColormap
 
 __all__ = ["main_pallet", "cmap_grad", "cmap_div"]
 

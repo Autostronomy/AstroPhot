@@ -50,9 +50,7 @@ def set_logging_output(stdout=True, filename=None, **kwargs):
     if stdout:
         out_handler = logging.StreamHandler(sys.stdout)
         out_handler.setLevel(kwargs.get("stdout_level", logging.INFO))
-        out_handler.setFormatter(
-            kwargs.get("stdout_formatter", logging.Formatter("%(message)s"))
-        )
+        out_handler.setFormatter(kwargs.get("stdout_formatter", logging.Formatter("%(message)s")))
         ap_logger.addHandler(out_handler)
         ap_logger.debug("logging now going to stdout")
     if filename is not None:
