@@ -57,7 +57,7 @@ def select_sample(func):
                         kwargs["window"] = kwargs["window"].window_list[i]
                     break
             else:
-                raise RuntimeError("{self.name} could not find matching image to sample with")
+                raise RuntimeError(f"{self.name} could not find matching image to sample with")
         else:
             send_image = image
         return func(self, image=send_image, **kwargs)
@@ -125,7 +125,7 @@ def parametric_initialize(
 
     res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
     if not res.success and AP_config.ap_verbose >= 2:
-        AP_config.ap_logger.warn(
+        AP_config.ap_logger.warning(
             f"initialization fit not successful for {model.name}, falling back to defaults"
         )
 
