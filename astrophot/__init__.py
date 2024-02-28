@@ -2,8 +2,7 @@ import argparse
 import requests
 import torch
 from .parse_config import galfit_config, basic_config
-from . import AP_config
-from . import plots
+from . import models, image, plots, utils, fit, param, AP_config
 
 try:
     from ._version import version as VERSION  # noqa
