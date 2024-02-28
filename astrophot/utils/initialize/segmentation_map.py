@@ -14,6 +14,7 @@ __all__ = (
     "filter_windows",
 )
 
+
 def _select_img(img, hduli):
     if isinstance(img, str):
         if img.endswith(".fits"):
@@ -22,10 +23,9 @@ def _select_img(img, hduli):
         elif img.endswith(".npy"):
             img = np.load(img)
         else:
-            raise ValueError(
-                f"unrecognized file type, should be one of: fits, npy\n{img}"
-            )
+            raise ValueError(f"unrecognized file type, should be one of: fits, npy\n{img}")
     return img
+
 
 def centroids_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
@@ -68,64 +68,72 @@ def centroids_from_segmentation_map(
 
     return centroids
 
+
 def PA_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: Union[np.ndarray, str],
-    centroids = None,
+    centroids=None,
     hdul_index_seg: int = 0,
     hdul_index_img: int = 0,
     skip_index: tuple = (0,),
-    north = np.pi/2,
+    north=np.pi / 2,
 ):
-    
+
     seg_map = _select_img(seg_map, hdul_index_seg)
     image = _select_img(image, hdul_index_img)
-    
+
     if centroids is None:
-        centroids = centroids_from_segmentation_map(seg_map=seg_map, image = image, skip_index=skip_index)
-    
+        centroids = centroids_from_segmentation_map(
+            seg_map=seg_map, image=image, skip_index=skip_index
+        )
+
     XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-    
+
     PAs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        PA = Angle_COM_PA(image[N], XX[N] - centroids[index][0], YY[N] - centroids[index][1]) + north
+        PA = (
+            Angle_COM_PA(image[N], XX[N] - centroids[index][0], YY[N] - centroids[index][1]) + north
+        )
         PAs[index] = PA
-        
+
     return PAs
+
 
 def q_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: Union[np.ndarray, str],
-    centroids = None,
+    centroids=None,
     hdul_index_seg: int = 0,
     hdul_index_img: int = 0,
     skip_index: tuple = (0,),
-    north = np.pi/2,
+    north=np.pi / 2,
 ):
-    
+
     seg_map = _select_img(seg_map, hdul_index_seg)
     image = _select_img(image, hdul_index_img)
-    
+
     if centroids is None:
-        centroids = centroids_from_segmentation_map(seg_map=seg_map, image = image, skip_index=skip_index)
-    
+        centroids = centroids_from_segmentation_map(
+            seg_map=seg_map, image=image, skip_index=skip_index
+        )
+
     XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-    
+
     qs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
         theta = np.arctan2(YY[N] - centroids[index][1], XX[N] - centroids[index][0])
-        
+
         # Ballpark correct, could be better
-        ang_com_cos = np.sum(image[N] * np.cos(2*theta)) / np.sum(image[N])
-        ang_com_sin = np.sum(image[N] * np.sin(2*theta)) / np.sum(image[N])
-        qs[index] = 1. - (np.abs(ang_com_cos) + np.abs(ang_com_sin))
-        
+        ang_com_cos = np.sum(image[N] * np.cos(2 * theta)) / np.sum(image[N])
+        ang_com_sin = np.sum(image[N] * np.sin(2 * theta)) / np.sum(image[N])
+        qs[index] = 1.0 - (np.abs(ang_com_cos) + np.abs(ang_com_sin))
+
     return qs
 
 
@@ -152,9 +160,7 @@ def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
         elif seg_map.endswith(".npy"):
             seg_map = np.load(seg_map)
         else:
-            raise ValueError(
-                f"unrecognized file type, should be one of: fits, npy\n{seg_map}"
-            )
+            raise ValueError(f"unrecognized file type, should be one of: fits, npy\n{seg_map}")
 
     windows = {}
 
@@ -193,7 +199,7 @@ def scale_windows(windows, image_shape=None, expand_scale=1.0, expand_border=0.0
             ],
         ]
         # Ensure the window does not exceed the borders of the image
-        if not image_shape is None:
+        if image_shape is not None:
             new_window = [
                 [max(0, new_window[0][0]), min(image_shape[1], new_window[0][1])],
                 [max(0, new_window[1][0]), min(image_shape[0], new_window[1][1])],
@@ -234,14 +240,12 @@ def filter_windows(
                 continue
         if min_area is not None:
             if (
-                (windows[w][0][1] - windows[w][0][0])
-                * (windows[w][1][1] - windows[w][1][0])
+                (windows[w][0][1] - windows[w][0][0]) * (windows[w][1][1] - windows[w][1][0])
             ) < min_area:
                 continue
         if max_area is not None:
             if (
-                (windows[w][0][1] - windows[w][0][0])
-                * (windows[w][1][1] - windows[w][1][0])
+                (windows[w][0][1] - windows[w][0][0]) * (windows[w][1][1] - windows[w][1][0])
             ) > max_area:
                 continue
         if min_flux is not None:

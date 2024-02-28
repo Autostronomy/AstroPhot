@@ -1,22 +1,19 @@
 # Hamiltonian Monte-Carlo
-import os
-from time import time
 from typing import Optional, Sequence
-import warnings
 
 import torch
 import pyro
 import pyro.distributions as dist
 from pyro.infer import MCMC as pyro_MCMC
 from pyro.infer import HMC as pyro_HMC
-from pyro.infer.mcmc.adaptation import WarmupAdapter, BlockMassMatrix
+from pyro.infer.mcmc.adaptation import BlockMassMatrix
 from pyro.ops.welford import WelfordCovariance
 
 from .base import BaseOptimizer
 from ..models import AstroPhot_Model
-from .. import AP_config
 
 __all__ = ["HMC"]
+
 
 ###########################################
 # !Overwrite pyro configuration behavior!
@@ -86,7 +83,7 @@ class HMC(BaseOptimizer):
         model: AstroPhot_Model,
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
@@ -129,8 +126,7 @@ class HMC(BaseOptimizer):
         if self.prior is None:
             self.prior = dist.Normal(
                 self.current_state,
-                torch.ones_like(self.current_state) * 1e2
-                + torch.abs(self.current_state) * 1e2,
+                torch.ones_like(self.current_state) * 1e2 + torch.abs(self.current_state) * 1e2,
             )
 
         # Set up the HMC sampler

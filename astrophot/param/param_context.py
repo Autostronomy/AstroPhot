@@ -2,6 +2,7 @@ from .base import Node
 
 __all__ = ("Param_Unlock", "Param_SoftLimits", "Param_Mask")
 
+
 class Param_Unlock:
     """Temporarily unlock a parameter.
 
@@ -13,7 +14,7 @@ class Param_Unlock:
 
     """
 
-    def __init__(self, param = None):
+    def __init__(self, param=None):
         self.param = param
 
     def __enter__(self):
@@ -22,12 +23,13 @@ class Param_Unlock:
         else:
             self.original_locked = self.param.locked
             self.param.locked = False
-            
+
     def __exit__(self, *args, **kwargs):
         if self.param is None:
             Node.global_unlock = False
         else:
             self.param.locked = self.original_locked
+
 
 class Param_SoftLimits:
     """Temporarily allow writing parameter values outside limits.
@@ -45,15 +47,16 @@ class Param_SoftLimits:
     into the range using modulo arithmetic.
 
     """
+
     def __init__(self, param):
         self.param = param
 
     def __enter__(self, *args, **kwargs):
         self.original_setter = self.param._set_val_self
         self.param._set_val_self = self.param._soft_set_val_self
-            
+
     def __exit__(self, *args, **kwargs):
-        self.param._set_val_self = self.original_setter   
+        self.param._set_val_self = self.original_setter
 
 
 class Param_Mask:
@@ -83,6 +86,7 @@ class Param_Mask:
           P.vector_values() # returns tensor with 2 elements
 
     """
+
     def __init__(self, param, new_mask):
         self.param = param
         self.new_mask = new_mask

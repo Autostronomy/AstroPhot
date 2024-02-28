@@ -1,9 +1,3 @@
-import numpy
-from astropy.io import fits
-from ..image import Target_Image
-from ..models import AstroPhot_Model
-from ..fit import LM
-
 __all__ = ["galfit_config"]
 
 galfit_object_type_map = {
@@ -36,9 +30,7 @@ def space_split(l):
 
 def galfit_config(config_file):
     if True:
-        raise NotImplementedError(
-            "galfit configuration file interface under construction"
-        )
+        raise NotImplementedError("galfit configuration file interface under construction")
     with open(config_file, "r") as f:
         config_lines = f.readlines()
     # Header info
@@ -95,15 +87,13 @@ def galfit_config(config_file):
         # Collect the parameters
         if in_object:
             param = linem[: linem.find(")")]
-            objects[-1][
-                galfit_parameter_map[objects[-1]["model_type"]][param][0]
-            ] = space_split(linem[linem.find(")") + 1 :])
-            if len(
-                objects[-1][galfit_parameter_map[objects[-1]["model_type"]][param][0]]
-            ) != (2 * galfit_parameter_map[objects[-1]["model_type"]][param][1]):
-                raise ValueError(
-                    f"Incorrectly formatted line in GALFIT config file:\n{line}"
-                )
+            objects[-1][galfit_parameter_map[objects[-1]["model_type"]][param][0]] = space_split(
+                linem[linem.find(")") + 1 :]
+            )
+            if len(objects[-1][galfit_parameter_map[objects[-1]["model_type"]][param][0]]) != (
+                2 * galfit_parameter_map[objects[-1]["model_type"]][param][1]
+            ):
+                raise ValueError(f"Incorrectly formatted line in GALFIT config file:\n{line}")
 
     # Format parameters
     for i in range(len(objects)):
@@ -122,8 +112,7 @@ def galfit_config(config_file):
             }
         if "Repix" in objects[i]:
             astrophot_object["Re"] = {
-                "value": float(objects[i]["Repix"][0])
-                * headerinfo["target_pixelscale"],
+                "value": float(objects[i]["Repix"][0]) * headerinfo["target_pixelscale"],
                 "locked": bool(objects[i]["Repix"][1]),
             }
         if "q" in objects[i]:

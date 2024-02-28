@@ -1,7 +1,5 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
-import torch
 
 from ..interpolate import point_Lanczos
 from ... import AP_config
@@ -40,15 +38,9 @@ def center_of_mass(center, image, window=None):
         denom = np.sum(image[ranges[0][0] : ranges[0][1], ranges[1][0] : ranges[1][1]])
         new_center = [
             ranges[0][0]
-            + np.sum(
-                image[ranges[0][0] : ranges[0][1], ranges[1][0] : ranges[1][1]] * yy
-            )
-            / denom,
+            + np.sum(image[ranges[0][0] : ranges[0][1], ranges[1][0] : ranges[1][1]] * yy) / denom,
             ranges[1][0]
-            + np.sum(
-                image[ranges[0][0] : ranges[0][1], ranges[1][0] : ranges[1][1]] * xx
-            )
-            / denom,
+            + np.sum(image[ranges[0][0] : ranges[0][1], ranges[1][0] : ranges[1][1]] * xx) / denom,
         ]
         new_center = np.array(new_center)
         # Check for convergence
@@ -70,7 +62,7 @@ def GaussianDensity_Peak(center, image, window=10, std=0.5):
             np.arange(r[0] - window / 2, r[0] + window / 2 + 1) - c[0],
             np.arange(r[1] - window / 2, r[1] + window / 2 + 1) - c[1],
         )
-        rr2 = xx ** 2 + yy ** 2
+        rr2 = xx**2 + yy**2
         f = image[
             int(r[1] - window / 2) : int(r[1] + window / 2 + 1),
             int(r[0] - window / 2) : int(r[0] + window / 2 + 1),

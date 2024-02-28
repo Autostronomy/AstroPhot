@@ -2,8 +2,9 @@ import unittest
 import astrophot as ap
 import torch
 import numpy as np
-from utils import make_basic_sersic, make_basic_gaussian, make_basic_gaussian_psf
-#torch.autograd.set_detect_anomaly(True)
+from utils import make_basic_sersic, make_basic_gaussian_psf
+
+# torch.autograd.set_detect_anomaly(True)
 ######################################################################
 # Model Objects
 ######################################################################
@@ -12,7 +13,7 @@ from utils import make_basic_sersic, make_basic_gaussian, make_basic_gaussian_ps
 class TestModel(unittest.TestCase):
     def test_AstroPhot_Model(self):
 
-        model = ap.models.AstroPhot_Model(name = "test model")
+        model = ap.models.AstroPhot_Model(name="test model")
 
         self.assertIsNone(model.target, "model should not have a target at this point")
 
@@ -35,6 +36,7 @@ class TestModel(unittest.TestCase):
             model_type="sersic galaxy model",
             target=target,
         )
+
         # Define a function that accesses a parameter that doesn't exist
         def calc(params):
             return params["A"].value
@@ -62,12 +64,18 @@ class TestModel(unittest.TestCase):
         )
         rep = model.parameters.vector_representation()
         nat = model.parameters.vector_values()
-        self.assertTrue(torch.all(torch.isclose(rep, model.parameters.vector_transform_val_to_rep(nat))), "transform should map between parameter natural and representation")
-        self.assertTrue(torch.all(torch.isclose(nat, model.parameters.vector_transform_rep_to_val(rep))), "transform should map between parameter representation and natural")
+        self.assertTrue(
+            torch.all(torch.isclose(rep, model.parameters.vector_transform_val_to_rep(nat))),
+            "transform should map between parameter natural and representation",
+        )
+        self.assertTrue(
+            torch.all(torch.isclose(nat, model.parameters.vector_transform_rep_to_val(rep))),
+            "transform should map between parameter representation and natural",
+        )
 
     def test_model_sampling_modes(self):
 
-        target = make_basic_sersic(100,100)
+        target = make_basic_sersic(100, 100)
         model = ap.models.AstroPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
@@ -94,8 +102,8 @@ class TestModel(unittest.TestCase):
         self.assertRaises(ap.errors.SpecificationConflict, model)
         model.integrate_mode = "none"
         model.sampling_mode = "should raise"
-        self.assertRaises(ap.errors.SpecificationConflict, model)     
-        model.sampling_mode = "midpoint"   
+        self.assertRaises(ap.errors.SpecificationConflict, model)
+        model.sampling_mode = "midpoint"
 
         # test PSF modes
         model.psf = np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]])
@@ -112,7 +120,7 @@ class TestModel(unittest.TestCase):
         tar = ap.image.Target_Image(
             data=np.random.normal(loc=0, scale=1.4, size=shape),
             pixelscale=0.8,
-            variance=np.ones(shape) * (1.4 ** 2),
+            variance=np.ones(shape) * (1.4**2),
             psf=np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]]),
         )
 
@@ -126,15 +134,13 @@ class TestModel(unittest.TestCase):
 
         self.assertFalse(mod.locked, "default model should not be locked")
 
-        self.assertTrue(
-            torch.all(mod().data == 0), "Component_Model model_image should be zeros"
-        )
-    
+        self.assertTrue(torch.all(mod().data == 0), "Component_Model model_image should be zeros")
+
     def test_mask(self):
 
         target = make_basic_sersic()
         mask = torch.zeros_like(target.data)
-        mask[10,13] = 1
+        mask[10, 13] = 1
         model = ap.models.AstroPhot_Model(
             name="test sersic",
             model_type="sersic galaxy model",
@@ -147,23 +153,21 @@ class TestModel(unittest.TestCase):
                 "Ie": 1,
             },
             target=target,
-            mask = mask
+            mask=mask,
         )
 
         sample = model()
-        self.assertEqual(sample.data[10,13].item(), 0., "masked values should be zero")
-        self.assertNotEqual(sample.data[11,12].item(), 0., "unmasked values should NOT be zero")
+        self.assertEqual(sample.data[10, 13].item(), 0.0, "masked values should be zero")
+        self.assertNotEqual(sample.data[11, 12].item(), 0.0, "unmasked values should NOT be zero")
 
     def test_model_errors(self):
 
         # Invalid name
-        self.assertRaises(ap.errors.NameNotAllowed, ap.models.AstroPhot_Model, name = "my|model")
+        self.assertRaises(ap.errors.NameNotAllowed, ap.models.AstroPhot_Model, name="my|model")
 
         # Target that is not a target image
         arr = torch.zeros((10, 15))
-        target = ap.image.Image(
-            data = arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2)
-        )
+        target = ap.image.Image(data=arr, pixelscale=1.0, zeropoint=1.0, origin=torch.zeros(2))
 
         with self.assertRaises(ap.errors.InvalidTarget):
             model = ap.models.AstroPhot_Model(
@@ -172,7 +176,7 @@ class TestModel(unittest.TestCase):
                 target=target,
             )
 
-        # model that doesnt exist
+        # model that doesn't exist
         target = make_basic_sersic()
         with self.assertRaises(ap.errors.UnrecognizedModel):
             model = ap.models.AstroPhot_Model(
@@ -187,17 +191,15 @@ class TestModel(unittest.TestCase):
                 name="test model",
                 model_type="sersic galaxy model",
                 target=target,
-                window = (1,2,3),
+                window=(1, 2, 3),
             )
-            
-        
 
 
 class TestAllModelBasics(unittest.TestCase):
     def test_all_model_sample(self):
 
         target = make_basic_sersic()
-        for model_type in ap.models.Component_Model.List_Model_Names(useable=True):
+        for model_type in ap.models.Component_Model.List_Model_Names(usable=True):
             print(model_type)
             MODEL = ap.models.AstroPhot_Model(
                 name="test model",
@@ -217,7 +219,8 @@ class TestAllModelBasics(unittest.TestCase):
             )
             self.assertIsInstance(str(MODEL), str, "String representation should return string")
             self.assertIsInstance(repr(MODEL), str, "Repr should return string")
-        
+
+
 class TestSersic(unittest.TestCase):
     def test_sersic_creation(self):
         np.random.seed(12345)
@@ -232,7 +235,7 @@ class TestSersic(unittest.TestCase):
             true_params[5], IXX - true_params[3], IYY - true_params[4], true_params[6]
         )
         Z0 = ap.utils.parametric_profiles.sersic_np(
-            np.sqrt(QPAXX ** 2 + QPAYY ** 2),
+            np.sqrt(QPAXX**2 + QPAYY**2),
             true_params[0],
             true_params[1],
             true_params[2],
@@ -240,7 +243,7 @@ class TestSersic(unittest.TestCase):
         tar = ap.image.Target_Image(
             data=Z0,
             pixelscale=0.8,
-            variance=np.ones(Z0.shape) * (0.1 ** 2),
+            variance=np.ones(Z0.shape) * (0.1**2),
         )
 
         mod = ap.models.Sersic_Galaxy(
@@ -268,8 +271,8 @@ class TestSersic(unittest.TestCase):
                 "Re": 5,
                 "Ie": 1,
             },
-            psf = psf,
-            psf_mode = "full",
+            psf=psf,
+            psf_mode="full",
             target=target,
         )
 

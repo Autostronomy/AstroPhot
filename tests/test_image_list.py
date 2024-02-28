@@ -1,6 +1,5 @@
 import unittest
 import astrophot as ap
-import numpy as np
 import torch
 
 ######################################################################
@@ -16,7 +15,7 @@ class TestImageList(unittest.TestCase):
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2),
-            metadata = {"note":"test image 1"},
+            metadata={"note": "test image 1"},
         )
         arr2 = torch.ones((15, 10))
         base_image2 = ap.image.Image(
@@ -24,7 +23,7 @@ class TestImageList(unittest.TestCase):
             pixelscale=0.5,
             zeropoint=2.0,
             origin=torch.ones(2),
-            metadata = {"note":"test image 2"},
+            metadata={"note": "test image 2"},
         )
 
         test_image = ap.image.Image_List((base_image1, base_image2))
@@ -40,16 +39,19 @@ class TestImageList(unittest.TestCase):
                 original_image.zeropoint,
                 "image should track zeropoint",
             )
+            self.assertEqual(image.origin[0], original_image.origin[0], "image should track origin")
+            self.assertEqual(image.origin[1], original_image.origin[1], "image should track origin")
             self.assertEqual(
-                image.origin[0], original_image.origin[0], "image should track origin"
+                image.metadata["note"],
+                original_image.metadata["note"],
+                "image should track note",
             )
-            self.assertEqual(
-                image.origin[1], original_image.origin[1], "image should track origin"
-            )
-            self.assertEqual(image.metadata["note"], original_image.metadata["note"], "image should track note")
 
         slicer = ap.image.Window_List(
-            (ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)), ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)))
+            (
+                ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)),
+                ap.image.Window(origin=(3, 2), pixel_shape=(4, 5)),
+            )
         )
         sliced_image = test_image[slicer]
 
@@ -57,12 +59,8 @@ class TestImageList(unittest.TestCase):
         self.assertEqual(sliced_image[0].origin[1], 2, "image should track origin")
         self.assertEqual(sliced_image[1].origin[0], 3, "image should track origin")
         self.assertEqual(sliced_image[1].origin[1], 2, "image should track origin")
-        self.assertEqual(
-            base_image1.origin[0], 0, "subimage should not change image origin"
-        )
-        self.assertEqual(
-            base_image1.origin[1], 0, "subimage should not change image origin"
-        )
+        self.assertEqual(base_image1.origin[0], 0, "subimage should not change image origin")
+        self.assertEqual(base_image1.origin[1], 0, "subimage should not change image origin")
 
     def test_copy(self):
 
@@ -86,14 +84,12 @@ class TestImageList(unittest.TestCase):
         copy_image = test_image.copy()
         for ti, ci in zip(test_image, copy_image):
             self.assertEqual(
-                ti.pixel_length, ci.pixel_length, "copied image should have same pixelscale"
+                ti.pixel_length,
+                ci.pixel_length,
+                "copied image should have same pixelscale",
             )
-            self.assertEqual(
-                ti.zeropoint, ci.zeropoint, "copied image should have same zeropoint"
-            )
-            self.assertEqual(
-                ti.window, ci.window, "copied image should have same window"
-            )
+            self.assertEqual(ti.zeropoint, ci.zeropoint, "copied image should have same zeropoint")
+            self.assertEqual(ti.window, ci.window, "copied image should have same window")
             preval = ti.data[0][0].item()
             ci += 1
             self.assertEqual(
@@ -105,14 +101,12 @@ class TestImageList(unittest.TestCase):
         blank_copy_image = test_image.blank_copy()
         for ti, ci in zip(test_image, blank_copy_image):
             self.assertEqual(
-                ti.pixel_length, ci.pixel_length, "copied image should have same pixelscale"
+                ti.pixel_length,
+                ci.pixel_length,
+                "copied image should have same pixelscale",
             )
-            self.assertEqual(
-                ti.zeropoint, ci.zeropoint, "copied image should have same zeropoint"
-            )
-            self.assertEqual(
-                ti.window, ci.window, "copied image should have same window"
-            )
+            self.assertEqual(ti.zeropoint, ci.zeropoint, "copied image should have same zeropoint")
+            self.assertEqual(ti.window, ci.window, "copied image should have same window")
             preval = ti.data[0][0].item()
             ci += 1
             self.assertEqual(
@@ -161,15 +155,9 @@ class TestImageList(unittest.TestCase):
         self.assertEqual(
             test_image[0].data[0][0], 0, "image addition should only update its region"
         )
-        self.assertEqual(
-            test_image[0].data[3][3], 1, "image addition should update its region"
-        )
-        self.assertEqual(
-            test_image[1].data[0][0], 1, "image addition should update its region"
-        )
-        self.assertEqual(
-            test_image[1].data[1][1], 1, "image addition should update its region"
-        )
+        self.assertEqual(test_image[0].data[3][3], 1, "image addition should update its region")
+        self.assertEqual(test_image[1].data[0][0], 1, "image addition should update its region")
+        self.assertEqual(test_image[1].data[1][1], 1, "image addition should update its region")
 
         # Test iadd
         test_image -= second_image
@@ -177,15 +165,9 @@ class TestImageList(unittest.TestCase):
         self.assertEqual(
             test_image[0].data[0][0], 0, "image addition should only update its region"
         )
-        self.assertEqual(
-            test_image[0].data[3][3], 0, "image addition should update its region"
-        )
-        self.assertEqual(
-            test_image[1].data[0][0], 1, "image addition should update its region"
-        )
-        self.assertEqual(
-            test_image[1].data[1][1], 1, "image addition should update its region"
-        )
+        self.assertEqual(test_image[0].data[3][3], 0, "image addition should update its region")
+        self.assertEqual(test_image[1].data[0][0], 1, "image addition should update its region")
+        self.assertEqual(test_image[1].data[1][1], 1, "image addition should update its region")
 
     def test_image_list_display(self):
         arr1 = torch.zeros((10, 15))
@@ -241,7 +223,7 @@ class TestImageList(unittest.TestCase):
             origin=torch.zeros(2),
             note="test image 4",
         )
-        second_image = ap.image.Image_List((base_image3, base_image4), window = test_image.window)       
+        second_image = ap.image.Image_List((base_image3, base_image4), window=test_image.window)
 
     def test_image_list_errors(self):
         arr1 = torch.zeros((10, 15))
@@ -371,7 +353,7 @@ class TestModelImageList(unittest.TestCase):
 
         with self.assertRaises(ap.errors.InvalidImage):
             test_image = ap.image.Model_Image_List((base_image1, base_image2))
-        
+
 
 class TestTargetImageList(unittest.TestCase):
     def test_target_image_list_creation(self):
@@ -446,7 +428,7 @@ class TestTargetImageList(unittest.TestCase):
         )
         with self.assertRaises(ap.errors.InvalidImage):
             test_image = ap.image.Target_Image_List((base_image1, base_image2))
-        
+
 
 class TestJacobianImageList(unittest.TestCase):
     def test_jacobian_image_list_creation(self):
@@ -457,9 +439,7 @@ class TestJacobianImageList(unittest.TestCase):
             target_identity="target1",
             pixelscale=1.0,
             zeropoint=1.0,
-            window=ap.image.Window(
-                origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((15, 10))
-            ),
+            window=ap.image.Window(origin=torch.zeros(2) + 0.1, pixel_shape=torch.tensor((15, 10))),
         )
         arr2 = torch.ones((15, 10, 3))
         base_image2 = ap.image.Jacobian_Image(
@@ -468,9 +448,7 @@ class TestJacobianImageList(unittest.TestCase):
             target_identity="target2",
             pixelscale=0.5,
             zeropoint=2.0,
-            window=ap.image.Window(
-                origin=torch.zeros(2) + 0.2, pixel_shape=torch.tensor((10, 15))
-            ),
+            window=ap.image.Window(origin=torch.zeros(2) + 0.2, pixel_shape=torch.tensor((10, 15))),
         )
 
         test_image = ap.image.Jacobian_Image_List((base_image1, base_image2))

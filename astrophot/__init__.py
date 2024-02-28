@@ -1,9 +1,8 @@
-import sys
 import argparse
 import requests
 import torch
 from .parse_config import galfit_config, basic_config
-from . import models, image, plots, utils, fit, param, AP_config
+from . import AP_config
 
 try:
     from ._version import version as VERSION  # noqa
@@ -137,7 +136,7 @@ def run_from_terminal() -> None:
                     f.write(R.text)
             except:
                 print(
-                    f"WARNING: couldn't find tutorial: {url[url.rfind('/')+1:]} check internet conection"
+                    f"WARNING: couldn't find tutorial: {url[url.rfind('/')+1:]} check internet connection"
                 )
 
         AP_config.ap_logger.info("collected the tutorials")

@@ -1,19 +1,12 @@
-from copy import copy
-from time import time
 import io
 from typing import Optional
-from functools import partial
 
 import torch
-import numpy as np
-import matplotlib.pyplot as plt
 import yaml
 
-from ..utils.conversions.optimization import cyclic_difference_np
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
-from ..utils.optimization import reduced_chi_squared
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..image import Model_Image, Window, Target_Image, Target_Image_List
+from ..image import Window, Target_Image, Target_Image_List
 from ..param import Parameter_Node
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
@@ -26,6 +19,7 @@ def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)]
     )
+
 
 ######################################################################
 class AstroPhot_Model(object):
@@ -41,11 +35,11 @@ class AstroPhot_Model(object):
 
       # Create a model object
       model = ap.models.AstroPhot_Model(
-          name = "unique name",
-          model_type = <choose a model type>,
-          target = <Target_Image object>,
-          window = [[a,b],[c,d]], <widnow pixel coordinates>,
-          parameters = <dict of parameter specifications if desired>,
+          name="unique name",
+          model_type="choose a model type",
+          target="Target_Image object",
+          window="[[a,b],[c,d]]",  # <window pixel coordinates>,
+          parameters="dict of parameter specifications if desired",
       )
 
       # Initialize parameters that weren't set on creation
@@ -72,7 +66,7 @@ class AstroPhot_Model(object):
     complex object, a region of an image, or even a model spanning
     many images. Constructing the `Component_Model`s is where most
     work goes, these store the actual parameters that will be
-    optimized. It is important to remmeber that a `Component_Model`
+    optimized. It is important to remember that a `Component_Model`
     only ever applies to a single image and a single component (star,
     galaxy, or even sub-component of one of those) in that image.
 
@@ -95,8 +89,8 @@ class AstroPhot_Model(object):
     """
 
     model_type = "model"
-    default_uncertainty = 1e-2 # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
-    useable = False
+    default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
+    usable = False
     model_names = []
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):
@@ -107,9 +101,7 @@ class AstroPhot_Model(object):
                 if M.model_type == state["model_type"]:
                     return super(AstroPhot_Model, cls).__new__(M)
             else:
-                raise UnrecognizedModel(
-                    f"Unknown AstroPhot model type: {state['model_type']}"
-                )
+                raise UnrecognizedModel(f"Unknown AstroPhot model type: {state['model_type']}")
         elif model_type is not None:
             MODELS = AstroPhot_Model.List_Models()  # all_subclasses(AstroPhot_Model)
             for M in MODELS:
@@ -165,7 +157,9 @@ class AstroPhot_Model(object):
                     name = proposed_name
                     break
         if ":" in name or "|" in name:
-            raise NameNotAllowed("characters '|' and ':' are reserved for internal model operations please do not include these in a model name")
+            raise NameNotAllowed(
+                "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
+            )
         self._name = name
         AstroPhot_Model.model_names.append(name)
 
@@ -207,7 +201,7 @@ class AstroPhot_Model(object):
         as_representation=False,
     ):
         """
-        Compute the negative log likelihood of the model wrt the target image in the appropriate window. 
+        Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
         if parameters is not None:
             if as_representation:
@@ -221,13 +215,19 @@ class AstroPhot_Model(object):
         if self.target.has_mask:
             if isinstance(data, Target_Image_List):
                 mask = tuple(torch.logical_not(submask) for submask in data.mask)
-                chi2 = sum(torch.sum(((mo - da).data ** 2 * wgt)[ma]) / 2.0 for mo, da, wgt, ma in zip(model, data, weight, mask))
+                chi2 = sum(
+                    torch.sum(((mo - da).data ** 2 * wgt)[ma]) / 2.0
+                    for mo, da, wgt, ma in zip(model, data, weight, mask)
+                )
             else:
                 mask = torch.logical_not(data.mask)
                 chi2 = torch.sum(((model - data).data ** 2 * weight)[mask]) / 2.0
         else:
             if isinstance(data, Target_Image_List):
-                chi2 = sum(torch.sum(((mo - da).data ** 2 * wgt)) / 2.0 for mo, da, wgt in zip(model, data, weight))
+                chi2 = sum(
+                    torch.sum(((mo - da).data ** 2 * wgt)) / 2.0
+                    for mo, da, wgt in zip(model, data, weight)
+                )
             else:
                 chi2 = torch.sum(((model - data).data ** 2 * weight)) / 2.0
 
@@ -242,16 +242,16 @@ class AstroPhot_Model(object):
 
     @default_internal
     def total_flux(self, parameters=None, window=None, image=None):
-        F = self(parameters = parameters, window=None, image=None)
+        F = self(parameters=parameters, window=None, image=None)
         return torch.sum(F.data)
-        
+
     @property
     def window(self):
         """The window defines a region on the sky in which this model will be
         optimized and typically evaluated. Two models with
         non-overlapping windows are in effect independent of each
         other. If there is another model with a window that spans both
-        of them, then they are tenuously conected.
+        of them, then they are tenuously connected.
 
         If not provided, the model will assume a window equal to the
         target it is fitting. Note that in this case the window is not
@@ -323,14 +323,14 @@ class AstroPhot_Model(object):
     def __str__(self):
         """String representation for the model."""
         return self.parameters.__str__()
-    
+
     def __repr__(self):
         """Detailed string representation for the model."""
         return yaml.dump(self.get_state(), indent=2)
 
     def get_state(self, *args, **kwargs):
         """Returns a dictionary of the state of the model with its name,
-        type, parameters, and other important infomration. This
+        type, parameters, and other important information. This
         dictionary is what gets saved when a model saves to disk.
 
         """
@@ -406,17 +406,17 @@ class AstroPhot_Model(object):
         return state
 
     @classmethod
-    def List_Models(cls, useable=None):
+    def List_Models(cls, usable=None):
         MODELS = all_subclasses(cls)
-        if useable is not None:
+        if usable is not None:
             for model in list(MODELS):
-                if model.useable is not useable:
+                if model.usable is not usable:
                     MODELS.remove(model)
         return MODELS
 
     @classmethod
-    def List_Model_Names(cls, useable=None):
-        MODELS = cls.List_Models(useable=useable)
+    def List_Model_Names(cls, usable=None):
+        MODELS = cls.List_Models(usable=usable)
         names = []
         for model in MODELS:
             names.append(model.model_type)
@@ -447,7 +447,7 @@ class AstroPhot_Model(object):
         as_representation=False,
         **kwargs,
     ):
-        
+
         if parameters is None:
             parameters = self.parameters
         elif isinstance(parameters, torch.Tensor):

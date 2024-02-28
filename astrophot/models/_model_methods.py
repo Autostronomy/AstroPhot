@@ -1,4 +1,4 @@
-from typing import Optional, Union, Dict, Tuple, Any
+from typing import Optional, Union
 import io
 from copy import deepcopy
 
@@ -7,14 +7,19 @@ import torch
 from torch.autograd.functional import jacobian as torchjac
 
 from ..param import Parameter_Node, Param_Mask
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..utils.decorators import default_internal
 from ..utils.interpolate import (
     _shift_Lanczos_kernel_torch,
     simpsons_kernel,
     curvature_kernel,
     interp2d,
 )
-from ..image import Model_Image, Target_Image, Window, Jacobian_Image, Window_List, PSF_Image
+from ..image import (
+    Window,
+    Jacobian_Image,
+    Window_List,
+    PSF_Image,
+)
 from ..utils.operations import (
     fft_convolve_torch,
     grid_integrate,
@@ -324,9 +329,11 @@ def jacobian(
             as_representation=as_representation,
             window=window,
         ).data,
-        self.parameters.vector_representation().detach()
-        if as_representation
-        else self.parameters.vector_values().detach(),
+        (
+            self.parameters.vector_representation().detach()
+            if as_representation
+            else self.parameters.vector_values().detach()
+        ),
         strategy="forward-mode",
         vectorize=True,
         create_graph=False,

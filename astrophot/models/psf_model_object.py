@@ -12,7 +12,7 @@ from ..image import (
 )
 from ._shared_methods import select_target
 from ..utils.decorators import default_internal, ignore_numpy_warnings
-from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
+from ..param import Parameter_Node
 from ..errors import SpecificationConflict
 
 
@@ -34,17 +34,22 @@ class PSF_Model(AstroPhot_Model):
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     parameter_specs = {
-        "center": {"units": "arcsec", "value": (0.,0.), "uncertainty": (0.1, 0.1), "locked": True},
+        "center": {
+            "units": "arcsec",
+            "value": (0.0, 0.0),
+            "uncertainty": (0.1, 0.1),
+            "locked": True,
+        },
     }
     # Fixed order of parameters for all methods that interact with the list of parameters
-    _parameter_order = ("center", )
+    _parameter_order = ("center",)
     model_type = f"psf {AstroPhot_Model.model_type}"
-    useable = False
+    usable = False
     model_integrated = None
 
     # The sampled PSF will be normalized to a total flux of 1 within the window
     normalize_psf = True
-    
+
     # Method for initial sampling of model
     sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
 
@@ -85,7 +90,7 @@ class PSF_Model(AstroPhot_Model):
 
     def __init__(self, *, name=None, **kwargs):
         self._target_identity = None
-        super().__init__(name=name,**kwargs)
+        super().__init__(name=name, **kwargs)
 
         # Set any user defined attributes for the model
         for kwarg in kwargs:  # fixme move to core model?
@@ -97,17 +102,17 @@ class PSF_Model(AstroPhot_Model):
 
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name = name)
+            self.load(kwargs["filename"], new_name=name)
             return
 
-        self.parameter_specs = self.build_parameter_specs(
-            kwargs.get("parameters", None)
-        )
+        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
         with torch.no_grad():
             self.build_parameters()
             if isinstance(kwargs.get("parameters", None), torch.Tensor):
                 self.parameters.value = kwargs["parameters"]
-        assert torch.allclose(self.window.center, torch.zeros_like(self.window.center)), "PSF models must always be centered at (0,0)"
+        assert torch.allclose(
+            self.window.center, torch.zeros_like(self.window.center)
+        ), "PSF models must always be centered at (0,0)"
 
     # Initialization functions
     ######################################################################
@@ -131,7 +136,7 @@ class PSF_Model(AstroPhot_Model):
 
         """
         super().initialize(target=target, parameters=parameters)
-    
+
     # Fit loop functions
     ######################################################################
     def evaluate_model(
@@ -167,7 +172,7 @@ class PSF_Model(AstroPhot_Model):
         else:
             window = self.window & window
         return self.target[window].blank_copy()
-        
+
     def sample(
         self,
         image: Optional[Image] = None,
@@ -213,17 +218,13 @@ class PSF_Model(AstroPhot_Model):
             parameters = self.parameters
 
         # Create an image to store pixel samples
-        working_image = Model_Image(
-            window=working_window
-        )
+        working_image = Model_Image(window=working_window)
         if self.model_integrated is True:
             # Evaluate the model on the image
             Coords = image.get_coordinate_meshgrid()
             X, Y = Coords - parameters["center"].value[..., None, None]
             working_image.data = self.evaluate_model(
-                X=X, Y=Y,
-                image=working_image,
-                parameters=parameters
+                X=X, Y=Y, image=working_image, parameters=parameters
             )
         elif self.model_integrated is False:
             # Evaluate the model on the image
@@ -243,17 +244,19 @@ class PSF_Model(AstroPhot_Model):
             # Add the sampled/integrated pixels to the requested image
             working_image.data += deep
         else:
-            raise SpecificationConflict("PSF model 'model_integrated' should be either True or False")
+            raise SpecificationConflict(
+                "PSF model 'model_integrated' should be either True or False"
+            )
 
         # normalize to total flux 1
         if self.normalize_psf:
             working_image.data /= torch.sum(working_image.data)
-        
+
         if self.mask is not None:
             working_image.data = working_image.data * torch.logical_not(self.mask)
 
         image += working_image
-        
+
         return image
 
     @property
@@ -288,15 +291,15 @@ class PSF_Model(AstroPhot_Model):
         except AttributeError:
             pass
 
-    def get_state(self, save_params = True):
+    def get_state(self, save_params=True):
         """Returns a dictionary with a record of the current state of the
         model.
-        
+
         Specifically, the current parameter settings and the window for
         this model. From this information it is possible for the model to
         re-build itself lated when loading from disk. Note that the target
         image is not saved, this must be reset when loading the model.
-        
+
         """
         state = super().get_state()
         state["window"] = self.window.get_state()
@@ -307,7 +310,7 @@ class PSF_Model(AstroPhot_Model):
             if getattr(self, key) != getattr(self.__class__, key):
                 state[key] = getattr(self, key)
         return state
-    
+
     # Extra background methods for the basemodel
     ######################################################################
     from ._model_methods import radius_metric

@@ -4,7 +4,7 @@ __all__ = ["Sky_Model"]
 
 
 class Sky_Model(Component_Model):
-    """prototype class for any sky backgorund model. This simply imposes
+    """prototype class for any sky background model. This simply imposes
     that the center is a locked parameter, not involved in the
     fit. Also, a sky model object has no psf mode or integration mode
     by default since it is intended to change over much larger spatial
@@ -16,7 +16,7 @@ class Sky_Model(Component_Model):
     parameter_specs = {
         "center": {"units": "arcsec", "locked": True, "uncertainty": 0.0},
     }
-    useable = False
+    usable = False
 
     @property
     def psf_mode(self):

@@ -5,7 +5,7 @@ Configuration File Interface
 Basic usage
 -----------
 
-While the scripting interface is the most versatile, a configuration file interface is included for more striaghtforward workflows. Once a configuration file is created, it can be run simply with::
+While the scripting interface is the most versatile, a configuration file interface is included for more straightforward workflows. Once a configuration file is created, it can be run simply with::
 
   ~$ astrophot configfile.py
 

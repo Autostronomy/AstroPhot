@@ -1,4 +1,5 @@
 import os
+
 root_path = os.path.split(os.path.split(os.path.split(__file__)[0])[0])[0]
 
 with open(os.path.join(root_path, "VERSION"), "r") as f:
@@ -30,7 +31,7 @@ with open(os.path.join(root_path, "docs", "conf.py"), "w") as f:
         if line.startswith("version ="):
             f.write(f"version = \"{version[:version.rfind('.')]}\"\n")
         elif line.startswith("release ="):
-            f.write(f"release = \"{version}\"\n")
+            f.write(f'release = "{version}"\n')
         else:
             f.write(line)
 
@@ -42,6 +43,6 @@ with open(os.path.join(root_path, "astrophot", "__init__.py"), "r") as f:
 with open(os.path.join(root_path, "astrophot", "__init__.py"), "w") as f:
     for line in INIT:
         if line.startswith("__version__ ="):
-            f.write(f"__version__ = \"{version}\"\n")
+            f.write(f'__version__ = "{version}"\n')
         else:
             f.write(line)

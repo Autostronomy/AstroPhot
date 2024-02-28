@@ -1,5 +1,4 @@
-from time import time
-from typing import Any, Union, Sequence, Optional
+from typing import Sequence, Optional
 
 import numpy as np
 import torch
@@ -40,7 +39,7 @@ class BaseOptimizer(object):
             initial_state (Optional[Sequence]): The initial state of the model could be any tensor.
                            If `None`, the model's default initial state will be used.
             relative_tolerance (float): The relative tolerance for the optimization.
-            fit_parameters_identity (Optiona[tuple]): a tuple of parameter identity strings which tell the LM optimizer which parameters of the model to fit.
+            fit_parameters_identity (Optional[tuple]): a tuple of parameter identity strings which tell the LM optimizer which parameters of the model to fit.
             **kwargs (dict): Additional keyword arguments.
 
         Attributes:
@@ -91,9 +90,7 @@ class BaseOptimizer(object):
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
         """
-        raise NotImplementedError(
-            "Please use a subclass of BaseOptimizer for optimization"
-        )
+        raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
     def step(self, current_state: torch.Tensor = None) -> None:
         """Args:
@@ -102,9 +99,7 @@ class BaseOptimizer(object):
         Raises:
             NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
         """
-        raise NotImplementedError(
-            "Please use a subclass of BaseOptimizer for optimization"
-        )
+        raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
     def chi2min(self) -> float:
         """
@@ -126,9 +121,7 @@ class BaseOptimizer(object):
                 "Getting optimizer res with no real loss history, using current state"
             )
             return self.current_state.detach().cpu().numpy()
-        return np.array(self.lambda_history)[N][
-            np.argmin(np.array(self.loss_history)[N])
-        ]
+        return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]
 
     def res_loss(self):
         N = np.isfinite(self.loss_history)

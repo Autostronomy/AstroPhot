@@ -226,7 +226,7 @@ class TestImage(unittest.TestCase):
                 "shape should not change with reduced image",
             )
 
-        # iamge cropping
+        # image cropping
         new_image.crop(
             [torch.tensor(1, dtype=ap.AP_config.ap_dtype, device=ap.AP_config.ap_device)]
         )
@@ -285,7 +285,7 @@ class TestImage(unittest.TestCase):
     def test_image_wcs_roundtrip(self):
 
         wcs = get_astropy_wcs()
-        # Minimial input
+        # Minimal input
         I = ap.image.Image(
             data=torch.zeros((20, 20)),
             zeropoint=22.5,
@@ -390,7 +390,7 @@ class TestTargetImage(unittest.TestCase):
         self.assertTrue(new_image.has_mask, "target image should store mask")
 
         reduced_image = new_image.reduce(2)
-        self.assertEqual(reduced_image.mask[0][0], 1, "reduced image should mask apropriately")
+        self.assertEqual(reduced_image.mask[0][0], 1, "reduced image should mask appropriately")
 
         new_image.mask = None
         self.assertFalse(new_image.has_mask, "target image update to no mask")
@@ -427,7 +427,9 @@ class TestTargetImage(unittest.TestCase):
 
         reduced_image = new_image.reduce(3)
         self.assertEqual(
-            reduced_image.psf.data[0][0], 9, "reduced image should sum sub pixels in psf"
+            reduced_image.psf.data[0][0],
+            9,
+            "reduced image should sum sub pixels in psf",
         )
 
         new_image.psf = None
@@ -444,11 +446,15 @@ class TestTargetImage(unittest.TestCase):
         smaller_image = new_image.reduce(3)
         self.assertEqual(smaller_image.data[0][0], 9, "reduction should sum flux")
         self.assertEqual(
-            tuple(smaller_image.data.shape), (10, 12), "reduction should decrease image size"
+            tuple(smaller_image.data.shape),
+            (10, 12),
+            "reduction should decrease image size",
         )
         self.assertEqual(smaller_image.psf.data[0][0], 9, "reduction should sum psf flux")
         self.assertEqual(
-            tuple(smaller_image.psf.data.shape), (3, 3), "reduction should decrease psf image size"
+            tuple(smaller_image.psf.data.shape),
+            (3, 3),
+            "reduction should decrease psf image size",
         )
 
     def test_target_save_load(self):
@@ -501,7 +507,9 @@ class TestPSFImage(unittest.TestCase):
 
         copy_psf = psf_image.copy()
         self.assertEqual(
-            psf_image.data[0][0], copy_psf.data[0][0], "copied image should have same data"
+            psf_image.data[0][0],
+            copy_psf.data[0][0],
+            "copied image should have same data",
         )
         blank_psf = psf_image.blank_copy()
         self.assertNotEqual(
@@ -527,10 +535,14 @@ class TestPSFImage(unittest.TestCase):
 
         reduce_image = new_image.reduce(3)
         self.assertEqual(
-            tuple(reduce_image.psf.data.shape), (5, 5), "reducing image should reduce psf"
+            tuple(reduce_image.psf.data.shape),
+            (5, 5),
+            "reducing image should reduce psf",
         )
         self.assertEqual(
-            reduce_image.psf.pixel_length, 3, "reducing image should update pixelscale factor"
+            reduce_image.psf.pixel_length,
+            3,
+            "reducing image should update pixelscale factor",
         )
 
     def test_psf_errors(self):

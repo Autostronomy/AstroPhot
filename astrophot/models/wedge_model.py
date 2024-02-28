@@ -2,9 +2,6 @@ import numpy as np
 import torch
 
 from .galaxy_model_object import Galaxy_Model
-from ..param import Parameter_Node
-from ..utils.interpolate import cubic_spline_torch
-from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
 from ..utils.decorators import default_internal
 
 __all__ = ["Wedge_Galaxy"]
@@ -13,7 +10,7 @@ __all__ = ["Wedge_Galaxy"]
 class Wedge_Galaxy(Galaxy_Model):
     """Variant of the ray model where no smooth transition is performed
     between regions as a function of theta, instead there is a sharp
-    trnasition boundary. This may be desireable as it cleanly
+    trnasition boundary. This may be desirable as it cleanly
     separates where the pixel information is going. Due to the sharp
     transition though, it may cause unusual behaviour when fitting. If
     problems occur, try fitting a ray model first then fix the center,
@@ -30,7 +27,7 @@ class Wedge_Galaxy(Galaxy_Model):
     special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]
     wedges = 2
     track_attrs = Galaxy_Model.track_attrs + ["wedges"]
-    useable = False
+    usable = False
 
     def __init__(self, *args, **kwargs):
         self.symmetric_wedges = True

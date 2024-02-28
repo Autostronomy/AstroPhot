@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
@@ -14,10 +13,11 @@ from ._shared_methods import (
     select_target,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.initialize import isophotes
-from ..utils.parametric_profiles import sersic_torch, sersic_np
-from ..utils.conversions.coordinates import Rotate_Cartesian
-from ..utils.conversions.functions import sersic_Ie_to_flux_torch, general_uncertainty_prop
+from ..utils.parametric_profiles import sersic_np
+from ..utils.conversions.functions import (
+    sersic_Ie_to_flux_torch,
+    general_uncertainty_prop,
+)
 
 
 __all__ = [
@@ -67,7 +67,7 @@ class Sersic_Galaxy(Galaxy_Model):
         "Ie": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -76,9 +76,7 @@ class Sersic_Galaxy(Galaxy_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     @default_internal
     def total_flux(self, parameters=None):
@@ -88,20 +86,25 @@ class Sersic_Galaxy(Galaxy_Model):
             parameters["Re"].value,
             parameters["q"].value,
         )
+
     @default_internal
     def total_flux_uncertainty(self, parameters=None):
         return general_uncertainty_prop(
-            (10 ** parameters["Ie"].value,
-             parameters["n"].value,
-             parameters["Re"].value,
-             parameters["q"].value
+            (
+                10 ** parameters["Ie"].value,
+                parameters["n"].value,
+                parameters["Re"].value,
+                parameters["q"].value,
             ),
-            ((10 ** parameters["Ie"].value) * parameters["Ie"].uncertainty * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
-             parameters["n"].uncertainty,
-             parameters["Re"].uncertainty,
-             parameters["q"].uncertainty
+            (
+                (10 ** parameters["Ie"].value)
+                * parameters["Ie"].uncertainty
+                * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
+                parameters["n"].uncertainty,
+                parameters["Re"].uncertainty,
+                parameters["q"].uncertainty,
             ),
-            sersic_Ie_to_flux_torch
+            sersic_Ie_to_flux_torch,
         )
 
     def _integrate_reference(self, image_data, image_header, parameters):
@@ -134,10 +137,15 @@ class Sersic_PSF(PSF_Model):
     parameter_specs = {
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
-        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0., "uncertainty": 0., "locked": True},
+        "Ie": {
+            "units": "log10(flux/arcsec^2)",
+            "value": 0.0,
+            "uncertainty": 0.0,
+            "locked": True,
+        },
     }
     _parameter_order = PSF_Model._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
     model_integrated = False
 
     @torch.no_grad()
@@ -147,9 +155,7 @@ class Sersic_PSF(PSF_Model):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     from ._shared_methods import sersic_radial_model as radial_model
     from ._shared_methods import radial_evaluate_model as evaluate_model
@@ -181,7 +187,7 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -190,9 +196,7 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -224,7 +228,7 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -233,9 +237,7 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -267,7 +269,7 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -276,9 +278,7 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -310,7 +310,7 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -319,9 +319,7 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -353,7 +351,7 @@ class Sersic_Warp(Warp_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -362,9 +360,7 @@ class Sersic_Warp(Warp_Galaxy):
     def initialize(self, target=None, parameters=None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(
-            self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
+        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
     from ._shared_methods import sersic_radial_model as radial_model
 
@@ -395,7 +391,7 @@ class Sersic_Ray(Ray_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -443,7 +439,7 @@ class Sersic_Wedge(Wedge_Galaxy):
         "Re": {"units": "arcsec", "limits": (0, None)},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("n", "Re", "Ie")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings

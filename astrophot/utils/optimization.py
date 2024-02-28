@@ -21,9 +21,7 @@ def reduced_chi_squared(target, model, params, mask=None, variance=None):
     if mask is None:
         ndf = (
             torch.prod(
-                torch.tensor(
-                    target.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
+                torch.tensor(target.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
             )
             - params
         )

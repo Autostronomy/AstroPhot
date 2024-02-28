@@ -1,10 +1,9 @@
 import numpy as np
 import torch
-from scipy.stats import iqr, binned_statistic, binned_statistic_2d
 
 from .galaxy_model_object import Galaxy_Model
 from ..utils.interpolate import cubic_spline_torch
-from ..utils.conversions.coordinates import Axis_Ratio_Cartesian, Rotate_Cartesian
+from ..utils.conversions.coordinates import Rotate_Cartesian
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..param import Param_Unlock, Param_SoftLimits
 from ._shared_methods import select_target
@@ -14,7 +13,7 @@ __all__ = ["Warp_Galaxy"]
 
 class Warp_Galaxy(Galaxy_Model):
     """Galaxy model which includes radially varrying PA and q
-    profiles. This works by warping the cooridnates using the same
+    profiles. This works by warping the coordinates using the same
     transform for a global PA/q except applied to each pixel
     individually. In the limit that PA and q are a constant, this
     recovers a basic galaxy model with global PA/q. However, a linear
@@ -49,7 +48,7 @@ class Warp_Galaxy(Galaxy_Model):
         },
     }
     _parameter_order = Galaxy_Model._parameter_order + ("q(R)", "PA(R)")
-    useable = False
+    usable = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -65,8 +64,7 @@ class Warp_Galaxy(Galaxy_Model):
                     new_prof = [0, 2 * target.pixel_length]
                     while new_prof[-1] < torch.min(self.window.shape / 2):
                         new_prof.append(
-                            new_prof[-1]
-                            + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
+                            new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
                         )
                     new_prof.pop()
                     new_prof.pop()
@@ -94,16 +92,17 @@ class Warp_Galaxy(Galaxy_Model):
             if parameters["PA(R)"].value is None:
                 parameters["PA(R)"].value = np.zeros(len(parameters["PA(R)"].prof)) + target.north
             if parameters["PA(R)"].uncertainty is None:
-                parameters["PA(R)"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA(R)"].value)                
+                parameters["PA(R)"].uncertainty = (5 * np.pi / 180) * torch.ones_like(
+                    parameters["PA(R)"].value
+                )
             if parameters["q(R)"].value is None:
-                # If no initial value is provided for q(R) a heursitic initial value is assumed.
+                # If no initial value is provided for q(R) a heuristic initial value is assumed.
                 # The most neutral initial position would be 1, but the boundaries of q are (0,1) non-inclusive
                 # so that is not allowed. A value like 0.999 may get stuck since it is near the very edge of
                 # the (0,1) range. So 0.9 is chosen to be mostly passive, but still some signal for the optimizer.
                 parameters["q(R)"].value = np.ones(len(parameters["q(R)"].prof)) * 0.9
             if parameters["q(R)"].uncertainty is None:
                 parameters["q(R)"].uncertainty = self.default_uncertainty * parameters["q(R)"].value
-                
 
     @default_internal
     def transform_coordinates(self, X, Y, image=None, parameters=None):
@@ -114,8 +113,8 @@ class Warp_Galaxy(Galaxy_Model):
             -(parameters["PA(R)"].value - image.north),
             R.view(-1),
         ).view(*R.shape)
-        q = cubic_spline_torch(
-            parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)
-        ).view(*R.shape)
+        q = cubic_spline_torch(parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)).view(
+            *R.shape
+        )
         X, Y = Rotate_Cartesian(PA, X, Y)
         return X, Y / q

@@ -1,12 +1,10 @@
 import torch
 
 from .psf_model_object import PSF_Model
-from ..image import PSF_Image
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.interpolate import interp2d
 from ._shared_methods import select_target
 from ..param import Param_Unlock, Param_SoftLimits
-from .. import AP_config
 
 __all__ = ["Pixelated_PSF"]
 
@@ -15,7 +13,7 @@ class Pixelated_PSF(PSF_Model):
     """point source model which uses an image of the PSF as its
     representation for point sources. Using bilinear interpolation it
     will shift the PSF within a pixel to accurately represent the
-    center location of a point source. There is no funcitonal form for
+    center location of a point source. There is no functional form for
     this object type as any image can be supplied. The image pixels
     will be optimized as individual parameters. This can very quickly
     result in a large number of parameters and a near impossible
@@ -44,7 +42,7 @@ class Pixelated_PSF(PSF_Model):
         "pixels": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = PSF_Model._parameter_order + ("pixels",)
-    useable = True
+    usable = True
     model_integrated = True
 
     @torch.no_grad()
@@ -60,7 +58,9 @@ class Pixelated_PSF(PSF_Model):
                 dat[dat == 0] = torch.median(dat) * 1e-7
                 parameters["pixels"].value = torch.log10(dat / target.pixel_area)
             if parameters["pixels"].uncertainty is None:
-                parameters["pixels"].uncertainty = torch.abs(parameters["pixels"].value) * self.default_uncertainty
+                parameters["pixels"].uncertainty = (
+                    torch.abs(parameters["pixels"].value) * self.default_uncertainty
+                )
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
@@ -83,4 +83,4 @@ class Pixelated_PSF(PSF_Model):
         # Use bilinear interpolation of the PSF at the requested coordinates
         result[select] = interp2d(parameters["pixels"].value, pX[select], pY[select])
 
-        return image.pixel_area * 10 ** result
+        return image.pixel_area * 10**result

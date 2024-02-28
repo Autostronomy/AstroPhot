@@ -1,14 +1,6 @@
-import numpy as np
-import torch
-
 from .galaxy_model_object import Galaxy_Model
-from .warp_model import Warp_Galaxy
-from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
-from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .psf_model_object import PSF_Model
-from .ray_model import Ray_Galaxy
-from .wedge_model import Wedge_Galaxy
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..utils.decorators import default_internal
 
 __all__ = [
     "RelSpline_Galaxy",
@@ -42,7 +34,7 @@ class RelSpline_Galaxy(Galaxy_Model):
         "dI(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("I0", "dI(R)")
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import relspline_initialize as initialize
@@ -69,14 +61,14 @@ class RelSpline_PSF(PSF_Model):
 
     model_type = f"relspline {PSF_Model.model_type}"
     parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
+        "I0": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
         "dI(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = PSF_Model._parameter_order + ("I0", "dI(R)")
-    useable = True
+    usable = True
     extend_profile = True
     model_integrated = False
-    
+
     @default_internal
     def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y

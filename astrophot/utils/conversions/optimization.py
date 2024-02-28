@@ -6,7 +6,7 @@ from ... import AP_config
 def boundaries(val, limits):
     """val in limits expanded to range -inf to inf"""
     tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    
+
     if limits[0] is None:
         return tval - 1.0 / (tval - limits[1])
     elif limits[1] is None:
@@ -17,7 +17,7 @@ def boundaries(val, limits):
 def inv_boundaries(val, limits):
     """val in range -inf to inf compressed to within the limits"""
     tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    
+
     if limits[0] is None:
         return (tval + limits[1] - torch.sqrt(torch.pow(tval - limits[1], 2) + 4)) * 0.5
     elif limits[1] is None:
@@ -41,20 +41,16 @@ def d_inv_boundaries_dval(val, limits):
     """derivative of: val in range -inf to inf compressed to within the limits"""
     tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
     if limits[0] is None:
-        return 0.5 - 0.5 * (tval - limits[1]) / torch.sqrt(
-            torch.pow(tval - limits[1], 2) + 4
-        )
+        return 0.5 - 0.5 * (tval - limits[1]) / torch.sqrt(torch.pow(tval - limits[1], 2) + 4)
     elif limits[1] is None:
-        return 0.5 + 0.5 * (tval - limits[0]) / torch.sqrt(
-            torch.pow(tval - limits[0], 2) + 4
-        )
-    return (limits[1] - limits[0]) / (np.pi * (tval ** 2 + 1))
+        return 0.5 + 0.5 * (tval - limits[0]) / torch.sqrt(torch.pow(tval - limits[0], 2) + 4)
+    return (limits[1] - limits[0]) / (np.pi * (tval**2 + 1))
 
 
 def cyclic_boundaries(val, limits):
     """Applies cyclic boundary conditions to the input value."""
     tval = torch.as_tensor(val, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    
+
     return limits[0] + ((tval - limits[0]) % (limits[1] - limits[0]))
 
 
@@ -65,7 +61,7 @@ def cyclic_difference_torch(val1, val2, period):
     """
     tval1 = torch.as_tensor(val1, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
     tval2 = torch.as_tensor(val2, device=AP_config.ap_device, dtype=AP_config.ap_dtype)
-    
+
     return torch.arcsin(torch.sin((tval1 - tval2) * np.pi / period)) * period / np.pi
 
 
