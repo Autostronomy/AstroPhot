@@ -3,6 +3,7 @@ import requests
 import torch
 from .parse_config import galfit_config, basic_config
 from . import AP_config
+from . import plots
 
 try:
     from ._version import version as VERSION  # noqa
