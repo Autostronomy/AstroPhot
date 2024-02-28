@@ -326,7 +326,7 @@ class LM(BaseOptimizer):
         if nostep:
             if scarry_best[0] is not None:
                 if self.verbose > 1:
-                    AP_config.ap_logger.warn(
+                    AP_config.ap_logger.warning(
                         "no low curvature step found, taking high curvature step"
                     )
                 return scarry_best
