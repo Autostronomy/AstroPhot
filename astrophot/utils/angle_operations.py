@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import iqr
 
+
 def Angle_Average(a):
     """
     Compute the average for a list of angles, which may wrap around a cyclic boundary.
@@ -30,6 +31,7 @@ def Angle_Scatter(a):
     i = np.cos(a) + 1j * np.sin(a)
     return iqr(np.angle(1j * i / np.mean(i)), rng=[16, 84])
 
+
 def Angle_COM_PA(flux, X=None, Y=None):
     """Performs a center of angular mass calculation by using the flux as
     weights to compute a position angle which accounts for the general
@@ -44,11 +46,11 @@ def Angle_COM_PA(flux, X=None, Y=None):
     """
     if X is None:
         S = flux.shape
-        X, Y = np.meshgrid(np.arange(S[1]) - S[1]/2, np.arange(S[0]) - S[0]/2, indexing = "xy")
-        
+        X, Y = np.meshgrid(np.arange(S[1]) - S[1] / 2, np.arange(S[0]) - S[0] / 2, indexing="xy")
+
     theta = np.arctan2(Y, X)
 
-    ang_com_cos = np.sum(flux * np.cos(2*theta)) / np.sum(flux)
-    ang_com_sin = np.sum(flux * np.sin(2*theta)) / np.sum(flux)
+    ang_com_cos = np.sum(flux * np.cos(2 * theta)) / np.sum(flux)
+    ang_com_sin = np.sum(flux * np.sin(2 * theta)) / np.sum(flux)
 
-    return np.arctan2(ang_com_sin, ang_com_cos)/2 % np.pi
+    return np.arctan2(ang_com_sin, ang_com_cos) / 2 % np.pi

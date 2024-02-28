@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import iqr
 from scipy.fftpack import fft
@@ -6,9 +5,7 @@ from scipy.fftpack import fft
 from ..isophote.extract import _iso_extract
 
 
-def isophotes(
-    image, center, threshold=None, pa=None, q=None, R=None, n_isophotes=3, more=False
-):
+def isophotes(image, center, threshold=None, pa=None, q=None, R=None, n_isophotes=3, more=False):
     """Method for quickly extracting a small number of elliptical
     isophotes for the sake of initializing other models.
 
@@ -24,7 +21,7 @@ def isophotes(
         # Determine basic threshold if none given
         if threshold is None:
             threshold = np.nanmedian(image) + 3 * iqr(image[np.isfinite(image)], rng=(16, 84)) / 2
-            
+
         # Sample growing isophotes until threshold is reached
         ellipse_radii = [1.0]
         while ellipse_radii[-1] < (max(image.shape) / 2):
@@ -47,7 +44,7 @@ def isophotes(
             if (np.quantile(isovals, 0.8) < threshold) and len(ellipse_radii) > 4:
                 break
         R = ellipse_radii[-1]
-        
+
     # Determine which radii to sample based on input R, pa, and q
     if isinstance(pa, float) and isinstance(q, float) and isinstance(R, float):
         if n_isophotes == 1:
@@ -60,7 +57,7 @@ def isophotes(
         isophote_radii = np.ones(len(pa)) * R
     elif hasattr(q, "__len__"):
         isophote_radii = np.ones(len(q)) * R
-        
+
     # Sample the requested isophotes and record desired info
     iso_info = []
     for i, r in enumerate(isophote_radii):

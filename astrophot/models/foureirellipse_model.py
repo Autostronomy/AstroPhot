@@ -25,13 +25,13 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     index of the Fourier mode, theta is the angle around the ellipse,
     and phi_m is the phase of the m'th fourier mode. This
     representation is somewhat different from other Fourier mode
-    implimentations where instead of an expoenntial it is just 1 +
+    implementations where instead of an expoenntial it is just 1 +
     sum_m(...), we opt for this formulation as it is more numerically
     stable. It cannot ever produce negative radii, but to first order
     the two representation are the same as can be seen by a Taylor
     expansion of exp(x) = 1 + x + O(x^2).
 
-    One can create extrememly complex shapes using different Fourier
+    One can create extremely complex shapes using different Fourier
     modes, however usually it is only low order modes that are of
     interest. For intuition, the first Fourier mode is roughly
     equivalent to a lopsided galaxy, one side will be compressed and
@@ -60,7 +60,7 @@ class FourierEllipse_Galaxy(Galaxy_Model):
     _parameter_order = Galaxy_Model._parameter_order + ("am", "phim")
     modes = (1, 3, 4)
     track_attrs = Galaxy_Model.track_attrs + ["modes"]
-    useable = False
+    usable = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -117,10 +117,12 @@ class FourierEllipse_Galaxy(Galaxy_Model):
                     device=AP_config.ap_device,
                 )
             if parameters["phim"].uncertainty is None:
-                parameters["phim"].uncertainty = torch.tensor( # Uncertainty assumed to be 5 degreees if not provided
-                    (5 * np.pi / 180) * np.ones(len(self.modes)),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
+                parameters["phim"].uncertainty = (
+                    torch.tensor(  # Uncertainty assumed to be 5 degrees if not provided
+                        (5 * np.pi / 180) * np.ones(len(self.modes)),
+                        dtype=AP_config.ap_dtype,
+                        device=AP_config.ap_device,
+                    )
                 )
 
 
@@ -138,13 +140,13 @@ class FourierEllipse_Warp(Warp_Galaxy):
     index of the Fourier mode, theta is the angle around the ellipse,
     and phi_m is the phase of the m'th fourier mode. This
     representation is somewhat different from other Fourier mode
-    implimentations where instead of an expoenntial it is just 1 +
+    implementations where instead of an expoenntial it is just 1 +
     sum_m(...), we opt for this formulation as it is more numerically
     stable. It cannot ever produce negative radii, but to first order
     the two representation are the same as can be seen by a Taylor
     expansion of exp(x) = 1 + x + O(x^2).
 
-    One can create extrememly complex shapes using different Fourier
+    One can create extremely complex shapes using different Fourier
     modes, however usually it is only low order modes that are of
     interest. For intuition, the first Fourier mode is roughly
     equivalent to a lopsided galaxy, one side will be compressed and
@@ -173,7 +175,7 @@ class FourierEllipse_Warp(Warp_Galaxy):
     _parameter_order = Warp_Galaxy._parameter_order + ("am", "phim")
     modes = (1, 3, 4)
     track_attrs = Galaxy_Model.track_attrs + ["modes"]
-    useable = False
+    usable = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -231,7 +233,10 @@ class FourierEllipse_Warp(Warp_Galaxy):
                 )
             if parameters["phim"].uncertainty is None:
                 parameters["phim"].uncertainty = torch.tensor(
-                    (5 * np.pi / 180) * np.ones(len(self.modes)),# Uncertainty assumed to be 5 degreees if not provided
+                    (5 * np.pi / 180)
+                    * np.ones(
+                        len(self.modes)
+                    ),  # Uncertainty assumed to be 5 degrees if not provided
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )

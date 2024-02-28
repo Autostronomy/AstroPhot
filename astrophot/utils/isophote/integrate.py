@@ -13,10 +13,7 @@ def fluxdens_to_fluxsum(R, I, axisratio):
     S = np.zeros(len(R))
     S[0] = I[0] * np.pi * axisratio[0] * (R[0] ** 2)
     for i in range(1, len(R)):
-        S[i] = (
-            trapz(2 * np.pi * I[: i + 1] * R[: i + 1] * axisratio[: i + 1], R[: i + 1])
-            + S[0]
-        )
+        S[i] = trapz(2 * np.pi * I[: i + 1] * R[: i + 1] * axisratio[: i + 1], R[: i + 1]) + S[0]
     return S
 
 
@@ -38,9 +35,7 @@ def fluxdens_to_fluxsum_errorprop(
     I_CHOOSE = np.logical_and(np.isfinite(I), I > 0)
     if np.sum(I_CHOOSE) < 5:
         return (None, None) if symmetric_error else (None, None, None)
-    sum_results[0][I_CHOOSE] = fluxdens_to_fluxsum(
-        R[I_CHOOSE], I[I_CHOOSE], axisratio[I_CHOOSE]
-    )
+    sum_results[0][I_CHOOSE] = fluxdens_to_fluxsum(R[I_CHOOSE], I[I_CHOOSE], axisratio[I_CHOOSE])
     for i in range(1, N):
         # Randomly sampled SB profile
         tempI = np.random.normal(loc=I, scale=np.abs(IE))
@@ -57,9 +52,7 @@ def fluxdens_to_fluxsum_errorprop(
 
     # Condense monte-carlo evaluations into profile and uncertainty envelope
     sum_lower = sum_results[0] - np.quantile(sum_results, 0.317310507863 / 2, axis=0)
-    sum_upper = (
-        np.quantile(sum_results, 1.0 - 0.317310507863 / 2, axis=0) - sum_results[0]
-    )
+    sum_upper = np.quantile(sum_results, 1.0 - 0.317310507863 / 2, axis=0) - sum_results[0]
 
     # Return requested uncertainty format
     if symmetric_error:
@@ -79,17 +72,13 @@ def _Fmode_integrand(t, parameters):
         * np.sin(parameters["m"][m] * (t + parameters["Phim"][m]))
         for m in range(len(parameters["m"]))
     )
-    return (np.sin(t) ** 2) * np.exp(2 * fsum) + np.sin(t) * np.cos(t) * np.exp(
-        fsum
-    ) * dfsum
+    return (np.sin(t) ** 2) * np.exp(2 * fsum) + np.sin(t) * np.cos(t) * np.exp(fsum) * dfsum
 
 
 def Fmode_Areas(R, parameters):
     A = []
     for i in range(len(R)):
-        A.append(
-            (R[i] ** 2) * quad(_Fmode_integrand, 0, 2 * np.pi, args=(parameters[i],))[0]
-        )
+        A.append((R[i] ** 2) * quad(_Fmode_integrand, 0, 2 * np.pi, args=(parameters[i],))[0])
     return np.array(A)
 
 
@@ -111,12 +100,12 @@ def Fmode_fluxdens_to_fluxsum(R, I, parameters, A=None):
 
       .. code-block:: python
 
-        {'ellip': ellipticity,
-         'm': list of modes used,
-         'Am': list of mode powers,
-         'Phim': list of mode phases
-
-      }
+        {
+            "ellip": "ellipticity",
+            "m": "list of modes used",
+            "Am": "list of mode powers",
+            "Phim": "list of mode phases",
+        }
 
       entries for each radius.
     """
@@ -124,8 +113,7 @@ def Fmode_fluxdens_to_fluxsum(R, I, parameters, A=None):
         return fluxdens_to_fluxsum(
             R,
             I,
-            1.0
-            - np.array(list(parameters[p]["ellip"] for p in range(len(parameters)))),
+            1.0 - np.array(list(parameters[p]["ellip"] for p in range(len(parameters)))),
         )
 
     S = np.zeros(len(R))
@@ -140,9 +128,7 @@ def Fmode_fluxdens_to_fluxsum(R, I, parameters, A=None):
     return S
 
 
-def Fmode_fluxdens_to_fluxsum_errorprop(
-    R, I, IE, parameters, N=100, symmetric_error=True
-):
+def Fmode_fluxdens_to_fluxsum_errorprop(R, I, IE, parameters, N=100, symmetric_error=True):
     """
     Integrate a flux density profile, with isophotes including Fourier perturbations.
 
@@ -160,26 +146,25 @@ def Fmode_fluxdens_to_fluxsum_errorprop(
 
       .. code-block:: python
 
-        {'ellip': ellipticity,
-         'm': list of modes used,
-         'Am': list of mode powers,
-         'Phim': list of mode phases
-
-      }
+        {
+            "ellip": "ellipticity",
+            "m": "list of modes used",
+            "Am": "list of mode powers",
+            "Phim": "list of mode phases",
+        }
 
       entries for each radius.
     """
 
     for i in range(len(R)):
-        if not "ellip err" in parameters[i]:
+        if "ellip err" not in parameters[i]:
             parameters[i]["ellip err"] = np.zeros(len(R))
     if all(parameters[p]["m"] is None for p in range(len(parameters))):
         return fluxdens_to_fluxsum_errorprop(
             R,
             I,
             IE,
-            1.0
-            - np.array(list(parameters[p]["ellip"] for p in range(len(parameters)))),
+            1.0 - np.array(list(parameters[p]["ellip"] for p in range(len(parameters)))),
             np.array(list(parameters[p]["ellip err"] for p in range(len(parameters)))),
             N=N,
             symmetric_error=symmetric_error,
@@ -216,9 +201,7 @@ def Fmode_fluxdens_to_fluxsum_errorprop(
 
     # Condense monte-carlo evaluations into profile and uncertainty envelope
     sum_lower = sum_results[0] - np.quantile(sum_results, 0.317310507863 / 2, axis=0)
-    sum_upper = (
-        np.quantile(sum_results, 1.0 - 0.317310507863 / 2, axis=0) - sum_results[0]
-    )
+    sum_upper = np.quantile(sum_results, 1.0 - 0.317310507863 / 2, axis=0) - sum_results[0]
 
     # Return requested uncertainty format
     if symmetric_error:

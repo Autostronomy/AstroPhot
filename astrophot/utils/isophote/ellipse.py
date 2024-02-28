@@ -6,9 +6,7 @@ def Rscale_Fmodes(theta, modes, Am, Phim):
     amplitudes.
 
     """
-    return np.exp(
-        sum(Am[m] * np.cos(modes[m] * (theta + Phim[m])) for m in range(len(modes)))
-    )
+    return np.exp(sum(Am[m] * np.cos(modes[m] * (theta + Phim[m])) for m in range(len(modes))))
 
 
 def parametric_Fmodes(theta, modes, Am, Phim):

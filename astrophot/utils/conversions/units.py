@@ -1,6 +1,7 @@
 import numpy as np
 
-deg_to_arcsec = 3600.
+deg_to_arcsec = 3600.0
+
 
 def flux_to_sb(flux, pixel_area, zeropoint):
     """Conversion from flux units to logarithmic surface brightness
@@ -24,7 +25,7 @@ def flux_to_mag(flux, zeropoint, fluxe=None):
       m = -2.5\\log_{10}(flux) + z.p.
 
     where :math:`z.p.` is the zeropoint.
-    
+
     """
     if fluxe is None:
         return -2.5 * np.log10(flux) + zeropoint
@@ -40,7 +41,7 @@ def sb_to_flux(sb, pixel_area, zeropoint):
       flux = A 10^{-(\\mu - z.p.)/2.5}
 
     where :math:`z.p.` is the zeropoint and :math:`A` is the area of a pixel.
-    
+
     """
     return pixel_area * 10 ** (-(sb - zeropoint) / 2.5)
 
@@ -77,9 +78,9 @@ def magperarcsec2_to_mag(mu, a=None, b=None, A=None):
       m = \\mu -2.5\\log_{10}(A)
 
     where :math:`A` is an area in arcsec^2.
-    
+
     """
-    assert (not A is None) or (not a is None and not b is None)
+    assert (A is not None) or (a is not None and b is not None)
     if A is None:
         A = np.pi * a * b
     return mu - 2.5 * np.log10(
@@ -100,11 +101,11 @@ def mag_to_magperarcsec2(m, a=None, b=None, R=None, A=None):
 
       \\mu = m + 2.5\\log_{10}(A)
 
-    where :math:`A` is an area in arcsec^2.    
+    where :math:`A` is an area in arcsec^2.
     """
-    assert (not A is None) or (not a is None and not b is None) or (not R is None)
-    if not R is None:
-        A = np.pi * (R ** 2)
+    assert (A is not None) or (a is not None and b is not None) or (R is not None)
+    if R is not None:
+        A = np.pi * (R**2)
     elif A is None:
         A = np.pi * a * b
     return m + 2.5 * np.log10(

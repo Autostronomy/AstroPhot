@@ -1,13 +1,10 @@
-from functools import partial
-from typing import Optional, Union
-import io
+from typing import Optional
 
 import numpy as np
 import torch
 
 from .core_model import AstroPhot_Model
 from ..image import (
-    Image,
     Model_Image,
     Window,
     PSF_Image,
@@ -47,7 +44,7 @@ class Component_Model(AstroPhot_Model):
       softening (float): Softening length used for numerical stability and integration stability to avoid discontinuities (near R=0). Effectively has units of arcsec. Default: 1e-5
       jacobian_chunksize (int): Maximum size of parameter list before jacobian will be broken into smaller chunks.
       special_kwargs (list): Parameters which are treated specially by the model object and should not be updated directly.
-      useable (bool): Indicates if the model is useable.
+      usable (bool): Indicates if the model is usable.
 
     Methods:
       initialize: Determine initial values for the center coordinates.
@@ -113,7 +110,7 @@ class Component_Model(AstroPhot_Model):
         "image_chunksize",
         "softening",
     ]
-    useable = False
+    usable = False
 
     def __init__(self, *, name=None, **kwargs):
         self._target_identity = None

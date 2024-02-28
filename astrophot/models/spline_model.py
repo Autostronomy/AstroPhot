@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from .galaxy_model_object import Galaxy_Model
@@ -47,7 +46,7 @@ class Spline_Galaxy(Galaxy_Model):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Galaxy_Model._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import spline_initialize as initialize
@@ -76,10 +75,10 @@ class Spline_PSF(PSF_Model):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = PSF_Model._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
     model_integrated = False
-    
+
     @default_internal
     def transform_coordinates(self, X=None, Y=None, image=None, parameters=None):
         return X, Y
@@ -111,7 +110,7 @@ class Spline_Warp(Warp_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Warp_Galaxy._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import spline_initialize as initialize
@@ -141,7 +140,7 @@ class Spline_SuperEllipse(SuperEllipse_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = SuperEllipse_Galaxy._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import spline_initialize as initialize
@@ -169,7 +168,7 @@ class Spline_FourierEllipse(FourierEllipse_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = FourierEllipse_Galaxy._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import spline_initialize as initialize
@@ -198,7 +197,7 @@ class Spline_Ray(Ray_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Ray_Galaxy._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     @torch.no_grad()
@@ -241,7 +240,7 @@ class Spline_Wedge(Wedge_Galaxy):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = Wedge_Galaxy._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     @torch.no_grad()
@@ -285,7 +284,7 @@ class Spline_SuperEllipse_Warp(SuperEllipse_Warp):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = SuperEllipse_Warp._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import spline_initialize as initialize
@@ -313,7 +312,7 @@ class Spline_FourierEllipse_Warp(FourierEllipse_Warp):
         "I(R)": {"units": "log10(flux/arcsec^2)"},
     }
     _parameter_order = FourierEllipse_Warp._parameter_order + ("I(R)",)
-    useable = True
+    usable = True
     extend_profile = True
 
     from ._shared_methods import spline_initialize as initialize

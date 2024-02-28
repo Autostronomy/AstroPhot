@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.visualization.mpl_normalize import ImageNormalize
-from astropy.visualization import SqrtStretch, LogStretch, HistEqStretch
+from astropy.visualization import LogStretch, HistEqStretch
 
 
 def LSBImage(dat, noise):
@@ -57,7 +57,7 @@ def AddScale(ax, img_width, loc="lower right"):
     """
     ax: figure axis object
     img_width: image width in arcseconds
-    loc: location to put hte scale bar
+    loc: location to put the scale bar
     """
     scale_width = int(img_width / 6)
 

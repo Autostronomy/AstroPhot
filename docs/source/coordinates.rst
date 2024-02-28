@@ -16,7 +16,7 @@ There are three main coordinate systems to think about.
    used in degree units as far as AstroPhot is concerned.
 #. ``plane`` coordinates are the tangent plane on which AstroPhot
    performs its calculations. Working on a plane makes everything
-   linear and does not introduce a noticible effect for small enough
+   linear and does not introduce a noticeable effect for small enough
    images. In the tangent plane everything should be represented in
    arcsecond units.
 #. ``pixel`` coordinates are specific to each image, they start at
@@ -26,13 +26,13 @@ There are three main coordinate systems to think about.
    so pixel coordinate (3,10) represents the center of the index
    [10,3] pixel. It is a convention for most images that the first
    axis indexes vertically and the second axis indexis horizontally,
-   if this is not the case for oyur images you can apply a transpose
+   if this is not the case for your images you can apply a transpose
    before passing the data to AstroPhot. Also, in the pixel coordinate
    system the values are represented by floating point numbers and so
    (1.3,2.8) is a valid pixel coordinate that is just partway between
    pixel centers.
 
-Tranformations exist in AstroPhot for converting ``world`` to/from
+Transformations exist in AstroPhot for converting ``world`` to/from
 ``plane`` and for converting ``plane`` to/from ``pixel``. The best way
 to interface with these is to use the ``image.window.world_to_plane``
 for any AstroPhot image object (you may similarly swap ``world``,
@@ -74,7 +74,7 @@ images), you can force it to update with::
 which would change the projection to steriographic. The image won't
 recompute its position in the new projection system, it will just use
 new equations going forward. Hence the potential to seriously mess up
-your image alignmnt if this is done after some calculations have
+your image alignment if this is done after some calculations have
 already been performed.
 
 Talking to the world
@@ -116,7 +116,7 @@ AstroPhot will set the reference RA, DEC to these coordinates and also
 set the image in the correct position. A more explicit alternative is
 to just say what the reference coordinate should be. That would look
 something like::
-  
+
   image = ap.image.Target_Image(
       data = data,
       pixelscale = pixelscale,

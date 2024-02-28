@@ -6,16 +6,18 @@ import matplotlib.pyplot as plt
 import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian_psf
 
+
 class TestPlots(unittest.TestCase):
     """
     Can't test visuals, so this only tests that the code runs
     """
+
     def test_target_image(self):
         target = make_basic_sersic()
 
         try:
             fig, ax = plt.subplots()
-        except Exception as e:
+        except Exception:
             print("skipping test_target_image because matplotlib is not installed properly")
             return
 
@@ -29,24 +31,24 @@ class TestPlots(unittest.TestCase):
 
         ap.plots.psf_image(fig, ax, target)
         plt.close()
-        
+
     def test_target_image_list(self):
         target1 = make_basic_sersic()
         target2 = make_basic_sersic()
-        target = ap.image.Target_Image_List([target1,target2])
-        
+        target = ap.image.Target_Image_List([target1, target2])
+
         try:
             fig, ax = plt.subplots(2)
-        except Exception as e:
+        except Exception:
             print("skipping test_target_image_list because matplotlib is not installed properly")
             return
 
         ap.plots.target_image(fig, ax, target)
         plt.close()
-        
+
     def test_model_image(self):
         target = make_basic_sersic()
-        
+
         new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
@@ -64,7 +66,7 @@ class TestPlots(unittest.TestCase):
 
         try:
             fig, ax = plt.subplots()
-        except Exception as e:
+        except Exception:
             print("skipping test because matplotlib is not installed properly")
             return
 
@@ -74,7 +76,7 @@ class TestPlots(unittest.TestCase):
 
     def test_residual_image(self):
         target = make_basic_sersic()
-        
+
         new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
@@ -92,7 +94,7 @@ class TestPlots(unittest.TestCase):
 
         try:
             fig, ax = plt.subplots()
-        except Exception as e:
+        except Exception:
             print("skipping test because matplotlib is not installed properly")
             return
 
@@ -103,7 +105,7 @@ class TestPlots(unittest.TestCase):
     def test_model_windows(self):
 
         target = make_basic_sersic()
-        
+
         new_model = ap.models.AstroPhot_Model(
             name="constrained sersic",
             model_type="sersic galaxy model",
@@ -121,11 +123,10 @@ class TestPlots(unittest.TestCase):
 
         try:
             fig, ax = plt.subplots()
-        except Exception as e:
+        except Exception:
             print("skipping test because matplotlib is not installed properly")
             return
 
         ap.plots.model_window(fig, ax, new_model)
 
         plt.close()
-        

@@ -19,3 +19,5 @@ docs/modules.rst
 pip_cheatsheet.txt
 .gitpod.yml
 dist/*
+node_modules
+build

@@ -1,39 +1,29 @@
 import functools
 
-from scipy.special import gamma
 from scipy.stats import binned_statistic, iqr
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import iqr
 import torch
 from scipy.optimize import minimize
 
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import (
     sersic_torch,
-    sersic_np,
     gaussian_torch,
-    gaussian_np,
     exponential_torch,
-    exponential_np,
     spline_torch,
     moffat_torch,
-    moffat_np,
     nuker_torch,
-    nuker_np,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.conversions.coordinates import Rotate_Cartesian
-from ..utils.conversions.functions import sersic_I0_to_flux_np, sersic_flux_to_I0_torch
 from ..image import (
     Image_List,
-    Target_Image,
     Model_Image_List,
     Target_Image_List,
     Window_List,
 )
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
+
 
 # Target Selector Decorator
 ######################################################################
@@ -42,17 +32,13 @@ def select_target(func):
     def targeted(self, target=None, **kwargs):
         if target is None:
             send_target = self.target
-        elif isinstance(target, Target_Image_List) and not isinstance(
-            self.target, Image_List
-        ):
+        elif isinstance(target, Target_Image_List) and not isinstance(self.target, Image_List):
             for sub_target in target:
                 if sub_target.identity == self.target.identity:
                     send_target = sub_target
                     break
             else:
-                raise RuntimeError(
-                    "{self.name} could not find matching target to initialize with"
-                )
+                raise RuntimeError("{self.name} could not find matching target to initialize with")
         else:
             send_target = target
         return func(self, target=send_target, **kwargs)
@@ -63,9 +49,7 @@ def select_target(func):
 def select_sample(func):
     @functools.wraps(func)
     def targeted(self, image=None, **kwargs):
-        if isinstance(image, Model_Image_List) and not isinstance(
-            self.target, Image_List
-        ):
+        if isinstance(image, Model_Image_List) and not isinstance(self.target, Image_List):
             for i, sub_image in enumerate(image):
                 if sub_image.target_identity == self.target.identity:
                     send_image = sub_image
@@ -73,9 +57,7 @@ def select_sample(func):
                         kwargs["window"] = kwargs["window"].window_list[i]
                     break
             else:
-                raise RuntimeError(
-                    "{self.name} could not find matching image to sample with"
-                )
+                raise RuntimeError(f"{self.name} could not find matching image to sample with")
         else:
             send_image = image
         return func(self, image=send_image, **kwargs)
@@ -110,15 +92,17 @@ def parametric_initialize(
     edge_scatter = iqr(edge, rng=(16, 84)) / 2
     # Convert center coordinates to target area array indices
     icenter = target_area.plane_to_pixel(parameters["center"].value)
-        
+
     # Collect isophotes for 1D fit
     iso_info = isophotes(
         target_dat - edge_average,
         (icenter[1].item(), icenter[0].item()),
         threshold=3 * edge_scatter,
-        pa=(parameters["PA"].value - target.north).detach().cpu().item()
-        if "PA" in parameters
-        else 0.0,
+        pa=(
+            (parameters["PA"].value - target.north).detach().cpu().item()
+            if "PA" in parameters
+            else 0.0
+        ),
         q=parameters["q"].value.detach().cpu().item() if "q" in parameters else 1.0,
         n_isophotes=15,
     )
@@ -132,9 +116,7 @@ def parametric_initialize(
 
     x0 = list(x0_func(model, R, flux))
     for i, param in enumerate(params):
-        x0[i] = (
-            x0[i] if parameters[param].value is None else parameters[param].value.item()
-        )
+        x0[i] = x0[i] if parameters[param].value is None else parameters[param].value.item()
 
     def optim(x, r, f):
         residual = (f - np.log10(prof_func(r, *x))) ** 2
@@ -143,7 +125,7 @@ def parametric_initialize(
 
     res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
     if not res.success and AP_config.ap_verbose >= 2:
-        AP_config.ap_logger.warn(
+        AP_config.ap_logger.warning(
             f"initialization fit not successful for {model.name}, falling back to defaults"
         )
 
@@ -151,15 +133,15 @@ def parametric_initialize(
         reses = []
         for i in range(10):
             N = np.random.randint(0, len(R), len(R))
-            reses.append(
-                minimize(optim, x0=x0, args=(R[N], flux[N]), method="Nelder-Mead")
-            )
+            reses.append(minimize(optim, x0=x0, args=(R[N], flux[N]), method="Nelder-Mead"))
     for param, resx, x0x in zip(params, res.x, x0):
         with Param_Unlock(parameters[param]), Param_SoftLimits(parameters[param]):
             if parameters[param].value is None:
                 parameters[param].value = resx if res.success else x0x
             if force_uncertainty is None and parameters[param].uncertainty is None:
-                parameters[param].uncertainty = np.std(list(subres.x[params.index(param)] for subres in reses))
+                parameters[param].uncertainty = np.std(
+                    list(subres.x[params.index(param)] for subres in reses)
+                )
             elif force_uncertainty is not None:
                 parameters[param].uncertainty = force_uncertainty[params.index(param)]
 
@@ -220,10 +202,7 @@ def parametric_segment_initialize(
         for iso in iso_info:
             modangles = (
                 iso["angles"]
-                - (
-                    (model["PA"].value - target.north).detach().cpu().item()
-                    + r * np.pi / segments
-                )
+                - ((model["PA"].value - target.north).detach().cpu().item() + r * np.pi / segments)
             ) % np.pi
             flux.append(
                 np.median(
@@ -242,9 +221,7 @@ def parametric_segment_initialize(
 
         x0 = list(x0_func(model, R, flux))
         for i, param in enumerate(params):
-            x0[i] = (
-                x0[i] if was_none[i] else model[param].value.detach().cpu().numpy()[r]
-            )
+            x0[i] = x0[i] if was_none[i] else model[param].value.detach().cpu().numpy()[r]
         res = minimize(
             lambda x: np.mean((flux - np.log10(prof_func(R, *x))) ** 2),
             x0=x0,
@@ -268,7 +245,7 @@ def parametric_segment_initialize(
                     unc[r] = np.std(list(subres.x[params.index(param)] for subres in reses))
                 elif force_uncertainty is not None:
                     unc[r] = force_uncertainty[params.index(param)][r]
-                
+
             with Param_Unlock(model[param]), Param_SoftLimits(model[param]):
                 model[param].value = val[param]
                 model[param].uncertainty = unc[param]
@@ -287,7 +264,7 @@ def radial_evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         parameters=parameters,
     )
 
-                
+
 # Exponential
 ######################################################################
 @default_internal
@@ -414,9 +391,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
     if parameters["I(R)"].prof is None:
         new_prof = [0, 2 * target.pixel_length]
         while new_prof[-1] < torch.max(self.window.shape / 2):
-            new_prof.append(
-                new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
-            )
+            new_prof.append(new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2))
         new_prof.pop()
         new_prof.pop()
         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
@@ -471,9 +446,7 @@ def spline_segment_initialize(
     if parameters["I(R)"].prof is None:
         new_prof = [0, 2 * target.pixel_length]
         while new_prof[-1] < torch.max(self.window.shape / 2):
-            new_prof.append(
-                new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
-            )
+            new_prof.append(new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2))
         new_prof.pop()
         new_prof.pop()
         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
@@ -508,9 +481,7 @@ def spline_segment_initialize(
             angles = (T - (np.pi + r * np.pi / segments)) % (2 * np.pi)
             TCHOOSE = np.logical_or(
                 TCHOOSE,
-                np.logical_or(
-                    angles < (np.pi / segments), angles >= (np.pi * (2 - 1 / segments))
-                ),
+                np.logical_or(angles < (np.pi / segments), angles >= (np.pi * (2 - 1 / segments))),
             )
         elif segments % 2 == 0 and not symmetric:
             angles = (T - (s * 2 * np.pi / segments)) % (2 * np.pi)
@@ -573,6 +544,7 @@ def spline_iradial_model(self, i, R, image=None, parameters=None):
         * image.pixel_area
     )
 
+
 # RelSpline
 ######################################################################
 @torch.no_grad()
@@ -593,7 +565,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
         with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
             parameters["I0"].value = np.log10(np.abs(flux) / target_area.pixel_area.item())
             parameters["I0"].uncertainty = 0.01
-        
+
     if parameters["dI(R)"].value is not None and parameters["dI(R)"].prof is not None:
         return
 
@@ -601,16 +573,14 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     if parameters["dI(R)"].prof is None:
         new_prof = [2 * target.pixel_length]
         while new_prof[-1] < torch.max(self.window.shape / 2):
-            new_prof.append(
-                new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
-            )
+            new_prof.append(new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2))
         new_prof.pop()
         new_prof.pop()
         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
         parameters["dI(R)"].prof = new_prof
 
     profR = parameters["dI(R)"].prof.detach().cpu().numpy()
-        
+
     Coords = target_area.get_coordinate_meshgrid()
     X, Y = Coords - parameters["center"].value[..., None, None]
     X, Y = self.transform_coordinates(X, Y, target, parameters)
@@ -636,13 +606,24 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
         parameters["dI(R)"].value = np.log10(np.abs(I)) - parameters["I0"].value.item()
         parameters["dI(R)"].uncertainty = S / (np.abs(I) * np.log(10))
 
+
 @default_internal
 def relspline_radial_model(self, R, image=None, parameters=None):
     return (
         spline_torch(
             R,
-            torch.cat((torch.zeros_like(parameters["I0"].value).unsqueeze(-1),parameters["dI(R)"].prof)),
-            torch.cat((parameters["I0"].value.unsqueeze(-1), parameters["I0"].value + parameters["dI(R)"].value)),
+            torch.cat(
+                (
+                    torch.zeros_like(parameters["I0"].value).unsqueeze(-1),
+                    parameters["dI(R)"].prof,
+                )
+            ),
+            torch.cat(
+                (
+                    parameters["I0"].value.unsqueeze(-1),
+                    parameters["I0"].value + parameters["dI(R)"].value,
+                )
+            ),
             extend=self.extend_profile,
         )
         * image.pixel_area

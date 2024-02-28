@@ -1,16 +1,11 @@
-from copy import deepcopy
 from typing import Optional, Sequence
 from collections import OrderedDict
 
 import torch
-import numpy as np
-import matplotlib.pyplot as plt
 
 from .core_model import AstroPhot_Model
 from ..image import (
     Image,
-    Model_Image,
-    Model_Image_List,
     Target_Image,
     Image_List,
     Window,
@@ -21,16 +16,16 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ._shared_methods import select_target
 from ..param import Parameter_Node
 from ..errors import InvalidTarget
-from .. import AP_config
 
 __all__ = ["Group_Model"]
+
 
 class Group_Model(AstroPhot_Model):
     """Model object which represents a list of other models. For each
     general AstroPhot model method, this calls all the appropriate
     models from its list and combines their output into a single
-    summed model. This class shoould be used when describing any
-    system more comlex than makes sense to represent with a single
+    summed model. This class should be used when describing any
+    system more complex than makes sense to represent with a single
     light distribution.
 
     Args:
@@ -42,11 +37,11 @@ class Group_Model(AstroPhot_Model):
     """
 
     model_type = f"group {AstroPhot_Model.model_type}"
-    useable = True
+    usable = True
 
     def __init__(
         self,
-            *,
+        *,
         name: Optional[str] = None,
         models: Optional[Sequence[AstroPhot_Model]] = None,
         **kwargs,
@@ -87,9 +82,7 @@ class Group_Model(AstroPhot_Model):
         sub models in this group model object.
 
         """
-        if isinstance(
-            self.target, Image_List
-        ):  # Window_List if target is a Target_Image_List
+        if isinstance(self.target, Image_List):  # Window_List if target is a Target_Image_List
             new_window = [None] * len(self.target.image_list)
             for model in self.models.values():
                 if model.locked and not include_locked:
@@ -127,9 +120,7 @@ class Group_Model(AstroPhot_Model):
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(
-        self, target: Optional[Image] = None, parameters=None, **kwargs
-    ):
+    def initialize(self, target: Optional[Image] = None, parameters=None, **kwargs):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
 
@@ -141,9 +132,7 @@ class Group_Model(AstroPhot_Model):
 
         target_copy = target.copy()
         for model in self.models.values():
-            model.initialize(
-                target=target_copy, parameters=parameters[model.name]
-            )
+            model.initialize(target=target_copy, parameters=parameters[model.name])
             target_copy -= model(parameters=parameters[model.name])
 
     def sample(
@@ -183,14 +172,10 @@ class Group_Model(AstroPhot_Model):
                 use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model(
-                    window=use_window, parameters=parameters[model.name]
-                )
+                image += model(window=use_window, parameters=parameters[model.name])
             else:
                 # Will sample the entire image
-                model(
-                    image, window=use_window, parameters=parameters[model.name]
-                )
+                model(image, window=use_window, parameters=parameters[model.name])
 
         return image
 
@@ -209,7 +194,7 @@ class Group_Model(AstroPhot_Model):
 
         Args:
           parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
-          as_representation (bool): Indiates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
+          as_representation (bool): Indicates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
           pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
@@ -276,36 +261,36 @@ class Group_Model(AstroPhot_Model):
             for model in self.models.values():
                 model.target = tar
 
-    def get_state(self, save_params = True):
+    def get_state(self, save_params=True):
         """Returns a dictionary with information about the state of the model
         and its parameters.
 
         """
-        state = super().get_state(save_params = save_params)
+        state = super().get_state(save_params=save_params)
         if save_params:
             state["parameters"] = self.parameters.get_state()
         if "models" not in state:
             state["models"] = {}
         for model in self.models.values():
-            state["models"][model.name] = model.get_state(save_params = False)
+            state["models"][model.name] = model.get_state(save_params=False)
         return state
 
-    def load(self, filename="AstroPhot.yaml", new_name = None):
+    def load(self, filename="AstroPhot.yaml", new_name=None):
         """Loads an AstroPhot state file and updates this model with the
         loaded parameters.
 
         """
         state = AstroPhot_Model.load(filename)
-        
+
         if new_name is None:
             new_name = state["name"]
         self.name = new_name
-        
+
         if isinstance(state["parameters"], Parameter_Node):
             self.parameters = state["parameters"]
         else:
-            self.parameters = Parameter_Node(self.name, state = state["parameters"])
-            
+            self.parameters = Parameter_Node(self.name, state=state["parameters"])
+
         for model in state["models"]:
             state["models"][model]["parameters"] = self.parameters[model]
             for own_model in self.models.values():
@@ -314,8 +299,6 @@ class Group_Model(AstroPhot_Model):
                     break
             else:
                 self.add_model(
-                    AstroPhot_Model(
-                        name=model, filename=state["models"][model], target=self.target
-                    )
+                    AstroPhot_Model(name=model, filename=state["models"][model], target=self.target)
                 )
         self.update_window()

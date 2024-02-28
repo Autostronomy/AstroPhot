@@ -6,10 +6,9 @@ from scipy.stats import iqr
 
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.angle_operations import Angle_Average, Angle_COM_PA
+from ..utils.angle_operations import Angle_COM_PA
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
-    Axis_Ratio_Cartesian,
 )
 from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 from .model_object import Component_Model
@@ -52,15 +51,13 @@ class Galaxy_Model(Component_Model):
         },
     }
     _parameter_order = Component_Model._parameter_order + ("q", "PA")
-    useable = False
+    usable = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(
-        self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs
-    ):
+    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
         super().initialize(target=target, parameters=parameters)
 
         if not (parameters["PA"].value is None or parameters["q"].value is None):
@@ -92,11 +89,13 @@ class Galaxy_Model(Component_Model):
                 PA = Angle_COM_PA(weights[seg], X[seg], Y[seg])
             else:
                 PA = Angle_COM_PA(weights, X, Y)
-                
+
             with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
-                parameters["PA"].value = (PA+target_area.north) % np.pi
+                parameters["PA"].value = (PA + target_area.north) % np.pi
                 if parameters["PA"].uncertainty is None:
-                    parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(parameters["PA"].value) # default uncertainty of 5 degrees is assumed
+                    parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(
+                        parameters["PA"].value
+                    )  # default uncertainty of 5 degrees is assumed
         if parameters["q"].value is None:
             q_samples = np.linspace(0.2, 0.9, 15)
             iso_info = isophotes(
@@ -107,7 +106,9 @@ class Galaxy_Model(Component_Model):
                 q=q_samples,
             )
             with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
-                parameters["q"].value = q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))]
+                parameters["q"].value = q_samples[
+                    np.argmin(list(iso["amplitude2"] for iso in iso_info))
+                ]
                 if parameters["q"].uncertainty is None:
                     parameters["q"].uncertainty = parameters["q"].value * self.default_uncertainty
 

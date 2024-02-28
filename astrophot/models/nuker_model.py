@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
 from .psf_model_object import PSF_Model
@@ -72,7 +71,7 @@ class Nuker_Galaxy(Galaxy_Model):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -117,7 +116,7 @@ class Nuker_PSF(PSF_Model):
     model_type = f"nuker {PSF_Model.model_type}"
     parameter_specs = {
         "Rb": {"units": "arcsec", "limits": (0, None)},
-        "Ib": {"units": "log10(flux/arcsec^2)", "value": 0., "locked": True},
+        "Ib": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
         "alpha": {"units": "none", "limits": (0, None)},
         "beta": {"units": "none", "limits": (0, None)},
         "gamma": {"units": "none"},
@@ -129,9 +128,9 @@ class Nuker_PSF(PSF_Model):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
     model_integrated = False
-    
+
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
@@ -188,7 +187,7 @@ class Nuker_SuperEllipse(SuperEllipse_Galaxy):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -247,7 +246,7 @@ class Nuker_SuperEllipse_Warp(SuperEllipse_Warp):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -305,7 +304,7 @@ class Nuker_FourierEllipse(FourierEllipse_Galaxy):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -363,7 +362,7 @@ class Nuker_FourierEllipse_Warp(FourierEllipse_Warp):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -421,7 +420,7 @@ class Nuker_Warp(Warp_Galaxy):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -478,7 +477,7 @@ class Nuker_Ray(Ray_Galaxy):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -536,7 +535,7 @@ class Nuker_Wedge(Wedge_Galaxy):
         "beta",
         "gamma",
     )
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings

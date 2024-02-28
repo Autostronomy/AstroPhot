@@ -1,7 +1,7 @@
 import numpy as np
 
-from .center import Lanczos_peak, center_of_mass, GaussianDensity_Peak
-from ..interpolate import shift_Lanczos_np, point_Lanczos
+from .center import GaussianDensity_Peak
+from ..interpolate import shift_Lanczos_np
 
 
 def gaussian_psf(sigma, img_width, pixelscale, upsample=4):
@@ -23,12 +23,10 @@ def gaussian_psf(sigma, img_width, pixelscale, upsample=4):
         ),
     )
     # Evaluate the Gaussian at each pixel
-    ZZ = np.exp(-0.5 * (XX ** 2 + YY ** 2) / sigma ** 2)
+    ZZ = np.exp(-0.5 * (XX**2 + YY**2) / sigma**2)
 
     # Reduce the super-sampling back to native resolution
-    ZZ = ZZ.reshape(img_width, upsample, img_width, upsample).sum(axis=(1, 3)) / (
-        upsample ** 2
-    )
+    ZZ = ZZ.reshape(img_width, upsample, img_width, upsample).sum(axis=(1, 3)) / (upsample**2)
 
     # Normalize the PSF
     return ZZ / np.sum(ZZ)
@@ -53,20 +51,16 @@ def moffat_psf(n, Rd, img_width, pixelscale, upsample=4):
         ),
     )
     # Evaluate the Moffat at each pixel
-    ZZ = 1.0 / (1.0 + (XX ** 2 + YY ** 2) / (Rd ** 2)) ** n
+    ZZ = 1.0 / (1.0 + (XX**2 + YY**2) / (Rd**2)) ** n
 
     # Reduce the super-sampling back to native resolution
-    ZZ = ZZ.reshape(img_width, upsample, img_width, upsample).sum(axis=(1, 3)) / (
-        upsample ** 2
-    )
+    ZZ = ZZ.reshape(img_width, upsample, img_width, upsample).sum(axis=(1, 3)) / (upsample**2)
 
     # Normalize the PSF
     return ZZ / np.sum(ZZ)
 
 
-def construct_psf(
-    stars, image, sky_est, size=51, mask=None, keep_init=False, Lanczos_scale=3
-):
+def construct_psf(stars, image, sky_est, size=51, mask=None, keep_init=False, Lanczos_scale=3):
     """Given a list of initial guesses for star center locations, finds
     the interpolated flux peak, re-centers the stars such that they
     are exactly on a pixel center, then median stacks the normalized

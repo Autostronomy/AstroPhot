@@ -4,16 +4,16 @@ on:
     branches:
       - main
   workflow_dispatch:
-  
+
 jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-          cache: 'pip'
+          python-version: "3.9"
+          cache: "pip"
       - run: |
           pip install -r requirements.txt
 
@@ -21,13 +21,13 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/
           pip install -e .
-          pip show astrophot          
-          
+          pip show astrophot
+
       - name: Install dependencies
         run: |
           sudo apt-get install -y pandoc
           pip install sphinx sphinx_rtd_theme nbsphinx
-          
+
       - name: Clone external Jupyter Notebook repository
         run: |
           cd $GITHUB_WORKSPACE/docs/
@@ -38,10 +38,11 @@ jobs:
           cd $GITHUB_WORKSPACE/
           sphinx-apidoc -f -o docs/ astrophot/
           sphinx-build docs _build
-          
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if:
+          ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GH_TOKEN }}

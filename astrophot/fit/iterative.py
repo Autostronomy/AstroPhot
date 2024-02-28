@@ -2,13 +2,10 @@
 from typing import Dict, Any, Sequence, Union
 import os
 from time import time
-from copy import copy
 import random
 
 import numpy as np
 import torch
-from scipy.optimize import minimize
-from scipy.special import gammainc
 
 from .base import BaseOptimizer
 from ..models import AstroPhot_Model
@@ -65,9 +62,7 @@ class Iter(BaseOptimizer):
         )
         if self.model.target.has_mask:
             # subtract masked pixels from degrees of freedom
-            self.ndf -= torch.sum(
-                self.model.target[self.model.window].flatten("mask")
-            ).item()
+            self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
 
     def sub_step(self, model: "AstroPhot_Model") -> None:
         """
@@ -84,7 +79,7 @@ class Iter(BaseOptimizer):
         if self.verbose > 1:
             AP_config.ap_logger.info(res.message)
         model.target = initial_target
-        
+
     def step(self) -> None:
         """
         Perform a single iteration of optimization.
@@ -117,9 +112,7 @@ class Iter(BaseOptimizer):
             if self.model.target.has_mask:
                 M = self.model.target[self.model.window].flatten("mask")
                 loss = (
-                    torch.sum(
-                        (((D - self.Y.flatten("data")) ** 2) / V)[torch.logical_not(M)]
-                    )
+                    torch.sum((((D - self.Y.flatten("data")) ** 2) / V)[torch.logical_not(M)])
                     / self.ndf
                 )
             else:
@@ -165,9 +158,7 @@ class Iter(BaseOptimizer):
                     self.message = self.message + "success"
                     break
                 elif self.iteration >= self.max_iter:
-                    self.message = (
-                        self.message + f"fail max iterations reached: {self.iteration}"
-                    )
+                    self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
 
         except KeyboardInterrupt:
@@ -227,9 +218,7 @@ class Iter_LM(BaseOptimizer):
         )
         if self.model.target.has_mask:
             # subtract masked pixels from degrees of freedom
-            self.ndf -= torch.sum(
-                self.model.target[self.model.window].flatten("mask")
-            ).item()
+            self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
 
     def step(self):
         # These store the chunking information depending on which chunk mode is selected
@@ -244,7 +233,7 @@ class Iter_LM(BaseOptimizer):
 
         # Loop through all the chunks
         while True:
-            chunk = torch.zeros(len(init_param_ids), dtype = torch.bool, device = AP_config.ap_device)
+            chunk = torch.zeros(len(init_param_ids), dtype=torch.bool, device=AP_config.ap_device)
             if isinstance(self.chunks, int):
                 if len(param_ids) == 0:
                     break
@@ -298,10 +287,7 @@ class Iter_LM(BaseOptimizer):
 
         self.loss_history.append(res.res_loss())
         self.lambda_history.append(
-            self.model.parameters.vector_representation()
-            .detach()
-            .cpu()
-            .numpy()
+            self.model.parameters.vector_representation().detach().cpu().numpy()
         )
         if self.verbose > 0:
             AP_config.ap_logger.info(f"Loss: {self.loss_history[-1]}")
@@ -336,9 +322,7 @@ class Iter_LM(BaseOptimizer):
                     self.message = self.message + "success"
                     break
                 elif self.iteration >= self.max_iter:
-                    self.message = (
-                        self.message + f"fail max iterations reached: {self.iteration}"
-                    )
+                    self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
 
         except KeyboardInterrupt:

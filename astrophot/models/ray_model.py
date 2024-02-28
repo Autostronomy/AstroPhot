@@ -2,10 +2,7 @@ import numpy as np
 import torch
 
 from .galaxy_model_object import Galaxy_Model
-from ..param import Parameter_Node
-from ..utils.interpolate import cubic_spline_torch
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.conversions.coordinates import Axis_Ratio_Cartesian
+from ..utils.decorators import default_internal
 
 __all__ = ["Ray_Galaxy"]
 
@@ -36,7 +33,7 @@ class Ray_Galaxy(Galaxy_Model):
     special_kwargs = Galaxy_Model.special_kwargs + ["rays"]
     rays = 2
     track_attrs = Galaxy_Model.track_attrs + ["rays"]
-    useable = False
+    usable = False
 
     def __init__(self, *args, **kwargs):
         self.symmetric_rays = True

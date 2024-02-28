@@ -2,10 +2,9 @@ import unittest
 
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
 
 import astrophot as ap
-from utils import make_basic_sersic, make_basic_gaussian
+from utils import make_basic_sersic
 
 ######################################################################
 # Fit Objects
@@ -77,7 +76,10 @@ class TestComponentModelFits(unittest.TestCase):
         pixelscale = 0.8
         shape = (N + 10, N)
         true_params = {
-            "center": [shape[0] * pixelscale / 2 - 3.3, shape[1] * pixelscale / 2 + 5.3],
+            "center": [
+                shape[0] * pixelscale / 2 - 3.3,
+                shape[1] * pixelscale / 2 + 5.3,
+            ],
             "n": 2,
             "Re": 10,
             "Ie": 1.0,

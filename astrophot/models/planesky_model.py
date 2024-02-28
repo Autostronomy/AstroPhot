@@ -15,7 +15,7 @@ class Plane_Sky(Sky_Model):
 
     I(X, Y) = S + X*dx + Y*dy
 
-    where I(X,Y) is the brightness as a funcion of image position X Y,
+    where I(X,Y) is the brightness as a function of image position X Y,
     S is the central sky brightness value, and dx dy are the slopes of
     the sky brightness plane.
 
@@ -31,7 +31,7 @@ class Plane_Sky(Sky_Model):
         "delta": {"units": "flux/arcsec"},
     }
     _parameter_order = Sky_Model._parameter_order + ("F", "delta")
-    useable = True
+    usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -42,7 +42,10 @@ class Plane_Sky(Sky_Model):
 
         with Param_Unlock(parameters["F"]), Param_SoftLimits(parameters["F"]):
             if parameters["F"].value is None:
-                parameters["F"].value = np.median(target[self.window].data.detach().cpu().numpy()) / target.pixel_area.item()
+                parameters["F"].value = (
+                    np.median(target[self.window].data.detach().cpu().numpy())
+                    / target.pixel_area.item()
+                )
             if parameters["F"].uncertainty is None:
                 parameters["F"].uncertainty = (
                     iqr(
@@ -54,7 +57,10 @@ class Plane_Sky(Sky_Model):
         with Param_Unlock(parameters["delta"]), Param_SoftLimits(parameters["delta"]):
             if parameters["delta"].value is None:
                 parameters["delta"].value = [0.0, 0.0]
-                parameters["delta"].uncertainty = [self.default_uncertainty, self.default_uncertainty]
+                parameters["delta"].uncertainty = [
+                    self.default_uncertainty,
+                    self.default_uncertainty,
+                ]
 
     @default_internal
     def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):

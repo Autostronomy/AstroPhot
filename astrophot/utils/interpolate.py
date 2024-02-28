@@ -2,9 +2,7 @@ from functools import lru_cache
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
-from astropy.convolution import convolve, convolve_fft
-from torch.nn.functional import conv2d
+from astropy.convolution import convolve_fft
 
 from .operations import fft_convolve_torch
 
@@ -55,12 +53,7 @@ def cubic_spline_torch(
     idxs = torch.searchsorted(x[:-1], xs) - 1
     dx = x[idxs + 1] - x[idxs]
     hh = _h_poly((xs - x[idxs]) / dx)
-    ret = (
-        hh[0] * y[idxs]
-        + hh[1] * m[idxs] * dx
-        + hh[2] * y[idxs + 1]
-        + hh[3] * m[idxs + 1] * dx
-    )
+    ret = hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
     if extend == "const":
         ret[xs > x[-1]] = y[-1]
     elif extend == "linear":
@@ -154,18 +147,12 @@ def _shift_Lanczos_kernel_torch(dx, dy, scale, dtype, device):
     sub-pixel length.
 
     """
-    xsign = 1 - 2 * (dx < 0).to(
-        dtype=torch.int32
-    )  # flips the kernel if the shift is negative
-    xx = xsign * (
-        torch.arange(int(-scale), int(scale + 1), dtype=dtype, device=device) - dx
-    )
+    xsign = 1 - 2 * (dx < 0).to(dtype=torch.int32)  # flips the kernel if the shift is negative
+    xx = xsign * (torch.arange(int(-scale), int(scale + 1), dtype=dtype, device=device) - dx)
     Lx = torch.sinc(xx) * torch.sinc(xx / scale)
 
     ysign = 1 - 2 * (dy < 0).to(dtype=torch.int32)
-    yy = ysign * (
-        torch.arange(int(-scale), int(scale + 1), dtype=dtype, device=device) - dy
-    )
+    yy = ysign * (torch.arange(int(-scale), int(scale + 1), dtype=dtype, device=device) - dy)
     Ly = torch.sinc(yy) * torch.sinc(yy / scale)
 
     LXX, LYY = torch.meshgrid(Lx, Ly, indexing="xy")
@@ -235,12 +222,8 @@ def interpolate_Lanczos_grid(img, X, Y, scale):
     # fixme going to need some broadcasting magic
     XX = np.ones((2 * scale, 2 * scale))
     res = np.zeros((len(Y), len(X)))
-    for x, lowx, highx in zip(
-        range(len(X)), np.floor(X) - step + 1, np.floor(X) + step + 1
-    ):
-        for y, lowy, highy in zip(
-            range(len(Y)), np.floor(Y) - step + 1, np.floor(Y) + step + 1
-        ):
+    for x, lowx, highx in zip(range(len(X)), np.floor(X) - step + 1, np.floor(X) + step + 1):
+        for y, lowy, highy in zip(range(len(Y)), np.floor(Y) - step + 1, np.floor(Y) + step + 1):
             L = XX * sinc_X[x] * sinc_Y[y].reshape((sinc_Y[y].size, -1))
             res[y, x] = np.sum(use_img[lowy:highy, lowx:highx] * L) / np.sum(L)
     return res
@@ -268,9 +251,7 @@ def interpolate_Lanczos(img, X, Y, scale):
         XX = np.ones(chunk.shape)
         Lx = (
             np.sinc(np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i]))
-            * np.sinc(
-                (np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i])) / scale
-            )
+            * np.sinc((np.arange(-scale + 1, scale + 1) - X[i] + np.floor(X[i])) / scale)
         )[
             box[0][0]
             - int(round(np.floor(X[i]) - scale + 1)) : 2 * scale
@@ -279,9 +260,7 @@ def interpolate_Lanczos(img, X, Y, scale):
         ]
         Ly = (
             np.sinc(np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i]))
-            * np.sinc(
-                (np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i])) / scale
-            )
+            * np.sinc((np.arange(-scale + 1, scale + 1) - Y[i] + np.floor(Y[i])) / scale)
         )[
             box[1][0]
             - int(round(np.floor(Y[i]) - scale + 1)) : 2 * scale
@@ -320,7 +299,7 @@ def interp2d(
 
     # Convert coordinates to pixel indices
     h, w = im.shape
-    
+
     # reshape for indexing purposes
     start_shape = x.shape
     x = x.view(-1)
@@ -352,16 +331,14 @@ def interp2d(
 
 @lru_cache(maxsize=32)
 def curvature_kernel(dtype, device):
-    kernel = (
-        torch.tensor(
-            [
-                [0.0, 1.0, 0.0],
-                [1.0, -4, 1.0],
-                [0.0, 1.0, 0.0],
-            ],  # [[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
-            device=device,
-            dtype=dtype,
-        )
+    kernel = torch.tensor(
+        [
+            [0.0, 1.0, 0.0],
+            [1.0, -4, 1.0],
+            [0.0, 1.0, 0.0],
+        ],  # [[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
+        device=device,
+        dtype=dtype,
     )
     return kernel
 

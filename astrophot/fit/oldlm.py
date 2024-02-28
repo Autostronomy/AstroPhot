@@ -1,12 +1,11 @@
 # Levenberg-Marquardt algorithm
 import os
 from time import time
-from typing import List, Callable, Optional, Union, Sequence, Any
+from typing import List, Callable, Optional, Sequence, Any
 
 import torch
 from torch.autograd.functional import jacobian
 import numpy as np
-import matplotlib.pyplot as plt
 
 from .base import BaseOptimizer
 from .. import AP_config
@@ -51,7 +50,7 @@ class oldLM(BaseOptimizer):
     where L is the Levenberg-Marquardt damping parameter and I is the
     identity matrix. For small L this is just the Newton's method, for
     large L this is just a small gradient descent step (approximately
-    h = grad/L). The method implimented is modified from Gavin 2019.
+    h = grad/L). The method implemented is modified from Gavin 2019.
 
     Args:
         model (AstroPhot_Model): object with which to perform optimization
@@ -89,7 +88,7 @@ class oldLM(BaseOptimizer):
         self.L = kwargs.get("L0", 1e-3)
         self.use_broyden = kwargs.get("use_broyden", False)
 
-        # Initialize optimizer atributes
+        # Initialize optimizer attributes
         self.Y = self.model.target[self.fit_window].flatten("data")
         #        1 / sigma^2
         self.W = (
@@ -169,9 +168,7 @@ class oldLM(BaseOptimizer):
             self.prev_Y[1] = self.current_Y
         self.loss_history.append(loss.detach().cpu().item())
         self.L_history.append(self.L)
-        self.lambda_history.append(
-            np.copy((self.current_state + h).detach().cpu().numpy())
-        )
+        self.lambda_history.append(np.copy((self.current_state + h).detach().cpu().numpy()))
 
         if self.iteration > 0 and not torch.isfinite(loss):
             if self.verbose > 0:
@@ -255,10 +252,7 @@ class oldLM(BaseOptimizer):
                 self.step()
 
                 # Save the state of the model
-                if (
-                    self.save_steps is not None
-                    and self.decision_history[-1] == "accept"
-                ):
+                if self.save_steps is not None and self.decision_history[-1] == "accept":
                     self.model.save(
                         os.path.join(
                             self.save_steps,
@@ -273,22 +267,17 @@ class oldLM(BaseOptimizer):
                     self.decision_history.count("accept") > 2
                     and self.decision_history[-1] == "accept"
                     and L[-1] < 0.1
-                    and ((loss[-2] - loss[-1]) / loss[-1])
-                    < (self.relative_tolerance / 10)
+                    and ((loss[-2] - loss[-1]) / loss[-1]) < (self.relative_tolerance / 10)
                 ):
                     self._count_converged += 1
                 elif self.iteration >= self.max_iter:
-                    self.message = (
-                        self.message + f"fail max iterations reached: {self.iteration}"
-                    )
+                    self.message = self.message + f"fail max iterations reached: {self.iteration}"
                     break
                 elif not torch.all(torch.isfinite(self.current_state)):
                     self.message = self.message + "fail non-finite step taken"
                     break
                 elif (
-                    self.L >= (1e9 - 1)
-                    and self._count_reject >= 8
-                    and not self.take_low_rho_step()
+                    self.L >= (1e9 - 1) and self._count_reject >= 8 and not self.take_low_rho_step()
                 ):
                     self.message = (
                         self.message
@@ -303,8 +292,7 @@ class oldLM(BaseOptimizer):
                     loss10 = np.array(loss[-10:])
                     if (
                         np.all(
-                            np.abs((loss10[0] - loss10[-1]) / loss10[-1])
-                            < self.relative_tolerance
+                            np.abs((loss10[0] - loss10[-1]) / loss10[-1]) < self.relative_tolerance
                         )
                         and L[-1] < 0.1
                     ):
@@ -312,8 +300,7 @@ class oldLM(BaseOptimizer):
                         break
                     if (
                         np.all(
-                            np.abs((loss10[0] - loss10[-1]) / loss10[-1])
-                            < self.relative_tolerance
+                            np.abs((loss10[0] - loss10[-1]) / loss10[-1]) < self.relative_tolerance
                         )
                         and L[-1] >= 0.1
                     ):
@@ -348,9 +335,7 @@ class oldLM(BaseOptimizer):
         if torch.all(torch.isfinite(cov)):
             try:
                 self.model.parameters.set_uncertainty(
-                    torch.sqrt(
-                        torch.abs(torch.diag(cov))
-                    ),
+                    torch.sqrt(torch.abs(torch.diag(cov))),
                     as_representation=False,
                     parameters_identity=self.fit_parameters_identity,
                 )
@@ -397,9 +382,7 @@ class oldLM(BaseOptimizer):
 
                 self.loss_history.append(self.loss_history[i])
                 self.L_history.append(self.L)
-                self.lambda_history.append(
-                    np.copy((self.current_state).detach().cpu().numpy())
-                )
+                self.lambda_history.append(np.copy((self.current_state).detach().cpu().numpy()))
                 self.decision_history.append("low rho accept")
                 self.rho_history.append(self.rho_history[i])
 
@@ -429,17 +412,14 @@ class oldLM(BaseOptimizer):
             (
                 self.hess
                 + self.L**2
-                * torch.eye(
-                    len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
+                * torch.eye(len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
             )
             * (
                 1
                 + self.L**2
-                * torch.eye(
-                    len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
-                )
-            ) ** 2
+                * torch.eye(len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            )
+            ** 2
             / (1 + self.L**2),
             self.grad,
         )
@@ -471,11 +451,7 @@ class oldLM(BaseOptimizer):
         # Apply mask if needed
         if self.model.target.has_mask:
             loss = (
-                torch.sum(
-                    ((self.Y - self.current_Y) ** 2 * self.W)[
-                        torch.logical_not(self.mask)
-                    ]
-                )
+                torch.sum(((self.Y - self.current_Y) ** 2 * self.W)[torch.logical_not(self.mask)])
                 / self.ndf
             )
         else:
@@ -592,7 +568,7 @@ class oldLM(BaseOptimizer):
         self.update_J_natural()
         self.update_hess()
         try:
-            self._covariance_matrix = 2*torch.linalg.inv(self.hess)
+            self._covariance_matrix = 2 * torch.linalg.inv(self.hess)
         except:
             AP_config.ap_logger.warning(
                 "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
@@ -600,7 +576,7 @@ class oldLM(BaseOptimizer):
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
             ) * (torch.diag(self.hess) == 0)
-            self._covariance_matrix = 2*torch.linalg.inv(self.hess)
+            self._covariance_matrix = 2 * torch.linalg.inv(self.hess)
         return self._covariance_matrix
 
     @torch.no_grad()
@@ -618,8 +594,7 @@ class oldLM(BaseOptimizer):
             / abs(
                 torch.dot(
                     h,
-                    self.L**2 * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h)
-                    + self.grad,
+                    self.L**2 * (torch.abs(torch.diag(self.hess) - self.epsilon5) * h) + self.grad,
                 )
             )
         )
@@ -630,9 +605,7 @@ class oldLM(BaseOptimizer):
         losses = []
 
         for l in range(len(self.decision_history)):
-            if "accept" in self.decision_history[l] and np.isfinite(
-                self.loss_history[l]
-            ):
+            if "accept" in self.decision_history[l] and np.isfinite(self.loss_history[l]):
                 lambdas.append(self.lambda_history[l])
                 Ls.append(self.L_history[l])
                 losses.append(self.loss_history[l])
@@ -650,8 +623,6 @@ class oldLM(BaseOptimizer):
                 losses.append(self.loss_history[l])
         return lambdas, Ls, losses
 
-      
-        
 
 class LM_Constraint:
     """Add an arbitrary constraint to the LM optimization algorithm.
@@ -726,9 +697,7 @@ class LM_Constraint:
     def jacobian(self, model: "AstroPhot_Model"):
         jac = jacobian(
             lambda P: self.constraint_func(P, *self.constraint_args),
-            model.parameters.get_vector(
-                as_representation=self.representation_parameters
-            ),
+            model.parameters.get_vector(as_representation=self.representation_parameters),
             strategy="forward-mode",
             vectorize=True,
             create_graph=False,
@@ -738,8 +707,6 @@ class LM_Constraint:
 
     def __call__(self, model: "AstroPhot_Model"):
         return self.constraint_func(
-            model.parameters.get_vector(
-                as_representation=self.representation_parameters
-            ),
+            model.parameters.get_vector(as_representation=self.representation_parameters),
             *self.constraint_args,
         )

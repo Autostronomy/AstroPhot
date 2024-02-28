@@ -17,7 +17,7 @@ AstroPhot
 .. image:: https://github.com/Autostronomy/AstroPhot/blob/main/media/AP_logo.png?raw=true
    :width: 100 %
    :target: https://github.com/Autostronomy/AstroPhot
-   
+
 |br|
 
 .. Important::
@@ -56,9 +56,9 @@ This documentation includes all functions available in the AstroPhot package. Fo
 
     modules.rst
     configfile_interface.rst
-    license.rst   
+    license.rst
     contributing.rst
-              
+
 |br|
 
 .. note::
@@ -69,4 +69,3 @@ This documentation includes all functions available in the AstroPhot package. Fo
     going forward. Please contact connorstone628@gmail.com if you experience
     issues. If you would like to be notified of major changes send an email
     with the subject line "ASTROPHOT MAILING LIST".
-

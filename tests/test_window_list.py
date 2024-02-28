@@ -8,6 +8,7 @@ import torch
 # Window List Object
 ######################################################################
 
+
 class TestWindowList(unittest.TestCase):
     def test_windowlist_creation(self):
 
@@ -22,8 +23,8 @@ class TestWindowList(unittest.TestCase):
         self.assertEqual(windowlist.origin[1][1], 6, "Window list should capture origin")
         self.assertEqual(windowlist.shape[0][0], 100, "Window list should capture shape")
         self.assertEqual(windowlist.shape[1][1], 110, "Window list should capture shape")
-        self.assertEqual(windowlist.center[1][0], 50., "Window should determine center")
-        self.assertEqual(windowlist.center[0][1], 61., "Window should determine center")
+        self.assertEqual(windowlist.center[1][0], 50.0, "Window should determine center")
+        self.assertEqual(windowlist.center[0][1], 61.0, "Window should determine center")
 
         x = str(windowlist)
         x = repr(windowlist)
@@ -39,15 +40,15 @@ class TestWindowList(unittest.TestCase):
         # Logical or, size
         ######################################################################
         big_or_small = windowlistbs | windowlistsb
-        
+
         self.assertEqual(
             big_or_small.origin[0][0],
-            0.,
+            0.0,
             "logical or of images should take largest bounding box",
         )
         self.assertEqual(
             big_or_small.origin[1][0],
-            0.,
+            0.0,
             "logical or of images should take largest bounding box",
         )
         self.assertEqual(
@@ -217,9 +218,7 @@ class TestWindowList(unittest.TestCase):
         self.assertEqual(
             windowlist1, windowlist2, "same origin, shape windows should evaluate equal"
         )
-        self.assertNotEqual(
-            windowlist1, windowlist3, "Differnt windows should not evaluate equal"
-        )
+        self.assertNotEqual(windowlist1, windowlist3, "Different windows should not evaluate equal")
 
     def test_image_list_errors(self):
         window1 = ap.image.Window(origin=[0.0, 1.0], pixel_shape=[10.2, 11.8])
@@ -227,20 +226,26 @@ class TestWindowList(unittest.TestCase):
         windowlist1 = ap.image.Window_List([window1, window2])
 
         # Bad ra dec reference point
-        window2 = ap.image.Window(origin=[0.0, 1.0], reference_radec = np.ones(2), pixel_shape=[10.2, 11.8])
+        window2 = ap.image.Window(
+            origin=[0.0, 1.0], reference_radec=np.ones(2), pixel_shape=[10.2, 11.8]
+        )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Window_List((window1, window2))
 
         # Bad tangent plane x y reference point
-        window2 = ap.image.Window(origin=[0.0, 1.0], reference_planexy = np.ones(2), pixel_shape=[10.2, 11.8])
+        window2 = ap.image.Window(
+            origin=[0.0, 1.0], reference_planexy=np.ones(2), pixel_shape=[10.2, 11.8]
+        )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Window_List((window1, window2))
 
         # Bad WCS projection
-        window2 = ap.image.Window(origin=[0.0, 1.0], projection = "orthographic", pixel_shape=[10.2, 11.8])
+        window2 = ap.image.Window(
+            origin=[0.0, 1.0], projection="orthographic", pixel_shape=[10.2, 11.8]
+        )
         with self.assertRaises(ap.errors.ConflicingWCS):
             test_image = ap.image.Window_List((window1, window2))
-        
-        
+
+
 if __name__ == "__main__":
     unittest.main()

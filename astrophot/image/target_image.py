@@ -2,13 +2,11 @@ from typing import List, Optional
 
 import torch
 import numpy as np
-from torch.nn.functional import avg_pool2d
 
 from .image_object import Image, Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .model_image import Model_Image, Model_Image_List
 from .psf_image import PSF_Image
-from astropy.io import fits
 from .. import AP_config
 from ..errors import SpecificationConflict, InvalidImage
 
@@ -22,7 +20,7 @@ class Target_Image(Image):
 
     Target images are a basic unit of data in `AstroPhot`, they store
     the information collected from telescopes for which models are to
-    be fit. There is minimial functionality in the `Target_Image`
+    be fit. There is minimal functionality in the `Target_Image`
     object itself, it is mostly defined in terms of how other objects
     interact with it.
 
@@ -34,11 +32,11 @@ class Target_Image(Image):
 
       # Create target image
       image = ap.image.Target_Image(
-          data = <pixel data>,
-          wcs = <astropy WCS object>,
-          variance = <pixel uncertainties>,
-          psf = <point spread function as PSF_Image object>,
-          mask = <pixels to ignore>,
+          data="pixel data",
+          wcs="astropy WCS object",
+          variance="pixel uncertainties",
+          psf="point spread function as PSF_Image object",
+          mask=" True for pixels to ignore",
       )
 
       # Display the data
@@ -50,7 +48,7 @@ class Target_Image(Image):
       image.save("mytarget.fits")
 
       # Load the image
-      image2 = ap.image.Target_Image(filename = "mytarget.fits")
+      image2 = ap.image.Target_Image(filename="mytarget.fits")
 
       # Make low resolution version
       lowrez = image.reduce(2)
@@ -207,7 +205,7 @@ class Target_Image(Image):
         pixels to be ignored. These pixels will be skipped in
         likelihood evaluations and in parameter optimization. It is
         common practice to mask pixels with pathological values such
-        as due to cosmic rays or satelites passing through the image.
+        as due to cosmic rays or satellites passing through the image.
 
         In a mask, a True value indicates that the pixel is masked and
         should be ignored. False indicates a normal pixel which will
