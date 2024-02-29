@@ -75,6 +75,7 @@ class Iter(BaseOptimizer):
         initial_target = model.target
         model.target = model.target[model.window] - self.Y[model.window]
         res = self.method(model, **self.method_kwargs).fit()
+        model.parameters.flat_detach()
         self.Y += model()
         if self.verbose > 1:
             AP_config.ap_logger.info(res.message)
