@@ -36,29 +36,6 @@ It was written by `Connor Stone <https://connorjstone.com/>`_ .
 
 This documentation is a work in progress, further updates will come.
 
-.. toctree::
-    :maxdepth: 1
-
-    install.rst
-    getting_started.rst
-    tutorials.rst
-    coordinates.rst
-    troubleshooting.rst
-    citation.rst
-
-User Documentation
-==================
-
-This documentation includes all functions available in the AstroPhot package. For now it is somewhat scattered, the best way to navigate it is to search for the kind of function or model you are looking for. Further organization will come with future updates.
-
-.. toctree::
-    :maxdepth: 1
-
-    modules.rst
-    configfile_interface.rst
-    license.rst
-    contributing.rst
-
 |br|
 
 .. note::
