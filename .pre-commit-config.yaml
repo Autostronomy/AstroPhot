@@ -78,11 +78,7 @@ repos:
     rev: 0.7.1
     hooks:
       - id: nbstripout
-        args:
-          [
-            "--extra-keys='metadata.kernelspec metadata.language_info.version'",
-            "--drop-empty-cells",
-          ]
+        args: [--extra-keys=metadata.kernelspec metadata.language_info.version]
 
   - repo: local
     hooks:
