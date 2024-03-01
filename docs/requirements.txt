@@ -3,6 +3,6 @@ jupyter-book
 matplotlib
 nbsphinx
 photutils
-skimage
+scikit-image
 sphinx
 sphinx-rtd-theme
