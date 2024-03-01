@@ -137,6 +137,10 @@ class PSF_Model(AstroPhot_Model):
         """
         super().initialize(target=target, parameters=parameters)
 
+    @default_internal
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
+        return X, Y
+
     # Fit loop functions
     ######################################################################
     def evaluate_model(
