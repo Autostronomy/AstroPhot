@@ -80,41 +80,36 @@ def parametric_initialize(
     if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
-    edge = np.concatenate(
-        (
-            target_dat[:, 0],
-            target_dat[:, -1],
-            target_dat[0, :],
-            target_dat[-1, :],
-        )
-    )
-    edge_average = np.median(edge)
-    edge_scatter = iqr(edge, rng=(16, 84)) / 2
-    # Convert center coordinates to target area array indices
-    icenter = target_area.plane_to_pixel(parameters["center"].value)
 
     # Collect isophotes for 1D fit
-    iso_info = isophotes(
-        target_dat - edge_average,
-        (icenter[1].item(), icenter[0].item()),
-        threshold=3 * edge_scatter,
-        pa=(
-            (parameters["PA"].value - target.north).detach().cpu().item()
-            if "PA" in parameters
-            else 0.0
-        ),
-        q=parameters["q"].value.detach().cpu().item() if "q" in parameters else 1.0,
-        n_isophotes=15,
-    )
-    R = np.array(list(iso["R"] for iso in iso_info)) * target.pixel_length.item()
-    flux = np.array(list(iso["flux"] for iso in iso_info)) / target.pixel_area.item()
-    # Correct the flux if values are negative, so fit can be done in log space
-    if np.sum(flux < 0) > 0:
-        AP_config.ap_logger.debug("fixing flux")
-        flux -= np.min(flux) - np.abs(np.min(flux) * 0.1)
-    flux = np.log10(flux)
+    Coords = target_area.get_coordinate_meshgrid()
+    X, Y = Coords - parameters["center"].value[..., None, None]
+    X, Y = model.transform_coordinates(X, Y, target, parameters)
+    R = model.radius_metric(X, Y, target, parameters).detach().cpu().numpy().flatten()
+    rad_bins = np.linspace(R.min() * 0.9, R.max() * 1.1, 11)
 
-    x0 = list(x0_func(model, R, flux))
+    raveldat = target_dat.ravel()
+
+    I = (
+        binned_statistic(R, raveldat, statistic="median", bins=rad_bins)[0]
+    ) / target.pixel_area.item()
+    sigma = lambda d: iqr(d, rng=[16, 84]) / 2
+    S = binned_statistic(R, raveldat, statistic=sigma, bins=rad_bins)[0] / target.pixel_area.item()
+    R = (rad_bins[:-1] + rad_bins[1:]) / 2
+    N = np.isfinite(I)
+    if not np.all(N):
+        I[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], I[N])
+    I = np.abs(I)
+    N = np.isfinite(S)
+    if not np.all(N):
+        S[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], S[N])
+    # Ensure decreasing brightness with radius
+    for i in range(1, len(I)):
+        if I[i] >= I[i - 1]:
+            I[i] = I[i - 1] / 1.1
+    I = np.log10(I)
+
+    x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):
         x0[i] = x0[i] if parameters[param].value is None else parameters[param].value.item()
 
@@ -123,7 +118,7 @@ def parametric_initialize(
         N = np.argsort(residual)
         return np.mean(residual[:-3])
 
-    res = minimize(optim, x0=x0, args=(R, flux), method="Nelder-Mead")
+    res = minimize(optim, x0=x0, args=(R, I), method="Nelder-Mead")
     if not res.success and AP_config.ap_verbose >= 2:
         AP_config.ap_logger.warning(
             f"initialization fit not successful for {model.name}, falling back to defaults"
@@ -133,7 +128,7 @@ def parametric_initialize(
         reses = []
         for i in range(10):
             N = np.random.randint(0, len(R), len(R))
-            reses.append(minimize(optim, x0=x0, args=(R[N], flux[N]), method="Nelder-Mead"))
+            reses.append(minimize(optim, x0=x0, args=(R[N], I[N]), method="Nelder-Mead"))
     for param, resx, x0x in zip(params, res.x, x0):
         with Param_Unlock(parameters[param]), Param_SoftLimits(parameters[param]):
             if parameters[param].value is None:

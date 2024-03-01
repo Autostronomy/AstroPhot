@@ -4,6 +4,7 @@ from typing import Union
 import numpy as np
 from astropy.io import fits
 from ..angle_operations import Angle_COM_PA
+from ..operations import axis_ratio_com
 
 __all__ = (
     "centroids_from_segmentation_map",
@@ -106,6 +107,7 @@ def q_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: Union[np.ndarray, str],
     centroids=None,
+    PAs=None,
     hdul_index_seg: int = 0,
     hdul_index_img: int = 0,
     skip_index: tuple = (0,),
@@ -119,6 +121,10 @@ def q_from_segmentation_map(
         centroids = centroids_from_segmentation_map(
             seg_map=seg_map, image=image, skip_index=skip_index
         )
+    if PAs is None:
+        PAs = PA_from_segmentation_map(
+            seg_map=seg_map, image=image, centroids=centroids, skip_index=skip_index
+        )
 
     XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
 
@@ -127,12 +133,9 @@ def q_from_segmentation_map(
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        theta = np.arctan2(YY[N] - centroids[index][1], XX[N] - centroids[index][0])
-
-        # Ballpark correct, could be better
-        ang_com_cos = np.sum(image[N] * np.cos(2 * theta)) / np.sum(image[N])
-        ang_com_sin = np.sum(image[N] * np.sin(2 * theta)) / np.sum(image[N])
-        qs[index] = 1.0 - (np.abs(ang_com_cos) + np.abs(ang_com_sin))
+        qs[index] = axis_ratio_com(
+            image[N], PAs[index] + north, XX[N] - centroids[index][0], YY[N] - centroids[index][1]
+        )
 
     return qs
 
