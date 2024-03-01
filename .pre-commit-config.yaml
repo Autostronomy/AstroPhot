@@ -81,7 +81,7 @@ repos:
         args:
           [
             "--extra-keys='metadata.kernelspec metadata.language_info.version'",
-            "--keep-metadata-keys='cell.metadata.execution'",
+            "--keep-metadata-keys='metadata.execution'",
             "--drop-empty-cells",
           ]
 
