@@ -11,7 +11,7 @@ execute:
   execute_notebooks: force
   allow_errors: false
   # Per-cell notebook execution limit (seconds)
-  timeout: 1000
+  timeout: 2000
 
 # Define the name of the latex output file for PDF builds
 latex:
