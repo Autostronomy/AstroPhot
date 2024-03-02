@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Union
 
 import numpy as np
+import torch
 from astropy.io import fits
 from ..angle_operations import Angle_COM_PA
 from ..operations import axis_ratio_com
@@ -13,6 +14,7 @@ __all__ = (
     "windows_from_segmentation_map",
     "scale_windows",
     "filter_windows",
+    "transfer_windows",
 )
 
 
@@ -274,4 +276,38 @@ def filter_windows(
             ):
                 continue
         new_windows[w] = windows[w]
+    return new_windows
+
+
+def transfer_windows(windows, base_image, new_image):
+    new_windows = {}
+    for w in list(windows.keys()):
+        bottom_corner = np.clip(
+            np.floor(
+                new_image.plane_to_pixel(
+                    base_image.pixel_to_plane(torch.tensor([windows[w][0][0], windows[w][1][0]]))
+                )
+                .detach()
+                .cpu()
+                .numpy()
+            ),
+            a_min=0,
+            a_max=np.array(new_image.shape) - 1,
+        )
+        top_corner = np.clip(
+            np.ceil(
+                new_image.plane_to_pixel(
+                    base_image.pixel_to_plane(torch.tensor([windows[w][0][1], windows[w][1][1]]))
+                )
+                .detach()
+                .cpu()
+                .numpy()
+            ),
+            a_min=0,
+            a_max=np.array(new_image.shape) - 1,
+        )
+        new_windows[w] = [
+            [bottom_corner[0], top_corner[0]],
+            [bottom_corner[1], top_corner[1]],
+        ]
     return new_windows

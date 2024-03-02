@@ -11,9 +11,9 @@ astrophot.egg-info
 **.xml
 tests/*.fits
 tests/*.yaml
-docs/tutorials/*.fits
-docs/tutorials/*.yaml
-docs/tutorials/*.jpg
+docs/source/tutorials/*.fits
+docs/source/tutorials/*.yaml
+docs/source/tutorials/*.jpg
 docs/autophot.*rst
 docs/modules.rst
 pip_cheatsheet.txt
