@@ -10,7 +10,7 @@ logo: ../../media/AP_logo.png
 execute:
   execute_notebooks: force
   allow_errors: false
-  timeout: 60
+  timeout: 180
 
 # Define the name of the latex output file for PDF builds
 latex:
