@@ -42,7 +42,7 @@ class TestGroup(unittest.TestCase):
     def test_jointmodel_creation(self):
         np.random.seed(12345)
         shape = (10, 15)
-        tar = ap.image.Target_Image(
+        tar1 = ap.image.Target_Image(
             data=np.random.normal(loc=0, scale=1.4, size=shape),
             pixelscale=0.8,
             variance=np.ones(shape) * (1.4**2),
@@ -55,9 +55,11 @@ class TestGroup(unittest.TestCase):
             variance=np.ones(shape2) * (1.4**2),
         )
 
+        tar = ap.image.Target_Image_List([tar1, tar2])
+
         mod1 = ap.models.Flat_Sky(
             name="base model 1",
-            target=tar,
+            target=tar1,
         )
         mod2 = ap.models.Flat_Sky(
             name="base model 2",
@@ -74,8 +76,13 @@ class TestGroup(unittest.TestCase):
         self.assertFalse(smod.locked, "default model state should not be locked")
 
         smod.initialize()
+        self.assertTrue(
+            torch.all(torch.isfinite(smod().flatten("data"))).item(), "model_image should be real"
+        )
 
-        self.assertTrue(torch.all(torch.isfinite(smod().data)), "model_image should be real")
+        fm = smod.fit_mask()
+        for fmi in fm:
+            self.assertTrue(torch.sum(fmi).item() == 0, "this fit_mask should not mask any pixels")
 
     def test_groupmodel_saveload(self):
         np.random.seed(12345)

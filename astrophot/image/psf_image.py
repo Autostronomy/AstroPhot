@@ -64,6 +64,10 @@ class PSF_Image(Image):
         self.data /= torch.sum(self.data)
 
     @property
+    def mask(self):
+        return torch.zeros_like(self.data, dtype=bool)
+
+    @property
     def psf_border_int(self):
         """Calculates and returns the border size of the PSF image in integer
         format. This is the border used for padding before convolution.

@@ -135,6 +135,37 @@ class Group_Model(AstroPhot_Model):
             model.initialize(target=target_copy, parameters=parameters[model.name])
             target_copy -= model(parameters=parameters[model.name])
 
+    def fit_mask(self) -> torch.Tensor:
+        """Returns a mask for the target image which is the combination of all
+        the fit masks of the sub models. This mask is used when the multiple
+        models in the group model do not completely overlap with each other, thus
+        there are some pixels which are not covered by any model and have no
+        reason to be fit.
+
+        """
+        if isinstance(self.target, Image_List):
+            mask = tuple(torch.ones_like(submask) for submask in self.target.mask)
+            for model in self.models.values():
+                model_flat_mask = model.fit_mask()
+                if isinstance(model.target, Image_List):
+                    for target, window, submask in zip(model.target, model.window, model_flat_mask):
+                        index = self.target.index(target)
+                        group_indices = self.window.window_list[index].get_self_indices(window)
+                        model_indices = window.get_self_indices(self.window.window_list[index])
+                        mask[index][group_indices] &= submask[model_indices]
+                else:
+                    index = self.target.index(model.target)
+                    group_indices = self.window.window_list[index].get_self_indices(model.window)
+                    model_indices = model.window.get_self_indices(self.window.window_list[index])
+                    mask[index][group_indices] &= model_flat_mask[model_indices]
+        else:
+            mask = torch.ones_like(self.target[self.window].mask)
+            for model in self.models.values():
+                group_indices = self.window.get_self_indices(model.window)
+                model_indices = model.window.get_self_indices(self.window)
+                mask[group_indices] &= model.fit_mask()[model_indices]
+        return mask
+
     def sample(
         self,
         image: Optional[Image] = None,
