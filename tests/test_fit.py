@@ -363,6 +363,50 @@ class TestLM(unittest.TestCase):
 
         LM.fit()
 
+    def test_group_fit_step(self):
+        np.random.seed(123456)
+        tar = make_basic_sersic(N=51, M=51)
+        mod1 = ap.models.Sersic_Galaxy(
+            name="base model 1",
+            target=tar,
+            window=[[0, 25], [0, 25]],
+            parameters={
+                "center": [5, 5],
+                "PA": 0,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+        )
+        mod2 = ap.models.Sersic_Galaxy(
+            name="base model 2",
+            target=tar,
+            window=[[25, 51], [25, 51]],
+            parameters={
+                "center": [5, 5],
+                "PA": 0,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+        )
+
+        smod = ap.models.AstroPhot_Model(
+            name="group model",
+            model_type="group model",
+            models=[mod1, mod2],
+            target=tar,
+        )
+        vec_init = smod.parameters.vector_values().detach().clone()
+        LM = ap.fit.LM(smod, max_iter=1).fit()
+        vec_final = smod.parameters.vector_values().detach().clone()
+        self.assertFalse(
+            torch.all(vec_init == vec_final),
+            "LM should update parameters in LM step",
+        )
+
 
 class TestMiniFit(unittest.TestCase):
     def test_minifit(self):
