@@ -147,11 +147,17 @@ class Group_Model(AstroPhot_Model):
             mask = tuple(torch.ones_like(submask) for submask in self.target.mask)
             for model in self.models.values():
                 model_flat_mask = model.fit_mask()
-                for target, window, submask in zip(model.target, model.window, model_flat_mask):
-                    index = self.target.index(target)
-                    group_indices = self.window.window_list[index].get_self_indices(window)
-                    model_indices = window.get_self_indices(self.window.window_list[index])
-                    mask[index][group_indices] &= submask[model_indices]
+                if isinstance(model.target, Image_List):
+                    for target, window, submask in zip(model.target, model.window, model_flat_mask):
+                        index = self.target.index(target)
+                        group_indices = self.window.window_list[index].get_self_indices(window)
+                        model_indices = window.get_self_indices(self.window.window_list[index])
+                        mask[index][group_indices] &= submask[model_indices]
+                else:
+                    index = self.target.index(model.target)
+                    group_indices = self.window.window_list[index].get_self_indices(model.window)
+                    model_indices = model.window.get_self_indices(self.window.window_list[index])
+                    mask[index][group_indices] &= model_flat_mask[model_indices]
         else:
             mask = torch.ones_like(self.target[self.window].mask)
             for model in self.models.values():
