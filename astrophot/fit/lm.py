@@ -297,7 +297,7 @@ class LM(BaseOptimizer):
                 continue
 
             # Check for Chi^2 improvement
-            if chi2 <= best[1]:
+            if chi2 < best[1]:
                 if self.verbose > 1:
                     AP_config.ap_logger.info("new best chi^2")
                 best = (ha, chi2, self.L)
@@ -369,9 +369,9 @@ class LM(BaseOptimizer):
     @torch.no_grad()
     def _grad(self, J, W, Y, Ypred) -> torch.Tensor:
         if self.mask is None:
-            return J.T @ (W * (Y - Ypred))
+            return -J.T @ self._r(Y, Ypred, W)
         else:
-            return J[self.mask].T @ self._r(Y, Ypred, W)
+            return -J[self.mask].T @ self._r(Y, Ypred, W)
 
     @torch.no_grad()
     def _rpp(self, J, d, dr, W, h):
