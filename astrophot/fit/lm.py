@@ -199,12 +199,25 @@ class LM(BaseOptimizer):
             self.W = torch.ones_like(self.Y)
 
         # mask
+        fit_mask = self.model.fit_mask()
+        if isinstance(fit_mask, tuple):
+            fit_mask = torch.cat(tuple(FM.flatten() for FM in fit_mask))
+        else:
+            fit_mask = fit_mask.flatten()
+        if torch.sum(fit_mask).item() == 0:
+            fit_mask = None
         if model.target.has_mask:
             mask = self.model.target[self.fit_window].flatten("mask")
+            if fit_mask is not None:
+                mask = mask | fit_mask
             self.mask = torch.logical_not(mask)
             self.ndf = max(1.0, self.ndf - torch.sum(mask).item())
+        elif fit_mask is not None:
+            self.mask = torch.logical_not(fit_mask)
         else:
             self.mask = None
+        if self.mask is not None and torch.sum(self.mask).item() == 0:
+            raise OptimizeStop("No data to fit. All pixels are masked")
 
         # variable to store covariance matrix if it is ever computed
         self._covariance_matrix = None

@@ -195,6 +195,13 @@ class AstroPhot_Model(object):
         """
         pass
 
+    def fit_mask(self):
+        """
+        Return a mask to be used for fitting this model. This will block out
+        pixels that are not relevant to the model.
+        """
+        return torch.zeros_like(self.target.mask)
+
     def negative_log_likelihood(
         self,
         parameters=None,
