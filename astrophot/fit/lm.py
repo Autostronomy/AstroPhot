@@ -409,8 +409,8 @@ class LM(BaseOptimizer):
         else:
             J = self.jacobian(parameters=self.current_state).flatten("data")
         Ypred = self.forward(parameters=self.current_state).flatten("data")
-        self.hess = torch.matmul(J.T, (self.W.view(len(self.W), -1) * J))
-        self.grad = torch.matmul(J.T, self.W * (self.Y - Ypred))
+        self.hess = self._hess(J, self.W)
+        self.grad = self._grad(J, self.W, self.Y, Ypred)
 
     @torch.no_grad()
     def fit(self) -> BaseOptimizer:
