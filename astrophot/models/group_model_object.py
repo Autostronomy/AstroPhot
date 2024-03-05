@@ -144,7 +144,7 @@ class Group_Model(AstroPhot_Model):
 
         """
         if isinstance(self.target, Image_List):
-            mask = tuple(torch.ones_like(submask) for submask in self.target.mask)
+            mask = tuple(torch.ones_like(submask) for submask in self.target[self.window].mask)
             for model in self.models.values():
                 model_flat_mask = model.fit_mask()
                 if isinstance(model.target, Image_List):
