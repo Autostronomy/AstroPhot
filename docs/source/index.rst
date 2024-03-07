@@ -18,14 +18,12 @@ AstroPhot
 ..    :width: 100 %
 ..    :target: https://github.com/Autostronomy/AstroPhot
 
-|br|
 
 .. Important::
     If you use AstroPhot for a project that leads to a publication,
     whether directly or as a dependency of another package, please
     include an :doc:`acknowledgment and/or citation <citation>`.
 
-|br|
 
 Getting Started
 ===============
@@ -40,13 +38,10 @@ To install AstroPhot, use pip:
 
     pip install astrophot
 
-Check out the tutorials to learn how to use AstroPhot:
-
-- :doc:`/tutorials/index.rst`
+Check out the tutorials to learn how to use AstroPhot :doc:`tutorials/index`
 
 If you run into any problems, please submit an issue on the `GitHub page <https://github.com/Autostronomy/AstroPhot>`_ or just email me.
 
-|br|
 
 .. note::
 
