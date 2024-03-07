@@ -65,37 +65,34 @@ def select_sample(func):
     return targeted
 
 
-# General parametric
-######################################################################
-@torch.no_grad()
-@ignore_numpy_warnings
-def parametric_initialize(
-    model, parameters, target, prof_func, params, x0_func, force_uncertainty=None
-):
-    if all(list(parameters[param].value is not None for param in params)):
-        return
-    # Get the sub-image area corresponding to the model image
-    target_area = target[model.window]
-    target_dat = target_area.data.detach().cpu().numpy()
-    if target_area.has_mask:
-        mask = target_area.mask.detach().cpu().numpy()
-        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
-
-    # Collect isophotes for 1D fit
-    Coords = target_area.get_coordinate_meshgrid()
+def _sample_image(image, transform, metric, parameters, rad_bins=None):
+    dat = image.data.detach().cpu().numpy()
+    # Fill masked pixels
+    if image.has_mask:
+        mask = image.mask.detach().cpu().numpy()
+        dat[mask] = np.median(dat[np.logical_not(mask)])
+    # Subtract median of edge pixels to avoid effect of nearby sources
+    edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
+    dat -= np.median(edge)
+    # Get the radius of each pixel relative to object center
+    Coords = image.get_coordinate_meshgrid()
     X, Y = Coords - parameters["center"].value[..., None, None]
-    X, Y = model.transform_coordinates(X, Y, target, parameters)
-    R = model.radius_metric(X, Y, target, parameters).detach().cpu().numpy().flatten()
-    rad_bins = np.linspace(R.min() * 0.9, R.max() * 1.1, 11)
+    X, Y = transform(X, Y, image, parameters)
+    R = metric(X, Y, image, parameters).detach().cpu().numpy().flatten()
 
-    raveldat = target_dat.ravel()
-
+    # Bin fluxes by radius
+    if rad_bins is None:
+        rad_bins = np.logspace(np.log10(R.min() * 0.9), np.log10(R.max() * 1.1), 11)
+    else:
+        rad_bins = np.array(rad_bins)
+    raveldat = dat.ravel()
     I = (
         binned_statistic(R, raveldat, statistic="median", bins=rad_bins)[0]
-    ) / target.pixel_area.item()
+    ) / image.pixel_area.item()
     sigma = lambda d: iqr(d, rng=[16, 84]) / 2
-    S = binned_statistic(R, raveldat, statistic=sigma, bins=rad_bins)[0] / target.pixel_area.item()
+    S = binned_statistic(R, raveldat, statistic=sigma, bins=rad_bins)[0] / image.pixel_area.item()
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
+    # Ensure all values are finite
     N = np.isfinite(I)
     if not np.all(N):
         I[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], I[N])
@@ -107,7 +104,24 @@ def parametric_initialize(
     for i in range(1, len(I)):
         if I[i] >= I[i - 1]:
             I[i] = I[i - 1] / 1.1
-    I = np.log10(I)
+
+    return R, np.log10(I), S / (I * np.log(10))
+
+
+# General parametric
+######################################################################
+@torch.no_grad()
+@ignore_numpy_warnings
+def parametric_initialize(
+    model, parameters, target, prof_func, params, x0_func, force_uncertainty=None
+):
+    if all(list(parameters[param].value is not None for param in params)):
+        return
+    # Get the sub-image area corresponding to the model image
+    target_area = target[model.window]
+    R, I, S = _sample_image(
+        target_area, model.transform_coordinates, model.radius_metric, parameters
+    )
 
     x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):
@@ -116,7 +130,7 @@ def parametric_initialize(
     def optim(x, r, f):
         residual = (f - np.log10(prof_func(r, *x))) ** 2
         N = np.argsort(residual)
-        return np.mean(residual[:-3])
+        return np.mean(residual[N][:-2])
 
     res = minimize(optim, x0=x0, args=(R, I), method="Nelder-Mead")
     if not res.success and AP_config.ap_verbose >= 2:
@@ -394,35 +408,16 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
 
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
-    target_dat = target_area.data.detach().cpu().numpy()
-    if target_area.has_mask:
-        mask = target_area.mask.detach().cpu().numpy()
-        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
-    Coords = target_area.get_coordinate_meshgrid()
-    X, Y = Coords - parameters["center"].value[..., None, None]
-    X, Y = self.transform_coordinates(X, Y, target, parameters)
-    R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
-    rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
-    raveldat = target_dat.ravel()
-
-    I = (
-        binned_statistic(R.ravel(), raveldat, statistic="median", bins=rad_bins)[0]
-    ) / target.pixel_area.item()
-    N = np.isfinite(I)
-    if not np.all(N):
-        I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
-    I = np.abs(I)
-    if I[-1] >= I[-2]:
-        I[-1] = I[-2] / 2
-    S = binned_statistic(
-        R.ravel(), raveldat, statistic=lambda d: iqr(d, rng=[16, 84]) / 2, bins=rad_bins
-    )[0]
-    N = np.isfinite(S)
-    if not np.all(N):
-        S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
+    R, I, S = _sample_image(
+        target_area,
+        self.transform_coordinates,
+        self.radius_metric,
+        parameters,
+        rad_bins=[profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100],
+    )
     with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
-        parameters["I(R)"].value = np.log10(I)
-        parameters["I(R)"].uncertainty = S / (I * np.log(10))
+        parameters["I(R)"].value = I
+        parameters["I(R)"].uncertainty = S
 
 
 @torch.no_grad()
