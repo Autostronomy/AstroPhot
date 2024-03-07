@@ -1,22 +1,22 @@
 .. the "raw" directive below is used to hide the title in favor of
    just the logo being visible
-.. raw:: html
+.. .. raw:: html
 
-    <style media="screen" type="text/css">
-      h1 {display:none;}
-    </style>
+..     <style media="screen" type="text/css">
+..       h1 {display:none;}
+..     </style>
 
-.. |br| raw:: html
+.. .. |br| raw:: html
 
-    <div style="min-height:0.1em;"></div>
+..     <div style="min-height:0.1em;"></div>
 
 *********
 AstroPhot
 *********
 
-.. image:: https://github.com/Autostronomy/AstroPhot/blob/main/media/AP_logo.png?raw=true
-   :width: 100 %
-   :target: https://github.com/Autostronomy/AstroPhot
+.. .. image:: https://github.com/Autostronomy/AstroPhot/blob/main/media/AP_logo.png?raw=true
+..    :width: 100 %
+..    :target: https://github.com/Autostronomy/AstroPhot
 
 |br|
 
@@ -34,7 +34,17 @@ AstroPhot is a fast, flexible, and automated astronomical image modelling tool f
 Its pythonic design allows for fast startup and provides flexibility to explore new ideas and support advanced users.
 It was written by `Connor Stone <https://connorjstone.com/>`_ .
 
-This documentation is a work in progress, further updates will come.
+To install AstroPhot, use pip:
+
+.. code-block:: bash
+
+    pip install astrophot
+
+Check out the tutorials to learn how to use AstroPhot:
+
+- :doc:`/tutorials/index.rst`
+
+If you run into any problems, please submit an issue on the `GitHub page <https://github.com/Autostronomy/AstroPhot>`_ or just email me.
 
 |br|
 

@@ -43,7 +43,8 @@ def centroids_from_segmentation_map(
     pixel space. A dictionary of pixel centers is produced where the
     keys of the dictionary correspond to the segment id's.
 
-    Args:
+    Parameters:
+    ----------
       seg_map (Union[np.ndarray, str]): A segmentation map which gives the object identity for each pixel
       image (Union[np.ndarray, str]): An Image which will be used in the light weighted center of mass calculation
       hdul_index_seg (int): If reading from a fits file this is the hdu list index at which the map is found. Default: 0
@@ -223,6 +224,19 @@ def filter_windows(
     max_flux=None,
     image=None,
 ):
+    """
+    Filter a set of windows based on a set of criteria.
+
+    Parameters
+    ----------
+        min_size: minimum size of the window in pixels
+        max_size: maximum size of the window in pixels
+        min_area: minimum area of the window in pixels
+        max_area: maximum area of the window in pixels
+        min_flux: minimum flux of the window in ADU
+        max_flux: maximum flux of the window in ADU
+        image: the image from which the flux is calculated for min_flux and max_flux
+    """
     new_windows = {}
     for w in list(windows.keys()):
         if min_size is not None:
@@ -280,6 +294,21 @@ def filter_windows(
 
 
 def transfer_windows(windows, base_image, new_image):
+    """
+    Convert a set of windows from one image object to another. This will account
+    for the relative adjustments in origin, pixelscale, and rotation between the
+    two images.
+
+    Parameters
+    ----------
+    windows : dict
+        A dictionary of windows to be transferred. Each window is formatted as a list of lists with:
+        window = [[xmin,xmax],[ymin,ymax]]
+    base_image : Image
+        The image object from which the windows are being transferred.
+    new_image : Image
+        The image object to which the windows are being transferred.
+    """
     new_windows = {}
     for w in list(windows.keys()):
         bottom_corner = np.clip(

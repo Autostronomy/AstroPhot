@@ -4,6 +4,7 @@
 format: jb-book
 root: index
 chapters:
+  - file: index
   - file: getting_started
   - file: install
   - file: tutorials/index
