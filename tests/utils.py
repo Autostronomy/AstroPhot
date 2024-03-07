@@ -60,6 +60,7 @@ def make_basic_sersic(
             "Re": Re,
             "Ie": Ie,
         },
+        sampling_mode="quad:5",
     )
 
     img = MODEL().data.detach().cpu().numpy()
