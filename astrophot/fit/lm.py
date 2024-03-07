@@ -199,12 +199,25 @@ class LM(BaseOptimizer):
             self.W = torch.ones_like(self.Y)
 
         # mask
+        fit_mask = self.model.fit_mask()
+        if isinstance(fit_mask, tuple):
+            fit_mask = torch.cat(tuple(FM.flatten() for FM in fit_mask))
+        else:
+            fit_mask = fit_mask.flatten()
+        if torch.sum(fit_mask).item() == 0:
+            fit_mask = None
         if model.target.has_mask:
             mask = self.model.target[self.fit_window].flatten("mask")
+            if fit_mask is not None:
+                mask = mask | fit_mask
             self.mask = torch.logical_not(mask)
             self.ndf = max(1.0, self.ndf - torch.sum(mask).item())
+        elif fit_mask is not None:
+            self.mask = torch.logical_not(fit_mask)
         else:
             self.mask = None
+        if self.mask is not None and torch.sum(self.mask).item() == 0:
+            raise OptimizeStop("No data to fit. All pixels are masked")
 
         # variable to store covariance matrix if it is ever computed
         self._covariance_matrix = None
@@ -231,10 +244,9 @@ class LM(BaseOptimizer):
         """
         Y0 = self.forward(parameters=self.current_state).flatten("data")
         J = self.jacobian(parameters=self.current_state).flatten("data")
-        r = -self.W * (self.Y - Y0)
-        self.hess = J.T @ (self.W.view(len(self.W), -1) * J)
-        self.grad = J.T @ (self.W * (self.Y - Y0))
-
+        r = self._r(Y0, self.Y, self.W)
+        self.hess = self._hess(J, self.W)  # J.T @ (self.W.view(len(self.W), -1) * J)
+        self.grad = self._grad(J, self.W, Y0, self.Y)  # J.T @ (self.W * (self.Y - Y0))
         init_chi2 = chi2
         nostep = True
         best = (torch.zeros_like(self.current_state), init_chi2, self.L)
@@ -253,12 +265,12 @@ class LM(BaseOptimizer):
             # Compute goedesic acceleration
             Y1 = self.forward(parameters=self.current_state + d * h).flatten("data")
 
-            rh = -self.W * (self.Y - Y1)
+            rh = self._r(Y1, self.Y, self.W)  # -self.W * (self.Y - Y1)
 
-            rpp = (2 / d) * ((rh - r) / d - self.W * (J @ h))
+            rpp = self._rpp(J, d, rh - r, self.W, h)  # (2 / d) * ((rh - r) / d - self.W * (J @ h))
 
             if self.L > 1e-4:
-                a = -self._h(self.L, J.T @ rpp, self.hess) / 2
+                a = -self._h(self.L, rpp, self.hess) / 2
             else:
                 a = torch.zeros_like(h)
 
@@ -298,7 +310,7 @@ class LM(BaseOptimizer):
                 continue
 
             # Check for Chi^2 improvement
-            if chi2 <= best[1]:
+            if chi2 < best[1]:
                 if self.verbose > 1:
                     AP_config.ap_logger.info("new best chi^2")
                 best = (ha, chi2, self.L)
@@ -354,6 +366,34 @@ class LM(BaseOptimizer):
             return torch.sum((self.W * (self.Y - Ypred) ** 2)[self.mask]) / self.ndf
 
     @torch.no_grad()
+    def _r(self, Y, Ypred, W) -> torch.Tensor:
+        if self.mask is None:
+            return W * (Y - Ypred)
+        else:
+            return W[self.mask] * (Y[self.mask] - Ypred[self.mask])
+
+    @torch.no_grad()
+    def _hess(self, J, W) -> torch.Tensor:
+        if self.mask is None:
+            return J.T @ (W.view(len(W), -1) * J)
+        else:
+            return J[self.mask].T @ (W[self.mask].view(len(W[self.mask]), -1) * J[self.mask])
+
+    @torch.no_grad()
+    def _grad(self, J, W, Y, Ypred) -> torch.Tensor:
+        if self.mask is None:
+            return -J.T @ self._r(Y, Ypred, W)
+        else:
+            return -J[self.mask].T @ self._r(Y, Ypred, W)
+
+    @torch.no_grad()
+    def _rpp(self, J, d, dr, W, h):
+        if self.mask is None:
+            return J.T @ ((2 / d) * ((dr / d - W * (J @ h))))
+        else:
+            return J[self.mask].T @ ((2 / d) * ((dr / d - W[self.mask] * (J[self.mask] @ h))))
+
+    @torch.no_grad()
     def update_hess_grad(self, natural=False) -> None:
         """Updates the stored hessian matrix and gradient vector. This can be
         used to compute the quantities in their natural parameter
@@ -369,8 +409,8 @@ class LM(BaseOptimizer):
         else:
             J = self.jacobian(parameters=self.current_state).flatten("data")
         Ypred = self.forward(parameters=self.current_state).flatten("data")
-        self.hess = torch.matmul(J.T, (self.W.view(len(self.W), -1) * J))
-        self.grad = torch.matmul(J.T, self.W * (self.Y - Ypred))
+        self.hess = self._hess(J, self.W)
+        self.grad = self._grad(J, self.W, self.Y, Ypred)
 
     @torch.no_grad()
     def fit(self) -> BaseOptimizer:
