@@ -209,7 +209,6 @@ class LM(BaseOptimizer):
             if fit_mask is not None:
                 mask = mask | fit_mask
             self.mask = torch.logical_not(mask)
-            self.ndf = max(1.0, self.ndf - torch.sum(mask).item())
         elif fit_mask is not None:
             self.mask = torch.logical_not(fit_mask)
         else:
