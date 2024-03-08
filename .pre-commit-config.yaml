@@ -1,6 +1,6 @@
 exclude: |
   (?x)^(
-    tests/utils.py|
+    tests/utils.py
   )
 
 ci:
