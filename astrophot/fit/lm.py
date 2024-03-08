@@ -272,9 +272,9 @@ class LM(BaseOptimizer):
             # Compute goedesic acceleration
             Y1 = self.forward(parameters=self.current_state + d * h).flatten("data")
 
-            rh = self._r(Y1, self.Y, self.W)  # -self.W * (self.Y - Y1)
+            rh = self._r(Y1, self.Y, self.W)
 
-            rpp = self._rpp(J, d, rh - r, self.W, h)  # (2 / d) * ((rh - r) / d - self.W * (J @ h))
+            rpp = self._rpp(J, d, rh - r, self.W, h)
 
             if self.L > 1e-4:
                 a = -self._h(self.L, rpp, self.hess) / 2
@@ -358,13 +358,10 @@ class LM(BaseOptimizer):
     def _h(L, grad, hess) -> torch.Tensor:
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
 
+        # Alternate damping scheme
+        # (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
         h = torch.linalg.solve(
-            hess
-            + L**2
-            * I
-            * (
-                1 + torch.diag(hess)
-            ),  # (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
+            hess + L**2 * I * (1 + torch.diag(hess)),
             grad,
         )
 

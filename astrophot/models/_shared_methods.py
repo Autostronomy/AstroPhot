@@ -66,7 +66,7 @@ def select_sample(func):
 
 
 def _sample_image(image, transform, metric, parameters, rad_bins=None):
-    dat = image.data.detach().cpu().numpy()
+    dat = image.data.detach().cpu().clone().numpy()
     # Fill masked pixels
     if image.has_mask:
         mask = image.mask.detach().cpu().numpy()
@@ -95,7 +95,9 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
     # Ensure all values are finite
     N = np.isfinite(I)
     if not np.all(N):
-        I[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], I[N])
+        I = I[N]
+        R = R[N]
+        S = S[N]
     I = np.abs(I)
     N = np.isfinite(S)
     if not np.all(N):
@@ -117,6 +119,7 @@ def parametric_initialize(
 ):
     if all(list(parameters[param].value is not None for param in params)):
         return
+
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
     R, I, S = _sample_image(
