@@ -181,8 +181,8 @@ class LM(BaseOptimizer):
         # sets how cautious the optimizer is for changing curvature, should be number greater than 0, where smaller is more cautious
         self.curvature_limit = kwargs.get("curvature_limit", 1.0)
         # These are the adjustment step sized for the damping parameter
-        self._Lup = kwargs.get("Lup", 5.0)
-        self._Ldn = kwargs.get("Ldn", 3.0)
+        self._Lup = kwargs.get("Lup", 11.0)
+        self._Ldn = kwargs.get("Ldn", 9.0)
         # This is the starting damping parameter, for easy problems with good initialization, this can be set lower
         self.L = kwargs.get("L0", 1.0)
         # Geodesic acceleration is helpful in some scenarios. By default it is turned off. Set 1 for full acceleration, 0 for no acceleration.
@@ -356,11 +356,11 @@ class LM(BaseOptimizer):
     @torch.no_grad()
     def _h(L, grad, hess) -> torch.Tensor:
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
-
+        D = torch.ones_like(hess) - I
         # Alternate damping scheme
         # (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
         h = torch.linalg.solve(
-            hess + L**2 * I * (1 + torch.diag(hess)),
+            hess * (I + D / (1 + L)) + L * I * (1 + torch.diag(hess)),
             grad,
         )
 
