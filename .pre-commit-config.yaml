@@ -70,6 +70,10 @@ repos:
     hooks:
       - id: codespell
         args: ["--write-changes", "--ignore-words"]
+        exclude: >
+          (?x)^(
+              .*\.fits
+          )$
 
   - repo: https://github.com/kynan/nbstripout
     rev: 0.7.1

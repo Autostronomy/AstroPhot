@@ -438,12 +438,12 @@ class PPCS:
       pixelscale : float or None, optional
           The physical scale of the pixels in the image, this is
           represented as a matrix which projects pixel units into sky
-          units: :math:`pixelscale @ pixel_vec = sky_vec`. The pixel
+          units: $pixelscale @ pixel_vec = sky_vec$. The pixel
           scale matrix can be thought of in four components:
-          :math:`\vec{s} @ F @ R @ S` where :math:`\vec{s}` is the side
-          length of the pixels, :math:`F` is a diagonal matrix of {1,-1}
-          which flips the axes orientation, :math:`R` is a rotation
-          matrix, and :math:`S` is a shear matrix which turns
+          $\vec{s} @ F @ R @ S$ where $\vec{s}$ is the side
+          length of the pixels, $F$ is a diagonal matrix of {1,-1}
+          which flips the axes orientation, $R$ is a rotation
+          matrix, and $S$ is a shear matrix which turns
           rectangular pixels into parallelograms. Default is None.
       reference_imageij : Sequence or None, optional
           The pixel coordinate at which the image is fixed to the
