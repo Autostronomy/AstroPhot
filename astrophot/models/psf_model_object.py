@@ -51,10 +51,10 @@ class PSF_Model(AstroPhot_Model):
     normalize_psf = True
 
     # Method for initial sampling of model
-    sampling_mode = "midpoint"  # midpoint, trapezoid, simpson
+    sampling_mode = "simpsons"  # midpoint, trapezoid, simpson
 
     # Level to which each pixel should be evaluated
-    sampling_tolerance = 1e-2
+    sampling_tolerance = 1e-3
 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold, full*
@@ -136,6 +136,10 @@ class PSF_Model(AstroPhot_Model):
 
         """
         super().initialize(target=target, parameters=parameters)
+
+    @default_internal
+    def transform_coordinates(self, X, Y, image=None, parameters=None):
+        return X, Y
 
     # Fit loop functions
     ######################################################################

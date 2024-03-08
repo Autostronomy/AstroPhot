@@ -46,6 +46,7 @@ class PSF_Image(Image):
                 band (str, optional): The band of the image. Default is None.
         """
         super().__init__(*args, **kwargs)
+
         self.window.reference_radec = (0, 0)
         self.window.reference_planexy = (0, 0)
         self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype=float) - 1.0) / 2

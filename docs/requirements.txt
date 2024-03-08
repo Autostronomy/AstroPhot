@@ -2,5 +2,7 @@ ipywidgets
 jupyter-book
 matplotlib
 nbsphinx
+photutils
+scikit-image
 sphinx
 sphinx-rtd-theme

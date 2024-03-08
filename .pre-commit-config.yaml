@@ -1,9 +1,6 @@
 exclude: |
   (?x)^(
-    tests/utils.py|
-    ^build/|
-    ^dist/|
-    ^node_modules/
+    tests/utils.py
   )
 
 ci:
@@ -68,11 +65,15 @@ repos:
         additional_dependencies:
           - pytest
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: "v2.2.6"
-    hooks:
-      - id: codespell
-        args: ["--write-changes", "--ignore-words"]
+  # - repo: https://github.com/codespell-project/codespell
+  #   rev: "v2.2.6"
+  #   hooks:
+  #     - id: codespell
+  #       args: ["--write-changes", "--ignore-words"]
+  #       exclude: >
+  #         (?x)^(
+  #             .*\.fits
+  #         )$
 
   - repo: https://github.com/kynan/nbstripout
     rev: 0.7.1

@@ -3,6 +3,7 @@ from functools import lru_cache
 import torch
 from scipy.fft import next_fast_len
 from scipy.special import roots_legendre
+import numpy as np
 
 
 def fft_convolve_torch(img, psf, psf_fft=False, img_prepadded=False):
@@ -71,6 +72,23 @@ def fft_convolve_multi_torch(
         ),
         dims=(0, 1),
     )[: img.size()[0], : img.size()[1]]
+
+
+def axis_ratio_com(data, PA, X=None, Y=None, mask=None):
+    """get center of mass like quantity for axis ratio"""
+    if X is None:
+        S = data.shape
+        X, Y = np.meshgrid(np.arange(S[1]) - S[1] / 2, np.arange(S[0]) - S[0] / 2, indexing="xy")
+    if mask is None:
+        mask = np.zeros_like(data, dtype=bool)
+    mask = np.logical_not(mask)
+
+    theta = np.arctan2(Y, X) - PA
+    theta = theta[mask]
+    data = data[mask]
+    ang_com_cos = np.sum(data * np.cos(theta) ** 2) / np.sum(data)
+    ang_com_sin = np.sum(data * np.sin(theta) ** 2) / np.sum(data)
+    return ang_com_sin / max(ang_com_sin, ang_com_cos)
 
 
 def displacement_spacing(N, dtype=torch.float64, device="cpu"):

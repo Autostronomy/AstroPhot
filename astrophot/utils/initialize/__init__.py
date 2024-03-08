@@ -17,4 +17,5 @@ __all__ = (
     "windows_from_segmentation_map",
     "scale_windows",
     "filter_windows",
+    "transfer_windows",
 )

@@ -378,8 +378,11 @@ def residual_image(
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     residuals = (target[window] - sample_image[window]).data
-    if normalize_residuals:
+    if isinstance(normalize_residuals, bool) and normalize_residuals:
         residuals = residuals / torch.sqrt(target[window].variance)
+    elif isinstance(normalize_residuals, torch.Tensor):
+        residuals = residuals / torch.sqrt(normalize_residuals)
+        normalize_residuals = True
     residuals = residuals.detach().cpu().numpy()
 
     if target.has_mask:

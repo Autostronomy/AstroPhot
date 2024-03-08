@@ -13,6 +13,7 @@ version of each tutorial is available here.
     GroupModels
     FittingMethods
     ModelZoo
+    BasicPSFModels
     JointModels
     CustomModels
     AdvancedPSFModels

@@ -168,6 +168,23 @@ class TestSegtoWindow(unittest.TestCase):
 
         self.assertEqual(windows[1], [[20, 29], [5, 8]], "Windows should be identified by index")
 
+        # transfer windows
+        old_image = ap.image.Target_Image(
+            data=np.zeros((100, 100)),
+            pixelscale=1.0,
+        )
+        new_image = ap.image.Target_Image(
+            data=np.zeros((100, 100)),
+            pixelscale=0.9,
+            origin=(0.1, 1.2),
+        )
+        new_windows = ap.utils.initialize.transfer_windows(windows, old_image, new_image)
+        self.assertEqual(
+            windows.keys(),
+            new_windows.keys(),
+            "Transferred windows should have the same set of windows",
+        )
+
         # scale windows
 
         new_windows = ap.utils.initialize.scale_windows(

@@ -2,8 +2,10 @@ from copy import deepcopy
 from typing import Union
 
 import numpy as np
+import torch
 from astropy.io import fits
 from ..angle_operations import Angle_COM_PA
+from ..operations import axis_ratio_com
 
 __all__ = (
     "centroids_from_segmentation_map",
@@ -12,6 +14,7 @@ __all__ = (
     "windows_from_segmentation_map",
     "scale_windows",
     "filter_windows",
+    "transfer_windows",
 )
 
 
@@ -40,7 +43,8 @@ def centroids_from_segmentation_map(
     pixel space. A dictionary of pixel centers is produced where the
     keys of the dictionary correspond to the segment id's.
 
-    Args:
+    Parameters:
+    ----------
       seg_map (Union[np.ndarray, str]): A segmentation map which gives the object identity for each pixel
       image (Union[np.ndarray, str]): An Image which will be used in the light weighted center of mass calculation
       hdul_index_seg (int): If reading from a fits file this is the hdu list index at which the map is found. Default: 0
@@ -106,6 +110,7 @@ def q_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: Union[np.ndarray, str],
     centroids=None,
+    PAs=None,
     hdul_index_seg: int = 0,
     hdul_index_img: int = 0,
     skip_index: tuple = (0,),
@@ -119,6 +124,10 @@ def q_from_segmentation_map(
         centroids = centroids_from_segmentation_map(
             seg_map=seg_map, image=image, skip_index=skip_index
         )
+    if PAs is None:
+        PAs = PA_from_segmentation_map(
+            seg_map=seg_map, image=image, centroids=centroids, skip_index=skip_index
+        )
 
     XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
 
@@ -127,12 +136,9 @@ def q_from_segmentation_map(
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        theta = np.arctan2(YY[N] - centroids[index][1], XX[N] - centroids[index][0])
-
-        # Ballpark correct, could be better
-        ang_com_cos = np.sum(image[N] * np.cos(2 * theta)) / np.sum(image[N])
-        ang_com_sin = np.sum(image[N] * np.sin(2 * theta)) / np.sum(image[N])
-        qs[index] = 1.0 - (np.abs(ang_com_cos) + np.abs(ang_com_sin))
+        qs[index] = axis_ratio_com(
+            image[N], PAs[index] + north, XX[N] - centroids[index][0], YY[N] - centroids[index][1]
+        )
 
     return qs
 
@@ -218,6 +224,19 @@ def filter_windows(
     max_flux=None,
     image=None,
 ):
+    """
+    Filter a set of windows based on a set of criteria.
+
+    Parameters
+    ----------
+        min_size: minimum size of the window in pixels
+        max_size: maximum size of the window in pixels
+        min_area: minimum area of the window in pixels
+        max_area: maximum area of the window in pixels
+        min_flux: minimum flux of the window in ADU
+        max_flux: maximum flux of the window in ADU
+        image: the image from which the flux is calculated for min_flux and max_flux
+    """
     new_windows = {}
     for w in list(windows.keys()):
         if min_size is not None:
@@ -271,4 +290,53 @@ def filter_windows(
             ):
                 continue
         new_windows[w] = windows[w]
+    return new_windows
+
+
+def transfer_windows(windows, base_image, new_image):
+    """
+    Convert a set of windows from one image object to another. This will account
+    for the relative adjustments in origin, pixelscale, and rotation between the
+    two images.
+
+    Parameters
+    ----------
+    windows : dict
+        A dictionary of windows to be transferred. Each window is formatted as a list of lists with:
+        window = [[xmin,xmax],[ymin,ymax]]
+    base_image : Image
+        The image object from which the windows are being transferred.
+    new_image : Image
+        The image object to which the windows are being transferred.
+    """
+    new_windows = {}
+    for w in list(windows.keys()):
+        bottom_corner = np.clip(
+            np.floor(
+                new_image.plane_to_pixel(
+                    base_image.pixel_to_plane(torch.tensor([windows[w][0][0], windows[w][1][0]]))
+                )
+                .detach()
+                .cpu()
+                .numpy()
+            ),
+            a_min=0,
+            a_max=np.array(new_image.shape) - 1,
+        )
+        top_corner = np.clip(
+            np.ceil(
+                new_image.plane_to_pixel(
+                    base_image.pixel_to_plane(torch.tensor([windows[w][0][1], windows[w][1][1]]))
+                )
+                .detach()
+                .cpu()
+                .numpy()
+            ),
+            a_min=0,
+            a_max=np.array(new_image.shape) - 1,
+        )
+        new_windows[w] = [
+            [bottom_corner[0], top_corner[0]],
+            [bottom_corner[1], top_corner[1]],
+        ]
     return new_windows

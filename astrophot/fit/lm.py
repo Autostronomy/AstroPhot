@@ -158,6 +158,7 @@ class LM(BaseOptimizer):
         initial_state: Sequence = None,
         max_iter: int = 100,
         relative_tolerance: float = 1e-5,
+        ndf=None,
         **kwargs,
     ):
 
@@ -180,8 +181,8 @@ class LM(BaseOptimizer):
         # sets how cautious the optimizer is for changing curvature, should be number greater than 0, where smaller is more cautious
         self.curvature_limit = kwargs.get("curvature_limit", 1.0)
         # These are the adjustment step sized for the damping parameter
-        self._Lup = kwargs.get("Lup", 5.0)
-        self._Ldn = kwargs.get("Ldn", 3.0)
+        self._Lup = kwargs.get("Lup", 11.0)
+        self._Ldn = kwargs.get("Ldn", 9.0)
         # This is the starting damping parameter, for easy problems with good initialization, this can be set lower
         self.L = kwargs.get("L0", 1.0)
         # Geodesic acceleration is helpful in some scenarios. By default it is turned off. Set 1 for full acceleration, 0 for no acceleration.
@@ -189,11 +190,13 @@ class LM(BaseOptimizer):
         # Initialize optimizer attributes
         self.Y = self.model.target[self.fit_window].flatten("data")
 
-        # Degrees of freedom
-        self.ndf = max(1.0, len(self.Y) - len(self.current_state))
-
-        # 1 / (2 * sigma^2)
-        if model.target.has_variance:
+        # 1 / (sigma^2)
+        kW = kwargs.get("W", None)
+        if kW is not None:
+            self.W = torch.as_tensor(
+                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ).flatten()
+        elif model.target.has_variance:
             self.W = self.model.target[self.fit_window].flatten("weight")
         else:
             self.W = torch.ones_like(self.Y)
@@ -211,7 +214,6 @@ class LM(BaseOptimizer):
             if fit_mask is not None:
                 mask = mask | fit_mask
             self.mask = torch.logical_not(mask)
-            self.ndf = max(1.0, self.ndf - torch.sum(mask).item())
         elif fit_mask is not None:
             self.mask = torch.logical_not(fit_mask)
         else:
@@ -221,6 +223,15 @@ class LM(BaseOptimizer):
 
         # variable to store covariance matrix if it is ever computed
         self._covariance_matrix = None
+
+        # Degrees of freedom
+        if ndf is None:
+            if self.mask is None:
+                self.ndf = max(1.0, len(self.Y) - len(self.current_state))
+            else:
+                self.ndf = max(1.0, torch.sum(self.mask).item() - len(self.current_state))
+        else:
+            self.ndf = ndf
 
     def Lup(self):
         """
@@ -245,8 +256,8 @@ class LM(BaseOptimizer):
         Y0 = self.forward(parameters=self.current_state).flatten("data")
         J = self.jacobian(parameters=self.current_state).flatten("data")
         r = self._r(Y0, self.Y, self.W)
-        self.hess = self._hess(J, self.W)  # J.T @ (self.W.view(len(self.W), -1) * J)
-        self.grad = self._grad(J, self.W, Y0, self.Y)  # J.T @ (self.W * (self.Y - Y0))
+        self.hess = self._hess(J, self.W)
+        self.grad = self._grad(J, self.W, Y0, self.Y)
         init_chi2 = chi2
         nostep = True
         best = (torch.zeros_like(self.current_state), init_chi2, self.L)
@@ -265,9 +276,9 @@ class LM(BaseOptimizer):
             # Compute goedesic acceleration
             Y1 = self.forward(parameters=self.current_state + d * h).flatten("data")
 
-            rh = self._r(Y1, self.Y, self.W)  # -self.W * (self.Y - Y1)
+            rh = self._r(Y1, self.Y, self.W)
 
-            rpp = self._rpp(J, d, rh - r, self.W, h)  # (2 / d) * ((rh - r) / d - self.W * (J @ h))
+            rpp = self._rpp(J, d, rh - r, self.W, h)
 
             if self.L > 1e-4:
                 a = -self._h(self.L, rpp, self.hess) / 2
@@ -350,9 +361,11 @@ class LM(BaseOptimizer):
     @torch.no_grad()
     def _h(L, grad, hess) -> torch.Tensor:
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
-
+        D = torch.ones_like(hess) - I
+        # Alternate damping scheme
+        # (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
         h = torch.linalg.solve(
-            (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
+            hess * (I + D / (1 + L)) + L * I * (1 + torch.diag(hess)),
             grad,
         )
 

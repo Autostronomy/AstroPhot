@@ -269,7 +269,7 @@ class Target_Image(Image):
 
     def set_variance(self, variance):
         """
-        Provide a variance tensor for the image. Variance is equal to $\\sigma^2$. This should have the same shape as the data.
+        Provide a variance tensor for the image. Variance is equal to :math:`\\sigma^2`. This should have the same shape as the data.
         """
         if variance is None:
             self._weight = None
@@ -277,7 +277,7 @@ class Target_Image(Image):
         self.set_weight(1 / variance)
 
     def set_weight(self, weight):
-        """Provide a weight tensor for the image. Weight is equal to $\\frac{1}{\\sigma^2}$. This should have the same
+        """Provide a weight tensor for the image. Weight is equal to :math:`\\frac{1}{\\sigma^2}`. This should have the same
         shape as the data.
 
         """

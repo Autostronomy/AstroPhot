@@ -10,8 +10,7 @@ logo: ../../media/AP_logo.png
 execute:
   execute_notebooks: force
   allow_errors: false
-  # Per-cell notebook execution limit (seconds)
-  timeout: 1000
+  timeout: 180
 
 # Define the name of the latex output file for PDF builds
 latex:

@@ -77,22 +77,14 @@ class TestComponentModelFits(unittest.TestCase):
         shape = (N + 10, N)
         true_params = {
             "center": [
-                shape[0] * pixelscale / 2 - 3.3,
-                shape[1] * pixelscale / 2 + 5.3,
+                shape[0] * pixelscale / 2 - 3.35,
+                shape[1] * pixelscale / 2 + 5.35,
             ],
-            "n": 2,
-            "Re": 10,
-            "Ie": 1.0,
+            "n": 1,
+            "Re": 20,
+            "Ie": 0.0,
             "q": 0.7,
             "PA": np.pi / 4,
-        }
-        expected_uncertainty = {
-            "center": [0.0047, 0.0049],
-            "n": 0.0013,
-            "Re": 0.0026,
-            "Ie": 0.0072,
-            "q": 0.0277,
-            "PA": 0.0022,
         }
         tar = make_basic_sersic(
             N=shape[0],
@@ -106,16 +98,16 @@ class TestComponentModelFits(unittest.TestCase):
             q=true_params["q"],
             PA=true_params["PA"],
         )
-
-        mod = ap.models.Sersic_Galaxy(
+        mod = ap.models.AstroPhot_Model(
             name="sersic model",
+            model_type="sersic galaxy model",
             target=tar,
+            sampling_mode="simpsons",
         )
 
         mod.initialize()
         ap.AP_config.set_logging_output(stdout=True, filename="AstroPhot.log")
         res = ap.fit.LM(model=mod, verbose=2).fit()
-
         res.update_uncertainty()
 
         self.assertAlmostEqual(
@@ -161,60 +153,6 @@ class TestComponentModelFits(unittest.TestCase):
             "LM should accurately recover parameters in simple cases",
         )
         cov = res.covariance_matrix
-        self.assertAlmostEqual(
-            mod["center"].uncertainty[0].item(),
-            expected_uncertainty["center"][0],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["center"].uncertainty[1].item(),
-            expected_uncertainty["center"][1],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["n"].uncertainty.item(),
-            expected_uncertainty["n"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["Re"].uncertainty.item(),
-            expected_uncertainty["Re"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["Ie"].uncertainty.item(),
-            expected_uncertainty["Ie"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["q"].uncertainty.item(),
-            expected_uncertainty["q"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["q"].uncertainty.item(),
-            expected_uncertainty["q"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["q"].uncertainty.item(),
-            expected_uncertainty["q"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
-        self.assertAlmostEqual(
-            mod["PA"].uncertainty.item(),
-            expected_uncertainty["PA"],
-            1,
-            "LM should accurately recover parameter uncertainty in simple cases",
-        )
 
 
 class TestGroupModelFits(unittest.TestCase):

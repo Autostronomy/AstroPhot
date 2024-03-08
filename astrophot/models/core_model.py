@@ -38,7 +38,7 @@ class AstroPhot_Model(object):
           name="unique name",
           model_type="choose a model type",
           target="Target_Image object",
-          window="[[a,b],[c,d]]",  # <window pixel coordinates>,
+          window="[[xmin, xmax],[ymin,ymax]]",  # <window pixel coordinates>,
           parameters="dict of parameter specifications if desired",
       )
 

@@ -438,9 +438,9 @@ class PPCS:
       pixelscale : float or None, optional
           The physical scale of the pixels in the image, this is
           represented as a matrix which projects pixel units into sky
-          units: :math:`pixelscale @ pixel_vec = sky_vec`. The pixel
+          units: ``pixelscale @ pixel_vec = sky_vec``. The pixel
           scale matrix can be thought of in four components:
-          :math:`\vec{s} @ F @ R @ S` where :math:`\vec{s}` is the side
+          :math:`\\vec{s} @ F @ R @ S` where :math:`\\vec{s}` is the side
           length of the pixels, :math:`F` is a diagonal matrix of {1,-1}
           which flips the axes orientation, :math:`R` is a rotation
           matrix, and :math:`S` is a shear matrix which turns
@@ -564,13 +564,14 @@ class PPCS:
         transformed into the tangent plane coordinate system (arcsec)
         based on the pixel scale and reference positions. If the pixel
         scale matrix is :math:`P`, the reference pixel is
-        :math:`\vec{r}_{pix}`, the reference tangent plane point is
-        :math:`\vec{r}_{tan}`, and the coordinate to transform is
-        :math:`\vec{c}_{pix}` then the coordinate in the tangent plane
+        :math:`\\vec{r}_{pix}`, the reference tangent plane point is
+        :math:`\\vec{r}_{tan}`, and the coordinate to transform is
+        :math:`\\vec{c}_{pix}` then the coordinate in the tangent plane
         is:
 
         .. math::
-            \vec{c}_{tan} = [P(\vec{c}_{pix} - \vec{r}_{pix})] + \vec{r}_{tan}
+
+            \\vec{c}_{tan} = [P(\\vec{c}_{pix} - \\vec{r}_{pix})] + \\vec{r}_{tan}
 
         """
         if pixel_j is None:
@@ -588,13 +589,14 @@ class PPCS:
         (0,0) is the [0,0] indexed pixel). Transformation is done
         based on the pixel scale and reference positions. If the pixel
         scale matrix is :math:`P`, the reference pixel is
-        :math:`\vec{r}_{pix}`, the reference tangent plane point is
-        :math:`\vec{r}_{tan}`, and the coordinate to transform is
-        :math:`\vec{c}_{tan}` then the coordinate in the pixel grid
+        :math:`\\vec{r}_{pix}`, the reference tangent plane point is
+        :math:`\\vec{r}_{tan}`, and the coordinate to transform is
+        :math:`\\vec{c}_{tan}` then the coordinate in the pixel grid
         is:
 
         .. math::
-            \vec{c}_{pix} = [P^{-1}(\vec{c}_{tan} - \vec{r}_{tan})] + \vec{r}_{pix}
+
+            \\vec{c}_{pix} = [P^{-1}(\\vec{c}_{tan} - \\vec{r}_{tan})] + \\vec{r}_{pix}
 
         """
         if plane_y is None:
