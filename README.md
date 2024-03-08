@@ -6,6 +6,7 @@
 
 [![unittests](https://github.com/Autostronomy/AstroPhot/actions/workflows/testing.yaml/badge.svg?branch=main)](https://github.com/Autostronomy/AstroPhot/actions/workflows/testing.yaml)
 [![Documentation Status](https://readthedocs.org/projects/astrophot/badge/?version=latest)](https://astrophot.readthedocs.io/en/latest/?badge=latest)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Autostronomy/AstroPhot/main.svg)](https://results.pre-commit.ci/latest/github/Autostronomy/AstroPhot/main)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pypi](https://img.shields.io/pypi/v/astrophot.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/astrophot/)
 [![downloads](https://img.shields.io/pypi/dm/astrophot?label=PyPI%20Downloads)](https://libraries.io/pypi/astrophot)
