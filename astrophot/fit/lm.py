@@ -191,7 +191,12 @@ class LM(BaseOptimizer):
         self.Y = self.model.target[self.fit_window].flatten("data")
 
         # 1 / (sigma^2)
-        if model.target.has_variance:
+        kW = kwargs.get("W", None)
+        if kW is not None:
+            self.W = torch.as_tensor(
+                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ).flatten()
+        elif model.target.has_variance:
             self.W = self.model.target[self.fit_window].flatten("weight")
         else:
             self.W = torch.ones_like(self.Y)
