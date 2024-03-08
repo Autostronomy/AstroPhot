@@ -158,6 +158,7 @@ class LM(BaseOptimizer):
         initial_state: Sequence = None,
         max_iter: int = 100,
         relative_tolerance: float = 1e-5,
+        ndf=None,
         **kwargs,
     ):
 
@@ -189,10 +190,7 @@ class LM(BaseOptimizer):
         # Initialize optimizer attributes
         self.Y = self.model.target[self.fit_window].flatten("data")
 
-        # Degrees of freedom
-        self.ndf = max(1.0, len(self.Y) - len(self.current_state))
-
-        # 1 / (2 * sigma^2)
+        # 1 / (sigma^2)
         if model.target.has_variance:
             self.W = self.model.target[self.fit_window].flatten("weight")
         else:
@@ -222,6 +220,15 @@ class LM(BaseOptimizer):
         # variable to store covariance matrix if it is ever computed
         self._covariance_matrix = None
 
+        # Degrees of freedom
+        if ndf is None:
+            if self.mask is None:
+                self.ndf = max(1.0, len(self.Y) - len(self.current_state))
+            else:
+                self.ndf = max(1.0, torch.sum(self.mask).item() - len(self.current_state))
+        else:
+            self.ndf = ndf
+
     def Lup(self):
         """
         Increases the damping parameter for more gradient-like steps. Used internally.
@@ -245,8 +252,8 @@ class LM(BaseOptimizer):
         Y0 = self.forward(parameters=self.current_state).flatten("data")
         J = self.jacobian(parameters=self.current_state).flatten("data")
         r = self._r(Y0, self.Y, self.W)
-        self.hess = self._hess(J, self.W)  # J.T @ (self.W.view(len(self.W), -1) * J)
-        self.grad = self._grad(J, self.W, Y0, self.Y)  # J.T @ (self.W * (self.Y - Y0))
+        self.hess = self._hess(J, self.W)
+        self.grad = self._grad(J, self.W, Y0, self.Y)
         init_chi2 = chi2
         nostep = True
         best = (torch.zeros_like(self.current_state), init_chi2, self.L)
@@ -352,7 +359,12 @@ class LM(BaseOptimizer):
         I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
 
         h = torch.linalg.solve(
-            (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
+            hess
+            + L**2
+            * I
+            * (
+                1 + torch.diag(hess)
+            ),  # (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
             grad,
         )
 
