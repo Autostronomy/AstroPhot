@@ -12,6 +12,7 @@
 [![downloads](https://img.shields.io/pypi/dm/astrophot?label=PyPI%20Downloads)](https://libraries.io/pypi/astrophot)
 [![codecov](https://img.shields.io/codecov/c/github/Autostronomy/AstroPhot?logo=codecov)](https://app.codecov.io/gh/Autostronomy/AstroPhot?search=&displayType=list)
 [![Static Badge](https://img.shields.io/badge/ADS-record-2A79E4)](https://ui.adsabs.harvard.edu/abs/2023MNRAS.525.6377S/abstract)
+[![DOI](https://zenodo.org/badge/473209170.svg)](https://zenodo.org/doi/10.5281/zenodo.10798979)
 
 AstroPhot is a fast, flexible, and automated astronomical image modelling tool
 for precise parallel multi-wavelength photometry. It is a python based package
