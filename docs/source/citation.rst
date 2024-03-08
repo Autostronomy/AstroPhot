@@ -2,7 +2,9 @@
 Citing AstroPhot
 ================
 
-If you use AstroPhot for a project that leads to a publication, whether directly or as a dependency of another package, please include a citation to the `AstroPhot paper <https://doi.org/10.1093/mnras/stad2477>`_
+If you use AstroPhot for a project that leads to a publication, whether directly
+or as a dependency of another package, please include a citation to the
+`AstroPhot paper <https://doi.org/10.1093/mnras/stad2477>`_
 
 Bibtex::
 
@@ -21,4 +23,7 @@ Bibtex::
         adsnote = {Provided by the SAO/NASA Astrophysics Data System}
   }
 
-If you would like to identify the exact version of AstroPhot that you used in your analysis, please then also include a citation for the GitHub repository at the relevant version number from the `home page <https://github.com/Autostronomy/AstroPhot>`_.
+If you would like to identify the exact version of AstroPhot that you used in
+your analysis, please then also include a citation for the GitHub repository at
+the relevant version number from the `home page
+<https://github.com/Autostronomy/AstroPhot>`_.

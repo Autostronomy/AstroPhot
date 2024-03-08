@@ -35,13 +35,12 @@ system.
 
 Also note that AstroPhot is only available for python3.
 
-See [the documentation](https://autostronomy.github.io/AstroPhot/) for more
-details.
+See [the documentation](https://astrophot.readthedocs.io) for more details.
 
 ## Documentation
 
 You can find the documentation at the
-[GitHub Pages site connected with the AstroPhot project](https://autostronomy.github.io/AstroPhot/)
+[ReadTheDocs site connected with the AstroPhot project](https://astrophot.readthedocs.io)
 which covers many of the main use cases for AstroPhot. It is still in
 development, but lots of useful information is there. Feel free to contact the
 author, [Connor Stone](https://connorjstone.com/), for any questions not
