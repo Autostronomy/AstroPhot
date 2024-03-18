@@ -37,21 +37,12 @@ jobs:
         shell: bash
       - name: Install AstroPhot
         run: |
-          cd $GITHUB_WORKSPACE/
-          pip install -e .
-          pip show astrophot
+          pip install -e ".[dev]"
+          pip show ${{ env.PROJECT_NAME }}
         shell: bash
       - name: Test with pytest
         run: |
-          cd $GITHUB_WORKSPACE
-          pwd
-          pytest --cov-report=xml --cov=astrophot tests/
-          cat coverage.xml
-        shell: bash
-      - name: Upload coverage report to Codecov
+          pytest -vvv --cov=${{ env.PROJECT_NAME }} --cov-report=xml --cov-report=term tests/
+
+      - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          files: ${{ github.workspace }}/coverage.xml
-          fail_ci_if_error: true
