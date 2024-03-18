@@ -37,7 +37,7 @@ jobs:
         shell: bash
       - name: Install AstroPhot
         run: |
-          pip install -e ".[dev]"
+          pip install -e .
           pip show ${{ env.PROJECT_NAME }}
         shell: bash
       - name: Test with pytest
