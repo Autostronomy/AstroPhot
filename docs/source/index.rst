@@ -22,7 +22,7 @@ AstroPhot
 .. Important::
     If you use AstroPhot for a project that leads to a publication,
     whether directly or as a dependency of another package, please
-    include an :doc:`acknowledgment and/or citation <citation>`.
+    include a :doc:`citation <citation>`.
 
 
 Getting Started
