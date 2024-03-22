@@ -125,9 +125,10 @@ def run_from_terminal() -> None:
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/JointModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/FittingMethods.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/BasicPSFModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/AdvancedPSFModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/ConstrainedModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/simple_config.py",
+            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
             try:
