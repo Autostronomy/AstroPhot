@@ -49,7 +49,7 @@ def run_from_terminal() -> None:
     AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog="astrophot",
-        description="Fast and flexible astronomical image photometry package. For the documentation go to: https://github.com/Autostronomy/AstroPhot",
+        description="Fast and flexible astronomical image photometry package. For the documentation go to: https://astrophot.readthedocs.io",
         epilog="Please see the documentation or contact connor stone (connorstone628@gmail.com) for further assistance.",
     )
     parser.add_argument(
@@ -115,18 +115,18 @@ def run_from_terminal() -> None:
 
     if args.filename is None:
         raise RuntimeError(
-            "Please pass a config file to astrophot. See 'astrophot --help' for more information, or go to https://Autostronomy.github.io/AstroPhot/getting_started.html"
+            "Please pass a config file to astrophot. See 'astrophot --help' for more information, or go to https://astrophot.readthedocs.io"
         )
     if args.filename in ["tutorial", "tutorials"]:
         tutorials = [
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/GettingStarted.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/GroupModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/ModelZoo.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/JointModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/FittingMethods.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/CustomModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/AdvancedPSFModels.ipynb",
-            "https://raw.github.com/Autostronomy/AstroPhot-tutorials/main/tutorials/ConstrainedModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/GettingStarted.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/GroupModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/ModelZoo.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/JointModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/FittingMethods.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/CustomModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/AdvancedPSFModels.ipynb",
+            "https://raw.github.com/Autostronomy/AstroPhot/main/docs/source/tutorials/ConstrainedModels.ipynb",
             "https://raw.github.com/Autostronomy/AstroPhot/main/docs/tutorials/simple_config.py",
         ]
         for url in tutorials:
