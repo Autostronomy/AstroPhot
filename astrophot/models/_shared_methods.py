@@ -92,22 +92,27 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
     sigma = lambda d: iqr(d, rng=[16, 84]) / 2
     S = binned_statistic(R, raveldat, statistic=sigma, bins=rad_bins)[0] / image.pixel_area.item()
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
-    # Ensure all values are finite
+
+    # Ensure enough values are positive
+    I[I <= 0] = np.min(I[np.logical_and(np.isfinite(I), I > 0)])
+    # Ensure decreasing brightness with radius in outer regions
+    for i in range(5, len(I)):
+        if I[i] >= I[i - 1] and np.isfinite(I[i - 1]):
+            I[i] = I[i - 1] - np.abs(I[i - 1] * 0.1)
+    # Convert to log scale
+    S = S / (I * np.log(10))
+    I = np.log10(I)
+    # Ensure finite
     N = np.isfinite(I)
     if not np.all(N):
         I = I[N]
         R = R[N]
         S = S[N]
-    I = np.abs(I)
     N = np.isfinite(S)
     if not np.all(N):
-        S[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], S[N])
-    # Ensure decreasing brightness with radius
-    for i in range(1, len(I)):
-        if I[i] >= I[i - 1]:
-            I[i] = I[i - 1] / 1.1
+        S[np.logical_not(N)] = np.abs(np.interp(R[np.logical_not(N)], R[N], S[N]))
 
-    return R, np.log10(I), S / (I * np.log(10))
+    return R, I, S
 
 
 # General parametric
