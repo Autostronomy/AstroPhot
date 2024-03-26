@@ -16,7 +16,7 @@ def auto_variance(data, mask=None):
         mask = np.zeros(data.shape, dtype=int)
 
     # Data too small for anything fancy
-    var = np.var(data[mask])
+    var = np.var(data[np.logical_not(mask)])
     if not np.isfinite(var):
         return np.ones_like(data)
     if min(data.shape) < 20:
