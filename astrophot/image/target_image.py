@@ -8,6 +8,7 @@ from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .model_image import Model_Image, Model_Image_List
 from .psf_image import PSF_Image
 from .. import AP_config
+from ..utils.initialize import auto_variance
 from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["Target_Image", "Target_Image_List"]
@@ -83,12 +84,12 @@ class Target_Image(Image):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if not self.has_mask:
+            self.set_mask(kwargs.get("mask", None))
         if not self.has_weight and "weight" in kwargs:
             self.set_weight(kwargs.get("weight", None))
         elif not self.has_variance and "variance" in kwargs:
             self.set_variance(kwargs.get("variance", None))
-        if not self.has_mask:
-            self.set_mask(kwargs.get("mask", None))
         if not self.has_psf:
             self.set_psf(kwargs.get("psf", None), kwargs.get("psf_upscale", 1))
 
@@ -274,6 +275,9 @@ class Target_Image(Image):
         if variance is None:
             self._weight = None
             return
+        if isinstance(variance, str) and variance == "auto":
+            self.set_weight("auto")
+            return
         self.set_weight(1 / variance)
 
     def set_weight(self, weight):
@@ -284,6 +288,8 @@ class Target_Image(Image):
         if weight is None:
             self._weight = None
             return
+        if isinstance(weight, str) and weight == "auto":
+            weight = 1 / auto_variance(self.data, self.mask)
         if weight.shape != self.data.shape:
             raise SpecificationConflict(
                 f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"

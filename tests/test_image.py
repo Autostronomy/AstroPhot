@@ -4,7 +4,7 @@ import astrophot as ap
 import torch
 import numpy as np
 
-from utils import get_astropy_wcs
+from utils import get_astropy_wcs, make_basic_sersic
 
 ######################################################################
 # Image Objects
@@ -439,6 +439,7 @@ class TestTargetImage(unittest.TestCase):
         new_image = image.Target_Image(
             data=torch.ones((30, 36)),
             psf=torch.ones((9, 9)),
+            variance="auto",
             pixelscale=1.0,
             zeropoint=1.0,
             origin=torch.zeros(2) + 0.1,
@@ -460,7 +461,7 @@ class TestTargetImage(unittest.TestCase):
     def test_target_save_load(self):
         new_image = image.Target_Image(
             data=torch.ones((16, 32)),
-            variance=torch.ones((16, 32)),
+            variance="auto",
             mask=torch.zeros((16, 32)),
             psf=torch.ones((9, 9)),
             pixelscale=1.0,
@@ -480,6 +481,10 @@ class TestTargetImage(unittest.TestCase):
             torch.all(new_image.psf.data == loaded_image.psf.data),
             "Loaded image should have same psf",
         )
+
+    def test_auto_var(self):
+        target = make_basic_sersic()
+        target.variance = "auto"
 
     def test_target_errors(self):
         new_image = image.Target_Image(
