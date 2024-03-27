@@ -37,7 +37,9 @@ def auto_variance(data, mask=None):
         statistic="std",
         bins=bins,
     )
-    std[np.logical_not(np.isfinite(std))] = np.nanmin(std)
+    N = np.logical_not(np.isfinite(std))
+    if np.any(N):
+        std[N] = np.sqrt(np.interp(bins[:-1][N], bins[:-1][~N], std[~N] ** 2))
 
     # Fit a line to the variance
     p = np.polyfit(bins[:-3], std[:-2] ** 2, 1)
