@@ -2,6 +2,7 @@ from .segmentation_map import *
 from .initialize import isophotes
 from .center import center_of_mass, GaussianDensity_Peak, Lanczos_peak
 from .construct_psf import gaussian_psf, moffat_psf, construct_psf
+from .variance import auto_variance
 
 __all__ = (
     "isophotes",
@@ -18,4 +19,5 @@ __all__ = (
     "scale_windows",
     "filter_windows",
     "transfer_windows",
+    "auto_variance",
 )
