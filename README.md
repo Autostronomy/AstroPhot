@@ -52,3 +52,7 @@ answered by the documentation or tutorials.
 
 If you use AstroPhot in your research, please follow the
 [citation instructions here](https://autostronomy.github.io/AstroPhot/citation.html).
+
+## Thanks to our contributors!
+
+[![Contributors](https://contrib.rocks/image?repo=Autostronomy/AstroPhot)](https://github.com/Autostronomy/AstroPhot/graphs/contributors)
