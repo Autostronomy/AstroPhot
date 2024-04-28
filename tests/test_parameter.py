@@ -386,7 +386,7 @@ class TestParameterVector(unittest.TestCase):
             "test3",
             value=[4.0, 5.0],
             uncertainty=[5.0, 3.0],
-            limits=((0.0, 1.0), None),
+            limits=(1.0, None),
             locked=False,
         )
         P4 = Parameter_Node("test4", value=P2)
@@ -395,7 +395,7 @@ class TestParameterVector(unittest.TestCase):
             "test6",
             value=((5, 6), (7, 8)),
             uncertainty=0.1 * np.zeros((2, 2)),
-            limits=(None, 10 * np.ones((2, 2))),
+            limits=(None, 10.0),
         )
         PG = Parameter_Node("testgroup", link=(P1, P2, P3, P4, P5, P6))
 
