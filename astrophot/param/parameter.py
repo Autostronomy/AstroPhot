@@ -344,15 +344,15 @@ class Parameter_Node(Node):
         rep = torch.as_tensor(rep, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         if self.leaf:
             if self.cyclic:
-                val = cyclic_boundaries(rep, (self.limits[0][self.mask], self.limits[1][self.mask]))
+                val = cyclic_boundaries(rep, (self.limits[0], self.limits[1]))
             elif self.limits[0] is None and self.limits[1] is None:
                 val = rep
             else:
                 val = inv_boundaries(
                     rep,
                     (
-                        None if self.limits[0] is None else self.limits[0][self.mask],
-                        None if self.limits[1] is None else self.limits[1][self.mask],
+                        None if self.limits[0] is None else self.limits[0],
+                        None if self.limits[1] is None else self.limits[1],
                     ),
                 )
             return val
@@ -390,15 +390,15 @@ class Parameter_Node(Node):
         val = torch.as_tensor(val, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         if self.leaf:
             if self.cyclic:
-                rep = cyclic_boundaries(val, (self.limits[0][self.mask], self.limits[1][self.mask]))
+                rep = cyclic_boundaries(val, (self.limits[0], self.limits[1]))
             elif self.limits[0] is None and self.limits[1] is None:
                 rep = val
             else:
                 rep = boundaries(
                     val,
                     (
-                        None if self.limits[0] is None else self.limits[0][self.mask],
-                        None if self.limits[1] is None else self.limits[1][self.mask],
+                        None if self.limits[0] is None else self.limits[0],
+                        None if self.limits[1] is None else self.limits[1],
                     ),
                 )
             return rep
