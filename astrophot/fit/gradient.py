@@ -51,6 +51,7 @@ class Grad(BaseOptimizer):
         """
 
         super().__init__(model, initial_state, **kwargs)
+        self.model.parameters.flat_detach()
 
         # set parameters from the user
         self.patience = kwargs.get("patience", None)
@@ -149,4 +150,5 @@ class Grad(BaseOptimizer):
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
+        self.model.parameters.flat_detach()
         return self

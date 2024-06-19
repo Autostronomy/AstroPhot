@@ -18,10 +18,10 @@ def ignore_numpy_warnings(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         old_settings = np.seterr(all="ignore")
-        warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+        warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
         result = func(*args, **kwargs)
         np.seterr(**old_settings)
-        warnings.filterwarnings("default", category=np.VisibleDeprecationWarning)
+        warnings.filterwarnings("default", category=np.exceptions.VisibleDeprecationWarning)
         return result
 
     return wrapped
