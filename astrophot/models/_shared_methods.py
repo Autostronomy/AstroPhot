@@ -105,9 +105,7 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
     # Ensure finite
     N = np.isfinite(I)
     if not np.all(N):
-        I = I[N]
-        R = R[N]
-        S = S[N]
+        I[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], I[N])
     N = np.isfinite(S)
     if not np.all(N):
         S[np.logical_not(N)] = np.abs(np.interp(R[np.logical_not(N)], R[N], S[N]))
@@ -476,7 +474,7 @@ def spline_segment_initialize(
             TCHOOSE = np.logical_or(
                 angles < (np.pi / segments), angles >= (np.pi * (2 - 1 / segments))
             )
-            angles = (T - (np.pi + r * np.pi / segments)) % (2 * np.pi)
+            angles = (T - (np.pi + s * np.pi / segments)) % (2 * np.pi)
             TCHOOSE = np.logical_or(
                 TCHOOSE,
                 np.logical_or(angles < (np.pi / segments), angles >= (np.pi * (2 - 1 / segments))),
