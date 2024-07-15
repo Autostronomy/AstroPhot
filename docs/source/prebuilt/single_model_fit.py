@@ -30,11 +30,18 @@ zeropoint = 22.5  # mag
 initial_params = None  # e.g. {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
 window = None  # None to fit whole image, otherwise ((xmin,xmax),(ymin,ymax)) pixels
 initial_sky = None  # If None, sky will be estimated
-sky_fixed = False
+sky_locked = False
 model_type = "sersic galaxy model"
+# Extra parameters
+######################################################################
 save_model_image = True
 save_residual_image = True
 save_covariance_matrix = True
+target_hdu = 0  # FITS file index for image data
+mask_hdu = 0
+variance_hdu = 0
+psf_hdu = 0
+sky_model_type = "flat sky model"
 ######################################################################
 
 # load target
@@ -42,7 +49,7 @@ save_covariance_matrix = True
 print("loading target")
 if isinstance(target_file, str):
     hdu = fits.open(target_file)
-    target_data = np.array(hdu[0].data, dtype=np.float64)
+    target_data = np.array(hdu[target_hdu].data, dtype=np.float64)
 else:
     target_data = target_file
 
@@ -52,7 +59,7 @@ else:
 if isinstance(mask_file, str):
     print("loading mask")
     hdu = fits.open(mask_file)
-    mask_data = np.array(hdu[0].data, dtype=bool)
+    mask_data = np.array(hdu[mask_hdu].data, dtype=bool)
 elif mask_file is None:
     mask_data = None
 else:
@@ -61,7 +68,7 @@ else:
 if isinstance(variance_file, str) and not variance_file == "auto":
     print("loading variance")
     hdu = fits.open(variance_file)
-    variance_data = np.array(hdu[0].data, dtype=np.float64)
+    variance_data = np.array(hdu[variance_hdu].data, dtype=np.float64)
 elif variance_file is None:
     variance_data = None
 else:
@@ -70,7 +77,7 @@ else:
 if isinstance(psf_file, str):
     print("loading psf")
     hdu = fits.open(psf_file)
-    psf_data = np.array(hdu[0].data, dtype=bool)
+    psf_data = np.array(hdu[psf_hdu].data, dtype=bool)
     psf = ap.image.PSF_Image(
         data=psf_data,
         pixelscale=pixelscale,
@@ -106,10 +113,11 @@ model_object = ap.models.AstroPhot_Model(
 )
 model_sky = ap.models.AstroPhot_Model(
     name="sky",
-    model_type="flat sky model",
+    model_type=sky_model_type,
     target=target,
     parameters={"F": initial_sky} if initial_sky is not None else {},
     window=window,
+    locked=sky_locked,
 )
 model = ap.models.AstroPhot_Model(
     name="astrophot model",
@@ -127,7 +135,7 @@ result.update_uncertainty()
 
 # Report Results
 # ----------------------------------------------------------------------
-if not sky_fixed:
+if not sky_locked:
     print(model_sky.parameters)
 print(model_object.parameters)
 totflux = model_object.total_flux().detach().cpu().numpy()
