@@ -22,19 +22,19 @@ target_file = "<required>.fits"  # can be a numpy array instead
 segmap_file = "<required>.fits"  # can be a numpy array instead
 mask_file = None  # "<path to mask>.fits" # can be a numpy array instead
 psf_file = None  # "<path to psf>.fits" # can be a numpy array instead
-variance_file = None  # "<path to variance>.fits" # can be a numpy array or "auto" instead
+variance_file = None  # "<path to variance>.fits" # or numpy array or "auto"
 pixelscale = 0.1  # arcsec/pixel
 zeropoint = 22.5  # mag
-initial_sky = None  # If None, sky will be estimated. It is recommended to set this value yourself.
+initial_sky = None  # If None, sky will be estimated. Recommended to set manually
 sky_locked = False
 model_type = "sersic galaxy model"  # model type for segmap entries
-segmap_filter = {}  # in pixels or ADU: min_size, max_size, min_area, max_area, min_flux, max_flux
+segmap_filter = {}  # in pixels or ADU: min_size, min_area, min_flux
 segmap_filter_ids = []  # list of segmap ids to remove from fit
-segmap_override_init_params = {}  # Override some initial parameters for all segmap models
-primary_key = None  # object number in segmentation map, use None to have no primary object
+segmap_override_init_params = {}  # Override some initial parameters for segmap models
+primary_key = None  # segmentation map id, use None to have no primary object
 primary_name = "primary object"  # name for primary object
 primary_model_type = "sersic galaxy model"
-primary_initial_params = None  # e.g. {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
+primary_initial_params = None  # {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
 # Extra parameters
 ######################################################################
 save_model_image = True

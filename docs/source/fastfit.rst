@@ -15,8 +15,8 @@ Get the script here: :download:`single_model_fit.py <prebuilt/single_model_fit.p
 This script will fit a single object with a single model (plus a sky model if
 requested).
 
-basic usage is to fill in the blanks here. Even just filling the ``target_file``
-is enough to get started:
+basic usage is to fill in these blanks at the top of the file. Even just filling
+the ``target_file`` is enough to get started:
 
 .. code:: python
 
@@ -24,9 +24,7 @@ is enough to get started:
     target_file = "<required>.fits"  # can be a numpy array instead
     mask_file = None  # "<path to mask>.fits" # can be a numpy array instead
     psf_file = None  # "<path to psf>.fits" # can be a numpy array instead
-    variance_file = (
-        None  # "<path to variance>.fits" # can be a numpy array or "auto" instead
-    )
+    variance_file = None  # "<path to variance>.fits" # or numpy array or "auto"
     pixelscale = 0.1  # arcsec/pixel
     zeropoint = 22.5  # mag
     initial_params = None  # e.g. {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
@@ -39,10 +37,11 @@ then run the script from the command line as a python file:
 
 .. code:: bash
 
-    python single_model_fit.py
+    >>> python single_model_fit.py
 
 This will output the fitted parameters and save the model and residual images as
-fits files.
+fits files. See the :doc:`tutorials/GettingStarted` tutorial for more
+information.
 
 Fit all objects in an image
 ---------------------------
@@ -53,8 +52,8 @@ This script will fit all objects in an image with a single model type. It will
 also fit a sky model (if requested) and a single special model as the "primary
 obejct" (if requested).
 
-basic usage is to fill in the blanks here. Even just filling the ``target_file``
-and ``segmap_file`` is enough to get started:
+basic usage is to fill in these blanks at the top of the file. Even just filling
+the ``target_file`` and ``segmap_file`` is enough to get started:
 
 .. code:: python
 
@@ -63,32 +62,25 @@ and ``segmap_file`` is enough to get started:
     segmap_file = "<required>.fits"  # can be a numpy array instead
     mask_file = None  # "<path to mask>.fits" # can be a numpy array instead
     psf_file = None  # "<path to psf>.fits" # can be a numpy array instead
-    variance_file = (
-        None  # "<path to variance>.fits" # can be a numpy array or "auto" instead
-    )
+    variance_file = None  # "<path to variance>.fits" # or numpy array or "auto"
     pixelscale = 0.1  # arcsec/pixel
     zeropoint = 22.5  # mag
-    initial_sky = None  # If None, sky will be estimated. It is recommended to set this value yourself.
+    initial_sky = None  # If None, sky will be estimated. Recommended to set manually
     sky_locked = False
     model_type = "sersic galaxy model"  # model type for segmap entries
-    segmap_filter = (
-        {}
-    )  # in pixels or ADU: min_size, max_size, min_area, max_area, min_flux, max_flux
+    segmap_filter = {}  # in pixels or ADU: min_size, min_area, min_flux
     segmap_filter_ids = []  # list of segmap ids to remove from fit
-    segmap_override_init_params = (
-        {}
-    )  # Override some initial parameters for all segmap models
-    primary_key = (
-        None  # object number in segmentation map, use None to have no primary object
-    )
+    segmap_override_init_params = {}  # Override some initial parameters for segmap models
+    primary_key = None  # segmentation map id, use None to have no primary object
     primary_name = "primary object"  # name for primary object
     primary_model_type = "sersic galaxy model"
-    primary_initial_params = (
-        None  # e.g. {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
-    )
+    primary_initial_params = None  # {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
 
 then run the script from the command line as a python file:
 
 .. code:: bash
 
-    python segmap_models_fit.py
+    >>> python segmap_models_fit.py
+
+This will output the fitted parameters and save the model and residual images as
+fits files. See the :doc:`tutorials/GroupModels` tutorial for more information.
