@@ -510,11 +510,11 @@ class TestIsophote(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(rs)), "parametric_Fmodes should return finite values")
 
         for C in np.linspace(1, 3, 5):
-            rs = ap.utils.isophote.ellipse.Rscale_SuperEllipse(1.0, 1.0, C)
+            rs = ap.utils.isophote.ellipse.Rscale_SuperEllipse(1.0, 0.8, C)
             self.assertTrue(np.isfinite(rs), "Rscale_SuperEllipse should return finite values")
 
             rs = ap.utils.isophote.ellipse.parametric_SuperEllipse(
-                np.linspace(0, np.pi / 2, 10), 1.0, C
+                np.linspace(0, np.pi / 2, 10), 0.8, C
             )
             self.assertTrue(
                 np.all(np.isfinite(rs)), "parametric_SuperEllipse should return finite values"
