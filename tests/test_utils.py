@@ -497,5 +497,29 @@ class TestAngleOperations(unittest.TestCase):
         self.assertAlmostEqual(res + np.pi / 2, 115 * np.pi / 180, delta=0.1)
 
 
+class TestIsophote(unittest.TestCase):
+    def test_ellipse(self):
+        rs = ap.utils.isophote.ellipse.Rscale_Fmodes(1.0, [1, 2], [1, 2], [1, 2])
+
+        self.assertTrue(np.isfinite(rs), "Rscale_Fmodes should return finite values")
+
+        rs = ap.utils.isophote.ellipse.parametric_Fmodes(
+            np.linspace(0, np.pi / 2, 10), [1, 2], [1, 2], [1, 2]
+        )
+
+        self.assertTrue(np.all(np.isfinite(rs)), "parametric_Fmodes should return finite values")
+
+        for C in np.linspace(1, 3, 5):
+            rs = ap.utils.isophote.ellipse.Rscale_SuperEllipse(1.0, 1.0, C)
+            self.assertTrue(np.isfinite(rs), "Rscale_SuperEllipse should return finite values")
+
+            rs = ap.utils.isophote.ellipse.parametric_SuperEllipse(
+                np.linspace(0, np.pi / 2, 10), 1.0, C
+            )
+            self.assertTrue(
+                np.all(np.isfinite(rs)), "parametric_SuperEllipse should return finite values"
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
