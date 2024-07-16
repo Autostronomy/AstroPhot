@@ -130,3 +130,73 @@ class TestPlots(unittest.TestCase):
         ap.plots.model_window(fig, ax, new_model)
 
         plt.close()
+
+    def test_covariance_matrix(self):
+        covariance_matrix = np.array([[1, 0.5], [0.5, 1]])
+        mean = np.array([0, 0])
+
+        try:
+            fig, ax = plt.subplots()
+        except Exception:
+            print("skipping test because matplotlib is not installed properly")
+            return
+
+        fig, ax = ap.plots.covariance_matrix(covariance_matrix, mean, labels=["x", "y"])
+
+        plt.close()
+
+    def test_radial_profile(self):
+        target = make_basic_sersic()
+
+        new_model = ap.models.AstroPhot_Model(
+            name="constrained sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+        new_model.initialize()
+
+        try:
+            fig, ax = plt.subplots()
+        except Exception:
+            print("skipping test because matplotlib is not installed properly")
+            return
+
+        ap.plots.radial_light_profile(fig, ax, new_model)
+
+        plt.close()
+
+    def test_radial_median_profile(self):
+        target = make_basic_sersic()
+
+        new_model = ap.models.AstroPhot_Model(
+            name="constrained sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+        new_model.initialize()
+
+        try:
+            fig, ax = plt.subplots()
+        except Exception:
+            print("skipping test because matplotlib is not installed properly")
+            return
+
+        ap.plots.radial_median_profile(fig, ax, new_model)
+
+        plt.close()
