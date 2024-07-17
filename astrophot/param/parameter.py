@@ -62,8 +62,6 @@ class Parameter_Node(Node):
 
     """
 
-    precision = 4
-
     def __init__(self, name, **kwargs):
 
         super().__init__(name, **kwargs)
