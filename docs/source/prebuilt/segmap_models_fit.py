@@ -6,6 +6,11 @@
 # be appropriate for your data. The script will load the target image, mask,
 # psf, and variance image (if available) and fit the models to the target image.
 #
+# First a fit will be run on tight windows exactly enclosing the segmentations
+# for each object. Then the windows will be expanded by the set factors and the
+# fit will be run again. This is more stable than fitting the expanded windows
+# from the start since it reduces the effects of overlap
+#
 # Run this script with:
 # >>> python segmap_models_fit.py
 # =============================================================================
@@ -33,8 +38,8 @@ segmap_filter_ids = []  # list of segmap ids to remove from fit
 segmap_override_init_params = {}  # Override some initial parameters for segmap models
 primary_key = None  # segmentation map id, use None to have no primary object
 primary_name = "primary object"  # name for primary object
-primary_model_type = "sersic galaxy model"
-primary_initial_params = None  # {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
+primary_model_type = "spline galaxy model"
+primary_initial_params = {}  # {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
 # Extra parameters
 ######################################################################
 save_model_image = True
@@ -46,9 +51,8 @@ variance_hdu = 0
 psf_hdu = 0
 window_expand_scale = 2  # Windows from segmap will be expanded by this factor
 window_expand_border = 10  # Windows from segmap will be expanded by this number of pixels
-fitting_method = "Iter"  # fitting method to use, for example "LM" or "Iter"
 sky_model_type = "flat sky model"
-print_all_models = False
+print_all_models = True
 ######################################################################
 
 # load target and segmentation map
@@ -116,6 +120,7 @@ target = ap.image.Target_Image(
 
 # Initialization from segmap
 # ---------------------------------------------------------------------
+print("Parsing segmentaiton map")
 windows = ap.utils.initialize.windows_from_segmentation_map(segmap_data)
 if len(segmap_filter) > 0:
     windows = ap.utils.initialize.filter_windows(
@@ -123,12 +128,7 @@ if len(segmap_filter) > 0:
         **segmap_filter,
         image=target_data,
     )
-windows = ap.utils.initialize.scale_windows(
-    windows,
-    image_shape=target_data.shape,
-    expand_scale=window_expand_scale,
-    expand_border=window_expand_border,
-)
+
 for ids in segmap_filter_ids:
     del windows[ids]
 centers = ap.utils.initialize.centroids_from_segmentation_map(segmap_data, target_data)
@@ -141,7 +141,7 @@ else:
 init_params = {}
 for window in windows:
     init_params[window] = {
-        "center": centers[window],
+        "center": np.array(centers[window]) * pixelscale,
     }
     if "galaxy" in model_type:
         init_params[window]["PA"] = PAs[window]
@@ -150,6 +150,7 @@ for window in windows:
 
 # Create Models
 # ---------------------------------------------------------------------
+print("Creating models")
 models = []
 models.append(
     ap.models.AstroPhot_Model(
@@ -163,26 +164,32 @@ models.append(
 primary_model = None
 for window in windows:
     if primary_key is not None and window == primary_key:
+        print(primary_name, window)
         if "center" not in primary_initial_params:
-            primary_initial_params["center"] = centers[window]
-        if "PA" not in primary_initial_params and PAs is not None:
+            primary_initial_params["center"] = init_params[window]["center"]
+        if (
+            "PA" not in primary_initial_params
+            and PAs is not None
+            and "galaxy" in primary_model_type
+        ):
             primary_initial_params["PA"] = PAs[window]
-        if "q" not in primary_initial_params and qs is not None:
+        if "q" not in primary_initial_params and qs is not None and "galaxy" in primary_model_type:
             primary_initial_params["q"] = qs[window]
         model = ap.models.AstroPhot_Model(
             name=primary_name,
             model_type=primary_model_type,
             target=target,
             parameters=primary_initial_params,
-            window=window,
+            window=windows[window],
         )
         primary_model = model
     else:
+        print(window)
         model = ap.models.AstroPhot_Model(
             name=f"{model_type} {window}",
             model_type=model_type,
             target=target,
-            window=window,
+            window=windows[window],
             parameters=init_params[window],
         )
     models.append(model)
@@ -198,7 +205,18 @@ model = ap.models.AstroPhot_Model(
 print("Initializing model")
 model.initialize()
 print("Fitting model")
-result = getattr(ap.fit, fitting_method)(model, verbose=1).fit()
+result = ap.fit.Iter(model, verbose=1).fit()
+print("expanding windows")
+windows = ap.utils.initialize.scale_windows(
+    windows,
+    image_shape=target_data.shape,
+    expand_scale=window_expand_scale,
+    expand_border=window_expand_border,
+)
+for i, window in enumerate(windows):
+    models[i + 1].window = windows[window]
+print("Fitting round 2")
+result = ap.fit.Iter(model, verbose=1).fit()
 # result.update_uncertainty() coming soon
 
 # Report Results
@@ -209,16 +227,32 @@ if not sky_locked:
 if not primary_model is None:
     print(primary_model.parameters)
     totflux = primary_model.total_flux().detach().cpu().numpy()
-    totflux_err = primary_model.total_flux_uncertainty().detach().cpu().numpy()
-    print(
-        f"Total Magnitude: {zeropoint - 2.5 * np.log10(totflux)} +- {2.5 * totflux_err / (totflux * np.log(10))}"
-    )
+    print(f"Total Magnitude: {zeropoint - 2.5 * np.log10(totflux)}")
+    if hasattr(primary_model, "radial_model"):
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ap.plots.radial_light_profile(fig, ax, primary_model)
+        plt.savefig(f"{name}_radial_light_profile.jpg")
+        plt.close()
 
 if print_all_models:
-    for model in models[1:]:
-        if model.name == primary_name:
+    segmap_params = []
+    for segmodel in models[1:]:
+        if segmodel.name == primary_name:
             continue
-        print(model.parameters)
+        print(segmodel.parameters)
+        totflux = segmodel.total_flux().detach().cpu().numpy()
+        segmap_params.append(
+            [segmodel.name, totflux]
+            + list(segmodel.parameters.vector_values().detach().cpu().numpy())
+        )
+    with open(f"{name}_segmap_params.csv", "w") as f:
+        f.write("Name,Total Flux," + ",".join(segmodel.parameters.vector_names()) + "\n")
+        flat_params = segmodel.parameters.flat(False, False).values()
+        f.write(
+            "string,mag," + ",".join(p.units for p in flat_params for _ in range(p.size)) + "\n"
+        )
+        for row in segmap_params:
+            f.write(",".join([str(x) for x in row]) + "\n")
 
 model.save(f"{name}_parameters.yaml")
 if save_model_image:

@@ -128,9 +128,11 @@ model = ap.models.AstroPhot_Model(
 
 # Fit the model
 # ---------------------------------------------------------------------
+print("Initializing model")
 model.initialize()
-print("fitting model")
+print("Fitting model")
 result = ap.fit.LM(model, verbose=1).fit()
+print("Update uncertainty")
 result.update_uncertainty()
 
 # Report Results
@@ -139,7 +141,13 @@ if not sky_locked:
     print(model_sky.parameters)
 print(model_object.parameters)
 totflux = model_object.total_flux().detach().cpu().numpy()
-totflux_err = model_object.total_flux_uncertainty().detach().cpu().numpy()
+try:
+    totflux_err = model_object.total_flux_uncertainty().detach().cpu().numpy()
+except AttributeError:
+    print(
+        "sorry, total flux uncertainty not available yet for this model. You are welcome to contribute! :)"
+    )
+    totflux_err = 0
 print(
     f"Total Magnitude: {zeropoint - 2.5 * np.log10(totflux)} +- {2.5 * totflux_err / (totflux * np.log(10))}"
 )
@@ -150,6 +158,11 @@ if save_model_image:
     ap.plots.model_image(fig, ax, model)
     plt.savefig(f"{name}_model_image.jpg")
     plt.close()
+    if hasattr(model_object, "radial_model"):
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ap.plots.radial_light_profile(fig, ax, model_object)
+        plt.savefig(f"{name}_radial_light_profile.jpg")
+        plt.close()
 if save_residual_image:
     (target - model()).save(f"{name}_residual_image.fits")
     fig, ax = plt.subplots()
