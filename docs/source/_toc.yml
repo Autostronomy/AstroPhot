@@ -8,7 +8,7 @@ chapters:
   - file: install
   - file: tutorials/index
   - file: coordinates
-  - file: configfile_interface
+  - file: communitycontrib
   - file: troubleshooting
   - file: contributing
   - file: citation
