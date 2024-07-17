@@ -62,13 +62,14 @@ this, you can also access the tutorials directly at :doc:`tutorials` to download
 as PDFs. Once you have the tutorials, start a jupyter session and run through
 them. The recommended order is:
 
-#. GettingStarted
-#. GroupModels
-#. FittingMethods
-#. ModelZoo
-#. JointModels
-#. CustomModels
-#. AdvancedPSFModels
+#. :doc:`tutorials/GettingStarted`
+#. :doc:`tutorials/GroupModels`
+#. :doc:`tutorials/ModelZoo`
+#. :doc:`tutorials/FittingMethods`
+#. :doc:`tutorials/BasicPSFModels`
+#. :doc:`tutorials/JointModels`
+#. :doc:`tutorials/AdvancedPSFModels`
+#. :doc:`tutorials/CustomModels`
 
 When downloading the tutorials, you will also get a file called
 ``simple_config.py``, this is an example AstroPhot config file. Configuration
@@ -96,8 +97,8 @@ while its subclasses do the work.
 Detailed Documentation
 ----------------------
 
-Detailed documentation can be found by navigating the ``astrophot`` link tree on
-the left. Currently it is not very organized, but detailed information can be
+Detailed documentation can be found by navigating the :doc:`astrophot` link tree
+on the left. Currently it is not very organized, but detailed information can be
 found on just about every AstroPhot system there. Further organization will come
 to make it easier to navigate. For now you can also just search the model type
 you are interested in, in the search bar.

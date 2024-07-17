@@ -15,6 +15,21 @@ from ..errors import InvalidParameter
 __all__ = ["Parameter_Node"]
 
 
+def _goodsigfigs(x, precision=4):
+    """returns a string representation of x with the correct number of significant figures"""
+    try:
+        x = x.detach().cpu().tolist()
+    except AttributeError:
+        pass
+    return x
+    # Maybe I'll figure out good formatting eventually
+    # try:
+    #     return f"{x:.{precision}g}"
+    # except TypeError:
+    #     pass
+    # return "[{}]".format(", ".join(tuple(f"{xi:.{precision}g}" for xi in x)))
+
+
 class Parameter_Node(Node):
     """A node representing parameters and their relative structure.
 
@@ -61,6 +76,8 @@ class Parameter_Node(Node):
       P.value = compute_value # calling P.value will call the function as: compute_value(P) which will return P2.value**2
 
     """
+
+    precision = 4
 
     def __init__(self, name, **kwargs):
 
@@ -679,22 +696,22 @@ class Parameter_Node(Node):
             return (
                 f"{self.name}"
                 + (f" (id-{self.identity})" if include_id else "")
-                + f": {self.value.detach().cpu().tolist()}"
+                + f": {_goodsigfigs(self.value, self.precision)}"
                 + (
                     ""
                     if self.uncertainty is None
-                    else f" +- {self.uncertainty.detach().cpu().tolist()}"
+                    else f" +- {_goodsigfigs(self.uncertainty, self.precision)}"
                 )
                 + f" [{self.units}]"
                 + (
                     ""
                     if self.limits[0] is None and self.limits[1] is None
-                    else f", limits: ({None if self.limits[0] is None else self.limits[0].detach().cpu().tolist()}, {None if self.limits[1] is None else self.limits[1].detach().cpu().tolist()})"
+                    else f", limits: ({None if self.limits[0] is None else _goodsigfigs(self.limits[0], self.precision)}, {None if self.limits[1] is None else _goodsigfigs(self.limits[1], self.precision)})"
                 )
                 + (", cyclic" if self.cyclic else "")
                 + (", locked" if self.locked else "")
                 + (
-                    f", prof: {self.prof.detach().cpu().tolist()}"
+                    f", prof: {_goodsigfigs(self.prof, self.precision)}"
                     if include_prof and self.prof is not None
                     else ""
                 )
