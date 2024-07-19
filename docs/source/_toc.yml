@@ -9,7 +9,7 @@ chapters:
   - file: fastfit
   - file: tutorials/index
   - file: coordinates
-  - file: configfile_interface
+  - file: communitycontrib
   - file: troubleshooting
   - file: contributing
   - file: citation
