@@ -28,9 +28,10 @@ AstroPhot
 Getting Started
 ===============
 
-AstroPhot is a fast, flexible, and automated astronomical image modelling tool for precise parallel multi-wavelength photometry.
-Its pythonic design allows for fast startup and provides flexibility to explore new ideas and support advanced users.
-It was written by `Connor Stone <https://connorjstone.com/>`_ .
+AstroPhot is a fast, flexible, and automated astronomical image modelling tool
+for precise parallel multi-wavelength photometry. Its pythonic design allows for
+fast startup and provides flexibility to explore new ideas and support advanced
+users. It was written by `Connor Stone <https://connorjstone.com/>`_ .
 
 To install AstroPhot, use pip:
 
@@ -38,16 +39,18 @@ To install AstroPhot, use pip:
 
     pip install astrophot
 
-Check out the tutorials to learn how to use AstroPhot :doc:`tutorials/index`
+To just get started on a fit, download a quick-start file from: :doc:`fastfit`.
 
-If you run into any problems, please submit an issue on the `GitHub page <https://github.com/Autostronomy/AstroPhot>`_ or just email me.
+Check out the tutorials to learn how to use AstroPhot in detail: :doc:`tutorials/index`.
 
+If you run into any problems, please submit an issue on the `GitHub page
+<https://github.com/Autostronomy/AstroPhot>`_ or just email me.
 
 .. note::
 
-    Like much astronomy software, AstroPhot is an evolving package.
-    I try to keep the API stable and consistent, however I will make
-    changes to the interface if it considerably improves things
-    going forward. Please contact connorstone628@gmail.com if you experience
-    issues. If you would like to be notified of major changes send an email
-    with the subject line "ASTROPHOT MAILING LIST".
+    Like much astronomy software, AstroPhot is an evolving package. I try to
+    keep the API stable and consistent, however I will make changes to the
+    interface if it considerably improves things going forward. Please contact
+    connorstone628@gmail.com if you experience issues. If you would like to be
+    notified of major changes send an email with the subject line "ASTROPHOT
+    MAILING LIST".
