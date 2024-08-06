@@ -1,7 +1,7 @@
 astropy>=5.3
 h5py>=3.8.0
 matplotlib>=3.7
-numpy>=1.24.0
+numpy>=1.24.0,<2.0.0
 pyro-ppl>=1.8.0
 pyyaml>=6.0
 requests>=2.30.0
