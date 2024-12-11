@@ -6,6 +6,7 @@ root: index
 chapters:
   - file: getting_started
   - file: install
+  - file: astrophotdemo
   - file: fastfit
   - file: tutorials/index
   - file: coordinates
