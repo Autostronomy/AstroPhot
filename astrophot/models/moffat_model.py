@@ -178,7 +178,6 @@ class Moffat2D_PSF(Moffat_PSF):
     @select_target
     @default_internal
     def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
         with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
             if parameters["q"].value is None:
                 parameters["q"].value = 0.9
@@ -186,6 +185,7 @@ class Moffat2D_PSF(Moffat_PSF):
         with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
             if parameters["PA"].value is None:
                 parameters["PA"].value = 0.1
+        super().initialize(target=target, parameters=parameters)
 
     from ._shared_methods import inclined_transform_coordinates as transform_coordinates
     from ._shared_methods import transformed_evaluate_model as evaluate_model
