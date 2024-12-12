@@ -22,12 +22,9 @@ class Multi_Gaussian_Expansion(Component_Model):
     """Model that represents a galaxy as a sum of multiple Gaussian
     profiles. The model is defined as:
 
-    I(R) = sum_i A_i * exp(-((R - R_i) / sigma_i)^2)
+    I(R) = sum_i flux_i * exp(-0.5*(R_i / sigma_i)^2) / (2 * pi * q_i * sigma_i^2)
 
-    where I(R) is the brightness profile as a function of semi-major
-    axis, R is the semi-major axis length, A_i is the amplitude of the
-    ith Gaussian, R_i is the center of the ith Gaussian, and sigma_i is
-    the standard deviation of the ith Gaussian.
+    where $R_i$ is a radius computed using $q_i$ and $PA_i$ for that component. All components share the same center.
 
     Parameters:
         q: axis ratio to scale minor axis from the ratio of the minor/major axis b/a, this parameter is unitless, it is restricted to the range (0,1)
@@ -160,7 +157,6 @@ class Multi_Gaussian_Expansion(Component_Model):
             Y = torch.vmap(lambda q, y: y / q)(parameters["q"].value, Y)
 
         R = self.radius_metric(X, Y, image, parameters)
-        print(parameters["flux"].value, parameters["sigma"].value, parameters["q"].value)
         return torch.sum(
             torch.vmap(
                 lambda A, R, sigma, q: (A / (2 * np.pi * q * sigma**2))
