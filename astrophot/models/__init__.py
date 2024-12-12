@@ -8,6 +8,7 @@ from .sky_model_object import *
 from .flatsky_model import *
 from .planesky_model import *
 from .gaussian_model import *
+from .multi_gaussian_expansion_model import *
 from .spline_model import *
 from .relspline_model import *
 from .psf_model_object import *
