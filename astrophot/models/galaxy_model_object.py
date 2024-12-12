@@ -112,24 +112,5 @@ class Galaxy_Model(Component_Model):
                 if parameters["q"].uncertainty is None:
                     parameters["q"].uncertainty = parameters["q"].value * self.default_uncertainty
 
-    @default_internal
-    def transform_coordinates(self, X, Y, image=None, parameters=None):
-        X, Y = Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
-        return (
-            X,
-            Y / parameters["q"].value,
-        )
-
-    @default_internal
-    def evaluate_model(
-        self, X=None, Y=None, image=None, parameters: Parameter_Node = None, **kwargs
-    ):
-        if X is None or Y is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        XX, YY = self.transform_coordinates(X, Y, image, parameters)
-        return self.radial_model(
-            self.radius_metric(XX, YY, image, parameters),
-            image=image,
-            parameters=parameters,
-        )
+    from ._shared_methods import inclined_transform_coordinates as transform_coordinates
+    from ._shared_methods import transformed_evaluate_model as evaluate_model
