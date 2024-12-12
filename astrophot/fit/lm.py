@@ -307,7 +307,6 @@ class LM(BaseOptimizer):
             # Keep track of chi^2 improvement even if it fails curvature test
             if chi2 <= scarry_best[1]:
                 scarry_best = (ha, chi2, self.L)
-                nostep = False
 
             # Check for high curvature, in which case linear approximation is not valid. avoid this step
             rho = torch.linalg.norm(a) / torch.linalg.norm(h)

@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from .galaxy_model_object import Galaxy_Model
 from .psf_model_object import PSF_Model
@@ -6,6 +7,7 @@ from ._shared_methods import parametric_initialize, select_target
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import moffat_np
 from ..utils.conversions.functions import moffat_I0_to_flux, general_uncertainty_prop
+from ..param import Param_Unlock, Param_SoftLimits
 
 __all__ = ["Moffat_Galaxy", "Moffat_PSF"]
 
@@ -155,3 +157,35 @@ class Moffat_PSF(PSF_Model):
         )
 
     from ._shared_methods import radial_evaluate_model as evaluate_model
+
+
+class Moffat2D_PSF(Moffat_PSF):
+
+    model_type = f"moffat2d {PSF_Model.model_type}"
+    parameter_specs = {
+        "q": {"units": "b/a", "limits": (0, 1), "uncertainty": 0.03},
+        "PA": {
+            "units": "radians",
+            "limits": (0, np.pi),
+            "cyclic": True,
+            "uncertainty": 0.06,
+        },
+    }
+    _parameter_order = Moffat_PSF._parameter_order + ("q", "PA")
+    usable = True
+    model_integrated = False
+
+    @select_target
+    @default_internal
+    def initialize(self, target=None, parameters=None, **kwargs):
+        with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
+            if parameters["q"].value is None:
+                parameters["q"].value = 0.9
+
+        with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
+            if parameters["PA"].value is None:
+                parameters["PA"].value = 0.1
+        super().initialize(target=target, parameters=parameters)
+
+    from ._shared_methods import inclined_transform_coordinates as transform_coordinates
+    from ._shared_methods import transformed_evaluate_model as evaluate_model
