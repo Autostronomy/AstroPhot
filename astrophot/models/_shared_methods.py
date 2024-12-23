@@ -14,6 +14,9 @@ from ..utils.parametric_profiles import (
     moffat_torch,
     nuker_torch,
 )
+from ..utils.conversions.coordinates import (
+    Rotate_Cartesian,
+)
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import (
     Image_List,
@@ -277,6 +280,30 @@ def radial_evaluate_model(self, X=None, Y=None, image=None, parameters=None):
         self.radius_metric(X, Y, image=image, parameters=parameters),
         image=image,
         parameters=parameters,
+    )
+
+
+@default_internal
+def transformed_evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
+    if X is None or Y is None:
+        Coords = image.get_coordinate_meshgrid()
+        X, Y = Coords - parameters["center"].value[..., None, None]
+    X, Y = self.transform_coordinates(X, Y, image, parameters)
+    return self.radial_model(
+        self.radius_metric(X, Y, image=image, parameters=parameters),
+        image=image,
+        parameters=parameters,
+    )
+
+
+# Transform Coordinates
+######################################################################
+@default_internal
+def inclined_transform_coordinates(self, X, Y, image=None, parameters=None):
+    X, Y = Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
+    return (
+        X,
+        Y / parameters["q"].value,
     )
 
 
