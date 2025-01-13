@@ -18,54 +18,8 @@ from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..image import (
-    Image_List,
-    Model_Image_List,
-    Target_Image_List,
-    Window_List,
-)
 from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
-
-
-# Target Selector Decorator
-######################################################################
-def select_target(func):
-    @functools.wraps(func)
-    def targeted(self, target=None, **kwargs):
-        if target is None:
-            send_target = self.target
-        elif isinstance(target, Target_Image_List) and not isinstance(self.target, Image_List):
-            for sub_target in target:
-                if sub_target.identity == self.target.identity:
-                    send_target = sub_target
-                    break
-            else:
-                raise RuntimeError("{self.name} could not find matching target to initialize with")
-        else:
-            send_target = target
-        return func(self, target=send_target, **kwargs)
-
-    return targeted
-
-
-def select_sample(func):
-    @functools.wraps(func)
-    def targeted(self, image=None, **kwargs):
-        if isinstance(image, Model_Image_List) and not isinstance(self.target, Image_List):
-            for i, sub_image in enumerate(image):
-                if sub_image.target_identity == self.target.identity:
-                    send_image = sub_image
-                    if "window" in kwargs and isinstance(kwargs["window"], Window_List):
-                        kwargs["window"] = kwargs["window"].window_list[i]
-                    break
-            else:
-                raise RuntimeError(f"{self.name} could not find matching image to sample with")
-        else:
-            send_image = image
-        return func(self, image=send_image, **kwargs)
-
-    return targeted
 
 
 def _sample_image(image, transform, metric, parameters, rad_bins=None):

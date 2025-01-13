@@ -7,7 +7,7 @@ import yaml
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import Window, Target_Image, Target_Image_List
-from ..param import Parameter_Node
+from caskade import Module, forward
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
 from ..errors import NameNotAllowed, InvalidTarget, UnrecognizedModel, InvalidWindow
@@ -22,7 +22,7 @@ def all_subclasses(cls):
 
 
 ######################################################################
-class AstroPhot_Model(object):
+class AstroPhot_Model(Module):
     """Core class for all AstroPhot models and model like objects. This
     class defines the signatures to interact with AstroPhot models
     both for users and internal functions.
@@ -89,6 +89,7 @@ class AstroPhot_Model(object):
     """
 
     model_type = "model"
+    _parameter_specs = {}
     default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
     usable = False
     model_names = []
@@ -113,61 +114,20 @@ class AstroPhot_Model(object):
         return super().__new__(cls)
 
     def __init__(self, *, name=None, target=None, window=None, locked=False, **kwargs):
+        super().__init__()
         if not hasattr(self, "_window"):
             self._window = None
         if not hasattr(self, "_target"):
             self._target = None
         self.name = name
-        AP_config.ap_logger.debug("Creating model named: {self.name}")
-        self.parameters = Parameter_Node(self.name)
+        AP_config.ap_logger.debug(f"Creating model named: {self.name}")
         self.target = target
         self.window = window
-        self._locked = locked
         self.mask = kwargs.get("mask", None)
 
-    @property
-    def name(self):
-        """The name for this model as a string. The name should be unique
-        though this is not enforced here. The name should not contain
-        the `|` or `:` characters as these are reserved for internal
-        use. If one tries to set the name of a model as `None` (for
-        example by not providing a name for the model) then a new
-        unique name will be generated. The unique name is just the
-        model type for this model with an extra unique id appended to
-        the end in the format of `[#]` where `#` is a number that
-        increases until a unique name is found.
-
-        """
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        try:
-            if name == self.name:
-                return
-        except AttributeError:
-            pass
-        if name is None:
-            i = 0
-            while True:
-                proposed_name = f"{self.model_type} [{i}]"
-                if proposed_name in AstroPhot_Model.model_names:
-                    i += 1
-                else:
-                    name = proposed_name
-                    break
-        if ":" in name or "|" in name:
-            raise NameNotAllowed(
-                "characters '|' and ':' are reserved for internal model operations please do not include these in a model name"
-            )
-        self._name = name
-        AstroPhot_Model.model_names.append(name)
-
     @torch.no_grad()
-    @ignore_numpy_warnings
     @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
+    def initialize(self, target=None, **kwargs):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
@@ -188,7 +148,8 @@ class AstroPhot_Model(object):
             window = self.window & window
         return self.target[window].model_image()
 
-    def sample(self, image=None, window=None, parameters=None, *args, **kwargs):
+    @forward
+    def sample(self, image=None, window=None, *args, **kwargs):
         """Calling this function should fill the given image with values
         sampled from the given model.
 
@@ -202,19 +163,14 @@ class AstroPhot_Model(object):
         """
         return torch.zeros_like(self.target[self.window].mask)
 
+    @forward
     def negative_log_likelihood(
         self,
-        parameters=None,
         as_representation=False,
     ):
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
-        if parameters is not None:
-            if as_representation:
-                self.parameters.vector_set_representation(parameters)
-            else:
-                self.parameters.vector_set_values(parameters)
 
         model = self.sample()
         data = self.target[self.window]
@@ -240,16 +196,17 @@ class AstroPhot_Model(object):
 
         return chi2
 
+    @forward
     def jacobian(
         self,
-        parameters=None,
         **kwargs,
     ):
         raise NotImplementedError("please use a subclass of AstroPhot_Model")
 
     @default_internal
-    def total_flux(self, parameters=None, window=None, image=None):
-        F = self(parameters=parameters, window=None, image=None)
+    @forward
+    def total_flux(self, window=None, image=None):
+        F = self(window=None, image=None)
         return torch.sum(F.data)
 
     @property
@@ -300,36 +257,6 @@ class AstroPhot_Model(object):
         if not (tar is None or isinstance(tar, Target_Image)):
             raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
         self._target = tar
-
-    @property
-    def locked(self):
-        """Set when the model should remain fixed going forward. This model
-        will be bypassed when fitting parameters, however it will
-        still be sampled for generating the model image.
-
-        Warning:
-
-          This feature is not yet fully functional and should be avoided for now. It is included here for the sake of testing.
-
-        """
-        return self._locked
-
-    @locked.setter
-    def locked(self, val):
-        self._locked = val
-
-    @property
-    def parameter_order(self):
-        """Returns the model parameters in the order they are kept for
-        flattening, such as when evaluating the model with a tensor of
-        parameter values.
-
-        """
-        return tuple(P.name for P in self.parameters)
-
-    def __str__(self):
-        """String representation for the model."""
-        return self.parameters.__str__()
 
     def __repr__(self):
         """Detailed string representation for the model."""
@@ -432,13 +359,8 @@ class AstroPhot_Model(object):
     def __eq__(self, other):
         return self is other
 
-    def __getitem__(self, key):
-        return self.parameters[key]
-
-    def __contains__(self, key):
-        return self.parameters.__contains__(key)
-
     def __del__(self):
+        super().__del__()
         try:
             i = AstroPhot_Model.model_names.index(self.name)
             AstroPhot_Model.model_names.pop(i)
@@ -446,21 +368,12 @@ class AstroPhot_Model(object):
             pass
 
     @select_sample
+    @forward
     def __call__(
         self,
         image=None,
-        parameters=None,
         window=None,
-        as_representation=False,
         **kwargs,
     ):
 
-        if parameters is None:
-            parameters = self.parameters
-        elif isinstance(parameters, torch.Tensor):
-            if as_representation:
-                self.parameters.vector_set_representation(parameters)
-            else:
-                self.parameters.vector_set_values(parameters)
-            parameters = self.parameters
-        return self.sample(image=image, window=window, parameters=parameters, **kwargs)
+        return self.sample(image=image, window=window, **kwargs)

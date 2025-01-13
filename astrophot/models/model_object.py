@@ -12,10 +12,9 @@ from ..image import (
     Target_Image_List,
     Image,
 )
-from ..param import Parameter_Node, Param_Unlock, Param_SoftLimits
+from caskade import Param, forward
 from ..utils.initialize import center_of_mass
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ._shared_methods import select_target
+from ..utils.decorators import ignore_numpy_warnings, default_internal, select_target
 from .. import AP_config
 from ..errors import InvalidTarget
 
@@ -54,11 +53,9 @@ class Component_Model(AstroPhot_Model):
     """
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
-    parameter_specs = {
+    _parameter_specs = AstroPhot_Model._parameter_specs | {
         "center": {"units": "arcsec", "uncertainty": [0.1, 0.1]},
     }
-    # Fixed order of parameters for all methods that interact with the list of parameters
-    _parameter_order = ("center",)
 
     # Scope for PSF convolution
     psf_mode = "none"  # none, full
@@ -132,11 +129,8 @@ class Component_Model(AstroPhot_Model):
             self.load(kwargs["filename"], new_name=name)
             return
 
-        self.parameter_specs = self.build_parameter_specs(kwargs.get("parameters", None))
-        with torch.no_grad():
-            self.build_parameters()
-            if isinstance(kwargs.get("parameters", None), torch.Tensor):
-                self.parameters.value = kwargs["parameters"]
+        self.parameter_specs = self.build_parameter_specs(kwargs)
+        self.center = Param("center", **self.parameter_specs["center"])
 
     def set_aux_psf(self, aux_psf, add_parameters=True):
         """Set the PSF for this model as an auxiliary psf model. This psf
@@ -183,12 +177,11 @@ class Component_Model(AstroPhot_Model):
     ######################################################################
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
     @default_internal
     def initialize(
         self,
-        target: Optional["Target_Image"] = None,
-        parameters: Optional[Parameter_Node] = None,
+        target: Optional[Target_Image] = None,
+        window: Optional[Window] = None,
         **kwargs,
     ):
         """Determine initial values for the center coordinates. This is done
@@ -200,21 +193,17 @@ class Component_Model(AstroPhot_Model):
           target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
 
         """
-        super().initialize(target=target, parameters=parameters)
+        super().initialize(target=target, window=window)
         # Get the sub-image area corresponding to the model image
-        target_area = target[self.window]
+        target_area = target[window]
 
         # Use center of window if a center hasn't been set yet
-        if parameters["center"].value is None:
-            with (
-                Param_Unlock(parameters["center"]),
-                Param_SoftLimits(parameters["center"]),
-            ):
-                parameters["center"].value = self.window.center
+        if self.center.value is None:
+            self.center.value = window.center
         else:
             return
 
-        if parameters["center"].locked:
+        if self.center.locked:
             return
 
         # Convert center coordinates to target area array indices

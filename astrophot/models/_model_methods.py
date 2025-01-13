@@ -31,52 +31,27 @@ from .. import AP_config
 
 
 @default_internal
-def angular_metric(self, X, Y, image=None, parameters=None):
+def angular_metric(self, X, Y, image=None):
     return torch.atan2(Y, X)
 
 
 @default_internal
-def radius_metric(self, X, Y, image=None, parameters=None):
-    return torch.sqrt(X**2 + Y**2 + self.softening**2)
+def radius_metric(self, X, Y, image=None):
+    return torch.sqrt(X**2 + Y**2)
 
 
-@classmethod
-def build_parameter_specs(cls, user_specs=None):
-    parameter_specs = {}
-    for base in cls.__bases__:
-        try:
-            parameter_specs.update(base.build_parameter_specs())
-        except AttributeError:
-            pass
-    parameter_specs.update(cls.parameter_specs)
-    parameter_specs = deepcopy(parameter_specs)
-    if isinstance(user_specs, dict):
-        for p in user_specs:
-            # If the user supplied a parameter object subclass, simply use that as is
-            if isinstance(user_specs[p], Parameter_Node):
-                parameter_specs[p] = user_specs[p]
-            elif isinstance(
-                user_specs[p], dict
-            ):  # if the user supplied parameter specifications, update the defaults
-                parameter_specs[p].update(user_specs[p])
-            else:
-                parameter_specs[p]["value"] = user_specs[p]
+def build_parameter_specs(self, kwargs):
+    parameter_specs = deepcopy(self._parameter_specs)
+
+    for p in kwargs:
+        if p not in self._parameter_specs:
+            continue
+        if isinstance(kwargs[p], dict):
+            parameter_specs[p].update(kwargs[p])
+        else:
+            parameter_specs[p]["value"] = kwargs[p]
 
     return parameter_specs
-
-
-def build_parameters(self):
-    for p in self.__class__._parameter_order:
-        # skip if the parameter already exists
-        if p in self.parameters:
-            continue
-        # If a parameter object is provided, simply use as-is
-        if isinstance(self.parameter_specs[p], Parameter_Node):
-            self.parameters.link(self.parameter_specs[p].to())
-        elif isinstance(self.parameter_specs[p], dict):
-            self.parameters.link(Parameter_Node(p, **self.parameter_specs[p]))
-        else:
-            raise ValueError(f"unrecognized parameter specification for {p}")
 
 
 def _sample_init(self, image, parameters, center):
