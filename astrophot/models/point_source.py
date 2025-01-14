@@ -47,7 +47,7 @@ class Point_Source(Component_Model):
         if parameters["flux"].value is not None:
             return
         target_area = target[self.window]
-        target_dat = target_area.data.detach().cpu().numpy()
+        target_dat = target_area.data.detach().cpu().numpy().copy()
         with Param_Unlock(parameters["flux"]), Param_SoftLimits(parameters["flux"]):
             icenter = target_area.plane_to_pixel(parameters["center"].value)
             edge = np.concatenate(

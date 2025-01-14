@@ -180,7 +180,7 @@ def parametric_segment_initialize(
         return
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
-    target_dat = target_area.data.detach().cpu().numpy()
+    target_dat = target_area.data.detach().cpu().numpy().copy()
     if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
@@ -477,7 +477,7 @@ def spline_segment_initialize(
 
     profR = parameters["I(R)"].prof.detach().cpu().numpy()
     target_area = target[self.window]
-    target_dat = target_area.data.detach().cpu().numpy()
+    target_dat = target_area.data.detach().cpu().numpy().copy()
     if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
@@ -578,7 +578,7 @@ def relspline_initialize(self, target=None, parameters=None, **kwargs):
     super(self.__class__, self).initialize(target=target, parameters=parameters)
 
     target_area = target[self.window]
-    target_dat = target_area.data.detach().cpu().numpy()
+    target_dat = target_area.data.detach().cpu().numpy().copy()
     if target_area.has_mask:
         mask = target_area.mask.detach().cpu().numpy()
         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
