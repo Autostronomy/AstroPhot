@@ -63,7 +63,7 @@ class Galaxy_Model(Component_Model):
         if not (parameters["PA"].value is None or parameters["q"].value is None):
             return
         target_area = target[self.window]
-        target_dat = target_area.data.detach().cpu().numpy()
+        target_dat = target_area.data.detach().cpu().numpy().copy()
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()
             target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
