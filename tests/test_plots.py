@@ -170,3 +170,43 @@ class TestPlots(unittest.TestCase):
         ap.plots.radial_median_profile(fig, ax, new_model, rad_unit="pixel", return_profile=True)
 
         plt.close()
+
+    def test_radial_light_profile(self):
+
+        target = make_basic_sersic()
+
+        new_model = ap.models.AstroPhot_Model(
+            name="constrained sersic",
+            model_type="sersic galaxy model",
+            parameters={
+                "center": [20, 20],
+                "PA": 60 * np.pi / 180,
+                "q": 0.5,
+                "n": 2,
+                "Re": 5,
+                "Ie": 1,
+            },
+            target=target,
+        )
+        new_model.initialize()
+
+        try:
+            fig, ax = plt.subplots()
+        except Exception:
+            print("skipping test because matplotlib is not installed properly")
+            return
+
+        ap.plots.radial_light_profile(fig, ax, new_model)
+
+        plt.close()
+
+        try:
+            fig, ax = plt.subplots()
+        except Exception:
+            print("skipping test because matplotlib is not installed properly")
+            return
+
+        target.header.zeropoint = 22.5
+        ap.plots.radial_light_profile(fig, ax, new_model)
+
+        plt.close()
