@@ -122,9 +122,9 @@ class Point_Source(Component_Model):
         if isinstance(self.psf, AstroPhot_Model):
             # Adjust for supersampled PSF
             psf_upscale = torch.round(
-                self.psf.target.pixel_length / working_window.pixel_length
+                working_window.pixel_length / self.psf.target.pixel_length
             ).int()
-            working_window = working_window.rescale_pixel(psf_upscale)
+            working_window = working_window.rescale_pixel(1 / psf_upscale)
             working_window.shift(-parameters["center"].value)
 
             # Make the image object to which the samples will be tracked
@@ -146,8 +146,8 @@ class Point_Source(Component_Model):
             psf = self.psf.copy()
 
             # Adjust for supersampled PSF
-            psf_upscale = torch.round(psf.pixel_length / working_window.pixel_length).int()
-            working_window = working_window.rescale_pixel(psf_upscale)
+            psf_upscale = torch.round(working_window.pixel_length / psf.pixel_length).int()
+            working_window = working_window.rescale_pixel(1 / psf_upscale)
 
             # Make the image object to which the samples will be tracked
             working_image = Model_Image(window=working_window)
@@ -186,5 +186,4 @@ class Point_Source(Component_Model):
 
         # Add the sampled/integrated/convolved pixels to the requested image
         image += working_image
-
         return image
