@@ -1,6 +1,6 @@
 from .base import AstroPhotError
 
-__all__ = ("InvalidModel", "InvalidTarget", "UnrecognizedModel")
+__all__ = ("InvalidModel", "InvalidTarget", "UnrecognizedModel", "InitializationError")
 
 
 class InvalidModel(AstroPhotError):
@@ -22,6 +22,14 @@ class InvalidTarget(AstroPhotError):
 class UnrecognizedModel(AstroPhotError):
     """
     Raised when the user tries to invoke a model that does not exist.
+    """
+
+    ...
+
+
+class InitializationError(AstroPhotError):
+    """
+    Raised when a model cannot initialize itself.
     """
 
     ...

@@ -25,6 +25,7 @@ from ..image import (
     Window_List,
 )
 from ..param import Param_Unlock, Param_SoftLimits
+from ..errors import InitializationError
 from .. import AP_config
 
 
@@ -68,7 +69,7 @@ def select_sample(func):
     return targeted
 
 
-def _sample_image(image, transform, metric, parameters, rad_bins=None):
+def _sample_image(image, transform, metric, parameters, params, rad_bins=None):
     dat = image.data.detach().cpu().clone().numpy()
     # Fill masked pixels
     if image.has_mask:
@@ -85,9 +86,21 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
 
     # Bin fluxes by radius
     if rad_bins is None:
-        rad_bins = np.logspace(np.log10(R.min() * 0.9), np.log10(R.max() * 1.1), 11)
-    else:
-        rad_bins = np.array(rad_bins)
+        rad_bins = [R.min() * 0.9]
+        while rad_bins[-1] < R.max():
+            rad_bins.append(rad_bins[-1] + max(2 * image.pixel_length.item(), rad_bins[-1] * 1.1))
+        if len(rad_bins) < max(10, len(params)):
+            # attempt finer binning in hopes of getting enough bins, may be unstable
+            rad_bins = [R.min() * 0.9]
+            while rad_bins[-1] < R.max():
+                rad_bins.append(rad_bins[-1] + max(image.pixel_length.item(), rad_bins[-1] * 1.05))
+    rad_bins = np.array(rad_bins)
+    if len(rad_bins) < len(params):
+        raise InitializationError(
+            "Too few radial bins for automatic profile initialization. Check the image and model parameters, perhaps window is set too small?"
+        )
+
+    # Bin the fluxes
     raveldat = dat.ravel()
     I = (
         binned_statistic(R, raveldat, statistic="median", bins=rad_bins)[0]
@@ -97,15 +110,27 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
 
     # Ensure enough values are positive
-    I[I <= 0] = np.min(I[np.logical_and(np.isfinite(I), I > 0)])
+    if np.sum(np.isfinite(I)) > 2:
+        N = np.isfinite(I)
+        I[~N] = np.interp(R[~N], R[N], I[N])
+    else:
+        raise InitializationError(
+            "No finite values available for automatic profile initialization. Check for unmasked NaNs or other exceptional values."
+        )
+    if np.any(I > 0):
+        I[I <= 0] = np.min(I[I > 0])
+    else:
+        I -= np.min(I[np.isfinite(I)]) * 1.1
+
     # Ensure decreasing brightness with radius in outer regions
-    for i in range(5, len(I)):
+    for i in range(len(I) // 2, len(I)):
         if I[i] >= I[i - 1] and np.isfinite(I[i - 1]):
-            I[i] = I[i - 1] - np.abs(I[i - 1] * 0.1)
+            I[i] = I[i - 1] * 0.9
+
     # Convert to log scale
     S = S / (I * np.log(10))
     I = np.log10(I)
-    # Ensure finite
+    # Ensure finite after log
     N = np.isfinite(I)
     if not np.all(N):
         I[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], I[N])
@@ -129,9 +154,8 @@ def parametric_initialize(
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
     R, I, S = _sample_image(
-        target_area, model.transform_coordinates, model.radius_metric, parameters
+        target_area, model.transform_coordinates, model.radius_metric, parameters, params
     )
-
     x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):
         x0[i] = x0[i] if parameters[param].value is None else parameters[param].value.item()
@@ -446,6 +470,7 @@ def spline_initialize(self, target=None, parameters=None, **kwargs):
         self.transform_coordinates,
         self.radius_metric,
         parameters,
+        ["I(R)"],
         rad_bins=[profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100],
     )
     with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
