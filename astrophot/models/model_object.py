@@ -319,6 +319,7 @@ class Component_Model(AstroPhot_Model):
             else:
                 psf = self.psf
             psf_upscale = torch.round(image.pixel_length / psf.pixel_length).int()
+            working_window = working_window.rescale_pixel(1 / psf_upscale)
             # Add border for psf convolution edge effects, will be cropped out later
             working_window.pad_pixel(psf.psf_border_int)
             # Make the image object to which the samples will be tracked
