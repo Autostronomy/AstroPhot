@@ -28,7 +28,7 @@ __all__ = [
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[4], 1.0, 2.0, 0.5
+    return R[len(R) // 2], F[len(R) // 2], 1.0, 2.0, 0.5
 
 
 def _wrap_nuker(R, rb, ib, a, b, g):

@@ -110,7 +110,7 @@ def _sample_image(image, transform, metric, parameters, params, rad_bins=None):
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
 
     # Ensure enough values are positive
-    if np.sum(np.isfinite(I)) > 2:
+    if np.sum(np.isfinite(I)) >= 2:
         N = np.isfinite(I)
         I[~N] = np.interp(R[~N], R[N], I[N])
     else:

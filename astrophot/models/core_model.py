@@ -175,6 +175,11 @@ class AstroPhot_Model(object):
         """
         pass
 
+    @property
+    def is_initialized(self):
+        """Returns True if all parameters have been initialized."""
+        return all((not P.leaf) or (P.value is not None) for P in self.parameters)
+
     def make_model_image(self, window: Optional[Window] = None):
         """This is called to create a blank `Model_Image` object of the
         correct format for this model. This is typically used

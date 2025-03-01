@@ -6,7 +6,7 @@ import torch
 from scipy.stats import binned_statistic, iqr
 
 from .. import AP_config
-from ..models import Warp_Galaxy
+from ..models import Warp_Galaxy, AstroPhot_Model
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 from ..errors import InvalidModel
@@ -71,7 +71,7 @@ def radial_light_profile(
 def radial_median_profile(
     fig,
     ax,
-    model: "AstroPhot_Model",
+    model: AstroPhot_Model,
     count_limit: int = 10,
     return_profile: bool = False,
     rad_unit: Literal["arcsec", "pixel"] = "arcsec",
