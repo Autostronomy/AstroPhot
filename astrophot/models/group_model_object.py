@@ -132,6 +132,7 @@ class Group_Model(AstroPhot_Model):
 
         target_copy = target.copy()
         for model in self.models.values():
+            print("Initializing: ", model.name)
             model.initialize(target=target_copy, parameters=parameters[model.name])
             target_copy -= model(parameters=parameters[model.name])
 
