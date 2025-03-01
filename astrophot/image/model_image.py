@@ -69,7 +69,7 @@ class Model_Image(Image):
 
     def set_state(self, state):
         super().set_state(state)
-        self.target_identity = target_identity
+        self.target_identity = state["target_identity"]
 
     def get_fits_state(self):
         states = super().get_fits_state()
