@@ -109,7 +109,7 @@ def _sample_image(image, transform, metric, parameters, params, rad_bins=None):
     S = binned_statistic(R, raveldat, statistic=sigma, bins=rad_bins)[0] / image.pixel_area.item()
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
 
-    # Ensure enough values are positive
+    # Ensure all values are finite
     if np.sum(np.isfinite(I)) >= 2:
         N = np.isfinite(I)
         I[~N] = np.interp(R[~N], R[N], I[N])
@@ -117,26 +117,25 @@ def _sample_image(image, transform, metric, parameters, params, rad_bins=None):
         raise InitializationError(
             "No finite values available for automatic profile initialization. Check for unmasked NaNs or other exceptional values."
         )
+
+    # Ensure all values are positive
     if np.any(I > 0):
         I[I <= 0] = np.min(I[I > 0])
     else:
-        I -= np.min(I[np.isfinite(I)]) * 1.1
+        I -= np.min(I) * 1.1
 
     # Ensure decreasing brightness with radius in outer regions
     for i in range(len(I) // 2, len(I)):
-        if I[i] >= I[i - 1] and np.isfinite(I[i - 1]):
+        if I[i] >= I[i - 1]:
             I[i] = I[i - 1] * 0.9
 
     # Convert to log scale
     S = S / (I * np.log(10))
     I = np.log10(I)
-    # Ensure finite after log
-    N = np.isfinite(I)
-    if not np.all(N):
-        I[np.logical_not(N)] = np.interp(R[np.logical_not(N)], R[N], I[N])
+    # Ensure finite S
     N = np.isfinite(S)
     if not np.all(N):
-        S[np.logical_not(N)] = np.abs(np.interp(R[np.logical_not(N)], R[N], S[N]))
+        S[~N] = np.abs(np.interp(R[~N], R[N], S[N]))
 
     return R, I, S
 
