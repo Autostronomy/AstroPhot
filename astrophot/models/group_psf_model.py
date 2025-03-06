@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .group_model_object import Group_Model
-from ..image import PSF_Image, Image, Window, Model_Image, Window_List
+from ..image import PSF_Image, Image, Window, Model_Image, Model_Image_List, Window_List
 from ..errors import InvalidTarget
 from ..param import Parameter_Node
 
@@ -52,7 +52,15 @@ class PSF_Group_Model(Group_Model):
             image = self.make_model_image(window=window)
         else:
             sample_window = False
-        working_image = Model_Image(window=image.window.copy())
+
+        working_window = image.window.copy()
+        if isinstance(working_window, Window_List):
+            working_image = Model_Image_List(
+                [Model_Image(window=window) for window in working_window]
+            )
+        else:
+            working_image = Model_Image(window=working_window)
+
         if parameters is None:
             parameters = self.parameters
 
