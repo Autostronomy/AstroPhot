@@ -14,6 +14,7 @@ version of each tutorial is available here.
     FittingMethods
     ModelZoo
     BasicPSFModels
+    PSFModelling
     JointModels
     CustomModels
     AdvancedPSFModels
