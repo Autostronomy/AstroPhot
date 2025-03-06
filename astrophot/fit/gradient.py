@@ -69,22 +69,27 @@ class Grad(BaseOptimizer):
             (self.current_state,), **self.optim_kwargs
         )
 
+        kW = kwargs.get("W", None)
+        if kW is not None:
+            self.W = torch.as_tensor(
+                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ).flatten()
+        elif model.target.has_variance:
+            self.W = self.model.target[self.fit_window].flatten("weight")
+        else:
+            self.W = torch.ones_like(self.model.target[self.fit_window].flatten("data"))
+
     def compute_loss(self) -> torch.Tensor:
         Ym = self.model(parameters=self.current_state, as_representation=True).flatten("data")
         Yt = self.model.target[self.model.window].flatten("data")
-        W = (
-            self.model.target[self.model.window].flatten("variance")
-            if self.model.target.has_variance
-            else 1.0
-        )
         ndf = len(Yt) - len(self.current_state)
         if self.model.target.has_mask:
             mask = self.model.target[self.model.window].flatten("mask")
             ndf -= torch.sum(mask)
             mask = torch.logical_not(mask)
-            loss = torch.sum((Ym[mask] - Yt[mask]) ** 2 / W[mask]) / ndf
+            loss = torch.sum((Ym[mask] - Yt[mask]) ** 2 * self.W[mask]) / ndf
         else:
-            loss = torch.sum((Ym - Yt) ** 2 / W) / ndf
+            loss = torch.sum((Ym - Yt) ** 2 * self.W) / ndf
         return loss
 
     def step(self) -> None:
@@ -146,7 +151,7 @@ class Grad(BaseOptimizer):
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
         self.model.parameters.vector_set_representation(self.res())
-        if self.verbose > 1:
+        if self.verbose > 0:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )

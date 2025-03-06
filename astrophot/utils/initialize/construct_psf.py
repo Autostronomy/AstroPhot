@@ -32,7 +32,7 @@ def gaussian_psf(sigma, img_width, pixelscale, upsample=4):
     return ZZ / np.sum(ZZ)
 
 
-def moffat_psf(n, Rd, img_width, pixelscale, upsample=4):
+def moffat_psf(n, Rd, img_width, pixelscale, upsample=4, normalize=True):
     assert img_width % 2 == 1, "psf images should have an odd shape"
 
     # Number of super sampled pixels
@@ -57,7 +57,9 @@ def moffat_psf(n, Rd, img_width, pixelscale, upsample=4):
     ZZ = ZZ.reshape(img_width, upsample, img_width, upsample).sum(axis=(1, 3)) / (upsample**2)
 
     # Normalize the PSF
-    return ZZ / np.sum(ZZ)
+    if normalize:
+        return ZZ / np.sum(ZZ)
+    return ZZ
 
 
 def construct_psf(stars, image, sky_est, size=51, mask=None, keep_init=False, Lanczos_scale=3):
