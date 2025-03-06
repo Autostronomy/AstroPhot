@@ -77,7 +77,7 @@ else:
 if isinstance(psf_file, str):
     print("loading psf")
     hdu = fits.open(psf_file)
-    psf_data = np.array(hdu[psf_hdu].data, dtype=bool)
+    psf_data = np.array(hdu[psf_hdu].data, dtype=np.float64)
     psf = ap.image.PSF_Image(
         data=psf_data,
         pixelscale=pixelscale,
