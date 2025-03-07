@@ -6,7 +6,7 @@ from matplotlib.patches import Polygon
 import matplotlib
 from scipy.stats import iqr
 
-from ..models import Group_Model, PSF_Model
+from ..models import Group_Model, PSF_Model, AstroPhot_Model
 from ..image import Image_List, Window_List
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
@@ -109,7 +109,7 @@ def psf_image(
     flipx=False,
     **kwargs,
 ):
-    if isinstance(psf, PSF_Model):
+    if isinstance(psf, AstroPhot_Model):
         psf = psf()
     # recursive call for target image list
     if isinstance(psf, Image_List):

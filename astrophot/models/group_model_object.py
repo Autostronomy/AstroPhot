@@ -10,6 +10,8 @@ from ..image import (
     Image_List,
     Window,
     Window_List,
+    Model_Image,
+    Model_Image_List,
     Jacobian_Image,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
@@ -191,6 +193,14 @@ class Group_Model(AstroPhot_Model):
         if parameters is None:
             parameters = self.parameters
 
+        working_window = image.window.copy()
+        if isinstance(working_window, Window_List):
+            working_image = Model_Image_List(
+                [Model_Image(window=window) for window in working_window]
+            )
+        else:
+            working_image = Model_Image(window=working_window)
+
         for model in self.models.values():
             if window is not None and isinstance(window, Window_List):
                 indices = self.target.match_indices(model.target)
@@ -204,10 +214,12 @@ class Group_Model(AstroPhot_Model):
                 use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model(window=use_window, parameters=parameters[model.name])
+                working_image += model(window=use_window, parameters=parameters[model.name])
             else:
                 # Will sample the entire image
-                model(image, window=use_window, parameters=parameters[model.name])
+                model(working_image, window=use_window, parameters=parameters[model.name])
+
+        image += working_image
 
         return image
 

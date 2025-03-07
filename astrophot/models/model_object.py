@@ -95,7 +95,6 @@ class Component_Model(AstroPhot_Model):
     softening = 1e-3
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
-    special_kwargs = ["parameters", "filename", "model_type"]
     track_attrs = [
         "psf_mode",
         "psf_convolve_mode",
@@ -114,18 +113,11 @@ class Component_Model(AstroPhot_Model):
 
     def __init__(self, *, name=None, **kwargs):
         self._target_identity = None
-        super().__init__(name=name, **kwargs)
 
         self.psf = None
         self.psf_aux_image = None
 
-        # Set any user defined attributes for the model
-        for kwarg in kwargs:  # fixme move to core model?
-            # Skip parameters with special behaviour
-            if kwarg in self.special_kwargs:
-                continue
-            # Set the model parameter
-            setattr(self, kwarg, kwargs[kwarg])
+        super().__init__(name=name, **kwargs)
 
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
@@ -318,7 +310,7 @@ class Component_Model(AstroPhot_Model):
                 )
             else:
                 psf = self.psf
-            psf_upscale = torch.round(image.pixel_length / psf.pixel_length).int()
+            psf_upscale = torch.round(working_window.pixel_length / psf.pixel_length).int()
             working_window = working_window.rescale_pixel(1 / psf_upscale)
             # Add border for psf convolution edge effects, will be cropped out later
             working_window.pad_pixel(psf.psf_border_int)
@@ -353,8 +345,8 @@ class Component_Model(AstroPhot_Model):
             if self.psf_subpixel_shift != "none":
                 working_image.header.pixel_shift(-center_shift)
             # Add the sampled/integrated/convolved pixels to the requested image
-            working_image = working_image.reduce(psf_upscale).crop(psf.psf_border_int)
-
+            working_upscale = torch.round(image.pixel_length / working_window.pixel_length).int()
+            working_image = working_image.crop(psf.psf_border_int).reduce(working_upscale)
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(pixelscale=image.pixelscale, window=working_window)
