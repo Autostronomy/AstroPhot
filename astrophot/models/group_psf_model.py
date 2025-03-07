@@ -53,14 +53,10 @@ class PSF_Group_Model(Group_Model):
             image = self.make_model_image(window=window)
         else:
             sample_window = False
+        if window is None:
+            window = image.window
 
-        working_window = image.window.copy()
-        if isinstance(working_window, Window_List):
-            working_image = Model_Image_List(
-                [Model_Image(window=window) for window in working_window]
-            )
-        else:
-            working_image = Model_Image(window=working_window)
+        working_image = image[window].blank_copy()
 
         if parameters is None:
             parameters = self.parameters
