@@ -218,3 +218,77 @@ class TestPSFGroup(unittest.TestCase):
             torch.all(newmod.parameters.vector_values() == smod.parameters.vector_values()),
             "Save/load should extract all parameters",
         )
+
+    def test_psfgroupmodel_fitting(self):
+
+        np.random.seed(124)
+        pixelscale = 1.0
+        psf1 = ap.utils.initialize.moffat_psf(1.0, 4.0, 101, pixelscale, normalize=False)
+        psf2 = ap.utils.initialize.moffat_psf(3.0, 2.0, 101, pixelscale, normalize=False)
+        psf = psf1 + 0.5 * psf2
+        psf /= psf.sum()
+        star = psf * 10  # flux of 10
+        variance = star / 1e5
+        star += np.random.normal(scale=np.sqrt(variance))
+
+        psf_target2 = ap.image.PSF_Image(
+            data=star.copy() / star.sum(),  # empirical PSF from cutout
+            pixelscale=pixelscale,
+        )
+        psf_target2.normalize()
+
+        point_target = ap.image.Target_Image(
+            data=star,  # cutout of star
+            pixelscale=pixelscale,
+            variance=variance,
+        )
+
+        moffat_component1 = ap.models.AstroPhot_Model(
+            name="psf part1",
+            model_type="moffat psf model",
+            target=psf_target2,
+            parameters={
+                "n": 1.5,
+                "Rd": 4.5,
+                "I0": {"value": -3.0, "locked": False},
+            },
+            normalize_psf=False,
+        )
+
+        moffat_component2 = ap.models.AstroPhot_Model(
+            name="psf part2",
+            model_type="moffat psf model",
+            target=psf_target2,
+            parameters={
+                "n": 2.6,
+                "Rd": 1.7,
+                "I0": {"value": -2.3, "locked": False},
+            },
+            normalize_psf=False,
+        )
+
+        full_psf_model = ap.models.AstroPhot_Model(
+            name="full psf",
+            model_type="psf group model",
+            target=psf_target2,
+            models=[moffat_component1, moffat_component2],
+            normalize_psf=True,
+        )
+        full_psf_model.initialize()
+
+        model = ap.models.AstroPhot_Model(
+            name="star",
+            model_type="point model",
+            target=point_target,
+            psf=full_psf_model,
+        )
+        model.initialize()
+
+        ap.fit.LM(model, verbose=1).fit()
+
+        self.assertTrue(
+            abs(model["flux"].value.item() - 1.0) < 1e-2, "Star flux should be accurate"
+        )
+        self.assertTrue(
+            model["flux"].uncertainty.item() < 1e-2, "Star flux uncertainty should be small"
+        )
