@@ -30,7 +30,7 @@ __all__ = [
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[4]
+    return R[len(R) // 2], F[len(R) // 2]
 
 
 def _wrap_exp(R, re, ie):
