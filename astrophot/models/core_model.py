@@ -92,6 +92,7 @@ class AstroPhot_Model(object):
     default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
     usable = False
     model_names = []
+    special_kwargs = ["parameters", "filename", "model_type", "usable"]
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):
         if filename is not None:
@@ -124,6 +125,14 @@ class AstroPhot_Model(object):
         self.window = window
         self._locked = locked
         self.mask = kwargs.get("mask", None)
+
+        # Set any user defined attributes for the model
+        for kwarg in kwargs:
+            # Skip parameters with special behaviour
+            if kwarg in self.special_kwargs:
+                continue
+            # Set the model parameter
+            setattr(self, kwarg, kwargs[kwarg])
 
     @property
     def name(self):
@@ -174,6 +183,11 @@ class AstroPhot_Model(object):
 
         """
         pass
+
+    @property
+    def is_initialized(self):
+        """Returns True if all parameters have been initialized."""
+        return all((not P.leaf) or (P.value is not None) for P in self.parameters)
 
     def make_model_image(self, window: Optional[Window] = None):
         """This is called to create a blank `Model_Image` object of the

@@ -7,9 +7,12 @@ from .core_model import AstroPhot_Model
 from ..image import (
     Image,
     Target_Image,
+    Target_Image_List,
     Image_List,
     Window,
     Window_List,
+    Model_Image,
+    Model_Image_List,
     Jacobian_Image,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
@@ -132,7 +135,8 @@ class Group_Model(AstroPhot_Model):
 
         target_copy = target.copy()
         for model in self.models.values():
-            print("Initializing: ", model.name)
+            if not model.is_initialized:
+                print("Initializing: ", model.name)
             model.initialize(target=target_copy, parameters=parameters[model.name])
             target_copy -= model(parameters=parameters[model.name])
 
@@ -188,8 +192,12 @@ class Group_Model(AstroPhot_Model):
             image = self.make_model_image(window=window)
         else:
             sample_window = False
+        if window is None:
+            window = image.window
         if parameters is None:
             parameters = self.parameters
+
+        working_image = image[window].blank_copy()
 
         for model in self.models.values():
             if window is not None and isinstance(window, Window_List):
@@ -204,10 +212,12 @@ class Group_Model(AstroPhot_Model):
                 use_window = window
             if sample_window:
                 # Will sample the model fit window then add to the image
-                image += model(window=use_window, parameters=parameters[model.name])
+                working_image += model(window=use_window, parameters=parameters[model.name])
             else:
                 # Will sample the entire image
-                model(image, window=use_window, parameters=parameters[model.name])
+                model(working_image, window=use_window, parameters=parameters[model.name])
+
+        image += working_image
 
         return image
 
