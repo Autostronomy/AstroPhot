@@ -113,7 +113,6 @@ class Component_Model(AstroPhot_Model):
 
     def __init__(self, *, name=None, **kwargs):
         self._target_identity = None
-
         self.psf = None
         self.psf_aux_image = None
 

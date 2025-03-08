@@ -33,7 +33,7 @@ class PSF_Group_Model(Group_Model):
     @target.setter
     def target(self, tar):
         if not (tar is None or isinstance(tar, PSF_Image)):
-            raise InvalidTarget("Group_Model target must be a PSF_Image instance.")
+            raise InvalidTarget("PSF_Group_Model target must be a PSF_Image instance.")
         self._target = tar
 
         if hasattr(self, "models"):
@@ -78,7 +78,6 @@ class PSF_Group_Model(Group_Model):
             else:
                 # Will sample the entire image
                 model(working_image, window=use_window, parameters=parameters[model.name])
-
         if self.normalize_psf:
             working_image.data /= working_image.data.sum()
         image += working_image
