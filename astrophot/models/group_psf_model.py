@@ -1,6 +1,7 @@
 from typing import Optional
 
 from .group_model_object import Group_Model
+from ..image import PSF_Image
 from ..image import PSF_Image, Image, Window, Model_Image, Model_Image_List, Window_List
 from ..errors import InvalidTarget
 from ..param import Parameter_Node
@@ -32,7 +33,7 @@ class PSF_Group_Model(Group_Model):
     @target.setter
     def target(self, tar):
         if not (tar is None or isinstance(tar, PSF_Image)):
-            raise InvalidTarget("Group_Model target must be a PSF_Image instance.")
+            raise InvalidTarget("PSF_Group_Model target must be a PSF_Image instance.")
         self._target = tar
 
         if hasattr(self, "models"):
@@ -52,14 +53,10 @@ class PSF_Group_Model(Group_Model):
             image = self.make_model_image(window=window)
         else:
             sample_window = False
+        if window is None:
+            window = image.window
 
-        working_window = image.window.copy()
-        if isinstance(working_window, Window_List):
-            working_image = Model_Image_List(
-                [Model_Image(window=window) for window in working_window]
-            )
-        else:
-            working_image = Model_Image(window=working_window)
+        working_image = image[window].blank_copy()
 
         if parameters is None:
             parameters = self.parameters

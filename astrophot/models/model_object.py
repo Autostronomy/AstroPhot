@@ -346,7 +346,6 @@ class Component_Model(AstroPhot_Model):
             # Add the sampled/integrated/convolved pixels to the requested image
             working_upscale = torch.round(image.pixel_length / working_window.pixel_length).int()
             working_image = working_image.crop(psf.psf_border_int).reduce(working_upscale)
-
         else:
             # Create an image to store pixel samples
             working_image = Model_Image(pixelscale=image.pixelscale, window=working_window)

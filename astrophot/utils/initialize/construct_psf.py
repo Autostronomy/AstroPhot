@@ -2,9 +2,10 @@ import numpy as np
 
 from .center import GaussianDensity_Peak
 from ..interpolate import shift_Lanczos_np
+from ... import AP_config
 
 
-def gaussian_psf(sigma, img_width, pixelscale, upsample=4):
+def gaussian_psf(sigma, img_width, pixelscale, upsample=4, normalize=True):
     assert img_width % 2 == 1, "psf images should have an odd shape"
 
     # Number of super sampled pixels
@@ -29,7 +30,9 @@ def gaussian_psf(sigma, img_width, pixelscale, upsample=4):
     ZZ = ZZ.reshape(img_width, upsample, img_width, upsample).sum(axis=(1, 3)) / (upsample**2)
 
     # Normalize the PSF
-    return ZZ / np.sum(ZZ)
+    if normalize:
+        return ZZ / np.sum(ZZ)
+    return ZZ
 
 
 def moffat_psf(n, Rd, img_width, pixelscale, upsample=4, normalize=True):
