@@ -4,6 +4,7 @@ from collections import OrderedDict
 import torch
 
 from .core_model import AstroPhot_Model
+from .. import AP_config
 from ..image import (
     Image,
     Target_Image,
@@ -49,12 +50,16 @@ class Group_Model(AstroPhot_Model):
         models: Optional[Sequence[AstroPhot_Model]] = None,
         **kwargs,
     ):
-        super().__init__(name=name, models=models, **kwargs)
+        if "model" in kwargs:
+            AP_config.ap_logger.warning(
+                "kwarg `model` is not used in Group_Model, did you mean `models` instead?"
+            )
+        self._psf_mode = "none"
         self._param_tuple = None
         self.models = OrderedDict()
+        super().__init__(name=name, **kwargs)
         if models is not None:
             self.add_model(models)
-        self._psf_mode = "none"
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"], new_name=name)
@@ -71,13 +76,17 @@ class Group_Model(AstroPhot_Model):
             for mod in model:
                 self.add_model(mod)
             return
-        if model.name in self.models and model is not self.models[model.name]:
+        if model.name in self.models:
+            if model is self.models[model.name]:
+                return
             raise KeyError(
                 f"{self.name} already has model with name {model.name}, every model must have a unique name."
             )
 
         self.models[model.name] = model
         self.parameters.link(model.parameters)
+        self.psf_mode = self.psf_mode
+        self.target = self.target
         self.update_window()
 
     def update_window(self, include_locked: bool = False):
@@ -283,8 +292,9 @@ class Group_Model(AstroPhot_Model):
     @psf_mode.setter
     def psf_mode(self, value):
         self._psf_mode = value
-        for model in self.models.values():
-            model.psf_mode = value
+        if hasattr(self, "models"):
+            for model in self.models.values():
+                model.psf_mode = value
 
     @property
     def target(self):
