@@ -1,7 +1,9 @@
 import unittest
-import astrophot as ap
-import torch
+
 import numpy as np
+import torch
+
+import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian_psf
 
 
@@ -30,6 +32,7 @@ class TestGroup(unittest.TestCase):
             name="group model",
             model_type="group model",
             models=[mod1, mod2],
+            psf_mode="none",
             target=tar,
         )
 
@@ -38,6 +41,29 @@ class TestGroup(unittest.TestCase):
         smod.initialize()
 
         self.assertTrue(torch.all(smod().data == 0), "model_image should be zeros")
+
+        # add existing model does nothing
+        smod.add_model(mod1)
+        self.assertEqual(len(smod.models), 2, "Adding existing model should not change model count")
+
+        # error for adding mdoels with the same name
+        mod3 = ap.models.Component_Model(
+            name="base model 2",
+            target=tar,
+            parameters={"center": {"value": [5, 5], "locked": True}},
+        )
+        with self.assertRaises(KeyError):
+            smod.add_model(mod3)
+
+        # Warning for wrong kwarg name
+        with self.assertLogs(ap.AP_config.ap_logger.name, level="WARNING"):
+            ap.models.AstroPhot_Model(
+                name="group model",
+                model_type="group model",
+                model=[mod1, mod2],
+                psf_mode="none",
+                target=tar,
+            )
 
     def test_jointmodel_creation(self):
         np.random.seed(12345)
