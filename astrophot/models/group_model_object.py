@@ -292,8 +292,9 @@ class Group_Model(AstroPhot_Model):
     @psf_mode.setter
     def psf_mode(self, value):
         self._psf_mode = value
-        for model in self.models.values():
-            model.psf_mode = value
+        if hasattr(self, "models"):
+            for model in self.models.values():
+                model.psf_mode = value
 
     @property
     def target(self):
