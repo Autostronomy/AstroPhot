@@ -310,8 +310,17 @@ class Group_Model(AstroPhot_Model):
         self._target = tar
 
         if hasattr(self, "models"):
-            for model in self.models.values():
-                model.target = tar
+            if not isinstance(tar, Image_List):
+                for model in self.models.values():
+                    if model.target is None:
+                        model.target = tar
+                    elif (
+                        isinstance(model.target, Image_List)
+                        or model.target.identity != tar.identity
+                    ):
+                        AP_config.ap_logger.warning(
+                            f"Group_Model target does not match model {model.name} target. This may cause issues. Use the same Target_Image object for all relevant models."
+                        )
 
     def get_state(self, save_params=True):
         """Returns a dictionary with information about the state of the model
