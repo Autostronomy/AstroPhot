@@ -62,6 +62,12 @@ class Model_Image(Image):
         else:
             self.data = other
 
+    def copy(self, **kwargs):
+        return super().copy(target_identity=self.target_identity, **kwargs)
+
+    def blank_copy(self, **kwargs):
+        return super().blank_copy(target_identity=self.target_identity, **kwargs)
+
     def get_state(self):
         state = super().get_state()
         state["target_identity"] = self.target_identity
