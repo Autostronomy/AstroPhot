@@ -221,14 +221,18 @@ class Component_Model(AstroPhot_Model):
         init_icenter = target_area.plane_to_pixel(parameters["center"].value)
 
         # Compute center of mass in window
+        target_data = target_area.data.detach().cpu().numpy()
+        if target_area.has_mask:
+            print("mask")
+            target_data = target_data * (~target_area.mask.detach().cpu().numpy())
         COM = center_of_mass(
             (
                 init_icenter[1].detach().cpu().item(),
                 init_icenter[0].detach().cpu().item(),
             ),
-            target_area.data.detach().cpu().numpy(),
+            target_data,
         )
-        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
+        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_data.shape)):
             AP_config.ap_logger.warning("center of mass failed, using center of window")
             return
         COM = (COM[1], COM[0])
@@ -238,7 +242,11 @@ class Component_Model(AstroPhot_Model):
         )
 
         # Set the new coordinates as the model center
-        parameters["center"].value = COM_center
+        with (
+            Param_Unlock(parameters["center"]),
+            Param_SoftLimits(parameters["center"]),
+        ):
+            parameters["center"].value = COM_center
 
     # Fit loop functions
     ######################################################################
