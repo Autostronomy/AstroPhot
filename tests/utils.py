@@ -47,6 +47,7 @@ def make_basic_sersic(
         pixelscale=pixelscale,
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
         mask=mask,
+        zeropoint=21.5,
     )
 
     MODEL = ap.models.Sersic_Galaxy(

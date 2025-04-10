@@ -235,39 +235,3 @@ def moffat_I0_to_flux(I0, n, rd, q):
       q: axis ratio
     """
     return I0 * np.pi * rd**2 * q / (n - 1)
-
-
-def general_uncertainty_prop(
-    param_tuple,  # tuple of parameter values
-    param_err_tuple,  # tuple of parameter uncertainties
-    forward,  # forward function through which to get uncertainty
-):
-    """Simple function to propagate uncertainty using the standard first
-    order error propagation method with autodiff derivatives. The encodes:
-
-    .. math::
-
-      \\sigma_f^2 = \sum_i \\left(\\frac{df}{dx_i}\\sigma_i\\right)^2
-
-    where `i` indexes over all the parameters of the function `f`
-
-    Args:
-      param_tuple (tuple): A tuple of the inputs to the function as pytorch tensors.
-      param_err_tuple (tuple): A tuple of uncertainties (sigma) for the input parameters.
-      forward (func): The function through which to propagate uncertainty, should be of the form: `f(*x) -> y` where `x` is the `param_tuple` as given and `y` is a scalar.
-
-    """
-    # Make a new set of parameters which track uncertainty
-    new_params = []
-    for p in param_tuple:
-        newp = p.detach()
-        newp.requires_grad = True
-        new_params.append(newp)
-    # propagate forward and compute derivatives
-    f = forward(*new_params)
-    f.backward()
-    # Add all the error contributions in quadrature
-    x = torch.zeros_like(f)
-    for i in range(len(new_params)):
-        x = x + (new_params[i].grad * param_err_tuple[i]) ** 2
-    return x.sqrt()

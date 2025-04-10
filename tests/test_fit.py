@@ -152,7 +152,13 @@ class TestComponentModelFits(unittest.TestCase):
             1,
             "LM should accurately recover parameters in simple cases",
         )
-        cov = res.covariance_matrix
+        res.covariance_matrix
+
+        # check for crash
+        mod.total_flux()
+        mod.total_flux_uncertainty()
+        mod.total_magnitude()
+        mod.total_magnitude_uncertainty()
 
 
 class TestGroupModelFits(unittest.TestCase):
