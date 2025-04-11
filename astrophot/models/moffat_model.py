@@ -6,7 +6,7 @@ from .psf_model_object import PSF_Model
 from ._shared_methods import parametric_initialize, select_target
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import moffat_np
-from ..utils.conversions.functions import moffat_I0_to_flux, general_uncertainty_prop
+from ..utils.conversions.functions import moffat_I0_to_flux
 from ..param import Param_Unlock, Param_SoftLimits
 
 __all__ = ["Moffat_Galaxy", "Moffat_PSF"]
@@ -57,32 +57,12 @@ class Moffat_Galaxy(Galaxy_Model):
         parametric_initialize(self, parameters, target, _wrap_moffat, ("n", "Rd", "I0"), _x0_func)
 
     @default_internal
-    def total_flux(self, parameters=None):
+    def total_flux(self, parameters=None, window=None):
         return moffat_I0_to_flux(
             10 ** parameters["I0"].value,
             parameters["n"].value,
             parameters["Rd"].value,
             parameters["q"].value,
-        )
-
-    @default_internal
-    def total_flux_uncertainty(self, parameters=None):
-        return general_uncertainty_prop(
-            (
-                10 ** parameters["I0"].value,
-                parameters["n"].value,
-                parameters["Rd"].value,
-                parameters["q"].value,
-            ),
-            (
-                (10 ** parameters["I0"].value)
-                * parameters["I0"].uncertainty
-                * torch.log(10 * torch.ones_like(parameters["I0"].value)),
-                parameters["n"].uncertainty,
-                parameters["Rd"].uncertainty,
-                parameters["q"].uncertainty,
-            ),
-            moffat_I0_to_flux,
         )
 
     from ._shared_methods import moffat_radial_model as radial_model
@@ -128,32 +108,12 @@ class Moffat_PSF(PSF_Model):
     from ._shared_methods import moffat_radial_model as radial_model
 
     @default_internal
-    def total_flux(self, parameters=None):
+    def total_flux(self, parameters=None, window=None):
         return moffat_I0_to_flux(
             10 ** parameters["I0"].value,
             parameters["n"].value,
             parameters["Rd"].value,
             torch.ones_like(parameters["n"].value),
-        )
-
-    @default_internal
-    def total_flux_uncertainty(self, parameters=None):
-        return general_uncertainty_prop(
-            (
-                10 ** parameters["I0"].value,
-                parameters["n"].value,
-                parameters["Rd"].value,
-                torch.ones_like(parameters["n"].value),
-            ),
-            (
-                (10 ** parameters["I0"].value)
-                * parameters["I0"].uncertainty
-                * torch.log(10 * torch.ones_like(parameters["I0"].value)),
-                parameters["n"].uncertainty,
-                parameters["Rd"].uncertainty,
-                torch.zeros_like(parameters["n"].value),
-            ),
-            moffat_I0_to_flux,
         )
 
     from ._shared_methods import radial_evaluate_model as evaluate_model

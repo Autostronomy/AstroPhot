@@ -3,6 +3,7 @@ from typing import Optional
 
 import torch
 import yaml
+import numpy as np
 
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
 from ..utils.decorators import ignore_numpy_warnings, default_internal
@@ -262,9 +263,30 @@ class AstroPhot_Model(object):
         raise NotImplementedError("please use a subclass of AstroPhot_Model")
 
     @default_internal
-    def total_flux(self, parameters=None, window=None, image=None):
-        F = self(parameters=parameters, window=None, image=None)
+    def total_flux(self, parameters=None, window=None):
+        F = self(parameters=parameters, window=window, image=None)
         return torch.sum(F.data)
+
+    @default_internal
+    def total_flux_uncertainty(self, parameters=None, window=None):
+        current_state = parameters.vector_values()
+        jac = self.jacobian(parameters=current_state, window=window).flatten("data")
+        dF = torch.sum(jac, dim=0)  # VJP for sum(total_flux)
+        current_uncertainty = self.parameters.vector_uncertainty()
+        return torch.sqrt(torch.sum((dF * current_uncertainty) ** 2))
+
+    @default_internal
+    def total_magnitude(self, parameters=None, window=None):
+        """Returns the total magnitude of the model in the given window."""
+        F = self.total_flux(parameters=parameters, window=window)
+        return -2.5 * torch.log10(F) + self.target.header.zeropoint
+
+    @default_internal
+    def total_magnitude_uncertainty(self, parameters=None, window=None):
+        """Returns the uncertainty in the total magnitude of the model in the given window."""
+        F = self.total_flux(parameters=parameters, window=window)
+        dF = self.total_flux_uncertainty(parameters=parameters, window=window)
+        return torch.abs(2.5 * dF / (F * np.log(10)))
 
     @property
     def window(self):
