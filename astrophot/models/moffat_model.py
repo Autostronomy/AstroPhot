@@ -13,7 +13,7 @@ __all__ = ["Moffat_Galaxy", "Moffat_PSF"]
 
 
 def _x0_func(model_params, R, F):
-    return 2.0, R[4], F[0]
+    return 2.0, R[len(R) // 2], F[0]
 
 
 def _wrap_moffat(R, n, rd, i0):

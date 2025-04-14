@@ -27,7 +27,7 @@ __all__ = [
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[0]
+    return R[len(R) // 2], F[0]
 
 
 def _wrap_gauss(R, sig, flu):
