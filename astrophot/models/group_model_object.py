@@ -227,7 +227,6 @@ class Group_Model(AstroPhot_Model):
                 model(working_image, window=use_window, parameters=parameters[model.name])
 
         image += working_image
-
         return image
 
     @torch.no_grad()
