@@ -130,7 +130,8 @@ class Component_Model(AstroPhot_Model):
             return
 
         self.parameter_specs = self.build_parameter_specs(kwargs)
-        self.center = Param("center", **self.parameter_specs["center"])
+        for key in self.parameter_specs:
+            setattr(self, key, Param(key, **self.parameter_specs[key]))
 
     def set_aux_psf(self, aux_psf, add_parameters=True):
         """Set the PSF for this model as an auxiliary psf model. This psf
@@ -207,7 +208,7 @@ class Component_Model(AstroPhot_Model):
             return
 
         # Convert center coordinates to target area array indices
-        init_icenter = target_area.plane_to_pixel(parameters["center"].value)
+        init_icenter = target_area.plane_to_pixel(self.center.value)
 
         # Compute center of mass in window
         COM = center_of_mass(
@@ -227,16 +228,17 @@ class Component_Model(AstroPhot_Model):
         )
 
         # Set the new coordinates as the model center
-        parameters["center"].value = COM_center
+        self.center.value = COM_center
 
     # Fit loop functions
     ######################################################################
+    @forward
     def evaluate_model(
         self,
         X: Optional[torch.Tensor] = None,
         Y: Optional[torch.Tensor] = None,
         image: Optional[Image] = None,
-        parameters: Parameter_Node = None,
+        center=None,
         **kwargs,
     ):
         """Evaluate the model on every pixel in the given image. The
@@ -249,14 +251,15 @@ class Component_Model(AstroPhot_Model):
         """
         if X is None or Y is None:
             Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = Coords - center[..., None, None]
         return torch.zeros_like(X)  # do nothing in base model
 
+    @forward
     def sample(
         self,
         image: Optional[Image] = None,
         window: Optional[Window] = None,
-        parameters: Optional[Parameter_Node] = None,
+        center=None,
     ):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
@@ -314,7 +317,7 @@ class Component_Model(AstroPhot_Model):
             working_image = Model_Image(window=working_window)
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
-                pixel_center = working_image.plane_to_pixel(parameters["center"].value)
+                pixel_center = working_image.plane_to_pixel(center)
                 center_shift = pixel_center - torch.round(pixel_center)
                 working_image.header.pixel_shift(center_shift)
             else:
@@ -323,13 +326,10 @@ class Component_Model(AstroPhot_Model):
             # Evaluate the model at the current resolution
             reference, deep = self._sample_init(
                 image=working_image,
-                parameters=parameters,
-                center=parameters["center"].value,
+                center=center,
             )
             # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            deep = self._sample_integrate(
-                deep, reference, working_image, parameters, parameters["center"].value
-            )
+            deep = self._sample_integrate(deep, reference, working_image, parameters, center)
 
             # update the image with the integrated pixels
             working_image.data += deep
@@ -349,8 +349,7 @@ class Component_Model(AstroPhot_Model):
             # Evaluate the model on the image
             reference, deep = self._sample_init(
                 image=working_image,
-                parameters=parameters,
-                center=parameters["center"].value,
+                center=center,
             )
             # Super-resolve and integrate where needed
             deep = self._sample_integrate(
@@ -358,7 +357,7 @@ class Component_Model(AstroPhot_Model):
                 reference,
                 working_image,
                 parameters,
-                center=parameters["center"].value,
+                center=center,
             )
             # Add the sampled/integrated pixels to the requested image
             working_image.data += deep
@@ -433,7 +432,6 @@ class Component_Model(AstroPhot_Model):
     from ._model_methods import _integrate_reference
     from ._model_methods import _shift_psf
     from ._model_methods import build_parameter_specs
-    from ._model_methods import build_parameters
     from ._model_methods import jacobian
     from ._model_methods import _chunk_jacobian
     from ._model_methods import _chunk_image_jacobian

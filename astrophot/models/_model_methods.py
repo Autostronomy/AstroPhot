@@ -54,11 +54,11 @@ def build_parameter_specs(self, kwargs):
     return parameter_specs
 
 
-def _sample_init(self, image, parameters, center):
+def _sample_init(self, image, center):
     if self.sampling_mode == "midpoint":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
-        mid = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
+        mid = self.evaluate_model(X=X, Y=Y, image=image)
         kernel = curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
         # convolve curvature kernel to numericall compute second derivative
         curvature = torch.nn.functional.pad(
@@ -74,7 +74,7 @@ def _sample_init(self, image, parameters, center):
     elif self.sampling_mode == "simpsons":
         Coords = image.get_coordinate_simps_meshgrid()
         X, Y = Coords - center[..., None, None]
-        dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
+        dens = self.evaluate_model(X=X, Y=Y, image=image)
         kernel = simpsons_kernel(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         # midpoint is just every other sample in the simpsons grid
         mid = dens[1::2, 1::2]
@@ -91,7 +91,6 @@ def _sample_init(self, image, parameters, center):
             Y=Y,
             image_header=image.header,
             eval_brightness=self.evaluate_model,
-            eval_parameters=parameters,
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
             quad_level=quad_level,
@@ -100,7 +99,7 @@ def _sample_init(self, image, parameters, center):
     elif self.sampling_mode == "trapezoid":
         Coords = image.get_coordinate_corner_meshgrid()
         X, Y = Coords - center[..., None, None]
-        dens = self.evaluate_model(X=X, Y=Y, image=image, parameters=parameters)
+        dens = self.evaluate_model(X=X, Y=Y, image=image)
         kernel = (
             torch.ones((1, 1, 2, 2), dtype=AP_config.ap_dtype, device=AP_config.ap_device) / 4.0
         )
@@ -123,19 +122,17 @@ def _sample_init(self, image, parameters, center):
     )
 
 
-def _integrate_reference(self, image_data, image_header, parameters):
+def _integrate_reference(self, image_data, image_header):
     return torch.sum(image_data) / image_data.numel()
 
 
-def _sample_integrate(self, deep, reference, image, parameters, center):
+def _sample_integrate(self, deep, reference, image, center):
     if self.integrate_mode == "none":
         pass
     elif self.integrate_mode == "threshold":
         Coords = image.get_coordinate_meshgrid()
         X, Y = Coords - center[..., None, None]
-        ref = self._integrate_reference(
-            deep, image.header, parameters
-        )  # fixme, error can be over 100% on initial sampling reference is invalid
+        ref = self._integrate_reference(deep, image.header)
         error = torch.abs((deep - reference))
         select = error > (self.sampling_tolerance * ref)
         intdeep = grid_integrate(
@@ -143,7 +140,6 @@ def _sample_integrate(self, deep, reference, image, parameters, center):
             Y=Y[select],
             image_header=image.header,
             eval_brightness=self.evaluate_model,
-            eval_parameters=parameters,
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
             quad_level=self.integrate_quad_level,
@@ -233,9 +229,9 @@ def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
 
 
 @torch.no_grad()
+@forward
 def jacobian(
     self,
-    parameters: Optional[torch.Tensor] = None,
     as_representation: bool = False,
     window: Optional[Window] = None,
     pass_jacobian: Optional[Jacobian_Image] = None,
@@ -278,11 +274,6 @@ def jacobian(
         return self.target[window].jacobian_image()
 
     # Set the parameters if provided and check the size of the parameter list
-    if parameters is not None:
-        if as_representation:
-            self.parameters.vector_set_representation(parameters)
-        else:
-            self.parameters.vector_set_values(parameters)
     if torch.sum(self.parameters.vector_mask()) > self.jacobian_chunksize:
         return self._chunk_jacobian(
             as_representation=as_representation,
@@ -305,7 +296,7 @@ def jacobian(
             window=window,
         ).data,
         (
-            self.parameters.vector_representation().detach()
+            self.parameters.vector_representation().detach()  # need valid context
             if as_representation
             else self.parameters.vector_values().detach()
         ),

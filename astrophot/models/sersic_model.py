@@ -1,4 +1,5 @@
 import torch
+from caskade import Param, forward
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
@@ -14,10 +15,7 @@ from ._shared_methods import (
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import sersic_np
-from ..utils.conversions.functions import (
-    sersic_Ie_to_flux_torch,
-    general_uncertainty_prop,
-)
+from ..utils.conversions.functions import sersic_Ie_to_flux_torch
 
 
 __all__ = [
@@ -66,46 +64,21 @@ class Sersic_Galaxy(Galaxy_Model):
         "Re": {"units": "arcsec", "limits": (0, None)},
         "Ie": {"units": "log10(flux/arcsec^2)"},
     }
-    _parameter_order = Galaxy_Model._parameter_order + ("n", "Re", "Ie")
     usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self, target=None, **kwargs):
+        super().initialize(target=target)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
 
+    @forward
     @default_internal
-    def total_flux(self, parameters=None):
-        return sersic_Ie_to_flux_torch(
-            10 ** parameters["Ie"].value,
-            parameters["n"].value,
-            parameters["Re"].value,
-            parameters["q"].value,
-        )
-
-    @default_internal
-    def total_flux_uncertainty(self, parameters=None):
-        return general_uncertainty_prop(
-            (
-                10 ** parameters["Ie"].value,
-                parameters["n"].value,
-                parameters["Re"].value,
-                parameters["q"].value,
-            ),
-            (
-                (10 ** parameters["Ie"].value)
-                * parameters["Ie"].uncertainty
-                * torch.log(10 * torch.ones_like(parameters["Ie"].value)),
-                parameters["n"].uncertainty,
-                parameters["Re"].uncertainty,
-                parameters["q"].uncertainty,
-            ),
-            sersic_Ie_to_flux_torch,
-        )
+    def total_flux(self, Ie, n, Re, q):
+        return sersic_Ie_to_flux_torch(10**Ie, n, Re, q)
 
     def _integrate_reference(self, image_data, image_header, parameters):
         tot = self.total_flux(parameters)

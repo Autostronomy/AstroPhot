@@ -4,6 +4,7 @@ from scipy.stats import binned_statistic, iqr
 import numpy as np
 import torch
 from scipy.optimize import minimize
+from caskade import forward
 
 from ..utils.initialize import isophotes
 from ..utils.parametric_profiles import (
@@ -18,11 +19,10 @@ from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
 )
 from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
 
 
-def _sample_image(image, transform, metric, parameters, rad_bins=None):
+def _sample_image(image, transform, metric, center, rad_bins=None):
     dat = image.data.detach().cpu().clone().numpy()
     # Fill masked pixels
     if image.has_mask:
@@ -33,9 +33,9 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
     dat -= np.median(edge)
     # Get the radius of each pixel relative to object center
     Coords = image.get_coordinate_meshgrid()
-    X, Y = Coords - parameters["center"].value[..., None, None]
-    X, Y = transform(X, Y, image, parameters)
-    R = metric(X, Y, image, parameters).detach().cpu().numpy().flatten()
+    X, Y = Coords - center[..., None, None]
+    X, Y = transform(X, Y, image)
+    R = metric(X, Y, image).detach().cpu().numpy().flatten()
 
     # Bin fluxes by radius
     if rad_bins is None:
@@ -74,21 +74,19 @@ def _sample_image(image, transform, metric, parameters, rad_bins=None):
 ######################################################################
 @torch.no_grad()
 @ignore_numpy_warnings
-def parametric_initialize(
-    model, parameters, target, prof_func, params, x0_func, force_uncertainty=None
-):
-    if all(list(parameters[param].value is not None for param in params)):
+def parametric_initialize(model, target, prof_func, params, x0_func, force_uncertainty=None):
+    if all(list(model[param].value is not None for param in params)):
         return
 
     # Get the sub-image area corresponding to the model image
     target_area = target[model.window]
     R, I, S = _sample_image(
-        target_area, model.transform_coordinates, model.radius_metric, parameters
+        target_area, model.transform_coordinates, model.radius_metric, model.center.value
     )
 
     x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):
-        x0[i] = x0[i] if parameters[param].value is None else parameters[param].value.item()
+        x0[i] = x0[i] if model[param].value is None else model[param].value.item()
 
     def optim(x, r, f):
         residual = (f - np.log10(prof_func(r, *x))) ** 2
@@ -107,15 +105,14 @@ def parametric_initialize(
             N = np.random.randint(0, len(R), len(R))
             reses.append(minimize(optim, x0=x0, args=(R[N], I[N]), method="Nelder-Mead"))
     for param, resx, x0x in zip(params, res.x, x0):
-        with Param_Unlock(parameters[param]), Param_SoftLimits(parameters[param]):
-            if parameters[param].value is None:
-                parameters[param].value = resx if res.success else x0x
-            if force_uncertainty is None and parameters[param].uncertainty is None:
-                parameters[param].uncertainty = np.std(
-                    list(subres.x[params.index(param)] for subres in reses)
-                )
-            elif force_uncertainty is not None:
-                parameters[param].uncertainty = force_uncertainty[params.index(param)]
+        if model[param].value is None:
+            model[param].value = resx if res.success else x0x
+        if force_uncertainty is None and model[param].uncertainty is None:
+            model[param].uncertainty = np.std(
+                list(subres.x[params.index(param)] for subres in reses)
+            )
+        elif force_uncertainty is not None:
+            model[param].uncertainty = force_uncertainty[params.index(param)]
 
 
 @torch.no_grad()
@@ -237,11 +234,14 @@ def radial_evaluate_model(self, X=None, Y=None, image=None, parameters=None):
     )
 
 
+@forward
 @default_internal
-def transformed_evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
+def transformed_evaluate_model(
+    self, X=None, Y=None, image=None, parameters=None, center=None, **kwargs
+):
     if X is None or Y is None:
         Coords = image.get_coordinate_meshgrid()
-        X, Y = Coords - parameters["center"].value[..., None, None]
+        X, Y = Coords - center[..., None, None]
     X, Y = self.transform_coordinates(X, Y, image, parameters)
     return self.radial_model(
         self.radius_metric(X, Y, image=image, parameters=parameters),
@@ -252,13 +252,11 @@ def transformed_evaluate_model(self, X=None, Y=None, image=None, parameters=None
 
 # Transform Coordinates
 ######################################################################
+@forward
 @default_internal
-def inclined_transform_coordinates(self, X, Y, image=None, parameters=None):
-    X, Y = Rotate_Cartesian(-(parameters["PA"].value - image.north), X, Y)
-    return (
-        X,
-        Y / parameters["q"].value,
-    )
+def inclined_transform_coordinates(self, X, Y, image=None, PA=None, q=None):
+    X, Y = Rotate_Cartesian(-(PA - image.north), X, Y)
+    return X, Y / q
 
 
 # Exponential
@@ -283,14 +281,10 @@ def exponential_iradial_model(self, i, R, image=None, parameters=None):
 
 # Sersic
 ######################################################################
+@forward
 @default_internal
-def sersic_radial_model(self, R, image=None, parameters=None):
-    return sersic_torch(
-        R,
-        parameters["n"].value,
-        parameters["Re"].value,
-        image.pixel_area * 10 ** parameters["Ie"].value,
-    )
+def sersic_radial_model(self, R, image=None, n=None, Re=None, Ie=None):
+    return sersic_torch(R, n, Re, image.pixel_area * 10**Ie)
 
 
 @default_internal

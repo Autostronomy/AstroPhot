@@ -367,8 +367,8 @@ class AstroPhot_Model(Module):
         except:
             pass
 
-    @select_sample
     @forward
+    @select_sample
     def __call__(
         self,
         image=None,

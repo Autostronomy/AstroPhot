@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 import numpy as np
 from scipy.stats import iqr
+from caskade import Param, forward
 
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
@@ -10,7 +11,6 @@ from ..utils.angle_operations import Angle_COM_PA
 from ..utils.conversions.coordinates import (
     Rotate_Cartesian,
 )
-from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 from .model_object import Component_Model
 from ._shared_methods import select_target
 
@@ -50,17 +50,16 @@ class Galaxy_Model(Component_Model):
             "uncertainty": 0.06,
         },
     }
-    _parameter_order = Component_Model._parameter_order + ("q", "PA")
     usable = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
     @select_target
     @default_internal
-    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self, target=None, **kwargs):
+        super().initialize(target=target)
 
-        if not (parameters["PA"].value is None or parameters["q"].value is None):
+        if not (self.PA.value is None or self.q.value is None):
             return
         target_area = target[self.window]
         target_dat = target_area.data.detach().cpu().numpy()
@@ -77,12 +76,12 @@ class Galaxy_Model(Component_Model):
         )
         edge_average = np.nanmedian(edge)
         edge_scatter = iqr(edge[np.isfinite(edge)], rng=(16, 84)) / 2
-        icenter = target_area.plane_to_pixel(parameters["center"].value)
+        icenter = target_area.plane_to_pixel(self.center.value)
 
-        if parameters["PA"].value is None:
+        if self.PA.value is None:
             weights = target_dat - edge_average
             Coords = target_area.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+            X, Y = Coords - self.center.value[..., None, None]
             X, Y = X.detach().cpu().numpy(), Y.detach().cpu().numpy()
             if target_area.has_mask:
                 seg = np.logical_not(target_area.mask.detach().cpu().numpy())
@@ -90,27 +89,23 @@ class Galaxy_Model(Component_Model):
             else:
                 PA = Angle_COM_PA(weights, X, Y)
 
-            with Param_Unlock(parameters["PA"]), Param_SoftLimits(parameters["PA"]):
-                parameters["PA"].value = (PA + target_area.north) % np.pi
-                if parameters["PA"].uncertainty is None:
-                    parameters["PA"].uncertainty = (5 * np.pi / 180) * torch.ones_like(
-                        parameters["PA"].value
-                    )  # default uncertainty of 5 degrees is assumed
-        if parameters["q"].value is None:
+            self.PA.value = (PA + target_area.north) % np.pi
+            if self.PA.uncertainty is None:
+                self.PA.uncertainty = (5 * np.pi / 180) * torch.ones_like(
+                    self.PA.value
+                )  # default uncertainty of 5 degrees is assumed
+        if self.q.value is None:
             q_samples = np.linspace(0.2, 0.9, 15)
             iso_info = isophotes(
                 target_area.data.detach().cpu().numpy() - edge_average,
                 (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
                 threshold=3 * edge_scatter,
-                pa=(parameters["PA"].value - target.north).detach().cpu().item(),
+                pa=(self.PA.value - target.north).detach().cpu().item(),
                 q=q_samples,
             )
-            with Param_Unlock(parameters["q"]), Param_SoftLimits(parameters["q"]):
-                parameters["q"].value = q_samples[
-                    np.argmin(list(iso["amplitude2"] for iso in iso_info))
-                ]
-                if parameters["q"].uncertainty is None:
-                    parameters["q"].uncertainty = parameters["q"].value * self.default_uncertainty
+            self.q.value = q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))]
+            if self.q.uncertainty is None:
+                self.q.uncertainty = self.q.value * self.default_uncertainty
 
     from ._shared_methods import inclined_transform_coordinates as transform_coordinates
     from ._shared_methods import transformed_evaluate_model as evaluate_model
