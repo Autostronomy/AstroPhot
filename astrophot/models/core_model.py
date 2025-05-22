@@ -166,7 +166,6 @@ class AstroPhot_Model(Module):
     @forward
     def negative_log_likelihood(
         self,
-        as_representation=False,
     ):
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.

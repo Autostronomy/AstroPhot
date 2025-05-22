@@ -5,6 +5,7 @@ from torch.nn.functional import pad
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS as AstropyWCS
+from caskade import Module, Param
 
 from .window_object import Window, Window_List
 from .image_header import Image_Header
@@ -14,7 +15,7 @@ from ..errors import SpecificationConflict, ConflicingWCS, InvalidData, InvalidW
 __all__ = ["Image", "Image_List"]
 
 
-class Image(object):
+class Image(Module):
     """Core class to represent images with pixel values, pixel scale,
        and a window defining the spatial coordinates on the sky.
        It supports arithmetic operations with other image objects while preserving logical image boundaries.

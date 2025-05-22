@@ -1,9 +1,12 @@
 import torch
 import numpy as np
+from caskade import Module, Param, forward
 
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
 from ..errors import InvalidWCS
+from . import func
+
 
 __all__ = ("WPCS", "PPCS", "WCS")
 
@@ -702,18 +705,23 @@ class PPCS:
         return f"PPCS reference_imageij: {self.reference_imageij.detach().cpu().tolist()}, reference_imagexy: {self.reference_imagexy.detach().cpu().tolist()}, pixelscale: {self.pixelscale.detach().cpu().tolist()}"
 
 
-class WCS(WPCS, PPCS):
+class WCS(Module):
     """
     Full world coordinate system defines mappings from world to tangent plane to pixel grid and all other variations.
     """
 
-    def __init__(self, *args, wcs=None, **kwargs):
+    default_i0_j0 = (-0.5, -0.5)
+    default_x0_y0 = (0, 0)
+    default_ra0_dec0 = (0, 0)
+    default_pixelscale = 1
+
+    def __init__(self, *, wcs=None, pixelscale=None, **kwargs):
         if kwargs.get("state", None) is not None:
             self.set_state(kwargs["state"])
             return
 
         if wcs is not None:
-            if wcs.wcs.ctype[0] != "RA---TAN":
+            if wcs.wcs.ctype[0] != "RA---TAN":  # fixme handle sip
                 AP_config.ap_logger.warning(
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
@@ -722,51 +730,120 @@ class WCS(WPCS, PPCS):
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
 
-        if wcs is not None:
-            kwargs["reference_radec"] = kwargs.get("reference_radec", wcs.wcs.crval)
-            kwargs["reference_imageij"] = wcs.wcs.crpix
-            WPCS.__init__(self, *args, wcs=wcs, **kwargs)
-            sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
-            kwargs["reference_imagexy"] = self.world_to_plane(
-                torch.tensor(
-                    (sky_coord.ra.deg, sky_coord.dec.deg),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
+            kwargs["ra0"] = wcs.wcs.crval[0]
+            kwargs["dec0"] = wcs.wcs.crval[1]
+            kwargs["i0"] = wcs.wcs.crpix[0]
+            kwargs["j0"] = wcs.wcs.crpix[1]
+            # fixme
+            # sky_coord = wcs.pixel_to_world(*wcs.wcs.crpix)
+            # kwargs["x0_y0"] = self.world_to_plane(
+            #     torch.tensor(
+            #         (sky_coord.ra.deg, sky_coord.dec.deg),
+            #         dtype=AP_config.ap_dtype,
+            #         device=AP_config.ap_device,
+            #     )
+            # )
+
+        self.projection = kwargs.get("projection", self.default_projection)
+        self.ra0 = Param("ra0", kwargs.get("ra0", self.default_ra0_dec0[0]), units="deg")
+        self.dec0 = Param("dec0", kwargs.get("dec0", self.default_ra0_dec0[1]), units="deg")
+        self.x0 = Param("x0", kwargs.get("x0", self.default_x0_y0[0]), units="arcsec")
+        self.y0 = Param("y0", kwargs.get("y0", self.default_x0_y0[1]), units="arcsec")
+        self.i0 = Param("i0", kwargs.get("i0", self.default_i0_j0[0]), units="pixel")
+        self.j0 = Param("j0", kwargs.get("j0", self.default_i0_j0[1]), units="pixel")
+
+        # Collect the pixelscale of the pixel grid
+        if wcs is not None and pixelscale is None:
+            self.pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
+        elif pixelscale is not None:
+            if wcs is not None and isinstance(pixelscale, float):
+                AP_config.ap_logger.warning(
+                    "Overriding WCS pixelscale with manual input! To remove this message, either let WCS define pixelscale, or input full pixelscale matrix"
                 )
-            )
+            self.pixelscale = pixelscale
         else:
-            WPCS.__init__(self, *args, **kwargs)
+            AP_config.ap_logger.warning(
+                "Assuming pixelscale of 1! To remove this message please provide the pixelscale explicitly"
+            )
+            self.pixelscale = self.default_pixelscale
 
-        PPCS.__init__(self, *args, wcs=wcs, **kwargs)
+    @property
+    def pixelscale(self):
+        """Matrix defining the shape of pixels in the tangent plane, these
+        can be any parallelogram defined by the matrix.
 
-    def world_to_pixel(self, world_RA, world_DEC=None):
+        """
+        return self._pixelscale
+
+    @pixelscale.setter
+    def pixelscale(self, pix):
+        if pix is None:
+            self._pixelscale = None
+            return
+
+        self._pixelscale = (
+            torch.as_tensor(pix, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            .clone()
+            .detach()
+        )
+        if self._pixelscale.numel() == 1:
+            self._pixelscale = torch.tensor(
+                [[self._pixelscale.item(), 0.0], [0.0, self._pixelscale.item()]],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+        self._pixel_area = torch.linalg.det(self.pixelscale).abs()
+        self._pixel_length = self._pixel_area.sqrt()
+        self._pixelscale_inv = torch.linalg.inv(self.pixelscale)
+
+    @forward
+    def pixel_to_plane(self, i, j, i0, j0, x0, y0):
+        return func.pixel_to_plane_linear(i, j, i0, j0, self.pixelscale, x0, y0)
+
+    @forward
+    def plane_to_pixel(self, x, y, i0, j0, x0, y0):
+        return func.plane_to_pixel_linear(x, y, i0, j0, self._pixelscale_inv, x0, y0)
+
+    @forward
+    def plane_to_world(self, x, y, ra0, dec0, x0, y0):
+        return func.plane_to_world_gnomonic(x, y, ra0, dec0, x0, y0)
+
+    @forward
+    def world_to_plane(self, ra, dec, ra0, dec0, x0, y0):
+        return func.world_to_plane_gnomonic(ra, dec, ra0, dec0, x0, y0)
+
+    @forward
+    def world_to_pixel(self, ra, dec=None):
         """A wrapper which applies :meth:`world_to_plane` then
         :meth:`plane_to_pixel`, see those methods for further
         information.
 
         """
-        if world_DEC is None:
-            return torch.stack(self.world_to_pixel(*world_RA))
-        return self.plane_to_pixel(*self.world_to_plane(world_RA, world_DEC))
+        if dec is None:
+            ra, dec = ra[0], ra[1]
+        return self.plane_to_pixel(*self.world_to_plane(ra, dec))
 
-    def pixel_to_world(self, pixel_i, pixel_j=None):
+    @forward
+    def pixel_to_world(self, i, j=None):
         """A wrapper which applies :meth:`pixel_to_plane` then
         :meth:`plane_to_world`, see those methods for further
         information.
 
         """
-        if pixel_j is None:
-            return torch.stack(self.pixel_to_world(*pixel_i))
-        return self.plane_to_world(*self.pixel_to_plane(pixel_i, pixel_j))
+        if j is None:
+            i, j = i[0], i[1]
+        return self.plane_to_world(*self.pixel_to_plane(i, j))
 
     def copy(self, **kwargs):
         copy_kwargs = {
             "pixelscale": self.pixelscale,
-            "reference_imageij": self.reference_imageij,
-            "reference_imagexy": self.reference_imagexy,
+            "i0": self.i0.value,
+            "j0": self.j0.value,
+            "x0": self.x0.value,
+            "y0": self.y0.value,
+            "ra0": self.ra0.value,
+            "dec0": self.dec0.value,
             "projection": self.projection,
-            "reference_radec": self.reference_radec,
-            "reference_planexy": self.reference_planexy,
         }
         copy_kwargs.update(kwargs)
         return self.__class__(
@@ -774,8 +851,16 @@ class WCS(WPCS, PPCS):
         )
 
     def to(self, dtype=None, device=None):
-        WPCS.to(self, dtype, device)
-        PPCS.to(self, dtype, device)
+        if dtype is None:
+            dtype = AP_config.ap_dtype
+        if device is None:
+            device = AP_config.ap_device
+        super().to(dtype=dtype, device=device)
+        self._pixelscale = self._pixelscale.to(dtype=dtype, device=device)
+        self._pixel_area = self._pixel_area.to(dtype=dtype, device=device)
+        self._pixel_length = self._pixel_length.to(dtype=dtype, device=device)
+        self._pixelscale_inv = self._pixelscale_inv.to(dtype=dtype, device=device)
+        return self
 
     def get_state(self):
         state = WPCS.get_state(self)
