@@ -88,10 +88,10 @@ class Target_Image(Image):
             self.set_mask(kwargs.get("mask", None))
         if not self.has_weight and "weight" in kwargs:
             self.set_weight(kwargs.get("weight", None))
-        elif not self.has_variance and "variance" in kwargs:
+        elif not self.has_variance:
             self.set_variance(kwargs.get("variance", None))
         if not self.has_psf:
-            self.set_psf(kwargs.get("psf", None), kwargs.get("psf_upscale", 1))
+            self.set_psf(kwargs.get("psf", None))
 
         # Set nan pixels to be masked automatically
         if torch.any(torch.isnan(self.data)).item():
