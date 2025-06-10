@@ -23,12 +23,10 @@ class Jacobian_Image(Image):
     def __init__(
         self,
         parameters: List[str],
-        target_identity: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        self.target_identity = target_identity
         self.parameters = list(parameters)
         if len(self.parameters) != len(set(self.parameters)):
             raise SpecificationConflict("Every parameter should be unique upon jacobian creation")
@@ -37,9 +35,7 @@ class Jacobian_Image(Image):
         return getattr(self, attribute).reshape((-1, len(self.parameters)))
 
     def copy(self, **kwargs):
-        return super().copy(
-            parameters=self.parameters, target_identity=self.target_identity, **kwargs
-        )
+        return super().copy(parameters=self.parameters, **kwargs)
 
     def get_state(self):
         state = super().get_state()
@@ -67,49 +63,31 @@ class Jacobian_Image(Image):
                 self.target_identity = state["HEADER"]["TRGTID"]
                 self.parameters = eval(state["HEADER"]["params"])
 
-    def __add__(self, other):
-        raise NotImplementedError("Jacobian images cannot add like this, use +=")
-
-    def __sub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __isub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __iadd__(self, other):
+    def __iadd__(self, other: "Jacobian_Image"):
         if not isinstance(other, Jacobian_Image):
             raise InvalidImage("Jacobian images can only add with each other, not: type(other)")
 
         # exclude null jacobian images
-        if other.data is None:
+        if other.data.value is None:
             return self
-        if self.data is None:
+        if self.data.value is None:
             return other
 
-        full_window = self.window | other.window
-
-        self_indices = other.window.get_other_indices(self)
-        other_indices = self.window.get_other_indices(other)
+        self_indices = self.get_indices(other)
+        other_indices = other.get_indices(self)
         for i, other_identity in enumerate(other.parameters):
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)
             else:
-                self.set_data(
-                    torch.cat(
-                        (
-                            self.data,
-                            torch.zeros(
-                                self.data.shape[0],
-                                self.data.shape[1],
-                                1,
-                                dtype=AP_config.ap_dtype,
-                                device=AP_config.ap_device,
-                            ),
-                        ),
-                        dim=2,
-                    ),
-                    require_shape=False,
+                data = torch.zeros(
+                    self.data.shape[0],
+                    self.data.shape[1],
+                    self.data.shape[2] + 1,
+                    dtype=AP_config.ap_dtype,
+                    device=AP_config.ap_device,
                 )
+                data[:, :, :-1] = self.data.value
+                self.data = data
                 self.parameters.append(other_identity)
                 other_loc = -1
             self.data[self_indices[0], self_indices[1], other_loc] += other.data[
@@ -132,9 +110,6 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
 
     """
 
-    def __init__(self, image_list):
-        super().__init__(image_list)
-
     def flatten(self, attribute="data"):
         if len(self.image_list) > 1:
             for image in self.image_list[1:]:
@@ -143,33 +118,3 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
                         "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
                     )
         return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
-
-    def __add__(self, other):
-        raise NotImplementedError("Jacobian images cannot add like this, use +=")
-
-    def __sub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __isub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __iadd__(self, other):
-        if isinstance(other, Jacobian_Image_List):
-            for other_image in other.image_list:
-                for self_image in self.image_list:
-                    if other_image.target_identity == self_image.target_identity:
-                        self_image += other_image
-                        break
-                else:
-                    self.image_list.append(other_image)
-        elif isinstance(other, Jacobian_Image):
-            for self_image in self.image_list:
-                if other.target_identity == self_image.target_identity:
-                    self_image += other
-                    break
-            else:
-                self.image_list.append(other_image)
-        else:
-            for self_image, other_image in zip(self.image_list, other):
-                self_image += other_image
-        return self

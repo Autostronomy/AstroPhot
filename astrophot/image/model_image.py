@@ -2,7 +2,6 @@ import torch
 
 from .. import AP_config
 from .image_object import Image, Image_List
-from .window_object import Window
 from ..utils.interpolate import shift_Lanczos_torch
 from ..errors import InvalidImage
 
@@ -19,15 +18,10 @@ class Model_Image(Image):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.target_identity = kwargs.get("target_identity", None)
-        self.to()
-
     def clear_image(self):
-        self.data = torch.zeros_like(self.data)
+        self.data._value = torch.zeros_like(self.data.value)
 
-    def shift_origin(self, shift, is_prepadded=True):
+    def shift(self, shift, is_prepadded=True):
         self.window.shift(shift)
         pix_shift = self.plane_to_pixel_delta(shift)
         if torch.any(torch.abs(pix_shift) > 1):
@@ -42,51 +36,21 @@ class Model_Image(Image):
             img_prepadded=is_prepadded,
         )
 
-    def get_window(self, window: Window, **kwargs):
-        return super().get_window(window, target_identity=self.target_identity, **kwargs)
-
-    def reduce(self, scale, **kwargs):
-        return super().reduce(scale, target_identity=self.target_identity, **kwargs)
-
-    def replace(self, other, data=None):
+    def replace(self, other):
         if isinstance(other, Image):
-            if self.window.overlap_frac(other.window) == 0.0:  # fixme control flow
+            self_indices = self.get_indices(other)
+            other_indices = other.get_indices(self)
+            sub_self = self.data._value[self_indices]
+            sub_other = other.data._value[other_indices]
+            if sub_self.numel() == 0 or sub_other.numel() == 0:
                 return
-            other_indices = self.window.get_other_indices(other)
-            self_indices = other.window.get_other_indices(self)
-            if self.data[self_indices].nelement() == 0 or other.data[other_indices].nelement() == 0:
-                return
-            self.data[self_indices] = other.data[other_indices]
-        elif isinstance(other, Window):
-            self.data[self.window.get_self_indices(other)] = data
+            self.data._value[self_indices] = sub_other
         else:
-            self.data = other
-
-    def get_state(self):
-        state = super().get_state()
-        state["target_identity"] = self.target_identity
-        return state
-
-    def set_state(self, state):
-        super().set_state(state)
-        self.target_identity = target_identity
-
-    def get_fits_state(self):
-        states = super().get_fits_state()
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                state["HEADER"]["TRGTID"] = self.target_identity
-        return states
-
-    def set_fits_state(self, states):
-        super().set_fits_state(states)
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                self.target_identity = state["HEADER"]["TRGTID"]
+            raise TypeError(f"Model_Image can only replace with Image objects, not {type(other)}")
 
 
 ######################################################################
-class Model_Image_List(Image_List, Model_Image):
+class Model_Image_List(Image_List):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not all(isinstance(image, Model_Image) for image in self.image_list):
@@ -98,9 +62,6 @@ class Model_Image_List(Image_List, Model_Image):
         for image in self.image_list:
             image.clear_image()
 
-    def shift_origin(self, shift):
-        raise NotImplementedError()
-
     def replace(self, other, data=None):
         if data is None:
             for image, oth in zip(self.image_list, other):
@@ -108,65 +69,3 @@ class Model_Image_List(Image_List, Model_Image):
         else:
             for image, oth, dat in zip(self.image_list, other, data):
                 image.replace(oth, dat)
-
-    @property
-    def target_identity(self):
-        targets = tuple(image.target_identity for image in self.image_list)
-        if any(tar_id is None for tar_id in targets):
-            return None
-        return targets
-
-    def __isub__(self, other):
-        if isinstance(other, Model_Image_List):
-            for other_image, zip_self_image in zip(other.image_list, self.image_list):
-                if other_image.target_identity is None or self.target_identity is None:
-                    zip_self_image -= other_image
-                    continue
-                for self_image in self.image_list:
-                    if other_image.target_identity == self_image.target_identity:
-                        self_image -= other_image
-                        break
-                else:
-                    self.image_list.append(other_image)
-        elif isinstance(other, Model_Image):
-            if other.target_identity is None or zip_self_image.target_identity is None:
-                zip_self_image -= other_image
-            else:
-                for self_image in self.image_list:
-                    if other.target_identity == self_image.target_identity:
-                        self_image -= other
-                        break
-                else:
-                    self.image_list.append(other)
-        else:
-            for self_image, other_image in zip(self.image_list, other):
-                self_image -= other_image
-        return self
-
-    def __iadd__(self, other):
-        if isinstance(other, Model_Image_List):
-            for other_image, zip_self_image in zip(other.image_list, self.image_list):
-                if other_image.target_identity is None or self.target_identity is None:
-                    zip_self_image += other_image
-                    continue
-                for self_image in self.image_list:
-                    if other_image.target_identity == self_image.target_identity:
-                        self_image += other_image
-                        break
-                else:
-                    self.image_list.append(other_image)
-        elif isinstance(other, Model_Image):
-            if other.target_identity is None or self.target_identity is None:
-                for self_image in self.image_list:
-                    self_image += other
-            else:
-                for self_image in self.image_list:
-                    if other.target_identity == self_image.target_identity:
-                        self_image += other
-                        break
-                else:
-                    self.image_list.append(other)
-        else:
-            for self_image, other_image in zip(self.image_list, other):
-                self_image += other_image
-        return self

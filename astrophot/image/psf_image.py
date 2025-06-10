@@ -2,12 +2,11 @@ from typing import List, Optional, Union
 
 import torch
 import numpy as np
+from astropy.io import fits
 
 from .image_object import Image
-from .image_header import Image_Header
 from .model_image import Model_Image
 from .jacobian_image import Jacobian_Image
-from astropy.io import fits
 from .. import AP_config
 from ..errors import SpecificationConflict
 
@@ -37,36 +36,17 @@ class PSF_Image(Image):
     has_variance = False
 
     def __init__(self, *args, **kwargs):
-        """
-        Initializes the PSF_Image class.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-                band (str, optional): The band of the image. Default is None.
-        """
+        kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
         super().__init__(*args, **kwargs)
-
-        self.window.reference_radec = (0, 0)
-        self.window.reference_planexy = (0, 0)
-        self.window.reference_imageij = np.flip(np.array(self.data.shape, dtype=float) - 1.0) / 2
-        self.window.reference_imagexy = (0, 0)
-
-    def set_data(self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True):
-        super().set_data(data=data, require_shape=require_shape)
-
-        if torch.any((torch.tensor(self.data.shape) % 2) != 1):
-            raise SpecificationConflict(f"psf must have odd shape, not {self.data.shape}")
-        if torch.any(self.data < 0):
-            AP_config.ap_logger.warning("psf data should be non-negative")
+        self.crpix = np.flip(np.array(self.data.shape, dtype=float) - 1.0) / 2
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
-        self.data /= torch.sum(self.data)
+        self.data._value /= torch.sum(self.data.value)
 
     @property
     def mask(self):
-        return torch.zeros_like(self.data, dtype=bool)
+        return torch.zeros_like(self.data.value, dtype=bool)
 
     @property
     def psf_border_int(self):
@@ -134,7 +114,7 @@ class PSF_Image(Image):
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
         return Model_Image(
-            data=torch.zeros_like(self.data) if data is None else data,
+            data=torch.zeros_like(self.data.value) if data is None else data,
             header=self.header,
             target_identity=self.identity,
             **kwargs,

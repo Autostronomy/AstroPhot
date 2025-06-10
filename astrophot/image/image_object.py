@@ -8,7 +8,7 @@ from caskade import Module, Param, forward
 
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
-from ..errors import SpecificationConflict, InvalidWindow
+from ..errors import SpecificationConflict, InvalidWindow, InvalidImage
 from . import func
 
 __all__ = ["Image", "Image_List"]
@@ -119,14 +119,22 @@ class Image(Module):
         self.zeropoint = zeropoint
 
         # set the data
-        if data is None:
-            self.data = torch.zeros(
-                torch.flip(self.window.pixel_shape, (0,)).detach().cpu().tolist(),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
+        self.data = Param("data", data, units="flux")
+
+    @property
+    def zeropoint(self):
+        """The zeropoint of the image, which is used to convert from pixel flux to magnitude."""
+        return self._zeropoint
+
+    @zeropoint.setter
+    def zeropoint(self, value):
+        """Set the zeropoint of the image."""
+        if value is None:
+            self._zeropoint = None
         else:
-            self.data = data
+            self._zeropoint = torch.as_tensor(
+                value, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
 
     @property
     @forward
@@ -215,22 +223,6 @@ class Image(Module):
         )
         return self.pixel_to_plane(i, j)
 
-    @property
-    def data(self) -> torch.Tensor:
-        """
-        Returns the image data.
-        """
-        return self._data
-
-    @data.setter
-    def data(self, data):
-        """Set the image data."""
-
-        if data is None:
-            self._data = torch.tensor((), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        else:
-            self._data = torch.as_tensor(data, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
         can be used when one wishes to make temporary modifications to
@@ -238,7 +230,7 @@ class Image(Module):
 
         """
         copy_kwargs = {
-            "data": torch.clone(self.data),
+            "data": torch.clone(self.data.value),
             "pixelscale": self.pixelscale.value,
             "crpix": self.crpix.value,
             "crval": self.crval.value,
@@ -255,7 +247,7 @@ class Image(Module):
 
         """
         copy_kwargs = {
-            "data": torch.zeros_like(self.data),
+            "data": torch.zeros_like(self.data.value),
             "pixelscale": self.pixelscale.value,
             "crpix": self.crpix.value,
             "crval": self.crval.value,
@@ -272,11 +264,11 @@ class Image(Module):
         if device is None:
             device = AP_config.ap_device
         super().to(dtype=dtype, device=device)
-        if self._data is not None:
-            self._data = self._data.to(dtype=dtype, device=device)
+        if self.zeropoint is not None:
+            self.zeropoint = self.zeropoint.to(dtype=dtype, device=device)
         return self
 
-    def crop(self, pixels):  # fixme move to func
+    def crop(self, pixels, **kwargs):
         """Crop the image by the number of pixels given. This will crop
         the image in all four directions by the number of pixels given.
 
@@ -288,28 +280,28 @@ class Image(Module):
         """
         if isinstance(pixels, int) or len(pixels) == 1:  # same crop in all dimension
             crop = pixels if isinstance(pixels, int) else pixels[0]
-            self.data = self.data[
+            data = self.data.value[
                 crop : self.data.shape[0] - crop,
                 crop : self.data.shape[1] - crop,
             ]
-            self.crpix = self.crpix.value - crop
+            crpix = self.crpix.value - crop
         elif len(pixels) == 2:  # different crop in each dimension
-            self.data = self.data[
+            data = self.data.value[
                 pixels[1] : self.data.shape[0] - pixels[1],
                 pixels[0] : self.data.shape[1] - pixels[0],
             ]
-            self.crpix = self.crpix.value - pixels
+            crpix = self.crpix.value - pixels
         elif len(pixels) == 4:  # different crop on all sides
-            self.data = self.data[
+            data = self.data.value[
                 pixels[2] : self.data.shape[0] - pixels[3],
                 pixels[0] : self.data.shape[1] - pixels[1],
             ]
-            self.crpix = self.crpix.value - pixels[0::2]  # fixme
+            crpix = self.crpix.value - pixels[0::2]  # fixme
         else:
             raise ValueError(
                 f"Invalid crop shape {pixels}, must be int, (int,), (int, int), or (int, int, int, int)!"
             )
-        return self
+        return self.copy(data=data, crpix=crpix, **kwargs)
 
     def flatten(self, attribute: str = "data") -> np.ndarray:
         return getattr(self, attribute).reshape(-1)
@@ -337,11 +329,19 @@ class Image(Module):
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
 
-        self.data = (
-            self.data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
+        data = (
+            self.data.value[: MS * scale, : NS * scale]
+            .reshape(MS, scale, NS, scale)
+            .sum(axis=(1, 3))
         )
-        self.pixelscale = self.pixelscale.value * scale
-        self.crpix = (self.crpix.value + 0.5) / scale - 0.5
+        pixelscale = self.pixelscale.value * scale
+        crpix = (self.crpix.value + 0.5) / scale - 0.5
+        return self.copy(
+            data=data,
+            pixelscale=pixelscale,
+            crpix=crpix,
+            **kwargs,
+        )
 
     def get_state(self):
         state = {}
@@ -426,7 +426,7 @@ class Image(Module):
         new_end_pix = torch.minimum(self.data.shape, end_pix)
         return slice(new_origin_pix[1], new_end_pix[1]), slice(new_origin_pix[0], new_end_pix[0])
 
-    def get_window(self, other: "Image"):
+    def get_window(self, other: "Image", _indices=None, **kwargs):
         """Get a new image object which is a window of this image
         corresponding to the other image's window. This will return a
         new image object with the same properties as this one, but with
@@ -435,45 +435,49 @@ class Image(Module):
         """
         if not isinstance(other, Image):
             raise InvalidWindow("get_window only works with Image objects!")
-        indices = self.get_indices(other)
+        if _indices is None:
+            indices = self.get_indices(other)
+        else:
+            indices = _indices
         new_img = self.copy(
-            data=self.data[indices],
+            data=self.data.value[indices],
             crpix=self.crpix.value - (indices[0].start, indices[1].start),
+            **kwargs,
         )
         return new_img
 
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data -= other[self].data
+            new_img.data._value -= other[self].data.value
             return new_img
         else:
             new_img = self.copy()
-            new_img.data -= other
+            new_img.data._value -= other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data += other[self].data
+            new_img.data._value += other[self].data.value
             return new_img
         else:
             new_img = self.copy()
-            new_img.data += other
+            new_img.data._value += other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data[self.get_indices(other)] += other.data[other.get_indices(self)]
+            self.data._value[self.get_indices(other)] += other.data.value[other.get_indices(self)]
         else:
-            self.data += other
+            self.data._value += other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data[self.get_indices(other)] -= other.data[other.get_indices(self)]
+            self.data._value[self.get_indices(other)] -= other.data.value[other.get_indices(self)]
         else:
-            self.data -= other
+            self.data._value -= other
         return self
 
     def __getitem__(self, *args):
@@ -485,6 +489,10 @@ class Image(Module):
 class Image_List(Module):
     def __init__(self, image_list):
         self.image_list = list(image_list)
+        if not all(isinstance(image, Image) for image in self.image_list):
+            raise InvalidImage(
+                f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.image_list)}"
+            )
 
     @property
     def pixelscale(self):
@@ -565,8 +573,10 @@ class Image_List(Module):
         if isinstance(other, Image_List):
             for other_image in other.image_list:
                 i = self.index(other_image)
-                self_image = self.image_list[i]
-                self_image -= other_image
+                self.image_list[i] -= other_image
+        elif isinstance(other, Image):
+            i = self.index(other)
+            self.image_list[i] -= other
         else:
             raise ValueError("Subtraction of Image_List only works with another Image_List object!")
         return self
@@ -575,8 +585,10 @@ class Image_List(Module):
         if isinstance(other, Image_List):
             for other_image in other.image_list:
                 i = self.index(other_image)
-                self_image = self.image_list[i]
-                self_image += other_image
+                self.image_list[i] += other_image
+        elif isinstance(other, Image):
+            i = self.index(other)
+            self.image_list[i] += other
         else:
             raise ValueError("Addition of Image_List only works with another Image_List object!")
         return self

@@ -81,21 +81,21 @@ class Target_Image(Image):
 
     image_count = 0
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, mask=None, variance=None, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if not self.has_mask:
-            self.set_mask(kwargs.get("mask", None))
+            self.set_mask(mask)
         if not self.has_weight and "weight" in kwargs:
             self.set_weight(kwargs.get("weight", None))
         elif not self.has_variance:
-            self.set_variance(kwargs.get("variance", None))
+            self.set_variance(variance)
         if not self.has_psf:
-            self.set_psf(kwargs.get("psf", None))
+            self.set_psf(psf)
 
         # Set nan pixels to be masked automatically
-        if torch.any(torch.isnan(self.data)).item():
-            self.set_mask(torch.logical_or(self.mask, torch.isnan(self.data)))
+        if torch.any(torch.isnan(self.data.value)).item():
+            self.set_mask(torch.logical_or(self.mask, torch.isnan(self.data.value)))
 
     @property
     def standard_deviation(self):
@@ -112,7 +112,7 @@ class Target_Image(Image):
         """
         if self.has_variance:
             return torch.sqrt(self.variance)
-        return torch.ones_like(self.data)
+        return torch.ones_like(self.data.value)
 
     @property
     def variance(self):
@@ -129,7 +129,7 @@ class Target_Image(Image):
         """
         if self.has_variance:
             return torch.where(self._weight == 0, torch.inf, 1 / self._weight)
-        return torch.ones_like(self.data)
+        return torch.ones_like(self.data.value)
 
     @variance.setter
     def variance(self, variance):
@@ -181,7 +181,7 @@ class Target_Image(Image):
         """
         if self.has_weight:
             return self._weight
-        return torch.ones_like(self.data)
+        return torch.ones_like(self.data.value)
 
     @weight.setter
     def weight(self, weight):
@@ -217,7 +217,7 @@ class Target_Image(Image):
         """
         if self.has_mask:
             return self._mask
-        return torch.zeros_like(self.data, dtype=torch.bool)
+        return torch.zeros_like(self.data.value, dtype=torch.bool)
 
     @mask.setter
     def mask(self, mask):
@@ -230,41 +230,6 @@ class Target_Image(Image):
         """
         try:
             return self._mask is not None
-        except AttributeError:
-            return False
-
-    @property
-    def psf(self):
-        """Stores the point-spread-function for this target. This should be a
-        `PSF_Image` object which represents the scattering of a point
-        source of light. It can also be an `AstroPhot_Model` object
-        which will contribute its own parameters to an optimization
-        problem.
-
-        The PSF stored for a `Target_Image` object is passed to all
-        models applied to that target which have a `psf_mode` that is
-        not `none`. This means they will all use the same PSF
-        model. If one wishes to define a variable PSF across an image,
-        then they should pass the PSF objects to the `AstroPhot_Model`'s
-        directly instead of to a `Target_Image`.
-
-        Raises:
-
-          AttributeError: if this is called without a PSF defined
-
-        """
-        if self.has_psf:
-            return self._psf
-        raise AttributeError("This image does not have a PSF")
-
-    @psf.setter
-    def psf(self, psf):
-        self.set_psf(psf)
-
-    @property
-    def has_psf(self):
-        try:
-            return self._psf is not None
         except AttributeError:
             return False
 
@@ -289,18 +254,22 @@ class Target_Image(Image):
             self._weight = None
             return
         if isinstance(weight, str) and weight == "auto":
-            weight = 1 / auto_variance(self.data, self.mask)
+            weight = 1 / auto_variance(self.data.value, self.mask)
         if weight.shape != self.data.shape:
             raise SpecificationConflict(
                 f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
             )
-        self._weight = (
-            weight.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-            if isinstance(weight, torch.Tensor)
-            else torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        )
+        self._weight = torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
 
-    def set_psf(self, psf, psf_upscale=1):
+    @property
+    def has_psf(self):
+        """Returns True when the target image object has a PSF model."""
+        try:
+            return self.psf is not None
+        except AttributeError:
+            return False
+
+    def set_psf(self, psf):
         """Provide a psf for the `Target_Image`. This is stored and passed to
         models which need to be convolved.
 
@@ -310,19 +279,28 @@ class Target_Image(Image):
         the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """
-        if psf is None:
-            self._psf = None
-            return
-        if isinstance(psf, PSF_Image):
-            self._psf = psf
-            return
+        if hasattr(self, "psf"):
+            del self.psf  # remove old psf if it exists
+        from ..models import AstroPhot_Model
 
-        self._psf = PSF_Image(
-            data=psf,
-            psf_upscale=psf_upscale,
-            pixelscale=self.pixelscale / psf_upscale,
-            identity=self.identity,
-        )
+        if psf is None:
+            self.psf = None
+        elif isinstance(psf, PSF_Image):
+            self.psf = psf
+        elif isinstance(psf, AstroPhot_Model):
+            self.psf = PSF_Image(
+                data=lambda p: p.psf_model(),
+                pixelscale=psf.target.pixelscale,
+            )
+            self.psf.link("psf_model", psf)
+        else:
+            AP_config.ap_logger.warning(
+                "PSF provided is not a PSF_Image or AstroPhot_Model, assuming its pixelscale is the same as this Target_Image."
+            )
+            self.psf = PSF_Image(
+                data=psf,
+                pixelscale=self.pixelscale,
+            )
 
     def set_mask(self, mask):
         """
@@ -335,42 +313,24 @@ class Target_Image(Image):
             raise SpecificationConflict(
                 f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
             )
-        self._mask = (
-            mask.to(dtype=torch.bool, device=AP_config.ap_device)
-            if isinstance(mask, torch.Tensor)
-            else torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device)
-        )
+        self._mask = torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device)
 
     def to(self, dtype=None, device=None):
         """Converts the stored `Target_Image` data, variance, psf, etc to a
         given data type and device.
 
         """
-        super().to(dtype=dtype, device=device)
         if dtype is not None:
             dtype = AP_config.ap_dtype
         if device is not None:
             device = AP_config.ap_device
+        super().to(dtype=dtype, device=device)
 
         if self.has_weight:
             self._weight = self._weight.to(dtype=dtype, device=device)
-        if self.has_psf:
-            self._psf = self._psf.to(dtype=dtype, device=device)
         if self.has_mask:
             self._mask = self.mask.to(dtype=torch.bool, device=device)
         return self
-
-    def or_mask(self, mask):
-        """
-        Combines the currently stored mask with a provided new mask using the boolean `or` operator.
-        """
-        self._mask = torch.logical_or(self.mask, mask)
-
-    def and_mask(self, mask):
-        """
-        Combines the currently stored mask with a provided new mask using the boolean `and` operator.
-        """
-        self._mask = torch.logical_and(self.mask, mask)
 
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
@@ -380,26 +340,26 @@ class Target_Image(Image):
         """
         return super().copy(
             mask=self._mask,
-            psf=self._psf,
+            psf=self.psf,
             weight=self._weight,
             **kwargs,
         )
 
     def blank_copy(self, **kwargs):
         """Produces a blank copy of the image which has the same properties
-        except that its data is not filled with zeros.
+        except that its data is now filled with zeros.
 
         """
-        return super().blank_copy(mask=self._mask, psf=self._psf, **kwargs)
+        return super().blank_copy(mask=self._mask, psf=self.psf, weight=self._weight, **kwargs)
 
-    def get_window(self, window, **kwargs):
-        """Get a sub-region of the image as defined by a window on the sky."""
-        indices = self.window.get_self_indices(window)
+    def get_window(self, other, **kwargs):
+        """Get a sub-region of the image as defined by an other image on the sky."""
+        indices = self.get_indices(other)
         return super().get_window(
-            window=window,
             weight=self._weight[indices] if self.has_weight else None,
             mask=self._mask[indices] if self.has_mask else None,
-            psf=self._psf,
+            psf=self.psf,
+            _indices=indices,
             **kwargs,
         )
 
@@ -421,23 +381,37 @@ class Target_Image(Image):
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
+        copy_kwargs = {
+            "pixelscale": self.pixelscale.value,
+            "crpix": self.crpix.value,
+            "crval": self.crval.value,
+            "crtan": self.crtan.value,
+            "zeropoint": self.zeropoint,
+            "identity": self.identity,
+        }
+        copy_kwargs.update(kwargs)
         return Jacobian_Image(
             parameters=parameters,
-            target_identity=self.identity,
             data=data,
-            header=self.header,
-            **kwargs,
+            **copy_kwargs,
         )
 
-    def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
+    def model_image(self, **kwargs):
         """
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
+        copy_kwargs = {
+            "data": torch.zeros_like(self.data.value),
+            "pixelscale": self.pixelscale.value,
+            "crpix": self.crpix.value,
+            "crval": self.crval.value,
+            "crtan": self.crtan.value,
+            "zeropoint": self.zeropoint,
+            "identity": self.identity,
+        }
+        copy_kwargs.update(kwargs)
         return Model_Image(
-            data=torch.zeros_like(self.data) if data is None else data,
-            header=self.header,
-            target_identity=self.identity,
-            **kwargs,
+            **copy_kwargs,
         )
 
     def reduce(self, scale, **kwargs):
@@ -470,15 +444,9 @@ class Target_Image(Image):
                 if self.has_mask
                 else None
             ),
-            psf=self.psf.reduce(scale) if self.has_psf else None,
+            psf=self.psf if self.has_psf else None,
             **kwargs,
         )
-
-    def expand(self, padding):
-        """
-        `Target_Image` doesn't have expand yet.
-        """
-        raise NotImplementedError("expand not available for Target_Image yet")
 
     def get_state(self):
         state = super().get_state()
@@ -532,7 +500,7 @@ class Target_Image(Image):
                 self.psf = PSF_Image(fits_state=states)
 
 
-class Target_Image_List(Image_List, Target_Image):
+class Target_Image_List(Image_List):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not all(isinstance(image, Target_Image) for image in self.image_list):
@@ -573,12 +541,8 @@ class Target_Image_List(Image_List, Target_Image):
             list(image.jacobian_image(parameters, dat) for image, dat in zip(self.image_list, data))
         )
 
-    def model_image(self, data: Optional[List[torch.Tensor]] = None):
-        if data is None:
-            data = [None] * len(self.image_list)
-        return Model_Image_List(
-            list(image.model_image(data=dat) for image, dat in zip(self.image_list, data))
-        )
+    def model_image(self):
+        return Model_Image_List(list(image.model_image() for image in self.image_list))
 
     def match_indices(self, other):
         indices = []
@@ -600,56 +564,32 @@ class Target_Image_List(Image_List, Target_Image):
         return indices
 
     def __isub__(self, other):
-        if isinstance(other, Target_Image_List):
+        if isinstance(other, Image_List):
             for other_image in other.image_list:
                 for self_image in self.image_list:
                     if other_image.identity == self_image.identity:
                         self_image -= other_image
                         break
-                else:
-                    self.image_list.append(other_image)
-        elif isinstance(other, Target_Image):
+        elif isinstance(other, Image):
             for self_image in self.image_list:
                 if other.identity == self_image.identity:
                     self_image -= other
                     break
-        elif isinstance(other, Model_Image_List):
-            for other_image in other.image_list:
-                for self_image in self.image_list:
-                    if other_image.target_identity == self_image.identity:
-                        self_image -= other_image
-                        break
-        elif isinstance(other, Model_Image):
-            for self_image in self.image_list:
-                if other.target_identity == self_image.identity:
-                    self_image -= other
         else:
             for self_image, other_image in zip(self.image_list, other):
                 self_image -= other_image
         return self
 
     def __iadd__(self, other):
-        if isinstance(other, Target_Image_List):
+        if isinstance(other, Image_List):
             for other_image in other.image_list:
                 for self_image in self.image_list:
                     if other_image.identity == self_image.identity:
                         self_image += other_image
                         break
-                else:
-                    self.image_list.append(other_image)
-        elif isinstance(other, Target_Image):
+        elif isinstance(other, Image):
             for self_image in self.image_list:
                 if other.identity == self_image.identity:
-                    self_image += other
-        elif isinstance(other, Model_Image_List):
-            for other_image in other.image_list:
-                for self_image in self.image_list:
-                    if other_image.target_identity == self_image.identity:
-                        self_image += other_image
-                        break
-        elif isinstance(other, Model_Image):
-            for self_image in self.image_list:
-                if other.target_identity == self_image.identity:
                     self_image += other
         else:
             for self_image, other_image in zip(self.image_list, other):
@@ -698,9 +638,3 @@ class Target_Image_List(Image_List, Target_Image):
 
     def set_mask(self, mask, img):
         self.image_list[img].set_mask(mask)
-
-    def or_mask(self, mask):
-        raise NotImplementedError()
-
-    def and_mask(self, mask):
-        raise NotImplementedError()
