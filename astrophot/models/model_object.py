@@ -2,8 +2,10 @@ from typing import Optional
 
 import numpy as np
 import torch
+from caskade import Param, forward, OverrideParam
 
-from .core_model import AstroPhot_Model
+from .core_model import Model
+from . import func
 from ..image import (
     Model_Image,
     Window,
@@ -12,16 +14,15 @@ from ..image import (
     Target_Image_List,
     Image,
 )
-from caskade import Param, forward
 from ..utils.initialize import center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, default_internal, select_target
 from .. import AP_config
-from ..errors import InvalidTarget
+from ..errors import InvalidTarget, SpecificationConflict
 
 __all__ = ["Component_Model"]
 
 
-class Component_Model(AstroPhot_Model):
+class Component_Model(Model):
     """Component_Model(name, target, window, locked, **kwargs)
 
     Component_Model is a base class for models that represent single
@@ -53,21 +54,17 @@ class Component_Model(AstroPhot_Model):
     """
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
-    _parameter_specs = AstroPhot_Model._parameter_specs | {
+    _parameter_specs = Model._parameter_specs | {
         "center": {"units": "arcsec", "uncertainty": [0.1, 0.1]},
     }
 
     # Scope for PSF convolution
     psf_mode = "none"  # none, full
-    # Technique for PSF convolution
-    psf_convolve_mode = "fft"  # fft, direct
     # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
-    psf_subpixel_shift = "bilinear"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
+    psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Method for initial sampling of model
-    sampling_mode = (
-        "midpoint"  # midpoint, trapezoid, simpsons, quad:x (where x is a positive integer)
-    )
+    sampling_mode = "auto"  # auto (choose based on image size), midpoint, simpsons, quad:x (where x is a positive integer)
 
     # Level to which each pixel should be evaluated
     sampling_tolerance = 1e-2
@@ -110,7 +107,6 @@ class Component_Model(AstroPhot_Model):
     usable = False
 
     def __init__(self, *, name=None, **kwargs):
-        self._target_identity = None
         super().__init__(name=name, **kwargs)
 
         self.psf = None
@@ -133,22 +129,6 @@ class Component_Model(AstroPhot_Model):
         for key in self.parameter_specs:
             setattr(self, key, Param(key, **self.parameter_specs[key]))
 
-    def set_aux_psf(self, aux_psf, add_parameters=True):
-        """Set the PSF for this model as an auxiliary psf model. This psf
-        model will be resampled as part of the model sampling step to
-        track changes made during fitting.
-
-        Args:
-          aux_psf: The auxiliary psf model
-          add_parameters: if true, the parameters of the auxiliary psf model will become model parameters for this model as well.
-
-        """
-
-        self._psf = aux_psf
-
-        if add_parameters:
-            self.parameters.link(aux_psf.parameters)
-
     @property
     def psf(self):
         if self._psf is None:
@@ -164,7 +144,7 @@ class Component_Model(AstroPhot_Model):
             self._psf = None
         elif isinstance(val, PSF_Image):
             self._psf = val
-        elif isinstance(val, AstroPhot_Model):
+        elif isinstance(val, Model):
             self.set_aux_psf(val)
         else:
             self._psf = PSF_Image(data=val, pixelscale=self.target.pixelscale)
@@ -178,12 +158,8 @@ class Component_Model(AstroPhot_Model):
     ######################################################################
     @torch.no_grad()
     @ignore_numpy_warnings
-    @default_internal
     def initialize(
         self,
-        target: Optional[Target_Image] = None,
-        window: Optional[Window] = None,
-        **kwargs,
     ):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
@@ -194,37 +170,21 @@ class Component_Model(AstroPhot_Model):
           target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
 
         """
-        super().initialize(target=target, window=window)
+        super().initialize()
         # Get the sub-image area corresponding to the model image
-        target_area = target[window]
+        target_area = self.target[self.window]
 
         # Use center of window if a center hasn't been set yet
         if self.center.value is None:
-            self.center.value = window.center
+            self.center.value = target_area.center
         else:
             return
 
-        if self.center.locked:
-            return
-
-        # Convert center coordinates to target area array indices
-        init_icenter = target_area.plane_to_pixel(self.center.value)
-
         # Compute center of mass in window
-        COM = center_of_mass(
-            (
-                init_icenter[1].detach().cpu().item(),
-                init_icenter[0].detach().cpu().item(),
-            ),
-            target_area.data.detach().cpu().numpy(),
-        )
-        if np.any(np.array(COM) < 0) or np.any(np.array(COM) >= np.array(target_area.data.shape)):
-            AP_config.ap_logger.warning("center of mass failed, using center of window")
-            return
-        COM = (COM[1], COM[0])
+        COM = center_of_mass(target_area.data.npvalue)
         # Convert center of mass indices to coordinates
         COM_center = target_area.pixel_to_plane(
-            torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            *torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
 
         # Set the new coordinates as the model center
@@ -233,35 +193,76 @@ class Component_Model(AstroPhot_Model):
     # Fit loop functions
     ######################################################################
     @forward
-    def evaluate_model(
+    def brightness(
         self,
-        X: Optional[torch.Tensor] = None,
-        Y: Optional[torch.Tensor] = None,
-        image: Optional[Image] = None,
-        center=None,
+        x: Optional[torch.Tensor] = None,
+        y: Optional[torch.Tensor] = None,
         **kwargs,
     ):
-        """Evaluate the model on every pixel in the given image. The
-        basemodel object simply returns zeros, this function should be
-        overloaded by subclasses.
+        """Evaluate the brightness of the model at the exact tangent plane coordinates requested."""
+        return torch.zeros_like(x)  # do nothing in base model
 
-        Args:
-          image (Image): The image defining the set of pixels on which to evaluate the model
+    @forward
+    def sample_image(self, image: Image):
+        if self.sampling_mode == "auto":
+            N = np.prod(image.data.shape)
+            if N <= 100:
+                sampling_mode = "quad:5"
+            elif N <= 10000:
+                sampling_mode = "simpsons"
+            else:
+                sampling_mode = "midpoint"
+        else:
+            sampling_mode = self.sampling_mode
 
-        """
-        if X is None or Y is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - center[..., None, None]
-        return torch.zeros_like(X)  # do nothing in base model
+        if sampling_mode == "midpoint":
+            i, j = func.pixel_center_meshgrid(image.shape, AP_config.ap_dtype, AP_config.ap_device)
+            x, y = image.pixel_to_plane(i, j)
+            res = self.brightness(x, y)
+            return func.pixel_center_integrator(res)
+        elif sampling_mode == "simpsons":
+            i, j = func.pixel_simpsons_meshgrid(
+                image.shape, AP_config.ap_dtype, AP_config.ap_device
+            )
+            x, y = image.pixel_to_plane(i, j)
+            res = self.brightness(x, y)
+            return func.pixel_simpsons_integrator(res)
+        elif sampling_mode.startswith("quad:"):
+            order = int(self.sampling_mode.split(":")[1])
+            i, j, w = func.pixel_quad_meshgrid(
+                image.shape, AP_config.ap_dtype, AP_config.ap_device, order=order
+            )
+            x, y = image.pixel_to_plane(i, j)
+            res = self.brightness(x, y)
+            return func.pixel_quad_integrator(res, w)
+        raise SpecificationConflict(
+            f"Unknown integration mode {self.sampling_mode} for model {self.name}"
+        )
+
+    def shift_kernel(self, shift):
+        if self.psf_subpixel_shift == "bilinear":
+            return func.bilinear_kernel(shift[0], shift[1])
+        elif self.psf_subpixel_shift.startswith("lanczos:"):
+            order = int(self.psf_subpixel_shift.split(":")[1])
+            return func.lanczos_kernel(shift[0], shift[1], order)
+        elif self.psf_subpixel_shift == "none":
+            return torch.tensor(
+                [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+        else:
+            raise SpecificationConflict(
+                f"Unknown PSF subpixel shift mode {self.psf_subpixel_shift} for model {self.name}"
+            )
 
     @forward
     def sample(
         self,
-        image: Optional[Image] = None,
         window: Optional[Window] = None,
         center=None,
     ):
-        """Evaluate the model on the space covered by an image object. This
+        """Evaluate the model on the pixels defined in an image. This
         function properly calls integration methods and PSF
         convolution. This should not be overloaded except in special
         cases.
@@ -286,119 +287,52 @@ class Component_Model(AstroPhot_Model):
           Image: The image with the computed model values.
 
         """
-        # Image on which to evaluate model
-        if image is None:
-            image = self.make_model_image(window=window)
-
         # Window within which to evaluate model
         if window is None:
-            working_window = image.window.copy()
-        else:
-            working_window = window.copy()
-
-        # Parameters with which to evaluate the model
-        if parameters is None:
-            parameters = self.parameters
+            window = self.window
 
         if "window" in self.psf_mode:
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
-            if isinstance(self.psf, AstroPhot_Model):
-                psf = self.psf(
-                    parameters=parameters[self.psf.name],
-                )
-            else:
-                psf = self.psf
-            psf_upscale = torch.round(image.pixel_length / psf.pixel_length).int()
-            # Add border for psf convolution edge effects, will be cropped out later
-            working_window.pad_pixel(psf.psf_border_int)
-            # Make the image object to which the samples will be tracked
-            working_image = Model_Image(window=working_window)
+            psf = self.psf.image.value
+            psf_upscale = torch.round(self.target.pixel_length / psf.pixel_length).int()
+            psf_pad = np.max(psf.shape) // 2
+
+            working_image = Model_Image(window=window, upsample=psf_upscale, pad=psf_pad)
+
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
                 pixel_center = working_image.plane_to_pixel(center)
-                center_shift = pixel_center - torch.round(pixel_center)
-                working_image.header.pixel_shift(center_shift)
+                pixel_shift = pixel_center - torch.round(pixel_center)
+                center_shift = center - working_image.pixel_to_plane(torch.round(pixel_center))
+                working_image.crtan = working_image.crtan.value + center_shift
             else:
-                center_shift = None
+                pixel_shift = torch.zeros_like(center)
+                center_shift = torch.zeros_like(center)
 
-            # Evaluate the model at the current resolution
-            reference, deep = self._sample_init(
-                image=working_image,
-                center=center,
-            )
-            # If needed, super-resolve the image in areas of high curvature so pixels are properly sampled
-            deep = self._sample_integrate(deep, reference, working_image, parameters, center)
+            sample = self.sample_image(working_image)
 
-            # update the image with the integrated pixels
-            working_image.data += deep
+            if self.integrate_mode == "threshold":
+                sample = self.sample_integrate(sample, working_image)
 
-            # Convolve the PSF
-            self._sample_convolve(working_image, center_shift, psf, self.psf_subpixel_shift)
+            shift_kernel = self.shift_kernel(pixel_shift)
+            working_image.data = func.convolve_and_shift(sample, shift_kernel, psf)
+            working_image.crtan = working_image.crtan.value - center_shift
 
-            # Shift image back to align with original pixel grid
-            if self.psf_subpixel_shift != "none":
-                working_image.header.pixel_shift(-center_shift)
-            # Add the sampled/integrated/convolved pixels to the requested image
-            working_image = working_image.reduce(psf_upscale).crop(psf.psf_border_int)
+            working_image = working_image.crop(psf_pad).reduce(psf_upscale)
 
         else:
-            # Create an image to store pixel samples
-            working_image = Model_Image(pixelscale=image.pixelscale, window=working_window)
-            # Evaluate the model on the image
-            reference, deep = self._sample_init(
-                image=working_image,
-                center=center,
-            )
-            # Super-resolve and integrate where needed
-            deep = self._sample_integrate(
-                deep,
-                reference,
-                working_image,
-                parameters,
-                center=center,
-            )
-            # Add the sampled/integrated pixels to the requested image
-            working_image.data += deep
+            working_image = Model_Image(window=window)
+            sample = self.sample_image(working_image)
+            if self.integrate_mode == "threshold":
+                sample = self.sample_integrate(sample, working_image)
+            working_image.data = sample
 
         if self.mask is not None:
-            working_image.data = working_image.data * torch.logical_not(self.mask)
+            working_image.data = working_image.data * (~self.mask)
 
-        image += working_image
-
-        return image
-
-    @property
-    def target(self):
-        return self._target
-
-    @target.setter
-    def target(self, tar):
-        if not (tar is None or isinstance(tar, Target_Image)):
-            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
-
-        # If a target image list is assigned, pick out the target appropriate for this model
-        if isinstance(tar, Target_Image_List) and self._target_identity is not None:
-            for subtar in tar:
-                if subtar.identity == self._target_identity:
-                    usetar = subtar
-                    break
-            else:
-                raise InvalidTarget(
-                    f"Could not find target in Target_Image_List with matching identity "
-                    f"to {self.name}: {self._target_identity}"
-                )
-        else:
-            usetar = tar
-
-        self._target = usetar
-
-        # Remember the target identity to use
-        try:
-            self._target_identity = self._target.identity
-        except AttributeError:
-            pass
+        return working_image
 
     def get_state(self, save_params=True):
         """Returns a dictionary with a record of the current state of the
@@ -426,13 +360,6 @@ class Component_Model(AstroPhot_Model):
     ######################################################################
     from ._model_methods import radius_metric
     from ._model_methods import angular_metric
-    from ._model_methods import _sample_init
-    from ._model_methods import _sample_integrate
-    from ._model_methods import _sample_convolve
-    from ._model_methods import _integrate_reference
-    from ._model_methods import _shift_psf
     from ._model_methods import build_parameter_specs
     from ._model_methods import jacobian
-    from ._model_methods import _chunk_jacobian
-    from ._model_methods import _chunk_image_jacobian
     from ._model_methods import load

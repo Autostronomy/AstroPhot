@@ -18,23 +18,37 @@ class Model_Image(Image):
 
     """
 
+    def __init__(self, *args, window=None, upsample=1, pad=0, **kwargs):
+        if window is not None:
+            kwargs["pixelscale"] = window.image.pixelscale / upsample
+            kwargs["crpix"] = (window.crpix + 0.5) * upsample + pad - 0.5
+            kwargs["crval"] = window.image.crval
+            kwargs["crtan"] = window.image.crtan
+            kwargs["data"] = torch.zeros(
+                (
+                    (window.i_high - window.i_low) * upsample + 2 * pad,
+                    (window.j_high - window.j_low) * upsample + 2 * pad,
+                ),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            )
+            kwargs["zeropoint"] = window.image.zeropoint
+        super().__init__(*args, **kwargs)
+
     def clear_image(self):
         self.data._value = torch.zeros_like(self.data.value)
 
-    def shift(self, shift, is_prepadded=True):
-        self.window.shift(shift)
-        pix_shift = self.plane_to_pixel_delta(shift)
-        if torch.any(torch.abs(pix_shift) > 1):
-            raise NotImplementedError("Shifts larger than 1 pixel are currently not handled")
-        self.data = shift_Lanczos_torch(
-            self.data,
-            pix_shift[0],
-            pix_shift[1],
-            min(min(self.data.shape), 10),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-            img_prepadded=is_prepadded,
-        )
+    def shift_crtan(self, shift):
+        # self.data = shift_Lanczos_torch(
+        #     self.data,
+        #     pix_shift[0],
+        #     pix_shift[1],
+        #     min(min(self.data.shape), 10),
+        #     dtype=AP_config.ap_dtype,
+        #     device=AP_config.ap_device,
+        #     img_prepadded=is_prepadded,
+        # )
+        self.crtan._value += shift
 
     def replace(self, other):
         if isinstance(other, Image):

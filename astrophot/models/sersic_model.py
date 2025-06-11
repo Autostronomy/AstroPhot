@@ -62,27 +62,26 @@ class Sersic_Galaxy(Galaxy_Model):
     parameter_specs = {
         "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
         "Re": {"units": "arcsec", "limits": (0, None)},
-        "Ie": {"units": "log10(flux/arcsec^2)"},
+        "Ie": {"units": "flux/arcsec^2"},
     }
     usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, **kwargs):
-        super().initialize(target=target)
+    def initialize(self, **kwargs):
+        super().initialize()
 
-        parametric_initialize(self, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
+        parametric_initialize(
+            self, self.target[self.window], _wrap_sersic, ("n", "Re", "Ie"), _x0_func
+        )
 
     @forward
-    @default_internal
     def total_flux(self, Ie, n, Re, q):
-        return sersic_Ie_to_flux_torch(10**Ie, n, Re, q)
+        return sersic_Ie_to_flux_torch(Ie, n, Re, q)
 
-    def _integrate_reference(self, image_data, image_header, parameters):
-        tot = self.total_flux(parameters)
-        return tot / image_data.numel()
+    @forward
+    def radial_model(self, R, n, Re, Ie):
+        return sersic_torch(R, n, Re, Ie)
 
     from ._shared_methods import sersic_radial_model as radial_model
 

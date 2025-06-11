@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import iqr
 from caskade import Param, forward
 
+from . import func
 from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.angle_operations import Angle_COM_PA
@@ -54,18 +55,16 @@ class Galaxy_Model(Component_Model):
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, **kwargs):
-        super().initialize(target=target)
+    def initialize(self, **kwargs):
+        super().initialize()
 
         if not (self.PA.value is None or self.q.value is None):
             return
-        target_area = target[self.window]
-        target_dat = target_area.data.detach().cpu().numpy()
+        target_area = self.target[self.window]
+        target_dat = target_area.data.npvalue
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()
-            target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
+            target_dat[mask] = np.median(target_dat[~mask])
         edge = np.concatenate(
             (
                 target_dat[:, 0],
@@ -75,37 +74,22 @@ class Galaxy_Model(Component_Model):
             )
         )
         edge_average = np.nanmedian(edge)
-        edge_scatter = iqr(edge[np.isfinite(edge)], rng=(16, 84)) / 2
+        target_dat -= edge_average
         icenter = target_area.plane_to_pixel(self.center.value)
 
+        i, j = func.pixel_center_meshgrid(
+            target_area.shape, dtype=target_area.data.dtype, device=target_area.data.device
+        )
+        i, j = (i - icenter[0]).detach().cpu().item(), (j - icenter[1]).detach().cpu().item()
+        mu20 = np.sum(target_dat * i**2)
+        mu02 = np.sum(target_dat * j**2)
+        mu11 = np.sum(target_dat * i * j)
+        M = np.array([[mu20, mu11], [mu11, mu02]])
         if self.PA.value is None:
-            weights = target_dat - edge_average
-            Coords = target_area.get_coordinate_meshgrid()
-            X, Y = Coords - self.center.value[..., None, None]
-            X, Y = X.detach().cpu().numpy(), Y.detach().cpu().numpy()
-            if target_area.has_mask:
-                seg = np.logical_not(target_area.mask.detach().cpu().numpy())
-                PA = Angle_COM_PA(weights[seg], X[seg], Y[seg])
-            else:
-                PA = Angle_COM_PA(weights, X, Y)
-
-            self.PA.value = (PA + target_area.north) % np.pi
-            if self.PA.uncertainty is None:
-                self.PA.uncertainty = (5 * np.pi / 180) * torch.ones_like(
-                    self.PA.value
-                )  # default uncertainty of 5 degrees is assumed
+            self.PA.value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
         if self.q.value is None:
-            q_samples = np.linspace(0.2, 0.9, 15)
-            iso_info = isophotes(
-                target_area.data.detach().cpu().numpy() - edge_average,
-                (icenter[1].detach().cpu().item(), icenter[0].detach().cpu().item()),
-                threshold=3 * edge_scatter,
-                pa=(self.PA.value - target.north).detach().cpu().item(),
-                q=q_samples,
-            )
-            self.q.value = q_samples[np.argmin(list(iso["amplitude2"] for iso in iso_info))]
-            if self.q.uncertainty is None:
-                self.q.uncertainty = self.q.value * self.default_uncertainty
+            l = np.sorted(np.linalg.eigvals(M))
+            self.q.value = np.sqrt(l[1] / l[0])
 
     from ._shared_methods import inclined_transform_coordinates as transform_coordinates
     from ._shared_methods import transformed_evaluate_model as evaluate_model

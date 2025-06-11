@@ -10,7 +10,7 @@ from ..image import Window, Target_Image, Target_Image_List
 from caskade import Module, forward
 from ._shared_methods import select_target, select_sample
 from .. import AP_config
-from ..errors import NameNotAllowed, InvalidTarget, UnrecognizedModel, InvalidWindow
+from ..errors import InvalidTarget, UnrecognizedModel, InvalidWindow
 
 __all__ = ("AstroPhot_Model",)
 
@@ -22,7 +22,7 @@ def all_subclasses(cls):
 
 
 ######################################################################
-class AstroPhot_Model(Module):
+class Model(Module):
     """Core class for all AstroPhot models and model like objects. This
     class defines the signatures to interact with AstroPhot models
     both for users and internal functions.
@@ -85,6 +85,7 @@ class AstroPhot_Model(Module):
         model_type (str): a model type string can determine which kind of AstroPhot model is instantiated.
         target (Optional[Target_Image]): A Target_Image object which stores information about the image which the model is trying to fit.
         filename (Optional[str]): name of a file to load AstroPhot parameters, window, and name. The model will still need to be told its target, device, and other information
+        window (Optional[Union[Window, tuple]]): A window on the target image in which the model will be optimized and evaluated. If not provided, the model will assume a window equal to the target it is fitting. The window may be formatted as (i_low, i_high, j_low, j_high) or as ((i_low, j_low), (i_high, j_high)).
 
     """
 
@@ -96,31 +97,27 @@ class AstroPhot_Model(Module):
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):
         if filename is not None:
-            state = AstroPhot_Model.load(filename)
-            MODELS = AstroPhot_Model.List_Models()
+            state = Model.load(filename)
+            MODELS = Model.List_Models()
             for M in MODELS:
                 if M.model_type == state["model_type"]:
-                    return super(AstroPhot_Model, cls).__new__(M)
+                    return super(Model, cls).__new__(M)
             else:
                 raise UnrecognizedModel(f"Unknown AstroPhot model type: {state['model_type']}")
         elif model_type is not None:
-            MODELS = AstroPhot_Model.List_Models()  # all_subclasses(AstroPhot_Model)
+            MODELS = Model.List_Models()  # all_subclasses(Model)
             for M in MODELS:
                 if M.model_type == model_type:
-                    return super(AstroPhot_Model, cls).__new__(M)
+                    return super(Model, cls).__new__(M)
             else:
                 raise UnrecognizedModel(f"Unknown AstroPhot model type: {model_type}")
 
         return super().__new__(cls)
 
-    def __init__(self, *, name=None, target=None, window=None, locked=False, **kwargs):
-        super().__init__()
-        if not hasattr(self, "_window"):
-            self._window = None
+    def __init__(self, *, name=None, target=None, window=None, **kwargs):
+        super().__init__(name=name)
         if not hasattr(self, "_target"):
             self._target = None
-        self.name = name
-        AP_config.ap_logger.debug(f"Creating model named: {self.name}")
         self.target = target
         self.window = window
         self.mask = kwargs.get("mask", None)
@@ -227,7 +224,7 @@ class AstroPhot_Model(Module):
                 raise ValueError(
                     "This model has no target or window, these must be provided by the user"
                 )
-            return self.target.window.copy()
+            return self.target.window
         return self._window
 
     def set_window(self, window):
@@ -237,9 +234,9 @@ class AstroPhot_Model(Module):
         elif isinstance(window, Window):
             # If window object given, use that
             self._window = window
-        elif len(window) == 2:
+        elif len(window) == 2 or len(window) == 4:
             # If window given in pixels, use relative to target
-            self._window = self.target.window.copy().crop_to_pixel(window)
+            self._window = Window(window, crpix=self.target.crpix, image=self.target)
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
@@ -253,8 +250,11 @@ class AstroPhot_Model(Module):
 
     @target.setter
     def target(self, tar):
-        if not (tar is None or isinstance(tar, Target_Image)):
-            raise InvalidTarget("AstroPhot_Model target must be a Target_Image instance.")
+        if tar is None:
+            self._target = None
+            return
+        elif not isinstance(tar, Target_Image):
+            raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
         self._target = tar
 
     def __repr__(self):
@@ -357,14 +357,6 @@ class AstroPhot_Model(Module):
 
     def __eq__(self, other):
         return self is other
-
-    def __del__(self):
-        super().__del__()
-        try:
-            i = AstroPhot_Model.model_names.index(self.name)
-            AstroPhot_Model.model_names.pop(i)
-        except:
-            pass
 
     @forward
     @select_sample

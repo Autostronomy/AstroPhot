@@ -8,6 +8,7 @@ from caskade import Module, Param, forward
 
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
+from .window import Window
 from ..errors import SpecificationConflict, InvalidWindow, InvalidImage
 from . import func
 
@@ -30,7 +31,7 @@ class Image(Module):
         origin: The origin of the image in the coordinate system.
     """
 
-    default_crpix = (-0.5, -0.5)
+    default_crpix = (0.0, 0.0)
     default_crtan = (0.0, 0.0)
     default_crval = (0.0, 0.0)
     default_pixelscale = ((1.0, 0.0), (0.0, 1.0))
@@ -104,22 +105,25 @@ class Image(Module):
                 )
             pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
 
-        self.crval = Param("crval", kwargs.get("crval", self.default_crval), units="deg")
-        self.crtan = Param("crtan", kwargs.get("crtan", self.default_crtan), units="arcsec")
-        self.crpix = Param("crpix", kwargs.get("crpix", self.default_crpix), units="pixel")
-        if pixelscale is None:
-            pixelscale = self.default_pixelscale
-        elif isinstance(pixelscale, (float, int)):
-            AP_config.ap_logger.warning(
-                "Assuming diagonal pixelscale with the same value on both axes, please provide a full matrix to remove this message!"
-            )
-            pixelscale = ((pixelscale, 0.0), (0.0, pixelscale))
-        self.pixelscale = Param("pixelscale", pixelscale, shape=(2, 2), units="arcsec/pixel")
-
-        self.zeropoint = zeropoint
-
         # set the data
         self.data = Param("data", data, units="flux")
+        self.crval = Param("crval", kwargs.get("crval", self.default_crval), units="deg")
+        self.crtan = Param("crtan", kwargs.get("crtan", self.default_crtan), units="arcsec")
+        self.crpix = np.asarray(
+            kwargs.get(
+                "crpix",
+                (
+                    self.default_crpix
+                    if self.data.value is None
+                    else (self.data.shape[1] // 2, self.data.shape[0] // 2)
+                ),
+            ),
+            dtype=int,
+        )
+
+        self.pixelscale = pixelscale
+
+        self.zeropoint = zeropoint
 
     @property
     def zeropoint(self):
@@ -137,14 +141,47 @@ class Image(Module):
             )
 
     @property
-    @forward
-    def pixel_area(self, pixelscale):
-        """The area inside a pixel in arcsec^2"""
-        return torch.linalg.det(pixelscale).abs()
+    def window(self):
+        return Window(window=((0, 0), self.data.shape), crpix=self.crpix, image=self)
 
     @property
-    @forward
-    def pixel_length(self, pixelscale):
+    def center(self):
+        return self.pixel_to_plane(*(self.data.shape // 2))
+
+    @property
+    def shape(self):
+        """The shape of the image data."""
+        return self.data.shape
+
+    @property
+    def pixelscale(self):
+        return self._pixelscale
+
+    @pixelscale.setter
+    def pixelscale(self, pixelscale):
+        if pixelscale is None:
+            pixelscale = self.default_pixelscale
+        elif isinstance(pixelscale, (float, int)) or (
+            isinstance(pixelscale, torch.Tensor) and pixelscale.numel() == 1
+        ):
+            AP_config.ap_logger.warning(
+                "Assuming diagonal pixelscale with the same value on both axes, please provide a full matrix to remove this message!"
+            )
+            pixelscale = ((pixelscale, 0.0), (0.0, pixelscale))
+        self._pixelscale = torch.as_tensor(
+            pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        self._pixel_area = torch.linalg.det(self._pixelscale).abs()
+        self._pixel_length = self._pixel_area.sqrt()
+        self._pixelscale_inv = torch.linalg.inv(self._pixelscale)
+
+    @property
+    def pixel_area(self):
+        """The area inside a pixel in arcsec^2"""
+        return self._pixel_area
+
+    @property
+    def pixel_length(self):
         """The approximate length of a pixel, which is just
         sqrt(pixel_area). For square pixels this is the actual pixel
         length, for rectangular pixels it is a kind of average.
@@ -153,24 +190,23 @@ class Image(Module):
         and instead sets a size scale within an image.
 
         """
-        return torch.linalg.det(pixelscale).abs().sqrt()
+        return self._pixel_length
 
     @property
-    @forward
-    def pixelscale_inv(self, pixelscale):
+    def pixelscale_inv(self):
         """The inverse of the pixel scale matrix, which is used to
         transform tangent plane coordinates into pixel coordinates.
 
         """
-        return torch.linalg.inv(pixelscale)
+        return self._pixelscale_inv
 
     @forward
-    def pixel_to_plane(self, i, j, crpix, crtan, pixelscale):
-        return func.pixel_to_plane_linear(i, j, *crpix, pixelscale, *crtan)
+    def pixel_to_plane(self, i, j, crtan, pixelscale):
+        return func.pixel_to_plane_linear(i, j, *self.crpix, pixelscale, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crpix, crtan):
-        return func.plane_to_pixel_linear(x, y, *crpix, self.pixelscale_inv, *crtan)
+    def plane_to_pixel(self, x, y, crtan):
+        return func.plane_to_pixel_linear(x, y, *self.crpix, self.pixelscale_inv, *crtan)
 
     @forward
     def plane_to_world(self, x, y, crval, crtan):
@@ -202,27 +238,6 @@ class Image(Module):
             i, j = i[0], i[1]
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    @forward
-    def get_pixel_center_meshgrid(self):
-        i, j = func.pixel_center_meshgrid(
-            self.data.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        return self.pixel_to_plane(i, j)
-
-    @forward
-    def get_pixel_corner_meshgrid(self):
-        i, j = func.pixel_corner_meshgrid(
-            self.data.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        return self.pixel_to_plane(i, j)
-
-    @forward
-    def get_pixel_simps_meshgrid(self):
-        i, j = func.pixel_simpsons_meshgrid(
-            self.data.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        return self.pixel_to_plane(i, j)
-
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
         can be used when one wishes to make temporary modifications to
@@ -232,7 +247,7 @@ class Image(Module):
         copy_kwargs = {
             "data": torch.clone(self.data.value),
             "pixelscale": self.pixelscale.value,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -249,7 +264,7 @@ class Image(Module):
         copy_kwargs = {
             "data": torch.zeros_like(self.data.value),
             "pixelscale": self.pixelscale.value,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -284,19 +299,19 @@ class Image(Module):
                 crop : self.data.shape[0] - crop,
                 crop : self.data.shape[1] - crop,
             ]
-            crpix = self.crpix.value - crop
+            crpix = self.crpix - crop
         elif len(pixels) == 2:  # different crop in each dimension
             data = self.data.value[
                 pixels[1] : self.data.shape[0] - pixels[1],
                 pixels[0] : self.data.shape[1] - pixels[0],
             ]
-            crpix = self.crpix.value - pixels
+            crpix = self.crpix - pixels
         elif len(pixels) == 4:  # different crop on all sides
             data = self.data.value[
                 pixels[2] : self.data.shape[0] - pixels[3],
                 pixels[0] : self.data.shape[1] - pixels[1],
             ]
-            crpix = self.crpix.value - pixels[0::2]  # fixme
+            crpix = self.crpix - pixels[0::2]  # fixme
         else:
             raise ValueError(
                 f"Invalid crop shape {pixels}, must be int, (int,), (int, int), or (int, int, int, int)!"
@@ -335,7 +350,7 @@ class Image(Module):
             .sum(axis=(1, 3))
         )
         pixelscale = self.pixelscale.value * scale
-        crpix = (self.crpix.value + 0.5) / scale - 0.5
+        crpix = (self.crpix + 0.5) / scale - 0.5
         return self.copy(
             data=data,
             pixelscale=pixelscale,
@@ -347,7 +362,7 @@ class Image(Module):
         state = {}
         state["type"] = self.__class__.__name__
         state["data"] = self.data.detach().cpu().tolist()
-        state["crpix"] = self.crpix.npvalue
+        state["crpix"] = self.crpix
         state["crtan"] = self.crtan.npvalue
         state["crval"] = self.crval.npvalue
         state["pixelscale"] = self.pixelscale.npvalue
@@ -441,7 +456,7 @@ class Image(Module):
             indices = _indices
         new_img = self.copy(
             data=self.data.value[indices],
-            crpix=self.crpix.value - (indices[0].start, indices[1].start),
+            crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
             **kwargs,
         )
         return new_img

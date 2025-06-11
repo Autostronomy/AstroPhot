@@ -282,9 +282,8 @@ def exponential_iradial_model(self, i, R, image=None, parameters=None):
 # Sersic
 ######################################################################
 @forward
-@default_internal
-def sersic_radial_model(self, R, image=None, n=None, Re=None, Ie=None):
-    return sersic_torch(R, n, Re, image.pixel_area * 10**Ie)
+def sersic_radial_model(self, R, n=None, Re=None, Ie=None):
+    return sersic_torch(R, n, Re, Ie)
 
 
 @default_internal
