@@ -1,26 +1,25 @@
 from typing import Optional, Sequence
-from collections import OrderedDict
 
 import torch
+from caskade import forward
 
-from .core_model import AstroPhot_Model
+from .core_model import Model
 from ..image import (
     Image,
     Target_Image,
+    Target_Image_List,
     Image_List,
     Window,
     Window_List,
     Jacobian_Image,
 )
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ._shared_methods import select_target
-from ..param import Parameter_Node
+from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget
 
 __all__ = ["Group_Model"]
 
 
-class Group_Model(AstroPhot_Model):
+class Group_Model(Model):
     """Model object which represents a list of other models. For each
     general AstroPhot model method, this calls all the appropriate
     models from its list and combines their output into a single
@@ -36,48 +35,23 @@ class Group_Model(AstroPhot_Model):
 
     """
 
-    model_type = f"group {AstroPhot_Model.model_type}"
+    _model_type = "group"
     usable = True
 
     def __init__(
         self,
         *,
         name: Optional[str] = None,
-        models: Optional[Sequence[AstroPhot_Model]] = None,
+        models: Optional[Sequence[Model]] = None,
         **kwargs,
     ):
         super().__init__(name=name, models=models, **kwargs)
-        self._param_tuple = None
-        self.models = OrderedDict()
-        if models is not None:
-            self.add_model(models)
-        self._psf_mode = "none"
+        self.models = models
         self.update_window()
         if "filename" in kwargs:
             self.load(kwargs["filename"], new_name=name)
 
-    def add_model(self, model):
-        """Adds a new model to the group model list. Ensures that the same
-        model isn't added a second time.
-
-        Parameters:
-            model: a model object to add to the model list.
-
-        """
-        if isinstance(model, (tuple, list)):
-            for mod in model:
-                self.add_model(mod)
-            return
-        if model.name in self.models and model is not self.models[model.name]:
-            raise KeyError(
-                f"{self.name} already has model with name {model.name}, every model must have a unique name."
-            )
-
-        self.models[model.name] = model
-        self.parameters.link(model.parameters)
-        self.update_window()
-
-    def update_window(self, include_locked: bool = False):
+    def update_window(self):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.
 
@@ -85,8 +59,6 @@ class Group_Model(AstroPhot_Model):
         if isinstance(self.target, Image_List):  # Window_List if target is a Target_Image_List
             new_window = [None] * len(self.target.image_list)
             for model in self.models.values():
-                if model.locked and not include_locked:
-                    continue
                 if isinstance(model.target, Image_List):
                     for target, window in zip(model.target, model.window):
                         index = self.target.index(target)
@@ -108,8 +80,6 @@ class Group_Model(AstroPhot_Model):
         else:
             new_window = None
             for model in self.models.values():
-                if model.locked and not include_locked:
-                    continue
                 if new_window is None:
                     new_window = model.window.copy()
                 else:
@@ -118,22 +88,17 @@ class Group_Model(AstroPhot_Model):
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target: Optional[Image] = None, parameters=None, **kwargs):
+    def initialize(self, **kwargs):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
 
         Args:
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
-        self._param_tuple = None
-        super().initialize(target=target, parameters=parameters)
+        super().initialize()
 
-        target_copy = target.copy()
         for model in self.models.values():
-            model.initialize(target=target_copy, parameters=parameters[model.name])
-            target_copy -= model(parameters=parameters[model.name])
+            model.initialize()
 
     def fit_mask(self) -> torch.Tensor:
         """Returns a mask for the target image which is the combination of all
@@ -166,11 +131,10 @@ class Group_Model(AstroPhot_Model):
                 mask[group_indices] &= model.fit_mask()[model_indices]
         return mask
 
+    @forward
     def sample(
         self,
-        image: Optional[Image] = None,
         window: Optional[Window] = None,
-        parameters: Optional["Parameter_Node"] = None,
     ):
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
@@ -181,40 +145,47 @@ class Group_Model(AstroPhot_Model):
           image (Optional["Model_Image"]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
 
         """
-        self._param_tuple = None
-        if image is None:
-            sample_window = True
-            image = self.make_model_image(window=window)
+        if window is None:
+            image = self.target[self.window].model_image()
         else:
-            sample_window = False
-        if parameters is None:
-            parameters = self.parameters
+            image = self.target[window].model_image()
 
         for model in self.models.values():
-            if window is not None and isinstance(window, Window_List):
-                indices = self.target.match_indices(model.target)
-                if isinstance(indices, (tuple, list)):
-                    use_window = Window_List(
-                        window_list=list(window.window_list[ind] for ind in indices)
-                    )
-                else:
-                    use_window = window.window_list[indices]
-            else:
+            if window is None:
+                use_window = None
+            elif isinstance(image, Image_List) and isinstance(model.target, Image_List):
+                indices = image.match_indices(model.target)
+                if len(indices) == 0:
+                    continue
+                use_window = Window_List(
+                    window_list=list(image.image_list[i].window for i in indices)
+                )
+            elif isinstance(image, Image_List) and isinstance(model.target, Image):
+                try:
+                    image.index(model.target)
+                except ValueError:
+                    continue
+            elif isinstance(image, Image) and isinstance(model.target, Image_List):
+                try:
+                    model.target.index(image)
+                except ValueError:
+                    continue
+            elif isinstance(image, Image) and isinstance(model.target, Image):
+                if image.identity != model.target.identity:
+                    continue
                 use_window = window
-            if sample_window:
-                # Will sample the model fit window then add to the image
-                image += model(window=use_window, parameters=parameters[model.name])
             else:
-                # Will sample the entire image
-                model(image, window=use_window, parameters=parameters[model.name])
+                raise NotImplementedError(
+                    f"Group_Model cannot sample with {type(image)} and {type(model.target)}"
+                )
+            image += model(window=use_window)
 
         return image
 
     @torch.no_grad()
+    @forward
     def jacobian(
         self,
-        parameters: Optional[torch.Tensor] = None,
-        as_representation: bool = False,
         pass_jacobian: Optional[Jacobian_Image] = None,
         window: Optional[Window] = None,
         **kwargs,
@@ -231,13 +202,6 @@ class Group_Model(AstroPhot_Model):
         """
         if window is None:
             window = self.window
-        self._param_tuple = None
-
-        if parameters is not None:
-            if as_representation:
-                self.parameters.vector_set_representation(parameters)
-            else:
-                self.parameters.vector_set_values(parameters)
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
@@ -266,16 +230,6 @@ class Group_Model(AstroPhot_Model):
         return (mod for mod in self.models.values())
 
     @property
-    def psf_mode(self):
-        return self._psf_mode
-
-    @psf_mode.setter
-    def psf_mode(self, value):
-        self._psf_mode = value
-        for model in self.models.values():
-            model.psf_mode = value
-
-    @property
     def target(self):
         try:
             return self._target
@@ -284,7 +238,7 @@ class Group_Model(AstroPhot_Model):
 
     @target.setter
     def target(self, tar):
-        if not (tar is None or isinstance(tar, Target_Image)):
+        if not (tar is None or isinstance(tar, (Target_Image, Target_Image_List))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
         self._target = tar
 

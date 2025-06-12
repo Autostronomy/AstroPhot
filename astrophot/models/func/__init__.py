@@ -14,6 +14,7 @@ from .convolution import (
     bilinear_kernel,
     convolve_and_shift,
 )
+from .sersic import sersic, sersic_n_to_b
 
 __all__ = (
     "quad_table",
@@ -28,4 +29,6 @@ __all__ = (
     "lanczos_kernel",
     "bilinear_kernel",
     "convolve_and_shift",
+    "sersic",
+    "sersic_n_to_b",
 )

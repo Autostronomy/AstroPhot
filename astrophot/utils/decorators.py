@@ -12,6 +12,14 @@ from ..image import (
 )
 
 
+class classproperty:
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, instance, owner):
+        return self.fget(owner)
+
+
 def ignore_numpy_warnings(func):
     """This decorator is used to turn off numpy warnings. This should
     only be used in initialize scripts which often run heuristic code

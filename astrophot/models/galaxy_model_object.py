@@ -14,12 +14,13 @@ from ..utils.conversions.coordinates import (
 )
 from .model_object import Component_Model
 from ._shared_methods import select_target
+from .mixins import InclinedMixin
 
 
 __all__ = ["Galaxy_Model"]
 
 
-class Galaxy_Model(Component_Model):
+class Galaxy_Model(InclinedMixin, Component_Model):
     """General galaxy model to be subclassed for any specific
     representation. Defines a galaxy as an object with a position
     angle and axis ratio, or effectively a tilted disk. Most
@@ -41,16 +42,7 @@ class Galaxy_Model(Component_Model):
 
     """
 
-    model_type = f"galaxy {Component_Model.model_type}"
-    parameter_specs = {
-        "q": {"units": "b/a", "limits": (0, 1), "uncertainty": 0.03},
-        "PA": {
-            "units": "radians",
-            "limits": (0, np.pi),
-            "cyclic": True,
-            "uncertainty": 0.06,
-        },
-    }
+    _model_type = "galaxy"
     usable = False
 
     @torch.no_grad()
@@ -90,6 +82,3 @@ class Galaxy_Model(Component_Model):
         if self.q.value is None:
             l = np.sorted(np.linalg.eigvals(M))
             self.q.value = np.sqrt(l[1] / l[0])
-
-    from ._shared_methods import inclined_transform_coordinates as transform_coordinates
-    from ._shared_methods import transformed_evaluate_model as evaluate_model

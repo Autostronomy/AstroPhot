@@ -5,7 +5,7 @@ import torch
 import yaml
 
 from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..utils.decorators import ignore_numpy_warnings, default_internal, classproperty
 from ..image import Window, Target_Image, Target_Image_List
 from caskade import Module, forward
 from ._shared_methods import select_target, select_sample
@@ -89,11 +89,10 @@ class Model(Module):
 
     """
 
-    model_type = "model"
+    _model_type = "model"
     _parameter_specs = {}
     default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
     usable = False
-    model_names = []
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):
         if filename is not None:
@@ -122,9 +121,20 @@ class Model(Module):
         self.window = window
         self.mask = kwargs.get("mask", None)
 
+    @classproperty
+    def model_type(cls):
+        collected = []
+        for subcls in cls.mro():
+            if subcls is object:
+                continue
+            mt = getattr(subcls, "_model_type", None)
+            if mt:
+                collected.append(mt)
+        # Build the final combined string
+        return " ".join(collected)
+
     @torch.no_grad()
-    @select_target
-    def initialize(self, target=None, **kwargs):
+    def initialize(self, **kwargs):
         """When this function finishes, all parameters should have numerical
         values (non None) that are reasonable estimates of the final
         values.
@@ -132,33 +142,13 @@ class Model(Module):
         """
         pass
 
-    def make_model_image(self, window: Optional[Window] = None):
-        """This is called to create a blank `Model_Image` object of the
-        correct format for this model. This is typically used
-        internally to construct the model image before filling the
-        pixel values with the model.
-
-        """
-        if window is None:
-            window = self.window
-        else:
-            window = self.window & window
-        return self.target[window].model_image()
-
     @forward
-    def sample(self, image=None, window=None, *args, **kwargs):
+    def sample(self, *args, **kwargs):
         """Calling this function should fill the given image with values
         sampled from the given model.
 
         """
         pass
-
-    def fit_mask(self):
-        """
-        Return a mask to be used for fitting this model. This will block out
-        pixels that are not relevant to the model.
-        """
-        return torch.zeros_like(self.target[self.window].mask)
 
     @forward
     def negative_log_likelihood(
@@ -197,12 +187,11 @@ class Model(Module):
         self,
         **kwargs,
     ):
-        raise NotImplementedError("please use a subclass of AstroPhot_Model")
+        raise NotImplementedError("please use a subclass of AstroPhot Model")
 
-    @default_internal
     @forward
-    def total_flux(self, window=None, image=None):
-        F = self(window=None, image=None)
+    def total_flux(self, window=None):
+        F = self(window=window)
         return torch.sum(F.data)
 
     @property
@@ -256,10 +245,6 @@ class Model(Module):
         elif not isinstance(tar, Target_Image):
             raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
         self._target = tar
-
-    def __repr__(self):
-        """Detailed string representation for the model."""
-        return yaml.dump(self.get_state(), indent=2)
 
     def get_state(self, *args, **kwargs):
         """Returns a dictionary of the state of the model with its name,
@@ -347,24 +332,14 @@ class Model(Module):
                     MODELS.remove(model)
         return MODELS
 
-    @classmethod
-    def List_Model_Names(cls, usable=None):
-        MODELS = cls.List_Models(usable=usable)
-        names = []
-        for model in MODELS:
-            names.append(model.model_type)
-        return list(sorted(names, key=lambda n: n[::-1]))
-
     def __eq__(self, other):
         return self is other
 
     @forward
-    @select_sample
     def __call__(
         self,
-        image=None,
         window=None,
         **kwargs,
     ):
 
-        return self.sample(image=image, window=window, **kwargs)
+        return self.sample(window=window, **kwargs)

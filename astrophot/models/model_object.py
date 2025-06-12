@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 import torch
-from caskade import Param, forward, OverrideParam
+from caskade import Param, forward
 
 from .core_model import Model
 from . import func
@@ -358,8 +358,6 @@ class Component_Model(Model):
 
     # Extra background methods for the basemodel
     ######################################################################
-    from ._model_methods import radius_metric
-    from ._model_methods import angular_metric
     from ._model_methods import build_parameter_specs
     from ._model_methods import jacobian
     from ._model_methods import load

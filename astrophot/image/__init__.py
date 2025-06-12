@@ -3,7 +3,7 @@ from .target_image import Target_Image, Target_Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
 from .psf_image import PSF_Image
 from .model_image import Model_Image, Model_Image_List
-from .window import Window
+from .window import Window, Window_List
 
 
 __all__ = (
@@ -17,4 +17,5 @@ __all__ = (
     "Model_Image",
     "Model_Image_List",
     "Window",
+    "Window_List",
 )

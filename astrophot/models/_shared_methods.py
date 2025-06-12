@@ -220,45 +220,6 @@ def parametric_segment_initialize(
                 model[param].uncertainty = unc[param]
 
 
-# Evaluate_Model
-######################################################################
-@default_internal
-def radial_evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-    if X is None:
-        Coords = image.get_coordinate_meshgrid()
-        X, Y = Coords - parameters["center"].value[..., None, None]
-    return self.radial_model(
-        self.radius_metric(X, Y, image=image, parameters=parameters),
-        image=image,
-        parameters=parameters,
-    )
-
-
-@forward
-@default_internal
-def transformed_evaluate_model(
-    self, X=None, Y=None, image=None, parameters=None, center=None, **kwargs
-):
-    if X is None or Y is None:
-        Coords = image.get_coordinate_meshgrid()
-        X, Y = Coords - center[..., None, None]
-    X, Y = self.transform_coordinates(X, Y, image, parameters)
-    return self.radial_model(
-        self.radius_metric(X, Y, image=image, parameters=parameters),
-        image=image,
-        parameters=parameters,
-    )
-
-
-# Transform Coordinates
-######################################################################
-@forward
-@default_internal
-def inclined_transform_coordinates(self, X, Y, image=None, PA=None, q=None):
-    X, Y = Rotate_Cartesian(-(PA - image.north), X, Y)
-    return X, Y / q
-
-
 # Exponential
 ######################################################################
 @default_internal
@@ -274,23 +235,6 @@ def exponential_radial_model(self, R, image=None, parameters=None):
 def exponential_iradial_model(self, i, R, image=None, parameters=None):
     return exponential_torch(
         R,
-        parameters["Re"].value[i],
-        image.pixel_area * 10 ** parameters["Ie"].value[i],
-    )
-
-
-# Sersic
-######################################################################
-@forward
-def sersic_radial_model(self, R, n=None, Re=None, Ie=None):
-    return sersic_torch(R, n, Re, Ie)
-
-
-@default_internal
-def sersic_iradial_model(self, i, R, image=None, parameters=None):
-    return sersic_torch(
-        R,
-        parameters["n"].value[i],
         parameters["Re"].value[i],
         image.pixel_area * 10 ** parameters["Ie"].value[i],
     )

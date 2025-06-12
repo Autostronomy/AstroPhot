@@ -5,14 +5,11 @@ def sersic_n_to_b(n):
     radius/intensity.
 
     """
-
+    x = 1 / n
     return (
         2 * n
-        + 4 / (405 * n)
-        + 46 / (25515 * n**2)
-        + 131 / (1148175 * n**3)
-        - 2194697 / (30690717750 * n**4)
         - 1 / 3
+        + x * (4 / 405 + x * (46 / 25515 + x * (131 / 1148175 - x * 2194697 / 30690717750)))
     )
 
 
@@ -27,4 +24,4 @@ def sersic(R, n, Re, Ie):
         Ie: Effective surface density
     """
     bn = sersic_n_to_b(n)
-    return Ie * torch.exp(-bn * (torch.pow(R / Re, 1 / n) - 1))
+    return Ie * (-bn * ((R / Re) ** (1 / n) - 1)).exp()

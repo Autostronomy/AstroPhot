@@ -1,5 +1,4 @@
-import torch
-from caskade import Param, forward
+from caskade import forward
 
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
@@ -8,15 +7,8 @@ from .wedge_model import Wedge_Galaxy
 from .psf_model_object import PSF_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
-from ._shared_methods import (
-    parametric_initialize,
-    parametric_segment_initialize,
-    select_target,
-)
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.parametric_profiles import sersic_np
 from ..utils.conversions.functions import sersic_Ie_to_flux_torch
-
+from .mixins import SersicMixin, RadialMixin, iSersicMixin
 
 __all__ = [
     "Sersic_Galaxy",
@@ -31,15 +23,7 @@ __all__ = [
 ]
 
 
-def _x0_func(model, R, F):
-    return 2.0, R[4], F[4]
-
-
-def _wrap_sersic(R, n, r, i):
-    return sersic_np(R, n, r, 10 ** (i))
-
-
-class Sersic_Galaxy(Galaxy_Model):
+class Sersic_Galaxy(SersicMixin, Galaxy_Model):
     """basic galaxy model with a sersic profile for the radial light
     profile. The functional form of the Sersic profile is defined as:
 
@@ -58,35 +42,14 @@ class Sersic_Galaxy(Galaxy_Model):
 
     """
 
-    model_type = f"sersic {Galaxy_Model.model_type}"
-    parameter_specs = {
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-        "Ie": {"units": "flux/arcsec^2"},
-    }
     usable = True
-
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    def initialize(self, **kwargs):
-        super().initialize()
-
-        parametric_initialize(
-            self, self.target[self.window], _wrap_sersic, ("n", "Re", "Ie"), _x0_func
-        )
 
     @forward
     def total_flux(self, Ie, n, Re, q):
         return sersic_Ie_to_flux_torch(Ie, n, Re, q)
 
-    @forward
-    def radial_model(self, R, n, Re, Ie):
-        return sersic_torch(R, n, Re, Ie)
 
-    from ._shared_methods import sersic_radial_model as radial_model
-
-
-class Sersic_PSF(PSF_Model):
+class Sersic_PSF(SersicMixin, RadialMixin, PSF_Model):
     """basic point source model with a sersic profile for the radial light
     profile. The functional form of the Sersic profile is defined as:
 
@@ -105,35 +68,11 @@ class Sersic_PSF(PSF_Model):
 
     """
 
-    model_type = f"sersic {PSF_Model.model_type}"
-    parameter_specs = {
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-        "Ie": {
-            "units": "log10(flux/arcsec^2)",
-            "value": 0.0,
-            "uncertainty": 0.0,
-            "locked": True,
-        },
-    }
-    _parameter_order = PSF_Model._parameter_order + ("n", "Re", "Ie")
     usable = True
     model_integrated = False
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
-
-    from ._shared_methods import sersic_radial_model as radial_model
-    from ._shared_methods import radial_evaluate_model as evaluate_model
-
-
-class Sersic_SuperEllipse(SuperEllipse_Galaxy):
+class Sersic_SuperEllipse(SersicMixin, SuperEllipse_Galaxy):
     """super ellipse galaxy model with a sersic profile for the radial
     light profile. The functional form of the Sersic profile is defined as:
 
@@ -152,28 +91,10 @@ class Sersic_SuperEllipse(SuperEllipse_Galaxy):
 
     """
 
-    model_type = f"sersic {SuperEllipse_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = SuperEllipse_Galaxy._parameter_order + ("n", "Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
-
-    from ._shared_methods import sersic_radial_model as radial_model
-
-
-class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
+class Sersic_SuperEllipse_Warp(SersicMixin, SuperEllipse_Warp):
     """super ellipse warp galaxy model with a sersic profile for the
     radial light profile. The functional form of the Sersic profile is
     defined as:
@@ -193,28 +114,10 @@ class Sersic_SuperEllipse_Warp(SuperEllipse_Warp):
 
     """
 
-    model_type = f"sersic {SuperEllipse_Warp.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = SuperEllipse_Warp._parameter_order + ("n", "Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
-
-    from ._shared_methods import sersic_radial_model as radial_model
-
-
-class Sersic_FourierEllipse(FourierEllipse_Galaxy):
+class Sersic_FourierEllipse(SersicMixin, FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with a sersic
     profile for the radial light profile. The functional form of the
     Sersic profile is defined as:
@@ -234,28 +137,10 @@ class Sersic_FourierEllipse(FourierEllipse_Galaxy):
 
     """
 
-    model_type = f"sersic {FourierEllipse_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = FourierEllipse_Galaxy._parameter_order + ("n", "Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
-
-    from ._shared_methods import sersic_radial_model as radial_model
-
-
-class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
+class Sersic_FourierEllipse_Warp(SersicMixin, FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a sersic
     profile for the radial light profile. The functional form of the
     Sersic profile is defined as:
@@ -275,28 +160,10 @@ class Sersic_FourierEllipse_Warp(FourierEllipse_Warp):
 
     """
 
-    model_type = f"sersic {FourierEllipse_Warp.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = FourierEllipse_Warp._parameter_order + ("n", "Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
-
-    from ._shared_methods import sersic_radial_model as radial_model
-
-
-class Sersic_Warp(Warp_Galaxy):
+class Sersic_Warp(SersicMixin, Warp_Galaxy):
     """warped coordinate galaxy model with a sersic profile for the radial
     light model. The functional form of the Sersic profile is defined
     as:
@@ -316,28 +183,10 @@ class Sersic_Warp(Warp_Galaxy):
 
     """
 
-    model_type = f"sersic {Warp_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Warp_Galaxy._parameter_order + ("n", "Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_sersic, ("n", "Re", "Ie"), _x0_func)
-
-    from ._shared_methods import sersic_radial_model as radial_model
-
-
-class Sersic_Ray(Ray_Galaxy):
+class Sersic_Ray(iSersicMixin, Ray_Galaxy):
     """ray galaxy model with a sersic profile for the radial light
     model. The functional form of the Sersic profile is defined as:
 
@@ -356,36 +205,10 @@ class Sersic_Ray(Ray_Galaxy):
 
     """
 
-    model_type = f"sersic {Ray_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Ray_Galaxy._parameter_order + ("n", "Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_segment_initialize(
-            model=self,
-            target=target,
-            parameters=parameters,
-            prof_func=_wrap_sersic,
-            params=("n", "Re", "Ie"),
-            x0_func=_x0_func,
-            segments=self.rays,
-        )
-
-    from ._shared_methods import sersic_iradial_model as iradial_model
-
-
-class Sersic_Wedge(Wedge_Galaxy):
+class Sersic_Wedge(iSersicMixin, Wedge_Galaxy):
     """wedge galaxy model with a sersic profile for the radial light
     model. The functional form of the Sersic profile is defined as:
 
@@ -404,30 +227,4 @@ class Sersic_Wedge(Wedge_Galaxy):
 
     """
 
-    model_type = f"sersic {Wedge_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Wedge_Galaxy._parameter_order + ("n", "Re", "Ie")
     usable = True
-
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
-
-        parametric_segment_initialize(
-            model=self,
-            parameters=parameters,
-            target=target,
-            prof_func=_wrap_sersic,
-            params=("n", "Re", "Ie"),
-            x0_func=_x0_func,
-            segments=self.wedges,
-        )
-
-    from ._shared_methods import sersic_iradial_model as iradial_model

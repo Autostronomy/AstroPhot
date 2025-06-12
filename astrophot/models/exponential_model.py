@@ -1,7 +1,3 @@
-from typing import Optional
-
-import torch
-
 from .galaxy_model_object import Galaxy_Model
 from .warp_model import Warp_Galaxy
 from .ray_model import Ray_Galaxy
@@ -9,14 +5,7 @@ from .psf_model_object import PSF_Model
 from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 from .wedge_model import Wedge_Galaxy
-from ._shared_methods import (
-    parametric_initialize,
-    parametric_segment_initialize,
-    select_target,
-)
-from ..param import Parameter_Node
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.parametric_profiles import exponential_np
+from .mixins import ExponentialMixin, iExponentialMixin
 
 __all__ = [
     "Exponential_Galaxy",
@@ -29,15 +18,7 @@ __all__ = [
 ]
 
 
-def _x0_func(model_params, R, F):
-    return R[4], F[4]
-
-
-def _wrap_exp(R, re, ie):
-    return exponential_np(R, re, 10**ie)
-
-
-class Exponential_Galaxy(Galaxy_Model):
+class Exponential_Galaxy(ExponentialMixin, Galaxy_Model):
     """basic galaxy model with a exponential profile for the radial light
     profile. The light profile is defined as:
 
@@ -54,27 +35,10 @@ class Exponential_Galaxy(Galaxy_Model):
 
     """
 
-    model_type = f"exponential {Galaxy_Model.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Galaxy_Model._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters: Optional[Parameter_Node] = None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-
-
-class Exponential_PSF(PSF_Model):
+class Exponential_PSF(ExponentialMixin, PSF_Model):
     """basic point source model with a exponential profile for the radial light
     profile.
 
@@ -91,29 +55,11 @@ class Exponential_PSF(PSF_Model):
 
     """
 
-    model_type = f"exponential {PSF_Model.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = PSF_Model._parameter_order + ("Re", "Ie")
     usable = True
     model_integrated = False
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-    from ._shared_methods import radial_evaluate_model as evaluate_model
-
-
-class Exponential_SuperEllipse(SuperEllipse_Galaxy):
+class Exponential_SuperEllipse(ExponentialMixin, SuperEllipse_Galaxy):
     """super ellipse galaxy model with a exponential profile for the radial
     light profile.
 
@@ -130,27 +76,10 @@ class Exponential_SuperEllipse(SuperEllipse_Galaxy):
 
     """
 
-    model_type = f"exponential {SuperEllipse_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = SuperEllipse_Galaxy._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-
-
-class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
+class Exponential_SuperEllipse_Warp(ExponentialMixin, SuperEllipse_Warp):
     """super ellipse warp galaxy model with a exponential profile for the
     radial light profile.
 
@@ -167,27 +96,10 @@ class Exponential_SuperEllipse_Warp(SuperEllipse_Warp):
 
     """
 
-    model_type = f"exponential {SuperEllipse_Warp.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = SuperEllipse_Warp._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-
-
-class Exponential_FourierEllipse(FourierEllipse_Galaxy):
+class Exponential_FourierEllipse(ExponentialMixin, FourierEllipse_Galaxy):
     """fourier mode perturbations to ellipse galaxy model with an
     exponential profile for the radial light profile.
 
@@ -204,27 +116,10 @@ class Exponential_FourierEllipse(FourierEllipse_Galaxy):
 
     """
 
-    model_type = f"exponential {FourierEllipse_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = FourierEllipse_Galaxy._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-
-
-class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
+class Exponential_FourierEllipse_Warp(ExponentialMixin, FourierEllipse_Warp):
     """fourier mode perturbations to ellipse galaxy model with a exponential
     profile for the radial light profile.
 
@@ -241,27 +136,10 @@ class Exponential_FourierEllipse_Warp(FourierEllipse_Warp):
 
     """
 
-    model_type = f"exponential {FourierEllipse_Warp.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = FourierEllipse_Warp._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-
-
-class Exponential_Warp(Warp_Galaxy):
+class Exponential_Warp(ExponentialMixin, Warp_Galaxy):
     """warped coordinate galaxy model with a exponential profile for the
     radial light model.
 
@@ -278,27 +156,10 @@ class Exponential_Warp(Warp_Galaxy):
 
     """
 
-    model_type = f"exponential {Warp_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Warp_Galaxy._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_initialize(self, parameters, target, _wrap_exp, ("Re", "Ie"), _x0_func)
-
-    from ._shared_methods import exponential_radial_model as radial_model
-
-
-class Exponential_Ray(Ray_Galaxy):
+class Exponential_Ray(iExponentialMixin, Ray_Galaxy):
     """ray galaxy model with a sersic profile for the radial light
     model. The functional form of the Sersic profile is defined as:
 
@@ -315,35 +176,10 @@ class Exponential_Ray(Ray_Galaxy):
 
     """
 
-    model_type = f"exponential {Ray_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Ray_Galaxy._parameter_order + ("Re", "Ie")
     usable = True
 
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
 
-        parametric_segment_initialize(
-            model=self,
-            parameters=parameters,
-            target=target,
-            prof_func=_wrap_exp,
-            params=("Re", "Ie"),
-            x0_func=_x0_func,
-            segments=self.rays,
-        )
-
-    from ._shared_methods import exponential_iradial_model as iradial_model
-
-
-class Exponential_Wedge(Wedge_Galaxy):
+class Exponential_Wedge(iExponentialMixin, Wedge_Galaxy):
     """wedge galaxy model with a exponential profile for the radial light
     model. The functional form of the Sersic profile is defined as:
 
@@ -360,29 +196,4 @@ class Exponential_Wedge(Wedge_Galaxy):
 
     """
 
-    model_type = f"exponential {Wedge_Galaxy.model_type}"
-    parameter_specs = {
-        "Ie": {"units": "log10(flux/arcsec^2)"},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-    }
-    _parameter_order = Wedge_Galaxy._parameter_order + ("Re", "Ie")
     usable = True
-
-    @torch.no_grad()
-    @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
-
-        parametric_segment_initialize(
-            model=self,
-            parameters=parameters,
-            target=target,
-            prof_func=_wrap_exp,
-            params=("Re", "Ie"),
-            x0_func=_x0_func,
-            segments=self.wedges,
-        )
-
-    from ._shared_methods import exponential_iradial_model as iradial_model

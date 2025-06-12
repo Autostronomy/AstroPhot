@@ -29,6 +29,10 @@ class Window:
         self.crpix = np.asarray(crpix, dtype=int)
         self.image = image
 
+    @property
+    def identity(self):
+        return self.image.identity
+
     def get_indices(self, crpix: tuple[int, int] = None):
         if crpix is None:
             crpix = self.crpix
@@ -52,6 +56,15 @@ class Window:
         new_j_high = max(self.j_high, other.j_high)
         return Window((new_i_low, new_i_high, new_j_low, new_j_high), self.crpix)
 
+    def __ior__(self, other: "Window"):
+        if not isinstance(other, Window):
+            raise TypeError(f"Cannot combine Window with {type(other)}")
+        self.i_low = min(self.i_low, other.i_low)
+        self.i_high = max(self.i_high, other.i_high)
+        self.j_low = min(self.j_low, other.j_low)
+        self.j_high = max(self.j_high, other.j_high)
+        return self
+
     def __and__(self, other: "Window"):
         if not isinstance(other, Window):
             raise TypeError(f"Cannot intersect Window with {type(other)}")
@@ -67,3 +80,28 @@ class Window:
         new_j_low = max(self.j_low, other.j_low)
         new_j_high = min(self.j_high, other.j_high)
         return Window((new_i_low, new_i_high, new_j_low, new_j_high), self.crpix)
+
+
+class Window_List:
+    def __init__(self, window_list: list[Window]):
+        if not all(isinstance(window, Window) for window in window_list):
+            raise InvalidWindow(
+                f"Window_List can only hold Window objects, not {tuple(type(window) for window in window_list)}"
+            )
+        self.window_list = window_list
+
+    def index(self, other: Window):
+        for i, window in enumerate(self.window_list):
+            if other.identity == window.identity:
+                return i
+        else:
+            raise ValueError("Could not find identity match between window list and input window")
+
+    def __getitem__(self, index):
+        return self.window_list[index]
+
+    def __len__(self):
+        return len(self.window_list)
+
+    def __iter__(self):
+        return iter(self.window_list)
