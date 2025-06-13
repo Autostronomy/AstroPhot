@@ -209,13 +209,14 @@ class LM(BaseOptimizer):
             fit_mask = fit_mask.flatten()
         if torch.sum(fit_mask).item() == 0:
             fit_mask = None
+
         if model.target.has_mask:
             mask = self.model.target[self.fit_window].flatten("mask")
             if fit_mask is not None:
                 mask = mask | fit_mask
-            self.mask = torch.logical_not(mask)
+            self.mask = ~mask
         elif fit_mask is not None:
-            self.mask = torch.logical_not(fit_mask)
+            self.mask = ~fit_mask
         else:
             self.mask = None
         if self.mask is not None and torch.sum(self.mask).item() == 0:

@@ -41,7 +41,7 @@ class Window:
         chunk_tot = int(np.ceil((px * py) / chunk_size))
         # number of chunks on each axis
         cx = int(np.ceil(np.sqrt(chunk_tot * px / py)))
-        cy = int(np.ceil(chunk_size / cx))
+        cy = int(np.ceil(chunk_tot / cx))
         # number of pixels on each axis per chunk
         stepx = int(np.ceil(px / cx))
         stepy = int(np.ceil(py / cy))
@@ -53,14 +53,6 @@ class Window:
                 j_high = min(j + stepy, self.j_high)
                 windows.append(Window((i, i_high, j, j_high), self.crpix, self.image))
         return windows
-
-    def get_indices(self, crpix: tuple[int, int] = None):
-        if crpix is None:
-            crpix = self.crpix
-        shift = crpix - self.crpix
-        return slice(self.i_low - shift[0], self.i_high - shift[0]), slice(
-            self.j_low - shift[1], self.j_high - shift[1]
-        )
 
     def pad(self, pad: int):
         self.i_low -= pad

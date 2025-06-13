@@ -8,7 +8,7 @@ from ..utils.decorators import classproperty
 from ..image import Window, Target_Image_List
 from ..errors import UnrecognizedModel, InvalidWindow
 
-__all__ = ("AstroPhot_Model",)
+__all__ = ("Model",)
 
 
 def all_subclasses(cls):
@@ -124,13 +124,14 @@ class Model(Module):
             # Set the model parameter
             setattr(self, kwarg, kwargs[kwarg])
 
+        self.parameter_specs = self.build_parameter_specs(kwargs)
+        for key in self.parameter_specs:
+            setattr(self, key, Param(key, **self.parameter_specs[key]))
+
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
             self.load(kwargs["filename"], new_name=name)
             return
-        self.parameter_specs = self.build_parameter_specs(kwargs)
-        for key in self.parameter_specs:
-            setattr(self, key, Param(key, **self.parameter_specs[key]))
 
     @classproperty
     def model_type(cls):

@@ -6,6 +6,8 @@ from scipy.optimize import minimize
 from scipy.special import gammainc
 
 from .. import AP_config
+from ..models import Model
+from ..image import Window
 
 
 __all__ = ["BaseOptimizer"]
@@ -25,10 +27,10 @@ class BaseOptimizer(object):
 
     def __init__(
         self,
-        model: "AstroPhot_Model",
+        model: Model,
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
-        fit_window: Optional["Window"] = None,
+        fit_window: Optional[Window] = None,
         **kwargs,
     ) -> None:
         """
@@ -63,19 +65,6 @@ class BaseOptimizer(object):
         else:
             self.fit_window = fit_window & self.model.window
 
-        if initial_state is None:
-            self.model.initialize()
-            initial_state = self.model.parameters.vector_representation()
-        else:
-            initial_state = torch.as_tensor(
-                initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-
-        self.current_state = torch.as_tensor(
-            initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        if self.verbose > 1:
-            AP_config.ap_logger.info(f"initial state: {self.current_state}")
         self.max_iter = kwargs.get("max_iter", 100 * len(initial_state))
         self.iteration = 0
         self.save_steps = kwargs.get("save_steps", None)

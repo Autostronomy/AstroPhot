@@ -108,26 +108,29 @@ class Group_Model(Model):
         reason to be fit.
 
         """
+        subtarget = self.target[self.window]
         if isinstance(self.target, Image_List):
-            mask = tuple(torch.ones_like(submask) for submask in self.target[self.window].mask)
+            mask = tuple(torch.ones_like(submask) for submask in subtarget.mask)
             for model in self.models.values():
-                model_flat_mask = model.fit_mask()
+                model_subtarget = model.target[model.window]
+                model_fit_mask = model.fit_mask()
                 if isinstance(model.target, Image_List):
-                    for target, window, submask in zip(model.target, model.window, model_flat_mask):
-                        index = self.target.index(target)
-                        group_indices = self.window.window_list[index].get_self_indices(window)
-                        model_indices = window.get_self_indices(self.window.window_list[index])
+                    for target, submask in zip(model_subtarget, model_fit_mask):
+                        index = subtarget.index(target)
+                        group_indices = subtarget.images[index].get_indices(target)
+                        model_indices = target.get_indices(subtarget.images[index])
                         mask[index][group_indices] &= submask[model_indices]
                 else:
-                    index = self.target.index(model.target)
-                    group_indices = self.window.window_list[index].get_self_indices(model.window)
-                    model_indices = model.window.get_self_indices(self.window.window_list[index])
-                    mask[index][group_indices] &= model_flat_mask[model_indices]
+                    index = subtarget.index(model_subtarget)
+                    group_indices = subtarget.images[index].get_indices(model_subtarget)
+                    model_indices = model_subtarget.get_indices(subtarget.images[index])
+                    mask[index][group_indices] &= model_fit_mask[model_indices]
         else:
-            mask = torch.ones_like(self.target[self.window].mask)
+            mask = torch.ones_like(subtarget.mask)
             for model in self.models.values():
-                group_indices = self.window.get_self_indices(model.window)
-                model_indices = model.window.get_self_indices(self.window)
+                model_subtarget = model.target[model.window]
+                group_indices = subtarget.get_indices(model_subtarget)
+                model_indices = model_subtarget.get_indices(subtarget)
                 mask[group_indices] &= model.fit_mask()[model_indices]
         return mask
 

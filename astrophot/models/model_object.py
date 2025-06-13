@@ -168,6 +168,9 @@ class Component_Model(SampleMixin, Model):
 
         self.center.value = COM_center
 
+    def fit_mask(self):
+        return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)
+
     # Fit loop functions
     ######################################################################
     def shift_kernel(self, shift):

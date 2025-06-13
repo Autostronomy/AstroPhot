@@ -448,57 +448,6 @@ class Target_Image(Image):
             **kwargs,
         )
 
-    def get_state(self):
-        state = super().get_state()
-
-        if self.has_weight:
-            state["weight"] = self.weight.detach().cpu().tolist()
-        if self.has_mask:
-            state["mask"] = self.mask.detach().cpu().tolist()
-        if self.has_psf:
-            state["psf"] = self.psf.get_state()
-
-        return state
-
-    def set_state(self, state):
-        super().set_state(state)
-
-        self.weight = state.get("weight", None)
-        self.mask = state.get("mask", None)
-        if "psf" in state:
-            self.psf = PSF_Image(state=state["psf"])
-
-    def get_fits_state(self):
-        states = super().get_fits_state()
-        if self.has_weight:
-            states.append(
-                {
-                    "DATA": self.weight.detach().cpu().numpy(),
-                    "HEADER": {"IMAGE": "WEIGHT"},
-                }
-            )
-        if self.has_mask:
-            states.append(
-                {
-                    "DATA": self.mask.detach().cpu().numpy().astype(int),
-                    "HEADER": {"IMAGE": "MASK"},
-                }
-            )
-        if self.has_psf:
-            states += self.psf.get_fits_state()
-
-        return states
-
-    def set_fits_state(self, states):
-        super().set_fits_state(states)
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "WEIGHT":
-                self.weight = np.array(state["DATA"], dtype=np.float64)
-            if state["HEADER"]["IMAGE"] == "mask":
-                self.mask = np.array(state["DATA"], dtype=bool)
-            if state["HEADER"]["IMAGE"] == "PSF":
-                self.psf = PSF_Image(fits_state=states)
-
 
 class Target_Image_List(Image_List):
     def __init__(self, *args, **kwargs):

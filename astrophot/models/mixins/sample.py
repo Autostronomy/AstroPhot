@@ -57,6 +57,14 @@ class SampleMixin:
             f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
         )
 
+    def build_params_array_identities(self):
+        identities = []
+        for param in self.dynamic_params:
+            numel = max(1, np.prod(param.shape))
+            for i in range(numel):
+                identities.append(f"{id(param)}_{i}")
+        return identities
+
     def _jacobian(self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor):
         return jacobian(
             lambda x: self.sample(
@@ -72,16 +80,24 @@ class SampleMixin:
         self,
         window: Optional[Window] = None,
         pass_jacobian: Optional[Jacobian_Image] = None,
+        params: Optional[Tensor] = None,
     ):
         if window is None:
             window = self.window
 
+        if params is not None:
+            self.fill_dynamic_params(params)
+
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
-                parameters=self.parameters.vector_identities()
+                parameters=self.build_params_array_identities()
             )
         else:
             jac_img = pass_jacobian
+
+        # No dynamic params
+        if len(self.build_params_list()) == 0:
+            return jac_img
 
         # handle large images
         n_pixels = np.prod(window.shape)
@@ -90,9 +106,9 @@ class SampleMixin:
                 self.jacobian(window=chunk, pass_jacobian=jac_img)
             return jac_img
 
-        # handle large number of parameters
         params = self.build_params_array()
-        if len(params) > self.jacobian_maxparams:
+        identities = self.build_params_array_identities()
+        if len(params) > self.jacobian_maxparams:  # handle large number of parameters
             chunksize = len(params) // self.jacobian_maxparams + 1
             for i in range(chunksize, len(params), chunksize):
                 params_pre = params[:i]
@@ -100,37 +116,37 @@ class SampleMixin:
                 params_chunk = params[i : i + chunksize]
                 jac_chunk = self._jacobian(window, params_pre, params_chunk, params_post)
                 jac_img += self.target[window].jacobian_image(
-                    parameters=self.parameters.vector_identities(),
+                    parameters=identities[i : i + chunksize],
                     data=jac_chunk,
                 )
         else:
             jac = self._jacobian(window, params[:0], params, params[0:0])
-            jac_img += self.target[window].jacobian_image(
-                parameters=self.parameters.vector_identities(),
-                data=jac,
-            )
+            jac_img += self.target[window].jacobian_image(parameters=identities, data=jac)
 
         return jac_img
 
     def gradient(
         self,
         window: Optional[Window] = None,
+        params: Optional[Tensor] = None,
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
     ):
         """Compute the gradient of the model with respect to its parameters."""
         if window is None:
             window = self.window
 
-        jacobian_image = self.jacobian(window=window)
+        jacobian_image = self.jacobian(window=window, params=params)
 
         data = self.target[window].data.value
         model = self.sample(window=window).data.value
         if likelihood == "gaussian":
             weight = self.target[window].weight
-            gradient = torch.sum(jacobian_image.data.value * (data - model) * weight, dim=(0, 1))
+            gradient = torch.sum(
+                jacobian_image.data.value * ((data - model) * weight).unsqueeze(-1), dim=(0, 1)
+            )
         elif likelihood == "poisson":
             gradient = torch.sum(
-                jacobian_image.data.value * (1 - data / model),
+                jacobian_image.data.value * (1 - data / model).unsqueeze(-1),
                 dim=(0, 1),
             )
 

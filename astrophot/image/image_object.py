@@ -377,7 +377,17 @@ class Image(Module):
         return AstropyWCS(wargs)
 
     @torch.no_grad()
-    def get_indices(self, other: "Image"):
+    def get_indices(self, other: Union[Window, "Image"]):
+        if isinstance(other, Window):
+            shift = self.crpix - other.crpix
+            return slice(
+                min(max(0, other.i_low - shift[0]), self.shape[0]),
+                max(0, min(other.i_high - shift[0], self.shape[0])),
+            ), slice(
+                min(max(0, other.j_low - shift[1]), self.shape[1]),
+                max(0, min(other.j_high - shift[1], self.shape[1])),
+            )
+
         origin_pix = torch.round(self.plane_to_pixel(other.pixel_to_plane(-0.5, -0.5)) + 0.5).int()
         new_origin_pix = torch.maximum(torch.zeros_like(origin_pix), origin_pix)
 
@@ -390,15 +400,13 @@ class Image(Module):
         new_end_pix = torch.minimum(self.data.shape, end_pix)
         return slice(new_origin_pix[1], new_end_pix[1]), slice(new_origin_pix[0], new_end_pix[0])
 
-    def get_window(self, other: "Image", _indices=None, **kwargs):
+    def get_window(self, other: Union[Window, "Image"], _indices=None, **kwargs):
         """Get a new image object which is a window of this image
         corresponding to the other image's window. This will return a
         new image object with the same properties as this one, but with
         the data cropped to the other image's window.
 
         """
-        if not isinstance(other, Image):
-            raise InvalidWindow("get_window only works with Image objects!")
         if _indices is None:
             indices = self.get_indices(other)
         else:
@@ -445,7 +453,7 @@ class Image(Module):
         return self
 
     def __getitem__(self, *args):
-        if len(args) == 1 and isinstance(args[0], Image):
+        if len(args) == 1 and isinstance(args[0], (Image, Window)):
             return self.get_window(args[0])
         raise ValueError("Unrecognized Image getitem request!")
 
