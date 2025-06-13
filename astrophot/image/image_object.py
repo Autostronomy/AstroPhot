@@ -2,7 +2,6 @@ from typing import Optional, Union, Any
 
 import torch
 import numpy as np
-from astropy.io import fits
 from astropy.wcs import WCS as AstropyWCS
 from caskade import Module, Param, forward
 
@@ -358,41 +357,6 @@ class Image(Module):
             **kwargs,
         )
 
-    def get_state(self):
-        state = {}
-        state["type"] = self.__class__.__name__
-        state["data"] = self.data.detach().cpu().tolist()
-        state["crpix"] = self.crpix
-        state["crtan"] = self.crtan.npvalue
-        state["crval"] = self.crval.npvalue
-        state["pixelscale"] = self.pixelscale.npvalue
-        state["zeropoint"] = self.zeropoint
-        state["identity"] = self.identity
-        return state
-
-    def set_state(self, state):
-        self.data = state["data"]
-        self.crpix = state["crpix"]
-        self.crtan = state["crtan"]
-        self.crval = state["crval"]
-        self.pixelscale = state["pixelscale"]
-        self.zeropoint = state["zeropoint"]
-        self.identity = state["identity"]
-
-    def get_fits_state(self):
-        states = [{}]
-        states[0]["DATA"] = self.data.detach().cpu().numpy()
-        states[0]["HEADER"] = self.header.get_fits_state()
-        states[0]["HEADER"]["IMAGE"] = "PRIMARY"
-        return states
-
-    def set_fits_state(self, states):
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
-                self.header.set_fits_state(state["HEADER"])
-                break
-
     def get_astropywcs(self, **kwargs):
         wargs = {
             "NAXIS": 2,
@@ -411,21 +375,6 @@ class Image(Module):
         }
         wargs.update(kwargs)
         return AstropyWCS(wargs)
-
-    def save(self, filename=None, overwrite=True):
-        states = self.get_fits_state()
-        img_list = [fits.PrimaryHDU(states[0]["DATA"], header=fits.Header(states[0]["HEADER"]))]
-        for state in states[1:]:
-            img_list.append(fits.ImageHDU(state["DATA"], header=fits.Header(state["HEADER"])))
-        hdul = fits.HDUList(img_list)
-        if filename is not None:
-            hdul.writeto(filename, overwrite=overwrite)
-        return hdul
-
-    def load(self, filename):
-        hdul = fits.open(filename)
-        states = list({"DATA": hdu.data, "HEADER": hdu.header} for hdu in hdul)
-        self.set_fits_state(states)
 
     @torch.no_grad()
     def get_indices(self, other: "Image"):
@@ -502,51 +451,62 @@ class Image(Module):
 
 
 class Image_List(Module):
-    def __init__(self, image_list):
-        self.image_list = list(image_list)
-        if not all(isinstance(image, Image) for image in self.image_list):
+    def __init__(self, images):
+        self.images = list(images)
+        if not all(isinstance(image, Image) for image in self.images):
             raise InvalidImage(
-                f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.image_list)}"
+                f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.images)}"
             )
 
     @property
     def pixelscale(self):
-        return tuple(image.pixelscale.value for image in self.image_list)
+        return tuple(image.pixelscale.value for image in self.images)
 
     @property
     def zeropoint(self):
-        return tuple(image.zeropoint for image in self.image_list)
+        return tuple(image.zeropoint for image in self.images)
 
     @property
     def data(self):
-        return tuple(image.data for image in self.image_list)
+        return tuple(image.data for image in self.images)
 
     @data.setter
     def data(self, data):
-        for image, dat in zip(self.image_list, data):
+        for image, dat in zip(self.images, data):
             image.data = dat
 
     def copy(self):
         return self.__class__(
-            tuple(image.copy() for image in self.image_list),
+            tuple(image.copy() for image in self.images),
         )
 
     def blank_copy(self):
         return self.__class__(
-            tuple(image.blank_copy() for image in self.image_list),
+            tuple(image.blank_copy() for image in self.images),
         )
 
     def get_window(self, other: "Image_List"):
         return self.__class__(
-            tuple(image[win] for image, win in zip(self.image_list, other.image_list)),
+            tuple(image[win] for image, win in zip(self.images, other.images)),
         )
 
-    def index(self, other):
-        for i, image in enumerate(self.image_list):
+    def index(self, other: Image):
+        for i, image in enumerate(self.images):
             if other.identity == image.identity:
                 return i
         else:
             raise ValueError("Could not find identity match between image list and input image")
+
+    def match_indices(self, other: "Image_List"):
+        """Match the indices of the images in this list with those in another Image_List."""
+        indices = []
+        for other_image in other.images:
+            try:
+                i = self.index(other_image)
+            except ValueError:
+                continue
+            indices.append(i)
+        return indices
 
     def to(self, dtype=None, device=None):
         if dtype is not None:
@@ -560,14 +520,14 @@ class Image_List(Module):
         raise NotImplementedError("Crop function not available for Image_List object")
 
     def flatten(self, attribute="data"):
-        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
+        return torch.cat(tuple(image.flatten(attribute) for image in self.images))
 
     def __sub__(self, other):
         if isinstance(other, Image_List):
             new_list = []
-            for other_image in other.image_list:
+            for other_image in other.images:
                 i = self.index(other_image)
-                self_image = self.image_list[i]
+                self_image = self.images[i]
                 new_list.append(self_image - other_image)
             return self.__class__(new_list)
         else:
@@ -576,9 +536,9 @@ class Image_List(Module):
     def __add__(self, other):
         if isinstance(other, Image_List):
             new_list = []
-            for other_image in other.image_list:
+            for other_image in other.images:
                 i = self.index(other_image)
-                self_image = self.image_list[i]
+                self_image = self.images[i]
                 new_list.append(self_image + other_image)
             return self.__class__(new_list)
         else:
@@ -586,43 +546,37 @@ class Image_List(Module):
 
     def __isub__(self, other):
         if isinstance(other, Image_List):
-            for other_image in other.image_list:
+            for other_image in other.images:
                 i = self.index(other_image)
-                self.image_list[i] -= other_image
+                self.images[i] -= other_image
         elif isinstance(other, Image):
             i = self.index(other)
-            self.image_list[i] -= other
+            self.images[i] -= other
         else:
             raise ValueError("Subtraction of Image_List only works with another Image_List object!")
         return self
 
     def __iadd__(self, other):
         if isinstance(other, Image_List):
-            for other_image in other.image_list:
+            for other_image in other.images:
                 i = self.index(other_image)
-                self.image_list[i] += other_image
+                self.images[i] += other_image
         elif isinstance(other, Image):
             i = self.index(other)
-            self.image_list[i] += other
+            self.images[i] += other
         else:
             raise ValueError("Addition of Image_List only works with another Image_List object!")
         return self
 
-    def save(self, filename=None, overwrite=True):
-        raise NotImplementedError("Save/load not yet available for image lists")
-
-    def load(self, filename):
-        raise NotImplementedError("Save/load not yet available for image lists")
-
     def __getitem__(self, *args):
         if len(args) == 1 and isinstance(args[0], Image_List):
             new_list = []
-            for other_image in args[0].image_list:
+            for other_image in args[0].images:
                 i = self.index(other_image)
-                self_image = self.image_list[i]
+                self_image = self.images[i]
                 new_list.append(self_image.get_window(other_image))
             return self.__class__(new_list)
         raise ValueError("Unrecognized Image_List getitem request!")
 
     def __iter__(self):
-        return (img for img in self.image_list)
+        return (img for img in self.images)

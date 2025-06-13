@@ -67,19 +67,19 @@ class Model_Image(Image):
 class Model_Image_List(Image_List):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not all(isinstance(image, Model_Image) for image in self.image_list):
+        if not all(isinstance(image, Model_Image) for image in self.images):
             raise InvalidImage(
-                f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.image_list)}"
+                f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.images)}"
             )
 
     def clear_image(self):
-        for image in self.image_list:
+        for image in self.images:
             image.clear_image()
 
     def replace(self, other, data=None):
         if data is None:
-            for image, oth in zip(self.image_list, other):
+            for image, oth in zip(self.images, other):
                 image.replace(oth)
         else:
-            for image, oth, dat in zip(self.image_list, other, data):
+            for image, oth, dat in zip(self.images, other, data):
                 image.replace(oth, dat)

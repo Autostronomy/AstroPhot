@@ -1,16 +1,12 @@
-import io
-from typing import Optional
+from typing import Optional, Union
+from copy import deepcopy
 
 import torch
-import yaml
+from caskade import Module, forward, Param
 
-from ..utils.conversions.dict_to_hdf5 import dict_to_hdf5, hdf5_to_dict
-from ..utils.decorators import ignore_numpy_warnings, default_internal, classproperty
-from ..image import Window, Target_Image, Target_Image_List
-from caskade import Module, forward
-from ._shared_methods import select_target, select_sample
-from .. import AP_config
-from ..errors import InvalidTarget, UnrecognizedModel, InvalidWindow
+from ..utils.decorators import classproperty
+from ..image import Window, Target_Image_List
+from ..errors import UnrecognizedModel, InvalidWindow
 
 __all__ = ("AstroPhot_Model",)
 
@@ -120,6 +116,21 @@ class Model(Module):
         self.target = target
         self.window = window
         self.mask = kwargs.get("mask", None)
+        # Set any user defined attributes for the model
+        for kwarg in kwargs:  # fixme move to core model?
+            # Skip parameters with special behaviour
+            if kwarg in self.special_kwargs:
+                continue
+            # Set the model parameter
+            setattr(self, kwarg, kwargs[kwarg])
+
+        # If loading from a file, get model configuration then exit __init__
+        if "filename" in kwargs:
+            self.load(kwargs["filename"], new_name=name)
+            return
+        self.parameter_specs = self.build_parameter_specs(kwargs)
+        for key in self.parameter_specs:
+            setattr(self, key, Param(key, **self.parameter_specs[key]))
 
     @classproperty
     def model_type(cls):
@@ -130,8 +141,20 @@ class Model(Module):
             mt = getattr(subcls, "_model_type", None)
             if mt:
                 collected.append(mt)
-        # Build the final combined string
         return " ".join(collected)
+
+    def build_parameter_specs(self, kwargs):
+        parameter_specs = deepcopy(self._parameter_specs)
+
+        for p in kwargs:
+            if p not in self._parameter_specs:
+                continue
+            if isinstance(kwargs[p], dict):
+                parameter_specs[p].update(kwargs[p])
+            else:
+                parameter_specs[p]["value"] = kwargs[p]
+
+        return parameter_specs
 
     @torch.no_grad()
     def initialize(self, **kwargs):
@@ -151,43 +174,55 @@ class Model(Module):
         pass
 
     @forward
-    def negative_log_likelihood(
+    def gaussian_negative_log_likelihood(
         self,
+        window: Optional[Window] = None,
     ):
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
 
-        model = self.sample()
-        data = self.target[self.window]
+        if window is None:
+            window = self.window
+        model = self(window=window).data
+        data = self.target[window]
         weight = data.weight
-        if self.target.has_mask:
-            if isinstance(data, Target_Image_List):
-                mask = tuple(torch.logical_not(submask) for submask in data.mask)
-                chi2 = sum(
-                    torch.sum(((mo - da).data ** 2 * wgt)[ma]) / 2.0
-                    for mo, da, wgt, ma in zip(model, data, weight, mask)
-                )
-            else:
-                mask = torch.logical_not(data.mask)
-                chi2 = torch.sum(((model - data).data ** 2 * weight)[mask]) / 2.0
+        mask = data.mask
+        data = data.data
+        if isinstance(data, Target_Image_List):
+            nll = sum(
+                torch.sum(((mo - da) ** 2 * wgt)[~ma]) / 2.0
+                for mo, da, wgt, ma in zip(model, data, weight, mask)
+            )
         else:
-            if isinstance(data, Target_Image_List):
-                chi2 = sum(
-                    torch.sum(((mo - da).data ** 2 * wgt)) / 2.0
-                    for mo, da, wgt in zip(model, data, weight)
-                )
-            else:
-                chi2 = torch.sum(((model - data).data ** 2 * weight)) / 2.0
+            nll = torch.sum(((model - data) ** 2 * weight)[~mask]) / 2.0
 
-        return chi2
+        return nll
 
     @forward
-    def jacobian(
+    def poisson_negative_log_likelihood(
         self,
-        **kwargs,
+        window: Optional[Window] = None,
     ):
-        raise NotImplementedError("please use a subclass of AstroPhot Model")
+        """
+        Compute the negative log likelihood of the model wrt the target image in the appropriate window.
+        """
+        if window is None:
+            window = self.window
+        model = self(window=window).data
+        data = self.target[window]
+        mask = data.mask
+        data = data.data
+
+        if isinstance(data, Target_Image_List):
+            nll = sum(
+                torch.sum((mo - da * (mo + 1e-10).log() + torch.lgamma(da + 1))[~ma])
+                for mo, da, ma in zip(model, data, mask)
+            )
+        else:
+            nll = torch.sum((model - data * (model + 1e-10).log() + torch.lgamma(data + 1))[~mask])
+
+        return nll
 
     @forward
     def total_flux(self, window=None):
@@ -232,96 +267,6 @@ class Model(Module):
     @window.setter
     def window(self, window):
         self.set_window(window)
-
-    @property
-    def target(self):
-        return self._target
-
-    @target.setter
-    def target(self, tar):
-        if tar is None:
-            self._target = None
-            return
-        elif not isinstance(tar, Target_Image):
-            raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
-        self._target = tar
-
-    def get_state(self, *args, **kwargs):
-        """Returns a dictionary of the state of the model with its name,
-        type, parameters, and other important information. This
-        dictionary is what gets saved when a model saves to disk.
-
-        """
-        state = {
-            "name": self.name,
-            "model_type": self.model_type,
-        }
-        return state
-
-    def save(self, filename="AstroPhot.yaml"):
-        """Saves a model object to disk. By default the file type should be
-        yaml, this is the only file type which gets tested, though
-        other file types such as json and hdf5 should work.
-
-        """
-        if filename.endswith(".yaml"):
-            state = self.get_state()
-            with open(filename, "w") as f:
-                yaml.dump(state, f, indent=2)
-        elif filename.endswith(".json"):
-            import json
-
-            state = self.get_state()
-            with open(filename, "w") as f:
-                json.dump(state, f, indent=2)
-        elif filename.endswith(".hdf5"):
-            import h5py
-
-            state = self.get_state()
-            with h5py.File(filename, "w") as F:
-                dict_to_hdf5(F, state)
-        else:
-            if isinstance(filename, str) and "." in filename:
-                raise ValueError(
-                    f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5"
-                )
-            else:
-                raise ValueError(
-                    f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5"
-                )
-
-    @classmethod
-    def load(cls, filename="AstroPhot.yaml"):
-        """
-        Loads a saved model object.
-        """
-        if isinstance(filename, dict):
-            state = filename
-        elif isinstance(filename, io.TextIOBase):
-            state = yaml.load(filename, Loader=yaml.FullLoader)
-        elif filename.endswith(".yaml"):
-            with open(filename, "r") as f:
-                state = yaml.load(f, Loader=yaml.FullLoader)
-        elif filename.endswith(".json"):
-            import json
-
-            with open(filename, "r") as f:
-                state = json.load(f)
-        elif filename.endswith(".hdf5"):
-            import h5py
-
-            with h5py.File(filename, "r") as F:
-                state = hdf5_to_dict(F)
-        else:
-            if isinstance(filename, str) and "." in filename:
-                raise ValueError(
-                    f"Unrecognized filename format: {filename[filename.find('.'):]}, must be one of: .json, .yaml, .hdf5"
-                )
-            else:
-                raise ValueError(
-                    f"Unrecognized filename format: {str(filename)}, must be one of: .json, .yaml, .hdf5 or python dictionary."
-                )
-        return state
 
     @classmethod
     def List_Models(cls, usable=None):

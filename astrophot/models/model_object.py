@@ -2,27 +2,26 @@ from typing import Optional
 
 import numpy as np
 import torch
-from caskade import Param, forward
+from caskade import forward
 
 from .core_model import Model
 from . import func
 from ..image import (
     Model_Image,
+    Target_Image,
     Window,
     PSF_Image,
-    Target_Image,
-    Target_Image_List,
-    Image,
 )
 from ..utils.initialize import center_of_mass
-from ..utils.decorators import ignore_numpy_warnings, default_internal, select_target
+from ..utils.decorators import ignore_numpy_warnings
 from .. import AP_config
-from ..errors import InvalidTarget, SpecificationConflict
+from ..errors import SpecificationConflict, InvalidTarget
+from .mixins import SampleMixin
 
 __all__ = ["Component_Model"]
 
 
-class Component_Model(Model):
+class Component_Model(SampleMixin, Model):
     """Component_Model(name, target, window, locked, **kwargs)
 
     Component_Model is a base class for models that represent single
@@ -63,9 +62,6 @@ class Component_Model(Model):
     # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
     psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
-    # Method for initial sampling of model
-    sampling_mode = "auto"  # auto (choose based on image size), midpoint, simpsons, quad:x (where x is a positive integer)
-
     # Level to which each pixel should be evaluated
     sampling_tolerance = 1e-2
 
@@ -80,10 +76,6 @@ class Component_Model(Model):
 
     # The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher
     integrate_quad_level = 3
-
-    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
-    jacobian_chunksize = 10
-    image_chunksize = 1000
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3
@@ -105,29 +97,6 @@ class Component_Model(Model):
         "softening",
     ]
     usable = False
-
-    def __init__(self, *, name=None, **kwargs):
-        super().__init__(name=name, **kwargs)
-
-        self.psf = None
-        self.psf_aux_image = None
-
-        # Set any user defined attributes for the model
-        for kwarg in kwargs:  # fixme move to core model?
-            # Skip parameters with special behaviour
-            if kwarg in self.special_kwargs:
-                continue
-            # Set the model parameter
-            setattr(self, kwarg, kwargs[kwarg])
-
-        # If loading from a file, get model configuration then exit __init__
-        if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name=name)
-            return
-
-        self.parameter_specs = self.build_parameter_specs(kwargs)
-        for key in self.parameter_specs:
-            setattr(self, key, Param(key, **self.parameter_specs[key]))
 
     @property
     def psf(self):
@@ -154,6 +123,19 @@ class Component_Model(Model):
                 "or ap.models.AstroPhot_Model object instead."
             )
 
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, tar):
+        if tar is None:
+            self._target = None
+            return
+        elif not isinstance(tar, Target_Image):
+            raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
+        self._target = tar
+
     # Initialization functions
     ######################################################################
     @torch.no_grad()
@@ -171,7 +153,6 @@ class Component_Model(Model):
 
         """
         super().initialize()
-        # Get the sub-image area corresponding to the model image
         target_area = self.target[self.window]
 
         # Use center of window if a center hasn't been set yet
@@ -180,65 +161,15 @@ class Component_Model(Model):
         else:
             return
 
-        # Compute center of mass in window
         COM = center_of_mass(target_area.data.npvalue)
-        # Convert center of mass indices to coordinates
         COM_center = target_area.pixel_to_plane(
             *torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
 
-        # Set the new coordinates as the model center
         self.center.value = COM_center
 
     # Fit loop functions
     ######################################################################
-    @forward
-    def brightness(
-        self,
-        x: Optional[torch.Tensor] = None,
-        y: Optional[torch.Tensor] = None,
-        **kwargs,
-    ):
-        """Evaluate the brightness of the model at the exact tangent plane coordinates requested."""
-        return torch.zeros_like(x)  # do nothing in base model
-
-    @forward
-    def sample_image(self, image: Image):
-        if self.sampling_mode == "auto":
-            N = np.prod(image.data.shape)
-            if N <= 100:
-                sampling_mode = "quad:5"
-            elif N <= 10000:
-                sampling_mode = "simpsons"
-            else:
-                sampling_mode = "midpoint"
-        else:
-            sampling_mode = self.sampling_mode
-
-        if sampling_mode == "midpoint":
-            i, j = func.pixel_center_meshgrid(image.shape, AP_config.ap_dtype, AP_config.ap_device)
-            x, y = image.pixel_to_plane(i, j)
-            res = self.brightness(x, y)
-            return func.pixel_center_integrator(res)
-        elif sampling_mode == "simpsons":
-            i, j = func.pixel_simpsons_meshgrid(
-                image.shape, AP_config.ap_dtype, AP_config.ap_device
-            )
-            x, y = image.pixel_to_plane(i, j)
-            res = self.brightness(x, y)
-            return func.pixel_simpsons_integrator(res)
-        elif sampling_mode.startswith("quad:"):
-            order = int(self.sampling_mode.split(":")[1])
-            i, j, w = func.pixel_quad_meshgrid(
-                image.shape, AP_config.ap_dtype, AP_config.ap_device, order=order
-            )
-            x, y = image.pixel_to_plane(i, j)
-            res = self.brightness(x, y)
-            return func.pixel_quad_integrator(res, w)
-        raise SpecificationConflict(
-            f"Unknown integration mode {self.sampling_mode} for model {self.name}"
-        )
-
     def shift_kernel(self, shift):
         if self.psf_subpixel_shift == "bilinear":
             return func.bilinear_kernel(shift[0], shift[1])
@@ -329,35 +260,10 @@ class Component_Model(Model):
                 sample = self.sample_integrate(sample, working_image)
             working_image.data = sample
 
+        # Units from flux/arcsec^2 to flux
+        working_image.data = working_image.data.value * working_image.pixel_area
+
         if self.mask is not None:
             working_image.data = working_image.data * (~self.mask)
 
         return working_image
-
-    def get_state(self, save_params=True):
-        """Returns a dictionary with a record of the current state of the
-        model.
-
-        Specifically, the current parameter settings and the window for
-        this model. From this information it is possible for the model to
-        re-build itself lated when loading from disk. Note that the target
-        image is not saved, this must be reset when loading the model.
-
-        """
-        state = super().get_state()
-        state["window"] = self.window.get_state()
-        if save_params:
-            state["parameters"] = self.parameters.get_state()
-        state["target_identity"] = self._target_identity
-        if isinstance(self._psf, PSF_Image) or isinstance(self._psf, AstroPhot_Model):
-            state["psf"] = self._psf.get_state()
-        for key in self.track_attrs:
-            if getattr(self, key) != getattr(self.__class__, key):
-                state[key] = getattr(self, key)
-        return state
-
-    # Extra background methods for the basemodel
-    ######################################################################
-    from ._model_methods import build_parameter_specs
-    from ._model_methods import jacobian
-    from ._model_methods import load

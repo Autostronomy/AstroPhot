@@ -1,14 +1,12 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import torch
 import numpy as np
-from astropy.io import fits
 
 from .image_object import Image
 from .model_image import Model_Image
 from .jacobian_image import Jacobian_Image
 from .. import AP_config
-from ..errors import SpecificationConflict
 
 __all__ = ["PSF_Image"]
 
@@ -72,17 +70,6 @@ class PSF_Image(Image):
             / 2
         ).int()
 
-    def _save_image_list(self, image_list):
-        """Saves the image list to the PSF HDU header.
-
-        Args:
-            image_list (list): The list of images to be saved.
-            psf_header (astropy.io.fits.Header): The header of the PSF HDU.
-        """
-        img_header = self.header._save_image_list()
-        img_header["IMAGE"] = "PSF"
-        image_list.append(fits.ImageHDU(self.data.detach().cpu().numpy(), header=img_header))
-
     def jacobian_image(
         self,
         parameters: Optional[List[str]] = None,
@@ -119,20 +106,3 @@ class PSF_Image(Image):
             target_identity=self.identity,
             **kwargs,
         )
-
-    def expand(self, padding):
-        raise NotImplementedError("expand not available for PSF_Image")
-
-    def get_fits_state(self):
-        states = [{}]
-        states[0]["DATA"] = self.data.detach().cpu().numpy()
-        states[0]["HEADER"] = self.header.get_fits_state()
-        states[0]["HEADER"]["IMAGE"] = "PSF"
-        return states
-
-    def set_fits_state(self, states):
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PSF":
-                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
-                self.header = Image_Header(fits_state=state["HEADER"])
-                break

@@ -1,13 +1,10 @@
 from typing import Optional, Union
 import io
-from copy import deepcopy
 
 import numpy as np
 import torch
 from torch.autograd.functional import jacobian as torchjac
 
-from ..param import Parameter_Node, Param_Mask
-from ..utils.decorators import default_internal
 from ..utils.interpolate import (
     _shift_Lanczos_kernel_torch,
     simpsons_kernel,
@@ -26,32 +23,7 @@ from ..utils.operations import (
     single_quad_integrate,
 )
 from ..errors import SpecificationConflict
-from .core_model import AstroPhot_Model
 from .. import AP_config
-
-
-@default_internal
-def angular_metric(self, X, Y, image=None):
-    return torch.atan2(Y, X)
-
-
-@default_internal
-def radius_metric(self, X, Y, image=None):
-    return torch.sqrt(X**2 + Y**2)
-
-
-def build_parameter_specs(self, kwargs):
-    parameter_specs = deepcopy(self._parameter_specs)
-
-    for p in kwargs:
-        if p not in self._parameter_specs:
-            continue
-        if isinstance(kwargs[p], dict):
-            parameter_specs[p].update(kwargs[p])
-        else:
-            parameter_specs[p]["value"] = kwargs[p]
-
-    return parameter_specs
 
 
 def _sample_init(self, image, center):
@@ -229,7 +201,6 @@ def _sample_convolve(self, image, shift, psf, shift_method="bilinear"):
 
 
 @torch.no_grad()
-@forward
 def jacobian(
     self,
     as_representation: bool = False,

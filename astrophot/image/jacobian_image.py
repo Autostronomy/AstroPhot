@@ -37,32 +37,6 @@ class Jacobian_Image(Image):
     def copy(self, **kwargs):
         return super().copy(parameters=self.parameters, **kwargs)
 
-    def get_state(self):
-        state = super().get_state()
-        state["target_identity"] = self.target_identity
-        state["parameters"] = self.parameters
-        return state
-
-    def set_state(self, state):
-        super().set_state(state)
-        self.target_identity = state["target_identity"]
-        self.parameters = state["parameters"]
-
-    def get_fits_state(self):
-        states = super().get_fits_state()
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                state["HEADER"]["TRGTID"] = self.target_identity
-                state["HEADER"]["PARAMS"] = str(self.parameters)
-        return states
-
-    def set_fits_state(self, states):
-        super().set_fits_state(states)
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                self.target_identity = state["HEADER"]["TRGTID"]
-                self.parameters = eval(state["HEADER"]["params"])
-
     def __iadd__(self, other: "Jacobian_Image"):
         if not isinstance(other, Jacobian_Image):
             raise InvalidImage("Jacobian images can only add with each other, not: type(other)")
@@ -111,10 +85,10 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
     """
 
     def flatten(self, attribute="data"):
-        if len(self.image_list) > 1:
-            for image in self.image_list[1:]:
-                if self.image_list[0].parameters != image.parameters:
+        if len(self.images) > 1:
+            for image in self.images[1:]:
+                if self.images[0].parameters != image.parameters:
                     raise SpecificationConflict(
                         "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
                     )
-        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
+        return torch.cat(tuple(image.flatten(attribute) for image in self.images))

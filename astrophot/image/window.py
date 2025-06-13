@@ -33,6 +33,27 @@ class Window:
     def identity(self):
         return self.image.identity
 
+    def chunk(self, chunk_size: int):
+        # number of pixels on each axis
+        px = self.i_high - self.i_low
+        py = self.j_high - self.j_low
+        # total number of chunks desired
+        chunk_tot = int(np.ceil((px * py) / chunk_size))
+        # number of chunks on each axis
+        cx = int(np.ceil(np.sqrt(chunk_tot * px / py)))
+        cy = int(np.ceil(chunk_size / cx))
+        # number of pixels on each axis per chunk
+        stepx = int(np.ceil(px / cx))
+        stepy = int(np.ceil(py / cy))
+        # create the windows
+        windows = []
+        for i in range(self.i_low, self.i_high, stepx):
+            for j in range(self.j_low, self.j_high, stepy):
+                i_high = min(i + stepx, self.i_high)
+                j_high = min(j + stepy, self.j_high)
+                windows.append(Window((i, i_high, j, j_high), self.crpix, self.image))
+        return windows
+
     def get_indices(self, crpix: tuple[int, int] = None):
         if crpix is None:
             crpix = self.crpix
@@ -83,25 +104,25 @@ class Window:
 
 
 class Window_List:
-    def __init__(self, window_list: list[Window]):
-        if not all(isinstance(window, Window) for window in window_list):
+    def __init__(self, windows: list[Window]):
+        if not all(isinstance(window, Window) for window in windows):
             raise InvalidWindow(
-                f"Window_List can only hold Window objects, not {tuple(type(window) for window in window_list)}"
+                f"Window_List can only hold Window objects, not {tuple(type(window) for window in windows)}"
             )
-        self.window_list = window_list
+        self.windows = windows
 
     def index(self, other: Window):
-        for i, window in enumerate(self.window_list):
+        for i, window in enumerate(self.windows):
             if other.identity == window.identity:
                 return i
         else:
             raise ValueError("Could not find identity match between window list and input window")
 
     def __getitem__(self, index):
-        return self.window_list[index]
+        return self.windows[index]
 
     def __len__(self):
-        return len(self.window_list)
+        return len(self.windows)
 
     def __iter__(self):
-        return iter(self.window_list)
+        return iter(self.windows)

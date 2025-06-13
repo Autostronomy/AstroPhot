@@ -503,59 +503,59 @@ class Target_Image(Image):
 class Target_Image_List(Image_List):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not all(isinstance(image, Target_Image) for image in self.image_list):
+        if not all(isinstance(image, Target_Image) for image in self.images):
             raise InvalidImage(
-                f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.image_list)}"
+                f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.images)}"
             )
 
     @property
     def variance(self):
-        return tuple(image.variance for image in self.image_list)
+        return tuple(image.variance for image in self.images)
 
     @variance.setter
     def variance(self, variance):
-        for image, var in zip(self.image_list, variance):
+        for image, var in zip(self.images, variance):
             image.set_variance(var)
 
     @property
     def has_variance(self):
-        return any(image.has_variance for image in self.image_list)
+        return any(image.has_variance for image in self.images)
 
     @property
     def weight(self):
-        return tuple(image.weight for image in self.image_list)
+        return tuple(image.weight for image in self.images)
 
     @weight.setter
     def weight(self, weight):
-        for image, wgt in zip(self.image_list, weight):
+        for image, wgt in zip(self.images, weight):
             image.set_weight(wgt)
 
     @property
     def has_weight(self):
-        return any(image.has_weight for image in self.image_list)
+        return any(image.has_weight for image in self.images)
 
     def jacobian_image(self, parameters: List[str], data: Optional[List[torch.Tensor]] = None):
         if data is None:
-            data = [None] * len(self.image_list)
+            data = [None] * len(self.images)
         return Jacobian_Image_List(
-            list(image.jacobian_image(parameters, dat) for image, dat in zip(self.image_list, data))
+            list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
         )
 
     def model_image(self):
-        return Model_Image_List(list(image.model_image() for image in self.image_list))
+        return Model_Image_List(list(image.model_image() for image in self.images))
 
     def match_indices(self, other):
         indices = []
         if isinstance(other, Target_Image_List):
-            for other_image in other.image_list:
-                for isi, self_image in enumerate(self.image_list):
+            for other_image in other.images:
+                for isi, self_image in enumerate(self.images):
                     if other_image.identity == self_image.identity:
                         indices.append(isi)
                         break
                 else:
                     indices.append(None)
         elif isinstance(other, Target_Image):
-            for isi, self_image in enumerate(self.image_list):
+            for isi, self_image in enumerate(self.images):
                 if other.identity == self_image.identity:
                     indices = isi
                     break
@@ -565,76 +565,76 @@ class Target_Image_List(Image_List):
 
     def __isub__(self, other):
         if isinstance(other, Image_List):
-            for other_image in other.image_list:
-                for self_image in self.image_list:
+            for other_image in other.images:
+                for self_image in self.images:
                     if other_image.identity == self_image.identity:
                         self_image -= other_image
                         break
         elif isinstance(other, Image):
-            for self_image in self.image_list:
+            for self_image in self.images:
                 if other.identity == self_image.identity:
                     self_image -= other
                     break
         else:
-            for self_image, other_image in zip(self.image_list, other):
+            for self_image, other_image in zip(self.images, other):
                 self_image -= other_image
         return self
 
     def __iadd__(self, other):
         if isinstance(other, Image_List):
-            for other_image in other.image_list:
-                for self_image in self.image_list:
+            for other_image in other.images:
+                for self_image in self.images:
                     if other_image.identity == self_image.identity:
                         self_image += other_image
                         break
         elif isinstance(other, Image):
-            for self_image in self.image_list:
+            for self_image in self.images:
                 if other.identity == self_image.identity:
                     self_image += other
         else:
-            for self_image, other_image in zip(self.image_list, other):
+            for self_image, other_image in zip(self.images, other):
                 self_image += other_image
         return self
 
     @property
     def mask(self):
-        return tuple(image.mask for image in self.image_list)
+        return tuple(image.mask for image in self.images)
 
     @mask.setter
     def mask(self, mask):
-        for image, M in zip(self.image_list, mask):
+        for image, M in zip(self.images, mask):
             image.set_mask(M)
 
     @property
     def has_mask(self):
-        return any(image.has_mask for image in self.image_list)
+        return any(image.has_mask for image in self.images)
 
     @property
     def psf(self):
-        return tuple(image.psf for image in self.image_list)
+        return tuple(image.psf for image in self.images)
 
     @psf.setter
     def psf(self, psf):
-        for image, P in zip(self.image_list, psf):
+        for image, P in zip(self.images, psf):
             image.set_psf(P)
 
     @property
     def has_psf(self):
-        return any(image.has_psf for image in self.image_list)
+        return any(image.has_psf for image in self.images)
 
     @property
     def psf_border(self):
-        return tuple(image.psf_border for image in self.image_list)
+        return tuple(image.psf_border for image in self.images)
 
     @property
     def psf_border_int(self):
-        return tuple(image.psf_border_int for image in self.image_list)
+        return tuple(image.psf_border_int for image in self.images)
 
     def set_variance(self, variance, img):
-        self.image_list[img].set_variance(variance)
+        self.images[img].set_variance(variance)
 
     def set_psf(self, psf, img):
-        self.image_list[img].set_psf(psf)
+        self.images[img].set_psf(psf)
 
     def set_mask(self, mask, img):
-        self.image_list[img].set_mask(mask)
+        self.images[img].set_mask(mask)

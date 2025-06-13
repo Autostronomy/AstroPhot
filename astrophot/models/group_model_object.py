@@ -57,7 +57,7 @@ class Group_Model(Model):
 
         """
         if isinstance(self.target, Image_List):  # Window_List if target is a Target_Image_List
-            new_window = [None] * len(self.target.image_list)
+            new_window = [None] * len(self.target.images)
             for model in self.models.values():
                 if isinstance(model.target, Image_List):
                     for target, window in zip(model.target, model.window):
@@ -152,14 +152,12 @@ class Group_Model(Model):
 
         for model in self.models.values():
             if window is None:
-                use_window = None
+                use_window = model.window
             elif isinstance(image, Image_List) and isinstance(model.target, Image_List):
                 indices = image.match_indices(model.target)
                 if len(indices) == 0:
                     continue
-                use_window = Window_List(
-                    window_list=list(image.image_list[i].window for i in indices)
-                )
+                use_window = Window_List(window_list=list(image.images[i].window for i in indices))
             elif isinstance(image, Image_List) and isinstance(model.target, Image):
                 try:
                     image.index(model.target)
@@ -178,12 +176,11 @@ class Group_Model(Model):
                 raise NotImplementedError(
                     f"Group_Model cannot sample with {type(image)} and {type(model.target)}"
                 )
-            image += model(window=use_window)
+            image += model(window=model.window & use_window)
 
         return image
 
     @torch.no_grad()
-    @forward
     def jacobian(
         self,
         pass_jacobian: Optional[Jacobian_Image] = None,
@@ -195,8 +192,6 @@ class Group_Model(Model):
         jacobian method of each sub model and add it in to the total.
 
         Args:
-          parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
-          as_representation (bool): Indicates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
           pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
 
         """
@@ -211,18 +206,10 @@ class Group_Model(Model):
             jac_img = pass_jacobian
 
         for model in self.models.values():
-            if isinstance(model, Group_Model):
-                model.jacobian(
-                    as_representation=as_representation,
-                    pass_jacobian=jac_img,
-                    window=window,
-                )
-            else:  # fixme, maybe make pass_jacobian be filled internally to each model
-                jac_img += model.jacobian(
-                    as_representation=as_representation,
-                    pass_jacobian=jac_img,
-                    window=window,
-                )
+            model.jacobian(
+                pass_jacobian=jac_img,
+                window=window,
+            )
 
         return jac_img
 
@@ -241,49 +228,3 @@ class Group_Model(Model):
         if not (tar is None or isinstance(tar, (Target_Image, Target_Image_List))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
         self._target = tar
-
-        if hasattr(self, "models"):
-            for model in self.models.values():
-                model.target = tar
-
-    def get_state(self, save_params=True):
-        """Returns a dictionary with information about the state of the model
-        and its parameters.
-
-        """
-        state = super().get_state(save_params=save_params)
-        if save_params:
-            state["parameters"] = self.parameters.get_state()
-        if "models" not in state:
-            state["models"] = {}
-        for model in self.models.values():
-            state["models"][model.name] = model.get_state(save_params=False)
-        return state
-
-    def load(self, filename="AstroPhot.yaml", new_name=None):
-        """Loads an AstroPhot state file and updates this model with the
-        loaded parameters.
-
-        """
-        state = AstroPhot_Model.load(filename)
-
-        if new_name is None:
-            new_name = state["name"]
-        self.name = new_name
-
-        if isinstance(state["parameters"], Parameter_Node):
-            self.parameters = state["parameters"]
-        else:
-            self.parameters = Parameter_Node(self.name, state=state["parameters"])
-
-        for model in state["models"]:
-            state["models"][model]["parameters"] = self.parameters[model]
-            for own_model in self.models.values():
-                if model == own_model.name:
-                    own_model.load(state["models"][model])
-                    break
-            else:
-                self.add_model(
-                    AstroPhot_Model(name=model, filename=state["models"][model], target=self.target)
-                )
-        self.update_window()
