@@ -1,6 +1,6 @@
 import torch
-from caskade import forward
 
+from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from ...utils.parametric_profiles import sersic_np
@@ -14,10 +14,10 @@ def _x0_func(model, R, F):
 class SersicMixin:
 
     _model_type = "sersic"
-    parameter_specs = {
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
-        "Ie": {"units": "flux/arcsec^2"},
+    _parameter_specs = {
+        "n": {"units": "none", "valid": (0.36, 8), "uncertainty": 0.05, "shape": ()},
+        "Re": {"units": "arcsec", "valid": (0, None), "shape": ()},
+        "Ie": {"units": "flux/arcsec^2", "shape": ()},
     }
 
     @torch.no_grad()
@@ -37,22 +37,21 @@ class SersicMixin:
 class iSersicMixin:
 
     _model_type = "sersic"
-    parameter_specs = {
-        "n": {"units": "none", "limits": (0.36, 8), "uncertainty": 0.05},
-        "Re": {"units": "arcsec", "limits": (0, None)},
+    _parameter_specs = {
+        "n": {"units": "none", "valid": (0.36, 8), "uncertainty": 0.05},
+        "Re": {"units": "arcsec", "valid": (0, None)},
         "Ie": {"units": "flux/arcsec^2"},
     }
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self, **kwargs):
+        super().initialize()
 
         parametric_segment_initialize(
             model=self,
-            target=target,
-            parameters=parameters,
-            prof_func=_wrap_sersic,
+            target=self.target[self.window],
+            prof_func=sersic_np,
             params=("n", "Re", "Ie"),
             x0_func=_x0_func,
             segments=self.rays,

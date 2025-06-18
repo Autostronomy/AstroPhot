@@ -1,11 +1,11 @@
 from typing import Optional, Literal
 
 import numpy as np
-from caskade import forward
 from torch.autograd.functional import jacobian
 import torch
 from torch import Tensor
 
+from ...param import forward
 from ... import AP_config
 from ...image import Image, Window, Jacobian_Image
 from .. import func
@@ -34,22 +34,16 @@ class SampleMixin:
             sampling_mode = self.sampling_mode
 
         if sampling_mode == "midpoint":
-            i, j = func.pixel_center_meshgrid(image.shape, AP_config.ap_dtype, AP_config.ap_device)
-            x, y = image.pixel_to_plane(i, j)
+            x, y = image.coordinate_center_meshgrid()
             res = self.brightness(x, y)
             return func.pixel_center_integrator(res)
         elif sampling_mode == "simpsons":
-            i, j = func.pixel_simpsons_meshgrid(
-                image.shape, AP_config.ap_dtype, AP_config.ap_device
-            )
-            x, y = image.pixel_to_plane(i, j)
+            x, y = image.coordinate_simpsons_meshgrid()
             res = self.brightness(x, y)
             return func.pixel_simpsons_integrator(res)
         elif sampling_mode.startswith("quad:"):
             order = int(self.sampling_mode.split(":")[1])
-            i, j, w = func.pixel_quad_meshgrid(
-                image.shape, AP_config.ap_dtype, AP_config.ap_device, order=order
-            )
+            i, j, w = image.pixel_quad_meshgrid(order=order)
             x, y = image.pixel_to_plane(i, j)
             res = self.brightness(x, y)
             return func.pixel_quad_integrator(res, w)
@@ -57,13 +51,37 @@ class SampleMixin:
             f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
         )
 
-    def build_params_array_identities(self):
-        identities = []
-        for param in self.dynamic_params:
-            numel = max(1, np.prod(param.shape))
-            for i in range(numel):
-                identities.append(f"{id(param)}_{i}")
-        return identities
+    @forward
+    def sample_integrate(self, sample, image: Image):
+        i, j = image.pixel_center_meshgrid()
+        kernel = func.curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
+        curvature = (
+            torch.nn.functional.pad(
+                torch.nn.functional.conv2d(
+                    sample.view(1, 1, *sample.shape),
+                    kernel.view(1, 1, *kernel.shape),
+                    padding="valid",
+                ),
+                (1, 1, 1, 1),
+                mode="replicate",
+            )
+            .squeeze(0)
+            .squeeze(0)
+            .abs()
+        )
+        total_est = torch.sum(sample)
+        threshold = total_est * self.integrate_tolerance
+        select = curvature > (total_est * self.integrate_tolerance)
+        sample[select] = func.recursive_quad_integrate(
+            i[select],
+            j[select],
+            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+            threshold=threshold,
+            quad_order=self.integrate_quad_order,
+            gridding=self.integrate_gridding,
+            max_depth=self.integrate_max_depth,
+        )
+        return sample
 
     def _jacobian(self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor):
         return jacobian(

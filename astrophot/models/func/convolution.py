@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import torch
 
 
@@ -36,3 +38,17 @@ def convolve_and_shift(image, shift_kernel, psf):
 
     convolved_fft = image_fft * psf_fft * shift_fft
     return torch.fft.irfft2(convolved_fft, s=image.shape)
+
+
+@lru_cache(maxsize=32)
+def curvature_kernel(dtype, device):
+    kernel = torch.tensor(
+        [
+            [0.0, 1.0, 0.0],
+            [1.0, -4.0, 1.0],
+            [0.0, 1.0, 0.0],
+        ],  # [[1., -2.0, 1.], [-2.0, 4, -2.0], [1.0, -2.0, 1.0]],
+        device=device,
+        dtype=dtype,
+    )
+    return kernel

@@ -1,6 +1,8 @@
 from .sersic import SersicMixin, iSersicMixin
-from .brightness import RadialMixin, InclinedMixin
+from .brightness import RadialMixin
+from .transform import InclinedMixin
 from .exponential import ExponentialMixin, iExponentialMixin
+from .moffat import MoffatMixin
 from .sample import SampleMixin
 
 __all__ = (
@@ -10,5 +12,6 @@ __all__ = (
     "InclinedMixin",
     "ExponentialMixin",
     "iExponentialMixin",
+    "MoffatMixin",
     "SampleMixin",
 )

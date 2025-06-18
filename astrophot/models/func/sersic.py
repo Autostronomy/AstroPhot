@@ -1,3 +1,9 @@
+C1 = 4 / 405
+C2 = 46 / 25515
+C3 = 131 / 1148175
+C4 = -2194697 / 30690717750
+
+
 def sersic_n_to_b(n):
     """Compute the `b(n)` for a sersic model. This factor ensures that
     the :math:`R_e` and :math:`I_e` parameters do in fact correspond
@@ -6,11 +12,7 @@ def sersic_n_to_b(n):
 
     """
     x = 1 / n
-    return (
-        2 * n
-        - 1 / 3
-        + x * (4 / 405 + x * (46 / 25515 + x * (131 / 1148175 - x * 2194697 / 30690717750)))
-    )
+    return 2 * n - 1 / 3 + x * (C1 + x * (C2 + x * (C3 + C4 * x)))
 
 
 def sersic(R, n, Re, Ie):

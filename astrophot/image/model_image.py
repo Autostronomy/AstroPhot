@@ -2,7 +2,6 @@ import torch
 
 from .. import AP_config
 from .image_object import Image, Image_List
-from ..utils.interpolate import shift_Lanczos_torch
 from ..errors import InvalidImage
 
 __all__ = ["Model_Image", "Model_Image_List"]

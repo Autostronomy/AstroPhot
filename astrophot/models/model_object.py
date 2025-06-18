@@ -2,8 +2,8 @@ from typing import Optional
 
 import numpy as np
 import torch
-from caskade import forward
 
+from ..param import forward
 from .core_model import Model
 from . import func
 from ..image import (
@@ -53,8 +53,8 @@ class Component_Model(SampleMixin, Model):
     """
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
-    _parameter_specs = Model._parameter_specs | {
-        "center": {"units": "arcsec", "uncertainty": [0.1, 0.1]},
+    _parameter_specs = {
+        "center": {"units": "arcsec", "uncertainty": [0.1, 0.1], "shape": (2,)},
     }
 
     # Scope for PSF convolution
@@ -63,7 +63,7 @@ class Component_Model(SampleMixin, Model):
     psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Level to which each pixel should be evaluated
-    sampling_tolerance = 1e-2
+    integrate_tolerance = 1e-2
 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold
@@ -75,27 +75,22 @@ class Component_Model(SampleMixin, Model):
     integrate_gridding = 5
 
     # The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher
-    integrate_quad_level = 3
+    integrate_quad_order = 3
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3
 
-    # Parameters which are treated specially by the model object and should not be updated directly when initializing
-    special_kwargs = ["parameters", "filename", "model_type"]
-    track_attrs = [
+    _options = (
         "psf_mode",
-        "psf_convolve_mode",
         "psf_subpixel_shift",
         "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
         "integrate_max_depth",
         "integrate_gridding",
-        "integrate_quad_level",
-        "jacobian_chunksize",
-        "image_chunksize",
+        "integrate_quad_order",
         "softening",
-    ]
+    )
     usable = False
 
     @property
@@ -152,7 +147,6 @@ class Component_Model(SampleMixin, Model):
           target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
 
         """
-        super().initialize()
         target_area = self.target[self.window]
 
         # Use center of window if a center hasn't been set yet
@@ -161,18 +155,26 @@ class Component_Model(SampleMixin, Model):
         else:
             return
 
+        dat = np.copy(target_area.data.npvalue)
+        if target_area.has_mask:
+            mask = target_area.mask.detach().cpu().numpy()
+            dat[mask] = np.nanmedian(dat[~mask])
+
         COM = center_of_mass(target_area.data.npvalue)
+        if not np.all(np.isfinite(COM)):
+            return
         COM_center = target_area.pixel_to_plane(
             *torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
-
         self.center.value = COM_center
 
     def fit_mask(self):
         return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)
 
-    # Fit loop functions
-    ######################################################################
+    @forward
+    def transform_coordinates(self, x, y, center):
+        return x - center[0], y - center[1]
+
     def shift_kernel(self, shift):
         if self.psf_subpixel_shift == "bilinear":
             return func.bilinear_kernel(shift[0], shift[1])

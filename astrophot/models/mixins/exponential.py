@@ -1,6 +1,6 @@
 import torch
-from caskade import forward
 
+from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from ...utils.parametric_profiles import exponential_np

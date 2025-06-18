@@ -1,19 +1,9 @@
-from typing import Optional
-
 import torch
 import numpy as np
-from scipy.stats import iqr
-from caskade import Param, forward
 
 from . import func
-from ..utils.initialize import isophotes
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..utils.angle_operations import Angle_COM_PA
-from ..utils.conversions.coordinates import (
-    Rotate_Cartesian,
-)
+from ..utils.decorators import ignore_numpy_warnings
 from .model_object import Component_Model
-from ._shared_methods import select_target
 from .mixins import InclinedMixin
 
 
@@ -67,12 +57,9 @@ class Galaxy_Model(InclinedMixin, Component_Model):
         )
         edge_average = np.nanmedian(edge)
         target_dat -= edge_average
-        icenter = target_area.plane_to_pixel(self.center.value)
-
-        i, j = func.pixel_center_meshgrid(
-            target_area.shape, dtype=target_area.data.dtype, device=target_area.data.device
-        )
-        i, j = (i - icenter[0]).detach().cpu().item(), (j - icenter[1]).detach().cpu().item()
+        icenter = target_area.plane_to_pixel(*self.center.value)
+        i, j = target_area.pixel_center_meshgrid()
+        i, j = (i - icenter[0]).detach().cpu().numpy(), (j - icenter[1]).detach().cpu().numpy()
         mu20 = np.sum(target_dat * i**2)
         mu02 = np.sum(target_dat * j**2)
         mu11 = np.sum(target_dat * i * j)
@@ -80,5 +67,6 @@ class Galaxy_Model(InclinedMixin, Component_Model):
         if self.PA.value is None:
             self.PA.value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
         if self.q.value is None:
-            l = np.sorted(np.linalg.eigvals(M))
+            print(M)
+            l = np.sort(np.linalg.eigvals(M))
             self.q.value = np.sqrt(l[1] / l[0])

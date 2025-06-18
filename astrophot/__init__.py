@@ -1,7 +1,7 @@
 import argparse
 import requests
 import torch
-from . import models, image, plots, utils, fit, param, AP_config
+from . import models, image, plots, utils, fit, AP_config
 
 try:
     from ._version import version as VERSION  # noqa

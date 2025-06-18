@@ -1,52 +1,10 @@
 import torch
-from functools import lru_cache
 
-from scipy.special import roots_legendre
-
-
-@lru_cache(maxsize=32)
-def quad_table(order, dtype, device):
-    """
-    Generate a meshgrid for quadrature points using Legendre-Gauss quadrature.
-
-    Parameters
-    ----------
-    n : int
-        The number of quadrature points in each dimension.
-    dtype : torch.dtype
-        The desired data type of the tensor.
-    device : torch.device
-        The device on which to create the tensor.
-
-    Returns
-    -------
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        The generated meshgrid as a tuple of Tensors.
-    """
-    abscissa, weights = roots_legendre(order)
-
-    w = torch.tensor(weights, dtype=dtype, device=device)
-    a = torch.tensor(abscissa, dtype=dtype, device=device) / 2.0
-    di, dj = torch.meshgrid(a, a, indexing="xy")
-
-    w = torch.outer(w, w) / 4.0
-    return di, dj, w
-
-
-def pixel_center_meshgrid(shape, dtype, device):
-    i = torch.arange(shape[0], dtype=dtype, device=device)
-    j = torch.arange(shape[1], dtype=dtype, device=device)
-    return torch.meshgrid(i, j, indexing="xy")
+from ...utils.integration import quad_table
 
 
 def pixel_center_integrator(Z: torch.Tensor):
     return Z
-
-
-def pixel_corner_meshgrid(shape, dtype, device):
-    i = torch.arange(shape[0] + 1, dtype=dtype, device=device) - 0.5
-    j = torch.arange(shape[1] + 1, dtype=dtype, device=device) - 0.5
-    return torch.meshgrid(i, j, indexing="xy")
 
 
 def pixel_corner_integrator(Z: torch.Tensor):
@@ -55,26 +13,12 @@ def pixel_corner_integrator(Z: torch.Tensor):
     return Z.squeeze(0).squeeze(0)
 
 
-def pixel_simpsons_meshgrid(shape, dtype, device):
-    i = 0.5 * torch.arange(2 * shape[0] + 1, dtype=dtype, device=device) - 0.5
-    j = 0.5 * torch.arange(2 * shape[1] + 1, dtype=dtype, device=device) - 0.5
-    return torch.meshgrid(i, j, indexing="xy")
-
-
 def pixel_simpsons_integrator(Z: torch.Tensor):
     kernel = (
         torch.tensor([[[[1, 4, 1], [4, 16, 4], [1, 4, 1]]]], dtype=Z.dtype, device=Z.device) / 36.0
     )
     Z = torch.nn.functional.conv2d(Z.view(1, 1, *Z.shape), kernel, padding="valid", stride=2)
     return Z.squeeze(0).squeeze(0)
-
-
-def pixel_quad_meshgrid(shape, dtype, device, order=3):
-    i, j = pixel_center_meshgrid(shape, dtype, device)
-    di, dj, w = quad_table(order, dtype, device)
-    i = torch.repeat_interleave(i[..., None], order**2, -1) + di
-    j = torch.repeat_interleave(j[..., None], order**2, -1) + dj
-    return i, j, w
 
 
 def pixel_quad_integrator(Z: torch.Tensor, w: torch.Tensor = None, order=3):
@@ -94,6 +38,65 @@ def pixel_quad_integrator(Z: torch.Tensor, w: torch.Tensor = None, order=3):
         The integrated value.
     """
     if w is None:
-        _, _, w = _quad_table(order, Z.dtype, Z.device)
+        _, _, w = quad_table(order, Z.dtype, Z.device)
     Z = Z * w
-    return Z.sum(dim=(-2, -1))
+    return Z.sum(dim=(-1))
+
+
+def upsample(i, j, order, scale):
+    dp = torch.linspace(-1, 1, order, dtype=i.dtype, device=i.device) * (order - 1) / (2.0 * order)
+    di, dj = torch.meshgrid(dp, dp, indexing="xy")
+
+    si = torch.repeat_interleave(i.unsqueeze(-1), order**2, -1) + scale * di.flatten()
+    sj = torch.repeat_interleave(j.unsqueeze(-1), order**2, -1) + scale * dj.flatten()
+    return si, sj
+
+
+def single_quad_integrate(i, j, brightness_ij, scale, quad_order=3):
+    di, dj, w = quad_table(quad_order, i.dtype, i.device)
+    qi = torch.repeat_interleave(i.unsqueeze(-1), quad_order**2, -1) + scale * di.flatten()
+    qj = torch.repeat_interleave(j.unsqueeze(-1), quad_order**2, -1) + scale * dj.flatten()
+    z = brightness_ij(qi, qj)
+    z0 = torch.mean(z, dim=-1)
+    z = torch.sum(z * w.flatten(), dim=-1)
+    return z, z0
+
+
+def recursive_quad_integrate(
+    i,
+    j,
+    brightness_ij,
+    threshold,
+    scale=1.0,
+    quad_order=3,
+    gridding=5,
+    _current_depth=0,
+    max_depth=2,
+):
+
+    scale = 1.0 if _current_depth == 0 else 1 / (_current_depth * gridding)
+    z, z0 = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
+
+    if _current_depth >= max_depth:
+        return z
+
+    select = torch.abs(z - z0) > threshold
+
+    integral = torch.zeros_like(z)
+    integral[~select] = z[~select]
+
+    si, sj = upsample(i[select], j[select], quad_order, scale)
+
+    integral[select] = recursive_quad_integrate(
+        si,
+        sj,
+        brightness_ij,
+        threshold,
+        scale=scale,
+        quad_order=quad_order,
+        gridding=gridding,
+        _current_depth=_current_depth + 1,
+        max_depth=max_depth,
+    ).sum(dim=-1)
+
+    return integral

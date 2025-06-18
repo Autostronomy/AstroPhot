@@ -2,8 +2,8 @@ from typing import Optional, Union
 from copy import deepcopy
 
 import torch
-from caskade import Module, forward, Param
 
+from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
 from ..image import Window, Target_Image_List
 from ..errors import UnrecognizedModel, InvalidWindow
@@ -88,6 +88,7 @@ class Model(Module):
     _model_type = "model"
     _parameter_specs = {}
     default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
+    _options = ("default_uncertainty",)
     usable = False
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):
@@ -111,22 +112,19 @@ class Model(Module):
 
     def __init__(self, *, name=None, target=None, window=None, **kwargs):
         super().__init__(name=name)
-        if not hasattr(self, "_target"):
-            self._target = None
         self.target = target
         self.window = window
         self.mask = kwargs.get("mask", None)
-        # Set any user defined attributes for the model
-        for kwarg in kwargs:  # fixme move to core model?
-            # Skip parameters with special behaviour
-            if kwarg in self.special_kwargs:
-                continue
-            # Set the model parameter
-            setattr(self, kwarg, kwargs[kwarg])
 
-        self.parameter_specs = self.build_parameter_specs(kwargs)
-        for key in self.parameter_specs:
-            setattr(self, key, Param(key, **self.parameter_specs[key]))
+        # Set any user defined options for the model
+        for kwarg in kwargs:
+            if kwarg in self.options:
+                setattr(self, kwarg, kwargs[kwarg])
+
+        # Create Param objects for this Module
+        parameter_specs = self.build_parameter_specs(kwargs)
+        for key in parameter_specs:
+            setattr(self, key, Param(key, **parameter_specs[key]))
 
         # If loading from a file, get model configuration then exit __init__
         if "filename" in kwargs:
@@ -139,16 +137,35 @@ class Model(Module):
         for subcls in cls.mro():
             if subcls is object:
                 continue
-            mt = getattr(subcls, "_model_type", None)
+            mt = subcls.__dict__.get("_model_type", None)
             if mt:
                 collected.append(mt)
         return " ".join(collected)
 
+    @classproperty
+    def options(cls):
+        options = set()
+        for subcls in cls.mro():
+            if subcls is object:
+                continue
+            options.update(getattr(subcls, "_options", []))
+        return options
+
+    @classproperty
+    def parameter_specs(cls):
+        """Collects all parameter specifications from the class hierarchy."""
+        specs = {}
+        for subcls in reversed(cls.mro()):
+            if subcls is object:
+                continue
+            specs.update(getattr(subcls, "_parameter_specs", {}))
+        return specs
+
     def build_parameter_specs(self, kwargs):
-        parameter_specs = deepcopy(self._parameter_specs)
+        parameter_specs = deepcopy(self.parameter_specs)
 
         for p in kwargs:
-            if p not in self._parameter_specs:
+            if p not in parameter_specs:
                 continue
             if isinstance(kwargs[p], dict):
                 parameter_specs[p].update(kwargs[p])
@@ -156,23 +173,6 @@ class Model(Module):
                 parameter_specs[p]["value"] = kwargs[p]
 
         return parameter_specs
-
-    @torch.no_grad()
-    def initialize(self, **kwargs):
-        """When this function finishes, all parameters should have numerical
-        values (non None) that are reasonable estimates of the final
-        values.
-
-        """
-        pass
-
-    @forward
-    def sample(self, *args, **kwargs):
-        """Calling this function should fill the given image with values
-        sampled from the given model.
-
-        """
-        pass
 
     @forward
     def gaussian_negative_log_likelihood(
@@ -252,7 +252,8 @@ class Model(Module):
             return self.target.window
         return self._window
 
-    def set_window(self, window):
+    @window.setter
+    def window(self, window):
         if window is None:
             # If no window given, set to none
             self._window = None
@@ -265,10 +266,6 @@ class Model(Module):
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
-    @window.setter
-    def window(self, window):
-        self.set_window(window)
-
     @classmethod
     def List_Models(cls, usable=None):
         MODELS = all_subclasses(cls)
@@ -277,9 +274,6 @@ class Model(Module):
                 if model.usable is not usable:
                     MODELS.remove(model)
         return MODELS
-
-    def __eq__(self, other):
-        return self is other
 
     @forward
     def __call__(

@@ -3,8 +3,8 @@ from typing import Optional, Union, Any
 import torch
 import numpy as np
 from astropy.wcs import WCS as AstropyWCS
-from caskade import Module, Param, forward
 
+from ..param import Module, Param, forward
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
 from .window import Window
@@ -30,7 +30,7 @@ class Image(Module):
         origin: The origin of the image in the coordinate system.
     """
 
-    default_crpix = (0.0, 0.0)
+    default_crpix = (0, 0)
     default_crtan = (0.0, 0.0)
     default_crval = (0.0, 0.0)
     default_pixelscale = ((1.0, 0.0), (0.0, 1.0))
@@ -109,14 +109,7 @@ class Image(Module):
         self.crval = Param("crval", kwargs.get("crval", self.default_crval), units="deg")
         self.crtan = Param("crtan", kwargs.get("crtan", self.default_crtan), units="arcsec")
         self.crpix = np.asarray(
-            kwargs.get(
-                "crpix",
-                (
-                    self.default_crpix
-                    if self.data.value is None
-                    else (self.data.shape[1] // 2, self.data.shape[0] // 2)
-                ),
-            ),
+            kwargs.get("crpix", self.default_crpix),
             dtype=int,
         )
 
@@ -145,7 +138,10 @@ class Image(Module):
 
     @property
     def center(self):
-        return self.pixel_to_plane(*(self.data.shape // 2))
+        shape = torch.as_tensor(
+            self.data.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        return self.pixel_to_plane(*((shape - 1) / 2))
 
     @property
     def shape(self):
@@ -200,8 +196,8 @@ class Image(Module):
         return self._pixelscale_inv
 
     @forward
-    def pixel_to_plane(self, i, j, crtan, pixelscale):
-        return func.pixel_to_plane_linear(i, j, *self.crpix, pixelscale, *crtan)
+    def pixel_to_plane(self, i, j, crtan):
+        return func.pixel_to_plane_linear(i, j, *self.crpix, self.pixelscale, *crtan)
 
     @forward
     def plane_to_pixel(self, x, y, crtan):
@@ -237,40 +233,82 @@ class Image(Module):
             i, j = i[0], i[1]
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
+    def pixel_center_meshgrid(self):
+        """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
+        return func.pixel_center_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
+
+    def pixel_corner_meshgrid(self):
+        """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
+        return func.pixel_corner_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
+
+    def pixel_simpsons_meshgrid(self):
+        """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
+        return func.pixel_simpsons_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
+
+    def pixel_quad_meshgrid(self, order=3):
+        """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
+        return func.pixel_quad_meshgrid(
+            self.shape, AP_config.ap_dtype, AP_config.ap_device, order=order
+        )
+
+    @forward
+    def coordinate_center_meshgrid(self):
+        """Get a meshgrid of coordinate locations in the image, centered on the pixel grid."""
+        i, j = self.pixel_center_meshgrid()
+        return self.pixel_to_plane(i, j)
+
+    @forward
+    def coordinate_corner_meshgrid(self):
+        """Get a meshgrid of coordinate locations in the image, with corners at the pixel grid."""
+        i, j = self.pixel_corner_meshgrid()
+        return self.pixel_to_plane(i, j)
+
+    @forward
+    def coordinate_simpsons_meshgrid(self):
+        """Get a meshgrid of coordinate locations in the image, with Simpson's rule sampling."""
+        i, j = self.pixel_simpsons_meshgrid()
+        return self.pixel_to_plane(i, j)
+
+    @forward
+    def coordinate_quad_meshgrid(self, order=3):
+        """Get a meshgrid of coordinate locations in the image, with quadrature sampling."""
+        i, j, _ = self.pixel_quad_meshgrid(order=order)
+        return self.pixel_to_plane(i, j)
+
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
         can be used when one wishes to make temporary modifications to
         an image and then will want the original again.
 
         """
-        copy_kwargs = {
+        kwargs = {
             "data": torch.clone(self.data.value),
-            "pixelscale": self.pixelscale.value,
+            "pixelscale": self.pixelscale,
             "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            **kwargs,
         }
-        copy_kwargs.update(kwargs)
-        return self.__class__(**copy_kwargs)
+        return self.__class__(**kwargs)
 
     def blank_copy(self, **kwargs):
         """Produces a blank copy of the image which has the same properties
         except that its data is now filled with zeros.
 
         """
-        copy_kwargs = {
+        kwargs = {
             "data": torch.zeros_like(self.data.value),
-            "pixelscale": self.pixelscale.value,
+            "pixelscale": self.pixelscale,
             "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            **kwargs,
         }
-        copy_kwargs.update(kwargs)
-        return self.__class__(**copy_kwargs)
+        return self.__class__(**kwargs)
 
     def to(self, dtype=None, device=None):
         if dtype is None:
@@ -348,7 +386,7 @@ class Image(Module):
             .reshape(MS, scale, NS, scale)
             .sum(axis=(1, 3))
         )
-        pixelscale = self.pixelscale.value * scale
+        pixelscale = self.pixelscale * scale
         crpix = (self.crpix + 0.5) / scale - 0.5
         return self.copy(
             data=data,
@@ -455,7 +493,7 @@ class Image(Module):
     def __getitem__(self, *args):
         if len(args) == 1 and isinstance(args[0], (Image, Window)):
             return self.get_window(args[0])
-        raise ValueError("Unrecognized Image getitem request!")
+        return super().__getitem__(*args)
 
 
 class Image_List(Module):
@@ -468,7 +506,7 @@ class Image_List(Module):
 
     @property
     def pixelscale(self):
-        return tuple(image.pixelscale.value for image in self.images)
+        return tuple(image.pixelscale for image in self.images)
 
     @property
     def zeropoint(self):
@@ -476,7 +514,7 @@ class Image_List(Module):
 
     @property
     def data(self):
-        return tuple(image.data for image in self.images)
+        return tuple(image.data.value for image in self.images)
 
     @data.setter
     def data(self, data):
@@ -584,7 +622,7 @@ class Image_List(Module):
                 self_image = self.images[i]
                 new_list.append(self_image.get_window(other_image))
             return self.__class__(new_list)
-        raise ValueError("Unrecognized Image_List getitem request!")
+        super().__getitem__(*args)
 
     def __iter__(self):
         return (img for img in self.images)

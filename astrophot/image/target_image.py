@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 import torch
-import numpy as np
 
 from .image_object import Image, Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
@@ -281,13 +280,13 @@ class Target_Image(Image):
         """
         if hasattr(self, "psf"):
             del self.psf  # remove old psf if it exists
-        from ..models import AstroPhot_Model
+        from ..models import Model
 
         if psf is None:
             self.psf = None
         elif isinstance(psf, PSF_Image):
             self.psf = psf
-        elif isinstance(psf, AstroPhot_Model):
+        elif isinstance(psf, Model):
             self.psf = PSF_Image(
                 data=lambda p: p.psf_model(),
                 pixelscale=psf.target.pixelscale,
@@ -338,24 +337,22 @@ class Target_Image(Image):
         an image and then will want the original again.
 
         """
-        return super().copy(
-            mask=self._mask,
-            psf=self.psf,
-            weight=self._weight,
-            **kwargs,
-        )
+        kwargs = {"mask": self._mask, "psf": self.psf, "weight": self._weight, **kwargs}
+        return super().copy(**kwargs)
 
     def blank_copy(self, **kwargs):
         """Produces a blank copy of the image which has the same properties
         except that its data is now filled with zeros.
 
         """
-        return super().blank_copy(mask=self._mask, psf=self.psf, weight=self._weight, **kwargs)
+        kwargs = {"mask": self._mask, "psf": self.psf, "weight": self._weight, **kwargs}
+        return super().blank_copy(**kwargs)
 
     def get_window(self, other, **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""
         indices = self.get_indices(other)
         return super().get_window(
+            other,
             weight=self._weight[indices] if self.has_weight else None,
             mask=self._mask[indices] if self.has_mask else None,
             psf=self.psf,

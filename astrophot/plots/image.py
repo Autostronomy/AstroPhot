@@ -6,7 +6,7 @@ from matplotlib.patches import Polygon
 import matplotlib
 from scipy.stats import iqr
 
-from ..models import Group_Model, PSF_Model
+# from ..models import Group_Model, PSF_Model
 from ..image import Image_List, Window_List
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
@@ -44,13 +44,11 @@ def target_image(fig, ax, target, window=None, **kwargs):
         return fig, ax
     if window is None:
         window = target.window
-    if kwargs.get("flipx", False):
-        ax.invert_xaxis()
     target_area = target[window]
-    dat = np.copy(target_area.data.detach().cpu().numpy())
+    dat = np.copy(target_area.data.npvalue)
     if target_area.has_mask:
         dat[target_area.mask.detach().cpu().numpy()] = np.nan
-    X, Y = target_area.get_coordinate_corner_meshgrid()
+    X, Y = target_area.pixel_to_plane(*target_area.pixel_corner_meshgrid())
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sky = np.nanmedian(dat)
@@ -168,9 +166,7 @@ def model_image(
     showcbar=True,
     target_mask=False,
     cmap_levels=None,
-    flipx=False,
     magunits=True,
-    sample_full_image=False,
     **kwargs,
 ):
     """
@@ -192,7 +188,6 @@ def model_image(
         cmap_levels (int, optional): The number of discrete levels to convert the continuous color map to.
             If not `None`, the color map is converted to a ListedColormap with the specified number of levels.
             Defaults to `None`.
-        sample_full_image: If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.
         **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Returns:
@@ -205,11 +200,7 @@ def model_image(
     """
 
     if sample_image is None:
-        if sample_full_image:
-            sample_image = model.make_model_image()
-            sample_image = model(sample_image)
-        else:
-            sample_image = model()
+        sample_image = model()
 
     # Use model target if not given
     if target is None:
@@ -221,34 +212,30 @@ def model_image(
 
     # Handle image lists
     if isinstance(sample_image, Image_List):
-        for i, images in enumerate(zip(sample_image, target, window)):
+        for i, (images, targets, windows) in enumerate(zip(sample_image, target, window)):
             model_image(
                 fig,
                 ax[i],
                 model,
-                sample_image=images[0],
-                window=images[2],
-                target=images[1],
+                sample_image=images,
+                window=windows,
+                target=targets,
                 showcbar=showcbar,
                 target_mask=target_mask,
                 cmap_levels=cmap_levels,
-                flipx=flipx,
                 magunits=magunits,
                 **kwargs,
             )
         return fig, ax
 
-    if flipx:
-        ax.invert_xaxis()
-
     # cut out the requested window
     sample_image = sample_image[window]
 
     # Evaluate the model image
-    X, Y = sample_image.get_coordinate_corner_meshgrid()
+    X, Y = sample_image.pixel_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
-    sample_image = sample_image.data.detach().cpu().numpy()
+    sample_image = sample_image.data.npvalue
 
     # Default kwargs for image
     imshow_kwargs = {

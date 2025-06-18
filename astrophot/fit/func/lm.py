@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from ...errors import OptimizeStop
+
 
 def hessian(J, W):
     return J.T @ (W * J)
@@ -30,7 +32,7 @@ def step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
 
     nostep = True
     improving = None
-    for i in range(10):
+    for _ in range(10):
         hessD = damp_hessian(hess, L)
         h = torch.linalg.solve(hessD, grad)
         M1 = model(x + h)
@@ -48,10 +50,11 @@ def step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
         if chi21 < scary["chi2"]:
             scary = {"h": h, "chi2": chi21, "L": L}
 
-        rho = (chi20 - chi21) / torch.abs(h.T @ hessD @ h - 2 * grad @ h)
+        # actual chi2 improvement vs expected from linearization
+        rho = (chi20 - chi21) / torch.abs(h.T @ hessD @ h - 2 * grad @ h).item()
 
-        # Larger higher order terms
-        if rho < 0.1:
+        # Avoid highly non-linear regions
+        if rho < 0.1 or rho > 10:
             L *= Lup
             if improving is True:
                 break
@@ -60,7 +63,6 @@ def step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
 
         if chi21 < best["chi2"]:  # new best
             best = {"h": h, "chi2": chi21, "L": L}
-            improving = True
             nostep = False
             L /= Ldn
             if L < 1e-8 or improving is False:
@@ -73,3 +75,14 @@ def step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
             if L >= 1e9:
                 break
             improving = False
+
+        if (best["chi2"] - chi20) / chi20 < -0.1:
+            # If we are improving chi2 by more than 10% then we can stop
+            break
+
+    if nostep:
+        if scary["h"] is not None:
+            return scary
+        raise OptimizeStop("Could not find step to improve chi^2")
+
+    return best

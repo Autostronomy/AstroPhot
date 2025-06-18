@@ -113,7 +113,7 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
         Tuple containing the x and y tangent plane coordinates in arcsec.
     """
     uv = torch.stack((i.reshape(-1) - i0, j.reshape(-1) - j0), dim=1)
-    xy = CD.T @ uv
+    xy = (CD @ uv.T).T
 
     return xy[:, 0].reshape(i.shape) + x0, xy[:, 1].reshape(j.shape) + y0
 
@@ -210,6 +210,6 @@ def plane_to_pixel_linear(x, y, i0, j0, iCD, x0=0.0, y0=0.0):
         Tuple containing the i and j pixel coordinates in pixel units.
     """
     xy = torch.stack((x.reshape(-1) - x0, y.reshape(-1) - y0), dim=1)
-    uv = iCD.T @ xy
+    uv = (iCD @ xy.T).T
 
     return uv[:, 0].reshape(x.shape) + i0, uv[:, 1].reshape(y.shape) + j0
