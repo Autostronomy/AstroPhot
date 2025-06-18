@@ -212,25 +212,21 @@ class Image(Module):
         return func.world_to_plane_gnomonic(ra, dec, *crval, *crtan)
 
     @forward
-    def world_to_pixel(self, ra, dec=None):
+    def world_to_pixel(self, ra, dec):
         """A wrapper which applies :meth:`world_to_plane` then
         :meth:`plane_to_pixel`, see those methods for further
         information.
 
         """
-        if dec is None:
-            ra, dec = ra[0], ra[1]
         return self.plane_to_pixel(*self.world_to_plane(ra, dec))
 
     @forward
-    def pixel_to_world(self, i, j=None):
+    def pixel_to_world(self, i, j):
         """A wrapper which applies :meth:`pixel_to_plane` then
         :meth:`plane_to_world`, see those methods for further
         information.
 
         """
-        if j is None:
-            i, j = i[0], i[1]
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
     def pixel_center_meshgrid(self):
@@ -356,6 +352,8 @@ class Image(Module):
         return self.copy(data=data, crpix=crpix, **kwargs)
 
     def flatten(self, attribute: str = "data") -> np.ndarray:
+        if attribute in self.children:
+            return getattr(self, attribute).value.reshape(-1)
         return getattr(self, attribute).reshape(-1)
 
     def reduce(self, scale: int, **kwargs):
@@ -426,16 +424,22 @@ class Image(Module):
                 max(0, min(other.j_high - shift[1], self.shape[1])),
             )
 
-        origin_pix = torch.round(self.plane_to_pixel(other.pixel_to_plane(-0.5, -0.5)) + 0.5).int()
+        origin_pix = torch.tensor(
+            (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        origin_pix = self.plane_to_pixel(*other.pixel_to_plane(*origin_pix))
+        origin_pix = torch.round(torch.stack(origin_pix) + 0.5).int()
         new_origin_pix = torch.maximum(torch.zeros_like(origin_pix), origin_pix)
 
-        end_pix = torch.round(
-            self.plane_to_pixel(
-                other.pixel_to_plane(other.data.shape[0] - 0.5, other.data.shape[1] - 0.5)
-            )
-            + 0.5
-        ).int()
-        new_end_pix = torch.minimum(self.data.shape, end_pix)
+        end_pix = torch.tensor(
+            (other.data.shape[0] - 0.5, other.data.shape[1] - 0.5),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        end_pix = self.plane_to_pixel(*other.pixel_to_plane(*end_pix))
+        end_pix = torch.round(torch.stack(end_pix) + 0.5).int()
+        shape = torch.tensor(self.data.shape, dtype=torch.int32, device=AP_config.ap_device)
+        new_end_pix = torch.minimum(shape, end_pix)
         return slice(new_origin_pix[1], new_end_pix[1]), slice(new_origin_pix[0], new_end_pix[0])
 
     def get_window(self, other: Union[Window, "Image"], _indices=None, **kwargs):

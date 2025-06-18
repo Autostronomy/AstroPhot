@@ -151,7 +151,7 @@ class Component_Model(SampleMixin, Model):
 
         # Use center of window if a center hasn't been set yet
         if self.center.value is None:
-            self.center.value = target_area.center
+            self.center.dynamic_value = target_area.center
         else:
             return
 
@@ -166,7 +166,7 @@ class Component_Model(SampleMixin, Model):
         COM_center = target_area.pixel_to_plane(
             *torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
-        self.center.value = COM_center
+        self.center.dynamic_value = COM_center
 
     def fit_mask(self):
         return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)

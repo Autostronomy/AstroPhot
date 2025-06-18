@@ -1,13 +1,13 @@
 # Levenberg-Marquardt algorithm
 from typing import Sequence
-from functools import partial
 
 import torch
-import numpy as np
 
 from .base import BaseOptimizer
 from .. import AP_config
+from . import func
 from ..errors import OptimizeStop
+from ..param import ValidContext
 
 __all__ = ("LM",)
 
@@ -158,6 +158,10 @@ class LM(BaseOptimizer):
         initial_state: Sequence = None,
         max_iter: int = 100,
         relative_tolerance: float = 1e-5,
+        Lup=11.0,
+        Ldn=9.0,
+        L0=1.0,
+        max_step_iter: int = 10,
         ndf=None,
         **kwargs,
     ):
@@ -169,38 +173,16 @@ class LM(BaseOptimizer):
             relative_tolerance=relative_tolerance,
             **kwargs,
         )
-        # The forward model which computes the output image given input parameters
-        self.forward = partial(model, as_representation=True)
-        # Compute the jacobian in representation units (defined for -inf, inf)
-        self.jacobian = partial(model.jacobian, as_representation=True)
-        self.jacobian_natural = partial(model.jacobian, as_representation=False)
+
         # Maximum number of iterations of the algorithm
         self.max_iter = max_iter
         # Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation
-        self.max_step_iter = kwargs.get("max_step_iter", 10)
-        # sets how cautious the optimizer is for changing curvature, should be number greater than 0, where smaller is more cautious
-        self.curvature_limit = kwargs.get("curvature_limit", 1.0)
+        self.max_step_iter = max_step_iter
         # These are the adjustment step sized for the damping parameter
-        self._Lup = kwargs.get("Lup", 11.0)
-        self._Ldn = kwargs.get("Ldn", 9.0)
+        self.Lup = Lup
+        self.Ldn = Ldn
         # This is the starting damping parameter, for easy problems with good initialization, this can be set lower
-        self.L = kwargs.get("L0", 1.0)
-        # Geodesic acceleration is helpful in some scenarios. By default it is turned off. Set 1 for full acceleration, 0 for no acceleration.
-        self.acceleration = kwargs.get("acceleration", 0.0)
-        # Initialize optimizer attributes
-        self.Y = self.model.target[self.fit_window].flatten("data")
-
-        # 1 / (sigma^2)
-        kW = kwargs.get("W", None)
-        if kW is not None:
-            self.W = torch.as_tensor(
-                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            ).flatten()
-        elif model.target.has_variance:
-            self.W = self.model.target[self.fit_window].flatten("weight")
-        else:
-            self.W = torch.ones_like(self.Y)
-
+        self.L = L0
         # mask
         fit_mask = self.model.fit_mask()
         if isinstance(fit_mask, tuple):
@@ -222,208 +204,39 @@ class LM(BaseOptimizer):
         if self.mask is not None and torch.sum(self.mask).item() == 0:
             raise OptimizeStop("No data to fit. All pixels are masked")
 
+        # Initialize optimizer attributes
+        self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]
+
+        # 1 / (sigma^2)
+        kW = kwargs.get("W", None)
+        if kW is not None:
+            self.W = torch.as_tensor(
+                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            ).flatten()[self.mask]
+        elif model.target.has_variance:
+            self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
+        else:
+            self.W = torch.ones_like(self.Y)
+
+        # The forward model which computes the output image given input parameters
+        self.forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[self.mask]
+        # Compute the jacobian in representation units (defined for -inf, inf)
+        self.jacobian = lambda x: model.jacobian(window=self.fit_window, params=x).flatten("data")[
+            self.mask
+        ]
+
         # variable to store covariance matrix if it is ever computed
         self._covariance_matrix = None
 
         # Degrees of freedom
         if ndf is None:
-            if self.mask is None:
-                self.ndf = max(1.0, len(self.Y) - len(self.current_state))
-            else:
-                self.ndf = max(1.0, torch.sum(self.mask).item() - len(self.current_state))
+            self.ndf = max(1.0, len(self.Y) - len(self.current_state))
         else:
             self.ndf = ndf
 
-    def Lup(self):
-        """
-        Increases the damping parameter for more gradient-like steps. Used internally.
-        """
-        self.L = min(1e9, self.L * self._Lup)
-
-    def Ldn(self):
-        """
-        Decreases the damping parameter for more Gauss-Newton like steps. Used internally.
-        """
-        self.L = max(1e-9, self.L / self._Ldn)
-
-    @torch.no_grad()
-    def step(self, chi2) -> torch.Tensor:
-        """Performs one step of the LM algorithm. Computes Jacobian, infers
-        hessian and gradient, solves for step vector and iterates on
-        damping parameter magnitude until a step with some improvement
-        in chi2 is found. Used internally.
-
-        """
-        Y0 = self.forward(parameters=self.current_state).flatten("data")
-        J = self.jacobian(parameters=self.current_state).flatten("data")
-        r = self._r(Y0, self.Y, self.W)
-        self.hess = self._hess(J, self.W)
-        self.grad = self._grad(J, self.W, Y0, self.Y)
-        init_chi2 = chi2
-        nostep = True
-        best = (torch.zeros_like(self.current_state), init_chi2, self.L)
-        scarry_best = (None, init_chi2, self.L)
-        direction = "none"
-        iteration = 0
-        d = 0.1
-        for iteration in range(self.max_step_iter):
-            # In a scenario where LM is having a hard time proposing a good step, but the damping is really low, just jump up to normal damping levels
-            if iteration > self.max_step_iter / 2 and self.L < 1e-3:
-                self.L = 1.0
-
-            # compute LM update step
-            h = self._h(self.L, self.grad, self.hess)
-
-            # Compute goedesic acceleration
-            Y1 = self.forward(parameters=self.current_state + d * h).flatten("data")
-
-            rh = self._r(Y1, self.Y, self.W)
-
-            rpp = self._rpp(J, d, rh - r, self.W, h)
-
-            if self.L > 1e-4:
-                a = -self._h(self.L, rpp, self.hess) / 2
-            else:
-                a = torch.zeros_like(h)
-
-            # Evaluate new step
-            ha = h + a * self.acceleration
-            Y1 = self.forward(parameters=self.current_state + ha).flatten("data")
-
-            # Compute and report chi^2
-            chi2 = self._chi2(Y1.detach()).item()
-            if self.verbose > 1:
-                AP_config.ap_logger.info(f"sub step L: {self.L}, Chi^2/DoF: {chi2}")
-
-            # Skip if chi^2 is nan
-            if not np.isfinite(chi2):
-                if self.verbose > 1:
-                    AP_config.ap_logger.info("Skip due to non-finite values")
-                self.Lup()
-                if direction == "better":
-                    break
-                direction = "worse"
-                continue
-
-            # Keep track of chi^2 improvement even if it fails curvature test
-            if chi2 <= scarry_best[1]:
-                scarry_best = (ha, chi2, self.L)
-
-            # Check for high curvature, in which case linear approximation is not valid. avoid this step
-            rho = torch.linalg.norm(a) / torch.linalg.norm(h)
-            if rho > self.curvature_limit:
-                if self.verbose > 1:
-                    AP_config.ap_logger.info("Skip due to large curvature")
-                self.Lup()
-                if direction == "better":
-                    break
-                direction = "worse"
-                continue
-
-            # Check for Chi^2 improvement
-            if chi2 < best[1]:
-                if self.verbose > 1:
-                    AP_config.ap_logger.info("new best chi^2")
-                best = (ha, chi2, self.L)
-                nostep = False
-                self.Ldn()
-                if self.L <= 1e-8 or direction == "worse":
-                    break
-                direction = "better"
-            elif chi2 > best[1] and direction in ["none", "worse"]:
-                if self.verbose > 1:
-                    AP_config.ap_logger.info("chi^2 is worse")
-                self.Lup()
-                if self.L == 1e9:
-                    break
-                direction = "worse"
-            else:
-                break
-
-            # If a step substantially improves the chi^2, stop searching for better step, simply exit the loop and accept the good step
-            if (best[1] - init_chi2) / init_chi2 < -0.1:
-                if self.verbose > 1:
-                    AP_config.ap_logger.info("Large step taken, ending search for good step")
-                break
-
-        if nostep:
-            if scarry_best[0] is not None:
-                if self.verbose > 1:
-                    AP_config.ap_logger.warning(
-                        "no low curvature step found, taking high curvature step"
-                    )
-                return scarry_best
-            raise OptimizeStop("Could not find step to improve chi^2")
-
-        return best
-
-    @staticmethod
-    @torch.no_grad()
-    def _h(L, grad, hess) -> torch.Tensor:
-        I = torch.eye(len(grad), dtype=grad.dtype, device=grad.device)
-        D = torch.ones_like(hess) - I
-        # Alternate damping scheme
-        # (hess + 1e-2 * L**2 * I) * (1 + L**2 * I) ** 2 / (1 + L**2),
-        h = torch.linalg.solve(
-            hess * (I + D / (1 + L)) + L * I * (1 + torch.diag(hess)),
-            grad,
-        )
-
-        return h
-
-    @torch.no_grad()
-    def _chi2(self, Ypred) -> torch.Tensor:
-        if self.mask is None:
-            return torch.sum(self.W * (self.Y - Ypred) ** 2) / self.ndf
-        else:
-            return torch.sum((self.W * (self.Y - Ypred) ** 2)[self.mask]) / self.ndf
-
-    @torch.no_grad()
-    def _r(self, Y, Ypred, W) -> torch.Tensor:
-        if self.mask is None:
-            return W * (Y - Ypred)
-        else:
-            return W[self.mask] * (Y[self.mask] - Ypred[self.mask])
-
-    @torch.no_grad()
-    def _hess(self, J, W) -> torch.Tensor:
-        if self.mask is None:
-            return J.T @ (W.view(len(W), -1) * J)
-        else:
-            return J[self.mask].T @ (W[self.mask].view(len(W[self.mask]), -1) * J[self.mask])
-
-    @torch.no_grad()
-    def _grad(self, J, W, Y, Ypred) -> torch.Tensor:
-        if self.mask is None:
-            return -J.T @ self._r(Y, Ypred, W)
-        else:
-            return -J[self.mask].T @ self._r(Y, Ypred, W)
-
-    @torch.no_grad()
-    def _rpp(self, J, d, dr, W, h):
-        if self.mask is None:
-            return J.T @ ((2 / d) * ((dr / d - W * (J @ h))))
-        else:
-            return J[self.mask].T @ ((2 / d) * ((dr / d - W[self.mask] * (J[self.mask] @ h))))
-
-    @torch.no_grad()
-    def update_hess_grad(self, natural=False) -> None:
-        """Updates the stored hessian matrix and gradient vector. This can be
-        used to compute the quantities in their natural parameter
-        representation. During normal optimization the hessian and
-        gradient are computed in a re-mapped parameter space where
-        parameters are defined form -inf to inf.
-
-        """
-        if natural:
-            J = self.jacobian_natural(
-                parameters=self.model.parameters.vector_transform_rep_to_val(self.current_state)
-            ).flatten("data")
-        else:
-            J = self.jacobian(parameters=self.current_state).flatten("data")
-        Ypred = self.forward(parameters=self.current_state).flatten("data")
-        self.hess = self._hess(J, self.W)
-        self.grad = self._grad(J, self.W, self.Y, Ypred)
+    def chi2_ndf(self):
+        with ValidContext(self.model):
+            return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
 
     @torch.no_grad()
     def fit(self) -> BaseOptimizer:
@@ -442,30 +255,38 @@ class LM(BaseOptimizer):
             return self
 
         self._covariance_matrix = None
-        self.loss_history = [
-            self._chi2(self.forward(parameters=self.current_state).flatten("data")).item()
-        ]
+        self.loss_history = [self.chi2_ndf().item()]
         self.L_history = [self.L]
         self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
 
-        for iteration in range(self.max_iter):
+        for _ in range(self.max_iter):
             if self.verbose > 0:
                 AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]}, L: {self.L}")
             try:
-                res = self.step(chi2=self.loss_history[-1])
+                with ValidContext(self.model):
+                    res = func.lm_step(
+                        x=self.current_state,
+                        data=self.Y,
+                        model=self.forward,
+                        weight=self.W,
+                        jacobian=self.jacobian,
+                        ndf=self.ndf,
+                        chi2=self.chi2_ndf(),
+                        L=self.L,
+                        Lup=self.Lup,
+                        Ldn=self.Ldn,
+                    )
             except OptimizeStop:
                 if self.verbose > 0:
                     AP_config.ap_logger.warning("Could not find step to improve Chi^2, stopping")
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
                 break
 
-            self.L = res[2]
-            self.current_state = (self.current_state + res[0]).detach()
+            self.L = res["L"]
+            self.current_state = (self.current_state + res["h"]).detach()
             self.L_history.append(self.L)
-            self.loss_history.append(res[1])
+            self.loss_history.append(res["chi2"])
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
-
-            self.Ldn()
 
             if len(self.loss_history) >= 3:
                 if (self.loss_history[-3] - self.loss_history[-1]) / self.loss_history[
@@ -489,7 +310,9 @@ class LM(BaseOptimizer):
             AP_config.ap_logger.info(
                 f"Final Chi^2/DoF: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
             )
-        self.model.parameters.vector_set_representation(self.res())
+
+        with ValidContext(self.model):
+            self.model.fill_dynamic_values(self.current_state)
 
         return self
 

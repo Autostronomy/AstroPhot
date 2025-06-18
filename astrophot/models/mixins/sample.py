@@ -87,7 +87,7 @@ class SampleMixin:
         return jacobian(
             lambda x: self.sample(
                 window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
-            ).data,
+            ).data.value,
             params,
             strategy="forward-mode",
             vectorize=True,
@@ -104,7 +104,7 @@ class SampleMixin:
             window = self.window
 
         if params is not None:
-            self.fill_dynamic_params(params)
+            self.fill_dynamic_values(params)
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(

@@ -97,6 +97,6 @@ def recursive_quad_integrate(
         gridding=gridding,
         _current_depth=_current_depth + 1,
         max_depth=max_depth,
-    ).sum(dim=-1)
+    ).mean(dim=-1)
 
     return integral

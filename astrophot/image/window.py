@@ -33,6 +33,10 @@ class Window:
     def identity(self):
         return self.image.identity
 
+    @property
+    def shape(self):
+        return (self.i_high - self.i_low, self.j_high - self.j_low)
+
     def chunk(self, chunk_size: int):
         # number of pixels on each axis
         px = self.i_high - self.i_low

@@ -18,7 +18,7 @@ def damp_hessian(hess, L):
     return hess * (I + D / (1 + L)) + L * I * (1 + torch.diag(hess))
 
 
-def step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
+def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
 
     chi20 = chi2
     M0 = model(x)

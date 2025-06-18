@@ -8,6 +8,7 @@ from scipy.special import gammainc
 from .. import AP_config
 from ..models import Model
 from ..image import Window
+from ..param import ValidContext
 
 
 __all__ = ["BaseOptimizer"]
@@ -60,12 +61,20 @@ class BaseOptimizer(object):
         self.model = model
         self.verbose = kwargs.get("verbose", 0)
 
+        if initial_state is None:
+            with ValidContext(model):
+                self.current_state = model.build_params_array()
+        else:
+            self.current_state = torch.as_tensor(
+                initial_state, dtype=model.dtype, device=model.device
+            )
+
         if fit_window is None:
             self.fit_window = self.model.window
         else:
             self.fit_window = fit_window & self.model.window
 
-        self.max_iter = kwargs.get("max_iter", 100 * len(initial_state))
+        self.max_iter = kwargs.get("max_iter", 100 * len(self.current_state))
         self.iteration = 0
         self.save_steps = kwargs.get("save_steps", None)
 

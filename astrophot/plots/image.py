@@ -1,3 +1,4 @@
+from typing import Literal
 import numpy as np
 import torch
 
@@ -290,11 +291,9 @@ def residual_image(
     sample_image=None,
     showcbar=True,
     window=None,
-    center_residuals=False,
     clb_label=None,
     normalize_residuals=False,
-    flipx=False,
-    sample_full_image=False,
+    scaling: Literal["arctan", "clip", "none"] = "arctan",
     **kwargs,
 ):
     """
@@ -336,11 +335,7 @@ def residual_image(
     if target is None:
         target = model.target
     if sample_image is None:
-        if sample_full_image:
-            sample_image = model.make_model_image()
-            sample_image = model(sample_image)
-        else:
-            sample_image = model()
+        sample_image = model()
     if isinstance(window, Window_List) or isinstance(target, Image_List):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(
@@ -351,37 +346,61 @@ def residual_image(
                 sample_image=sam,
                 window=win,
                 showcbar=showcbar,
-                center_residuals=center_residuals,
                 clb_label=clb_label,
                 normalize_residuals=normalize_residuals,
-                flipx=flipx,
                 **kwargs,
             )
         return fig, ax
 
-    if flipx:
-        ax.invert_xaxis()
-    X, Y = sample_image[window].get_coordinate_corner_meshgrid()
+    sample_image = sample_image[window]
+    target = target[window]
+    X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
-    residuals = (target[window] - sample_image[window]).data
-    if isinstance(normalize_residuals, bool) and normalize_residuals:
-        residuals = residuals / torch.sqrt(target[window].variance)
+    residuals = (target - sample_image).data.value
+    if normalize_residuals is True:
+        residuals = residuals / torch.sqrt(target.variance)
     elif isinstance(normalize_residuals, torch.Tensor):
         residuals = residuals / torch.sqrt(normalize_residuals)
         normalize_residuals = True
+    if target.has_mask:
+        residuals[target.mask] = np.nan
     residuals = residuals.detach().cpu().numpy()
 
-    if target.has_mask:
-        residuals[target[window].mask.detach().cpu().numpy()] = np.nan
-    if center_residuals:
-        residuals -= np.nanmedian(residuals)
-    residuals = np.arctan(residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2))
-    extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
+    if scaling == "clip":
+        if normalize_residuals is not True:
+            AP_config.logger.warning(
+                "Using clipping scaling without normalizing residuals. This may lead to confusing results."
+            )
+        residuals = np.clip(residuals, -5, 5)
+        vmax = 5
+        default_label = (
+            f"(Target - {model.name}) / $\\sigma$"
+            if normalize_residuals
+            else f"(Target - {model.name})"
+        )
+    elif scaling == "arctan":
+        residuals = np.arctan(
+            residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2)
+        )
+        vmax = np.max(np.abs(residuals[np.isfinite(residuals)]))
+        if normalize_residuals:
+            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
+        else:
+            default_label = f"tan$^{{-1}}$(Target - {model.name})"
+    elif scaling == "none":
+        vmax = np.max(np.abs(residuals[np.isfinite(residuals)]))
+        default_label = (
+            f"(Target - {model.name}) / $\\sigma$"
+            if normalize_residuals
+            else f"(Target - {model.name})"
+        )
+    else:
+        raise ValueError(f"Unknown scaling type {scaling}. Use 'clip', 'arctan', or 'none'.")
     imshow_kwargs = {
         "cmap": cmap_div,
-        "vmin": -extreme,
-        "vmax": extreme,
+        "vmin": -vmax,
+        "vmax": vmax,
     }
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
@@ -390,10 +409,6 @@ def residual_image(
     ax.set_ylabel("Tangent Plane Y [arcsec]")
 
     if showcbar:
-        if normalize_residuals:
-            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
-        else:
-            default_label = f"tan$^{{-1}}$(Target - {model.name})"
         clb = fig.colorbar(im, ax=ax, label=default_label if clb_label is None else clb_label)
         clb.ax.set_yticks([])
         clb.ax.set_yticklabels([])

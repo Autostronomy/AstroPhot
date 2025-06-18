@@ -1,3 +1,4 @@
+import numpy as np
 from caskade import Module as CModule
 
 
