@@ -20,6 +20,8 @@ class SampleMixin:
     jacobian_maxparams = 10
     jacobian_maxpixels = 1000**2
 
+    _options = ("sampling_mode", "jacobian_maxparams", "jacobian_maxpixels")
+
     @forward
     def sample_image(self, image: Image):
         if self.sampling_mode == "auto":

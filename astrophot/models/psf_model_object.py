@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from caskade import forward
 
-from .core_model import Model
+from .base import Model
 from ..image import (
     Model_Image,
     Window,

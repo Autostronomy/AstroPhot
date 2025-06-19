@@ -335,17 +335,18 @@ class LM(BaseOptimizer):
 
         if self._covariance_matrix is not None:
             return self._covariance_matrix
-        self.update_hess_grad(natural=True)
+        J = self.jacobian(self.model.from_valid(self.current_state))
+        hess = func.hessian(J, self.W)
         try:
-            self._covariance_matrix = torch.linalg.inv(self.hess)
+            self._covariance_matrix = torch.linalg.inv(hess)
         except:
             AP_config.ap_logger.warning(
                 "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will massage Hessian to continue but results should be inspected."
             )
-            self.hess += torch.eye(
-                len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            ) * (torch.diag(self.hess) == 0)
-            self._covariance_matrix = torch.linalg.inv(self.hess)
+            hess += torch.eye(len(hess), dtype=AP_config.ap_dtype, device=AP_config.ap_device) * (
+                torch.diag(hess) == 0
+            )
+            self._covariance_matrix = torch.linalg.inv(hess)
         return self._covariance_matrix
 
     @torch.no_grad()
@@ -360,7 +361,7 @@ class LM(BaseOptimizer):
         cov = self.covariance_matrix
         if torch.all(torch.isfinite(cov)):
             try:
-                self.model.parameters.vector_set_uncertainty(torch.sqrt(torch.abs(torch.diag(cov))))
+                self.model.fill_dynamic_value_uncertainties(torch.sqrt(torch.abs(torch.diag(cov))))
             except RuntimeError as e:
                 AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
         else:

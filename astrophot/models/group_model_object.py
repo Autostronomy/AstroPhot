@@ -1,13 +1,15 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import torch
 from caskade import forward
 
-from .core_model import Model
+from .base import Model
 from ..image import (
     Image,
     Target_Image,
     Target_Image_List,
+    Model_Image,
+    Model_Image_List,
     Image_List,
     Window,
     Window_List,
@@ -45,11 +47,9 @@ class Group_Model(Model):
         models: Optional[Sequence[Model]] = None,
         **kwargs,
     ):
-        super().__init__(name=name, models=models, **kwargs)
+        super().__init__(name=name, **kwargs)
         self.models = models
         self.update_window()
-        if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name=name)
 
     def update_window(self):
         """Makes a new window object which encloses all the windows of the
@@ -138,7 +138,7 @@ class Group_Model(Model):
     def sample(
         self,
         window: Optional[Window] = None,
-    ):
+    ) -> Union[Model_Image, Model_Image_List]:
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
         model is called individually and the results are added
@@ -188,8 +188,7 @@ class Group_Model(Model):
         self,
         pass_jacobian: Optional[Jacobian_Image] = None,
         window: Optional[Window] = None,
-        **kwargs,
-    ):
+    ) -> Jacobian_Image:
         """Compute the jacobian for this model. Done by first constructing a
         full jacobian (Npixels * Nparameters) of zeros then call the
         jacobian method of each sub model and add it in to the total.
@@ -203,7 +202,7 @@ class Group_Model(Model):
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
-                parameters=self.parameters.vector_identities()
+                parameters=self.build_params_array_identities()
             )
         else:
             jac_img = pass_jacobian
@@ -220,14 +219,14 @@ class Group_Model(Model):
         return (mod for mod in self.models.values())
 
     @property
-    def target(self):
+    def target(self) -> Optional[Union[Target_Image, Target_Image_List]]:
         try:
             return self._target
         except AttributeError:
             return None
 
     @target.setter
-    def target(self, tar):
+    def target(self, tar: Optional[Union[Target_Image, Target_Image_List]]):
         if not (tar is None or isinstance(tar, (Target_Image, Target_Image_List))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
         self._target = tar

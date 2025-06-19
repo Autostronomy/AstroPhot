@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from ..param import forward
-from .core_model import Model
+from .base import Model
 from . import func
 from ..image import (
     Model_Image,
@@ -63,7 +63,7 @@ class Component_Model(SampleMixin, Model):
     psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Level to which each pixel should be evaluated
-    integrate_tolerance = 1e-3
+    integrate_tolerance = 1e-3  # total flux fraction
 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold
@@ -78,12 +78,11 @@ class Component_Model(SampleMixin, Model):
     integrate_quad_order = 3
 
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
-    softening = 1e-3
+    softening = 1e-3  # arcsec
 
     _options = (
         "psf_mode",
         "psf_subpixel_shift",
-        "sampling_mode",
         "sampling_tolerance",
         "integrate_mode",
         "integrate_max_depth",
@@ -262,7 +261,6 @@ class Component_Model(SampleMixin, Model):
             working_image = Model_Image(window=window)
             sample = self.sample_image(working_image)
             if self.integrate_mode == "threshold":
-                # print("integrating")
                 sample = self.sample_integrate(sample, working_image)
             working_image.data = sample
 

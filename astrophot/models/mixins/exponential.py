@@ -27,8 +27,8 @@ class ExponentialMixin:
     """
 
     _model_type = "exponential"
-    parameter_specs = {
-        "Re": {"units": "arcsec", "limits": (0, None)},
+    _parameter_specs = {
+        "Re": {"units": "arcsec", "valid": (0, None)},
         "Ie": {"units": "flux/arcsec^2"},
     }
 

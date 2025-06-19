@@ -7,7 +7,7 @@ from matplotlib.patches import Polygon
 import matplotlib
 from scipy.stats import iqr
 
-# from ..models import Group_Model, PSF_Model
+from ..models import Group_Model  # , PSF_Model
 from ..image import Image_List, Window_List
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
@@ -61,16 +61,16 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
     if kwargs.get("linear", False):
         im = ax.pcolormesh(
-            X,
-            Y,
-            dat,
+            X.T,
+            Y.T,
+            dat.T,
             cmap=cmap_grad,
         )
     else:
         im = ax.pcolormesh(
-            X,
-            Y,
-            dat,
+            X.T,
+            Y.T,
+            dat.T,
             cmap="Greys",
             norm=ImageNormalize(
                 stretch=HistEqStretch(
@@ -83,9 +83,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
         )
 
         im = ax.pcolormesh(
-            X,
-            Y,
-            np.ma.masked_where(dat < (sky + 3 * noise), dat),
+            X.T,
+            Y.T,
+            np.ma.masked_where(dat < (sky + 3 * noise), dat).T,
             cmap=cmap_grad,
             norm=matplotlib.colors.LogNorm(),
             clim=[sky + 3 * noise, None],
@@ -233,7 +233,7 @@ def model_image(
     sample_image = sample_image[window]
 
     # Evaluate the model image
-    X, Y = sample_image.pixel_corner_meshgrid()
+    X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sample_image = sample_image.data.npvalue
@@ -264,7 +264,7 @@ def model_image(
         sample_image[target.mask.detach().cpu().numpy()] = np.nan
 
     # Plot the image
-    im = ax.pcolormesh(X, Y, sample_image, **imshow_kwargs)
+    im = ax.pcolormesh(X.T, Y.T, sample_image.T, **imshow_kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -403,7 +403,7 @@ def residual_image(
         "vmax": vmax,
     }
     imshow_kwargs.update(kwargs)
-    im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
+    im = ax.pcolormesh(X.T, Y.T, residuals.T, **imshow_kwargs)
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
     ax.set_ylabel("Tangent Plane Y [arcsec]")
@@ -416,9 +416,11 @@ def residual_image(
 
 
 def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
+    if target is None:
+        target = model.target
     if isinstance(ax, np.ndarray):
         for i, axitem in enumerate(ax):
-            model_window(fig, axitem, model, target=model.target.image_list[i], **kwargs)
+            model_window(fig, axitem, model, target=target.images[i], **kwargs)
         return fig, ax
 
     if isinstance(model, Group_Model):
@@ -459,31 +461,19 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
                 )
             )
     else:
-        if isinstance(model.window, Window_List):
-            use_window = model.window.window_list[model.target.index(target)]
-        else:
-            use_window = model.window
-        lowright = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-        lowright[1] = 0.0
-        lowright = use_window.origin + use_window.pixel_to_plane_delta(lowright)
-        lowright = lowright.detach().cpu().numpy()
-        upleft = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-        upleft[0] = 0.0
-        upleft = use_window.origin + use_window.pixel_to_plane_delta(upleft)
-        upleft = upleft.detach().cpu().numpy()
-        end = use_window.origin + use_window.end
-        end = end.detach().cpu().numpy()
+        use_window = model.window
+        corners = target[use_window].corners()
         x = [
-            use_window.origin[0].detach().cpu().numpy(),
-            lowright[0],
-            end[0],
-            upleft[0],
+            corners[0][0].item(),
+            corners[1][0].item(),
+            corners[2][0].item(),
+            corners[3][0].item(),
         ]
         y = [
-            use_window.origin[1].detach().cpu().numpy(),
-            lowright[1],
-            end[1],
-            upleft[1],
+            corners[0][1].item(),
+            corners[1][1].item(),
+            corners[2][1].item(),
+            corners[3][1].item(),
         ]
         ax.add_patch(
             Polygon(

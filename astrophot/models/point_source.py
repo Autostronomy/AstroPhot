@@ -3,12 +3,10 @@ from typing import Optional
 import torch
 import numpy as np
 
-from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 from .model_object import Component_Model
-from .core_model import AstroPhot_Model
+from .base import Model
 from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..image import PSF_Image, Window, Model_Image, Image
-from ._shared_methods import select_target
 from ..errors import SpecificationConflict
 
 __all__ = ("Point_Source",)

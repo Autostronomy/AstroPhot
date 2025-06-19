@@ -5,16 +5,11 @@ import torch
 
 from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
-from ..image import Window, Target_Image_List
+from ..image import Window, Image_List, Model_Image, Model_Image_List
 from ..errors import UnrecognizedModel, InvalidWindow
+from . import func
 
 __all__ = ("Model",)
-
-
-def all_subclasses(cls):
-    return set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)]
-    )
 
 
 ######################################################################
@@ -110,16 +105,16 @@ class Model(Module):
 
         return super().__new__(cls)
 
-    def __init__(self, *, name=None, target=None, window=None, **kwargs):
+    def __init__(self, *, name=None, target=None, window=None, mask=None, filename=None, **kwargs):
         super().__init__(name=name)
         self.target = target
         self.window = window
-        self.mask = kwargs.get("mask", None)
+        self.mask = mask
 
         # Set any user defined options for the model
-        for kwarg in kwargs:
+        for kwarg in list(kwargs.keys()):
             if kwarg in self.options:
-                setattr(self, kwarg, kwargs[kwarg])
+                setattr(self, kwarg, kwargs.pop(kwarg))
 
         # Create Param objects for this Module
         parameter_specs = self.build_parameter_specs(kwargs)
@@ -127,12 +122,18 @@ class Model(Module):
             setattr(self, key, Param(key, **parameter_specs[key]))
 
         # If loading from a file, get model configuration then exit __init__
-        if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name=name)
+        if filename is not None:
+            self.load(filename, new_name=name)
             return
 
+        kwargs.pop("model_type", None)  # model_type is set by __new__
+        if len(kwargs) > 0:
+            raise TypeError(
+                f"Unrecognized keyword arguments for {self.__class__.__name__}: {', '.join(kwargs.keys())}"
+            )
+
     @classproperty
-    def model_type(cls):
+    def model_type(cls) -> str:
         collected = []
         for subcls in cls.mro():
             if subcls is object:
@@ -143,7 +144,7 @@ class Model(Module):
         return " ".join(collected)
 
     @classproperty
-    def options(cls):
+    def options(cls) -> set:
         options = set()
         for subcls in cls.mro():
             if subcls is object:
@@ -152,7 +153,7 @@ class Model(Module):
         return options
 
     @classproperty
-    def parameter_specs(cls):
+    def parameter_specs(cls) -> dict:
         """Collects all parameter specifications from the class hierarchy."""
         specs = {}
         for subcls in reversed(cls.mro()):
@@ -161,16 +162,16 @@ class Model(Module):
             specs.update(getattr(subcls, "_parameter_specs", {}))
         return specs
 
-    def build_parameter_specs(self, kwargs):
+    def build_parameter_specs(self, kwargs) -> dict:
         parameter_specs = deepcopy(self.parameter_specs)
 
-        for p in kwargs:
+        for p in list(kwargs.keys()):
             if p not in parameter_specs:
                 continue
             if isinstance(kwargs[p], dict):
-                parameter_specs[p].update(kwargs[p])
+                parameter_specs[p].update(kwargs.pop(p))
             else:
-                parameter_specs[p]["value"] = kwargs[p]
+                parameter_specs[p]["value"] = kwargs.pop(p)
 
         return parameter_specs
 
@@ -178,7 +179,7 @@ class Model(Module):
     def gaussian_negative_log_likelihood(
         self,
         window: Optional[Window] = None,
-    ):
+    ) -> torch.Tensor:
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
@@ -190,7 +191,7 @@ class Model(Module):
         weight = data.weight
         mask = data.mask
         data = data.data
-        if isinstance(data, Target_Image_List):
+        if isinstance(data, Image_List):
             nll = sum(
                 torch.sum(((mo - da) ** 2 * wgt)[~ma]) / 2.0
                 for mo, da, wgt, ma in zip(model, data, weight, mask)
@@ -204,7 +205,7 @@ class Model(Module):
     def poisson_negative_log_likelihood(
         self,
         window: Optional[Window] = None,
-    ):
+    ) -> torch.Tensor:
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
@@ -215,7 +216,7 @@ class Model(Module):
         mask = data.mask
         data = data.data
 
-        if isinstance(data, Target_Image_List):
+        if isinstance(data, Image_List):
             nll = sum(
                 torch.sum((mo - da * (mo + 1e-10).log() + torch.lgamma(da + 1))[~ma])
                 for mo, da, ma in zip(model, data, mask)
@@ -226,12 +227,12 @@ class Model(Module):
         return nll
 
     @forward
-    def total_flux(self, window=None):
+    def total_flux(self, window=None) -> torch.Tensor:
         F = self(window=window)
         return torch.sum(F.data)
 
     @property
-    def window(self):
+    def window(self) -> Optional[Window]:
         """The window defines a region on the sky in which this model will be
         optimized and typically evaluated. Two models with
         non-overlapping windows are in effect independent of each
@@ -260,15 +261,23 @@ class Model(Module):
         elif isinstance(window, Window):
             # If window object given, use that
             self._window = window
-        elif len(window) == 2 or len(window) == 4:
+        elif len(window) == 2:
             # If window given in pixels, use relative to target
-            self._window = Window(window, crpix=self.target.crpix, image=self.target)
+            self._window = Window(
+                (window[1], window[0]), crpix=self.target.crpix.value, image=self.target
+            )
+        elif len(window) == 4:
+            self._window = Window(
+                (window[2], window[3], window[0], window[1]),
+                crpix=self.target.crpix.value,
+                image=self.target,
+            )
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
     @classmethod
-    def List_Models(cls, usable=None):
-        MODELS = all_subclasses(cls)
+    def List_Models(cls, usable: Optional[bool] = None) -> set:
+        MODELS = func.all_subclasses(cls)
         if usable is not None:
             for model in list(MODELS):
                 if model.usable is not usable:
@@ -278,8 +287,8 @@ class Model(Module):
     @forward
     def __call__(
         self,
-        window=None,
+        window: Optional[Window] = None,
         **kwargs,
-    ):
+    ) -> Union[Model_Image, Model_Image_List]:
 
         return self.sample(window=window, **kwargs)

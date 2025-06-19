@@ -1,3 +1,4 @@
+from .base import all_subclasses
 from .integration import (
     quad_table,
     pixel_center_integrator,
@@ -18,6 +19,7 @@ from .sersic import sersic, sersic_n_to_b
 from .moffat import moffat
 
 __all__ = (
+    "all_subclasses",
     "quad_table",
     "pixel_center_integrator",
     "pixel_corner_integrator",

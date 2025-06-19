@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from .. import AP_config
@@ -20,9 +21,11 @@ class Model_Image(Image):
     def __init__(self, *args, window=None, upsample=1, pad=0, **kwargs):
         if window is not None:
             kwargs["pixelscale"] = window.image.pixelscale / upsample
-            kwargs["crpix"] = (window.crpix + 0.5) * upsample + pad - 0.5
-            kwargs["crval"] = window.image.crval
-            kwargs["crtan"] = window.image.crtan
+            kwargs["crpix"] = (
+                (window.crpix - np.array((window.i_low, window.j_low)) + 0.5) * upsample + pad - 0.5
+            )
+            kwargs["crval"] = window.image.crval.value
+            kwargs["crtan"] = window.image.crtan.value
             kwargs["data"] = torch.zeros(
                 (
                     (window.i_high - window.i_low) * upsample + 2 * pad,

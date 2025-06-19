@@ -4,7 +4,7 @@ import torch
 from scipy.optimize import minimize
 
 from ..utils.initialize import isophotes
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..utils.decorators import ignore_numpy_warnings
 from . import func
 from .. import AP_config
 
@@ -37,10 +37,12 @@ def _sample_image(image, transform, rad_bins=None):
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
 
     # Ensure enough values are positive
-    I[~np.isfinite(I)] = np.median(I[np.isfinite(I)])
+    N = np.isfinite(I)
+    I[~N] = np.interp(R[~N], R[N], I[N])
     if np.sum(I > 0) <= 3:
-        I = I - np.min(I)
-    I[I <= 0] = np.min(I[I > 0])
+        I = np.abs(I)
+    N = I > 0
+    I[~N] = np.interp(R[~N], R[N], I[N])
     # Ensure decreasing brightness with radius in outer regions
     for i in range(5, len(I)):
         if I[i] >= I[i - 1]:

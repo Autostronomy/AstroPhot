@@ -400,7 +400,7 @@ class Target_Image(Image):
         copy_kwargs = {
             "data": torch.zeros_like(self.data.value),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix,
+            "crpix": self.crpix.value,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,

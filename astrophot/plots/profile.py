@@ -42,7 +42,7 @@ def radial_light_profile(
     )
     flux = model.radial_model(xx, params=()).detach().cpu().numpy()
     if model.target.zeropoint is not None:
-        yy = flux_to_sb(flux, model.target.pixel_area.item(), model.target.zeropoint.item())
+        yy = flux_to_sb(flux, 1.0, model.target.zeropoint.item())
     else:
         yy = np.log10(flux)
 
@@ -102,15 +102,15 @@ def radial_median_profile(
     Rlast_phys = Rlast_pix * model.target.pixel_length.item()
 
     Rbins = [0.0]
-    while Rbins[-1] < Rlast_pix:
-        Rbins.append(Rbins[-1] + max(2, Rbins[-1] * 0.1))
+    while Rbins[-1] < Rlast_phys:
+        Rbins.append(Rbins[-1] + max(2 * model.target.pixel_length.item(), Rbins[-1] * 0.1))
     Rbins = np.array(Rbins)
 
     with torch.no_grad():
         image = model.target[model.window]
         x, y = image.coordinate_center_meshgrid()
         x, y = model.transform_coordinates(x, y, params=())
-        R = (x**2 + y**2).sqrt()  # (N,)
+        R = (x**2 + y**2).sqrt()
         R = R.detach().cpu().numpy()
 
     dat = image.data.value.detach().cpu().numpy()

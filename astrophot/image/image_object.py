@@ -275,7 +275,7 @@ class Image(Module):
 
         """
         kwargs = {
-            "data": torch.clone(self.data.value),
+            "data": torch.clone(self.data.value.detach()),
             "pixelscale": self.pixelscale,
             "crpix": self.crpix.value,
             "crval": self.crval.value,
@@ -409,16 +409,37 @@ class Image(Module):
         wargs.update(kwargs)
         return AstropyWCS(wargs)
 
+    def corners(self):
+        pixel_lowleft = torch.tensor(
+            (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        pixel_lowright = torch.tensor(
+            (self.data.shape[0] - 0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        pixel_upleft = torch.tensor(
+            (-0.5, self.data.shape[1] - 0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        pixel_upright = torch.tensor(
+            (self.data.shape[0] - 0.5, self.data.shape[1] - 0.5),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        lowleft = self.pixel_to_plane(*pixel_lowleft)
+        lowright = self.pixel_to_plane(*pixel_lowright)
+        upleft = self.pixel_to_plane(*pixel_upleft)
+        upright = self.pixel_to_plane(*pixel_upright)
+        return (lowleft, lowright, upright, upleft)
+
     @torch.no_grad()
     def get_indices(self, other: Union[Window, "Image"]):
         if isinstance(other, Window):
             shift = np.round(self.crpix.npvalue - other.crpix).astype(int)
             return slice(
-                min(max(0, other.i_low - shift[0]), self.shape[0]),
-                max(0, min(other.i_high - shift[0], self.shape[0])),
+                min(max(0, other.i_low + shift[0]), self.shape[0]),
+                max(0, min(other.i_high + shift[0], self.shape[0])),
             ), slice(
-                min(max(0, other.j_low - shift[1]), self.shape[1]),
-                max(0, min(other.j_high - shift[1], self.shape[1])),
+                min(max(0, other.j_low + shift[1]), self.shape[1]),
+                max(0, min(other.j_high + shift[1], self.shape[1])),
             )
 
         origin_pix = torch.tensor(
@@ -437,7 +458,7 @@ class Image(Module):
         end_pix = torch.round(torch.stack(end_pix) + 0.5).int()
         shape = torch.tensor(self.data.shape[:2], dtype=torch.int32, device=AP_config.ap_device)
         new_end_pix = torch.minimum(shape, end_pix)
-        return slice(new_origin_pix[1], new_end_pix[1]), slice(new_origin_pix[0], new_end_pix[0])
+        return slice(new_origin_pix[0], new_end_pix[0]), slice(new_origin_pix[1], new_end_pix[1])
 
     def get_window(self, other: Union[Window, "Image"], _indices=None, **kwargs):
         """Get a new image object which is a window of this image
@@ -452,7 +473,12 @@ class Image(Module):
             indices = _indices
         new_img = self.copy(
             data=self.data.value[indices],
-            crpix=self.crpix.value - np.array((indices[0].start, indices[1].start)),
+            crpix=self.crpix.value
+            - torch.tensor(
+                (indices[0].start, indices[1].start),
+                dtype=AP_config.ap_dtype,
+                device=AP_config.ap_device,
+            ),
             **kwargs,
         )
         return new_img
@@ -460,35 +486,35 @@ class Image(Module):
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data._value -= other[self].data.value
+            new_img.data._value = new_img.data._value - other[self].data.value
             return new_img
         else:
             new_img = self.copy()
-            new_img.data._value -= other
+            new_img.data._value = new_img.data._value - other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data._value += other[self].data.value
+            new_img.data._value = new_img.data._value + other[self].data.value
             return new_img
         else:
             new_img = self.copy()
-            new_img.data._value += other
+            new_img.data._value = new_img.data._value + other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
             self.data._value[self.get_indices(other)] += other.data.value[other.get_indices(self)]
         else:
-            self.data._value += other
+            self.data._value = self.data._value + other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
             self.data._value[self.get_indices(other)] -= other.data.value[other.get_indices(self)]
         else:
-            self.data._value -= other
+            self.data._value = self.data._value - other
         return self
 
     def __getitem__(self, *args):

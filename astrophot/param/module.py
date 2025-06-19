@@ -1,5 +1,11 @@
 import numpy as np
-from caskade import Module as CModule
+from math import prod
+from caskade import (
+    Module as CModule,
+    ActiveStateError,
+    ParamConfigurationError,
+    FillDynamicParamsArrayError,
+)
 
 
 class Module(CModule):
@@ -11,3 +17,41 @@ class Module(CModule):
             for i in range(numel):
                 identities.append(f"{id(param)}_{i}")
         return identities
+
+    def build_params_array_names(self):
+        names = []
+        for param in self.dynamic_params:
+            numel = max(1, np.prod(param.shape))
+            if numel == 1:
+                names.append(param.name)
+            else:
+                for i in range(numel):
+                    names.append(f"{param.name}_{i}")
+        return names
+
+    def fill_dynamic_value_uncertainties(self, uncertainty):
+        if self.active:
+            raise ActiveStateError(f"Cannot fill dynamic values when Module {self.name} is active")
+
+        dynamic_params = self.dynamic_params
+
+        if uncertainty.shape[-1] == 0:
+            return  # No parameters to fill
+        # check for batch dimension
+        pos = 0
+        for param in dynamic_params:
+            if not isinstance(param.shape, tuple):
+                raise ParamConfigurationError(
+                    f"Param {param.name} has no shape. dynamic parameters must have a shape to use Tensor input."
+                )
+            # Handle scalar parameters
+            size = max(1, prod(param.shape))
+            try:
+                val = uncertainty[..., pos : pos + size].view(param.shape)
+                param.uncertainty = val
+            except (RuntimeError, IndexError, ValueError, TypeError):
+                raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)
+
+            pos += size
+        if pos != uncertainty.shape[-1]:
+            raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)
