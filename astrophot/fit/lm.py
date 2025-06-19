@@ -200,7 +200,9 @@ class LM(BaseOptimizer):
         elif fit_mask is not None:
             self.mask = ~fit_mask
         else:
-            self.mask = None
+            self.mask = torch.ones_like(
+                self.model.target[self.fit_window].flatten("data"), dtype=torch.bool
+            )
         if self.mask is not None and torch.sum(self.mask).item() == 0:
             raise OptimizeStop("No data to fit. All pixels are masked")
 
@@ -258,6 +260,10 @@ class LM(BaseOptimizer):
         self.loss_history = [self.chi2_ndf().item()]
         self.L_history = [self.L]
         self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
+        if self.verbose > 0:
+            AP_config.ap_logger.info(
+                f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
+            )
 
         for _ in range(self.max_iter):
             if self.verbose > 0:
@@ -271,7 +277,7 @@ class LM(BaseOptimizer):
                         weight=self.W,
                         jacobian=self.jacobian,
                         ndf=self.ndf,
-                        chi2=self.chi2_ndf(),
+                        chi2=self.loss_history[-1],
                         L=self.L,
                         Lup=self.Lup,
                         Ldn=self.Ldn,
@@ -282,9 +288,9 @@ class LM(BaseOptimizer):
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
                 break
 
-            self.L = res["L"]
+            self.L = res["L"] / self.Ldn
             self.current_state = (self.current_state + res["h"]).detach()
-            self.L_history.append(self.L)
+            self.L_history.append(res["L"])
             self.loss_history.append(res["chi2"])
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
 
@@ -334,7 +340,7 @@ class LM(BaseOptimizer):
             self._covariance_matrix = torch.linalg.inv(self.hess)
         except:
             AP_config.ap_logger.warning(
-                "WARNING: Hessian is singular, likely at least one model is non-physical. Will massage Hessian to continue but results should be inspected."
+                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will massage Hessian to continue but results should be inspected."
             )
             self.hess += torch.eye(
                 len(self.grad), dtype=AP_config.ap_dtype, device=AP_config.ap_device

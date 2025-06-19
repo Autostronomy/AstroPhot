@@ -108,10 +108,7 @@ class Image(Module):
         self.data = Param("data", data, units="flux")
         self.crval = Param("crval", kwargs.get("crval", self.default_crval), units="deg")
         self.crtan = Param("crtan", kwargs.get("crtan", self.default_crtan), units="arcsec")
-        self.crpix = np.asarray(
-            kwargs.get("crpix", self.default_crpix),
-            dtype=int,
-        )
+        self.crpix = Param("crpix", kwargs.get("crpix", self.default_crpix), units="pixel")
 
         self.pixelscale = pixelscale
 
@@ -134,7 +131,7 @@ class Image(Module):
 
     @property
     def window(self):
-        return Window(window=((0, 0), self.data.shape), crpix=self.crpix, image=self)
+        return Window(window=((0, 0), self.data.shape), crpix=self.crpix.npvalue, image=self)
 
     @property
     def center(self):
@@ -196,12 +193,12 @@ class Image(Module):
         return self._pixelscale_inv
 
     @forward
-    def pixel_to_plane(self, i, j, crtan):
-        return func.pixel_to_plane_linear(i, j, *self.crpix, self.pixelscale, *crtan)
+    def pixel_to_plane(self, i, j, crpix, crtan):
+        return func.pixel_to_plane_linear(i, j, *crpix, self.pixelscale, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crtan):
-        return func.plane_to_pixel_linear(x, y, *self.crpix, self.pixelscale_inv, *crtan)
+    def plane_to_pixel(self, x, y, crpix, crtan):
+        return func.plane_to_pixel_linear(x, y, *crpix, self.pixelscale_inv, *crtan)
 
     @forward
     def plane_to_world(self, x, y, crval, crtan):
@@ -280,7 +277,7 @@ class Image(Module):
         kwargs = {
             "data": torch.clone(self.data.value),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix,
+            "crpix": self.crpix.value,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -297,7 +294,7 @@ class Image(Module):
         kwargs = {
             "data": torch.zeros_like(self.data.value),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix,
+            "crpix": self.crpix.value,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -332,26 +329,26 @@ class Image(Module):
                 crop : self.data.shape[0] - crop,
                 crop : self.data.shape[1] - crop,
             ]
-            crpix = self.crpix - crop
+            crpix = self.crpix.value - crop
         elif len(pixels) == 2:  # different crop in each dimension
             data = self.data.value[
                 pixels[1] : self.data.shape[0] - pixels[1],
                 pixels[0] : self.data.shape[1] - pixels[0],
             ]
-            crpix = self.crpix - pixels
+            crpix = self.crpix.value - pixels
         elif len(pixels) == 4:  # different crop on all sides
             data = self.data.value[
                 pixels[2] : self.data.shape[0] - pixels[3],
                 pixels[0] : self.data.shape[1] - pixels[1],
             ]
-            crpix = self.crpix - pixels[0::2]  # fixme
+            crpix = self.crpix.value - pixels[0::2]  # fixme
         else:
             raise ValueError(
                 f"Invalid crop shape {pixels}, must be int, (int,), (int, int), or (int, int, int, int)!"
             )
         return self.copy(data=data, crpix=crpix, **kwargs)
 
-    def flatten(self, attribute: str = "data") -> np.ndarray:
+    def flatten(self, attribute: str = "data") -> torch.Tensor:
         if attribute in self.children:
             return getattr(self, attribute).value.reshape(-1)
         return getattr(self, attribute).reshape(-1)
@@ -385,7 +382,7 @@ class Image(Module):
             .sum(axis=(1, 3))
         )
         pixelscale = self.pixelscale * scale
-        crpix = (self.crpix + 0.5) / scale - 0.5
+        crpix = (self.crpix.value + 0.5) / scale - 0.5
         return self.copy(
             data=data,
             pixelscale=pixelscale,
@@ -415,7 +412,7 @@ class Image(Module):
     @torch.no_grad()
     def get_indices(self, other: Union[Window, "Image"]):
         if isinstance(other, Window):
-            shift = self.crpix - other.crpix
+            shift = np.round(self.crpix.npvalue - other.crpix).astype(int)
             return slice(
                 min(max(0, other.i_low - shift[0]), self.shape[0]),
                 max(0, min(other.i_high - shift[0], self.shape[0])),
@@ -438,7 +435,7 @@ class Image(Module):
         )
         end_pix = self.plane_to_pixel(*other.pixel_to_plane(*end_pix))
         end_pix = torch.round(torch.stack(end_pix) + 0.5).int()
-        shape = torch.tensor(self.data.shape, dtype=torch.int32, device=AP_config.ap_device)
+        shape = torch.tensor(self.data.shape[:2], dtype=torch.int32, device=AP_config.ap_device)
         new_end_pix = torch.minimum(shape, end_pix)
         return slice(new_origin_pix[1], new_end_pix[1]), slice(new_origin_pix[0], new_end_pix[0])
 
@@ -455,7 +452,7 @@ class Image(Module):
             indices = _indices
         new_img = self.copy(
             data=self.data.value[indices],
-            crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
+            crpix=self.crpix.value - np.array((indices[0].start, indices[1].start)),
             **kwargs,
         )
         return new_img

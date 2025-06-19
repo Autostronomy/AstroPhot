@@ -32,7 +32,6 @@ class SampleMixin:
                 sampling_mode = "midpoint"
         else:
             sampling_mode = self.sampling_mode
-
         if sampling_mode == "midpoint":
             x, y = image.coordinate_center_meshgrid()
             res = self.brightness(x, y)
@@ -71,7 +70,8 @@ class SampleMixin:
         )
         total_est = torch.sum(sample)
         threshold = total_est * self.integrate_tolerance
-        select = curvature > (total_est * self.integrate_tolerance)
+        select = curvature > threshold
+
         sample[select] = func.recursive_quad_integrate(
             i[select],
             j[select],

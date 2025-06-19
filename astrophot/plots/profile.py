@@ -28,17 +28,19 @@ def radial_light_profile(
     extend_profile=1.0,
     R0=0.0,
     resolution=1000,
-    doassert=True,
     plot_kwargs={},
 ):
     xx = torch.linspace(
         R0,
-        torch.max(model.window.shape / 2) * extend_profile,
+        max(model.window.shape)
+        * model.target.pixel_length.detach().cpu().numpy()
+        * extend_profile
+        / 2,
         int(resolution),
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
     )
-    flux = model.radial_model(xx).detach().cpu().numpy()
+    flux = model.radial_model(xx, params=()).detach().cpu().numpy()
     if model.target.zeropoint is not None:
         yy = flux_to_sb(flux, model.target.pixel_area.item(), model.target.zeropoint.item())
     else:
@@ -75,7 +77,6 @@ def radial_median_profile(
     count_limit: int = 10,
     return_profile: bool = False,
     rad_unit: str = "arcsec",
-    doassert: bool = True,
     plot_kwargs: dict = {},
 ):
     """Plot an SB profile by taking flux median at each radius.
@@ -97,8 +98,8 @@ def radial_median_profile(
 
     """
 
-    Rlast_phys = torch.max(model.window.shape / 2).item()
-    Rlast_pix = Rlast_phys / model.target.pixel_length.item()
+    Rlast_pix = max(model.window.shape) / 2
+    Rlast_phys = Rlast_pix * model.target.pixel_length.item()
 
     Rbins = [0.0]
     while Rbins[-1] < Rlast_pix:
@@ -107,21 +108,22 @@ def radial_median_profile(
 
     with torch.no_grad():
         image = model.target[model.window]
-        X, Y = image.get_coordinate_meshgrid() - model["center"].value[..., None, None]
-        X, Y = model.transform_coordinates(X, Y)
-        R = model.radius_metric(X, Y)
+        x, y = image.coordinate_center_meshgrid()
+        x, y = model.transform_coordinates(x, y, params=())
+        R = (x**2 + y**2).sqrt()  # (N,)
         R = R.detach().cpu().numpy()
 
+    dat = image.data.value.detach().cpu().numpy()
     count, bins, binnum = binned_statistic(
         R.ravel(),
-        image.data.detach().cpu().numpy().ravel(),
+        dat.ravel(),
         statistic="count",
         bins=Rbins,
     )
 
     stat, bins, binnum = binned_statistic(
         R.ravel(),
-        image.data.detach().cpu().numpy().ravel(),
+        dat.ravel(),
         statistic="median",
         bins=Rbins,
     )
@@ -129,7 +131,7 @@ def radial_median_profile(
 
     scat, bins, binnum = binned_statistic(
         R.ravel(),
-        image.data.detach().cpu().numpy().ravel(),
+        dat.ravel(),
         statistic=partial(iqr, rng=(16, 84)),
         bins=Rbins,
     )

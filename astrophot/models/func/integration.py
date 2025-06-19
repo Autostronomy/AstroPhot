@@ -71,16 +71,15 @@ def recursive_quad_integrate(
     quad_order=3,
     gridding=5,
     _current_depth=0,
-    max_depth=2,
+    max_depth=1,
 ):
-
-    scale = 1.0 if _current_depth == 0 else 1 / (_current_depth * gridding)
+    scale = 1 / (gridding**_current_depth)
     z, z0 = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
 
     if _current_depth >= max_depth:
         return z
 
-    select = torch.abs(z - z0) > threshold
+    select = torch.abs(z - z0) > threshold / scale**2
 
     integral = torch.zeros_like(z)
     integral[~select] = z[~select]

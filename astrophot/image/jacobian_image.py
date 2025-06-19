@@ -32,6 +32,8 @@ class Jacobian_Image(Image):
             raise SpecificationConflict("Every parameter should be unique upon jacobian creation")
 
     def flatten(self, attribute: str = "data"):
+        if attribute in self.children:
+            return getattr(self, attribute).value.reshape((-1, len(self.parameters)))
         return getattr(self, attribute).reshape((-1, len(self.parameters)))
 
     def copy(self, **kwargs):
@@ -64,7 +66,7 @@ class Jacobian_Image(Image):
                 self.data = data
                 self.parameters.append(other_identity)
                 other_loc = -1
-            self.data[self_indices[0], self_indices[1], other_loc] += other.data[
+            self.data.value[self_indices[0], self_indices[1], other_loc] += other.data.value[
                 other_indices[0], other_indices[1], i
             ]
         return self

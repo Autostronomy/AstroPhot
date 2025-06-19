@@ -65,7 +65,7 @@ class Galaxy_Model(InclinedMixin, Component_Model):
         mu11 = np.sum(target_dat * i * j)
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if self.PA.value is None:
-            self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
+            self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
         if self.q.value is None:
             l = np.sort(np.linalg.eigvals(M))
-            self.q.dynamic_value = max(0.1, np.sqrt(l[0] / l[1]))
+            self.q.dynamic_value = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)

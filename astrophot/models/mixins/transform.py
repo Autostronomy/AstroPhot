@@ -30,5 +30,5 @@ class InclinedMixin:
         Transform coordinates based on the position angle and axis ratio.
         """
         x, y = super().transform_coordinates(x, y)
-        x, y = rotate(-PA, x, y)
+        x, y = rotate(-(PA + np.pi / 2), x, y)
         return x, y / q

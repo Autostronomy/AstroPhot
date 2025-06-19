@@ -11,7 +11,7 @@ class Window:
     def __init__(
         self,
         window: Union[Tuple[int, int, int, int], Tuple[Tuple[int, int], Tuple[int, int]]],
-        crpix: Tuple[int, int],
+        crpix: Tuple[float, float],
         image: "Image",
     ):
         if len(window) == 4:
@@ -26,7 +26,7 @@ class Window:
             raise InvalidWindow(
                 "Window must be a tuple of 4 integers or 2 tuples of 2 integers each"
             )
-        self.crpix = np.asarray(crpix, dtype=int)
+        self.crpix = np.asarray(crpix)
         self.image = image
 
     @property

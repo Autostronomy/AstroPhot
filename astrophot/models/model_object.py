@@ -63,7 +63,7 @@ class Component_Model(SampleMixin, Model):
     psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
 
     # Level to which each pixel should be evaluated
-    integrate_tolerance = 1e-2
+    integrate_tolerance = 1e-3
 
     # Integration scope for model
     integrate_mode = "threshold"  # none, threshold
@@ -262,6 +262,7 @@ class Component_Model(SampleMixin, Model):
             working_image = Model_Image(window=window)
             sample = self.sample_image(working_image)
             if self.integrate_mode == "threshold":
+                # print("integrating")
                 sample = self.sample_integrate(sample, working_image)
             working_image.data = sample
 

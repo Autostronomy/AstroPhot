@@ -5,11 +5,11 @@ from ...errors import OptimizeStop
 
 
 def hessian(J, W):
-    return J.T @ (W * J)
+    return J.T @ (W.unsqueeze(1) * J)
 
 
 def gradient(J, W, R):
-    return -J.T @ (W * R)
+    return J.T @ (W * R).unsqueeze(1)
 
 
 def damp_hessian(hess, L):
@@ -21,11 +21,11 @@ def damp_hessian(hess, L):
 def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
 
     chi20 = chi2
-    M0 = model(x)
-    J = jacobian(x)
-    R = data - M0
-    grad = gradient(J, weight, R)
-    hess = hessian(J, weight)
+    M0 = model(x)  # (M,)
+    J = jacobian(x)  # (M, N)
+    R = data - M0  # (M,)
+    grad = gradient(J, weight, R)  # (N, 1)
+    hess = hessian(J, weight)  # (N, N)
 
     best = {"h": torch.zeros_like(x), "chi2": chi20, "L": L}
     scary = {"h": None, "chi2": chi20, "L": L}
@@ -33,9 +33,9 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
     nostep = True
     improving = None
     for _ in range(10):
-        hessD = damp_hessian(hess, L)
-        h = torch.linalg.solve(hessD, grad)
-        M1 = model(x + h)
+        hessD = damp_hessian(hess, L)  # (N, N)
+        h = torch.linalg.solve(hessD, grad)  # (N, 1)
+        M1 = model(x + h.squeeze(1))  # (M,)
 
         chi21 = torch.sum(weight * (data - M1) ** 2).item() / ndf
 
@@ -48,10 +48,10 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
             continue
 
         if chi21 < scary["chi2"]:
-            scary = {"h": h, "chi2": chi21, "L": L}
+            scary = {"h": h.squeeze(1), "chi2": chi21, "L": L}
 
         # actual chi2 improvement vs expected from linearization
-        rho = (chi20 - chi21) / torch.abs(h.T @ hessD @ h - 2 * grad @ h).item()
+        rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h + 2 * grad.T @ h).item()
 
         # Avoid highly non-linear regions
         if rho < 0.1 or rho > 10:
@@ -62,13 +62,13 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
             continue
 
         if chi21 < best["chi2"]:  # new best
-            best = {"h": h, "chi2": chi21, "L": L}
+            best = {"h": h.squeeze(1), "chi2": chi21, "L": L}
             nostep = False
             L /= Ldn
             if L < 1e-8 or improving is False:
                 break
             improving = True
-        elif improving is True:
+        elif improving is True:  # were improving, now not improving
             break
         else:  # not improving and bad chi2, damp more
             L *= Lup
@@ -76,8 +76,8 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
                 break
             improving = False
 
+        # If we are improving chi2 by more than 10% then we can stop
         if (best["chi2"] - chi20) / chi20 < -0.1:
-            # If we are improving chi2 by more than 10% then we can stop
             break
 
     if nostep:
