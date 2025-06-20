@@ -1,16 +1,17 @@
-from .galaxy_model_object import Galaxy_Model
+from .galaxy_model_object import GalaxyModel
 
 # from .warp_model import Warp_Galaxy
 # from .ray_model import Ray_Galaxy
-# from .psf_model_object import PSF_Model
+from .psf_model_object import PSFModel
+
 # from .superellipse_model import SuperEllipse_Galaxy, SuperEllipse_Warp
 # from .foureirellipse_model import FourierEllipse_Galaxy, FourierEllipse_Warp
 # from .wedge_model import Wedge_Galaxy
 from .mixins import ExponentialMixin  # , iExponentialMixin
 
 __all__ = [
-    "Exponential_Galaxy",
-    # "Exponential_PSF",
+    "ExponentialGalaxy",
+    "ExponentialPSF",
     # "Exponential_SuperEllipse",
     # "Exponential_SuperEllipse_Warp",
     # "Exponential_Warp",
@@ -19,7 +20,7 @@ __all__ = [
 ]
 
 
-class Exponential_Galaxy(ExponentialMixin, Galaxy_Model):
+class ExponentialGalaxy(ExponentialMixin, GalaxyModel):
     """basic galaxy model with a exponential profile for the radial light
     profile. The light profile is defined as:
 
@@ -39,25 +40,24 @@ class Exponential_Galaxy(ExponentialMixin, Galaxy_Model):
     usable = True
 
 
-# class Exponential_PSF(ExponentialMixin, PSF_Model):
-#     """basic point source model with a exponential profile for the radial light
-#     profile.
+class ExponentialPSF(ExponentialMixin, PSFModel):
+    """basic point source model with a exponential profile for the radial light
+    profile.
 
-#     I(R) = Ie * exp(-b1(R/Re - 1))
+    I(R) = Ie * exp(-b1(R/Re - 1))
 
-#     where I(R) is the brightness as a function of semi-major axis, Ie
-#     is the brightness at the half light radius, b1 is a constant not
-#     involved in the fit, R is the semi-major axis, and Re is the
-#     effective radius.
+    where I(R) is the brightness as a function of semi-major axis, Ie
+    is the brightness at the half light radius, b1 is a constant not
+    involved in the fit, R is the semi-major axis, and Re is the
+    effective radius.
 
-#     Parameters:
-#         Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
-#         Re: half light radius, represented in arcsec. This parameter cannot go below zero.
+    Parameters:
+        Ie: Brightness at half light radius, represented as the log of the brightness divided by pixelscale squared. This is proportional to a surface brightness
+        Re: half light radius, represented in arcsec. This parameter cannot go below zero.
 
-#     """
+    """
 
-#     usable = True
-#     model_integrated = False
+    usable = True
 
 
 # class Exponential_SuperEllipse(ExponentialMixin, SuperEllipse_Galaxy):

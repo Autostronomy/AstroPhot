@@ -12,7 +12,7 @@ from .window import Window
 from ..errors import SpecificationConflict, InvalidImage
 from . import func
 
-__all__ = ["Image", "Image_List"]
+__all__ = ["Image", "ImageList"]
 
 
 class Image(Module):
@@ -127,12 +127,12 @@ class Image(Module):
 
     @property
     def window(self):
-        return Window(window=((0, 0), self.data.shape), crpix=self.crpix.npvalue, image=self)
+        return Window(window=((0, 0), self.data.shape[:2]), image=self)
 
     @property
     def center(self):
         shape = torch.as_tensor(
-            self.data.shape, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            self.data.shape[:2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         return self.pixel_to_plane(*((shape - 1) / 2))
 
@@ -309,82 +309,10 @@ class Image(Module):
             self.zeropoint = self.zeropoint.to(dtype=dtype, device=device)
         return self
 
-    def crop(self, pixels, **kwargs):
-        """Crop the image by the number of pixels given. This will crop
-        the image in all four directions by the number of pixels given.
-
-        given data shape (N, M) the new shape will be:
-
-        crop - int: crop the same number of pixels on all sides. new shape (N - 2*crop, M - 2*crop)
-        crop - (int, int): crop each dimension by the number of pixels given. new shape (N - 2*crop[1], M - 2*crop[0])
-        crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
-        """
-        if isinstance(pixels, int) or len(pixels) == 1:  # same crop in all dimension
-            crop = pixels if isinstance(pixels, int) else pixels[0]
-            data = self.data.value[
-                crop : self.data.shape[0] - crop,
-                crop : self.data.shape[1] - crop,
-            ]
-            crpix = self.crpix.value - crop
-        elif len(pixels) == 2:  # different crop in each dimension
-            data = self.data.value[
-                pixels[1] : self.data.shape[0] - pixels[1],
-                pixels[0] : self.data.shape[1] - pixels[0],
-            ]
-            crpix = self.crpix.value - pixels
-        elif len(pixels) == 4:  # different crop on all sides
-            data = self.data.value[
-                pixels[2] : self.data.shape[0] - pixels[3],
-                pixels[0] : self.data.shape[1] - pixels[1],
-            ]
-            crpix = self.crpix.value - pixels[0::2]  # fixme
-        else:
-            raise ValueError(
-                f"Invalid crop shape {pixels}, must be int, (int,), (int, int), or (int, int, int, int)!"
-            )
-        return self.copy(data=data, crpix=crpix, **kwargs)
-
     def flatten(self, attribute: str = "data") -> torch.Tensor:
         if attribute in self.children:
             return getattr(self, attribute).value.reshape(-1)
         return getattr(self, attribute).reshape(-1)
-
-    def reduce(self, scale: int, **kwargs):
-        """This operation will downsample an image by the factor given. If
-        scale = 2 then 2x2 blocks of pixels will be summed together to
-        form individual larger pixels. A new image object will be
-        returned with the appropriate pixelscale and data tensor. Note
-        that the window does not change in this operation since the
-        pixels are condensed, but the pixel size is increased
-        correspondingly.
-
-        Parameters:
-            scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
-
-        """
-        if not isinstance(scale, int) and not (
-            isinstance(scale, torch.Tensor) and scale.dtype is torch.int32
-        ):
-            raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
-        if scale == 1:
-            return self
-
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
-
-        data = (
-            self.data.value[: MS * scale, : NS * scale]
-            .reshape(MS, scale, NS, scale)
-            .sum(axis=(1, 3))
-        )
-        pixelscale = self.pixelscale * scale
-        crpix = (self.crpix.value + 0.5) / scale - 0.5
-        return self.copy(
-            data=data,
-            pixelscale=pixelscale,
-            crpix=crpix,
-            **kwargs,
-        )
 
     def fits_info(self):
         return {
@@ -474,34 +402,35 @@ class Image(Module):
         return (lowleft, lowright, upright, upleft)
 
     @torch.no_grad()
-    def get_indices(self, other: Union[Window, "Image"]):
-        if isinstance(other, Window):
-            shift = np.round(self.crpix.npvalue - other.crpix).astype(int)
-            return slice(
-                min(max(0, other.i_low + shift[0]), self.shape[0]),
-                max(0, min(other.i_high + shift[0], self.shape[0])),
-            ), slice(
-                min(max(0, other.j_low + shift[1]), self.shape[1]),
-                max(0, min(other.j_high + shift[1], self.shape[1])),
-            )
-
-        origin_pix = torch.tensor(
-            (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+    def get_indices(self, other: Window):
+        if other.image == self:
+            return slice(other.i_low, other.i_high), slice(other.j_low, other.j_high)
+        shift = np.round(self.crpix.npvalue - other.crpix.npvalue).astype(int)
+        return slice(
+            min(max(0, other.i_low + shift[0]), self.shape[0]),
+            max(0, min(other.i_high + shift[0], self.shape[0])),
+        ), slice(
+            min(max(0, other.j_low + shift[1]), self.shape[1]),
+            max(0, min(other.j_high + shift[1], self.shape[1])),
         )
-        origin_pix = self.plane_to_pixel(*other.pixel_to_plane(*origin_pix))
-        origin_pix = torch.round(torch.stack(origin_pix) + 0.5).int()
-        new_origin_pix = torch.maximum(torch.zeros_like(origin_pix), origin_pix)
 
-        end_pix = torch.tensor(
-            (other.data.shape[0] - 0.5, other.data.shape[1] - 0.5),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-        )
-        end_pix = self.plane_to_pixel(*other.pixel_to_plane(*end_pix))
-        end_pix = torch.round(torch.stack(end_pix) + 0.5).int()
-        shape = torch.tensor(self.data.shape[:2], dtype=torch.int32, device=AP_config.ap_device)
-        new_end_pix = torch.minimum(shape, end_pix)
-        return slice(new_origin_pix[0], new_end_pix[0]), slice(new_origin_pix[1], new_end_pix[1])
+        # origin_pix = torch.tensor(
+        #     (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        # )
+        # origin_pix = self.plane_to_pixel(*other.pixel_to_plane(*origin_pix))
+        # origin_pix = torch.round(torch.stack(origin_pix) + 0.5).int()
+        # new_origin_pix = torch.maximum(torch.zeros_like(origin_pix), origin_pix)
+
+        # end_pix = torch.tensor(
+        #     (other.data.shape[0] - 0.5, other.data.shape[1] - 0.5),
+        #     dtype=AP_config.ap_dtype,
+        #     device=AP_config.ap_device,
+        # )
+        # end_pix = self.plane_to_pixel(*other.pixel_to_plane(*end_pix))
+        # end_pix = torch.round(torch.stack(end_pix) + 0.5).int()
+        # shape = torch.tensor(self.data.shape[:2], dtype=torch.int32, device=AP_config.ap_device)
+        # new_end_pix = torch.minimum(shape, end_pix)
+        # return slice(new_origin_pix[0], new_end_pix[0]), slice(new_origin_pix[1], new_end_pix[1])
 
     def get_window(self, other: Union[Window, "Image"], _indices=None, **kwargs):
         """Get a new image object which is a window of this image
@@ -511,7 +440,7 @@ class Image(Module):
 
         """
         if _indices is None:
-            indices = self.get_indices(other)
+            indices = self.get_indices(other if isinstance(other, Window) else other.window)
         else:
             indices = _indices
         new_img = self.copy(
@@ -566,7 +495,7 @@ class Image(Module):
         return super().__getitem__(*args)
 
 
-class Image_List(Module):
+class ImageList(Module):
     def __init__(self, images):
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
@@ -601,7 +530,7 @@ class Image_List(Module):
             tuple(image.blank_copy() for image in self.images),
         )
 
-    def get_window(self, other: "Image_List"):
+    def get_window(self, other: "ImageList"):
         return self.__class__(
             tuple(image[win] for image, win in zip(self.images, other.images)),
         )
@@ -613,7 +542,7 @@ class Image_List(Module):
         else:
             raise ValueError("Could not find identity match between image list and input image")
 
-    def match_indices(self, other: "Image_List"):
+    def match_indices(self, other: "ImageList"):
         """Match the indices of the images in this list with those in another Image_List."""
         indices = []
         for other_image in other.images:
@@ -639,7 +568,7 @@ class Image_List(Module):
         return torch.cat(tuple(image.flatten(attribute) for image in self.images))
 
     def __sub__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             new_list = []
             for other_image in other.images:
                 i = self.index(other_image)
@@ -650,7 +579,7 @@ class Image_List(Module):
             raise ValueError("Subtraction of Image_List only works with another Image_List object!")
 
     def __add__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             new_list = []
             for other_image in other.images:
                 i = self.index(other_image)
@@ -661,7 +590,7 @@ class Image_List(Module):
             raise ValueError("Addition of Image_List only works with another Image_List object!")
 
     def __isub__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             for other_image in other.images:
                 i = self.index(other_image)
                 self.images[i] -= other_image
@@ -673,7 +602,7 @@ class Image_List(Module):
         return self
 
     def __iadd__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             for other_image in other.images:
                 i = self.index(other_image)
                 self.images[i] += other_image
@@ -685,7 +614,7 @@ class Image_List(Module):
         return self
 
     def __getitem__(self, *args):
-        if len(args) == 1 and isinstance(args[0], Image_List):
+        if len(args) == 1 and isinstance(args[0], ImageList):
             new_list = []
             for other_image in args[0].images:
                 i = self.index(other_image)

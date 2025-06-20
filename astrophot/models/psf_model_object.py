@@ -1,22 +1,16 @@
-from typing import Optional
-
 import torch
 from caskade import forward
 
 from .base import Model
-from ..image import (
-    Model_Image,
-    Window,
-    PSF_Image,
-)
+from ..image import Model_Image, PSF_Image
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
 
-__all__ = ["PSF_Model"]
+__all__ = ["PSFModel"]
 
 
-class PSF_Model(SampleMixin, Model):
+class PSFModel(SampleMixin, Model):
     """Prototype point source (typically a star) model, to be subclassed
     by other point source models which define specific behavior.
 
@@ -30,7 +24,7 @@ class PSF_Model(SampleMixin, Model):
     """
 
     # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
-    parameter_specs = {
+    _parameter_specs = {
         "center": {
             "units": "arcsec",
             "value": (0.0, 0.0),
@@ -43,44 +37,20 @@ class PSF_Model(SampleMixin, Model):
     # The sampled PSF will be normalized to a total flux of 1 within the window
     normalize_psf = True
 
-    # Level to which each pixel should be evaluated
-    sampling_tolerance = 1e-3
-
-    # Integration scope for model
-    integrate_mode = "threshold"  # none, threshold, full*
-
-    # Maximum recursion depth when performing sub pixel integration
-    integrate_max_depth = 3
-
-    # Amount by which to subdivide pixels when doing recursive pixel integration
-    integrate_gridding = 5
-
-    # The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher
-    integrate_quad_level = 3
-
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
-    softening = 1e-3
+    softening = 1e-3  # arcsec
 
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
-    special_kwargs = ["parameters", "filename", "model_type"]
-    track_attrs = [
-        "sampling_mode",
-        "sampling_tolerance",
-        "integrate_mode",
-        "integrate_max_depth",
-        "integrate_gridding",
-        "integrate_quad_level",
-        "jacobian_chunksize",
-        "softening",
-    ]
+    _options = ("softening", "normalize_psf")
+
+    @forward
+    def transform_coordinates(self, x, y, center):
+        return x - center[0], y - center[1]
 
     # Fit loop functions
     ######################################################################
     @forward
-    def sample(
-        self,
-        window: Optional[Window] = None,
-    ):
+    def sample(self):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods. This should not
         be overloaded except in special cases.
@@ -105,23 +75,16 @@ class PSF_Model(SampleMixin, Model):
           Image: The image with the computed model values.
 
         """
-        # Image on which to evaluate model
-        if window is None:
-            window = self.window
-
         # Create an image to store pixel samples
-        working_image = Model_Image(window=window)
-        sample = self.sample_image(working_image)
-        if self.integrate_mode == "threshold":
-            sample = self.sample_integrate(sample, working_image)
-        working_image.data = sample
+        working_image = Model_Image(window=self.window)
+        working_image.data = self.sample_image(working_image)
 
         # normalize to total flux 1
         if self.normalize_psf:
-            working_image.data /= torch.sum(working_image.data.value)
+            working_image.data = working_image.data.value / torch.sum(working_image.data.value)
 
         if self.mask is not None:
-            working_image.data = working_image.data.value * torch.logical_not(self.mask)
+            working_image.data = working_image.data.value * (~self.mask)
 
         return working_image
 

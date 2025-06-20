@@ -7,21 +7,21 @@ from ..param import forward
 from .base import Model
 from . import func
 from ..image import (
-    Model_Image,
-    Target_Image,
+    ModelImage,
+    TargetImage,
     Window,
-    PSF_Image,
+    PSFImage,
 )
-from ..utils.initialize import center_of_mass
+from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
 from .. import AP_config
 from ..errors import SpecificationConflict, InvalidTarget
 from .mixins import SampleMixin
 
-__all__ = ["Component_Model"]
+__all__ = ["ComponentModel"]
 
 
-class Component_Model(SampleMixin, Model):
+class ComponentModel(SampleMixin, Model):
     """Component_Model(name, target, window, locked, **kwargs)
 
     Component_Model is a base class for models that represent single
@@ -59,34 +59,14 @@ class Component_Model(SampleMixin, Model):
 
     # Scope for PSF convolution
     psf_mode = "none"  # none, full
-    # Method to use when performing subpixel shifts. bilinear set by default for stability around pixel edges, though lanczos:3 is also fairly stable, and all are stable when away from pixel edges
+    # Method to use when performing subpixel shifts.
     psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
-
-    # Level to which each pixel should be evaluated
-    integrate_tolerance = 1e-3  # total flux fraction
-
-    # Integration scope for model
-    integrate_mode = "threshold"  # none, threshold
-
-    # Maximum recursion depth when performing sub pixel integration
-    integrate_max_depth = 3
-
-    # Amount by which to subdivide pixels when doing recursive pixel integration
-    integrate_gridding = 5
-
-    # The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher
-    integrate_quad_order = 3
-
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3  # arcsec
 
     _options = (
         "psf_mode",
         "psf_subpixel_shift",
-        "integrate_mode",
-        "integrate_max_depth",
-        "integrate_gridding",
-        "integrate_quad_order",
         "softening",
     )
     usable = False
@@ -94,26 +74,26 @@ class Component_Model(SampleMixin, Model):
     @property
     def psf(self):
         if self._psf is None:
-            try:
-                return self.target.psf
-            except AttributeError:
-                return None
+            return self.target.psf
         return self._psf
 
     @psf.setter
     def psf(self, val):
         if val is None:
             self._psf = None
-        elif isinstance(val, PSF_Image):
+        elif isinstance(val, PSFImage):
             self._psf = val
         elif isinstance(val, Model):
-            self.set_aux_psf(val)
+            self._psf = PSFImage(
+                data=lambda p: p.psf_model().data.value, pixelscale=val.target.pixelscale
+            )
+            self._psf.link("psf_model", val)
         else:
-            self._psf = PSF_Image(data=val, pixelscale=self.target.pixelscale)
+            self._psf = PSFImage(data=val, pixelscale=self.target.pixelscale)
             AP_config.ap_logger.warning(
-                "Setting PSF with pixel matrix, assuming target pixelscale is the same as "
+                "Setting PSF with pixel image, assuming target pixelscale is the same as "
                 "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
-                "or ap.models.Model object instead."
+                "or ap.models.PSF_Model object instead."
             )
 
     @property
@@ -125,7 +105,7 @@ class Component_Model(SampleMixin, Model):
         if tar is None:
             self._target = None
             return
-        elif not isinstance(tar, Target_Image):
+        elif not isinstance(tar, TargetImage):
             raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
         self._target = tar
 
@@ -133,9 +113,7 @@ class Component_Model(SampleMixin, Model):
     ######################################################################
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(
-        self,
-    ):
+    def initialize(self):
         """Determine initial values for the center coordinates. This is done
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
@@ -158,7 +136,7 @@ class Component_Model(SampleMixin, Model):
             mask = target_area.mask.detach().cpu().numpy()
             dat[mask] = np.nanmedian(dat[~mask])
 
-        COM = center_of_mass(target_area.data.npvalue)
+        COM = recursive_center_of_mass(target_area.data.npvalue)
         if not np.all(np.isfinite(COM)):
             return
         COM_center = target_area.pixel_to_plane(
@@ -172,23 +150,6 @@ class Component_Model(SampleMixin, Model):
     @forward
     def transform_coordinates(self, x, y, center):
         return x - center[0], y - center[1]
-
-    def shift_kernel(self, shift):
-        if self.psf_subpixel_shift == "bilinear":
-            return func.bilinear_kernel(shift[0], shift[1])
-        elif self.psf_subpixel_shift.startswith("lanczos:"):
-            order = int(self.psf_subpixel_shift.split(":")[1])
-            return func.lanczos_kernel(shift[0], shift[1], order)
-        elif self.psf_subpixel_shift == "none":
-            return torch.tensor(
-                [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
-        else:
-            raise SpecificationConflict(
-                f"Unknown PSF subpixel shift mode {self.psf_subpixel_shift} for model {self.name}"
-            )
 
     @forward
     def sample(
@@ -229,17 +190,16 @@ class Component_Model(SampleMixin, Model):
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
-            psf = self.psf.image.value
-            psf_upscale = torch.round(self.target.pixel_length / psf.pixel_length).int()
-            psf_pad = np.max(psf.shape) // 2
+            psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int()
+            psf_pad = np.max(self.psf.shape) // 2
 
-            working_image = Model_Image(window=window, upsample=psf_upscale, pad=psf_pad)
+            working_image = ModelImage(window=window, upsample=psf_upscale, pad=psf_pad)
 
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
-                pixel_center = working_image.plane_to_pixel(center)
+                pixel_center = working_image.plane_to_pixel(*center)
                 pixel_shift = pixel_center - torch.round(pixel_center)
-                center_shift = center - working_image.pixel_to_plane(torch.round(pixel_center))
+                center_shift = center - working_image.pixel_to_plane(*torch.round(pixel_center))
                 working_image.crtan = working_image.crtan.value + center_shift
             else:
                 pixel_shift = torch.zeros_like(center)
@@ -247,20 +207,15 @@ class Component_Model(SampleMixin, Model):
 
             sample = self.sample_image(working_image)
 
-            if self.integrate_mode == "threshold":
-                sample = self.sample_integrate(sample, working_image)
-
             shift_kernel = self.shift_kernel(pixel_shift)
-            working_image.data = func.convolve_and_shift(sample, shift_kernel, psf)
+            working_image.data = func.convolve_and_shift(sample, shift_kernel, self.psf.data.value)
             working_image.crtan = working_image.crtan.value - center_shift
 
             working_image = working_image.crop(psf_pad).reduce(psf_upscale)
 
         else:
-            working_image = Model_Image(window=window)
+            working_image = ModelImage(window=window)
             sample = self.sample_image(working_image)
-            if self.integrate_mode == "threshold":
-                sample = self.sample_integrate(sample, working_image)
             working_image.data = sample
 
         # Units from flux/arcsec^2 to flux
@@ -270,16 +225,3 @@ class Component_Model(SampleMixin, Model):
             working_image.data = working_image.data * (~self.mask)
 
         return working_image
-
-    def get_state(self):
-        """Get the state of the model, including parameters and PSF."""
-        state = super().get_state()
-        if self._psf is not None:
-            state["psf"] = self.psf.get_state()
-        return state
-
-    def set_state(self, state):
-        """Set the state of the model, including parameters and PSF."""
-        super().set_state(state)
-        if "psf" in state:
-            self.psf = PSF_Image(state=state["psf"])

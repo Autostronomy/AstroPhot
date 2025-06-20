@@ -2,15 +2,15 @@ from typing import List
 
 import torch
 
-from .image_object import Image, Image_List
+from .image_object import Image, ImageList
 from .. import AP_config
 from ..errors import SpecificationConflict, InvalidImage
 
-__all__ = ["Jacobian_Image", "Jacobian_Image_List"]
+__all__ = ["JacobianImage", "JacobianImageList"]
 
 
 ######################################################################
-class Jacobian_Image(Image):
+class JacobianImage(Image):
     """Jacobian of a model evaluated in an image.
 
     Image object which represents the evaluation of a jacobian on an
@@ -39,8 +39,8 @@ class Jacobian_Image(Image):
     def copy(self, **kwargs):
         return super().copy(parameters=self.parameters, **kwargs)
 
-    def __iadd__(self, other: "Jacobian_Image"):
-        if not isinstance(other, Jacobian_Image):
+    def __iadd__(self, other: "JacobianImage"):
+        if not isinstance(other, JacobianImage):
             raise InvalidImage("Jacobian images can only add with each other, not: type(other)")
 
         # exclude null jacobian images
@@ -49,8 +49,8 @@ class Jacobian_Image(Image):
         if self.data.value is None:
             return other
 
-        self_indices = self.get_indices(other)
-        other_indices = other.get_indices(self)
+        self_indices = self.get_indices(other.window)
+        other_indices = other.get_indices(self.window)
         for i, other_identity in enumerate(other.parameters):
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)
@@ -73,7 +73,7 @@ class Jacobian_Image(Image):
 
 
 ######################################################################
-class Jacobian_Image_List(Image_List, Jacobian_Image):
+class JacobianImageList(ImageList, JacobianImage):
     """For joint modelling, represents Jacobians evaluated on a list of
     images.
 

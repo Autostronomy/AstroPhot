@@ -1,9 +1,11 @@
 from .base import Model
-from .model_object import Component_Model
-from .galaxy_model_object import Galaxy_Model
-from .sersic_model import Sersic_Galaxy
-from .group_model_object import Group_Model
-from .exponential_model import *
+from .model_object import ComponentModel
+from .galaxy_model_object import GalaxyModel
+from .sersic_model import SersicGalaxy, SersicPSF
+from .group_model_object import GroupModel
+from .exponential_model import ExponentialGalaxy
+from .point_source import PointSource
+from .psf_model_object import PSFModel
 
 # from .ray_model import *
 # from .sky_model_object import *
@@ -12,7 +14,6 @@ from .exponential_model import *
 # from .gaussian_model import *
 # from .multi_gaussian_expansion_model import *
 # from .spline_model import *
-# from .psf_model_object import *
 # from .pixelated_psf_model import *
 # from .eigen_psf import *
 # from .superellipse_model import *
@@ -24,7 +25,16 @@ from .exponential_model import *
 # from .nuker_model import *
 # from .zernike_model import *
 # from .airy_psf import *
-# from .point_source import *
 # from .group_psf_model import *
 
-__all__ = ("Model", "Component_Model", "Galaxy_Model", "Sersic_Galaxy", "Group_Model")
+__all__ = (
+    "Model",
+    "ComponentModel",
+    "GalaxyModel",
+    "SersicGalaxy",
+    "SersicPSF",
+    "GroupModel",
+    "ExponentialGalaxy",
+    "PointSource",
+    "PSFModel",
+)

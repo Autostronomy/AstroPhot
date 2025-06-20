@@ -6,22 +6,22 @@ from caskade import forward
 from .base import Model
 from ..image import (
     Image,
-    Target_Image,
-    Target_Image_List,
-    Model_Image,
-    Model_Image_List,
-    Image_List,
+    TargetImage,
+    TargetImageList,
+    ModelImage,
+    ModelImageList,
+    ImageList,
     Window,
-    Window_List,
-    Jacobian_Image,
+    WindowList,
+    JacobianImage,
 )
 from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget
 
-__all__ = ["Group_Model"]
+__all__ = ["GroupModel"]
 
 
-class Group_Model(Model):
+class GroupModel(Model):
     """Model object which represents a list of other models. For each
     general AstroPhot model method, this calls all the appropriate
     models from its list and combines their output into a single
@@ -56,17 +56,17 @@ class Group_Model(Model):
         sub models in this group model object.
 
         """
-        if isinstance(self.target, Image_List):  # Window_List if target is a Target_Image_List
+        if isinstance(self.target, ImageList):  # Window_List if target is a Target_Image_List
             new_window = [None] * len(self.target.images)
             for model in self.models.values():
-                if isinstance(model.target, Image_List):
+                if isinstance(model.target, ImageList):
                     for target, window in zip(model.target, model.window):
                         index = self.target.index(target)
                         if new_window[index] is None:
                             new_window[index] = window.copy()
                         else:
                             new_window[index] |= window
-                elif isinstance(model.target, Target_Image):
+                elif isinstance(model.target, TargetImage):
                     index = self.target.index(model.target)
                     if new_window[index] is None:
                         new_window[index] = model.window.copy()
@@ -76,7 +76,7 @@ class Group_Model(Model):
                     raise NotImplementedError(
                         f"Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image"
                     )
-            new_window = Window_List(new_window)
+            new_window = WindowList(new_window)
         else:
             new_window = None
             for model in self.models.values():
@@ -109,12 +109,12 @@ class Group_Model(Model):
 
         """
         subtarget = self.target[self.window]
-        if isinstance(self.target, Image_List):
+        if isinstance(self.target, ImageList):
             mask = tuple(torch.ones_like(submask) for submask in subtarget.mask)
             for model in self.models.values():
                 model_subtarget = model.target[model.window]
                 model_fit_mask = model.fit_mask()
-                if isinstance(model.target, Image_List):
+                if isinstance(model.target, ImageList):
                     for target, submask in zip(model_subtarget, model_fit_mask):
                         index = subtarget.index(target)
                         group_indices = subtarget.images[index].get_indices(target)
@@ -138,7 +138,7 @@ class Group_Model(Model):
     def sample(
         self,
         window: Optional[Window] = None,
-    ) -> Union[Model_Image, Model_Image_List]:
+    ) -> Union[ModelImage, ModelImageList]:
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
         model is called individually and the results are added
@@ -156,17 +156,17 @@ class Group_Model(Model):
         for model in self.models.values():
             if window is None:
                 use_window = model.window
-            elif isinstance(image, Image_List) and isinstance(model.target, Image_List):
+            elif isinstance(image, ImageList) and isinstance(model.target, ImageList):
                 indices = image.match_indices(model.target)
                 if len(indices) == 0:
                     continue
-                use_window = Window_List(window_list=list(image.images[i].window for i in indices))
-            elif isinstance(image, Image_List) and isinstance(model.target, Image):
+                use_window = WindowList(window_list=list(image.images[i].window for i in indices))
+            elif isinstance(image, ImageList) and isinstance(model.target, Image):
                 try:
                     image.index(model.target)
                 except ValueError:
                     continue
-            elif isinstance(image, Image) and isinstance(model.target, Image_List):
+            elif isinstance(image, Image) and isinstance(model.target, ImageList):
                 try:
                     model.target.index(image)
                 except ValueError:
@@ -186,9 +186,9 @@ class Group_Model(Model):
     @torch.no_grad()
     def jacobian(
         self,
-        pass_jacobian: Optional[Jacobian_Image] = None,
+        pass_jacobian: Optional[JacobianImage] = None,
         window: Optional[Window] = None,
-    ) -> Jacobian_Image:
+    ) -> JacobianImage:
         """Compute the jacobian for this model. Done by first constructing a
         full jacobian (Npixels * Nparameters) of zeros then call the
         jacobian method of each sub model and add it in to the total.
@@ -219,14 +219,14 @@ class Group_Model(Model):
         return (mod for mod in self.models.values())
 
     @property
-    def target(self) -> Optional[Union[Target_Image, Target_Image_List]]:
+    def target(self) -> Optional[Union[TargetImage, TargetImageList]]:
         try:
             return self._target
         except AttributeError:
             return None
 
     @target.setter
-    def target(self, tar: Optional[Union[Target_Image, Target_Image_List]]):
-        if not (tar is None or isinstance(tar, (Target_Image, Target_Image_List))):
+    def target(self, tar: Optional[Union[TargetImage, TargetImageList]]):
+        if not (tar is None or isinstance(tar, (TargetImage, TargetImageList))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
         self._target = tar

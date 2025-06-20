@@ -4,14 +4,14 @@ import torch
 import numpy as np
 
 from .image_object import Image
-from .model_image import Model_Image
-from .jacobian_image import Jacobian_Image
+from .model_image import ModelImage
+from .jacobian_image import JacobianImage
 from .. import AP_config
 
-__all__ = ["PSF_Image"]
+__all__ = ["PSFImage"]
 
 
-class PSF_Image(Image):
+class PSFImage(Image):
     """Image object which represents a model of PSF (Point Spread Function).
 
     PSF_Image inherits from the base Image class and represents the model of a point spread function.
@@ -36,7 +36,7 @@ class PSF_Image(Image):
     def __init__(self, *args, **kwargs):
         kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
         super().__init__(*args, **kwargs)
-        self.crpix = np.flip(np.array(self.data.shape, dtype=float) - 1.0) / 2
+        self.crpix = (np.array(self.data.shape, dtype=float) - 1.0) / 2
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
@@ -55,20 +55,11 @@ class PSF_Image(Image):
             torch.Tensor: The border size of the PSF image in integer format.
 
         """
-        return torch.ceil(
-            (
-                1
-                + torch.flip(
-                    torch.tensor(
-                        self.data.shape,
-                        dtype=AP_config.ap_dtype,
-                        device=AP_config.ap_device,
-                    ),
-                    (0,),
-                )
-            )
-            / 2
-        ).int()
+        return torch.tensor(
+            self.data.shape,
+            dtype=torch.int32,
+            device=AP_config.ap_device,
+        )
 
     def jacobian_image(
         self,
@@ -88,21 +79,29 @@ class PSF_Image(Image):
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
-        return Jacobian_Image(
-            parameters=parameters,
-            target_identity=self.identity,
-            data=data,
-            header=self.header,
+        kwargs = {
+            "pixelscale": self.pixelscale,
+            "crpix": self.crpix.value,
+            "crval": self.crval.value,
+            "crtan": self.crtan.value,
+            "zeropoint": self.zeropoint,
+            "identity": self.identity,
             **kwargs,
-        )
+        }
+        return JacobianImage(parameters=parameters, data=data, **kwargs)
 
-    def model_image(self, data: Optional[torch.Tensor] = None, **kwargs):
+    def model_image(self, **kwargs):
         """
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
-        return Model_Image(
-            data=torch.zeros_like(self.data.value) if data is None else data,
-            header=self.header,
-            target_identity=self.identity,
+        kwargs = {
+            "data": torch.zeros_like(self.data.value),
+            "pixelscale": self.pixelscale,
+            "crpix": self.crpix.value,
+            "crval": self.crval.value,
+            "crtan": self.crtan.value,
+            "zeropoint": self.zeropoint,
+            "identity": self.identity,
             **kwargs,
-        )
+        }
+        return ModelImage(**kwargs)

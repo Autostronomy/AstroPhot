@@ -1,21 +1,22 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 import torch
 from astropy.io import fits
 
-from .image_object import Image, Image_List
-from .jacobian_image import Jacobian_Image, Jacobian_Image_List
-from .model_image import Model_Image, Model_Image_List
-from .psf_image import PSF_Image
+from .image_object import Image, ImageList
+from .window import Window
+from .jacobian_image import JacobianImage, JacobianImageList
+from .model_image import ModelImage, ModelImageList
+from .psf_image import PSFImage
 from .. import AP_config
 from ..utils.initialize import auto_variance
 from ..errors import SpecificationConflict, InvalidImage
 
-__all__ = ["Target_Image", "Target_Image_List"]
+__all__ = ["TargetImage", "TargetImageList"]
 
 
-class Target_Image(Image):
+class TargetImage(Image):
     """Image object which represents the data to be fit by a model. It can
     include a variance image, mask, and PSF as anciliary data which
     describes the target image.
@@ -92,7 +93,7 @@ class Target_Image(Image):
         elif not self.has_variance:
             self.variance = variance
         if not self.has_psf:
-            self.set_psf(psf)
+            self.psf = psf
 
         # Set nan pixels to be masked automatically
         if torch.any(torch.isnan(self.data.value)).item():
@@ -260,11 +261,28 @@ class Target_Image(Image):
     def has_psf(self):
         """Returns True when the target image object has a PSF model."""
         try:
-            return self.psf is not None
+            return self._psf is not None
         except AttributeError:
             return False
 
-    def set_psf(self, psf):
+    @property
+    def psf(self):
+        """The PSF for the `Target_Image`. This is used to convolve the
+        model with the PSF before evaluating the likelihood. The PSF
+        should be a `PSF_Image` object or an `AstroPhot` PSF_Model.
+
+        If no PSF is provided, then the image will not be convolved
+        with a PSF and the model will be evaluated directly on the
+        image pixels.
+
+        """
+        try:
+            return self._psf
+        except AttributeError:
+            return None
+
+    @psf.setter
+    def psf(self, psf):
         """Provide a psf for the `Target_Image`. This is stored and passed to
         models which need to be convolved.
 
@@ -274,25 +292,25 @@ class Target_Image(Image):
         the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """
-        if hasattr(self, "psf"):
-            del self.psf  # remove old psf if it exists
+        if hasattr(self, "_psf"):
+            del self._psf  # remove old psf if it exists
         from ..models import Model
 
         if psf is None:
-            self.psf = None
-        elif isinstance(psf, PSF_Image):
-            self.psf = psf
+            self._psf = None
+        elif isinstance(psf, PSFImage):
+            self._psf = psf
         elif isinstance(psf, Model):
-            self.psf = PSF_Image(
-                data=lambda p: p.psf_model(),
+            self._psf = PSFImage(
+                data=lambda p: p.psf_model().data.value,
                 pixelscale=psf.target.pixelscale,
             )
-            self.psf.link("psf_model", psf)
+            self._psf.link("psf_model", psf)
         else:
             AP_config.ap_logger.warning(
-                "PSF provided is not a PSF_Image or AstroPhot_Model, assuming its pixelscale is the same as this Target_Image."
+                "PSF provided is not a PSF_Image or AstroPhot PSF_Model, assuming its pixelscale is the same as this Target_Image."
             )
-            self.psf = PSF_Image(
+            self._psf = PSFImage(
                 data=psf,
                 pixelscale=self.pixelscale,
             )
@@ -331,9 +349,9 @@ class Target_Image(Image):
         kwargs = {"mask": self._mask, "psf": self.psf, "weight": self._weight, **kwargs}
         return super().blank_copy(**kwargs)
 
-    def get_window(self, other, **kwargs):
+    def get_window(self, other: Union[Image, Window], **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""
-        indices = self.get_indices(other)
+        indices = self.get_indices(other if isinstance(other, Window) else other.window)
         return super().get_window(
             other,
             weight=self._weight[indices] if self.has_weight else None,
@@ -350,7 +368,7 @@ class Target_Image(Image):
         if self.has_mask:
             images.append(fits.ImageHDU(self.mask.cpu().numpy(), name="MASK"))
         if self.has_psf:
-            if isinstance(self.psf, PSF_Image):
+            if isinstance(self.psf, PSFImage):
                 images.append(
                     fits.ImageHDU(
                         self.psf.data.npvalue, name="PSF", header=fits.Header(self.psf.fits_info())
@@ -371,14 +389,12 @@ class Target_Image(Image):
         if "MASK" in hdulist:
             self.mask = np.array(hdulist["MASK"].data, dtype=bool)
         if "PSF" in hdulist:
-            self.set_psf(
-                PSF_Image(
-                    data=np.array(hdulist["PSF"].data, dtype=np.float64),
-                    pixelscale=(
-                        (hdulist["PSF"].header["CD1_1"], hdulist["PSF"].header["CD1_2"]),
-                        (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
-                    ),
-                )
+            self.psf = PSFImage(
+                data=np.array(hdulist["PSF"].data, dtype=np.float64),
+                pixelscale=(
+                    (hdulist["PSF"].header["CD1_1"], hdulist["PSF"].header["CD1_2"]),
+                    (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
+                ),
             )
 
     def jacobian_image(
@@ -408,7 +424,7 @@ class Target_Image(Image):
             "identity": self.identity,
             **kwargs,
         }
-        return Jacobian_Image(parameters=parameters, data=data, **kwargs)
+        return JacobianImage(parameters=parameters, data=data, **kwargs)
 
     def model_image(self, **kwargs):
         """
@@ -424,7 +440,7 @@ class Target_Image(Image):
             "identity": self.identity,
             **kwargs,
         }
-        return Model_Image(**kwargs)
+        return ModelImage(**kwargs)
 
     def reduce(self, scale, **kwargs):
         """Returns a new `Target_Image` object with a reduced resolution
@@ -461,10 +477,10 @@ class Target_Image(Image):
         )
 
 
-class Target_Image_List(Image_List):
+class TargetImageList(ImageList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not all(isinstance(image, Target_Image) for image in self.images):
+        if not all(isinstance(image, TargetImage) for image in self.images):
             raise InvalidImage(
                 f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.images)}"
             )
@@ -498,16 +514,16 @@ class Target_Image_List(Image_List):
     def jacobian_image(self, parameters: List[str], data: Optional[List[torch.Tensor]] = None):
         if data is None:
             data = [None] * len(self.images)
-        return Jacobian_Image_List(
+        return JacobianImageList(
             list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
         )
 
     def model_image(self):
-        return Model_Image_List(list(image.model_image() for image in self.images))
+        return ModelImageList(list(image.model_image() for image in self.images))
 
     def match_indices(self, other):
         indices = []
-        if isinstance(other, Target_Image_List):
+        if isinstance(other, TargetImageList):
             for other_image in other.images:
                 for isi, self_image in enumerate(self.images):
                     if other_image.identity == self_image.identity:
@@ -515,7 +531,7 @@ class Target_Image_List(Image_List):
                         break
                 else:
                     indices.append(None)
-        elif isinstance(other, Target_Image):
+        elif isinstance(other, TargetImage):
             for isi, self_image in enumerate(self.images):
                 if other.identity == self_image.identity:
                     indices = isi
@@ -525,7 +541,7 @@ class Target_Image_List(Image_List):
         return indices
 
     def __isub__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             for other_image in other.images:
                 for self_image in self.images:
                     if other_image.identity == self_image.identity:
@@ -542,7 +558,7 @@ class Target_Image_List(Image_List):
         return self
 
     def __iadd__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             for other_image in other.images:
                 for self_image in self.images:
                     if other_image.identity == self_image.identity:
@@ -577,7 +593,7 @@ class Target_Image_List(Image_List):
     @psf.setter
     def psf(self, psf):
         for image, P in zip(self.images, psf):
-            image.set_psf(P)
+            image.psf = P
 
     @property
     def has_psf(self):

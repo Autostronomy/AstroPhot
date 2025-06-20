@@ -5,7 +5,7 @@ import torch
 
 from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
-from ..image import Window, Image_List, Model_Image, Model_Image_List
+from ..image import Window, ImageList, ModelImage, ModelImageList
 from ..errors import UnrecognizedModel, InvalidWindow
 from . import func
 
@@ -147,7 +147,7 @@ class Model(Module):
         for subcls in cls.mro():
             if subcls is object:
                 continue
-            options.update(getattr(subcls, "_options", []))
+            options.update(subcls.__dict__.get("_options", []))
         return options
 
     @classproperty
@@ -189,7 +189,7 @@ class Model(Module):
         weight = data.weight
         mask = data.mask
         data = data.data
-        if isinstance(data, Image_List):
+        if isinstance(data, ImageList):
             nll = sum(
                 torch.sum(((mo - da) ** 2 * wgt)[~ma]) / 2.0
                 for mo, da, wgt, ma in zip(model, data, weight, mask)
@@ -214,7 +214,7 @@ class Model(Module):
         mask = data.mask
         data = data.data
 
-        if isinstance(data, Image_List):
+        if isinstance(data, ImageList):
             nll = sum(
                 torch.sum((mo - da * (mo + 1e-10).log() + torch.lgamma(da + 1))[~ma])
                 for mo, da, ma in zip(model, data, mask)
@@ -254,22 +254,13 @@ class Model(Module):
     @window.setter
     def window(self, window):
         if window is None:
-            # If no window given, set to none
             self._window = None
         elif isinstance(window, Window):
-            # If window object given, use that
             self._window = window
         elif len(window) == 2:
-            # If window given in pixels, use relative to target
-            self._window = Window(
-                (window[1], window[0]), crpix=self.target.crpix.value, image=self.target
-            )
+            self._window = Window((window[1], window[0]), image=self.target)
         elif len(window) == 4:
-            self._window = Window(
-                (window[2], window[3], window[0], window[1]),
-                crpix=self.target.crpix.value,
-                image=self.target,
-            )
+            self._window = Window((window[2], window[3], window[0], window[1]), image=self.target)
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
@@ -289,6 +280,6 @@ class Model(Module):
         self,
         window: Optional[Window] = None,
         **kwargs,
-    ) -> Union[Model_Image, Model_Image_List]:
+    ) -> Union[ModelImage, ModelImageList]:
 
         return self.sample(window=window, **kwargs)

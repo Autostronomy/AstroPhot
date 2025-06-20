@@ -3,16 +3,19 @@ from typing import Optional
 import torch
 import numpy as np
 
-from .model_object import Component_Model
+from .model_object import ComponentModel
 from .base import Model
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from ..utils.decorators import ignore_numpy_warnings
 from ..image import PSF_Image, Window, Model_Image, Image
 from ..errors import SpecificationConflict
+from ..param import forward
+from . import func
+from .. import AP_config
 
-__all__ = ("Point_Source",)
+__all__ = ("PointSource",)
 
 
-class Point_Source(Component_Model):
+class PointSource(ComponentModel):
     """Describes a point source in the image, this is a delta function at
     some position in the sky. This is typically used to describe
     stars, supernovae, very small galaxies, quasars, asteroids or any
@@ -21,11 +24,10 @@ class Point_Source(Component_Model):
 
     """
 
-    model_type = f"point {Component_Model.model_type}"
-    parameter_specs = {
-        "flux": {"units": "log10(flux)"},
+    _model_type = "point"
+    _parameter_specs = {
+        "flux": {"units": "flux", "shape": ()},
     }
-    _parameter_order = Component_Model._parameter_order + ("flux",)
     usable = True
 
     def __init__(self, *args, **kwargs):
@@ -33,34 +35,21 @@ class Point_Source(Component_Model):
         super().__init__(*args, **kwargs)
 
         if self.psf is None:
-            raise ValueError("Point_Source needs psf information")
+            raise SpecificationConflict("Point_Source needs psf information")
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self):
+        super().initialize()
 
-        if parameters["flux"].value is not None:
+        if self.flux.value is not None:
             return
-        target_area = target[self.window]
-        target_dat = target_area.data.detach().cpu().numpy()
-        with Param_Unlock(parameters["flux"]), Param_SoftLimits(parameters["flux"]):
-            icenter = target_area.plane_to_pixel(parameters["center"].value)
-            edge = np.concatenate(
-                (
-                    target_dat[:, 0],
-                    target_dat[:, -1],
-                    target_dat[0, :],
-                    target_dat[-1, :],
-                )
-            )
-            edge_average = np.median(edge)
-            parameters["flux"].value = np.log10(np.abs(np.sum(target_dat - edge_average)))
-            parameters["flux"].uncertainty = torch.std(target_area.data) / (
-                np.log(10) * 10 ** parameters["flux"].value
-            )
+        target_area = self.target[self.window]
+        dat = target_area.data.npvalue
+        edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
+        edge_average = np.median(edge)
+        self.flux.dynamic_value = np.abs(np.sum(dat - edge_average))
+        self.flux.uncertainty = torch.std(dat) / np.sqrt(np.prod(dat.shape))
 
     # Psf convolution should be on by default since this is a delta function
     @property
@@ -71,12 +60,8 @@ class Point_Source(Component_Model):
     def psf_mode(self, value):
         pass
 
-    def sample(
-        self,
-        image: Optional[Image] = None,
-        window: Optional[Window] = None,
-        parameters: Optional[Parameter_Node] = None,
-    ):
+    @forward
+    def sample(self, window: Optional[Window] = None, center=None, flux=None):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
         convolution. This should not be overloaded except in special
@@ -102,87 +87,48 @@ class Point_Source(Component_Model):
           Image: The image with the computed model values.
 
         """
-        # Image on which to evaluate model
-        if image is None:
-            image = self.make_model_image(window=window)
-
         # Window within which to evaluate model
         if window is None:
-            working_window = image.window.copy()
-        else:
-            working_window = window.copy()
+            window = self.window
 
-        # Parameters with which to evaluate the model
-        if parameters is None:
-            parameters = self.parameters
+        # Adjust for supersampled PSF
+        psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int()
 
-        # Sample the PSF pixels
-        if isinstance(self.psf, AstroPhot_Model):
-            # Adjust for supersampled PSF
-            psf_upscale = torch.round(
-                self.psf.target.pixel_length / working_window.pixel_length
-            ).int()
-            working_window = working_window.rescale_pixel(psf_upscale)
-            working_window.shift(-parameters["center"].value)
+        # Make the image object to which the samples will be tracked
+        working_image = Model_Image(window=window, upsample=psf_upscale)
 
-            # Make the image object to which the samples will be tracked
-            working_image = Model_Image(window=working_window)
+        # Compute the center offset
+        pixel_center = working_image.plane_to_pixel(*center)
+        pixel_shift = pixel_center - torch.round(pixel_center)
+        shift_kernel = self.shift_kernel(pixel_shift)
 
-            # Fill the image using the PSF model
-            psf = self.psf(
-                image=working_image,
-                parameters=parameters[self.psf.name],
+        psf = (
+            torch.nn.functional.conv2d(
+                self.psf.data.value.view(1, 1, *self.psf.data.shape),
+                shift_kernel.view(1, 1, *shift_kernel.shape),
+                padding="valid",  # fixme add note about valid padding
             )
+            .squeeze(0)
+            .squeeze(0)
+        )
+        psf = flux * psf
 
-            # Scale for point source flux
-            working_image.data *= 10 ** parameters["flux"].value
-
-            # Return to original coordinates
-            working_image.header.shift(parameters["center"].value)
-
-        elif isinstance(self.psf, PSF_Image):
-            psf = self.psf.copy()
-
-            # Adjust for supersampled PSF
-            psf_upscale = torch.round(psf.pixel_length / working_window.pixel_length).int()
-            working_window = working_window.rescale_pixel(psf_upscale)
-
-            # Make the image object to which the samples will be tracked
-            working_image = Model_Image(window=working_window)
-
-            # Compute the center offset
-            pixel_center = working_image.plane_to_pixel(parameters["center"].value)
-            center_shift = pixel_center - torch.round(pixel_center)
-            # working_image.header.pixel_shift(center_shift)
-            psf.window.shift(working_image.pixel_to_plane(torch.round(pixel_center)))
-            psf.data = self._shift_psf(
-                psf=psf.data,
-                shift=center_shift,
-                shift_method=self.psf_subpixel_shift,
-                keep_pad=False,
-            )
-            psf.data /= torch.sum(psf.data)
-
-            # Scale for psf flux
-            psf.data *= 10 ** parameters["flux"].value
-
-            # Fill pixels with the PSF image
-            working_image += psf
-
-            # Shift image back to align with original pixel grid
-            # working_image.header.pixel_shift(-center_shift)
-
-        else:
-            raise SpecificationConflict(
-                f"Point_Source must have a psf that is either an AstroPhot_Model or a PSF_Image. not {type(self.psf)}"
-            )
+        # Fill pixels with the PSF image
+        pixel_center = torch.round(pixel_center).int()
+        psf_window = Window(
+            (
+                pixel_center[0] - psf.shape[0] // 2,
+                pixel_center[1] - psf.shape[1] // 2,
+                pixel_center[0] + psf.shape[0] // 2 + 1,
+                pixel_center[1] + psf.shape[1] // 2 + 1,
+            ),
+            image=working_image,
+        )
+        working_image[psf_window] += psf[psf_window.get_indices(working_image.window)]
+        working_image = working_image.reduce(psf_upscale)
 
         # Return to image pixelscale
-        working_image = working_image.reduce(psf_upscale)
         if self.mask is not None:
-            working_image.data = working_image.data * torch.logical_not(self.mask)
+            working_image.data = working_image.data.value * (~self.mask)
 
-        # Add the sampled/integrated/convolved pixels to the requested image
-        image += working_image
-
-        return image
+        return working_image

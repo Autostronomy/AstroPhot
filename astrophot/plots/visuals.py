@@ -1,5 +1,8 @@
 from matplotlib.pyplot import get_cmap
 
+# from matplotlib.colors import ListedColormap
+# import numpy as np
+
 __all__ = ["main_pallet", "cmap_grad", "cmap_div"]
 
 main_pallet = {
@@ -12,4 +15,7 @@ main_pallet = {
 }
 
 cmap_grad = get_cmap("inferno")
-cmap_div = get_cmap("RdBu_r")
+cmap_div = get_cmap("twilight")  # RdBu_r
+# print(__file__)
+# colors = np.load(f"{__file__[:-10]}/managua_cmap.npy")
+# cmap_div = ListedColormap(list(reversed(colors)), name="mangua")
