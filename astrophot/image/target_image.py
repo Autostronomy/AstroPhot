@@ -1,6 +1,8 @@
 from typing import List, Optional
 
+import numpy as np
 import torch
+from astropy.io import fits
 
 from .image_object import Image, Image_List
 from .jacobian_image import Jacobian_Image, Jacobian_Image_List
@@ -80,21 +82,21 @@ class Target_Image(Image):
 
     image_count = 0
 
-    def __init__(self, *args, mask=None, variance=None, psf=None, **kwargs):
+    def __init__(self, *args, mask=None, variance=None, psf=None, weight=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if not self.has_mask:
-            self.set_mask(mask)
-        if not self.has_weight and "weight" in kwargs:
-            self.set_weight(kwargs.get("weight", None))
+            self.mask = mask
+        if not self.has_weight and variance is None:
+            self.weight = weight
         elif not self.has_variance:
-            self.set_variance(variance)
+            self.variance = variance
         if not self.has_psf:
             self.set_psf(psf)
 
         # Set nan pixels to be masked automatically
         if torch.any(torch.isnan(self.data.value)).item():
-            self.set_mask(torch.logical_or(self.mask, torch.isnan(self.data.value)))
+            self.mask = self.mask | torch.isnan(self.data.value)
 
     @property
     def standard_deviation(self):
@@ -132,7 +134,13 @@ class Target_Image(Image):
 
     @variance.setter
     def variance(self, variance):
-        self.set_variance(variance)
+        if variance is None:
+            self._weight = None
+            return
+        if isinstance(variance, str) and variance == "auto":
+            self.weight = "auto"
+            return
+        self.weight = 1 / variance
 
     @property
     def has_variance(self):
@@ -184,7 +192,16 @@ class Target_Image(Image):
 
     @weight.setter
     def weight(self, weight):
-        self.set_weight(weight)
+        if weight is None:
+            self._weight = None
+            return
+        if isinstance(weight, str) and weight == "auto":
+            weight = 1 / auto_variance(self.data.value, self.mask)
+        if weight.shape != self.data.shape:
+            raise SpecificationConflict(
+                f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
+            )
+        self._weight = torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
 
     @property
     def has_weight(self):
@@ -220,7 +237,14 @@ class Target_Image(Image):
 
     @mask.setter
     def mask(self, mask):
-        self.set_mask(mask)
+        if mask is None:
+            self._mask = None
+            return
+        if mask.shape != self.data.shape:
+            raise SpecificationConflict(
+                f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
+            )
+        self._mask = torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device)
 
     @property
     def has_mask(self):
@@ -231,34 +255,6 @@ class Target_Image(Image):
             return self._mask is not None
         except AttributeError:
             return False
-
-    def set_variance(self, variance):
-        """
-        Provide a variance tensor for the image. Variance is equal to :math:`\\sigma^2`. This should have the same shape as the data.
-        """
-        if variance is None:
-            self._weight = None
-            return
-        if isinstance(variance, str) and variance == "auto":
-            self.set_weight("auto")
-            return
-        self.set_weight(1 / variance)
-
-    def set_weight(self, weight):
-        """Provide a weight tensor for the image. Weight is equal to :math:`\\frac{1}{\\sigma^2}`. This should have the same
-        shape as the data.
-
-        """
-        if weight is None:
-            self._weight = None
-            return
-        if isinstance(weight, str) and weight == "auto":
-            weight = 1 / auto_variance(self.data.value, self.mask)
-        if weight.shape != self.data.shape:
-            raise SpecificationConflict(
-                f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
-            )
-        self._weight = torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
 
     @property
     def has_psf(self):
@@ -300,19 +296,6 @@ class Target_Image(Image):
                 data=psf,
                 pixelscale=self.pixelscale,
             )
-
-    def set_mask(self, mask):
-        """
-        Set the boolean mask which will indicate which pixels to ignore. A mask value of True means the pixel will be ignored.
-        """
-        if mask is None:
-            self._mask = None
-            return
-        if mask.shape != self.data.shape:
-            raise SpecificationConflict(
-                f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
-            )
-        self._mask = torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device)
 
     def to(self, dtype=None, device=None):
         """Converts the stored `Target_Image` data, variance, psf, etc to a
@@ -360,6 +343,44 @@ class Target_Image(Image):
             **kwargs,
         )
 
+    def fits_images(self):
+        images = super().fits_images()
+        if self.has_variance:
+            images.append(fits.ImageHDU(self.weight.cpu().numpy(), name="WEIGHT"))
+        if self.has_mask:
+            images.append(fits.ImageHDU(self.mask.cpu().numpy(), name="MASK"))
+        if self.has_psf:
+            if isinstance(self.psf, PSF_Image):
+                images.append(
+                    fits.ImageHDU(
+                        self.psf.data.npvalue, name="PSF", header=fits.Header(self.psf.fits_info())
+                    )
+                )
+            else:
+                AP_config.ap_logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
+        return images
+
+    def load(self, filename: str):
+        """Load the image from a FITS file. This will load the data, WCS, and
+        any ancillary data such as variance, mask, and PSF.
+
+        """
+        hdulist = super().load(filename)
+        if "WEIGHT" in hdulist:
+            self.weight = np.array(hdulist["WEIGHT"].data, dtype=np.float64)
+        if "MASK" in hdulist:
+            self.mask = np.array(hdulist["MASK"].data, dtype=bool)
+        if "PSF" in hdulist:
+            self.set_psf(
+                PSF_Image(
+                    data=np.array(hdulist["PSF"].data, dtype=np.float64),
+                    pixelscale=(
+                        (hdulist["PSF"].header["CD1_1"], hdulist["PSF"].header["CD1_2"]),
+                        (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
+                    ),
+                )
+            )
+
     def jacobian_image(
         self,
         parameters: Optional[List[str]] = None,
@@ -378,26 +399,22 @@ class Target_Image(Image):
                 dtype=AP_config.ap_dtype,
                 device=AP_config.ap_device,
             )
-        copy_kwargs = {
+        kwargs = {
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix,
+            "crpix": self.crpix.value,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            **kwargs,
         }
-        copy_kwargs.update(kwargs)
-        return Jacobian_Image(
-            parameters=parameters,
-            data=data,
-            **copy_kwargs,
-        )
+        return Jacobian_Image(parameters=parameters, data=data, **kwargs)
 
     def model_image(self, **kwargs):
         """
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
-        copy_kwargs = {
+        kwargs = {
             "data": torch.zeros_like(self.data.value),
             "pixelscale": self.pixelscale,
             "crpix": self.crpix.value,
@@ -405,11 +422,9 @@ class Target_Image(Image):
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            **kwargs,
         }
-        copy_kwargs.update(kwargs)
-        return Model_Image(
-            **copy_kwargs,
-        )
+        return Model_Image(**kwargs)
 
     def reduce(self, scale, **kwargs):
         """Returns a new `Target_Image` object with a reduced resolution
@@ -461,7 +476,7 @@ class Target_Image_List(Image_List):
     @variance.setter
     def variance(self, variance):
         for image, var in zip(self.images, variance):
-            image.set_variance(var)
+            image.variance = var
 
     @property
     def has_variance(self):
@@ -474,7 +489,7 @@ class Target_Image_List(Image_List):
     @weight.setter
     def weight(self, weight):
         for image, wgt in zip(self.images, weight):
-            image.set_weight(wgt)
+            image.weight = wgt
 
     @property
     def has_weight(self):
@@ -549,7 +564,7 @@ class Target_Image_List(Image_List):
     @mask.setter
     def mask(self, mask):
         for image, M in zip(self.images, mask):
-            image.set_mask(M)
+            image.mask = M
 
     @property
     def has_mask(self):
@@ -575,12 +590,3 @@ class Target_Image_List(Image_List):
     @property
     def psf_border_int(self):
         return tuple(image.psf_border_int for image in self.images)
-
-    def set_variance(self, variance, img):
-        self.images[img].set_variance(variance)
-
-    def set_psf(self, psf, img):
-        self.images[img].set_psf(psf)
-
-    def set_mask(self, mask, img):
-        self.images[img].set_mask(mask)

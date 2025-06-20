@@ -60,9 +60,9 @@ class Galaxy_Model(InclinedMixin, Component_Model):
         icenter = target_area.plane_to_pixel(*self.center.value)
         i, j = target_area.pixel_center_meshgrid()
         i, j = (i - icenter[0]).detach().cpu().numpy(), (j - icenter[1]).detach().cpu().numpy()
-        mu20 = np.sum(target_dat * i**2)  # fixme try median?
-        mu02 = np.sum(target_dat * j**2)
-        mu11 = np.sum(target_dat * i * j)
+        mu20 = np.median(target_dat * i**2)  # fixme try median?
+        mu02 = np.median(target_dat * j**2)
+        mu11 = np.median(target_dat * i * j)
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if self.PA.value is None:
             self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi

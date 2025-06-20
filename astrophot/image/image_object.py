@@ -3,12 +3,13 @@ from typing import Optional, Union, Any
 import torch
 import numpy as np
 from astropy.wcs import WCS as AstropyWCS
+from astropy.io import fits
 
 from ..param import Module, Param, forward
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
 from .window import Window
-from ..errors import SpecificationConflict, InvalidWindow, InvalidImage
+from ..errors import SpecificationConflict, InvalidImage
 from . import func
 
 __all__ = ["Image", "Image_List"]
@@ -41,13 +42,13 @@ class Image(Module):
         data: Optional[torch.Tensor] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
+        crpix: Union[torch.Tensor, tuple] = (0, 0),
+        crtan: Union[torch.Tensor, tuple] = (0.0, 0.0),
+        crval: Union[torch.Tensor, tuple] = (0.0, 0.0),
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
         identity: str = None,
-        state: Optional[dict] = None,
-        fits_state: Optional[dict] = None,
         name: Optional[str] = None,
-        **kwargs: Any,
     ) -> None:
         """Initialize an instance of the APImage class.
 
@@ -66,12 +67,11 @@ class Image(Module):
 
         """
         super().__init__(name=name)
-        if state is not None:
-            self.set_state(state)
-            return
-        if fits_state is not None:
-            self.set_fits_state(fits_state)
-            return
+        self.data = Param("data", units="flux")
+        self.crval = Param("crval", units="deg")
+        self.crtan = Param("crtan", units="arcsec")
+        self.crpix = Param("crpix", units="pixel")
+
         if filename is not None:
             self.load(filename)
             return
@@ -91,12 +91,8 @@ class Image(Module):
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
 
-            if "crpix" in kwargs or "crval" in kwargs:
-                AP_config.ap_logger.warning(
-                    "WCS crpix/crval set with supplied WCS, ignoring user supplied crpix/crval!"
-                )
-            kwargs["crval"] = wcs.wcs.crval
-            kwargs["crpix"] = wcs.wcs.crpix
+            crval = wcs.wcs.crval
+            crpix = wcs.wcs.crpix
 
             if pixelscale is not None:
                 AP_config.ap_logger.warning(
@@ -105,10 +101,10 @@ class Image(Module):
             pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
 
         # set the data
-        self.data = Param("data", data, units="flux")
-        self.crval = Param("crval", kwargs.get("crval", self.default_crval), units="deg")
-        self.crtan = Param("crtan", kwargs.get("crtan", self.default_crtan), units="arcsec")
-        self.crpix = Param("crpix", kwargs.get("crpix", self.default_crpix), units="pixel")
+        self.data = data
+        self.crval = crval
+        self.crtan = crtan
+        self.crpix = crpix
 
         self.pixelscale = pixelscale
 
@@ -390,24 +386,71 @@ class Image(Module):
             **kwargs,
         )
 
-    def get_astropywcs(self, **kwargs):
-        wargs = {
-            "NAXIS": 2,
-            "NAXIS1": self.pixel_shape[0].item(),
-            "NAXIS2": self.pixel_shape[1].item(),
+    def fits_info(self):
+        return {
             "CTYPE1": "RA---TAN",
             "CTYPE2": "DEC--TAN",
-            "CRVAL1": self.pixel_to_world(self.reference_imageij)[0].item(),
-            "CRVAL2": self.pixel_to_world(self.reference_imageij)[1].item(),
-            "CRPIX1": self.reference_imageij[0].item(),
-            "CRPIX2": self.reference_imageij[1].item(),
+            "CRVAL1": self.crval.value[0].item(),
+            "CRVAL2": self.crval.value[1].item(),
+            "CRPIX1": self.crpix.value[0].item(),
+            "CRPIX2": self.crpix.value[1].item(),
+            "CRTAN1": self.crtan.value[0].item(),
+            "CRTAN2": self.crtan.value[1].item(),
             "CD1_1": self.pixelscale[0][0].item(),
             "CD1_2": self.pixelscale[0][1].item(),
             "CD2_1": self.pixelscale[1][0].item(),
             "CD2_2": self.pixelscale[1][1].item(),
+            "MAGZP": self.zeropoint.item() if self.zeropoint is not None else -999,
+            "IDNTY": self.identity,
         }
-        wargs.update(kwargs)
-        return AstropyWCS(wargs)
+
+    def fits_images(self):
+        return [
+            fits.PrimaryHDU(self.data.value.cpu().numpy(), header=fits.Header(self.fits_info()))
+        ]
+
+    def get_astropywcs(self, **kwargs):
+        kwargs = {
+            "NAXIS": 2,
+            "NAXIS1": self.shape[0].item(),
+            "NAXIS2": self.shape[1].item(),
+            **self.fits_info(),
+            **kwargs,
+        }
+        return AstropyWCS(kwargs)
+
+    def save(self, filename: str):
+        hdulist = fits.HDUList(self.fits_images())
+        hdulist.writeto(filename, overwrite=True)
+
+    def load(self, filename: str):
+        """Load an image from a FITS file. This will load the primary HDU
+        and set the data, pixelscale, crpix, crval, and crtan attributes
+        accordingly. If the WCS is not tangent plane, it will warn the user.
+
+        """
+        hdulist = fits.open(filename)
+        self.data = torch.as_tensor(
+            np.array(hdulist[0].data, dtype=np.float64),
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        self.pixelscale = (
+            (hdulist[0].header["CD1_1"], hdulist[0].header["CD1_2"]),
+            (hdulist[0].header["CD2_1"], hdulist[0].header["CD2_2"]),
+        )
+        self.crpix = (hdulist[0].header["CRPIX1"], hdulist[0].header["CRPIX2"])
+        self.crval = (hdulist[0].header["CRVAL1"], hdulist[0].header["CRVAL2"])
+        if "CRTAN1" in hdulist[0].header and "CRTAN2" in hdulist[0].header:
+            self.crtan = (hdulist[0].header["CRTAN1"], hdulist[0].header["CRTAN2"])
+        else:
+            self.crtan = (0.0, 0.0)
+        if "MAGZP" in hdulist[0].header and hdulist[0].header["MAGZP"] > -998:
+            self.zeropoint = hdulist[0].header["MAGZP"]
+        else:
+            self.zeropoint = None
+        self.identity = hdulist[0].header.get("IDNTY", str(id(self)))
+        return hdulist
 
     def corners(self):
         pixel_lowleft = torch.tensor(

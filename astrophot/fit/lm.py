@@ -267,7 +267,7 @@ class LM(BaseOptimizer):
 
         for _ in range(self.max_iter):
             if self.verbose > 0:
-                AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]}, L: {self.L}")
+                AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.4g}, L: {self.L:.3g}")
             try:
                 with ValidContext(self.model):
                     res = func.lm_step(
@@ -314,7 +314,7 @@ class LM(BaseOptimizer):
 
         if self.verbose > 0:
             AP_config.ap_logger.info(
-                f"Final Chi^2/DoF: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
+                f"Final Chi^2/DoF: {self.loss_history[-1]:.4g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
             )
 
         with ValidContext(self.model):

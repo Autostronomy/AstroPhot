@@ -83,7 +83,6 @@ class Component_Model(SampleMixin, Model):
     _options = (
         "psf_mode",
         "psf_subpixel_shift",
-        "sampling_tolerance",
         "integrate_mode",
         "integrate_max_depth",
         "integrate_gridding",
@@ -114,7 +113,7 @@ class Component_Model(SampleMixin, Model):
             AP_config.ap_logger.warning(
                 "Setting PSF with pixel matrix, assuming target pixelscale is the same as "
                 "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
-                "or ap.models.AstroPhot_Model object instead."
+                "or ap.models.Model object instead."
             )
 
     @property
@@ -271,3 +270,16 @@ class Component_Model(SampleMixin, Model):
             working_image.data = working_image.data * (~self.mask)
 
         return working_image
+
+    def get_state(self):
+        """Get the state of the model, including parameters and PSF."""
+        state = super().get_state()
+        if self._psf is not None:
+            state["psf"] = self.psf.get_state()
+        return state
+
+    def set_state(self, state):
+        """Set the state of the model, including parameters and PSF."""
+        super().set_state(state)
+        if "psf" in state:
+            self.psf = PSF_Image(state=state["psf"])

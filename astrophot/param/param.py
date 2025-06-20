@@ -11,6 +11,7 @@ class Param(CParam):
     def __init__(self, *args, uncertainty=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.uncertainty = uncertainty
+        self.saveattrs.add("uncertainty")
 
     @property
     def uncertainty(self):

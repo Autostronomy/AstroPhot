@@ -14,18 +14,7 @@ class Window:
         crpix: Tuple[float, float],
         image: "Image",
     ):
-        if len(window) == 4:
-            self.i_low = window[0]
-            self.i_high = window[1]
-            self.j_low = window[2]
-            self.j_high = window[3]
-        elif len(window) == 2:
-            self.i_low, self.j_low = window[0]
-            self.i_high, self.j_high = window[1]
-        else:
-            raise InvalidWindow(
-                "Window must be a tuple of 4 integers or 2 tuples of 2 integers each"
-            )
+        self.extent = window
         self.crpix = np.asarray(crpix)
         self.image = image
 
@@ -36,6 +25,24 @@ class Window:
     @property
     def shape(self):
         return (self.i_high - self.i_low, self.j_high - self.j_low)
+
+    @property
+    def extent(self):
+        return (self.i_low, self.i_high, self.j_low, self.j_high)
+
+    @extent.setter
+    def extent(
+        self, value: Union[Tuple[int, int, int, int], Tuple[Tuple[int, int], Tuple[int, int]]]
+    ):
+        if len(value) == 4:
+            self.i_low, self.i_high, self.j_low, self.j_high = value
+        elif len(value) == 2:
+            self.i_low, self.j_low = value[0]
+            self.i_high, self.j_high = value[1]
+        else:
+            raise ValueError(
+                "Extent must be formatted as (i_low, i_high, j_low, j_high) or ((i_low, j_low), (i_high, j_high))"
+            )
 
     def chunk(self, chunk_size: int):
         # number of pixels on each axis

@@ -121,10 +121,8 @@ class Model(Module):
         for key in parameter_specs:
             setattr(self, key, Param(key, **parameter_specs[key]))
 
-        # If loading from a file, get model configuration then exit __init__
-        if filename is not None:
-            self.load(filename, new_name=name)
-            return
+        self.saveattrs.update(self.options)
+        self.saveattrs.add("window.extent")
 
         kwargs.pop("model_type", None)  # model_type is set by __new__
         if len(kwargs) > 0:
@@ -276,13 +274,15 @@ class Model(Module):
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
     @classmethod
-    def List_Models(cls, usable: Optional[bool] = None) -> set:
+    def List_Models(cls, usable: Optional[bool] = None, types: bool = False) -> set:
         MODELS = func.all_subclasses(cls)
-        if usable is not None:
-            for model in list(MODELS):
-                if model.usable is not usable:
-                    MODELS.remove(model)
-        return MODELS
+        result = set()
+        for model in MODELS:
+            if types:
+                result.add(model.model_type)
+            elif model.usable is usable or usable is None:
+                result.add(model)
+        return result
 
     @forward
     def __call__(

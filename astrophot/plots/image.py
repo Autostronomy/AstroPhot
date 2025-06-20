@@ -71,7 +71,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
             X.T,
             Y.T,
             dat.T,
-            cmap="Greys",
+            cmap="gray_r",
             norm=ImageNormalize(
                 stretch=HistEqStretch(
                     dat[np.logical_and(dat <= (sky + 3 * noise), np.isfinite(dat))]
