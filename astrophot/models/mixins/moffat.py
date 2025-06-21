@@ -22,7 +22,7 @@ class MoffatMixin:
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(self, **kwargs):
+    def initialize(self):
         super().initialize()
 
         parametric_initialize(
@@ -45,7 +45,7 @@ class iMoffatMixin:
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(self, **kwargs):
+    def initialize(self):
         super().initialize()
 
         parametric_segment_initialize(

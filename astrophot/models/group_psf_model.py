@@ -1,11 +1,11 @@
-from .group_model_object import Group_Model
-from ..image import PSF_Image
+from .group_model_object import GroupModel
+from ..image import PSFImage
 from ..errors import InvalidTarget
 
-__all__ = ["PSF_Group_Model"]
+__all__ = ["PSFGroupModel"]
 
 
-class PSF_Group_Model(Group_Model):
+class PSFGroupModel(GroupModel):
 
     _model_type = "psf"
     usable = True
@@ -19,6 +19,6 @@ class PSF_Group_Model(Group_Model):
 
     @target.setter
     def target(self, target):
-        if not (target is None or isinstance(target, PSF_Image)):
+        if not (target is None or isinstance(target, PSFImage)):
             raise InvalidTarget("Group_Model target must be a PSF_Image instance.")
         self._target = target

@@ -4,13 +4,10 @@ import torch
 import numpy as np
 
 from .model_object import ComponentModel
-from .base import Model
 from ..utils.decorators import ignore_numpy_warnings
-from ..image import PSF_Image, Window, Model_Image, Image
+from ..image import Window, ModelImage
 from ..errors import SpecificationConflict
 from ..param import forward
-from . import func
-from .. import AP_config
 
 __all__ = ("PointSource",)
 
@@ -92,16 +89,15 @@ class PointSource(ComponentModel):
             window = self.window
 
         # Adjust for supersampled PSF
-        psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int()
+        psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
 
         # Make the image object to which the samples will be tracked
-        working_image = Model_Image(window=window, upsample=psf_upscale)
+        working_image = ModelImage(window=window, upsample=psf_upscale)
 
         # Compute the center offset
-        pixel_center = working_image.plane_to_pixel(*center)
+        pixel_center = torch.stack(working_image.plane_to_pixel(*center))
         pixel_shift = pixel_center - torch.round(pixel_center)
         shift_kernel = self.shift_kernel(pixel_shift)
-
         psf = (
             torch.nn.functional.conv2d(
                 self.psf.data.value.view(1, 1, *self.psf.data.shape),
@@ -118,13 +114,13 @@ class PointSource(ComponentModel):
         psf_window = Window(
             (
                 pixel_center[0] - psf.shape[0] // 2,
-                pixel_center[1] - psf.shape[1] // 2,
                 pixel_center[0] + psf.shape[0] // 2 + 1,
+                pixel_center[1] - psf.shape[1] // 2,
                 pixel_center[1] + psf.shape[1] // 2 + 1,
             ),
             image=working_image,
         )
-        working_image[psf_window] += psf[psf_window.get_indices(working_image.window)]
+        working_image[psf_window].data._value += psf[working_image.get_other_indices(psf_window)]
         working_image = working_image.reduce(psf_upscale)
 
         # Return to image pixelscale

@@ -1,14 +1,14 @@
 from caskade import forward
 
-from .galaxy_model_object import Galaxy_Model
-from .psf_model_object import PSF_Model
+from .galaxy_model_object import GalaxyModel
+from .psf_model_object import PSFModel
 from ..utils.conversions.functions import moffat_I0_to_flux
 from .mixins import MoffatMixin, InclinedMixin
 
-__all__ = ["Moffat_Galaxy", "Moffat_PSF"]
+__all__ = ["MoffatGalaxy", "MoffatPSF"]
 
 
-class Moffat_Galaxy(MoffatMixin, Galaxy_Model):
+class MoffatGalaxy(MoffatMixin, GalaxyModel):
     """basic galaxy model with a Moffat profile for the radial light
     profile. The functional form of the Moffat profile is defined as:
 
@@ -33,7 +33,7 @@ class Moffat_Galaxy(MoffatMixin, Galaxy_Model):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
-class Moffat_PSF(MoffatMixin, PSF_Model):
+class MoffatPSF(MoffatMixin, PSFModel):
     """basic point source model with a Moffat profile for the radial light
     profile. The functional form of the Moffat profile is defined as:
 
@@ -52,18 +52,16 @@ class Moffat_PSF(MoffatMixin, PSF_Model):
     """
 
     usable = True
-    model_integrated = False
 
     @forward
     def total_flux(self, n, Rd, I0):
         return moffat_I0_to_flux(I0, n, Rd, 1.0)
 
 
-class Moffat2D_PSF(InclinedMixin, Moffat_PSF):
+class Moffat2DPSF(InclinedMixin, MoffatPSF):
 
     _model_type = "2d"
     usable = True
-    model_integrated = False
 
     @forward
     def total_flux(self, n, Rd, I0, q):

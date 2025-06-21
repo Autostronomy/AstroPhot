@@ -3,15 +3,7 @@ import torch
 
 from ...utils.decorators import ignore_numpy_warnings
 from ...param import forward
-
-
-def rotate(theta, x, y):
-    """
-    Applies a rotation matrix to the X,Y coordinates
-    """
-    s = theta.sin()
-    c = theta.cos()
-    return c * x - s * y, s * x + c * y
+from .. import func
 
 
 class InclinedMixin:
@@ -78,5 +70,5 @@ class InclinedMixin:
         Transform coordinates based on the position angle and axis ratio.
         """
         x, y = super().transform_coordinates(x, y)
-        x, y = rotate(-(PA + np.pi / 2), x, y)
+        x, y = func.rotate(-(PA + np.pi / 2), x, y)
         return x, y / q

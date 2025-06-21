@@ -17,6 +17,8 @@ from .convolution import (
 )
 from .sersic import sersic, sersic_n_to_b
 from .moffat import moffat
+from .gaussian import gaussian
+from .transform import rotate
 
 __all__ = (
     "all_subclasses",
@@ -32,7 +34,9 @@ __all__ = (
     "sersic",
     "sersic_n_to_b",
     "moffat",
+    "gaussian",
     "single_quad_integrate",
     "recursive_quad_integrate",
     "upsample",
+    "rotate",
 )

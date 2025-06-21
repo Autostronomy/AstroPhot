@@ -2,7 +2,7 @@ import torch
 from caskade import forward
 
 from .base import Model
-from ..image import Model_Image, PSF_Image
+from ..image import ModelImage, PSFImage
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
@@ -76,7 +76,7 @@ class PSFModel(SampleMixin, Model):
 
         """
         # Create an image to store pixel samples
-        working_image = Model_Image(window=self.window)
+        working_image = ModelImage(window=self.window)
         working_image.data = self.sample_image(working_image)
 
         # normalize to total flux 1
@@ -99,6 +99,6 @@ class PSFModel(SampleMixin, Model):
     def target(self, target):
         if target is None:
             self._target = None
-        elif not isinstance(target, PSF_Image):
+        elif not isinstance(target, PSFImage):
             raise InvalidTarget(f"Target for PSF_Model must be a PSF_Image, not {type(target)}")
         self._target = target

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def gaussian(R, sigma, I0):
+def gaussian(R, sigma, flux):
     """Gaussian 1d profile function, specifically designed for pytorch
     operations.
 
@@ -11,4 +11,4 @@ def gaussian(R, sigma, I0):
         sigma: standard deviation of the gaussian in the same units as R
         I0: central surface density
     """
-    return (I0 / torch.sqrt(2 * np.pi * sigma**2)) * torch.exp(-0.5 * torch.pow(R / sigma, 2))
+    return (flux / (torch.sqrt(2 * np.pi) * sigma)) * torch.exp(-0.5 * torch.pow(R / sigma, 2))

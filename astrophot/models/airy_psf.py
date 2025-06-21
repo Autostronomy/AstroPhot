@@ -1,14 +1,13 @@
 import torch
 
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ._shared_methods import select_target
-from .psf_model_object import PSF_Model
-from ..param import Param_Unlock, Param_SoftLimits
+from ..utils.decorators import ignore_numpy_warnings
+from .psf_model_object import PSFModel
+from .mixins import RadialMixin
 
-__all__ = ("Airy_PSF",)
+__all__ = ("AiryPSF",)
 
 
-class Airy_PSF(PSF_Model):
+class AiryPSF(RadialMixin, PSFModel):
     """The Airy disk is an analytic description of the diffraction pattern
     for a circular aperture.
 
@@ -37,55 +36,33 @@ class Airy_PSF(PSF_Model):
 
     """
 
-    model_type = f"airy {PSF_Model.model_type}"
-    parameter_specs = {
-        "I0": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
-        "aRL": {"units": "a/(R lambda)"},
+    _model_type = "airy"
+    _parameter_specs = {
+        "I0": {"units": "flux/arcsec^2", "value": 1.0, "shape": ()},
+        "aRL": {"units": "a/(R lambda)", "shape": ()},
     }
-    _parameter_order = PSF_Model._parameter_order + ("I0", "aRL")
     usable = True
-    model_integrated = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self):
+        super().initialize()
 
-        if (parameters["I0"].value is not None) and (parameters["aRL"].value is not None):
+        if (self.I0.value is not None) and (self.aRL.value is not None):
             return
-        target_area = target[self.window]
-        icenter = target_area.plane_to_pixel(parameters["center"].value)
+        icenter = self.target.plane_to_pixel(*self.center.value)
 
-        if parameters["I0"].value is None:
-            with Param_Unlock(parameters["I0"]), Param_SoftLimits(parameters["I0"]):
-                parameters["I0"].value = torch.log10(
-                    torch.mean(
-                        target_area.data[
-                            int(icenter[0]) - 2 : int(icenter[0]) + 2,
-                            int(icenter[1]) - 2 : int(icenter[1]) + 2,
-                        ]
-                    )
-                    / target.pixel_area.item()
-                )
-                parameters["I0"].uncertainty = torch.std(
-                    target_area.data[
-                        int(icenter[0]) - 2 : int(icenter[0]) + 2,
-                        int(icenter[1]) - 2 : int(icenter[1]) + 2,
-                    ]
-                ) / (torch.abs(parameters["I0"].value) * target.pixel_area)
-        if parameters["aRL"].value is None:
-            with Param_Unlock(parameters["aRL"]), Param_SoftLimits(parameters["aRL"]):
-                parameters["aRL"].value = (5.0 / 8.0) * 2 * target.pixel_length
-                parameters["aRL"].uncertainty = parameters["aRL"].value * self.default_uncertainty
+        if self.I0.value is None:
+            mid_chunk = self.target.data.value[
+                int(icenter[0]) - 2 : int(icenter[0]) + 2,
+                int(icenter[1]) - 2 : int(icenter[1]) + 2,
+            ]
+            self.I0.dynamic_value = torch.mean(mid_chunk) / self.target.pixel_area
+            self.I0.uncertainty = torch.std(mid_chunk) / self.target.pixel_area
+        if self.aRL.value is None:
+            self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixel_length
+            self.aRL.uncertainty = self.aRL.value * self.default_uncertainty
 
-    @default_internal
-    def radial_model(self, R, image=None, parameters=None):
-        x = 2 * torch.pi * parameters["aRL"].value * R
-
-        return (image.pixel_area * 10 ** parameters["I0"].value) * (
-            2 * torch.special.bessel_j1(x) / x
-        ) ** 2
-
-    from ._shared_methods import radial_evaluate_model as evaluate_model
+    def radial_model(self, R, I0, aRL):
+        x = 2 * torch.pi * aRL * R
+        return I0 * (2 * torch.special.bessel_j1(x) / x) ** 2

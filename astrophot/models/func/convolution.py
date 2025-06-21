@@ -37,7 +37,15 @@ def convolve_and_shift(image, shift_kernel, psf):
     shift_fft = torch.fft.rfft2(shift_kernel, s=image.shape)
 
     convolved_fft = image_fft * psf_fft * shift_fft
-    return torch.fft.irfft2(convolved_fft, s=image.shape)
+    convolved = torch.fft.irfft2(convolved_fft, s=image.shape)
+    return torch.roll(
+        convolved,
+        shifts=(
+            -psf.shape[0] // 2 - shift_kernel.shape[0] // 2,
+            -psf.shape[1] // 2 - shift_kernel.shape[1] // 2,
+        ),
+        dims=(0, 1),
+    )
 
 
 @lru_cache(maxsize=32)

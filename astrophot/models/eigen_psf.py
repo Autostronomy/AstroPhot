@@ -1,18 +1,17 @@
 import torch
 import numpy as np
 
-from .psf_model_object import PSF_Model
-from ..image import PSF_Image
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from .psf_model_object import PSFModel
+from ..image import PSFImage
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
-from ._shared_methods import select_target
-from ..param import Param_Unlock, Param_SoftLimits
 from .. import AP_config
+from ..errors import SpecificationConflict
 
-__all__ = ["Eigen_PSF"]
+__all__ = ["EigenPSF"]
 
 
-class Eigen_PSF(PSF_Model):
+class EigenPSF(PSFModel):
     """point source model which uses multiple images as a basis for the
     PSF as its representation for point sources. Using bilinear
     interpolation it will shift the PSF within a pixel to accurately
@@ -39,107 +38,48 @@ class Eigen_PSF(PSF_Model):
 
     """
 
-    model_type = f"eigen {PSF_Model.model_type}"
-    parameter_specs = {
-        "flux": {"units": "log10(flux/arcsec^2)", "value": 0.0, "locked": True},
+    _model_type = "eigen"
+    _parameter_specs = {
+        "flux": {"units": "flux/arcsec^2", "value": 1.0},
         "weights": {"units": "unitless"},
     }
-    _parameter_order = PSF_Model._parameter_order + ("flux", "weights")
     usable = True
-    model_integrated = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, eigen_basis=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if "eigen_basis" not in kwargs:
-            AP_config.ap_logger.warning(
-                "Eigen basis not supplied! Assuming psf as single basis element. Please provide Eigen basis or just use an empirical PSF image."
+        if eigen_basis is None:
+            raise SpecificationConflict(
+                "EigenPSF model requires 'eigen_basis' argument to be provided."
             )
-            self.eigen_basis = torch.clone(self.target.data).unsqueeze(0)
-            self.parameters["weights"].locked = True
-        else:
-            self.eigen_basis = torch.as_tensor(
-                kwargs["eigen_basis"],
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
-        if kwargs.get("normalize_eigen_basis", True):
-            self.eigen_basis = self.eigen_basis / torch.sum(
-                self.eigen_basis, axis=(1, 2)
-            ).unsqueeze(1).unsqueeze(2)
-        self.eigen_pixelscale = torch.as_tensor(
-            kwargs.get(
-                "eigen_pixelscale",
-                1.0 if self.target is None else self.target.pixelscale,
-            ),
+        self.eigen_basis = torch.as_tensor(
+            kwargs["eigen_basis"],
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
-        target_area = target[self.window]
-        with Param_Unlock(parameters["flux"]), Param_SoftLimits(parameters["flux"]):
-            if parameters["flux"].value is None:
-                parameters["flux"].value = torch.log10(
-                    torch.abs(torch.sum(target_area.data)) / target.pixel_area
-                )
-            if parameters["flux"].uncertainty is None:
-                parameters["flux"].uncertainty = (
-                    torch.abs(parameters["flux"].value) * self.default_uncertainty
-                )
-        with (
-            Param_Unlock(parameters["weights"]),
-            Param_SoftLimits(parameters["weights"]),
-        ):
-            if parameters["weights"].value is None:
-                W = np.zeros(len(self.eigen_basis))
-                W[0] = 1.0
-                parameters["weights"].value = W
-            if parameters["weights"].uncertainty is None:
-                parameters["weights"].uncertainty = (
-                    torch.ones_like(parameters["weights"].value) * self.default_uncertainty
-                )
+    def initialize(self):
+        super().initialize()
+        target_area = self.target[self.window]
+        if self.flux.value is None:
+            self.flux.dynamic_value = (
+                torch.abs(torch.sum(target_area.data)) / target_area.pixel_area
+            )
+            self.flux.uncertainty = self.flux.value * self.default_uncertainty
+        if self.weights.value is None:
+            self.weights.dynamic_value = 1 / np.arange(len(self.eigen_basis))
+            self.weights.uncertainty = self.weights.value * self.default_uncertainty
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+    def brightness(self, x, y, flux, weights):
+        x, y = self.transform_coordinates(x, y)
 
-        psf_model = PSF_Image(
-            data=torch.clamp(
-                torch.sum(
-                    self.eigen_basis.detach()
-                    * (parameters["weights"].value / torch.linalg.norm(parameters["weights"].value))
-                    .unsqueeze(1)
-                    .unsqueeze(2),
-                    axis=0,
-                ),
-                min=0.0,
-            ),
-            pixelscale=self.eigen_pixelscale.detach(),
+        psf = torch.sum(
+            self.eigen_basis * (weights / torch.linalg.norm(weights)).unsqueeze(1).unsqueeze(2),
+            axis=0,
         )
 
-        # Convert coordinates into pixel locations in the psf image
-        pX, pY = psf_model.plane_to_pixel(X, Y)
+        pX, pY = self.target.plane_to_pixel(x, y)
+        result = interp2d(psf, pX, pY)
 
-        # Select only the pixels where the PSF image is defined
-        select = torch.logical_and(
-            torch.logical_and(pX > -0.5, pX < psf_model.data.shape[1] - 0.5),
-            torch.logical_and(pY > -0.5, pY < psf_model.data.shape[0] - 0.5),
-        )
-
-        # Zero everywhere outside the psf
-        result = torch.zeros_like(X)
-
-        # Use bilinear interpolation of the PSF at the requested coordinates
-        result[select] = interp2d(psf_model.data, pX[select], pY[select])
-
-        # Ensure positive values
-        result = torch.clamp(result, min=0.0)
-
-        return result * (image.pixel_area * 10 ** parameters["flux"].value)
+        return result * flux

@@ -52,7 +52,7 @@ class ModelImage(Image):
         crop - (int, int): crop each dimension by the number of pixels given. new shape (N - 2*crop[1], M - 2*crop[0])
         crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
         """
-        if isinstance(pixels, int) or len(pixels) == 1:  # same crop in all dimension
+        if len(pixels) == 1:  # same crop in all dimension
             crop = pixels if isinstance(pixels, int) else pixels[0]
             data = self.data.value[
                 crop : self.data.shape[0] - crop,
@@ -73,7 +73,7 @@ class ModelImage(Image):
             crpix = self.crpix.value - pixels[0::2]  # fixme
         else:
             raise ValueError(
-                f"Invalid crop shape {pixels}, must be int, (int,), (int, int), or (int, int, int, int)!"
+                f"Invalid crop shape {pixels}, must be (int,), (int, int), or (int, int, int, int)!"
             )
         return self.copy(data=data, crpix=crpix, **kwargs)
 

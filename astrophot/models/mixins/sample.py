@@ -7,7 +7,7 @@ from torch import Tensor
 
 from ...param import forward
 from ... import AP_config
-from ...image import Image, Window, Jacobian_Image
+from ...image import Image, Window, JacobianImage
 from .. import func
 from ...errors import SpecificationConflict
 
@@ -135,7 +135,7 @@ class SampleMixin:
     def jacobian(
         self,
         window: Optional[Window] = None,
-        pass_jacobian: Optional[Jacobian_Image] = None,
+        pass_jacobian: Optional[JacobianImage] = None,
         params: Optional[Tensor] = None,
     ):
         if window is None:

@@ -9,4 +9,4 @@ class RadialMixin:
         Calculate the brightness at a given point (x, y) based on radial distance from the center.
         """
         x, y = self.transform_coordinates(x, y)
-        return self.radial_model((x**2 + y**2).sqrt())
+        return self.radial_model(self.radius_metric(x, y))

@@ -56,7 +56,7 @@ class GroupModel(Model):
         sub models in this group model object.
 
         """
-        if isinstance(self.target, ImageList):  # Window_List if target is a Target_Image_List
+        if isinstance(self.target, ImageList):  # WindowList if target is a TargetImageList
             new_window = [None] * len(self.target.images)
             for model in self.models.values():
                 if isinstance(model.target, ImageList):
@@ -88,7 +88,7 @@ class GroupModel(Model):
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(self, **kwargs):
+    def initialize(self):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
 

@@ -9,7 +9,7 @@ from . import func
 from .. import AP_config
 
 
-def _sample_image(image, transform, rad_bins=None):
+def _sample_image(image, transform, radius, rad_bins=None):
     dat = image.data.npvalue.copy()
     # Fill masked pixels
     if image.has_mask:
@@ -21,7 +21,7 @@ def _sample_image(image, transform, rad_bins=None):
     # Get the radius of each pixel relative to object center
     x, y = transform(*image.coordinate_center_meshgrid(), params=())
 
-    R = torch.sqrt(x**2 + y**2).detach().cpu().numpy().flatten()
+    R = radius(x, y).detach().cpu().numpy().flatten()
 
     # Bin fluxes by radius
     if rad_bins is None:
@@ -70,7 +70,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         return
 
     # Get the sub-image area corresponding to the model image
-    R, I, S = _sample_image(target, model.transform_coordinates)
+    R, I, S = _sample_image(target, model.transform_coordinates, model.radial_metric)
 
     x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):

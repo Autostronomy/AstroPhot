@@ -275,6 +275,12 @@ class Model(Module):
                 result.add(model)
         return result
 
+    def radius_metric(self, x, y):
+        return (x**2 + y**2).sqrt()
+
+    def angular_metric(self, x, y):
+        return torch.atan2(y, x)
+
     @forward
     def __call__(
         self,

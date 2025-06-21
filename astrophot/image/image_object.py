@@ -9,7 +9,7 @@ from ..param import Module, Param, forward
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
 from .window import Window
-from ..errors import SpecificationConflict, InvalidImage
+from ..errors import InvalidImage
 from . import func
 
 __all__ = ["Image", "ImageList"]
@@ -404,7 +404,9 @@ class Image(Module):
     @torch.no_grad()
     def get_indices(self, other: Window):
         if other.image == self:
-            return slice(other.i_low, other.i_high), slice(other.j_low, other.j_high)
+            return slice(max(0, other.i_low), min(self.shape[0], other.i_high)), slice(
+                max(0, other.j_low), min(self.shape[1], other.j_high)
+            )
         shift = np.round(self.crpix.npvalue - other.crpix.npvalue).astype(int)
         return slice(
             min(max(0, other.i_low + shift[0]), self.shape[0]),
@@ -414,6 +416,14 @@ class Image(Module):
             max(0, min(other.j_high + shift[1], self.shape[1])),
         )
 
+    @torch.no_grad()
+    def get_other_indices(self, other: Window):
+        if other.image == self:
+            shape = other.shape
+            return slice(max(0, -other.i_low), min(self.shape[0] - other.i_low, shape[0])), slice(
+                max(0, -other.j_low), min(self.shape[1] - other.j_low, shape[1])
+            )
+        raise ValueError()
         # origin_pix = torch.tensor(
         #     (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
         # )

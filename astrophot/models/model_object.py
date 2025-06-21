@@ -71,6 +71,10 @@ class ComponentModel(SampleMixin, Model):
     )
     usable = False
 
+    def __init__(self, *args, psf=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.psf = psf
+
     @property
     def psf(self):
         if self._psf is None:
@@ -190,16 +194,18 @@ class ComponentModel(SampleMixin, Model):
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
-            psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int()
+            psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
             psf_pad = np.max(self.psf.shape) // 2
 
             working_image = ModelImage(window=window, upsample=psf_upscale, pad=psf_pad)
 
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift != "none":
-                pixel_center = working_image.plane_to_pixel(*center)
+                pixel_center = torch.stack(working_image.plane_to_pixel(*center))
                 pixel_shift = pixel_center - torch.round(pixel_center)
-                center_shift = center - working_image.pixel_to_plane(*torch.round(pixel_center))
+                center_shift = center - torch.stack(
+                    working_image.pixel_to_plane(*torch.round(pixel_center))
+                )
                 working_image.crtan = working_image.crtan.value + center_shift
             else:
                 pixel_shift = torch.zeros_like(center)
@@ -211,7 +217,7 @@ class ComponentModel(SampleMixin, Model):
             working_image.data = func.convolve_and_shift(sample, shift_kernel, self.psf.data.value)
             working_image.crtan = working_image.crtan.value - center_shift
 
-            working_image = working_image.crop(psf_pad).reduce(psf_upscale)
+            working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         else:
             working_image = ModelImage(window=window)

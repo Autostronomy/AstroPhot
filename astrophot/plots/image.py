@@ -7,8 +7,8 @@ from matplotlib.patches import Polygon
 import matplotlib
 from scipy.stats import iqr
 
-from ..models import Group_Model  # , PSF_Model
-from ..image import Image_List, Window_List
+from ..models import GroupModel, PSFModel
+from ..image import ImageList, WindowList
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
@@ -39,7 +39,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
     """
 
     # recursive call for target image list
-    if isinstance(target, Image_List):
+    if isinstance(target, ImageList):
         for i in range(len(target.image_list)):
             target_image(fig, ax[i], target.image_list[i], window=window, **kwargs)
         return fig, ax
@@ -103,50 +103,38 @@ def psf_image(
     fig,
     ax,
     psf,
-    window=None,
     cmap_levels=None,
-    flipx=False,
     **kwargs,
 ):
-    if isinstance(psf, PSF_Model):
+    if isinstance(psf, PSFModel):
         psf = psf()
     # recursive call for target image list
-    if isinstance(psf, Image_List):
-        for i in range(len(psf.image_list)):
-            psf_image(fig, ax[i], psf.image_list[i], window=window, **kwargs)
+    if isinstance(psf, ImageList):
+        for i in range(len(psf.images)):
+            psf_image(fig, ax[i], psf.images[i], **kwargs)
         return fig, ax
 
-    if window is None:
-        window = psf.window
-    if flipx:
-        ax.invert_xaxis()
-
-    # cut out the requested window
-    psf = psf[window]
-
     # Evaluate the model image
-    X, Y = psf.get_coordinate_corner_meshgrid()
-    X = X.detach().cpu().numpy()
-    Y = Y.detach().cpu().numpy()
-    psf = psf.data.detach().cpu().numpy()
+    x, y = psf.coordinate_corner_meshgrid()
+    x = x.detach().cpu().numpy()
+    y = y.detach().cpu().numpy()
+    psf = psf.data.value.detach().cpu().numpy()
 
     # Default kwargs for image
-    imshow_kwargs = {
+    kwargs = {
         "cmap": cmap_grad,
         "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        **kwargs,
     }
-
-    # Update with user provided kwargs
-    imshow_kwargs.update(kwargs)
 
     # if requested, convert the continuous colourmap into discrete levels
     if cmap_levels is not None:
-        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(
-            list(imshow_kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
+        kwargs["cmap"] = matplotlib.colors.ListedColormap(
+            list(kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
         )
 
     # Plot the image
-    im = ax.pcolormesh(X, Y, psf, **imshow_kwargs)
+    ax.pcolormesh(x.T, y.T, psf.T, **kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -212,7 +200,7 @@ def model_image(
         window = model.window
 
     # Handle image lists
-    if isinstance(sample_image, Image_List):
+    if isinstance(sample_image, ImageList):
         for i, (images, targets, windows) in enumerate(zip(sample_image, target, window)):
             model_image(
                 fig,
@@ -239,32 +227,30 @@ def model_image(
     sample_image = sample_image.data.npvalue
 
     # Default kwargs for image
-    imshow_kwargs = {
+    kwargs = {
         "cmap": cmap_grad,
         "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        **kwargs,
     }
-
-    # Update with user provided kwargs
-    imshow_kwargs.update(kwargs)
 
     # if requested, convert the continuous colourmap into discrete levels
     if cmap_levels is not None:
-        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(
-            list(imshow_kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
+        kwargs["cmap"] = matplotlib.colors.ListedColormap(
+            list(kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
         )
 
     # If zeropoint is available, convert to surface brightness units
     if target.zeropoint is not None and magunits:
         sample_image = flux_to_sb(sample_image, target.pixel_area.item(), target.zeropoint.item())
-        del imshow_kwargs["norm"]
-        imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
+        del kwargs["norm"]
+        kwargs["cmap"] = kwargs["cmap"].reversed()
 
     # Apply the mask if available
     if target_mask and target.has_mask:
         sample_image[target.mask.detach().cpu().numpy()] = np.nan
 
     # Plot the image
-    im = ax.pcolormesh(X.T, Y.T, sample_image.T, **imshow_kwargs)
+    im = ax.pcolormesh(X.T, Y.T, sample_image.T, **kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -336,7 +322,7 @@ def residual_image(
         target = model.target
     if sample_image is None:
         sample_image = model()
-    if isinstance(window, Window_List) or isinstance(target, Image_List):
+    if isinstance(window, WindowList) or isinstance(target, ImageList):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(
                 fig,
@@ -423,9 +409,9 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
             model_window(fig, axitem, model, target=target.images[i], **kwargs)
         return fig, ax
 
-    if isinstance(model, Group_Model):
+    if isinstance(model, GroupModel):
         for m in model.models.values():
-            if isinstance(m.window, Window_List):
+            if isinstance(m.window, WindowList):
                 use_window = m.window.window_list[m.target.index(target)]
             else:
                 use_window = m.window
