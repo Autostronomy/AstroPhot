@@ -7,6 +7,13 @@ from astropy.convolution import convolve_fft
 from .operations import fft_convolve_torch
 
 
+def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
+    prof = [0, min_pixels * pixelscale]
+    while prof[-1] < (np.max(shape) * pixelscale / 2):
+        prof.append(prof[-1] + max(min_pixels * pixelscale, prof[-1] * scale))
+    return prof
+
+
 def _h_poly(t):
     """Helper function to compute the 'h' polynomial matrix used in the
     cubic spline.

@@ -1,13 +1,12 @@
 import numpy as np
 import torch
 
-from .galaxy_model_object import Galaxy_Model
-from ..utils.decorators import default_internal
+from .galaxy_model_object import GalaxyModel
 
-__all__ = ["Ray_Galaxy"]
+__all__ = ["RayGalaxy"]
 
 
-class Ray_Galaxy(Galaxy_Model):
+class RayGalaxy(GalaxyModel):
     """Variant of a galaxy model which defines multiple radial models
     seprarately along some number of rays projected from the galaxy
     center. These rays smoothly transition from one to another along
@@ -29,77 +28,62 @@ class Ray_Galaxy(Galaxy_Model):
 
     """
 
-    model_type = f"ray {Galaxy_Model.model_type}"
-    special_kwargs = Galaxy_Model.special_kwargs + ["rays"]
-    rays = 2
-    track_attrs = Galaxy_Model.track_attrs + ["rays"]
+    _model_type = "segments"
     usable = False
+    _options = ("symmetric_rays", "rays")
 
-    def __init__(self, *args, **kwargs):
-        self.symmetric_rays = True
+    def __init__(self, *args, symmetric_rays=True, segments=2, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rays = kwargs.get("rays", Ray_Galaxy.rays)
+        self.symmetric_rays = symmetric_rays
+        self.segments = segments
 
-    @default_internal
-    def polar_model(self, R, T, image=None, parameters=None):
+    def polar_model(self, R, T):
         model = torch.zeros_like(R)
-        if self.rays % 2 == 0 and self.symmetric_rays:
-            for r in range(self.rays):
-                angles = (T - (r * np.pi / self.rays)) % np.pi
+        if self.segments % 2 == 0 and self.symmetric_rays:
+            for r in range(self.segments):
+                angles = (T - (r * np.pi / self.segments)) % np.pi
                 indices = torch.logical_or(
-                    angles < (np.pi / self.rays),
-                    angles >= (np.pi * (1 - 1 / self.rays)),
+                    angles < (np.pi / self.segments),
+                    angles >= (np.pi * (1 - 1 / self.segments)),
                 )
-                weight = (torch.cos(angles[indices] * self.rays) + 1) / 2
-                model[indices] += weight * self.iradial_model(r, R[indices], image)
-        elif self.rays % 2 == 1 and self.symmetric_rays:
-            for r in range(self.rays):
-                angles = (T - (r * np.pi / self.rays)) % (2 * np.pi)
+                weight = (torch.cos(angles[indices] * self.segments) + 1) / 2
+                model[indices] += weight * self.iradial_model(r, R[indices])
+        elif self.segments % 2 == 1 and self.symmetric_rays:
+            for r in range(self.segments):
+                angles = (T - (r * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (np.pi / self.rays),
-                    angles >= (np.pi * (2 - 1 / self.rays)),
+                    angles < (np.pi / self.segments),
+                    angles >= (np.pi * (2 - 1 / self.segments)),
                 )
-                weight = (torch.cos(angles[indices] * self.rays) + 1) / 2
-                model[indices] += weight * self.iradial_model(r, R[indices], image)
-                angles = (T - (np.pi + r * np.pi / self.rays)) % (2 * np.pi)
+                weight = (torch.cos(angles[indices] * self.segments) + 1) / 2
+                model[indices] += weight * self.iradial_model(r, R[indices])
+                angles = (T - (np.pi + r * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (np.pi / self.rays),
-                    angles >= (np.pi * (2 - 1 / self.rays)),
+                    angles < (np.pi / self.segments),
+                    angles >= (np.pi * (2 - 1 / self.segments)),
                 )
-                weight = (torch.cos(angles[indices] * self.rays) + 1) / 2
-                model[indices] += weight * self.iradial_model(r, R[indices], image)
-        elif self.rays % 2 == 0 and not self.symmetric_rays:
-            for r in range(self.rays):
-                angles = (T - (r * 2 * np.pi / self.rays)) % (2 * np.pi)
+                weight = (torch.cos(angles[indices] * self.segments) + 1) / 2
+                model[indices] += weight * self.iradial_model(r, R[indices])
+        elif self.segments % 2 == 0 and not self.symmetric_rays:
+            for r in range(self.segments):
+                angles = (T - (r * 2 * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (2 * np.pi / self.rays),
-                    angles >= (2 * np.pi * (1 - 1 / self.rays)),
+                    angles < (2 * np.pi / self.segments),
+                    angles >= (2 * np.pi * (1 - 1 / self.segments)),
                 )
-                weight = (torch.cos(angles[indices] * self.rays) + 1) / 2
-                model[indices] += weight * self.iradial_model(r, R[indices], image)
+                weight = (torch.cos(angles[indices] * self.segments) + 1) / 2
+                model[indices] += weight * self.iradial_model(r, R[indices])
         else:
-            for r in range(self.rays):
-                angles = (T - (r * 2 * np.pi / self.rays)) % (2 * np.pi)
+            for r in range(self.segments):
+                angles = (T - (r * 2 * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (2 * np.pi / self.rays),
-                    angles >= (np.pi * (2 - 1 / self.rays)),
+                    angles < (2 * np.pi / self.segments),
+                    angles >= (np.pi * (2 - 1 / self.segments)),
                 )
-                weight = (torch.cos(angles[indices] * self.rays) + 1) / 2
-                model[indices] += weight * self.iradial_model(r, R[indices], image)
+                weight = (torch.cos(angles[indices] * self.segments) + 1) / 2
+                model[indices] += weight * self.iradial_model(r, R[indices])
         return model
 
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        XX, YY = self.transform_coordinates(X, Y, image, parameters)
-
-        return self.polar_model(
-            self.radius_metric(XX, YY, image=image, parameters=parameters),
-            self.angular_metric(XX, YY, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
-
-
-# class SingleRay_Galaxy(Galaxy_Model):
+    def brightness(self, x, y):
+        x, y = self.transform_coordinates(x, y)
+        return self.polar_model(self.radius_metric(x, y), self.angular_metric(x, y))

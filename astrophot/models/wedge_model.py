@@ -1,13 +1,12 @@
 import numpy as np
 import torch
 
-from .galaxy_model_object import Galaxy_Model
-from ..utils.decorators import default_internal
+from .galaxy_model_object import GalaxyModel
 
-__all__ = ["Wedge_Galaxy"]
+__all__ = ["WedgeGalaxy"]
 
 
-class Wedge_Galaxy(Galaxy_Model):
+class WedgeGalaxy(GalaxyModel):
     """Variant of the ray model where no smooth transition is performed
     between regions as a function of theta, instead there is a sharp
     trnasition boundary. This may be desirable as it cleanly
@@ -23,62 +22,49 @@ class Wedge_Galaxy(Galaxy_Model):
 
     """
 
-    model_type = f"wedge {Galaxy_Model.model_type}"
-    special_kwargs = Galaxy_Model.special_kwargs + ["wedges"]
-    wedges = 2
-    track_attrs = Galaxy_Model.track_attrs + ["wedges"]
+    _model_type = "segments"
     usable = False
+    _options = ("segmentss", "symmetric_wedges")
 
-    def __init__(self, *args, **kwargs):
-        self.symmetric_wedges = True
+    def __init__(self, *args, symmetric_wedges=True, segments=2, **kwargs):
         super().__init__(*args, **kwargs)
-        self.wedges = kwargs.get("wedges", 2)
+        self.symmetric_wedges = symmetric_wedges
+        self.segments = segments
 
-    @default_internal
-    def polar_model(self, R, T, image=None, parameters=None):
+    def polar_model(self, R, T):
         model = torch.zeros_like(R)
-        if self.wedges % 2 == 0 and self.symmetric_wedges:
-            for w in range(self.wedges):
-                angles = (T - (w * np.pi / self.wedges)) % np.pi
+        if self.segments % 2 == 0 and self.symmetric_wedges:
+            for w in range(self.segments):
+                angles = (T - (w * np.pi / self.segments)) % np.pi
                 indices = torch.logical_or(
-                    angles < (np.pi / (2 * self.wedges)),
-                    angles >= (np.pi * (1 - 1 / (2 * self.wedges))),
+                    angles < (np.pi / (2 * self.segments)),
+                    angles >= (np.pi * (1 - 1 / (2 * self.segments))),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image, parameters)
-        elif self.wedges % 2 == 1 and self.symmetric_wedges:
-            for w in range(self.wedges):
-                angles = (T - (w * np.pi / self.wedges)) % (2 * np.pi)
+                model[indices] += self.iradial_model(w, R[indices])
+        elif self.segments % 2 == 1 and self.symmetric_wedges:
+            for w in range(self.segments):
+                angles = (T - (w * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (np.pi / (2 * self.wedges)),
-                    angles >= (np.pi * (2 - 1 / (2 * self.wedges))),
+                    angles < (np.pi / (2 * self.segments)),
+                    angles >= (np.pi * (2 - 1 / (2 * self.segments))),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image, parameters)
-                angles = (T - (np.pi + w * np.pi / self.wedges)) % (2 * np.pi)
+                model[indices] += self.iradial_model(w, R[indices])
+                angles = (T - (np.pi + w * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (np.pi / (2 * self.wedges)),
-                    angles >= (np.pi * (2 - 1 / (2 * self.wedges))),
+                    angles < (np.pi / (2 * self.segments)),
+                    angles >= (np.pi * (2 - 1 / (2 * self.segments))),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image, parameters)
+                model[indices] += self.iradial_model(w, R[indices])
         else:
-            for w in range(self.wedges):
-                angles = (T - (w * 2 * np.pi / self.wedges)) % (2 * np.pi)
+            for w in range(self.segments):
+                angles = (T - (w * 2 * np.pi / self.segments)) % (2 * np.pi)
                 indices = torch.logical_or(
-                    angles < (np.pi / self.wedges),
-                    angles >= (np.pi * (2 - 1 / self.wedges)),
+                    angles < (np.pi / self.segments),
+                    angles >= (np.pi * (2 - 1 / self.segments)),
                 )
-                model[indices] += self.iradial_model(w, R[indices], image, parameters)
+                model[indices] += self.iradial_model(w, R[indices])
         return model
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        XX, YY = self.transform_coordinates(X, Y, image, parameters)
-
-        return self.polar_model(
-            self.radius_metric(XX, YY, image=image, parameters=parameters),
-            self.angular_metric(XX, YY, image=image, parameters=parameters),
-            image=image,
-            parameters=parameters,
-        )
+    def brightness(self, x, y):
+        x, y = self.transform_coordinates(x, y)
+        return self.polar_model(self.radius_metric(x, y), self.angular_metric(x, y))

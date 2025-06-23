@@ -31,3 +31,30 @@ class GaussianMixin:
     @forward
     def radial_model(self, R, sigma, flux):
         return func.gaussian(R, sigma, flux)
+
+
+class iGaussianMixin:
+
+    _model_type = "gaussian"
+    _parameter_specs = {
+        "sigma": {"units": "arcsec", "valid": (0, None)},
+        "flux": {"units": "flux"},
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_segment_initialize(
+            model=self,
+            target=self.target[self.window],
+            prof_func=gaussian_np,
+            params=("sigma", "flux"),
+            x0_func=_x0_func,
+            segments=self.segments,
+        )
+
+    @forward
+    def iradial_model(self, i, R, sigma, flux):
+        return func.gaussian(R, sigma[i], flux[i])

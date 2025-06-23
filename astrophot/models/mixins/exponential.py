@@ -76,10 +76,10 @@ class iExponentialMixin:
             model=self,
             target=target,
             parameters=parameters,
-            prof_func=func.exponential,
+            prof_func=exponential_np,
             params=("Re", "Ie"),
             x0_func=_x0_func,
-            segments=self.rays,
+            segments=self.segments,
         )
 
     @forward

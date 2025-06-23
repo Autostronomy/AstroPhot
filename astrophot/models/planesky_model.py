@@ -2,15 +2,13 @@ import numpy as np
 from scipy.stats import iqr
 import torch
 
-from .sky_model_object import Sky_Model
-from ._shared_methods import select_target
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..param import Param_Unlock, Param_SoftLimits
+from .sky_model_object import SkyModel
+from ..utils.decorators import ignore_numpy_warnings
 
-__all__ = ["Plane_Sky"]
+__all__ = ["PlaneSky"]
 
 
-class Plane_Sky(Sky_Model):
+class PlaneSky(SkyModel):
     """Sky background model using a tilted plane for the sky flux. The brightness for each pixel is defined as:
 
     I(X, Y) = S + X*dx + Y*dy
@@ -25,50 +23,35 @@ class Plane_Sky(Sky_Model):
 
     """
 
-    model_type = f"plane {Sky_Model.model_type}"
-    parameter_specs = {
-        "F": {"units": "flux/arcsec^2"},
+    _model_type = "plane"
+    _parameter_specs = {
+        "I0": {"units": "flux/arcsec^2"},
         "delta": {"units": "flux/arcsec"},
     }
-    _parameter_order = Sky_Model._parameter_order + ("F", "delta")
     usable = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self):
+        super().initialize()
 
-        with Param_Unlock(parameters["F"]), Param_SoftLimits(parameters["F"]):
-            if parameters["F"].value is None:
-                parameters["F"].value = (
-                    np.median(target[self.window].data.detach().cpu().numpy())
-                    / target.pixel_area.item()
+        if self.I0.value is None:
+            self.I0.dynamic_value = (
+                np.median(self.target[self.window].data.npvalue) / self.target.pixel_area.item()
+            )
+            self.I0.uncertainty = (
+                iqr(
+                    self.target[self.window].data.npvalue,
+                    rng=(16, 84),
                 )
-            if parameters["F"].uncertainty is None:
-                parameters["F"].uncertainty = (
-                    iqr(
-                        target[self.window].data.detach().cpu().numpy(),
-                        rng=(31.731 / 2, 100 - 31.731 / 2),
-                    )
-                    / (2.0)
-                ) / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
-        with Param_Unlock(parameters["delta"]), Param_SoftLimits(parameters["delta"]):
-            if parameters["delta"].value is None:
-                parameters["delta"].value = [0.0, 0.0]
-                parameters["delta"].uncertainty = [
-                    self.default_uncertainty,
-                    self.default_uncertainty,
-                ]
+                / 2.0
+            ) / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
+        if self.delta.value is None:
+            self.delta.dynamic_value = [0.0, 0.0]
+            self.delta.uncertainty = [
+                self.default_uncertainty,
+                self.default_uncertainty,
+            ]
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
-        return (
-            image.pixel_area * parameters["F"].value
-            + X * parameters["delta"].value[0]
-            + Y * parameters["delta"].value[1]
-        )
+    def brightness(self, x, y, I0, delta):
+        return I0 + x * delta[0] + y * delta[1]

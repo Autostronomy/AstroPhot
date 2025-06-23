@@ -2,13 +2,18 @@ from caskade import forward
 
 from .galaxy_model_object import GalaxyModel
 from .psf_model_object import PSFModel
+from .warp_model import WarpGalaxy
+from .ray_model import RayGalaxy
+from .wedge_model import WedgeGalaxy
+from .superellipse_model import SuperEllipseGalaxy
+from .foureirellipse_model import FourierEllipseGalaxy
 from ..utils.conversions.functions import moffat_I0_to_flux
-from .mixins import MoffatMixin, InclinedMixin
+from .mixins import MoffatMixin, InclinedMixin, RadialMixin
 
-__all__ = ["MoffatGalaxy", "MoffatPSF"]
+__all__ = ("MoffatGalaxy", "MoffatPSF")
 
 
-class MoffatGalaxy(MoffatMixin, GalaxyModel):
+class MoffatGalaxy(MoffatMixin, RadialMixin, GalaxyModel):
     """basic galaxy model with a Moffat profile for the radial light
     profile. The functional form of the Moffat profile is defined as:
 
@@ -33,7 +38,7 @@ class MoffatGalaxy(MoffatMixin, GalaxyModel):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
-class MoffatPSF(MoffatMixin, PSFModel):
+class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
     """basic point source model with a Moffat profile for the radial light
     profile. The functional form of the Moffat profile is defined as:
 
@@ -66,3 +71,23 @@ class Moffat2DPSF(InclinedMixin, MoffatPSF):
     @forward
     def total_flux(self, n, Rd, I0, q):
         return moffat_I0_to_flux(I0, n, Rd, q)
+
+
+class MoffatSuperEllipseGalaxy(MoffatMixin, RadialMixin, SuperEllipseGalaxy):
+    usable = True
+
+
+class MoffatFourierEllipseGalaxy(MoffatMixin, RadialMixin, FourierEllipseGalaxy):
+    usable = True
+
+
+class MoffatWarpGalaxy(MoffatMixin, RadialMixin, WarpGalaxy):
+    usable = True
+
+
+class MoffatWedgeGalaxy(MoffatMixin, WedgeGalaxy):
+    usable = True
+
+
+class MoffatRayGalaxy(MoffatMixin, RayGalaxy):
+    usable = True

@@ -2,7 +2,6 @@ import torch
 import numpy as np
 
 from .psf_model_object import PSFModel
-from ..image import PSFImage
 from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
 from .. import AP_config

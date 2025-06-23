@@ -1,17 +1,16 @@
 import numpy as np
 import torch
 
-from .galaxy_model_object import Galaxy_Model
-from ..utils.interpolate import cubic_spline_torch
-from ..utils.conversions.coordinates import Rotate_Cartesian
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ..param import Param_Unlock, Param_SoftLimits
-from ._shared_methods import select_target
+from .galaxy_model_object import GalaxyModel
+from ..utils.interpolate import default_prof
+from ..utils.decorators import ignore_numpy_warnings
+from . import func
+from ..param import forward
 
-__all__ = ["Warp_Galaxy"]
+__all__ = ["WarpGalaxy"]
 
 
-class Warp_Galaxy(Galaxy_Model):
+class WarpGalaxy(GalaxyModel):
     """Galaxy model which includes radially varrying PA and q
     profiles. This works by warping the coordinates using the same
     transform for a global PA/q except applied to each pixel
@@ -37,84 +36,39 @@ class Warp_Galaxy(Galaxy_Model):
 
     """
 
-    model_type = f"warp {Galaxy_Model.model_type}"
-    parameter_specs = {
-        "q(R)": {"units": "b/a", "limits": (0.05, 1), "uncertainty": 0.04},
-        "PA(R)": {
-            "units": "rad",
-            "limits": (0, np.pi),
+    _model_type = "warp"
+    _parameter_specs = {
+        "q_R": {"units": "b/a", "valid": (0.0, 1), "uncertainty": 0.04},
+        "PA_R": {
+            "units": "radians",
+            "valid": (0, np.pi),
             "cyclic": True,
             "uncertainty": 0.08,
         },
     }
-    _parameter_order = Galaxy_Model._parameter_order + ("q(R)", "PA(R)")
     usable = False
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self):
+        super().initialize()
 
-        # create the PA(R) and q(R) profile radii if needed
-        for prof_param in ["PA(R)", "q(R)"]:
-            if parameters[prof_param].prof is None:
-                if parameters[prof_param].value is None:  # from scratch
-                    new_prof = [0, 2 * target.pixel_length]
-                    while new_prof[-1] < torch.min(self.window.shape / 2):
-                        new_prof.append(
-                            new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2)
-                        )
-                    new_prof.pop()
-                    new_prof.pop()
-                    new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-                    parameters[prof_param].prof = new_prof
-                else:  # matching length of a provided profile
-                    # create logarithmically spaced profile radii
-                    new_prof = [0] + list(
-                        np.logspace(
-                            np.log10(2 * target.pixel_length),
-                            np.log10(torch.max(self.window.shape / 2).item()),
-                            len(parameters[prof_param].value) - 1,
-                        )
-                    )
-                    # ensure no step is smaller than a pixelscale
-                    for i in range(1, len(new_prof)):
-                        if new_prof[i] - new_prof[i - 1] < target.pixel_length.item():
-                            new_prof[i] = new_prof[i - 1] + target.pixel_length.item()
-                    parameters[prof_param].prof = new_prof
+        if self.PA_R.value is None:
+            if self.PA_R.prof is None:
+                self.PA_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
+            self.PA_R.dynamic_value = np.zeros(len(self.PA_R.prof)) + np.pi / 2
+            self.PA_R.uncertainty = (10 * np.pi / 180) * torch.ones_like(self.PA_R.value)
+        if self.q_R.value is None:
+            if self.q_R.prof is None:
+                self.q_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
+            self.q_R.dynamic_value = np.ones(len(self.q_R.prof)) * 0.8
+            self.q_R.uncertainty = self.default_uncertainty * self.q_R.value
 
-        if not (parameters["PA(R)"].value is None or parameters["q(R)"].value is None):
-            return
-
-        with Param_Unlock(parameters["PA(R)"]), Param_SoftLimits(parameters["PA(R)"]):
-            if parameters["PA(R)"].value is None:
-                parameters["PA(R)"].value = np.zeros(len(parameters["PA(R)"].prof)) + target.north
-            if parameters["PA(R)"].uncertainty is None:
-                parameters["PA(R)"].uncertainty = (5 * np.pi / 180) * torch.ones_like(
-                    parameters["PA(R)"].value
-                )
-            if parameters["q(R)"].value is None:
-                # If no initial value is provided for q(R) a heuristic initial value is assumed.
-                # The most neutral initial position would be 1, but the boundaries of q are (0,1) non-inclusive
-                # so that is not allowed. A value like 0.999 may get stuck since it is near the very edge of
-                # the (0,1) range. So 0.9 is chosen to be mostly passive, but still some signal for the optimizer.
-                parameters["q(R)"].value = np.ones(len(parameters["q(R)"].prof)) * 0.9
-            if parameters["q(R)"].uncertainty is None:
-                parameters["q(R)"].uncertainty = self.default_uncertainty * parameters["q(R)"].value
-
-    @default_internal
-    def transform_coordinates(self, X, Y, image=None, parameters=None):
-        X, Y = super().transform_coordinates(X, Y, image, parameters)
-        R = self.radius_metric(X, Y, image, parameters)
-        PA = cubic_spline_torch(
-            parameters["PA(R)"].prof,
-            -(parameters["PA(R)"].value - image.north),
-            R.view(-1),
-        ).view(*R.shape)
-        q = cubic_spline_torch(parameters["q(R)"].prof, parameters["q(R)"].value, R.view(-1)).view(
-            *R.shape
-        )
-        X, Y = Rotate_Cartesian(PA, X, Y)
-        return X, Y / q
+    @forward
+    def transform_coordinates(self, x, y, q_R, PA_R):
+        x, y = super().transform_coordinates(x, y)
+        R = self.radius_metric(x, y)
+        PA = func.spline(R, self.PA_R.prof, PA_R)
+        q = func.spline(R, self.q_R.prof, q_R)
+        x, y = func.rotate(PA, x, y)
+        return x, y / q

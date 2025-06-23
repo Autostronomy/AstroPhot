@@ -207,42 +207,8 @@ def parametric_segment_initialize(
                 model[param].uncertainty = unc[param]
 
 
-# # Spline
-# ######################################################################
-# @torch.no_grad()
-# @ignore_numpy_warnings
-# @select_target
-# @default_internal
-# def spline_initialize(self, target=None, parameters=None, **kwargs):
-#     super(self.__class__, self).initialize(target=target, parameters=parameters)
-
-#     if parameters["I(R)"].value is not None and parameters["I(R)"].prof is not None:
-#         return
-
-#     # Create the I(R) profile radii if needed
-#     if parameters["I(R)"].prof is None:
-#         new_prof = [0, 2 * target.pixel_length]
-#         while new_prof[-1] < torch.max(self.window.shape / 2):
-#             new_prof.append(new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2))
-#         new_prof.pop()
-#         new_prof.pop()
-#         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-#         parameters["I(R)"].prof = new_prof
-
-#     profR = parameters["I(R)"].prof.detach().cpu().numpy()
-#     target_area = target[self.window]
-#     R, I, S = _sample_image(
-#         target_area,
-#         self.transform_coordinates,
-#         self.radius_metric,
-#         parameters,
-#         rad_bins=[profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100],
-#     )
-#     with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
-#         parameters["I(R)"].value = I
-#         parameters["I(R)"].uncertainty = S
-
-
+# Spline
+######################################################################
 # @torch.no_grad()
 # @ignore_numpy_warnings
 # @select_target

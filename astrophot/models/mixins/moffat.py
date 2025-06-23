@@ -54,7 +54,7 @@ class iMoffatMixin:
             prof_func=moffat_np,
             params=("n", "Rd", "I0"),
             x0_func=_x0_func,
-            segments=self.rays,
+            segments=self.segments,
         )
 
     @forward

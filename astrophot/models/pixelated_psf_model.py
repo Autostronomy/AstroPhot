@@ -1,15 +1,14 @@
 import torch
 
-from .psf_model_object import PSF_Model
-from ..utils.decorators import ignore_numpy_warnings, default_internal
+from .psf_model_object import PSFModel
+from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
-from ._shared_methods import select_target
-from ..param import Param_Unlock, Param_SoftLimits
+from caskade import OverrideParam
 
-__all__ = ["Pixelated_PSF"]
+__all__ = ["PixelatedPSF"]
 
 
-class Pixelated_PSF(PSF_Model):
+class PixelatedPSF(PSFModel):
     """point source model which uses an image of the PSF as its
     representation for point sources. Using bilinear interpolation it
     will shift the PSF within a pixel to accurately represent the
@@ -37,50 +36,25 @@ class Pixelated_PSF(PSF_Model):
 
     """
 
-    model_type = f"pixelated {PSF_Model.model_type}"
-    parameter_specs = {
-        "pixels": {"units": "log10(flux/arcsec^2)"},
+    _model_type = "pixelated"
+    _parameter_specs = {
+        "pixels": {"units": "flux"},
     }
-    _parameter_order = PSF_Model._parameter_order + ("pixels",)
     usable = True
-    model_integrated = True
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
-        target_area = target[self.window]
-        with Param_Unlock(parameters["pixels"]), Param_SoftLimits(parameters["pixels"]):
-            if parameters["pixels"].value is None:
-                dat = torch.abs(target_area.data)
-                dat[dat == 0] = torch.median(dat) * 1e-7
-                parameters["pixels"].value = torch.log10(dat / target.pixel_area)
-            if parameters["pixels"].uncertainty is None:
-                parameters["pixels"].uncertainty = (
-                    torch.abs(parameters["pixels"].value) * self.default_uncertainty
-                )
+    def initialize(self):
+        super().initialize()
+        if self.pixels.value is None:
+            target_area = self.target[self.window]
+            self.pixels.dynamic_value = target_area.data.value
+            self.pixels.uncertainty = torch.abs(self.pixels.value) * self.default_uncertainty
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None, **kwargs):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+    def brightness(self, x, y, pixels, center):
+        with OverrideParam(self.target.crtan, center):
+            pX, pY = self.target.plane_to_pixel(x, y)
 
-        # Convert coordinates into pixel locations in the psf image
-        pX, pY = self.target.plane_to_pixel(X, Y)
+        result = interp2d(pixels, pX, pY)
 
-        # Select only the pixels where the PSF image is defined
-        select = torch.logical_and(
-            torch.logical_and(pX > -0.5, pX < parameters["pixels"].shape[1] - 0.5),
-            torch.logical_and(pY > -0.5, pY < parameters["pixels"].shape[0] - 0.5),
-        )
-
-        # Zero everywhere outside the psf
-        result = torch.zeros_like(X)
-
-        # Use bilinear interpolation of the PSF at the requested coordinates
-        result[select] = interp2d(parameters["pixels"].value, pX[select], pY[select])
-
-        return image.pixel_area * 10**result
+        return result

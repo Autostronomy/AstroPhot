@@ -54,9 +54,9 @@ class iSersicMixin:
             prof_func=sersic_np,
             params=("n", "Re", "Ie"),
             x0_func=_x0_func,
-            segments=self.rays,
+            segments=self.segments,
         )
 
     @forward
-    def radial_model(self, i, R, n, Re, Ie):
+    def iradial_model(self, i, R, n, Re, Ie):
         return func.sersic(R, n[i], Re[i], Ie[i])

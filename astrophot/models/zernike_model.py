@@ -3,27 +3,22 @@ from functools import lru_cache
 import torch
 from scipy.special import binom
 
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ._shared_methods import select_target
-from .psf_model_object import PSF_Model
-from ..param import Param_Unlock, Param_SoftLimits
+from ..utils.decorators import ignore_numpy_warnings
+from .psf_model_object import PSFModel
 from ..errors import SpecificationConflict
+from ..param import forward
 
-__all__ = ("Zernike_PSF",)
+__all__ = ("ZernikePSF",)
 
 
-class Zernike_PSF(PSF_Model):
+class ZernikePSF(PSFModel):
 
-    model_type = f"zernike {PSF_Model.model_type}"
-    parameter_specs = {
-        "Anm": {"units": "flux/arcsec^2"},
-    }
-    _parameter_order = PSF_Model._parameter_order + ("Anm",)
+    _model_type = "zernike"
+    _parameter_specs = {"Anm": {"units": "flux/arcsec^2"}}
     usable = True
-    model_integrated = False
 
-    def __init__(self, *, name=None, order_n=2, r_scale=None, **kwargs):
-        super().__init__(name=name, **kwargs)
+    def __init__(self, *args, order_n=2, r_scale=None, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.order_n = int(order_n)
         self.r_scale = r_scale
@@ -31,10 +26,8 @@ class Zernike_PSF(PSF_Model):
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self):
+        super().initialize()
 
         # List the coefficients to use
         self.nm_list = self.iter_nm(self.order_n)
@@ -43,25 +36,20 @@ class Zernike_PSF(PSF_Model):
             self.r_scale = torch.max(self.window.shape) / 2
 
         # Check if user has already set the coefficients
-        if parameters["Anm"].value is not None:
-            if len(self.nm_list) != len(parameters["Anm"].value):
+        if self.Anm.value is not None:
+            if len(self.nm_list) != len(self.Anm.value):
                 raise SpecificationConflict(
-                    f"nm_list length ({len(self.nm_list)}) must match coefficients ({len(parameters['Anm'].value)})"
+                    f"nm_list length ({len(self.nm_list)}) must match coefficients ({len(self.Anm.value)})"
                 )
             return
 
         # Set the default coefficients to zeros
-        with Param_Unlock(parameters["Anm"]), Param_SoftLimits(parameters["Anm"]):
-            parameters["Anm"].value = torch.zeros(len(self.nm_list))
-            if parameters["Anm"].uncertainty is None:
-                parameters["Anm"].uncertainty = self.default_uncertainty * torch.ones_like(
-                    parameters["Anm"].value
-                )
-            # Set the zero order zernike polynomial to the average in the image
-            if self.nm_list[0] == (0, 0):
-                parameters["Anm"].value[0] = (
-                    torch.median(target[self.window].data) / target.pixel_area
-                )
+        self.Anm.dynamic_value = torch.zeros(len(self.nm_list))
+        self.Anm.uncertainty = self.default_uncertainty * torch.ones_like(self.Anm.value)
+        if self.nm_list[0] == (0, 0):
+            self.Anm.value[0] = (
+                torch.median(self.target[self.window].data.value) / self.target.pixel_area
+            )
 
     def iter_nm(self, n):
         nm = []
@@ -114,23 +102,20 @@ class Zernike_PSF(PSF_Model):
                 Z += c * R * T
         return Z
 
-    @default_internal
-    def evaluate_model(self, X=None, Y=None, image=None, parameters=None):
-        if X is None:
-            Coords = image.get_coordinate_meshgrid()
-            X, Y = Coords - parameters["center"].value[..., None, None]
+    @forward
+    def brightness(self, x, y, Anm):
+        x, y = self.transform_coordinates(x, y)
 
-        phi = self.angular_metric(X, Y, image, parameters)
+        phi = self.angular_metric(x, y)
 
-        r = self.radius_metric(X, Y, image, parameters)
+        r = self.radius_metric(x, y)
         r = r / self.r_scale
 
-        G = torch.zeros_like(X)
+        G = torch.zeros_like(x)
 
         i = 0
-        A = image.pixel_area * parameters["Anm"].value
         for n, m in self.nm_list:
-            G += A[i] * self.Z_n_m(r, phi, n, m)
+            G += Anm[i] * self.Z_n_m(r, phi, n, m)
             i += 1
 
         G[r > 1] = 0.0

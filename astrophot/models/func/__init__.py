@@ -18,6 +18,9 @@ from .convolution import (
 from .sersic import sersic, sersic_n_to_b
 from .moffat import moffat
 from .gaussian import gaussian
+from .exponential import exponential
+from .nuker import nuker
+from .spline import spline
 from .transform import rotate
 
 __all__ = (
@@ -35,6 +38,9 @@ __all__ = (
     "sersic_n_to_b",
     "moffat",
     "gaussian",
+    "exponential",
+    "nuker",
+    "spline",
     "single_quad_integrate",
     "recursive_quad_integrate",
     "upsample",
