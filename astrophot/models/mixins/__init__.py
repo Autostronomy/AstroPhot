@@ -1,18 +1,30 @@
-from .sersic import SersicMixin, iSersicMixin
-from .brightness import RadialMixin
+from .brightness import (
+    RadialMixin,
+    WedgeMixin,
+    RayMixin,
+    SuperEllipseMixin,
+    FourierEllipseMixin,
+    WarpMixin,
+)
 from .transform import InclinedMixin
+from .sersic import SersicMixin, iSersicMixin
 from .exponential import ExponentialMixin, iExponentialMixin
 from .moffat import MoffatMixin, iMoffatMixin
 from .gaussian import GaussianMixin, iGaussianMixin
 from .nuker import NukerMixin, iNukerMixin
-from .spline import SplineMixin
+from .spline import SplineMixin, iSplineMixin
 from .sample import SampleMixin
 
 __all__ = (
+    "RadialMixin",
+    "WedgeMixin",
+    "RayMixin",
+    "SuperEllipseMixin",
+    "FourierEllipseMixin",
+    "WarpMixin",
+    "InclinedMixin",
     "SersicMixin",
     "iSersicMixin",
-    "RadialMixin",
-    "InclinedMixin",
     "ExponentialMixin",
     "iExponentialMixin",
     "MoffatMixin",
@@ -22,5 +34,6 @@ __all__ = (
     "NukerMixin",
     "iNukerMixin",
     "SplineMixin",
+    "iSplineMixin",
     "SampleMixin",
 )

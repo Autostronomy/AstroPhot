@@ -34,7 +34,7 @@ class ExponentialMixin:
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(self, **kwargs):
+    def initialize(self):
         super().initialize()
 
         parametric_initialize(
@@ -63,19 +63,18 @@ class iExponentialMixin:
 
     _model_type = "exponential"
     parameter_specs = {
-        "Re": {"units": "arcsec", "limits": (0, None)},
+        "Re": {"units": "arcsec", "valid": (0, None)},
         "Ie": {"units": "flux/arcsec^2"},
     }
 
     @torch.no_grad()
     @ignore_numpy_warnings
-    def initialize(self, target=None, parameters=None, **kwargs):
-        super().initialize(target=target, parameters=parameters)
+    def initialize(self):
+        super().initialize()
 
         parametric_segment_initialize(
             model=self,
-            target=target,
-            parameters=parameters,
+            target=self.target,
             prof_func=exponential_np,
             params=("Re", "Ie"),
             x0_func=_x0_func,

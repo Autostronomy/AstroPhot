@@ -2,15 +2,29 @@ from caskade import forward
 
 from .galaxy_model_object import GalaxyModel
 from .psf_model_object import PSFModel
-from .warp_model import WarpGalaxy
-from .ray_model import RayGalaxy
-from .wedge_model import WedgeGalaxy
-from .superellipse_model import SuperEllipseGalaxy
-from .foureirellipse_model import FourierEllipseGalaxy
 from ..utils.conversions.functions import moffat_I0_to_flux
-from .mixins import MoffatMixin, InclinedMixin, RadialMixin
+from .mixins import (
+    MoffatMixin,
+    InclinedMixin,
+    RadialMixin,
+    WedgeMixin,
+    RayMixin,
+    SuperEllipseMixin,
+    FourierEllipseMixin,
+    WarpMixin,
+    iMoffatMixin,
+)
 
-__all__ = ("MoffatGalaxy", "MoffatPSF")
+__all__ = (
+    "MoffatGalaxy",
+    "MoffatPSF",
+    "Moffat2DPSF",
+    "MoffatSuperEllipse",
+    "MoffatFourierEllipse",
+    "MoffatWarp",
+    "MoffatRay",
+    "MoffatWedge",
+)
 
 
 class MoffatGalaxy(MoffatMixin, RadialMixin, GalaxyModel):
@@ -73,21 +87,21 @@ class Moffat2DPSF(InclinedMixin, MoffatPSF):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
-class MoffatSuperEllipseGalaxy(MoffatMixin, RadialMixin, SuperEllipseGalaxy):
+class MoffatSuperEllipse(MoffatMixin, SuperEllipseMixin, GalaxyModel):
     usable = True
 
 
-class MoffatFourierEllipseGalaxy(MoffatMixin, RadialMixin, FourierEllipseGalaxy):
+class MoffatFourierEllipse(MoffatMixin, FourierEllipseMixin, GalaxyModel):
     usable = True
 
 
-class MoffatWarpGalaxy(MoffatMixin, RadialMixin, WarpGalaxy):
+class MoffatWarp(MoffatMixin, WarpMixin, GalaxyModel):
     usable = True
 
 
-class MoffatWedgeGalaxy(MoffatMixin, WedgeGalaxy):
+class MoffatRay(iMoffatMixin, RayMixin, GalaxyModel):
     usable = True
 
 
-class MoffatRayGalaxy(MoffatMixin, RayGalaxy):
+class MoffatWedge(iMoffatMixin, WedgeMixin, GalaxyModel):
     usable = True

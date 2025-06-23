@@ -3,13 +3,18 @@ import numpy as np
 import torch
 from scipy.optimize import minimize
 
-from ..utils.initialize import isophotes
 from ..utils.decorators import ignore_numpy_warnings
-from . import func
 from .. import AP_config
 
 
-def _sample_image(image, transform, radius, rad_bins=None):
+def _sample_image(
+    image,
+    transform,
+    radius,
+    angle=None,
+    rad_bins=None,
+    angle_range=None,
+):
     dat = image.data.npvalue.copy()
     # Fill masked pixels
     if image.has_mask:
@@ -22,13 +27,18 @@ def _sample_image(image, transform, radius, rad_bins=None):
     x, y = transform(*image.coordinate_center_meshgrid(), params=())
 
     R = radius(x, y).detach().cpu().numpy().flatten()
+    if angle_range is not None:
+        T = angle(x, y).detach().cpu().numpy().flatten()
+        CHOOSE = ((T % (2 * np.pi)) > angle_range[0]) & ((T % (2 * np.pi)) < angle_range[1])
+        R = R[CHOOSE]
+        dat = dat.flatten()[CHOOSE]
+    raveldat = dat.ravel()
 
     # Bin fluxes by radius
     if rad_bins is None:
         rad_bins = np.logspace(np.log10(R.min() * 0.9), np.log10(R.max() * 1.1), 11)
     else:
         rad_bins = np.array(rad_bins)
-    raveldat = dat.ravel()
     I = (
         binned_statistic(R, raveldat, statistic="median", bins=rad_bins)[0]
     ) / image.pixel_area.item()
@@ -112,187 +122,51 @@ def parametric_segment_initialize(
     params=None,
     x0_func=None,
     segments=None,
-    force_uncertainty=None,
 ):
     if all(list(model[param].value is not None for param in params)):
         return
-    # Get the sub-image area corresponding to the model image
-    target_area = target[model.window]
-    target_dat = target_area.data.detach().cpu().numpy()
-    if target_area.has_mask:
-        mask = target_area.mask.detach().cpu().numpy()
-        target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
-    edge = np.concatenate(
-        (
-            target_dat[:, 0],
-            target_dat[:, -1],
-            target_dat[0, :],
-            target_dat[-1, :],
+
+    cycle = np.pi if model.symmetric else 2 * np.pi
+    w = cycle / segments
+    v = w * np.arange(segments)
+    values = []
+    uncertainties = []
+    for s in range(segments):
+        angle_range = (v[s] - w / 2, v[s] + w / 2)
+        # Get the sub-image area corresponding to the model image
+        R, I, S = _sample_image(
+            target,
+            model.transform_coordinates,
+            model.radial_metric,
+            angle=model.angular_metric,
+            angle_range=angle_range,
         )
-    )
-    edge_average = np.median(edge)
-    edge_scatter = iqr(edge, rng=(16, 84)) / 2
-    # Convert center coordinates to target area array indices
-    icenter = target_area.plane_to_pixel(model["center"].value)
 
-    iso_info = isophotes(
-        target_dat - edge_average,
-        (icenter[1].item(), icenter[0].item()),
-        threshold=3 * edge_scatter,
-        pa=(model["PA"].value - target.north).item() if "PA" in model else 0.0,
-        q=model["q"].value.item() if "q" in model else 1.0,
-        n_isophotes=15,
-        more=True,
-    )
-    R = np.array(list(iso["R"] for iso in iso_info)) * target.pixel_length.item()
-    was_none = list(False for i in range(len(params)))
-    val = {}
-    unc = {}
-    for i, p in enumerate(params):
-        if model[p].value is None:
-            was_none[i] = True
-            val[p] = np.zeros(segments)
-            unc[p] = np.zeros(segments)
-    for r in range(segments):
-        flux = []
-        for iso in iso_info:
-            modangles = (
-                iso["angles"]
-                - ((model["PA"].value - target.north).detach().cpu().item() + r * np.pi / segments)
-            ) % np.pi
-            flux.append(
-                np.median(
-                    iso["isovals"][
-                        np.logical_or(
-                            modangles < (0.5 * np.pi / segments),
-                            modangles >= (np.pi * (1 - 0.5 / segments)),
-                        )
-                    ]
+        x0 = list(x0_func(model, R, I))
+
+        def optim(x, r, f, u):
+            residual = ((f - np.log10(prof_func(r, *x))) / u) ** 2
+            N = np.argsort(residual)
+            return np.mean(residual[N][:-2])
+
+        res = minimize(optim, x0=x0, args=(R, I, S), method="Nelder-Mead")
+        if not res.success:
+            if AP_config.ap_verbose >= 2:
+                AP_config.ap_logger.warning(
+                    f"initialization fit not successful for {model.name}, falling back to defaults"
                 )
-            )
-        flux = np.array(flux) / target.pixel_area.item()
-        if np.sum(flux < 0) >= 1:
-            flux -= np.min(flux) - np.abs(np.min(flux) * 0.1)
-        flux = np.log10(flux)
+        else:
+            x0 = res.x
 
-        x0 = list(x0_func(model, R, flux))
-        for i, param in enumerate(params):
-            x0[i] = x0[i] if was_none[i] else model[param].value.detach().cpu().numpy()[r]
-        res = minimize(
-            lambda x: np.mean((flux - np.log10(prof_func(R, *x))) ** 2),
-            x0=x0,
-            method="Nelder-Mead",
-        )
-        if force_uncertainty is None:
-            reses = []
-            for i in range(10):
-                N = np.random.randint(0, len(R), len(R))
-                reses.append(
-                    minimize(
-                        lambda x: np.mean((flux - np.log10(prof_func(R, *x))) ** 2),
-                        x0=x0,
-                        method="Nelder-Mead",
-                    )
-                )
-        for i, param in enumerate(params):
-            if was_none[i]:
-                val[param][r] = res.x[i] if res.success else x0[i]
-                if force_uncertainty is None and model[param].uncertainty is None:
-                    unc[r] = np.std(list(subres.x[params.index(param)] for subres in reses))
-                elif force_uncertainty is not None:
-                    unc[r] = force_uncertainty[params.index(param)][r]
-
-            with Param_Unlock(model[param]), Param_SoftLimits(model[param]):
-                model[param].value = val[param]
-                model[param].uncertainty = unc[param]
-
-
-# Spline
-######################################################################
-# @torch.no_grad()
-# @ignore_numpy_warnings
-# @select_target
-# @default_internal
-# def spline_segment_initialize(
-#     self, target=None, parameters=None, segments=1, symmetric=True, **kwargs
-# ):
-#     super(self.__class__, self).initialize(target=target, parameters=parameters)
-
-#     if parameters["I(R)"].value is not None and parameters["I(R)"].prof is not None:
-#         return
-
-#     # Create the I(R) profile radii if needed
-#     if parameters["I(R)"].prof is None:
-#         new_prof = [0, 2 * target.pixel_length]
-#         while new_prof[-1] < torch.max(self.window.shape / 2):
-#             new_prof.append(new_prof[-1] + torch.max(2 * target.pixel_length, new_prof[-1] * 0.2))
-#         new_prof.pop()
-#         new_prof.pop()
-#         new_prof.append(torch.sqrt(torch.sum((self.window.shape / 2) ** 2)))
-#         parameters["I(R)"].prof = new_prof
-
-#     profR = parameters["I(R)"].prof.detach().cpu().numpy()
-#     target_area = target[self.window]
-#     target_dat = target_area.data.detach().cpu().numpy()
-#     if target_area.has_mask:
-#         mask = target_area.mask.detach().cpu().numpy()
-#         target_dat[mask] = np.median(target_dat[np.logical_not(mask)])
-#     Coords = target_area.get_coordinate_meshgrid()
-#     X, Y = Coords - parameters["center"].value[..., None, None]
-#     X, Y = self.transform_coordinates(X, Y, target, parameters)
-#     R = self.radius_metric(X, Y, target, parameters).detach().cpu().numpy()
-#     T = self.angular_metric(X, Y, target, parameters).detach().cpu().numpy()
-#     rad_bins = [profR[0]] + list((profR[:-1] + profR[1:]) / 2) + [profR[-1] * 100]
-#     raveldat = target_dat.ravel()
-#     val = np.zeros((segments, len(parameters["I(R)"].prof)))
-#     unc = np.zeros((segments, len(parameters["I(R)"].prof)))
-#     for s in range(segments):
-#         if segments % 2 == 0 and symmetric:
-#             angles = (T - (s * np.pi / segments)) % np.pi
-#             TCHOOSE = np.logical_or(
-#                 angles < (np.pi / segments), angles >= (np.pi * (1 - 1 / segments))
-#             )
-#         elif segments % 2 == 1 and symmetric:
-#             angles = (T - (s * np.pi / segments)) % (2 * np.pi)
-#             TCHOOSE = np.logical_or(
-#                 angles < (np.pi / segments), angles >= (np.pi * (2 - 1 / segments))
-#             )
-#             angles = (T - (np.pi + s * np.pi / segments)) % (2 * np.pi)
-#             TCHOOSE = np.logical_or(
-#                 TCHOOSE,
-#                 np.logical_or(angles < (np.pi / segments), angles >= (np.pi * (2 - 1 / segments))),
-#             )
-#         elif segments % 2 == 0 and not symmetric:
-#             angles = (T - (s * 2 * np.pi / segments)) % (2 * np.pi)
-#             TCHOOSE = torch.logical_or(
-#                 angles < (2 * np.pi / segments),
-#                 angles >= (2 * np.pi * (1 - 1 / segments)),
-#             )
-#         else:
-#             angles = (T - (s * 2 * np.pi / segments)) % (2 * np.pi)
-#             TCHOOSE = torch.logical_or(
-#                 angles < (2 * np.pi / segments), angles >= (np.pi * (2 - 1 / segments))
-#             )
-#         TCHOOSE = TCHOOSE.ravel()
-#         I = (
-#             binned_statistic(
-#                 R.ravel()[TCHOOSE], raveldat[TCHOOSE], statistic="median", bins=rad_bins
-#             )[0]
-#         ) / target.pixel_area.item()
-#         N = np.isfinite(I)
-#         if not np.all(N):
-#             I[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], I[N])
-#         S = binned_statistic(
-#             R.ravel(),
-#             raveldat,
-#             statistic=lambda d: iqr(d, rng=[16, 84]) / 2,
-#             bins=rad_bins,
-#         )[0]
-#         N = np.isfinite(S)
-#         if not np.all(N):
-#             S[np.logical_not(N)] = np.interp(profR[np.logical_not(N)], profR[N], S[N])
-#         val[s] = np.log10(np.abs(I))
-#         unc[s] = S / (np.abs(I) * np.log(10))
-#     with Param_Unlock(parameters["I(R)"]), Param_SoftLimits(parameters["I(R)"]):
-#         parameters["I(R)"].value = val
-#         parameters["I(R)"].uncertainty = unc
+        reses = []
+        for i in range(10):
+            N = np.random.randint(0, len(R), len(R))
+            reses.append(minimize(optim, x0=x0, args=(R[N], I[N], S[N]), method="Nelder-Mead"))
+        values.append(x0)
+        uncertainties.append(np.std(np.stack(reses), axis=0))
+    values = np.stack(values).T
+    uncertainties = np.stack(uncertainties).T
+    for param, v, u in zip(params, values, uncertainties):
+        if model[param].value is None:
+            model[param].dynamic_value = v
+            model[param].uncertainty = u

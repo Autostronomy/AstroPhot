@@ -12,29 +12,22 @@ from .galaxy_model_object import GalaxyModel
 from .sky_model_object import SkyModel
 from .point_source import PointSource
 
-# Subtypes of GalaxyModel
-from .foureirellipse_model import FourierEllipseGalaxy
-from .ray_model import RayGalaxy
-from .superellipse_model import SuperEllipseGalaxy
-from .wedge_model import WedgeGalaxy
-from .warp_model import WarpGalaxy
-
 # subtypes of PSFModel
-from .eigen_psf import EigenPSF
-from .airy_psf import AiryPSF
-from .zernike_model import ZernikePSF
-from .pixelated_psf_model import PixelatedPSF
+from .eigen import EigenPSF
+from .airy import AiryPSF
+from .zernike import ZernikePSF
+from .pixelated_psf import PixelatedPSF
 
 # Subtypes of SkyModel
-from .flatsky_model import FlatSky
-from .planesky_model import PlaneSky
+from .flatsky import FlatSky
+from .planesky import PlaneSky
 
 # Special galaxy types
-from .edgeon_model import EdgeonModel, EdgeonSech, EdgeonIsothermal
-from .multi_gaussian_expansion_model import MultiGaussianExpansion
+from .edgeon import EdgeonModel, EdgeonSech, EdgeonIsothermal
+from .multi_gaussian_expansion import MultiGaussianExpansion
 
 # Standard models based on a core radial profile
-from .sersic_model import (
+from .sersic import (
     SersicGalaxy,
     SersicPSF,
     SersicFourierEllipse,
@@ -43,7 +36,7 @@ from .sersic_model import (
     SersicRay,
     SersicWedge,
 )
-from .exponential_model import (
+from .exponential import (
     ExponentialGalaxy,
     ExponentialPSF,
     ExponentialSuperEllipse,
@@ -52,7 +45,7 @@ from .exponential_model import (
     ExponentialRay,
     ExponentialWedge,
 )
-from .gaussian_model import (
+from .gaussian import (
     GaussianGalaxy,
     GaussianPSF,
     GaussianSuperEllipse,
@@ -61,17 +54,17 @@ from .gaussian_model import (
     GaussianRay,
     GaussianWedge,
 )
-from .moffat_model import (
+from .moffat import (
     MoffatGalaxy,
     MoffatPSF,
     Moffat2DPSF,
-    MoffatFourierEllipseGalaxy,
-    MoffatRayGalaxy,
-    MoffatWedgeGalaxy,
-    MoffatWarpGalaxy,
-    MoffatSuperEllipseGalaxy,
+    MoffatFourierEllipse,
+    MoffatRay,
+    MoffatWedge,
+    MoffatWarp,
+    MoffatSuperEllipse,
 )
-from .nuker_model import (
+from .nuker import (
     NukerGalaxy,
     NukerPSF,
     NukerFourierEllipse,
@@ -80,7 +73,7 @@ from .nuker_model import (
     NukerRay,
     NukerWedge,
 )
-from .spline_model import (
+from .spline import (
     SplineGalaxy,
     SplinePSF,
     SplineFourierEllipse,
@@ -139,11 +132,11 @@ __all__ = (
     "MoffatGalaxy",
     "MoffatPSF",
     "Moffat2DPSF",
-    "MoffatFourierEllipseGalaxy",
-    "MoffatRayGalaxy",
-    "MoffatWedgeGalaxy",
-    "MoffatWarpGalaxy",
-    "MoffatSuperEllipseGalaxy",
+    "MoffatFourierEllipse",
+    "MoffatRay",
+    "MoffatWedge",
+    "MoffatWarp",
+    "MoffatSuperEllipse",
     "NukerGalaxy",
     "NukerPSF",
     "NukerFourierEllipse",
