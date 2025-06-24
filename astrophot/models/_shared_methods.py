@@ -4,6 +4,7 @@ import torch
 from scipy.optimize import minimize
 
 from ..utils.decorators import ignore_numpy_warnings
+from ..utils.interpolate import default_prof
 from .. import AP_config
 
 
@@ -36,7 +37,9 @@ def _sample_image(
 
     # Bin fluxes by radius
     if rad_bins is None:
-        rad_bins = np.logspace(np.log10(R.min() * 0.9), np.log10(R.max() * 1.1), 11)
+        rad_bins = np.logspace(
+            np.log10(R.min() * 0.9 + image.pixel_length / 2), np.log10(R.max() * 1.1), 11
+        )
     else:
         rad_bins = np.array(rad_bins)
     I = (
@@ -80,7 +83,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         return
 
     # Get the sub-image area corresponding to the model image
-    R, I, S = _sample_image(target, model.transform_coordinates, model.radial_metric)
+    R, I, S = _sample_image(target, model.transform_coordinates, model.radius_metric)
 
     x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):
@@ -137,7 +140,7 @@ def parametric_segment_initialize(
         R, I, S = _sample_image(
             target,
             model.transform_coordinates,
-            model.radial_metric,
+            model.radius_metric,
             angle=model.angular_metric,
             angle_range=angle_range,
         )

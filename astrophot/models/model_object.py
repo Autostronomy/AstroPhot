@@ -89,11 +89,12 @@ class ComponentModel(SampleMixin, Model):
             self._psf = val
         elif isinstance(val, Model):
             self._psf = PSFImage(
-                data=lambda p: p.psf_model().data.value, pixelscale=val.target.pixelscale
+                name="psf", data=val.target.data.value, pixelscale=val.target.pixelscale
             )
-            self._psf.link("psf_model", val)
+            self._psf.data = lambda p: p.psf_model().data.value
+            self._psf.data.link("psf_model", val)
         else:
-            self._psf = PSFImage(data=val, pixelscale=self.target.pixelscale)
+            self._psf = PSFImage(name="psf", data=val, pixelscale=self.target.pixelscale)
             AP_config.ap_logger.warning(
                 "Setting PSF with pixel image, assuming target pixelscale is the same as "
                 "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "

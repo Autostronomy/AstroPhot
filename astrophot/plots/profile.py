@@ -152,8 +152,8 @@ def radial_median_profile(
         "elinewidth": 1,
         "color": main_pallet["primary2"],
         "label": "data profile",
+        **plot_kwargs,
     }
-    kwargs.update(plot_kwargs)
     ax.errorbar(
         (Rbins[:-1] + Rbins[1:]) / 2,
         stat,
@@ -175,24 +175,23 @@ def ray_light_profile(
     rad_unit="arcsec",
     extend_profile=1.0,
     resolution=1000,
-    doassert=True,
 ):
     xx = torch.linspace(
         0,
-        torch.max(model.window.shape / 2) * extend_profile,
+        max(model.window.shape) * model.target.pixel_length * extend_profile / 2,
         int(resolution),
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
     )
-    for r in range(model.rays):
-        if model.rays <= 5:
+    for r in range(model.segments):
+        if model.segments <= 3:
             col = main_pallet[f"primary{r+1}"]
         else:
-            col = cmap_grad(r / model.rays)
+            col = cmap_grad(r / model.segments)
         with torch.no_grad():
             ax.plot(
                 xx.detach().cpu().numpy(),
-                np.log10(model.iradial_model(r, xx).detach().cpu().numpy()),
+                np.log10(model.iradial_model(r, xx, params=()).detach().cpu().numpy()),
                 linewidth=2,
                 color=col,
                 label=f"{model.name} profile {r}",
@@ -210,24 +209,23 @@ def wedge_light_profile(
     rad_unit="arcsec",
     extend_profile=1.0,
     resolution=1000,
-    doassert=True,
 ):
     xx = torch.linspace(
         0,
-        torch.max(model.window.shape / 2) * extend_profile,
+        max(model.window.shape) * model.target.pixel_length * extend_profile / 2,
         int(resolution),
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
     )
-    for r in range(model.wedges):
-        if model.wedges <= 5:
+    for r in range(model.segments):
+        if model.segments <= 3:
             col = main_pallet[f"primary{r+1}"]
         else:
-            col = cmap_grad(r / model.wedges)
+            col = cmap_grad(r / model.segments)
         with torch.no_grad():
             ax.plot(
                 xx.detach().cpu().numpy(),
-                np.log10(model.iradial_model(r, xx).detach().cpu().numpy()),
+                np.log10(model.iradial_model(r, xx, params=()).detach().cpu().numpy()),
                 linewidth=2,
                 color=col,
                 label=f"{model.name} profile {r}",

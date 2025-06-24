@@ -43,6 +43,9 @@ class PSFModel(SampleMixin, Model):
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
     _options = ("softening", "normalize_psf")
 
+    def initialize(self):
+        pass
+
     @forward
     def transform_coordinates(self, x, y, center):
         return x - center[0], y - center[1]
@@ -102,3 +105,7 @@ class PSFModel(SampleMixin, Model):
         elif not isinstance(target, PSFImage):
             raise InvalidTarget(f"Target for PSF_Model must be a PSF_Image, not {type(target)}")
         self._target = target
+
+    @forward
+    def __call__(self) -> ModelImage:
+        return self.sample()

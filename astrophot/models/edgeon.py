@@ -4,6 +4,7 @@ import numpy as np
 from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings
 from . import func
+from ..param import forward
 
 __all__ = ["EdgeonModel", "EdgeonSech", "EdgeonIsothermal"]
 
@@ -20,7 +21,7 @@ class EdgeonModel(ComponentModel):
     _parameter_specs = {
         "PA": {
             "units": "radians",
-            "limits": (0, np.pi),
+            "valid": (0, np.pi),
             "cyclic": True,
             "uncertainty": 0.06,
         },
@@ -52,6 +53,7 @@ class EdgeonModel(ComponentModel):
             self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
         self.PA.uncertainty = self.PA.value * self.default_uncertainty
 
+    @forward
     def transform_coordinates(self, x, y, PA):
         x, y = super().transform_coordinates(x, y)
         return func.rotate(PA - np.pi / 2, x, y)
@@ -90,6 +92,7 @@ class EdgeonSech(EdgeonModel):
             self.hs.value = torch.max(self.window.shape) * target_area.pixel_length * 0.1
             self.hs.uncertainty = self.hs.value / 2
 
+    @forward
     def brightness(self, x, y, I0, hs):
         x, y = self.transform_coordinates(x, y)
         return I0 * self.radial_model(x) / (torch.cosh((y + self.softening) / hs) ** 2)
@@ -114,6 +117,7 @@ class EdgeonIsothermal(EdgeonSech):
         self.rs.value = torch.max(self.window.shape) * self.target.pixel_length * 0.4
         self.rs.uncertainty = self.rs.value / 2
 
+    @forward
     def radial_model(self, R, rs):
         Rscaled = torch.abs(R / rs)
         return (

@@ -1,12 +1,5 @@
-from .brightness import (
-    RadialMixin,
-    WedgeMixin,
-    RayMixin,
-    SuperEllipseMixin,
-    FourierEllipseMixin,
-    WarpMixin,
-)
-from .transform import InclinedMixin
+from .brightness import RadialMixin, WedgeMixin, RayMixin
+from .transform import InclinedMixin, SuperEllipseMixin, FourierEllipseMixin, WarpMixin
 from .sersic import SersicMixin, iSersicMixin
 from .exponential import ExponentialMixin, iExponentialMixin
 from .moffat import MoffatMixin, iMoffatMixin

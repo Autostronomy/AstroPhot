@@ -4,6 +4,7 @@ from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
 from caskade import OverrideParam
+from ..param import forward
 
 __all__ = ["PixelatedPSF"]
 
@@ -37,9 +38,7 @@ class PixelatedPSF(PSFModel):
     """
 
     _model_type = "pixelated"
-    _parameter_specs = {
-        "pixels": {"units": "flux"},
-    }
+    _parameter_specs = {"pixels": {"units": "flux/arcsec^2"}}
     usable = True
 
     @torch.no_grad()
@@ -48,9 +47,10 @@ class PixelatedPSF(PSFModel):
         super().initialize()
         if self.pixels.value is None:
             target_area = self.target[self.window]
-            self.pixels.dynamic_value = target_area.data.value
+            self.pixels.dynamic_value = target_area.data.value / target_area.pixel_area
             self.pixels.uncertainty = torch.abs(self.pixels.value) * self.default_uncertainty
 
+    @forward
     def brightness(self, x, y, pixels, center):
         with OverrideParam(self.target.crtan, center):
             pX, pY = self.target.plane_to_pixel(x, y)

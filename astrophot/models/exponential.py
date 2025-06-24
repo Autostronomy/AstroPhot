@@ -47,15 +47,15 @@ class ExponentialPSF(ExponentialMixin, RadialMixin, PSFModel):
     usable = True
 
 
-class ExponentialSuperEllipse(ExponentialMixin, SuperEllipseMixin, GalaxyModel):
+class ExponentialSuperEllipse(ExponentialMixin, RadialMixin, SuperEllipseMixin, GalaxyModel):
     usable = True
 
 
-class ExponentialFourierEllipse(ExponentialMixin, FourierEllipseMixin, GalaxyModel):
+class ExponentialFourierEllipse(ExponentialMixin, RadialMixin, FourierEllipseMixin, GalaxyModel):
     usable = True
 
 
-class ExponentialWarp(ExponentialMixin, WarpMixin, GalaxyModel):
+class ExponentialWarp(ExponentialMixin, RadialMixin, WarpMixin, GalaxyModel):
     usable = True
 
 

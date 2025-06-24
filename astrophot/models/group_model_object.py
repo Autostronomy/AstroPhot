@@ -58,7 +58,7 @@ class GroupModel(Model):
         """
         if isinstance(self.target, ImageList):  # WindowList if target is a TargetImageList
             new_window = [None] * len(self.target.images)
-            for model in self.models.values():
+            for model in self.models:
                 if isinstance(model.target, ImageList):
                     for target, window in zip(model.target, model.window):
                         index = self.target.index(target)
@@ -79,7 +79,7 @@ class GroupModel(Model):
             new_window = WindowList(new_window)
         else:
             new_window = None
-            for model in self.models.values():
+            for model in self.models:
                 if new_window is None:
                     new_window = model.window.copy()
                 else:
@@ -97,7 +97,7 @@ class GroupModel(Model):
         """
         super().initialize()
 
-        for model in self.models.values():
+        for model in self.models:
             model.initialize()
 
     def fit_mask(self) -> torch.Tensor:
@@ -111,7 +111,7 @@ class GroupModel(Model):
         subtarget = self.target[self.window]
         if isinstance(self.target, ImageList):
             mask = tuple(torch.ones_like(submask) for submask in subtarget.mask)
-            for model in self.models.values():
+            for model in self.models:
                 model_subtarget = model.target[model.window]
                 model_fit_mask = model.fit_mask()
                 if isinstance(model.target, ImageList):
@@ -127,7 +127,7 @@ class GroupModel(Model):
                     mask[index][group_indices] &= model_fit_mask[model_indices]
         else:
             mask = torch.ones_like(subtarget.mask)
-            for model in self.models.values():
+            for model in self.models:
                 model_subtarget = model.target[model.window]
                 group_indices = subtarget.get_indices(model_subtarget)
                 model_indices = model_subtarget.get_indices(subtarget)
@@ -153,7 +153,7 @@ class GroupModel(Model):
         else:
             image = self.target[window].model_image()
 
-        for model in self.models.values():
+        for model in self.models:
             if window is None:
                 use_window = model.window
             elif isinstance(image, ImageList) and isinstance(model.target, ImageList):
@@ -207,7 +207,7 @@ class GroupModel(Model):
         else:
             jac_img = pass_jacobian
 
-        for model in self.models.values():
+        for model in self.models:
             model.jacobian(
                 pass_jacobian=jac_img,
                 window=window,
@@ -216,7 +216,7 @@ class GroupModel(Model):
         return jac_img
 
     def __iter__(self):
-        return (mod for mod in self.models.values())
+        return (mod for mod in self.models)
 
     @property
     def target(self) -> Optional[Union[TargetImage, TargetImageList]]:

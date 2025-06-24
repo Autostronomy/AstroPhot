@@ -49,7 +49,7 @@ def cubic_spline_torch(x: torch.Tensor, y: torch.Tensor, xs: torch.Tensor) -> to
     return ret
 
 
-def spline(R, profR, profI):
+def spline(R, profR, profI, extend="zeros"):
     """Spline 1d profile function, cubic spline between points up
     to second last point beyond which is linear
 
@@ -59,5 +59,10 @@ def spline(R, profR, profI):
         profI: surface density values for the surface density profile
     """
     I = cubic_spline_torch(profR, profI, R.view(-1)).reshape(*R.shape)
-    I[R > profR[-1]] = 0
+    if extend == "zeros":
+        I[R > profR[-1]] = 0
+    elif extend == "const":
+        I[R > profR[-1]] = profI[-1]
+    else:
+        raise ValueError(f"Unknown extend option: {extend}. Use 'zeros' or 'const'.")
     return I

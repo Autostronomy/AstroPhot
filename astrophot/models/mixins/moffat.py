@@ -8,15 +8,15 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return 2.0, R[4], F[0]
+    return 2.0, R[4], 10 ** F[0]
 
 
 class MoffatMixin:
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "limits": (0.1, 10), "uncertainty": 0.05},
-        "Rd": {"units": "arcsec", "limits": (0, None)},
+        "n": {"units": "none", "valid": (0.1, 10), "uncertainty": 0.05},
+        "Rd": {"units": "arcsec", "valid": (0, None)},
         "I0": {"units": "flux/arcsec^2"},
     }
 
@@ -26,7 +26,7 @@ class MoffatMixin:
         super().initialize()
 
         parametric_initialize(
-            self, self.target[self.window], moffat_np, ("n", "Re", "Ie"), _x0_func
+            self, self.target[self.window], moffat_np, ("n", "Rd", "I0"), _x0_func
         )
 
     @forward
@@ -38,8 +38,8 @@ class iMoffatMixin:
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "limits": (0.1, 10), "uncertainty": 0.05},
-        "Rd": {"units": "arcsec", "limits": (0, None)},
+        "n": {"units": "none", "valid": (0.1, 10), "uncertainty": 0.05},
+        "Rd": {"units": "arcsec", "valid": (0, None)},
         "I0": {"units": "flux/arcsec^2"},
     }
 

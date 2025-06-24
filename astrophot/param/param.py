@@ -8,10 +8,12 @@ class Param(CParam):
     This class is used to define parameters for models in the AstroPhot package.
     """
 
-    def __init__(self, *args, uncertainty=None, **kwargs):
+    def __init__(self, *args, uncertainty=None, prof=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.uncertainty = uncertainty
         self.saveattrs.add("uncertainty")
+        self.prof = prof
+        self.saveattrs.add("prof")
 
     @property
     def uncertainty(self):
@@ -23,3 +25,14 @@ class Param(CParam):
             self._uncertainty = None
         else:
             self._uncertainty = torch.as_tensor(uncertainty)
+
+    @property
+    def prof(self):
+        return self._prof
+
+    @prof.setter
+    def prof(self, prof):
+        if prof is None:
+            self._prof = None
+        else:
+            self._prof = torch.as_tensor(prof)

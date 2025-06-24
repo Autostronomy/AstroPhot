@@ -6,6 +6,7 @@ from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
 from .. import AP_config
 from ..errors import SpecificationConflict
+from ..param import forward
 
 __all__ = ["EigenPSF"]
 
@@ -51,9 +52,7 @@ class EigenPSF(PSFModel):
                 "EigenPSF model requires 'eigen_basis' argument to be provided."
             )
         self.eigen_basis = torch.as_tensor(
-            kwargs["eigen_basis"],
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
+            eigen_basis, dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
     @torch.no_grad()
@@ -70,6 +69,7 @@ class EigenPSF(PSFModel):
             self.weights.dynamic_value = 1 / np.arange(len(self.eigen_basis))
             self.weights.uncertainty = self.weights.value * self.default_uncertainty
 
+    @forward
     def brightness(self, x, y, flux, weights):
         x, y = self.transform_coordinates(x, y)
 

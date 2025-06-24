@@ -11,9 +11,7 @@ from .. import func
 class SplineMixin:
 
     _model_type = "spline"
-    parameter_specs = {
-        "I_R": {"units": "flux/arcsec^2"},
-    }
+    _parameter_specs = {"I_R": {"units": "flux/arcsec^2"}}
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -42,15 +40,14 @@ class SplineMixin:
 
     @forward
     def radial_model(self, R, I_R):
+        print(self.I_R.prof, I_R)
         return func.spline(R, self.I_R.prof, I_R)
 
 
 class iSplineMixin:
 
     _model_type = "spline"
-    parameter_specs = {
-        "I_R": {"units": "flux/arcsec^2"},
-    }
+    _parameter_specs = {"I_R": {"units": "flux/arcsec^2"}}
 
     @torch.no_grad()
     @ignore_numpy_warnings

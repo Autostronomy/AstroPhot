@@ -4,6 +4,7 @@ import torch
 
 from .sky_model_object import SkyModel
 from ..utils.decorators import ignore_numpy_warnings
+from ..param import forward
 
 __all__ = ["PlaneSky"]
 
@@ -53,5 +54,6 @@ class PlaneSky(SkyModel):
                 self.default_uncertainty,
             ]
 
+    @forward
     def brightness(self, x, y, I0, delta):
         return I0 + x * delta[0] + y * delta[1]

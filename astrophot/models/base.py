@@ -169,7 +169,8 @@ class Model(Module):
             if isinstance(kwargs[p], dict):
                 parameter_specs[p].update(kwargs.pop(p))
             else:
-                parameter_specs[p]["value"] = kwargs.pop(p)
+                parameter_specs[p]["dynamic_value"] = kwargs.pop(p)
+                parameter_specs[p].pop("value", None)
 
         return parameter_specs
 
@@ -269,9 +270,11 @@ class Model(Module):
         MODELS = func.all_subclasses(cls)
         result = set()
         for model in MODELS:
+            if not (model.__dict__.get("usable", False) is usable or usable is None):
+                continue
             if types:
                 result.add(model.model_type)
-            elif model.usable is usable or usable is None:
+            else:
                 result.add(model)
         return result
 

@@ -33,7 +33,7 @@ class ZernikePSF(PSFModel):
         self.nm_list = self.iter_nm(self.order_n)
         # Set the scale radius for the Zernike area
         if self.r_scale is None:
-            self.r_scale = torch.max(self.window.shape) / 2
+            self.r_scale = max(self.window.shape) / 2
 
         # Check if user has already set the coefficients
         if self.Anm.value is not None:

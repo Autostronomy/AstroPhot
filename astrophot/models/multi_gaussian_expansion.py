@@ -39,6 +39,7 @@ class MultiGaussianExpansion(ComponentModel):
             for key in ("q", "sigma", "flux"):
                 if self[key].value is not None:
                     self.n_components = self[key].value.shape[0]
+                    break
             else:
                 raise ValueError(
                     f"n_components must be specified when initial values is not defined."

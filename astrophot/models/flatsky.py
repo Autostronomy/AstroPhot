@@ -4,6 +4,7 @@ import torch
 
 from ..utils.decorators import ignore_numpy_warnings
 from .sky_model_object import SkyModel
+from ..param import forward
 
 __all__ = ["FlatSky"]
 
@@ -37,5 +38,6 @@ class FlatSky(SkyModel):
             iqr(dat, rng=(16, 84)) / (2.0 * self.target.pixel_area.item())
         ) / np.sqrt(np.prod(self.window.shape))
 
+    @forward
     def brightness(self, x, y, I):
         return torch.ones_like(x) * I

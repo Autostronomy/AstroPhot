@@ -3,6 +3,7 @@ import torch
 from ..utils.decorators import ignore_numpy_warnings
 from .psf_model_object import PSFModel
 from .mixins import RadialMixin
+from ..param import forward
 
 __all__ = ("AiryPSF",)
 
@@ -63,6 +64,7 @@ class AiryPSF(RadialMixin, PSFModel):
             self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixel_length
             self.aRL.uncertainty = self.aRL.value * self.default_uncertainty
 
+    @forward
     def radial_model(self, R, I0, aRL):
-        x = 2 * torch.pi * aRL * R
+        x = 2 * torch.pi * aRL * (R + self.softening)
         return I0 * (2 * torch.special.bessel_j1(x) / x) ** 2

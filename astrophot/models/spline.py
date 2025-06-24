@@ -22,8 +22,6 @@ __all__ = [
 ]
 
 
-# First Order
-######################################################################
 class SplineGalaxy(SplineMixin, RadialMixin, GalaxyModel):
     """Basic galaxy model with a spline radial light profile. The
     light profile is defined as a cubic spline interpolation of the

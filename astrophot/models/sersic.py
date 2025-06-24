@@ -76,15 +76,15 @@ class SersicPSF(SersicMixin, RadialMixin, PSFModel):
         return sersic_Ie_to_flux_torch(Ie, n, Re, 1.0)
 
 
-class SersicSuperEllipse(SersicMixin, SuperEllipseMixin, GalaxyModel):
+class SersicSuperEllipse(SersicMixin, RadialMixin, SuperEllipseMixin, GalaxyModel):
     usable = True
 
 
-class SersicFourierEllipse(SersicMixin, FourierEllipseMixin, GalaxyModel):
+class SersicFourierEllipse(SersicMixin, RadialMixin, FourierEllipseMixin, GalaxyModel):
     usable = True
 
 
-class SersicWarp(SersicMixin, WarpMixin, GalaxyModel):
+class SersicWarp(SersicMixin, RadialMixin, WarpMixin, GalaxyModel):
     usable = True
 
 
