@@ -95,8 +95,6 @@ class GroupModel(Model):
         Args:
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
-        super().initialize()
-
         for model in self.models:
             model.initialize()
 

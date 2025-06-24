@@ -487,14 +487,18 @@ class Image(Module):
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data._value[self.get_indices(other)] += other.data.value[other.get_indices(self)]
+            self.data._value[self.get_indices(other.window)] += other.data.value[
+                other.get_indices(self.window)
+            ]
         else:
             self.data._value = self.data._value + other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data._value[self.get_indices(other)] -= other.data.value[other.get_indices(self)]
+            self.data._value[self.get_indices(other.window)] -= other.data.value[
+                other.get_indices(self.window)
+            ]
         else:
             self.data._value = self.data._value - other
         return self

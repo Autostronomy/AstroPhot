@@ -410,33 +410,24 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
         return fig, ax
 
     if isinstance(model, GroupModel):
-        for m in model.models.values():
+        for m in model.models:
             if isinstance(m.window, WindowList):
                 use_window = m.window.window_list[m.target.index(target)]
             else:
                 use_window = m.window
 
-            lowright = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-            lowright[1] = 0.0
-            lowright = use_window.origin + use_window.pixel_to_plane_delta(lowright)
-            lowright = lowright.detach().cpu().numpy()
-            upleft = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-            upleft[0] = 0.0
-            upleft = use_window.origin + use_window.pixel_to_plane_delta(upleft)
-            upleft = upleft.detach().cpu().numpy()
-            end = use_window.origin + use_window.end
-            end = end.detach().cpu().numpy()
+            corners = target[use_window].corners()
             x = [
-                use_window.origin[0].detach().cpu().numpy(),
-                lowright[0],
-                end[0],
-                upleft[0],
+                corners[0][0].item(),
+                corners[1][0].item(),
+                corners[2][0].item(),
+                corners[3][0].item(),
             ]
             y = [
-                use_window.origin[1].detach().cpu().numpy(),
-                lowright[1],
-                end[1],
-                upleft[1],
+                corners[0][1].item(),
+                corners[1][1].item(),
+                corners[2][1].item(),
+                corners[3][1].item(),
             ]
             ax.add_patch(
                 Polygon(

@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model, R, F):
-    return 2.0, R[4], F[4]
+    return 2.0, R[4], 10 ** F[4]
 
 
 class SersicMixin:

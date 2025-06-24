@@ -73,6 +73,9 @@ class Window:
         self.j_low -= pad
         self.j_high += pad
 
+    def copy(self):
+        return Window((self.i_low, self.i_high, self.j_low, self.j_high), self.image)
+
     def __or__(self, other: "Window"):
         if not isinstance(other, Window):
             raise TypeError(f"Cannot combine Window with {type(other)}")

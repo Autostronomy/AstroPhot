@@ -258,10 +258,8 @@ class Model(Module):
             self._window = None
         elif isinstance(window, Window):
             self._window = window
-        elif len(window) == 2:
-            self._window = Window((window[1], window[0]), image=self.target)
-        elif len(window) == 4:
-            self._window = Window((window[2], window[3], window[0], window[1]), image=self.target)
+        elif len(window) in [2, 4]:
+            self._window = Window(window, image=self.target)
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 

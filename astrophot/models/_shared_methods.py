@@ -102,7 +102,13 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
             )
     else:
         x0 = res.x
+    # import matplotlib.pyplot as plt
 
+    # plt.plot(R, I, "o", label="data")
+    # plt.plot(R, np.log10(prof_func(R, *x0)), label="fit")
+    # plt.title(f"Initial fit for {model.name}")
+    # plt.legend()
+    # plt.show()
     reses = []
     for i in range(10):
         N = np.random.randint(0, len(R), len(R))

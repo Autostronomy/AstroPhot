@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[4]
+    return R[4], 10 ** F[4]
 
 
 class ExponentialMixin:

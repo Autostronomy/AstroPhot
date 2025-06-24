@@ -35,7 +35,7 @@ class SplineMixin:
             self.radius_metric,
             rad_bins=[0] + list((prof[:-1] + prof[1:]) / 2) + [prof[-1] * 100],
         )
-        self.I_R.dynamic_value = I
+        self.I_R.dynamic_value = 10**I
         self.I_R.uncertainty = S
 
     @forward
@@ -80,7 +80,7 @@ class iSplineMixin:
                 rad_bins=[0] + list((prof[s][:-1] + prof[s][1:]) / 2) + [prof[s][-1] * 100],
                 angle_range=angle_range,
             )
-            value[s] = I
+            value[s] = 10**I
             uncertainty[s] = S
         self.I_R.dynamic_value = value
         self.I_R.uncertainty = uncertainty

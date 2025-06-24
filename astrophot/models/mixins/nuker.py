@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[4], 1.0, 2.0, 0.5
+    return R[4], 10 ** F[4], 1.0, 2.0, 0.5
 
 
 class NukerMixin:
