@@ -20,7 +20,7 @@ class SampleMixin:
     jacobian_maxparams = 10
     jacobian_maxpixels = 1000**2
     integrate_mode = "threshold"  # none, threshold
-    integrate_tolerance = 1e-3  # total flux fraction
+    integrate_tolerance = 1e-4  # total flux fraction
     integrate_max_depth = 3
     integrate_gridding = 5
     integrate_quad_order = 3

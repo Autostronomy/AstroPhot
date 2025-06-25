@@ -44,6 +44,7 @@ class ExponentialGalaxy(ExponentialMixin, RadialMixin, GalaxyModel):
 
 
 class ExponentialPSF(ExponentialMixin, RadialMixin, PSFModel):
+    _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0}}
     usable = True
 
 

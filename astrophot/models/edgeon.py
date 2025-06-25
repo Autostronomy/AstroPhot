@@ -35,7 +35,7 @@ class EdgeonModel(ComponentModel):
         if self.PA.value is not None:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.npvalue
+        dat = target_area.data.npvalue.copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         dat = dat - edge_average

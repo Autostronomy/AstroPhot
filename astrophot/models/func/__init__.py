@@ -12,6 +12,7 @@ from .integration import (
 from .convolution import (
     lanczos_kernel,
     bilinear_kernel,
+    convolve,
     convolve_and_shift,
     curvature_kernel,
 )
@@ -32,6 +33,7 @@ __all__ = (
     "pixel_quad_integrator",
     "lanczos_kernel",
     "bilinear_kernel",
+    "convolve",
     "convolve_and_shift",
     "curvature_kernel",
     "sersic",

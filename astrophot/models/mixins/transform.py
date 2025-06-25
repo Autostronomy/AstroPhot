@@ -29,29 +29,22 @@ class InclinedMixin:
         if not (self.PA.value is None or self.q.value is None):
             return
         target_area = self.target[self.window]
-        target_dat = target_area.data.npvalue
+        dat = target_area.data.npvalue.copy()
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()
-            target_dat[mask] = np.median(target_dat[~mask])
-        edge = np.concatenate(
-            (
-                target_dat[:, 0],
-                target_dat[:, -1],
-                target_dat[0, :],
-                target_dat[-1, :],
-            )
-        )
+            dat[mask] = np.median(dat[~mask])
+        edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)
-        target_dat -= edge_average
+        dat -= edge_average
         x, y = target_area.coordinate_center_meshgrid()
         x = (x - self.center.value[0]).detach().cpu().numpy()
         y = (y - self.center.value[1]).detach().cpu().numpy()
-        mu20 = np.median(target_dat * np.abs(x))
-        mu02 = np.median(target_dat * np.abs(y))
-        mu11 = np.median(target_dat * x * y / np.sqrt(np.abs(x * y)))
-        # mu20 = np.median(target_dat * x**2)
-        # mu02 = np.median(target_dat * y**2)
-        # mu11 = np.median(target_dat * x * y)
+        mu20 = np.median(dat * np.abs(x))
+        mu02 = np.median(dat * np.abs(y))
+        mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y)))
+        # mu20 = np.median(dat * x**2)
+        # mu02 = np.median(dat * y**2)
+        # mu11 = np.median(dat * x * y)
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if self.PA.value is None:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):

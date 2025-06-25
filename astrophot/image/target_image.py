@@ -301,11 +301,7 @@ class TargetImage(Image):
         elif isinstance(psf, PSFImage):
             self._psf = psf
         elif isinstance(psf, Model):
-            self._psf = PSFImage(
-                data=lambda p: p.psf_model().data.value,
-                pixelscale=psf.target.pixelscale,
-            )
-            self._psf.link("psf_model", psf)
+            self._psf = psf
         else:
             AP_config.ap_logger.warning(
                 "PSF provided is not a PSF_Image or AstroPhot PSF_Model, assuming its pixelscale is the same as this Target_Image."

@@ -53,7 +53,7 @@ class PSFModel(SampleMixin, Model):
     # Fit loop functions
     ######################################################################
     @forward
-    def sample(self):
+    def sample(self, window=None):
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods. This should not
         be overloaded except in special cases.
@@ -91,6 +91,9 @@ class PSFModel(SampleMixin, Model):
 
         return working_image
 
+    def fit_mask(self):
+        return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)
+
     @property
     def target(self):
         try:
@@ -107,5 +110,5 @@ class PSFModel(SampleMixin, Model):
         self._target = target
 
     @forward
-    def __call__(self) -> ModelImage:
-        return self.sample()
+    def __call__(self, window=None) -> ModelImage:
+        return self.sample(window=window)

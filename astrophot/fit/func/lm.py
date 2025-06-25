@@ -82,6 +82,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
 
     if nostep:
         if scary["h"] is not None:
+            print("scary")
             return scary
         raise OptimizeStop("Could not find step to improve chi^2")
 

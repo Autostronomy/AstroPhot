@@ -15,7 +15,7 @@ from ..image import (
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
 from .. import AP_config
-from ..errors import SpecificationConflict, InvalidTarget
+from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
 __all__ = ["ComponentModel"]
@@ -88,11 +88,7 @@ class ComponentModel(SampleMixin, Model):
         elif isinstance(val, PSFImage):
             self._psf = val
         elif isinstance(val, Model):
-            self._psf = PSFImage(
-                name="psf", data=val.target.data.value, pixelscale=val.target.pixelscale
-            )
-            self._psf.data = lambda p: p.psf_model().data.value
-            self._psf.data.link("psf_model", val)
+            self._psf = val
         else:
             self._psf = PSFImage(name="psf", data=val, pixelscale=self.target.pixelscale)
             AP_config.ap_logger.warning(
@@ -195,8 +191,22 @@ class ComponentModel(SampleMixin, Model):
             raise NotImplementedError("PSF convolution in sub-window not available yet")
 
         if "full" in self.psf_mode:
-            psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
-            psf_pad = np.max(self.psf.shape) // 2
+            if isinstance(self.psf, PSFImage):
+                psf_upscale = (
+                    torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
+                )
+                psf_pad = np.max(self.psf.shape) // 2
+                psf = self.psf.data.value
+            elif isinstance(self.psf, Model):
+                psf_upscale = (
+                    torch.round(self.target.pixel_length / self.psf.target.pixelscale).int().item()
+                )
+                psf_pad = np.max(self.psf.window.shape) // 2
+                psf = self.psf().data.value
+            else:
+                raise TypeError(
+                    f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
+                )
 
             working_image = ModelImage(window=window, upsample=psf_upscale, pad=psf_pad)
 
@@ -214,10 +224,12 @@ class ComponentModel(SampleMixin, Model):
 
             sample = self.sample_image(working_image)
 
-            shift_kernel = self.shift_kernel(pixel_shift)
-            working_image.data = func.convolve_and_shift(sample, shift_kernel, self.psf.data.value)
-            working_image.crtan = working_image.crtan.value - center_shift
-
+            if self.psf_subpixel_shift != "none":
+                shift_kernel = self.shift_kernel(pixel_shift)
+                working_image.data = func.convolve_and_shift(sample, shift_kernel, psf)
+                working_image.crtan = working_image.crtan.value - center_shift
+            else:
+                working_image.data = func.convolve(sample, psf)
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         else:

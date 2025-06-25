@@ -32,7 +32,7 @@ class FlatSky(SkyModel):
         if self.I.value is not None:
             return
 
-        dat = self.target[self.window].data.npvalue
+        dat = self.target[self.window].data.npvalue.copy()
         self.I.value = np.median(dat) / self.target.pixel_area.item()
         self.I.uncertainty = (
             iqr(dat, rng=(16, 84)) / (2.0 * self.target.pixel_area.item())

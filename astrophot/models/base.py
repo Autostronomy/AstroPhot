@@ -7,6 +7,7 @@ from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
 from ..image import Window, ImageList, ModelImage, ModelImageList
 from ..errors import UnrecognizedModel, InvalidWindow
+from .. import AP_config
 from . import func
 
 __all__ = ("Model",)
@@ -117,9 +118,17 @@ class Model(Module):
                 setattr(self, kwarg, kwargs.pop(kwarg))
 
         # Create Param objects for this Module
-        parameter_specs = self.build_parameter_specs(kwargs)
+        parameter_specs = self.build_parameter_specs(kwargs, self.parameter_specs)
         for key in parameter_specs:
             setattr(self, key, Param(key, **parameter_specs[key]))
+        overload_specs = self.build_parameter_specs(kwargs, self.overload_parameter_specs)
+        for key in overload_specs:
+            overload = overload_specs[key].pop("overloads")
+            if self[overload].value is not None:
+                continue
+            self[overload].value = overload_specs[key].pop("overload_function")
+            setattr(self, key, Param(key, **overload_specs[key]))
+            self[overload].link(key, self[key])
 
         self.saveattrs.update(self.options)
         self.saveattrs.add("window.extent")
@@ -160,8 +169,18 @@ class Model(Module):
             specs.update(getattr(subcls, "_parameter_specs", {}))
         return specs
 
-    def build_parameter_specs(self, kwargs) -> dict:
-        parameter_specs = deepcopy(self.parameter_specs)
+    @classproperty
+    def overload_parameter_specs(cls) -> dict:
+        """Collects all parameter specifications from the class hierarchy."""
+        specs = {}
+        for subcls in reversed(cls.mro()):
+            if subcls is object:
+                continue
+            specs.update(getattr(subcls, "_overload_parameter_specs", {}))
+        return specs
+
+    def build_parameter_specs(self, kwargs, parameter_specs) -> dict:
+        parameter_specs = deepcopy(parameter_specs)
 
         for p in list(kwargs.keys()):
             if p not in parameter_specs:
@@ -281,6 +300,13 @@ class Model(Module):
 
     def angular_metric(self, x, y):
         return torch.atan2(y, x)
+
+    def to(self, dtype=None, device=None):
+        if dtype is None:
+            dtype = AP_config.ap_dtype
+        if device is None:
+            device = AP_config.ap_device
+        super().to(dtype=dtype, device=device)
 
     @forward
     def __call__(

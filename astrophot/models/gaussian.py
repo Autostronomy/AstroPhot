@@ -43,6 +43,7 @@ class GaussianGalaxy(GaussianMixin, RadialMixin, GalaxyModel):
 
 
 class GaussianPSF(GaussianMixin, RadialMixin, PSFModel):
+    _parameter_specs = {"flux": {"units": "flux", "value": 1.0}}
     usable = True
 
 

@@ -69,6 +69,7 @@ class SersicPSF(SersicMixin, RadialMixin, PSFModel):
 
     """
 
+    _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0}}
     usable = True
 
     @forward

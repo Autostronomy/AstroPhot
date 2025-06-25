@@ -70,6 +70,8 @@ class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
 
     """
 
+    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
+
     usable = True
 
     @forward
@@ -80,6 +82,7 @@ class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
 class Moffat2DPSF(InclinedMixin, MoffatPSF):
 
     _model_type = "2d"
+    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
     usable = True
 
     @forward

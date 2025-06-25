@@ -55,7 +55,8 @@ def _sample_image(
     if np.sum(I > 0) <= 3:
         I = np.abs(I)
     N = I > 0
-    I[~N] = np.interp(R[~N], R[N], I[N])
+    if not np.all(N):
+        I[~N] = np.interp(R[~N], R[N], I[N])
     # Ensure decreasing brightness with radius in outer regions
     for i in range(5, len(I)):
         if I[i] >= I[i - 1]:

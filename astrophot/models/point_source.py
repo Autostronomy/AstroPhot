@@ -25,6 +25,14 @@ class PointSource(ComponentModel):
     _parameter_specs = {
         "flux": {"units": "flux", "shape": ()},
     }
+    _overload_parameter_specs = {
+        "logflux": {
+            "units": "log10(flux)",
+            "shape": (),
+            "overloads": "flux",
+            "overload_function": lambda p: 10**p.logflux.value,
+        }
+    }
     usable = True
 
     def __init__(self, *args, **kwargs):
@@ -39,14 +47,14 @@ class PointSource(ComponentModel):
     def initialize(self):
         super().initialize()
 
-        if self.flux.value is not None:
+        if not hasattr(self, "logflux") or self.logflux.value is not None:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.npvalue
+        dat = target_area.data.npvalue.copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
-        self.flux.dynamic_value = np.abs(np.sum(dat - edge_average))
-        self.flux.uncertainty = torch.std(dat) / np.sqrt(np.prod(dat.shape))
+        self.logflux.dynamic_value = np.log10(np.abs(np.sum(dat - edge_average)))
+        self.logflux.uncertainty = torch.std(dat) / np.sqrt(np.prod(dat.shape))
 
     # Psf convolution should be on by default since this is a delta function
     @property

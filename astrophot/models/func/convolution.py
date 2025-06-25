@@ -30,6 +30,20 @@ def bilinear_kernel(dx, dy):
     return kernel
 
 
+def convolve(image, psf):
+
+    image_fft = torch.fft.rfft2(image, s=image.shape)
+    psf_fft = torch.fft.rfft2(psf, s=image.shape)
+
+    convolved_fft = image_fft * psf_fft
+    convolved = torch.fft.irfft2(convolved_fft, s=image.shape)
+    return torch.roll(
+        convolved,
+        shifts=(-psf.shape[0] // 2, -psf.shape[1] // 2),
+        dims=(0, 1),
+    )
+
+
 def convolve_and_shift(image, shift_kernel, psf):
 
     image_fft = torch.fft.rfft2(image, s=image.shape)
