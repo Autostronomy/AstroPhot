@@ -40,7 +40,6 @@ class SplineMixin:
 
     @forward
     def radial_model(self, R, I_R):
-        print(self.I_R.prof, I_R)
         return func.spline(R, self.I_R.prof, I_R)
 
 

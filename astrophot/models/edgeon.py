@@ -50,13 +50,13 @@ class EdgeonModel(ComponentModel):
         if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
             self.PA.dynamic_value = np.pi / 2
         else:
-            self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
+            self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
         self.PA.uncertainty = self.PA.value * self.default_uncertainty
 
     @forward
     def transform_coordinates(self, x, y, PA):
         x, y = super().transform_coordinates(x, y)
-        return func.rotate(PA - np.pi / 2, x, y)
+        return func.rotate(-(PA + np.pi / 2), x, y)
 
 
 class EdgeonSech(EdgeonModel):

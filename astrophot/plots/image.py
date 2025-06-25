@@ -11,12 +11,14 @@ from ..models import GroupModel, PSFModel
 from ..image import ImageList, WindowList
 from .. import AP_config
 from ..utils.conversions.units import flux_to_sb
+from ..utils.decorators import ignore_numpy_warnings
 from .visuals import *
 
 
 __all__ = ["target_image", "psf_image", "model_image", "residual_image", "model_window"]
 
 
+@ignore_numpy_warnings
 def target_image(fig, ax, target, window=None, **kwargs):
     """
     This function is used to display a target image using the provided figure and axes.
@@ -99,6 +101,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def psf_image(
     fig,
     ax,
@@ -145,6 +148,7 @@ def psf_image(
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def model_image(
     fig,
     ax,
@@ -269,6 +273,7 @@ def model_image(
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def residual_image(
     fig,
     ax,
@@ -401,6 +406,7 @@ def residual_image(
     return fig, ax
 
 
+@ignore_numpy_warnings
 def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
     if target is None:
         target = model.target

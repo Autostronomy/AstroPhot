@@ -107,28 +107,28 @@ class GroupModel(Model):
 
         """
         subtarget = self.target[self.window]
-        if isinstance(self.target, ImageList):
+        if isinstance(subtarget, ImageList):
             mask = tuple(torch.ones_like(submask) for submask in subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 model_fit_mask = model.fit_mask()
-                if isinstance(model.target, ImageList):
+                if isinstance(model_subtarget, ImageList):
                     for target, submask in zip(model_subtarget, model_fit_mask):
                         index = subtarget.index(target)
-                        group_indices = subtarget.images[index].get_indices(target)
-                        model_indices = target.get_indices(subtarget.images[index])
+                        group_indices = subtarget.images[index].get_indices(target.window)
+                        model_indices = target.get_indices(subtarget.images[index].window)
                         mask[index][group_indices] &= submask[model_indices]
                 else:
                     index = subtarget.index(model_subtarget)
-                    group_indices = subtarget.images[index].get_indices(model_subtarget)
-                    model_indices = model_subtarget.get_indices(subtarget.images[index])
+                    group_indices = subtarget.images[index].get_indices(model_subtarget.window)
+                    model_indices = model_subtarget.get_indices(subtarget.images[index].window)
                     mask[index][group_indices] &= model_fit_mask[model_indices]
         else:
             mask = torch.ones_like(subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
-                group_indices = subtarget.get_indices(model_subtarget)
-                model_indices = model_subtarget.get_indices(subtarget)
+                group_indices = subtarget.get_indices(model.window)
+                model_indices = model_subtarget.get_indices(subtarget.window)
                 mask[group_indices] &= model.fit_mask()[model_indices]
         return mask
 
@@ -186,6 +186,7 @@ class GroupModel(Model):
         self,
         pass_jacobian: Optional[JacobianImage] = None,
         window: Optional[Window] = None,
+        params=None,
     ) -> JacobianImage:
         """Compute the jacobian for this model. Done by first constructing a
         full jacobian (Npixels * Nparameters) of zeros then call the
@@ -197,6 +198,9 @@ class GroupModel(Model):
         """
         if window is None:
             window = self.window
+
+        if params is not None:
+            self.fill_dynamic_values(params)
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(

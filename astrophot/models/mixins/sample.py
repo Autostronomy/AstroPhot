@@ -141,9 +141,6 @@ class SampleMixin:
         if window is None:
             window = self.window
 
-        if params is not None:
-            self.fill_dynamic_values(params)
-
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(
                 parameters=self.build_params_array_identities()
@@ -159,10 +156,11 @@ class SampleMixin:
         n_pixels = np.prod(window.shape)
         if n_pixels > self.jacobian_maxpixels:
             for chunk in window.chunk(self.jacobian_maxpixels):
-                self.jacobian(window=chunk, pass_jacobian=jac_img)
+                self.jacobian(window=chunk, pass_jacobian=jac_img, params=params)
             return jac_img
 
-        params = self.build_params_array()
+        if params is None:
+            params = self.build_params_array()
         identities = self.build_params_array_identities()
         target = self.target[window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters

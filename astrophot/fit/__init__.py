@@ -1,8 +1,9 @@
 # from .base import *
-from .lm import *
+from .lm import LM
 
 # from .gradient import *
-# from .iterative import *
+from .iterative import Iter
+
 # from .minifit import *
 
 # try:
@@ -11,6 +12,8 @@ from .lm import *
 # except AssertionError as e:
 #     print("Could not load HMC or NUTS due to:", str(e))
 # from .mhmcmc import *
+
+__all__ = ["LM", "Iter"]
 
 """
 base: This module defines the base class BaseOptimizer,

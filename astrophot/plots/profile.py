@@ -9,14 +9,13 @@ from .. import AP_config
 # from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
-from ..errors import InvalidModel
 
 __all__ = [
     "radial_light_profile",
     "radial_median_profile",
     "ray_light_profile",
     "wedge_light_profile",
-    # "warp_phase_profile",
+    "warp_phase_profile",
 ]
 
 
@@ -236,29 +235,24 @@ def wedge_light_profile(
     return fig, ax
 
 
-# def warp_phase_profile(fig, ax, model, rad_unit="arcsec", doassert=True):
-#     if doassert:
-#         if not isinstance(model, Warp_Galaxy):
-#             raise InvalidModel(
-#                 f"warp_phase_profile must be given a 'Warp_Galaxy' object. Not {type(model)}"
-#             )
+def warp_phase_profile(fig, ax, model, rad_unit="arcsec"):
 
-#     ax.plot(
-#         model.profR,
-#         model["q(R)"].value.detach().cpu().numpy(),
-#         linewidth=2,
-#         color=main_pallet["primary1"],
-#         label=f"{model.name} axis ratio",
-#     )
-#     ax.plot(
-#         model.profR,
-#         model["PA(R)"].detach().cpu().numpy() / np.pi,
-#         linewidth=2,
-#         color=main_pallet["secondary1"],
-#         label=f"{model.name} position angle",
-#     )
-#     ax.set_ylim([0, 1])
-#     ax.set_ylabel("q [b/a], PA [rad/$\\pi$]")
-#     ax.set_xlabel(f"Radius [{rad_unit}]")
+    ax.plot(
+        model.q_R.prof.detach().cpu().numpy(),
+        model.q_R.npvalue,
+        linewidth=2,
+        color=main_pallet["primary1"],
+        label=f"{model.name} axis ratio",
+    )
+    ax.plot(
+        model.PA_R.prof.detach().cpu().numpy(),
+        model.PA_R.npvalue / np.pi,
+        linewidth=2,
+        color=main_pallet["primary2"],
+        label=f"{model.name} position angle",
+    )
+    ax.set_ylim([0, 1])
+    ax.set_ylabel("q [b/a], PA [rad/$\\pi$]")
+    ax.set_xlabel(f"Radius [{rad_unit}]")
 
-#     return fig, ax
+    return fig, ax
