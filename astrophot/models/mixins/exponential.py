@@ -43,7 +43,7 @@ class ExponentialMixin:
 
     @forward
     def radial_model(self, R, Re, Ie):
-        return func.exponential(R, Re, Ie)
+        return func.exponential(R + self.softening, Re, Ie)
 
 
 class iExponentialMixin:
@@ -82,5 +82,5 @@ class iExponentialMixin:
         )
 
     @forward
-    def radial_model(self, i, R, Re, Ie):
-        return func.exponential(R, Re[i], Ie[i])
+    def iradial_model(self, i, R, Re, Ie):
+        return func.exponential(R + self.softening, Re[i], Ie[i])

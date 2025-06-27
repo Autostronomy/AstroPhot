@@ -30,7 +30,7 @@ class GaussianMixin:
 
     @forward
     def radial_model(self, R, sigma, flux):
-        return func.gaussian(R, sigma, flux)
+        return func.gaussian(R + self.softening, sigma, flux)
 
 
 class iGaussianMixin:
@@ -57,4 +57,4 @@ class iGaussianMixin:
 
     @forward
     def iradial_model(self, i, R, sigma, flux):
-        return func.gaussian(R, sigma[i], flux[i])
+        return func.gaussian(R + self.softening, sigma[i], flux[i])

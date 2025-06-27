@@ -41,7 +41,7 @@ class InclinedMixin:
         y = (y - self.center.value[1]).detach().cpu().numpy()
         mu20 = np.median(dat * np.abs(x))
         mu02 = np.median(dat * np.abs(y))
-        mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y)))
+        mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
         # mu20 = np.median(dat * x**2)
         # mu02 = np.median(dat * y**2)
         # mu11 = np.median(dat * x * y)
@@ -54,9 +54,10 @@ class InclinedMixin:
                     0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2
                 ) % np.pi
         if self.q.value is None:
-            l = np.sort(np.linalg.eigvals(M))
-            if np.any(np.iscomplex(l)) or np.any(~np.isfinite(l)):
+            if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
                 l = (0.7, 1.0)
+            else:
+                l = np.sort(np.linalg.eigvals(M))
             self.q.dynamic_value = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     @forward
@@ -237,3 +238,43 @@ class WarpMixin:
         q = func.spline(R, self.q_R.prof, q_R, extend="const")
         x, y = func.rotate(PA, x, y)
         return x, y / q
+
+
+class TruncationMixin:
+    """Mixin for models that include a truncation radius. This is used to
+    limit the radial extent of the model, effectively setting a maximum
+    radius beyond which the model's brightness is zero.
+
+    Parameters:
+        R_trunc: The truncation radius in arcseconds.
+    """
+
+    _model_type = "truncated"
+    _parameter_specs = {
+        "Rt": {"units": "arcsec", "valid": (0, None), "shape": ()},
+        "sharpness": {"units": "none", "valid": (0, None), "shape": ()},
+    }
+    _options = ("outer_truncation",)
+
+    def __init__(self, *args, outer_truncation=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.outer_truncation = outer_truncation
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+        if self.Rt.value is None:
+            prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
+            self.Rt.dynamic_value = prof[len(prof) // 2]
+            self.Rt.uncertainty = 0.1
+        if self.sharpness.value is None:
+            self.sharpness.dynamic_value = 1.0
+            self.sharpness.uncertainty = 0.1
+
+    @forward
+    def radial_model(self, R, Rt, sharpness):
+        I = super().radial_model(R)
+        if self.outer_truncation:
+            return I * (1 - torch.tanh(sharpness * (R - Rt))) / 2
+        return I * (torch.tanh(sharpness * (R - Rt)) + 1) / 2

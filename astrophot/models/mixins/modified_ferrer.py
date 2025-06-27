@@ -15,7 +15,7 @@ class ModifiedFerrerMixin:
     _model_type = "modifiedferrer"
     _parameter_specs = {
         "rout": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "alpha": {"units": "unitless", "valid": (0, None), "shape": ()},
+        "alpha": {"units": "unitless", "valid": (0, 10), "shape": ()},
         "beta": {"units": "unitless", "valid": (0, 2), "shape": ()},
         "I0": {"units": "flux/arcsec^2", "shape": ()},
     }
@@ -35,7 +35,7 @@ class ModifiedFerrerMixin:
 
     @forward
     def radial_model(self, R, rout, alpha, beta, I0):
-        return func.modified_ferrer(R, rout, alpha, beta, I0)
+        return func.modified_ferrer(R + self.softening, rout, alpha, beta, I0)
 
 
 class iModifiedFerrerMixin:
@@ -43,7 +43,7 @@ class iModifiedFerrerMixin:
     _model_type = "modifiedferrer"
     _parameter_specs = {
         "rout": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "alpha": {"units": "unitless", "valid": (0, None), "shape": ()},
+        "alpha": {"units": "unitless", "valid": (0, 10), "shape": ()},
         "beta": {"units": "unitless", "valid": (0, 2), "shape": ()},
         "I0": {"units": "flux/arcsec^2", "shape": ()},
     }
@@ -64,4 +64,4 @@ class iModifiedFerrerMixin:
 
     @forward
     def iradial_model(self, i, R, rout, alpha, beta, I0):
-        return func.modified_ferrer(R, rout[i], alpha[i], beta[i], I0[i])
+        return func.modified_ferrer(R + self.softening, rout[i], alpha[i], beta[i], I0[i])

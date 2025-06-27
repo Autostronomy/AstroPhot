@@ -12,6 +12,16 @@ def _x0_func(model, R, F):
 
 
 class SersicMixin:
+    """Sersic radial light profile. The functional form of the Sersic profile is defined as:
+
+    $$I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))$$
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Re: half light radius [arcsec]
+        Ie: intensity at the half light radius [flux/arcsec^2]
+
+    """
 
     _model_type = "sersic"
     _parameter_specs = {
@@ -31,10 +41,20 @@ class SersicMixin:
 
     @forward
     def radial_model(self, R, n, Re, Ie):
-        return func.sersic(R, n, Re, Ie)
+        return func.sersic(R + self.softening, n, Re, Ie)
 
 
 class iSersicMixin:
+    """Sersic radial light profile. The functional form of the Sersic profile is defined as:
+
+    $$I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))$$
+
+    Parameters:
+        n: Sersic index which controls the shape of the brightness profile
+        Re: half light radius [arcsec]
+        Ie: intensity at the half light radius [flux/arcsec^2]
+
+    """
 
     _model_type = "sersic"
     _parameter_specs = {
@@ -59,4 +79,4 @@ class iSersicMixin:
 
     @forward
     def iradial_model(self, i, R, n, Re, Ie):
-        return func.sersic(R, n[i], Re[i], Ie[i])
+        return func.sersic(R + self.softening, n[i], Re[i], Ie[i])

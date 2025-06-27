@@ -31,7 +31,7 @@ class MoffatMixin:
 
     @forward
     def radial_model(self, R, n, Rd, I0):
-        return func.moffat(R, n, Rd, I0)
+        return func.moffat(R + self.softening, n, Rd, I0)
 
 
 class iMoffatMixin:
@@ -59,4 +59,4 @@ class iMoffatMixin:
 
     @forward
     def iradial_model(self, i, R, n, Rd, I0):
-        return func.moffat(R, n[i], Rd[i], I0[i])
+        return func.moffat(R + self.softening, n[i], Rd[i], I0[i])
