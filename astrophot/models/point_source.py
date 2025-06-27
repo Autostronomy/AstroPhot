@@ -8,6 +8,7 @@ from ..utils.decorators import ignore_numpy_warnings
 from ..image import Window, ModelImage
 from ..errors import SpecificationConflict
 from ..param import forward
+from . import func
 
 __all__ = ("PointSource",)
 
@@ -105,16 +106,18 @@ class PointSource(ComponentModel):
         # Compute the center offset
         pixel_center = torch.stack(working_image.plane_to_pixel(*center))
         pixel_shift = pixel_center - torch.round(pixel_center)
-        shift_kernel = self.shift_kernel(pixel_shift)
-        psf = (
-            torch.nn.functional.conv2d(
-                self.psf.data.value.view(1, 1, *self.psf.data.shape),
-                shift_kernel.view(1, 1, *shift_kernel.shape),
-                padding="valid",  # fixme add note about valid padding
-            )
-            .squeeze(0)
-            .squeeze(0)
-        )
+        psf = self.psf.data.value
+        shift_kernel = func.fft_shift_kernel(psf.shape, pixel_shift[0], pixel_shift[1])
+        psf = torch.fft.irfft2(shift_kernel * torch.fft.rfft2(psf, s=psf.shape), s=psf.shape)
+        # (
+        #     torch.nn.functional.conv2d(
+        #         self.psf.data.value.view(1, 1, *self.psf.data.shape),
+        #         shift_kernel.view(1, 1, *shift_kernel.shape),
+        #         padding="valid",  # fixme add note about valid padding
+        #     )
+        #     .squeeze(0)
+        #     .squeeze(0)
+        # )
         psf = flux * psf
 
         # Fill pixels with the PSF image

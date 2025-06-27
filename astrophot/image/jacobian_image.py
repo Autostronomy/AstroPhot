@@ -73,7 +73,7 @@ class JacobianImage(Image):
 
 
 ######################################################################
-class JacobianImageList(ImageList, JacobianImage):
+class JacobianImageList(ImageList):
     """For joint modelling, represents Jacobians evaluated on a list of
     images.
 

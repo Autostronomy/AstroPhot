@@ -37,6 +37,8 @@ class ModelImage(Image):
                 device=AP_config.ap_device,
             )
             kwargs["zeropoint"] = window.image.zeropoint
+            kwargs["identity"] = window.image.identity
+            kwargs["name"] = window.image.name + "_model"
         super().__init__(*args, **kwargs)
 
     def clear_image(self):

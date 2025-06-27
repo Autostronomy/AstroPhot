@@ -14,9 +14,10 @@ from ..image import (
     Window,
     WindowList,
     JacobianImage,
+    JacobianImageList,
 )
 from ..utils.decorators import ignore_numpy_warnings
-from ..errors import InvalidTarget
+from ..errors import InvalidTarget, InvalidWindow
 
 __all__ = ["GroupModel"]
 
@@ -132,6 +133,34 @@ class GroupModel(Model):
                 mask[group_indices] &= model.fit_mask()[model_indices]
         return mask
 
+    def match_window(self, image, window, model):
+        if isinstance(image, ImageList) and isinstance(model.target, ImageList):
+            indices = image.match_indices(model.target)
+            if len(indices) == 0:
+                raise IndexError
+            use_window = WindowList(window_list=list(image.images[i].window for i in indices))
+        elif isinstance(image, ImageList) and isinstance(model.target, Image):
+            try:
+                image.index(model.target)
+            except ValueError:
+                raise IndexError
+            use_window = model.window
+        elif isinstance(image, Image) and isinstance(model.target, ImageList):
+            try:
+                i = model.target.index(image)
+            except ValueError:
+                raise IndexError
+            use_window = model.window[i]
+        elif isinstance(image, Image) and isinstance(model.target, Image):
+            if image.identity != model.target.identity:
+                raise IndexError
+            use_window = window
+        else:
+            raise NotImplementedError(
+                f"Group_Model cannot sample with {type(image)} and {type(model.target)}"
+            )
+        return use_window
+
     @forward
     def sample(
         self,
@@ -154,29 +183,12 @@ class GroupModel(Model):
         for model in self.models:
             if window is None:
                 use_window = model.window
-            elif isinstance(image, ImageList) and isinstance(model.target, ImageList):
-                indices = image.match_indices(model.target)
-                if len(indices) == 0:
-                    continue
-                use_window = WindowList(window_list=list(image.images[i].window for i in indices))
-            elif isinstance(image, ImageList) and isinstance(model.target, Image):
-                try:
-                    image.index(model.target)
-                except ValueError:
-                    continue
-            elif isinstance(image, Image) and isinstance(model.target, ImageList):
-                try:
-                    model.target.index(image)
-                except ValueError:
-                    continue
-            elif isinstance(image, Image) and isinstance(model.target, Image):
-                if image.identity != model.target.identity:
-                    continue
-                use_window = window
             else:
-                raise NotImplementedError(
-                    f"Group_Model cannot sample with {type(image)} and {type(model.target)}"
-                )
+                try:
+                    use_window = self.match_window(image, window, model)
+                except IndexError:
+                    # If the model target is not in the image, skip it
+                    continue
             image += model(window=model.window & use_window)
 
         return image
@@ -184,8 +196,8 @@ class GroupModel(Model):
     @torch.no_grad()
     def jacobian(
         self,
-        pass_jacobian: Optional[JacobianImage] = None,
-        window: Optional[Window] = None,
+        pass_jacobian: Optional[Union[JacobianImage, JacobianImageList]] = None,
+        window: Optional[Union[Window, WindowList]] = None,
         params=None,
     ) -> JacobianImage:
         """Compute the jacobian for this model. Done by first constructing a
@@ -210,9 +222,14 @@ class GroupModel(Model):
             jac_img = pass_jacobian
 
         for model in self.models:
+            try:
+                use_window = self.match_window(jac_img, window, model)
+            except IndexError:
+                # If the model target is not in the image, skip it
+                continue
             model.jacobian(
                 pass_jacobian=jac_img,
-                window=window,
+                window=use_window & model.window,
             )
 
         return jac_img
@@ -232,3 +249,36 @@ class GroupModel(Model):
         if not (tar is None or isinstance(tar, (TargetImage, TargetImageList))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
         self._target = tar
+
+    @property
+    def window(self) -> Optional[Window]:
+        """The window defines a region on the sky in which this model will be
+        optimized and typically evaluated. Two models with
+        non-overlapping windows are in effect independent of each
+        other. If there is another model with a window that spans both
+        of them, then they are tenuously connected.
+
+        If not provided, the model will assume a window equal to the
+        target it is fitting. Note that in this case the window is not
+        explicitly set to the target window, so if the model is moved
+        to another target then the fitting window will also change.
+
+        """
+        if self._window is None:
+            if self.target is None:
+                raise ValueError(
+                    "This model has no target or window, these must be provided by the user"
+                )
+            return self.target.window
+        return self._window
+
+    @window.setter
+    def window(self, window):
+        if window is None:
+            self._window = None
+        elif isinstance(window, (Window, WindowList)):
+            self._window = window
+        elif len(window) in [2, 4]:
+            self._window = Window(window, image=self.target)
+        else:
+            raise InvalidWindow(f"Unrecognized window format: {str(window)}")

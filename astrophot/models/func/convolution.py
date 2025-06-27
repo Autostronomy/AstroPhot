@@ -9,25 +9,34 @@ def lanczos_1d(x, order):
     return torch.sinc(x) * torch.sinc(x / order) * mask
 
 
-def lanczos_kernel(dx, dy, order):
-    grid = torch.arange(-order, order + 1, dtype=dx.dtype, device=dx.device)
-    lx = lanczos_1d(grid - dx, order)
-    ly = lanczos_1d(grid - dy, order)
-    kernel = torch.outer(ly, lx)
+def lanczos_kernel(di, dj, order):
+    grid = torch.arange(-order, order + 1, dtype=di.dtype, device=di.device)
+    li = lanczos_1d(grid - di, order)
+    lj = lanczos_1d(grid - dj, order)
+    kernel = torch.outer(li, lj)
     return kernel / kernel.sum()
 
 
-def bilinear_kernel(dx, dy):
+def bilinear_kernel(di, dj):
     """Bilinear kernel for sub-pixel shifting."""
-    kernel = torch.tensor(
-        [
-            [1 - dx, dx],
-            [dy, 1 - dy],
-        ],
-        dtype=dx.dtype,
-        device=dx.device,
-    )
+    w00 = (1 - di) * (1 - dj)
+    w10 = di * (1 - dj)
+    w01 = (1 - di) * dj
+    w11 = di * dj
+
+    kernel = torch.stack([w00, w10, w01, w11]).reshape(2, 2)
     return kernel
+
+
+def fft_shift_kernel(shape, di, dj):
+    """FFT shift theorem gives "exact" shift in phase space. Not really exact for DFT"""
+    ni, nj = shape
+    ki = torch.fft.fftfreq(ni, dtype=di.dtype, device=di.device)
+    kj = torch.fft.rfftfreq(nj, dtype=di.dtype, device=di.device)
+
+    Ki, Kj = torch.meshgrid(ki, kj, indexing="ij")
+    phase = -2j * torch.pi * (Ki * torch.arctan(di) + Kj * torch.arctan(dj))
+    return torch.exp(phase)
 
 
 def convolve(image, psf):
@@ -39,25 +48,26 @@ def convolve(image, psf):
     convolved = torch.fft.irfft2(convolved_fft, s=image.shape)
     return torch.roll(
         convolved,
-        shifts=(-psf.shape[0] // 2, -psf.shape[1] // 2),
+        shifts=(-(psf.shape[0] // 2), -(psf.shape[1] // 2)),
         dims=(0, 1),
     )
 
 
-def convolve_and_shift(image, shift_kernel, psf):
+def convolve_and_shift(image, psf, shift):
 
     image_fft = torch.fft.rfft2(image, s=image.shape)
     psf_fft = torch.fft.rfft2(psf, s=image.shape)
-    shift_fft = torch.fft.rfft2(shift_kernel, s=image.shape)
 
-    convolved_fft = image_fft * psf_fft * shift_fft
+    if shift is None:
+        convolved_fft = image_fft * psf_fft
+    else:
+        shift_kernel = fft_shift_kernel(image.shape, shift[0], shift[1])
+        convolved_fft = image_fft * psf_fft * shift_kernel
+
     convolved = torch.fft.irfft2(convolved_fft, s=image.shape)
     return torch.roll(
         convolved,
-        shifts=(
-            -psf.shape[0] // 2 - shift_kernel.shape[0] // 2,
-            -psf.shape[1] // 2 - shift_kernel.shape[1] // 2,
-        ),
+        shifts=(-(psf.shape[0] // 2), -(psf.shape[1] // 2)),
         dims=(0, 1),
     )
 

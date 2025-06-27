@@ -37,23 +37,6 @@ class SampleMixin:
         "integrate_quad_order",
     )
 
-    def shift_kernel(self, shift):
-        if self.psf_subpixel_shift == "bilinear":
-            return func.bilinear_kernel(shift[0], shift[1])
-        elif self.psf_subpixel_shift.startswith("lanczos:"):
-            order = int(self.psf_subpixel_shift.split(":")[1])
-            return func.lanczos_kernel(shift[0], shift[1], order)
-        elif self.psf_subpixel_shift == "none":
-            return torch.tensor(
-                [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            )
-        else:
-            raise SpecificationConflict(
-                f"Unknown PSF subpixel shift mode {self.psf_subpixel_shift} for model {self.name}"
-            )
-
     @forward
     def _sample_integrate(self, sample, image: Image):
         i, j = image.pixel_center_meshgrid()

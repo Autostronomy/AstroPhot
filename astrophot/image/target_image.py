@@ -227,7 +227,7 @@ class TargetImage(Image):
 
         In a mask, a True value indicates that the pixel is masked and
         should be ignored. False indicates a normal pixel which will
-        inter into most calculaitons.
+        inter into most calculations.
 
         If no mask is provided, all pixels are assumed valid.
 
@@ -303,9 +303,6 @@ class TargetImage(Image):
         elif isinstance(psf, Model):
             self._psf = psf
         else:
-            AP_config.ap_logger.warning(
-                "PSF provided is not a PSF_Image or AstroPhot PSF_Model, assuming its pixelscale is the same as this Target_Image."
-            )
             self._psf = PSFImage(
                 data=psf,
                 pixelscale=self.pixelscale,
@@ -418,6 +415,7 @@ class TargetImage(Image):
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            "name": self.name + "_jacobian",
             **kwargs,
         }
         return JacobianImage(parameters=parameters, data=data, **kwargs)
@@ -434,6 +432,7 @@ class TargetImage(Image):
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            "name": self.name + "_model",
             **kwargs,
         }
         return ModelImage(**kwargs)

@@ -60,7 +60,9 @@ class ComponentModel(SampleMixin, Model):
     # Scope for PSF convolution
     psf_mode = "none"  # none, full
     # Method to use when performing subpixel shifts.
-    psf_subpixel_shift = "lanczos:3"  # bilinear, lanczos:2, lanczos:3, lanczos:5, none
+    psf_subpixel_shift = (
+        False  # False: no shift to align sampling with pixel center, True: use FFT shift theorem
+    )
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3  # arcsec
 
@@ -199,7 +201,9 @@ class ComponentModel(SampleMixin, Model):
                 psf = self.psf.data.value
             elif isinstance(self.psf, Model):
                 psf_upscale = (
-                    torch.round(self.target.pixel_length / self.psf.target.pixelscale).int().item()
+                    torch.round(self.target.pixel_length / self.psf.target.pixel_length)
+                    .int()
+                    .item()
                 )
                 psf_pad = np.max(self.psf.window.shape) // 2
                 psf = self.psf().data.value
@@ -211,25 +215,18 @@ class ComponentModel(SampleMixin, Model):
             working_image = ModelImage(window=window, upsample=psf_upscale, pad=psf_pad)
 
             # Sub pixel shift to align the model with the center of a pixel
-            if self.psf_subpixel_shift != "none":
+            if self.psf_subpixel_shift:
                 pixel_center = torch.stack(working_image.plane_to_pixel(*center))
                 pixel_shift = pixel_center - torch.round(pixel_center)
-                center_shift = center - torch.stack(
-                    working_image.pixel_to_plane(*torch.round(pixel_center))
-                )
-                working_image.crtan = working_image.crtan.value + center_shift
+                working_image.crpix = working_image.crpix.value - pixel_shift
             else:
-                pixel_shift = torch.zeros_like(center)
-                center_shift = torch.zeros_like(center)
+                pixel_shift = None
 
             sample = self.sample_image(working_image)
 
-            if self.psf_subpixel_shift != "none":
-                shift_kernel = self.shift_kernel(pixel_shift)
-                working_image.data = func.convolve_and_shift(sample, shift_kernel, psf)
-                working_image.crtan = working_image.crtan.value - center_shift
-            else:
-                working_image.data = func.convolve(sample, psf)
+            working_image.data = func.convolve_and_shift(sample, psf, pixel_shift)
+            if self.psf_subpixel_shift:
+                working_image.crpix = working_image.crpix.value + pixel_shift
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         else:

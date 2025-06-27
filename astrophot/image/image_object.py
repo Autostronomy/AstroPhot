@@ -8,7 +8,7 @@ from astropy.io import fits
 from ..param import Module, Param, forward
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec
-from .window import Window
+from .window import Window, WindowList
 from ..errors import InvalidImage
 from . import func
 
@@ -152,9 +152,6 @@ class Image(Module):
         elif isinstance(pixelscale, (float, int)) or (
             isinstance(pixelscale, torch.Tensor) and pixelscale.numel() == 1
         ):
-            AP_config.ap_logger.warning(
-                "Assuming diagonal pixelscale with the same value on both axes, please provide a full matrix to remove this message!"
-            )
             pixelscale = ((pixelscale, 0.0), (0.0, pixelscale))
         self._pixelscale = torch.as_tensor(
             pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
@@ -278,6 +275,7 @@ class Image(Module):
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            "name": self.name,
             **kwargs,
         }
         return self.__class__(**kwargs)
@@ -295,6 +293,7 @@ class Image(Module):
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
+            "name": self.name,
             **kwargs,
         }
         return self.__class__(**kwargs)
@@ -510,7 +509,8 @@ class Image(Module):
 
 
 class ImageList(Module):
-    def __init__(self, images):
+    def __init__(self, images, name=None):
+        super().__init__(name=name)
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
             raise InvalidImage(
@@ -628,13 +628,25 @@ class ImageList(Module):
         return self
 
     def __getitem__(self, *args):
-        if len(args) == 1 and isinstance(args[0], ImageList):
-            new_list = []
-            for other_image in args[0].images:
-                i = self.index(other_image)
-                self_image = self.images[i]
-                new_list.append(self_image.get_window(other_image))
-            return self.__class__(new_list)
+        if len(args) == 1:
+            if isinstance(args[0], ImageList):
+                new_list = []
+                for other_image in args[0].images:
+                    i = self.index(other_image)
+                    new_list.append(self.images[i].get_window(other_image))
+                return self.__class__(new_list)
+            elif isinstance(args[0], WindowList):
+                new_list = []
+                for other_window in args[0].windows:
+                    i = self.index(other_window.image)
+                    new_list.append(self.images[i].get_window(other_window))
+                return self.__class__(new_list)
+            elif isinstance(args[0], Image):
+                i = self.index(args[0])
+                return self.images[i].get_window(args[0])
+            elif isinstance(args[0], Window):
+                i = self.index(args[0].image)
+                return self.images[i].get_window(args[0])
         super().__getitem__(*args)
 
     def __iter__(self):

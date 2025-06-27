@@ -42,8 +42,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
     # recursive call for target image list
     if isinstance(target, ImageList):
-        for i in range(len(target.image_list)):
-            target_image(fig, ax[i], target.image_list[i], window=window, **kwargs)
+        for i in range(len(target.images)):
+            target_image(fig, ax[i], target.images[i], window=window, **kwargs)
         return fig, ax
     if window is None:
         window = target.window
