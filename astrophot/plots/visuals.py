@@ -15,7 +15,7 @@ main_pallet = {
 }
 
 cmap_grad = get_cmap("inferno")
-cmap_div = get_cmap("twilight")  # RdBu_r
+cmap_div = get_cmap("seismic")  # twilight  RdBu_r
 # print(__file__)
 # colors = np.load(f"{__file__[:-10]}/managua_cmap.npy")
 # cmap_div = ListedColormap(list(reversed(colors)), name="mangua")

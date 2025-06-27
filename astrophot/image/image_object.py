@@ -93,6 +93,7 @@ class Image(Module):
 
             crval = wcs.wcs.crval
             crpix = wcs.wcs.crpix
+            print(crval, crpix)
 
             if pixelscale is not None:
                 AP_config.ap_logger.warning(

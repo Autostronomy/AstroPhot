@@ -306,6 +306,7 @@ class TargetImage(Image):
             self._psf = PSFImage(
                 data=psf,
                 pixelscale=self.pixelscale,
+                name=self.name + "_psf",
             )
 
     def to(self, dtype=None, device=None):

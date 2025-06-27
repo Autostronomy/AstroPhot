@@ -54,7 +54,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h + 2 * grad.T @ h).item()
 
         # Avoid highly non-linear regions
-        if rho < 0.1 or rho > 10:
+        if rho < 0.05 or rho > 2:
             L *= Lup
             if improving is True:
                 break

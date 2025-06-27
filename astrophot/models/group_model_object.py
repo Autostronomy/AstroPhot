@@ -97,6 +97,7 @@ class GroupModel(Model):
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
         for model in self.models:
+            print(f"Initializing model {model.name}")
             model.initialize()
 
     def fit_mask(self) -> torch.Tensor:
