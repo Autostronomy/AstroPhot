@@ -58,5 +58,5 @@ class iMoffatMixin:
         )
 
     @forward
-    def radial_model(self, i, R, n, Rd, I0):
+    def iradial_model(self, i, R, n, Rd, I0):
         return func.moffat(R, n[i], Rd[i], I0[i])

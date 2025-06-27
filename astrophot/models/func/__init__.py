@@ -19,6 +19,8 @@ from .convolution import (
 )
 from .sersic import sersic, sersic_n_to_b
 from .moffat import moffat
+from .modified_ferrer import modified_ferrer
+from .empirical_king import empirical_king
 from .gaussian import gaussian
 from .exponential import exponential
 from .nuker import nuker
@@ -41,6 +43,8 @@ __all__ = (
     "sersic",
     "sersic_n_to_b",
     "moffat",
+    "modified_ferrer",
+    "empirical_king",
     "gaussian",
     "exponential",
     "nuker",
