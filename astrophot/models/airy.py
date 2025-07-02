@@ -49,22 +49,22 @@ class AiryPSF(RadialMixin, PSFModel):
     def initialize(self):
         super().initialize()
 
-        if (self.I0.value is not None) and (self.aRL.value is not None):
+        if self.I0.initialized and self.aRL.initialized:
             return
         icenter = self.target.plane_to_pixel(*self.center.value)
 
-        if self.I0.value is None:
+        if not self.I0.initialized:
             mid_chunk = self.target.data.value[
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
             self.I0.dynamic_value = torch.mean(mid_chunk) / self.target.pixel_area
             self.I0.uncertainty = torch.std(mid_chunk) / self.target.pixel_area
-        if self.aRL.value is None:
+        if not self.aRL.initialized:
             self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixel_length
             self.aRL.uncertainty = self.aRL.value * self.default_uncertainty
 
     @forward
     def radial_model(self, R, I0, aRL):
-        x = 2 * torch.pi * aRL * (R + self.softening)
+        x = 2 * torch.pi * aRL * R
         return I0 * (2 * torch.special.bessel_j1(x) / x) ** 2

@@ -48,7 +48,7 @@ class PointSource(ComponentModel):
     def initialize(self):
         super().initialize()
 
-        if not hasattr(self, "logflux") or self.logflux.value is not None:
+        if not hasattr(self, "logflux") or self.logflux.initialized:
             return
         target_area = self.target[self.window]
         dat = target_area.data.npvalue.copy()

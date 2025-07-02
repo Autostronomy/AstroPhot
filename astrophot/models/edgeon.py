@@ -32,7 +32,7 @@ class EdgeonModel(ComponentModel):
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
-        if self.PA.value is not None:
+        if self.PA.initialized:
             return
         target_area = self.target[self.window]
         dat = target_area.data.npvalue.copy()
@@ -76,19 +76,19 @@ class EdgeonSech(EdgeonModel):
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
-        if (self.I0.value is not None) and (self.hs.value is not None):
+        if self.I0.initialized and self.hs.initialized:
             return
         target_area = self.target[self.window]
         icenter = target_area.plane_to_pixel(*self.center.value)
 
-        if self.I0.value is None:
+        if not self.I0.initialized:
             chunk = target_area.data.value[
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
             self.I0.dynamic_value = torch.mean(chunk) / self.target.pixel_area
             self.I0.uncertainty = torch.std(chunk) / self.target.pixel_area
-        if self.hs.value is None:
+        if not self.hs.initialized:
             self.hs.value = torch.max(self.window.shape) * target_area.pixel_length * 0.1
             self.hs.uncertainty = self.hs.value / 2
 
@@ -112,7 +112,7 @@ class EdgeonIsothermal(EdgeonSech):
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
-        if self.rs.value is not None:
+        if self.rs.initialized:
             return
         self.rs.value = torch.max(self.window.shape) * self.target.pixel_length * 0.4
         self.rs.uncertainty = self.rs.value / 2

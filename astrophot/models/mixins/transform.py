@@ -26,7 +26,7 @@ class InclinedMixin:
     def initialize(self):
         super().initialize()
 
-        if not (self.PA.value is None or self.q.value is None):
+        if self.PA.initialized and self.q.initialized:
             return
         target_area = self.target[self.window]
         dat = target_area.data.npvalue.copy()
@@ -46,14 +46,14 @@ class InclinedMixin:
         # mu02 = np.median(dat * y**2)
         # mu11 = np.median(dat * x * y)
         M = np.array([[mu20, mu11], [mu11, mu02]])
-        if self.PA.value is None:
+        if not self.PA.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
                 self.PA.dynamic_value = np.pi / 2
             else:
                 self.PA.dynamic_value = (
                     0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2
                 ) % np.pi
-        if self.q.value is None:
+        if not self.q.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
                 l = (0.7, 1.0)
             else:
@@ -169,10 +169,10 @@ class FourierEllipseMixin:
     def initialize(self):
         super().initialize()
 
-        if self.am.value is None:
+        if not self.am.initialized:
             self.am.dynamic_value = np.zeros(len(self.modes))
             self.am.uncertainty = self.default_uncertainty * np.ones(len(self.modes))
-        if self.phim.value is None:
+        if not self.phim.initialized:
             self.phim.value = np.zeros(len(self.modes))
             self.phim.uncertainty = (10 * np.pi / 180) * np.ones(len(self.modes))
 
@@ -219,12 +219,12 @@ class WarpMixin:
     def initialize(self):
         super().initialize()
 
-        if self.PA_R.value is None:
+        if not self.PA_R.initialized:
             if self.PA_R.prof is None:
                 self.PA_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
             self.PA_R.dynamic_value = np.zeros(len(self.PA_R.prof)) + np.pi / 2
             self.PA_R.uncertainty = (10 * np.pi / 180) * torch.ones_like(self.PA_R.value)
-        if self.q_R.value is None:
+        if not self.q_R.initialized:
             if self.q_R.prof is None:
                 self.q_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
             self.q_R.dynamic_value = np.ones(len(self.q_R.prof)) * 0.8
@@ -264,11 +264,11 @@ class TruncationMixin:
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
-        if self.Rt.value is None:
+        if not self.Rt.initialize:
             prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
             self.Rt.dynamic_value = prof[len(prof) // 2]
             self.Rt.uncertainty = 0.1
-        if self.sharpness.value is None:
+        if not self.sharpness.initialized:
             self.sharpness.dynamic_value = 1.0
             self.sharpness.uncertainty = 0.1
 

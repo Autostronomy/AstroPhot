@@ -29,7 +29,7 @@ class FlatSky(SkyModel):
     def initialize(self):
         super().initialize()
 
-        if self.I.value is not None:
+        if self.I.initialized:
             return
 
         dat = self.target[self.window].data.npvalue.copy()

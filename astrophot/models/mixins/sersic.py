@@ -41,7 +41,7 @@ class SersicMixin:
 
     @forward
     def radial_model(self, R, n, Re, Ie):
-        return func.sersic(R + self.softening, n, Re, Ie)
+        return func.sersic(R, n, Re, Ie)
 
 
 class iSersicMixin:
@@ -79,4 +79,4 @@ class iSersicMixin:
 
     @forward
     def iradial_model(self, i, R, n, Re, Ie):
-        return func.sersic(R + self.softening, n[i], Re[i], Ie[i])
+        return func.sersic(R, n[i], Re[i], Ie[i])

@@ -36,3 +36,12 @@ class Param(CParam):
             self._prof = None
         else:
             self._prof = torch.as_tensor(prof)
+
+    @property
+    def initialized(self):
+        """Check if the parameter is initialized."""
+        if self.pointer:
+            return True
+        if self.value is not None:
+            return True
+        return False

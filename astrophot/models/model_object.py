@@ -63,13 +63,10 @@ class ComponentModel(SampleMixin, Model):
     psf_subpixel_shift = (
         False  # False: no shift to align sampling with pixel center, True: use FFT shift theorem
     )
-    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
-    softening = 1e-3  # arcsec
 
     _options = (
         "psf_mode",
         "psf_subpixel_shift",
-        "softening",
     )
     usable = False
 

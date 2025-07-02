@@ -92,7 +92,7 @@ class Image(Module):
                 )
 
             crval = wcs.wcs.crval
-            crpix = wcs.wcs.crpix
+            crpix = np.array(wcs.wcs.crpix) - 1  # handle FITS 1-indexing
             print(crval, crpix)
 
             if pixelscale is not None:

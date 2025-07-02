@@ -84,7 +84,9 @@ class Model(Module):
     _model_type = "model"
     _parameter_specs = {}
     default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
-    _options = ("default_uncertainty",)
+    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
+    softening = 1e-3  # arcsec
+    _options = ("default_uncertainty", "softening")
     usable = False
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):
@@ -296,7 +298,7 @@ class Model(Module):
         return result
 
     def radius_metric(self, x, y):
-        return (x**2 + y**2).sqrt()
+        return (x**2 + y**2 + self.softening**2).sqrt()
 
     def angular_metric(self, x, y):
         return torch.atan2(y, x)

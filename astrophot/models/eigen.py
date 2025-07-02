@@ -60,12 +60,12 @@ class EigenPSF(PSFModel):
     def initialize(self):
         super().initialize()
         target_area = self.target[self.window]
-        if self.flux.value is None:
+        if not self.flux.initialized:
             self.flux.dynamic_value = (
                 torch.abs(torch.sum(target_area.data)) / target_area.pixel_area
             )
             self.flux.uncertainty = self.flux.value * self.default_uncertainty
-        if self.weights.value is None:
+        if not self.weights.initialized:
             self.weights.dynamic_value = 1 / np.arange(len(self.eigen_basis))
             self.weights.uncertainty = self.weights.value * self.default_uncertainty
 

@@ -35,7 +35,7 @@ class EmpiricalKingMixin:
 
     @forward
     def radial_model(self, R, Rc, Rt, alpha, I0):
-        return func.empirical_king(R + self.softening, Rc, Rt, alpha, I0)
+        return func.empirical_king(R, Rc, Rt, alpha, I0)
 
 
 class iEmpiricalKingMixin:
@@ -64,4 +64,4 @@ class iEmpiricalKingMixin:
 
     @forward
     def iradial_model(self, i, R, Rc, Rt, alpha, I0):
-        return func.empirical_king(R + self.softening, Rc[i], Rt[i], alpha[i], I0[i])
+        return func.empirical_king(R, Rc[i], Rt[i], alpha[i], I0[i])

@@ -36,7 +36,7 @@ class PlaneSky(SkyModel):
     def initialize(self):
         super().initialize()
 
-        if self.I0.value is None:
+        if not self.I0.initialized:
             self.I0.dynamic_value = (
                 np.median(self.target[self.window].data.npvalue) / self.target.pixel_area.item()
             )
@@ -47,7 +47,7 @@ class PlaneSky(SkyModel):
                 )
                 / 2.0
             ) / np.sqrt(np.prod(self.window.shape.detach().cpu().numpy()))
-        if self.delta.value is None:
+        if not self.delta.initialized:
             self.delta.dynamic_value = [0.0, 0.0]
             self.delta.uncertainty = [
                 self.default_uncertainty,

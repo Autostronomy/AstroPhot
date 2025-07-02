@@ -37,7 +37,7 @@ class NukerMixin:
 
     @forward
     def radial_model(self, R, Rb, Ib, alpha, beta, gamma):
-        return func.nuker(R + self.softening, Rb, Ib, alpha, beta, gamma)
+        return func.nuker(R, Rb, Ib, alpha, beta, gamma)
 
 
 class iNukerMixin:
@@ -67,4 +67,4 @@ class iNukerMixin:
 
     @forward
     def iradial_model(self, i, R, Rb, Ib, alpha, beta, gamma):
-        return func.nuker(R + self.softening, Rb[i], Ib[i], alpha[i], beta[i], gamma[i])
+        return func.nuker(R, Rb[i], Ib[i], alpha[i], beta[i], gamma[i])

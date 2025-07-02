@@ -80,7 +80,7 @@ def _sample_image(
 @torch.no_grad()
 @ignore_numpy_warnings
 def parametric_initialize(model, target, prof_func, params, x0_func):
-    if all(list(model[param].value is not None for param in params)):
+    if all(list(model[param].initialized for param in params)):
         return
 
     # Get the sub-image area corresponding to the model image
@@ -88,7 +88,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
 
     x0 = list(x0_func(model, R, I))
     for i, param in enumerate(params):
-        x0[i] = x0[i] if model[param].value is None else model[param].npvalue
+        x0[i] = x0[i] if not model[param].initialized else model[param].npvalue
 
     def optim(x, r, f, u):
         residual = ((f - np.log10(prof_func(r, *x))) / u) ** 2
@@ -115,7 +115,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         N = np.random.randint(0, len(R), len(R))
         reses.append(minimize(optim, x0=x0, args=(R[N], I[N], S[N]), method="Nelder-Mead"))
     for param, x0x in zip(params, x0):
-        if model[param].value is None:
+        if not model[param].initialized:
             model[param].dynamic_value = x0x
         if model[param].uncertainty is None:
             model[param].uncertainty = np.std(
@@ -133,7 +133,7 @@ def parametric_segment_initialize(
     x0_func=None,
     segments=None,
 ):
-    if all(list(model[param].value is not None for param in params)):
+    if all(list(model[param].initialized for param in params)):
         return
 
     cycle = np.pi if model.symmetric else 2 * np.pi
@@ -177,6 +177,6 @@ def parametric_segment_initialize(
     values = np.stack(values).T
     uncertainties = np.stack(uncertainties).T
     for param, v, u in zip(params, values, uncertainties):
-        if model[param].value is None:
+        if not model[param].initialized:
             model[param].dynamic_value = v
             model[param].uncertainty = u

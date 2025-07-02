@@ -19,7 +19,7 @@ def damp_hessian(hess, L):
 
 
 def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
-
+    print("LM step")
     chi20 = chi2
     M0 = model(x)  # (M,)
     J = jacobian(x)  # (M, N)
@@ -33,6 +33,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
     nostep = True
     improving = None
     for _ in range(10):
+        print(_)
         hessD = damp_hessian(hess, L)  # (N, N)
         h = torch.linalg.solve(hessD, grad)  # (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
@@ -41,6 +42,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
 
         # Handle nan chi2
         if not np.isfinite(chi21):
+            print("NaN chi2, trying to damp more")
             L *= Lup
             if improving is True:
                 break
@@ -52,9 +54,10 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
 
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h + 2 * grad.T @ h).item()
-
+        print("rho", rho)
         # Avoid highly non-linear regions
-        if rho < 0.05 or rho > 2:
+        if rho < 0.1 or rho > 2:
+            print(f"rho shows non-linearity: {rho:.3f}, trying to damp more")
             L *= Lup
             if improving is True:
                 break
@@ -62,6 +65,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
             continue
 
         if chi21 < best["chi2"]:  # new best
+            print(f"Found new best chi2: {chi21:.3f} (was {best['chi2']:.3f})")
             best = {"h": h.squeeze(1), "chi2": chi21, "L": L}
             nostep = False
             L /= Ldn
@@ -69,8 +73,10 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
                 break
             improving = True
         elif improving is True:  # were improving, now not improving
+            print("were improving, now not improving")
             break
         else:  # not improving and bad chi2, damp more
+            print(f"Not improving chi2: {chi21:.3f} (was {best['chi2']:.3f}), trying to damp more")
             L *= Lup
             if L >= 1e9:
                 break
@@ -78,6 +84,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
 
         # If we are improving chi2 by more than 10% then we can stop
         if (best["chi2"] - chi20) / chi20 < -0.1:
+            print("significant improvement going to next step")
             break
 
     if nostep:

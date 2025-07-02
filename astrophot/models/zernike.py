@@ -36,7 +36,7 @@ class ZernikePSF(PSFModel):
             self.r_scale = max(self.window.shape) / 2
 
         # Check if user has already set the coefficients
-        if self.Anm.value is not None:
+        if self.Anm.initialized:
             if len(self.nm_list) != len(self.Anm.value):
                 raise SpecificationConflict(
                     f"nm_list length ({len(self.nm_list)}) must match coefficients ({len(self.Anm.value)})"

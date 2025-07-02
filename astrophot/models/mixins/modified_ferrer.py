@@ -35,7 +35,7 @@ class ModifiedFerrerMixin:
 
     @forward
     def radial_model(self, R, rout, alpha, beta, I0):
-        return func.modified_ferrer(R + self.softening, rout, alpha, beta, I0)
+        return func.modified_ferrer(R, rout, alpha, beta, I0)
 
 
 class iModifiedFerrerMixin:
@@ -64,4 +64,4 @@ class iModifiedFerrerMixin:
 
     @forward
     def iradial_model(self, i, R, rout, alpha, beta, I0):
-        return func.modified_ferrer(R + self.softening, rout[i], alpha[i], beta[i], I0[i])
+        return func.modified_ferrer(R, rout[i], alpha[i], beta[i], I0[i])

@@ -37,11 +37,8 @@ class PSFModel(SampleMixin, Model):
     # The sampled PSF will be normalized to a total flux of 1 within the window
     normalize_psf = True
 
-    # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
-    softening = 1e-3  # arcsec
-
     # Parameters which are treated specially by the model object and should not be updated directly when initializing
-    _options = ("softening", "normalize_psf")
+    _options = ("normalize_psf",)
 
     def initialize(self):
         pass
