@@ -104,6 +104,11 @@ class PSFModel(SampleMixin, Model):
             self._target = None
         elif not isinstance(target, PSFImage):
             raise InvalidTarget(f"Target for PSF_Model must be a PSF_Image, not {type(target)}")
+        try:
+            del self._target  # Remove old target if it exists
+        except AttributeError:
+            pass
+
         self._target = target
 
     @forward

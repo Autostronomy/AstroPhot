@@ -101,7 +101,7 @@ def PA_from_segmentation_map(
         PA = (
             Angle_COM_PA(image[N], XX[N] - centroids[index][0], YY[N] - centroids[index][1]) + north
         )
-        PAs[index] = PA
+        PAs[index] = PA % np.pi
 
     return PAs
 
@@ -151,7 +151,7 @@ def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
     boxes according to given factors and returns the coordinates.
 
     each window is formatted as a list of lists with:
-    window = [[xmin,xmax],[ymin,ymax]]
+    window = [[xmin,ymin],[xmax,ymax]]
 
     expand_scale changes the base window by the given
     factor. expand_border is added afterwards on all sides (so an
@@ -303,7 +303,7 @@ def transfer_windows(windows, base_image, new_image):
     ----------
     windows : dict
         A dictionary of windows to be transferred. Each window is formatted as a list of lists with:
-        window = [[xmin,xmax],[ymin,ymax]]
+        window = [[xmin,ymin],[xmax,ymax]]
     base_image : Image
         The image object from which the windows are being transferred.
     new_image : Image
@@ -311,40 +311,25 @@ def transfer_windows(windows, base_image, new_image):
     """
     new_windows = {}
     for w in list(windows.keys()):
-        bottom_corner = np.clip(
-            np.floor(
-                torch.stack(
-                    new_image.plane_to_pixel(
-                        *base_image.pixel_to_plane(
-                            *torch.tensor([windows[w][0][0], windows[w][0][1]])
-                        )
-                    )
-                )
-                .detach()
-                .cpu()
-                .numpy()
-                .astype(int)
-            ),
-            a_min=0,
-            a_max=np.array(new_image.shape) - 1,
-        )
-        top_corner = np.clip(
-            np.ceil(
-                torch.stack(
-                    new_image.plane_to_pixel(
-                        *base_image.pixel_to_plane(
-                            *torch.tensor([windows[w][1][0], windows[w][1][1]])
-                        )
-                    )
-                )
-                .detach()
-                .cpu()
-                .numpy()
-                .astype(int)
-            ),
-            a_min=0,
-            a_max=np.array(new_image.shape) - 1,
-        )
+        four_corners_base = torch.tensor(
+            [
+                windows[w][0],
+                windows[w][1],
+                [windows[w][0][0], windows[w][1][1]],
+                [windows[w][1][0], windows[w][0][1]],
+            ]
+        )  # (4,2)
+        four_corners_new = (
+            torch.stack(
+                new_image.plane_to_pixel(*base_image.pixel_to_plane(*four_corners_base.T)), dim=-1
+            )
+            .detach()
+            .cpu()
+            .numpy()
+        )  # (4,2)
+
+        bottom_corner = np.floor(np.min(four_corners_new, axis=0)).astype(int)
+        top_corner = np.ceil(np.max(four_corners_new, axis=0)).astype(int)
         new_windows[w] = [
             [int(bottom_corner[0]), int(bottom_corner[1])],
             [int(top_corner[0]), int(top_corner[1])],

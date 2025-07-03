@@ -136,7 +136,21 @@ class WindowList:
             if other.identity == window.identity:
                 return i
         else:
-            raise ValueError("Could not find identity match between window list and input window")
+            raise IndexError("Could not find identity match between window list and input window")
+
+    def __and__(self, other: "WindowList"):
+        if not isinstance(other, WindowList):
+            raise TypeError(f"Cannot intersect WindowList with {type(other)}")
+        if len(self.windows) == 0 or len(other.windows) == 0:
+            return WindowList([])
+        new_windows = []
+        for other_window in other.windows:
+            try:
+                i = self.index(other_window)
+            except IndexError:
+                continue  # skip if the window is not in self.windows
+            new_windows.append(self.windows[i] & other_window)
+        return WindowList(new_windows)
 
     def __getitem__(self, index):
         return self.windows[index]

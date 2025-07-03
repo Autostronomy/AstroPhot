@@ -82,7 +82,6 @@ def _sample_image(
 def parametric_initialize(model, target, prof_func, params, x0_func):
     if all(list(model[param].initialized for param in params)):
         return
-
     # Get the sub-image area corresponding to the model image
     R, I, S = _sample_image(target, model.transform_coordinates, model.radius_metric)
 
@@ -116,6 +115,16 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         reses.append(minimize(optim, x0=x0, args=(R[N], I[N], S[N]), method="Nelder-Mead"))
     for param, x0x in zip(params, x0):
         if not model[param].initialized:
+            if (
+                model[param].valid[0] is not None
+                and x0x < model[param].valid[0].detach().cpu().numpy()
+            ) or (
+                model[param].valid[1] is not None
+                and x0x > model[param].valid[1].detach().cpu().numpy()
+            ):
+                x0x = model[param].from_valid(
+                    torch.tensor(x0x, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+                )
             model[param].dynamic_value = x0x
         if model[param].uncertainty is None:
             model[param].uncertainty = np.std(

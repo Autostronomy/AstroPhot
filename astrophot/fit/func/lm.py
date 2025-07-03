@@ -19,7 +19,7 @@ def damp_hessian(hess, L):
     # return hess + L * I * torch.diag(hess)
 
 
-def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.0):
+def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.0):
     chi20 = chi2
     M0 = model(x)  # (M,)
     J = jacobian(x)  # (M, N)
@@ -53,7 +53,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=10.
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
         # Avoid highly non-linear regions
-        if rho < 0.2 or rho > 2:
+        if rho < 0.1 or rho > 2:
             L *= Lup
             if improving is True:
                 break

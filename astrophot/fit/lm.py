@@ -278,7 +278,7 @@ class LM(BaseOptimizer):
                         jacobian=self.jacobian,
                         ndf=self.ndf,
                         chi2=self.loss_history[-1],
-                        L=self.L,
+                        L=self.L / self.Ldn,
                         Lup=self.Lup,
                         Ldn=self.Ldn,
                     )
@@ -288,7 +288,7 @@ class LM(BaseOptimizer):
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
                 break
 
-            self.L = res["L"] / self.Ldn
+            self.L = res["L"]
             self.current_state = (self.current_state + res["h"]).detach()
             self.L_history.append(res["L"])
             self.loss_history.append(res["chi2"])

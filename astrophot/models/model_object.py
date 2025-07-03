@@ -107,6 +107,10 @@ class ComponentModel(SampleMixin, Model):
             return
         elif not isinstance(tar, TargetImage):
             raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
+        try:
+            del self._target  # Remove old target if it exists
+        except AttributeError:
+            pass
         self._target = tar
 
     # Initialization functions

@@ -93,4 +93,4 @@ class JacobianImageList(ImageList):
                     raise SpecificationConflict(
                         "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
                     )
-        return torch.cat(tuple(image.flatten(attribute) for image in self.images))
+        return torch.cat(tuple(image.flatten(attribute) for image in self.images), dim=0)

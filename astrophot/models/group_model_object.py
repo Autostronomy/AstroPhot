@@ -16,6 +16,7 @@ from ..image import (
     JacobianImage,
     JacobianImageList,
 )
+from .. import AP_config
 from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget, InvalidWindow
 
@@ -97,7 +98,7 @@ class GroupModel(Model):
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
         for model in self.models:
-            print(f"Initializing model {model.name}")
+            AP_config.ap_logger.info(f"Initializing model {model.name}")
             model.initialize()
 
     def fit_mask(self) -> torch.Tensor:
@@ -249,6 +250,11 @@ class GroupModel(Model):
     def target(self, tar: Optional[Union[TargetImage, TargetImageList]]):
         if not (tar is None or isinstance(tar, (TargetImage, TargetImageList))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
+        try:
+            del self._target  # Remove old target if it exists
+        except AttributeError:
+            pass
+
         self._target = tar
 
     @property

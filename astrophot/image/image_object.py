@@ -93,7 +93,6 @@ class Image(Module):
 
             crval = wcs.wcs.crval
             crpix = np.array(wcs.wcs.crpix) - 1  # handle FITS 1-indexing
-            print(crval, crpix)
 
             if pixelscale is not None:
                 AP_config.ap_logger.warning(
