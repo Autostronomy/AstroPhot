@@ -418,7 +418,7 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
     if isinstance(model, GroupModel):
         for m in model.models:
             if isinstance(m.window, WindowList):
-                use_window = m.window.window_list[m.target.index(target)]
+                use_window = m.window.windows[m.target.index(target)]
             else:
                 use_window = m.window
 

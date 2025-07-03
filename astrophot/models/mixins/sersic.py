@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model, R, F):
-    return 2.0, R[4], 10 ** F[4]
+    return 2.0, R[4], F[4]
 
 
 class SersicMixin:
@@ -29,6 +29,14 @@ class SersicMixin:
         "Re": {"units": "arcsec", "valid": (0, None), "shape": ()},
         "Ie": {"units": "flux/arcsec^2", "shape": ()},
     }
+    _overload_parameter_specs = {
+        "logIe": {
+            "units": "log10(flux/arcsec^2)",
+            "shape": (),
+            "overloads": "Ie",
+            "overload_function": lambda p: 10**p.logIe.value,
+        }
+    }
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -36,7 +44,7 @@ class SersicMixin:
         super().initialize()
 
         parametric_initialize(
-            self, self.target[self.window], sersic_np, ("n", "Re", "Ie"), _x0_func
+            self, self.target[self.window], sersic_np, ("n", "Re", "logIe"), _x0_func
         )
 
     @forward
@@ -62,6 +70,14 @@ class iSersicMixin:
         "Re": {"units": "arcsec", "valid": (0, None)},
         "Ie": {"units": "flux/arcsec^2"},
     }
+    _overload_parameter_specs = {
+        "logIe": {
+            "units": "log10(flux/arcsec^2)",
+            "shape": (),
+            "overloads": "Ie",
+            "overload_function": lambda p: 10**p.logIe.value,
+        }
+    }
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -72,7 +88,7 @@ class iSersicMixin:
             model=self,
             target=self.target[self.window],
             prof_func=sersic_np,
-            params=("n", "Re", "Ie"),
+            params=("n", "Re", "logIe"),
             x0_func=_x0_func,
             segments=self.segments,
         )
