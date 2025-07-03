@@ -44,7 +44,11 @@ class SersicMixin:
         super().initialize()
 
         parametric_initialize(
-            self, self.target[self.window], sersic_np, ("n", "Re", "logIe"), _x0_func
+            self,
+            self.target[self.window],
+            lambda r, *x: sersic_np(r, x[0], x[1], 10 ** x[2]),
+            ("n", "Re", "logIe"),
+            _x0_func,
         )
 
     @forward
@@ -87,7 +91,7 @@ class iSersicMixin:
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=sersic_np,
+            prof_func=lambda r, *x: sersic_np(r, x[0], x[1], 10 ** x[2]),
             params=("n", "Re", "logIe"),
             x0_func=_x0_func,
             segments=self.segments,
