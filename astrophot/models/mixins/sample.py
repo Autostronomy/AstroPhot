@@ -132,7 +132,9 @@ class SampleMixin:
             jac_img = pass_jacobian
 
         # No dynamic params
-        if len(self.build_params_list()) == 0:
+        if params is None:
+            params = self.build_params_array()
+        if params.shape[-1] == 0:
             return jac_img
 
         # handle large images
@@ -142,8 +144,6 @@ class SampleMixin:
                 self.jacobian(window=chunk, pass_jacobian=jac_img, params=params)
             return jac_img
 
-        if params is None:
-            params = self.build_params_array()
         identities = self.build_params_array_identities()
         target = self.target[window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
