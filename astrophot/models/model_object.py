@@ -135,12 +135,12 @@ class ComponentModel(SampleMixin, Model):
         else:
             return
 
-        dat = np.copy(target_area.data.npvalue)
+        dat = np.copy(target_area.data.detach().cpu().numpy())
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()
             dat[mask] = np.nanmedian(dat[~mask])
 
-        COM = recursive_center_of_mass(target_area.data.npvalue)
+        COM = recursive_center_of_mass(dat)
         if not np.all(np.isfinite(COM)):
             return
         COM_center = target_area.pixel_to_plane(
@@ -199,7 +199,7 @@ class ComponentModel(SampleMixin, Model):
                     torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
                 )
                 psf_pad = np.max(self.psf.shape) // 2
-                psf = self.psf.data.value
+                psf = self.psf.data
             elif isinstance(self.psf, Model):
                 psf_upscale = (
                     torch.round(self.target.pixel_length / self.psf.target.pixel_length)
@@ -207,7 +207,7 @@ class ComponentModel(SampleMixin, Model):
                     .item()
                 )
                 psf_pad = np.max(self.psf.window.shape) // 2
-                psf = self.psf().data.value
+                psf = self.psf().data
             else:
                 raise TypeError(
                     f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
@@ -219,7 +219,9 @@ class ComponentModel(SampleMixin, Model):
             if self.psf_subpixel_shift:
                 pixel_center = torch.stack(working_image.plane_to_pixel(*center))
                 pixel_shift = pixel_center - torch.round(pixel_center)
-                working_image.crpix = working_image.crpix.value - pixel_shift
+                working_image.crpix = (
+                    working_image.crpix.value - pixel_shift
+                )  # fixme move the model
             else:
                 pixel_shift = None
 
@@ -227,7 +229,7 @@ class ComponentModel(SampleMixin, Model):
 
             working_image.data = func.convolve_and_shift(sample, psf, pixel_shift)
             if self.psf_subpixel_shift:
-                working_image.crpix = working_image.crpix.value + pixel_shift
+                working_image.crpix = working_image.crpix.value + pixel_shift  # fixme
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         else:
@@ -236,7 +238,7 @@ class ComponentModel(SampleMixin, Model):
             working_image.data = sample
 
         # Units from flux/arcsec^2 to flux
-        working_image.data = working_image.data.value * working_image.pixel_area
+        working_image.data = working_image.data * working_image.pixel_area
 
         if self.mask is not None:
             working_image.data = working_image.data * (~self.mask)

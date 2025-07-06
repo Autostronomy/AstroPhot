@@ -35,7 +35,7 @@ class EdgeonModel(ComponentModel):
         if self.PA.initialized:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.npvalue.copy()
+        dat = target_area.data.detach().cpu().numpy().copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         dat = dat - edge_average
@@ -82,7 +82,7 @@ class EdgeonSech(EdgeonModel):
         icenter = target_area.plane_to_pixel(*self.center.value)
 
         if not self.I0.initialized:
-            chunk = target_area.data.value[
+            chunk = target_area.data[
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]

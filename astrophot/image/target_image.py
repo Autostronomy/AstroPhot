@@ -96,8 +96,8 @@ class TargetImage(Image):
             self.psf = psf
 
         # Set nan pixels to be masked automatically
-        if torch.any(torch.isnan(self.data.value)).item():
-            self.mask = self.mask | torch.isnan(self.data.value)
+        if torch.any(torch.isnan(self.data)).item():
+            self.mask = self.mask | torch.isnan(self.data)
 
     @property
     def standard_deviation(self):
@@ -114,7 +114,7 @@ class TargetImage(Image):
         """
         if self.has_variance:
             return torch.sqrt(self.variance)
-        return torch.ones_like(self.data.value)
+        return torch.ones_like(self.data)
 
     @property
     def variance(self):
@@ -131,7 +131,7 @@ class TargetImage(Image):
         """
         if self.has_variance:
             return torch.where(self._weight == 0, torch.inf, 1 / self._weight)
-        return torch.ones_like(self.data.value)
+        return torch.ones_like(self.data)
 
     @variance.setter
     def variance(self, variance):
@@ -189,7 +189,7 @@ class TargetImage(Image):
         """
         if self.has_weight:
             return self._weight
-        return torch.ones_like(self.data.value)
+        return torch.ones_like(self.data)
 
     @weight.setter
     def weight(self, weight):
@@ -197,7 +197,7 @@ class TargetImage(Image):
             self._weight = None
             return
         if isinstance(weight, str) and weight == "auto":
-            weight = 1 / auto_variance(self.data.value, self.mask)
+            weight = 1 / auto_variance(self.data, self.mask)
         if weight.shape != self.data.shape:
             raise SpecificationConflict(
                 f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
@@ -234,7 +234,7 @@ class TargetImage(Image):
         """
         if self.has_mask:
             return self._mask
-        return torch.zeros_like(self.data.value, dtype=torch.bool)
+        return torch.zeros_like(self.data, dtype=torch.bool)
 
     @mask.setter
     def mask(self, mask):
@@ -358,14 +358,16 @@ class TargetImage(Image):
     def fits_images(self):
         images = super().fits_images()
         if self.has_variance:
-            images.append(fits.ImageHDU(self.weight.cpu().numpy(), name="WEIGHT"))
+            images.append(fits.ImageHDU(self.weight.detach().cpu().numpy(), name="WEIGHT"))
         if self.has_mask:
-            images.append(fits.ImageHDU(self.mask.cpu().numpy(), name="MASK"))
+            images.append(fits.ImageHDU(self.mask.detach().cpu().numpy(), name="MASK"))
         if self.has_psf:
             if isinstance(self.psf, PSFImage):
                 images.append(
                     fits.ImageHDU(
-                        self.psf.data.npvalue, name="PSF", header=fits.Header(self.psf.fits_info())
+                        self.psf.data.detach().cpu().numpy(),
+                        name="PSF",
+                        header=fits.Header(self.psf.fits_info()),
                     )
                 )
             else:
@@ -408,7 +410,7 @@ class TargetImage(Image):
             )
         kwargs = {
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -423,9 +425,9 @@ class TargetImage(Image):
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
         kwargs = {
-            "data": torch.zeros_like(self.data.value),
+            "data": torch.zeros_like(self.data),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,

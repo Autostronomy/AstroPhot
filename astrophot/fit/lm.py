@@ -236,8 +236,7 @@ class LM(BaseOptimizer):
             self.ndf = ndf
 
     def chi2_ndf(self):
-        with ValidContext(self.model):
-            return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
+        return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
 
     @torch.no_grad()
     def fit(self) -> BaseOptimizer:
@@ -268,7 +267,22 @@ class LM(BaseOptimizer):
             if self.verbose > 0:
                 AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.4g}, L: {self.L:.3g}")
             try:
-                with ValidContext(self.model):
+                if self.fit_valid:
+                    with ValidContext(self.model):
+                        res = func.lm_step(
+                            x=self.model.to_valid(self.current_state),
+                            data=self.Y,
+                            model=self.forward,
+                            weight=self.W,
+                            jacobian=self.jacobian,
+                            ndf=self.ndf,
+                            chi2=self.loss_history[-1],
+                            L=self.L / self.Ldn,
+                            Lup=self.Lup,
+                            Ldn=self.Ldn,
+                        )
+                    self.current_state = self.model.from_valid(res["x"]).detach()
+                else:
                     res = func.lm_step(
                         x=self.current_state,
                         data=self.Y,
@@ -281,6 +295,7 @@ class LM(BaseOptimizer):
                         Lup=self.Lup,
                         Ldn=self.Ldn,
                     )
+                    self.current_state = res["x"].detach()
             except OptimizeStop:
                 if self.verbose > 0:
                     AP_config.ap_logger.warning("Could not find step to improve Chi^2, stopping")
@@ -288,7 +303,6 @@ class LM(BaseOptimizer):
                 break
 
             self.L = res["L"]
-            self.current_state = (self.current_state + res["h"]).detach()
             self.L_history.append(res["L"])
             self.loss_history.append(res["chi2"])
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
@@ -316,8 +330,7 @@ class LM(BaseOptimizer):
                 f"Final Chi^2/DoF: {self.loss_history[-1]:.4g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
             )
 
-        with ValidContext(self.model):
-            self.model.fill_dynamic_values(self.current_state)
+        self.model.fill_dynamic_values(self.current_state)
 
         return self
 
@@ -334,7 +347,7 @@ class LM(BaseOptimizer):
 
         if self._covariance_matrix is not None:
             return self._covariance_matrix
-        J = self.jacobian(self.model.from_valid(self.current_state))
+        J = self.jacobian(self.current_state)
         hess = func.hessian(J, self.W)
         try:
             self._covariance_matrix = torch.linalg.inv(hess)

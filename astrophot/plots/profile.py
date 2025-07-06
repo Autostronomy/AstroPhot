@@ -112,7 +112,7 @@ def radial_median_profile(
         R = (x**2 + y**2).sqrt()
         R = R.detach().cpu().numpy()
 
-    dat = image.data.value.detach().cpu().numpy()
+    dat = image.data.detach().cpu().numpy()
     count, bins, binnum = binned_statistic(
         R.ravel(),
         dat.ravel(),

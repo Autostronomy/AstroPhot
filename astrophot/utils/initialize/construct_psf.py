@@ -1,6 +1,5 @@
 import numpy as np
 
-from .center import GaussianDensity_Peak
 from ..interpolate import shift_Lanczos_np
 
 

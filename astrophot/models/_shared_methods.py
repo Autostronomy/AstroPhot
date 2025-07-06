@@ -16,7 +16,7 @@ def _sample_image(
     rad_bins=None,
     angle_range=None,
 ):
-    dat = image.data.npvalue.copy()
+    dat = image.data.detach().cpu().numpy().copy()
     # Fill masked pixels
     if image.has_mask:
         mask = image.mask.detach().cpu().numpy()

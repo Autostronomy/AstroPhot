@@ -108,7 +108,7 @@ class SampleMixin:
         return jacobian(
             lambda x: self.sample(
                 window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
-            ).data.value,
+            ).data,
             params,
             strategy="forward-mode",
             vectorize=True,
@@ -175,16 +175,16 @@ class SampleMixin:
 
         jacobian_image = self.jacobian(window=window, params=params)
 
-        data = self.target[window].data.value
-        model = self.sample(window=window).data.value
+        data = self.target[window].data
+        model = self.sample(window=window).data
         if likelihood == "gaussian":
             weight = self.target[window].weight
             gradient = torch.sum(
-                jacobian_image.data.value * ((data - model) * weight).unsqueeze(-1), dim=(0, 1)
+                jacobian_image.data * ((data - model) * weight).unsqueeze(-1), dim=(0, 1)
             )
         elif likelihood == "poisson":
             gradient = torch.sum(
-                jacobian_image.data.value * (1 - data / model).unsqueeze(-1),
+                jacobian_image.data * (1 - data / model).unsqueeze(-1),
                 dim=(0, 1),
             )
 

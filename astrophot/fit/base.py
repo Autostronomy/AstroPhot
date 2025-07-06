@@ -32,7 +32,10 @@ class BaseOptimizer(object):
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
         fit_window: Optional[Window] = None,
-        **kwargs,
+        verbose: int = 0,
+        max_iter: int = None,
+        save_steps: Optional[str] = None,
+        fit_valid: bool = True,
     ) -> None:
         """
         Initializes a new instance of the class.
@@ -59,11 +62,10 @@ class BaseOptimizer(object):
         """
 
         self.model = model
-        self.verbose = kwargs.get("verbose", 0)
+        self.verbose = verbose
 
         if initial_state is None:
-            with ValidContext(model):
-                self.current_state = model.build_params_array()
+            self.current_state = model.build_params_array()
         else:
             self.current_state = torch.as_tensor(
                 initial_state, dtype=model.dtype, device=model.device
@@ -74,9 +76,10 @@ class BaseOptimizer(object):
         else:
             self.fit_window = fit_window & self.model.window
 
-        self.max_iter = kwargs.get("max_iter", 100 * len(self.current_state))
+        self.max_iter = max_iter if max_iter is not None else 100 * len(self.current_state)
         self.iteration = 0
-        self.save_steps = kwargs.get("save_steps", None)
+        self.save_steps = save_steps
+        self.fit_valid = fit_valid
 
         self.relative_tolerance = relative_tolerance
         self.lambda_history = []

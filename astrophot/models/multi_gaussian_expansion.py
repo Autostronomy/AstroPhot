@@ -53,7 +53,7 @@ class MultiGaussianExpansion(ComponentModel):
         super().initialize()
 
         target_area = self.target[self.window]
-        dat = target_area.data.npvalue.copy()
+        dat = target_area.data.detach().cpu().numpy().copy()
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()
             dat[mask] = np.median(dat[~mask])

@@ -81,10 +81,10 @@ class PSFModel(SampleMixin, Model):
 
         # normalize to total flux 1
         if self.normalize_psf:
-            working_image.data = working_image.data.value / torch.sum(working_image.data.value)
+            working_image.data = working_image.data / torch.sum(working_image.data)
 
         if self.mask is not None:
-            working_image.data = working_image.data.value * (~self.mask)
+            working_image.data = working_image.data * (~self.mask)
 
         return working_image
 

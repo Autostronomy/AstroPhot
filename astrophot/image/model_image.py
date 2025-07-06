@@ -3,7 +3,7 @@ import torch
 
 from .. import AP_config
 from .image_object import Image, ImageList
-from ..errors import InvalidImage
+from ..errors import InvalidImage, SpecificationConflict
 
 __all__ = ["ModelImage", "ModelImageList"]
 
@@ -22,9 +22,7 @@ class ModelImage(Image):
         if window is not None:
             kwargs["pixelscale"] = window.image.pixelscale / upsample
             kwargs["crpix"] = (
-                (window.crpix.npvalue - np.array((window.i_low, window.j_low)) + 0.5) * upsample
-                + pad
-                - 0.5
+                (window.crpix - np.array((window.i_low, window.j_low)) + 0.5) * upsample + pad - 0.5
             )
             kwargs["crval"] = window.image.crval.value
             kwargs["crtan"] = window.image.crtan.value
@@ -42,7 +40,7 @@ class ModelImage(Image):
         super().__init__(*args, **kwargs)
 
     def clear_image(self):
-        self.data._value = torch.zeros_like(self.data.value)
+        self.data = torch.zeros_like(self.data)
 
     def crop(self, pixels, **kwargs):
         """Crop the image by the number of pixels given. This will crop
@@ -56,23 +54,23 @@ class ModelImage(Image):
         """
         if len(pixels) == 1:  # same crop in all dimension
             crop = pixels if isinstance(pixels, int) else pixels[0]
-            data = self.data.value[
+            data = self.data[
                 crop : self.data.shape[0] - crop,
                 crop : self.data.shape[1] - crop,
             ]
-            crpix = self.crpix.value - crop
+            crpix = self.crpix - crop
         elif len(pixels) == 2:  # different crop in each dimension
-            data = self.data.value[
+            data = self.data[
                 pixels[1] : self.data.shape[0] - pixels[1],
                 pixels[0] : self.data.shape[1] - pixels[0],
             ]
-            crpix = self.crpix.value - pixels
+            crpix = self.crpix - pixels
         elif len(pixels) == 4:  # different crop on all sides
-            data = self.data.value[
+            data = self.data[
                 pixels[2] : self.data.shape[0] - pixels[3],
                 pixels[0] : self.data.shape[1] - pixels[1],
             ]
-            crpix = self.crpix.value - pixels[0::2]  # fixme
+            crpix = self.crpix - pixels[0::2]  # fixme
         else:
             raise ValueError(
                 f"Invalid crop shape {pixels}, must be (int,), (int, int), or (int, int, int, int)!"
@@ -102,13 +100,9 @@ class ModelImage(Image):
         MS = self.data.shape[0] // scale
         NS = self.data.shape[1] // scale
 
-        data = (
-            self.data.value[: MS * scale, : NS * scale]
-            .reshape(MS, scale, NS, scale)
-            .sum(axis=(1, 3))
-        )
+        data = self.data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
         pixelscale = self.pixelscale * scale
-        crpix = (self.crpix.value + 0.5) / scale - 0.5
+        crpix = (self.crpix + 0.5) / scale - 0.5
         return self.copy(
             data=data,
             pixelscale=pixelscale,

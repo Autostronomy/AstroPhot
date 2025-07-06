@@ -1,4 +1,4 @@
-from typing import Optional, Union, Any
+from typing import Optional, Union
 
 import torch
 import numpy as np
@@ -31,9 +31,6 @@ class Image(Module):
         origin: The origin of the image in the coordinate system.
     """
 
-    default_crpix = (0, 0)
-    default_crtan = (0.0, 0.0)
-    default_crval = (0.0, 0.0)
     default_pixelscale = ((1.0, 0.0), (0.0, 1.0))
 
     def __init__(
@@ -67,17 +64,12 @@ class Image(Module):
 
         """
         super().__init__(name=name)
-        self.data = Param(
-            "data", units="flux", dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
+        self.data = data  # units: flux
         self.crval = Param(
             "crval", units="deg", dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         self.crtan = Param(
             "crtan", units="arcsec", dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        self.crpix = Param(
-            "crpix", units="pixel", dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
 
         if filename is not None:
@@ -109,7 +101,6 @@ class Image(Module):
             pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
 
         # set the data
-        self.data = data
         self.crval = crval
         self.crtan = crtan
         self.crpix = crpix
@@ -117,6 +108,30 @@ class Image(Module):
         self.pixelscale = pixelscale
 
         self.zeropoint = zeropoint
+
+    @property
+    def data(self):
+        """The image data, which is a tensor of pixel values."""
+        return self._data
+
+    @data.setter
+    def data(self, value: Optional[torch.Tensor]):
+        """Set the image data. If value is None, the data is initialized to an empty tensor."""
+        if value is None:
+            self._data = torch.empty((0, 0), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        else:
+            self._data = torch.as_tensor(
+                value, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+
+    @property
+    def crpix(self):
+        """The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates."""
+        return self._crpix
+
+    @crpix.setter
+    def crpix(self, value: Union[torch.Tensor, tuple]):
+        self._crpix = np.asarray(value, dtype=np.float64)
 
     @property
     def zeropoint(self):
@@ -194,12 +209,12 @@ class Image(Module):
         return self._pixelscale_inv
 
     @forward
-    def pixel_to_plane(self, i, j, crpix, crtan):
-        return func.pixel_to_plane_linear(i, j, *crpix, self.pixelscale, *crtan)
+    def pixel_to_plane(self, i, j, crtan):
+        return func.pixel_to_plane_linear(i, j, *self.crpix, self.pixelscale, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crpix, crtan):
-        return func.plane_to_pixel_linear(x, y, *crpix, self.pixelscale_inv, *crtan)
+    def plane_to_pixel(self, x, y, crtan):
+        return func.plane_to_pixel_linear(x, y, *self.crpix, self.pixelscale_inv, *crtan)
 
     @forward
     def plane_to_world(self, x, y, crval, crtan):
@@ -226,6 +241,13 @@ class Image(Module):
 
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
+
+    @forward
+    def pixel_angle_to_plane_angle(self, theta, crtan):
+        """Convert an angle in pixel space (in radians) to an angle in the tangent plane (in radians)."""
+        i, j = torch.cos(theta), torch.sin(theta)
+        x, y = self.pixel_to_plane(i, j)
+        return torch.atan2(y - crtan[1], x - crtan[0])
 
     def pixel_center_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
@@ -276,9 +298,9 @@ class Image(Module):
 
         """
         kwargs = {
-            "data": torch.clone(self.data.value.detach()),
+            "data": torch.clone(self.data.detach()),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -294,9 +316,9 @@ class Image(Module):
 
         """
         kwargs = {
-            "data": torch.zeros_like(self.data.value),
+            "data": torch.zeros_like(self.data),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -317,9 +339,7 @@ class Image(Module):
         return self
 
     def flatten(self, attribute: str = "data") -> torch.Tensor:
-        if attribute in self.children:
-            return getattr(self, attribute).value.reshape(-1)
-        return getattr(self, attribute).reshape(-1)
+        return getattr(self, attribute).flatten(end_dim=1)
 
     def fits_info(self):
         return {
@@ -327,8 +347,8 @@ class Image(Module):
             "CTYPE2": "DEC--TAN",
             "CRVAL1": self.crval.value[0].item(),
             "CRVAL2": self.crval.value[1].item(),
-            "CRPIX1": self.crpix.value[0].item(),
-            "CRPIX2": self.crpix.value[1].item(),
+            "CRPIX1": self.crpix[0],
+            "CRPIX2": self.crpix[1],
             "CRTAN1": self.crtan.value[0].item(),
             "CRTAN2": self.crtan.value[1].item(),
             "CD1_1": self.pixelscale[0][0].item(),
@@ -341,7 +361,7 @@ class Image(Module):
 
     def fits_images(self):
         return [
-            fits.PrimaryHDU(self.data.value.cpu().numpy(), header=fits.Header(self.fits_info()))
+            fits.PrimaryHDU(self.data.detach().cpu().numpy(), header=fits.Header(self.fits_info()))
         ]
 
     def get_astropywcs(self, **kwargs):
@@ -365,11 +385,7 @@ class Image(Module):
 
         """
         hdulist = fits.open(filename)
-        self.data = torch.as_tensor(
-            np.array(hdulist[0].data, dtype=np.float64),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-        )
+        self.data = np.array(hdulist[0].data, dtype=np.float64)
         self.pixelscale = (
             (hdulist[0].header["CD1_1"], hdulist[0].header["CD1_2"]),
             (hdulist[0].header["CD2_1"], hdulist[0].header["CD2_2"]),
@@ -410,11 +426,11 @@ class Image(Module):
 
     @torch.no_grad()
     def get_indices(self, other: Window):
-        if other.image == self:
+        if other.image is self:
             return slice(max(0, other.i_low), min(self.shape[0], other.i_high)), slice(
                 max(0, other.j_low), min(self.shape[1], other.j_high)
             )
-        shift = np.round(self.crpix.npvalue - other.crpix.npvalue).astype(int)
+        shift = np.round(self.crpix - other.crpix).astype(int)
         return slice(
             min(max(0, other.i_low + shift[0]), self.shape[0]),
             max(0, min(other.i_high + shift[0], self.shape[0])),
@@ -431,23 +447,6 @@ class Image(Module):
                 max(0, -other.j_low), min(self.shape[1] - other.j_low, shape[1])
             )
         raise ValueError()
-        # origin_pix = torch.tensor(
-        #     (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        # )
-        # origin_pix = self.plane_to_pixel(*other.pixel_to_plane(*origin_pix))
-        # origin_pix = torch.round(torch.stack(origin_pix) + 0.5).int()
-        # new_origin_pix = torch.maximum(torch.zeros_like(origin_pix), origin_pix)
-
-        # end_pix = torch.tensor(
-        #     (other.data.shape[0] - 0.5, other.data.shape[1] - 0.5),
-        #     dtype=AP_config.ap_dtype,
-        #     device=AP_config.ap_device,
-        # )
-        # end_pix = self.plane_to_pixel(*other.pixel_to_plane(*end_pix))
-        # end_pix = torch.round(torch.stack(end_pix) + 0.5).int()
-        # shape = torch.tensor(self.data.shape[:2], dtype=torch.int32, device=AP_config.ap_device)
-        # new_end_pix = torch.minimum(shape, end_pix)
-        # return slice(new_origin_pix[0], new_end_pix[0]), slice(new_origin_pix[1], new_end_pix[1])
 
     def get_window(self, other: Union[Window, "Image"], _indices=None, **kwargs):
         """Get a new image object which is a window of this image
@@ -461,13 +460,8 @@ class Image(Module):
         else:
             indices = _indices
         new_img = self.copy(
-            data=self.data.value[indices],
-            crpix=self.crpix.value
-            - torch.tensor(
-                (indices[0].start, indices[1].start),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
-            ),
+            data=self.data[indices],
+            crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
             **kwargs,
         )
         return new_img
@@ -475,39 +469,35 @@ class Image(Module):
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data._value = new_img.data._value - other[self].data.value
+            new_img.data = new_img.data - other[self].data
             return new_img
         else:
             new_img = self.copy()
-            new_img.data._value = new_img.data._value - other
+            new_img.data = new_img.data - other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data._value = new_img.data._value + other[self].data.value
+            new_img.data = new_img.data + other[self].data
             return new_img
         else:
             new_img = self.copy()
-            new_img.data._value = new_img.data._value + other
+            new_img.data = new_img.data + other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data._value[self.get_indices(other.window)] += other.data.value[
-                other.get_indices(self.window)
-            ]
+            self.data[self.get_indices(other.window)] += other.data[other.get_indices(self.window)]
         else:
-            self.data._value = self.data._value + other
+            self.data = self.data + other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data._value[self.get_indices(other.window)] -= other.data.value[
-                other.get_indices(self.window)
-            ]
+            self.data[self.get_indices(other.window)] -= other.data[other.get_indices(self.window)]
         else:
-            self.data._value = self.data._value - other
+            self.data = self.data - other
         return self
 
     def __getitem__(self, *args):
@@ -535,7 +525,7 @@ class ImageList(Module):
 
     @property
     def data(self):
-        return tuple(image.data.value for image in self.images)
+        return tuple(image.data for image in self.images)
 
     @data.setter
     def data(self, data):
@@ -582,9 +572,6 @@ class ImageList(Module):
             device = AP_config.ap_device
         super().to(dtype=dtype, device=device)
         return self
-
-    def crop(self, *pixels):
-        raise NotImplementedError("Crop function not available for Image_List object")
 
     def flatten(self, attribute="data"):
         return torch.cat(tuple(image.flatten(attribute) for image in self.images))

@@ -16,7 +16,6 @@ def damp_hessian(hess, L):
     I = torch.eye(len(hess), dtype=hess.dtype, device=hess.device)
     D = torch.ones_like(hess) - I
     return hess * (I + D / (1 + L)) + L * I * (1 + torch.diag(hess))
-    # return hess + L * I * torch.diag(hess)
 
 
 def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.0):
@@ -27,8 +26,8 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     grad = gradient(J, weight, R)  # (N, 1)
     hess = hessian(J, weight)  # (N, N)
 
-    best = {"h": torch.zeros_like(x), "chi2": chi20, "L": L}
-    scary = {"h": None, "chi2": chi20, "L": L}
+    best = {"x": torch.zeros_like(x), "chi2": chi20, "L": L}
+    scary = {"x": None, "chi2": chi20, "L": L}
 
     nostep = True
     improving = None
@@ -48,7 +47,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
             continue
 
         if chi21 < scary["chi2"]:
-            scary = {"h": h.squeeze(1), "chi2": chi21, "L": L}
+            scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L}
 
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
@@ -61,7 +60,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
             continue
 
         if chi21 < best["chi2"]:  # new best
-            best = {"h": h.squeeze(1), "chi2": chi21, "L": L}
+            best = {"x": x + h.squeeze(1), "chi2": chi21, "L": L}
             nostep = False
             L /= Ldn
             if L < 1e-8 or improving is False:
@@ -80,7 +79,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
             break
 
     if nostep:
-        if scary["h"] is not None:
+        if scary["x"] is not None:
             return scary
         raise OptimizeStop("Could not find step to improve chi^2")
 

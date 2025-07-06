@@ -48,7 +48,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
     if window is None:
         window = target.window
     target_area = target[window]
-    dat = np.copy(target_area.data.npvalue)
+    dat = np.copy(target_area.data.detach().cpu().numpy())
     if target_area.has_mask:
         dat[target_area.mask.detach().cpu().numpy()] = np.nan
     X, Y = target_area.pixel_to_plane(*target_area.pixel_corner_meshgrid())
@@ -121,7 +121,7 @@ def psf_image(
     x, y = psf.coordinate_corner_meshgrid()
     x = x.detach().cpu().numpy()
     y = y.detach().cpu().numpy()
-    psf = psf.data.value.detach().cpu().numpy()
+    psf = psf.data.detach().cpu().numpy()
 
     # Default kwargs for image
     kwargs = {
@@ -228,7 +228,7 @@ def model_image(
     X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
-    sample_image = sample_image.data.npvalue
+    sample_image = sample_image.data.detach().cpu().numpy()
 
     # Default kwargs for image
     kwargs = {
@@ -348,7 +348,7 @@ def residual_image(
     X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
-    residuals = (target - sample_image).data.value
+    residuals = (target - sample_image).data
     if normalize_residuals is True:
         residuals = residuals / torch.sqrt(target.variance)
     elif isinstance(normalize_residuals, torch.Tensor):

@@ -40,11 +40,11 @@ class PSFImage(Image):
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
-        self.data._value /= torch.sum(self.data.value)
+        self.data = self.data / torch.sum(self.data)
 
     @property
     def mask(self):
-        return torch.zeros_like(self.data.value, dtype=bool)
+        return torch.zeros_like(self.data, dtype=bool)
 
     @property
     def psf_border_int(self):
@@ -81,7 +81,7 @@ class PSFImage(Image):
             )
         kwargs = {
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,
@@ -95,9 +95,9 @@ class PSFImage(Image):
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
         kwargs = {
-            "data": torch.zeros_like(self.data.value),
+            "data": torch.zeros_like(self.data),
             "pixelscale": self.pixelscale,
-            "crpix": self.crpix.value,
+            "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
             "zeropoint": self.zeropoint,

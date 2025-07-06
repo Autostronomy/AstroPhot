@@ -4,8 +4,6 @@ from typing import Union
 import numpy as np
 import torch
 from astropy.io import fits
-from ..angle_operations import Angle_COM_PA
-from ..operations import axis_ratio_com
 
 __all__ = (
     "centroids_from_segmentation_map",
@@ -60,15 +58,15 @@ def centroids_from_segmentation_map(
 
     centroids = {}
 
-    XX, YY = np.meshgrid(np.arange(seg_map.shape[1]), np.arange(seg_map.shape[0]))
+    II, JJ = np.meshgrid(np.arange(seg_map.shape[0]), np.arange(seg_map.shape[1]), indexing="ij")
 
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        xcentroid = np.sum(XX[N] * image[N]) / np.sum(image[N])
-        ycentroid = np.sum(YY[N] * image[N]) / np.sum(image[N])
-        centroids[index] = [xcentroid, ycentroid]
+        icentroid = np.sum(II[N] * image[N]) / np.sum(image[N])
+        jcentroid = np.sum(JJ[N] * image[N]) / np.sum(image[N])
+        centroids[index] = [icentroid, jcentroid]
 
     return centroids
 
@@ -77,31 +75,40 @@ def PA_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: Union[np.ndarray, str],
     centroids=None,
+    sky_level=None,
     hdul_index_seg: int = 0,
     hdul_index_img: int = 0,
     skip_index: tuple = (0,),
-    north=np.pi / 2,
+    softening=1e-3,
 ):
 
     seg_map = _select_img(seg_map, hdul_index_seg)
     image = _select_img(image, hdul_index_img)
 
+    if sky_level is None:
+        sky_level = np.nanmedian(image)
     if centroids is None:
         centroids = centroids_from_segmentation_map(
             seg_map=seg_map, image=image, skip_index=skip_index
         )
 
-    XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-
+    II, JJ = np.meshgrid(np.arange(image.shape[0]), np.arange(image.shape[1]), indexing="ij")
     PAs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        PA = (
-            Angle_COM_PA(image[N], XX[N] - centroids[index][0], YY[N] - centroids[index][1]) + north
-        )
-        PAs[index] = PA % np.pi
+        dat = image[N] - sky_level
+        ii = II[N] - centroids[index][0]
+        jj = JJ[N] - centroids[index][1]
+        mu20 = np.median(dat * np.abs(ii))
+        mu02 = np.median(dat * np.abs(jj))
+        mu11 = np.median(dat * ii * jj / np.sqrt(np.abs(ii * jj) + softening**2))
+        M = np.array([[mu20, mu11], [mu11, mu02]])
+        if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
+            PAs[index] = np.pi / 2
+        else:
+            PAs[index] = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
 
     return PAs
 
@@ -110,35 +117,41 @@ def q_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: Union[np.ndarray, str],
     centroids=None,
-    PAs=None,
+    sky_level=None,
     hdul_index_seg: int = 0,
     hdul_index_img: int = 0,
     skip_index: tuple = (0,),
-    north=np.pi / 2,
+    softening=1e-3,
 ):
 
     seg_map = _select_img(seg_map, hdul_index_seg)
     image = _select_img(image, hdul_index_img)
 
+    if sky_level is None:
+        sky_level = np.nanmedian(image)
     if centroids is None:
         centroids = centroids_from_segmentation_map(
             seg_map=seg_map, image=image, skip_index=skip_index
         )
-    if PAs is None:
-        PAs = PA_from_segmentation_map(
-            seg_map=seg_map, image=image, centroids=centroids, skip_index=skip_index
-        )
 
-    XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-
+    II, JJ = np.meshgrid(np.arange(image.shape[0]), np.arange(image.shape[1]), indexing="ij")
     qs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        qs[index] = axis_ratio_com(
-            image[N], PAs[index] + north, XX[N] - centroids[index][0], YY[N] - centroids[index][1]
-        )
+        dat = image[N] - sky_level
+        ii = II[N] - centroids[index][0]
+        jj = JJ[N] - centroids[index][1]
+        mu20 = np.median(dat * np.abs(ii))
+        mu02 = np.median(dat * np.abs(jj))
+        mu11 = np.median(dat * ii * jj / np.sqrt(np.abs(ii * jj) + softening**2))
+        M = np.array([[mu20, mu11], [mu11, mu02]])
+        if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
+            qs[index] = 0.7
+        else:
+            l = np.sort(np.linalg.eigvals(M))
+            qs[index] = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     return qs
 
@@ -329,7 +342,9 @@ def transfer_windows(windows, base_image, new_image):
         )  # (4,2)
 
         bottom_corner = np.floor(np.min(four_corners_new, axis=0)).astype(int)
+        bottom_corner = np.clip(bottom_corner, 0, np.array(new_image.shape))
         top_corner = np.ceil(np.max(four_corners_new, axis=0)).astype(int)
+        top_corner = np.clip(top_corner, 0, np.array(new_image.shape))
         new_windows[w] = [
             [int(bottom_corner[0]), int(bottom_corner[1])],
             [int(top_corner[0]), int(top_corner[1])],

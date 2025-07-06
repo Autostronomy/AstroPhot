@@ -29,7 +29,7 @@ class InclinedMixin:
         if self.PA.initialized and self.q.initialized:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.npvalue.copy()
+        dat = target_area.data.detach().cpu().numpy().copy()
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()
             dat[mask] = np.median(dat[~mask])
@@ -42,9 +42,6 @@ class InclinedMixin:
         mu20 = np.median(dat * np.abs(x))
         mu02 = np.median(dat * np.abs(y))
         mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
-        # mu20 = np.median(dat * x**2)
-        # mu02 = np.median(dat * y**2)
-        # mu11 = np.median(dat * x * y)
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if not self.PA.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):

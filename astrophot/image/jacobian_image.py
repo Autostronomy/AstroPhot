@@ -4,7 +4,6 @@ import torch
 
 from .image_object import Image, ImageList
 from .. import AP_config
-from ..param import forward
 from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["JacobianImage", "JacobianImageList"]
@@ -32,23 +31,12 @@ class JacobianImage(Image):
         if len(self.parameters) != len(set(self.parameters)):
             raise SpecificationConflict("Every parameter should be unique upon jacobian creation")
 
-    def flatten(self, attribute: str = "data"):
-        if attribute in self.children:
-            return getattr(self, attribute).value.reshape((-1, len(self.parameters)))
-        return getattr(self, attribute).reshape((-1, len(self.parameters)))
-
     def copy(self, **kwargs):
         return super().copy(parameters=self.parameters, **kwargs)
 
     def __iadd__(self, other: "JacobianImage"):
         if not isinstance(other, JacobianImage):
             raise InvalidImage("Jacobian images can only add with each other, not: type(other)")
-
-        # exclude null jacobian images
-        if other.data.value is None:
-            return self
-        if self.data.value is None:
-            return other
 
         self_indices = self.get_indices(other.window)
         other_indices = other.get_indices(self.window)
@@ -63,11 +51,11 @@ class JacobianImage(Image):
                     dtype=AP_config.ap_dtype,
                     device=AP_config.ap_device,
                 )
-                data[:, :, :-1] = self.data.value
+                data[:, :, :-1] = self.data
                 self.data = data
                 self.parameters.append(other_identity)
                 other_loc = -1
-            self.data.value[self_indices[0], self_indices[1], other_loc] += other.data.value[
+            self.data[self_indices[0], self_indices[1], other_loc] += other.data[
                 other_indices[0], other_indices[1], i
             ]
         return self

@@ -48,7 +48,7 @@ class PixelatedPSF(PSFModel):
         if self.pixels.initialized:
             return
         target_area = self.target[self.window]
-        self.pixels.dynamic_value = target_area.data.value.clone() / target_area.pixel_area
+        self.pixels.dynamic_value = target_area.data.clone() / target_area.pixel_area
         self.pixels.uncertainty = torch.abs(self.pixels.value) * self.default_uncertainty
 
     @forward

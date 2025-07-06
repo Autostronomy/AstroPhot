@@ -51,7 +51,7 @@ class PointSource(ComponentModel):
         if not hasattr(self, "logflux") or self.logflux.initialized:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.npvalue.copy()
+        dat = target_area.data.detach().cpu().numpy().copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         self.logflux.dynamic_value = np.log10(np.abs(np.sum(dat - edge_average)))
@@ -106,7 +106,7 @@ class PointSource(ComponentModel):
         # Compute the center offset
         pixel_center = torch.stack(working_image.plane_to_pixel(*center))
         pixel_shift = pixel_center - torch.round(pixel_center)
-        psf = self.psf.data.value
+        psf = self.psf.data
         shift_kernel = func.fft_shift_kernel(psf.shape, pixel_shift[0], pixel_shift[1])
         psf = torch.fft.irfft2(shift_kernel * torch.fft.rfft2(psf, s=psf.shape), s=psf.shape)
         # (
@@ -131,11 +131,11 @@ class PointSource(ComponentModel):
             ),
             image=working_image,
         )
-        working_image[psf_window].data._value += psf[working_image.get_other_indices(psf_window)]
+        working_image[psf_window].data += psf[working_image.get_other_indices(psf_window)]
         working_image = working_image.reduce(psf_upscale)
 
         # Return to image pixelscale
         if self.mask is not None:
-            working_image.data = working_image.data.value * (~self.mask)
+            working_image.data = working_image.data * (~self.mask)
 
         return working_image
