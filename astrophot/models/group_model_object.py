@@ -223,13 +223,13 @@ class GroupModel(Model):
         else:
             jac_img = pass_jacobian
 
-        for model in self.models:
+        for model in reversed(self.models):
             try:
                 use_window = self.match_window(jac_img, window, model)
             except IndexError:
                 # If the model target is not in the image, skip it
                 continue
-            model.jacobian(
+            jac_img = model.jacobian(
                 pass_jacobian=jac_img,
                 window=use_window & model.window,
             )

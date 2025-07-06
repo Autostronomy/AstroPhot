@@ -4,6 +4,7 @@ import torch
 
 from .image_object import Image, ImageList
 from .. import AP_config
+from ..param import forward
 from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["JacobianImage", "JacobianImageList"]

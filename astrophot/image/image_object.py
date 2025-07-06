@@ -67,10 +67,18 @@ class Image(Module):
 
         """
         super().__init__(name=name)
-        self.data = Param("data", units="flux")
-        self.crval = Param("crval", units="deg")
-        self.crtan = Param("crtan", units="arcsec")
-        self.crpix = Param("crpix", units="pixel")
+        self.data = Param(
+            "data", units="flux", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        self.crval = Param(
+            "crval", units="deg", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        self.crtan = Param(
+            "crtan", units="arcsec", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
+        self.crpix = Param(
+            "crpix", units="pixel", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+        )
 
         if filename is not None:
             self.load(filename)

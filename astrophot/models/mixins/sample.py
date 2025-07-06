@@ -150,8 +150,8 @@ class SampleMixin:
             chunksize = len(params) // self.jacobian_maxparams + 1
             for i in range(chunksize, len(params), chunksize):
                 params_pre = params[:i]
-                params_post = params[i + chunksize :]
                 params_chunk = params[i : i + chunksize]
+                params_post = params[i + chunksize :]
                 jac_chunk = self._jacobian(window, params_pre, params_chunk, params_post)
                 jac_img += target.jacobian_image(
                     parameters=identities[i : i + chunksize],

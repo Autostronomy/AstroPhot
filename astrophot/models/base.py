@@ -122,14 +122,20 @@ class Model(Module):
         # Create Param objects for this Module
         parameter_specs = self.build_parameter_specs(kwargs, self.parameter_specs)
         for key in parameter_specs:
-            setattr(self, key, Param(key, **parameter_specs[key]))
+            param = Param(
+                key, **parameter_specs[key], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+            setattr(self, key, param)
         overload_specs = self.build_parameter_specs(kwargs, self.overload_parameter_specs)
         for key in overload_specs:
             overload = overload_specs[key].pop("overloads")
             if self[overload].value is not None:
                 continue
             self[overload].value = overload_specs[key].pop("overload_function")
-            setattr(self, key, Param(key, **overload_specs[key]))
+            param = Param(
+                key, **overload_specs[key], dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            )
+            setattr(self, key, param)
             self[overload].link(key, self[key])
 
         self.saveattrs.update(self.options)

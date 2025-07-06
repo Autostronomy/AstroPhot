@@ -393,17 +393,14 @@ class TargetImage(Image):
 
     def jacobian_image(
         self,
-        parameters: Optional[List[str]] = None,
+        parameters: List[str],
         data: Optional[torch.Tensor] = None,
         **kwargs,
     ):
         """
         Construct a blank `Jacobian_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
-        if parameters is None:
-            data = None
-            parameters = []
-        elif data is None:
+        if data is None:
             data = torch.zeros(
                 (*self.data.shape, len(parameters)),
                 dtype=AP_config.ap_dtype,
@@ -509,7 +506,7 @@ class TargetImageList(ImageList):
 
     def jacobian_image(self, parameters: List[str], data: Optional[List[torch.Tensor]] = None):
         if data is None:
-            data = [None] * len(self.images)
+            data = tuple(None for _ in range(len(self.images)))
         return JacobianImageList(
             list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
         )
