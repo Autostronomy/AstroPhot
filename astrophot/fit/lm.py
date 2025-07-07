@@ -265,7 +265,7 @@ class LM(BaseOptimizer):
 
         for _ in range(self.max_iter):
             if self.verbose > 0:
-                AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.4g}, L: {self.L:.3g}")
+                AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
                     with ValidContext(self.model):

@@ -217,12 +217,12 @@ class Image(Module):
         return func.plane_to_pixel_linear(x, y, *self.crpix, self.pixelscale_inv, *crtan)
 
     @forward
-    def plane_to_world(self, x, y, crval, crtan):
-        return func.plane_to_world_gnomonic(x, y, *crval, *crtan)
+    def plane_to_world(self, x, y, crval):
+        return func.plane_to_world_gnomonic(x, y, *crval)
 
     @forward
-    def world_to_plane(self, ra, dec, crval, crtan):
-        return func.world_to_plane_gnomonic(ra, dec, *crval, *crtan)
+    def world_to_plane(self, ra, dec, crval):
+        return func.world_to_plane_gnomonic(ra, dec, *crval)
 
     @forward
     def world_to_pixel(self, ra, dec):

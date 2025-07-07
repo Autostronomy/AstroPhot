@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 import torch
 
-from ..param import forward
+from ..param import forward, OverrideParam
 from .base import Model
 from . import func
 from ..image import (
@@ -218,18 +218,17 @@ class ComponentModel(SampleMixin, Model):
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift:
                 pixel_center = torch.stack(working_image.plane_to_pixel(*center))
-                pixel_shift = pixel_center - torch.round(pixel_center)
-                working_image.crpix = (
-                    working_image.crpix.value - pixel_shift
-                )  # fixme move the model
+                pixel_centered = torch.round(pixel_center)
+                pixel_shift = pixel_center - pixel_centered
+                with OverrideParam(
+                    self.center, torch.stack(working_image.pixel_to_plane(*pixel_centered))
+                ):
+                    sample = self.sample_image(working_image)
             else:
                 pixel_shift = None
-
-            sample = self.sample_image(working_image)
+                sample = self.sample_image(working_image)
 
             working_image.data = func.convolve_and_shift(sample, psf, pixel_shift)
-            if self.psf_subpixel_shift:
-                working_image.crpix = working_image.crpix.value + pixel_shift  # fixme
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         else:
@@ -238,7 +237,7 @@ class ComponentModel(SampleMixin, Model):
             working_image.data = sample
 
         # Units from flux/arcsec^2 to flux
-        working_image.data = working_image.data * working_image.pixel_area
+        working_image.data = working_image.fluxdensity_to_flux()
 
         if self.mask is not None:
             working_image.data = working_image.data * (~self.mask)

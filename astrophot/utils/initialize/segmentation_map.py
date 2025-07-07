@@ -330,7 +330,9 @@ def transfer_windows(windows, base_image, new_image):
                 windows[w][1],
                 [windows[w][0][0], windows[w][1][1]],
                 [windows[w][1][0], windows[w][0][1]],
-            ]
+            ],
+            dtype=base_image.data.dtype,
+            device=base_image.data.device,
         )  # (4,2)
         four_corners_new = (
             torch.stack(

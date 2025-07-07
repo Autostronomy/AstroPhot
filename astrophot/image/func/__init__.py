@@ -9,6 +9,7 @@ from .wcs import (
     plane_to_world_gnomonic,
     pixel_to_plane_linear,
     plane_to_pixel_linear,
+    sip_delta,
 )
 from .window import window_or, window_and
 
@@ -21,6 +22,7 @@ __all__ = (
     "plane_to_world_gnomonic",
     "pixel_to_plane_linear",
     "plane_to_pixel_linear",
+    "sip_delta",
     "window_or",
     "window_and",
 )

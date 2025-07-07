@@ -118,6 +118,29 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     return xy[:, 0].reshape(i.shape) + x0, xy[:, 1].reshape(j.shape) + y0
 
 
+def sip_delta(u, v, sipA=(), sipB=()):
+    """
+    u = j - j0
+    v = i - i0
+    sipA = dict(tuple(int,int), float)
+        The SIP coefficients, where the keys are tuples of powers (i, j) and the values are the coefficients.
+        For example, {(1, 2): 0.1} means delta_u = 0.1 * (u * v^2).
+    """
+    delta_u = torch.zeros_like(u)
+    delta_v = torch.zeros_like(v)
+    # Get all used coefficient powers
+    all_a = set(s[0] for s in sipA) | set(s[0] for s in sipB)
+    all_b = set(s[1] for s in sipA) | set(s[1] for s in sipB)
+    # Pre-compute all powers of u and v
+    u_a = dict((a, u**a) for a in all_a)
+    v_b = dict((b, v**b) for b in all_b)
+    for a, b in sipA:
+        delta_u = delta_u + sipA[(a, b)] * (u_a[a] * v_b[b])
+    for a, b in sipB:
+        delta_v = delta_v + sipB[(a, b)] * (u_a[a] * v_b[b])
+    return delta_u, delta_v
+
+
 def pixel_to_plane_sip(i, j, i0, j0, CD, sip_powers=[], sip_coefs=[], x0=0.0, y0=0.0):
     """
     Convert pixel coordinates to a tangent plane using the WCS information. This
@@ -173,7 +196,7 @@ def pixel_to_plane_sip(i, j, i0, j0, CD, sip_powers=[], sip_coefs=[], x0=0.0, y0
     Tuple: [Tensor, Tensor]
         Tuple containing the x and y tangent plane coordinates in arcsec.
     """
-    uv = torch.stack((j - j0, i - i0), -1)
+    uv = torch.stack((j.reshape(-1) - j0, i.reshape(-1) - i0), dim=1)
     delta_p = torch.zeros_like(uv)
     for p in range(len(sip_powers)):
         delta_p += sip_coefs[p] * torch.prod(uv ** sip_powers[p], dim=-1).unsqueeze(-1)

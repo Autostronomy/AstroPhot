@@ -33,7 +33,6 @@ def fft_shift_kernel(shape, di, dj):
     ni, nj = shape
     ki = torch.fft.fftfreq(ni, dtype=di.dtype, device=di.device)
     kj = torch.fft.rfftfreq(nj, dtype=di.dtype, device=di.device)
-
     Ki, Kj = torch.meshgrid(ki, kj, indexing="ij")
     phase = -2j * torch.pi * (Ki * torch.arctan(di) + Kj * torch.arctan(dj))
     return torch.exp(phase)

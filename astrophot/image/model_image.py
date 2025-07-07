@@ -110,6 +110,9 @@ class ModelImage(Image):
             **kwargs,
         )
 
+    def fluxdensity_to_flux(self):
+        self.data = self.data * self.pixel_area
+
 
 ######################################################################
 class ModelImageList(ImageList):
