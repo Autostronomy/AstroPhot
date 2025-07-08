@@ -7,11 +7,12 @@ from .image_object import Image
 from .model_image import ModelImage
 from .jacobian_image import JacobianImage
 from .. import AP_config
+from .mixins import DataMixin
 
 __all__ = ["PSFImage"]
 
 
-class PSFImage(Image):
+class PSFImage(DataMixin, Image):
     """Image object which represents a model of PSF (Point Spread Function).
 
     PSF_Image inherits from the base Image class and represents the model of a point spread function.
@@ -30,36 +31,18 @@ class PSFImage(Image):
         reduce: Reduces the size of the image using a given scale factor.
     """
 
-    has_mask = False
-    has_variance = False
-
     def __init__(self, *args, **kwargs):
-        kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
+        kwargs.update({"crpix": (0, 0), "crtan": (0, 0)})
         super().__init__(*args, **kwargs)
         self.crpix = (np.array(self.data.shape, dtype=float) - 1.0) / 2
+        del self.crval
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
-        self.data = self.data / torch.sum(self.data)
-
-    @property
-    def mask(self):
-        return torch.zeros_like(self.data, dtype=bool)
-
-    @property
-    def psf_border_int(self):
-        """Calculates and returns the border size of the PSF image in integer
-        format. This is the border used for padding before convolution.
-
-        Returns:
-            torch.Tensor: The border size of the PSF image in integer format.
-
-        """
-        return torch.tensor(
-            self.data.shape,
-            dtype=torch.int32,
-            device=AP_config.ap_device,
-        )
+        norm = torch.sum(self.data)
+        self.data = self.data / norm
+        if self.has_weight:
+            self.weight = self.weight * norm**2
 
     def jacobian_image(
         self,
@@ -80,10 +63,10 @@ class PSFImage(Image):
                 device=AP_config.ap_device,
             )
         kwargs = {
-            "pixelscale": self.pixelscale,
+            "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
-            "crval": self.crval.value,
             "crtan": self.crtan.value,
+            "crval": (0.0, 0.0),
             "zeropoint": self.zeropoint,
             "identity": self.identity,
             **kwargs,
@@ -96,12 +79,31 @@ class PSFImage(Image):
         """
         kwargs = {
             "data": torch.zeros_like(self.data),
-            "pixelscale": self.pixelscale,
+            "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
-            "crval": self.crval.value,
             "crtan": self.crtan.value,
+            "crval": (0.0, 0.0),
             "zeropoint": self.zeropoint,
             "identity": self.identity,
             **kwargs,
         }
         return ModelImage(**kwargs)
+
+    @property
+    def zeropoint(self):
+        return None
+
+    @zeropoint.setter
+    def zeropoint(self, value):
+        """PSFImage does not support zeropoint."""
+        pass
+
+    def plane_to_world(self, x, y):
+        raise NotImplementedError(
+            "PSFImage does not support plane_to_world conversion. There is no meaningful world position of a PSF image."
+        )
+
+    def world_to_plane(self, ra, dec):
+        raise NotImplementedError(
+            "PSFImage does not support world_to_plane conversion. There is no meaningful world position of a PSF image."
+        )

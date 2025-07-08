@@ -67,10 +67,8 @@ class MultiGaussianExpansion(ComponentModel):
                 max(target_area.shape) * target_area.pixel_length.item() * 0.7,
                 self.n_components,
             )
-            self.sigma.uncertainty = self.default_uncertainty * self.sigma.value
         if not self.flux.initialized:
             self.flux.dynamic_value = (np.sum(dat) / self.n_components) * np.ones(self.n_components)
-            self.flux.uncertainty = self.default_uncertainty * self.flux.value
 
         if self.PA.initialized or self.q.initialized:
             return

@@ -11,14 +11,8 @@ from ... import AP_config
 class InclinedMixin:
 
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0, 1), "uncertainty": 0.03, "shape": ()},
-        "PA": {
-            "units": "radians",
-            "valid": (0, np.pi),
-            "cyclic": True,
-            "uncertainty": 0.06,
-            "shape": (),
-        },
+        "q": {"units": "b/a", "valid": (0, 1), "shape": ()},
+        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "shape": ()},
     }
 
     @torch.no_grad()
@@ -89,7 +83,7 @@ class SuperEllipseMixin:
 
     _model_type = "superellipse"
     _parameter_specs = {
-        "C": {"units": "none", "value": 2.0, "uncertainty": 1e-2, "valid": (0, None)},
+        "C": {"units": "none", "value": 2.0, "valid": (0, None)},
     }
 
     @forward
@@ -168,10 +162,8 @@ class FourierEllipseMixin:
 
         if not self.am.initialized:
             self.am.dynamic_value = np.zeros(len(self.modes))
-            self.am.uncertainty = self.default_uncertainty * np.ones(len(self.modes))
         if not self.phim.initialized:
             self.phim.value = np.zeros(len(self.modes))
-            self.phim.uncertainty = (10 * np.pi / 180) * np.ones(len(self.modes))
 
 
 class WarpMixin:
@@ -202,13 +194,8 @@ class WarpMixin:
 
     _model_type = "warp"
     _parameter_specs = {
-        "q_R": {"units": "b/a", "valid": (0.0, 1), "uncertainty": 0.04},
-        "PA_R": {
-            "units": "radians",
-            "valid": (0, np.pi),
-            "cyclic": True,
-            "uncertainty": 0.08,
-        },
+        "q_R": {"units": "b/a", "valid": (0, 1)},
+        "PA_R": {"units": "radians", "valid": (0, np.pi), "cyclic": True},
     }
 
     @torch.no_grad()
@@ -220,12 +207,10 @@ class WarpMixin:
             if self.PA_R.prof is None:
                 self.PA_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
             self.PA_R.dynamic_value = np.zeros(len(self.PA_R.prof)) + np.pi / 2
-            self.PA_R.uncertainty = (10 * np.pi / 180) * torch.ones_like(self.PA_R.value)
         if not self.q_R.initialized:
             if self.q_R.prof is None:
                 self.q_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
             self.q_R.dynamic_value = np.ones(len(self.q_R.prof)) * 0.8
-            self.q_R.uncertainty = self.default_uncertainty * self.q_R.value
 
     @forward
     def transform_coordinates(self, x, y, q_R, PA_R):
@@ -264,10 +249,8 @@ class TruncationMixin:
         if not self.Rt.initialize:
             prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
             self.Rt.dynamic_value = prof[len(prof) // 2]
-            self.Rt.uncertainty = 0.1
         if not self.sharpness.initialized:
             self.sharpness.dynamic_value = 1.0
-            self.sharpness.uncertainty = 0.1
 
     @forward
     def radial_model(self, R, Rt, sharpness):

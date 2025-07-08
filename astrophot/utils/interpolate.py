@@ -312,6 +312,9 @@ def interp2d(
     x = x.view(-1)
     y = y.view(-1)
 
+    # valid
+    valid = (x >= -0.5) & (x < (w - 0.5)) & (y >= -0.5) & (y < (h - 0.5))
+
     x0 = x.floor().long()
     y0 = y.floor().long()
     x1 = x0 + 1
@@ -333,7 +336,7 @@ def interp2d(
 
     result = fa * wa + fb * wb + fc * wc + fd * wd
 
-    return result.view(*start_shape)
+    return (result * valid).view(*start_shape)
 
 
 @lru_cache(maxsize=32)

@@ -52,9 +52,8 @@ class ComponentModel(SampleMixin, Model):
 
     """
 
-    # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     _parameter_specs = {
-        "center": {"units": "arcsec", "uncertainty": [0.1, 0.1], "shape": (2,)},
+        "center": {"units": "arcsec", "shape": (2,)},
     }
 
     # Scope for PSF convolution
@@ -95,6 +94,24 @@ class ComponentModel(SampleMixin, Model):
                 "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
                 "or ap.models.PSF_Model object instead."
             )
+        self.update_psf_upscale()
+
+    def update_psf_upscale(self):
+        """Update the PSF upscale factor based on the current target pixel length."""
+        if self.psf is None:
+            self.psf_upscale = 1
+        elif isinstance(self.psf, PSFImage):
+            self.psf_upscale = (
+                torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
+            )
+        elif isinstance(self.psf, Model):
+            self.psf_upscale = (
+                torch.round(self.target.pixel_length / self.psf.target.pixel_length).int().item()
+            )
+        else:
+            raise TypeError(
+                f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
+            )
 
     @property
     def target(self):
@@ -106,12 +123,16 @@ class ComponentModel(SampleMixin, Model):
             self._target = None
             return
         elif not isinstance(tar, TargetImage):
-            raise InvalidTarget("AstroPhot Model target must be a Target_Image instance.")
+            raise InvalidTarget("AstroPhot Model target must be a TargetImage instance.")
         try:
             del self._target  # Remove old target if it exists
         except AttributeError:
             pass
         self._target = tar
+        try:
+            self.update_psf_upscale()
+        except AttributeError:
+            pass
 
     # Initialization functions
     ######################################################################
@@ -127,6 +148,9 @@ class ComponentModel(SampleMixin, Model):
           target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
 
         """
+        if self.psf is not None and isinstance(self.psf, Model):
+            self.psf.initialize()
+
         target_area = self.target[self.window]
 
         # Use center of window if a center hasn't been set yet
@@ -213,7 +237,7 @@ class ComponentModel(SampleMixin, Model):
                     f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
                 )
 
-            working_image = ModelImage(window=window, upsample=psf_upscale, pad=psf_pad)
+            working_image = self.target[window].model_image(upsample=psf_upscale, pad=psf_pad)
 
             # Sub pixel shift to align the model with the center of a pixel
             if self.psf_subpixel_shift:
@@ -232,14 +256,11 @@ class ComponentModel(SampleMixin, Model):
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         else:
-            working_image = ModelImage(window=window)
+            working_image = self.target[window].model_image()
             sample = self.sample_image(working_image)
             working_image.data = sample
 
         # Units from flux/arcsec^2 to flux
-        working_image.data = working_image.fluxdensity_to_flux()
-
-        if self.mask is not None:
-            working_image.data = working_image.data * (~self.mask)
+        working_image.fluxdensity_to_flux()
 
         return working_image

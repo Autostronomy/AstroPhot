@@ -66,10 +66,21 @@ class Image(Module):
         super().__init__(name=name)
         self.data = data  # units: flux
         self.crval = Param(
-            "crval", units="deg", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            "crval", shape=(2,), units="deg", dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
         self.crtan = Param(
-            "crtan", units="arcsec", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            "crtan",
+            shape=(2,),
+            units="arcsec",
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
+        )
+        self.pixelscale = Param(
+            "pixelscale",
+            shape=(2, 2),
+            units="arcsec/pixel",
+            dtype=AP_config.ap_dtype,
+            device=AP_config.ap_device,
         )
 
         if filename is not None:
@@ -105,6 +116,8 @@ class Image(Module):
         self.crtan = crtan
         self.crpix = crpix
 
+        if isinstance(pixelscale, (float, int)):
+            pixelscale = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
         self.pixelscale = pixelscale
 
         self.zeropoint = zeropoint
@@ -165,30 +178,13 @@ class Image(Module):
         return self.data.shape
 
     @property
-    def pixelscale(self):
-        return self._pixelscale
-
-    @pixelscale.setter
-    def pixelscale(self, pixelscale):
-        if pixelscale is None:
-            pixelscale = self.default_pixelscale
-        elif isinstance(pixelscale, (float, int)) or (
-            isinstance(pixelscale, torch.Tensor) and pixelscale.numel() == 1
-        ):
-            pixelscale = ((pixelscale, 0.0), (0.0, pixelscale))
-        self._pixelscale = torch.as_tensor(
-            pixelscale, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        self._pixel_area = torch.linalg.det(self._pixelscale).abs()
-        self._pixel_length = self._pixel_area.sqrt()
-        self._pixelscale_inv = torch.linalg.inv(self._pixelscale)
-
-    @property
-    def pixel_area(self):
+    @forward
+    def pixel_area(self, pixelscale):
         """The area inside a pixel in arcsec^2"""
-        return self._pixel_area
+        return torch.linalg.det(pixelscale).abs()
 
     @property
+    @forward
     def pixel_length(self):
         """The approximate length of a pixel, which is just
         sqrt(pixel_area). For square pixels this is the actual pixel
@@ -198,19 +194,20 @@ class Image(Module):
         and instead sets a size scale within an image.
 
         """
-        return self._pixel_length
+        return self.pixel_area.sqrt()
 
     @property
-    def pixelscale_inv(self):
+    @forward
+    def pixelscale_inv(self, pixelscale):
         """The inverse of the pixel scale matrix, which is used to
         transform tangent plane coordinates into pixel coordinates.
 
         """
-        return self._pixelscale_inv
+        return torch.linalg.inv(pixelscale)
 
     @forward
-    def pixel_to_plane(self, i, j, crtan):
-        return func.pixel_to_plane_linear(i, j, *self.crpix, self.pixelscale, *crtan)
+    def pixel_to_plane(self, i, j, crtan, pixelscale):
+        return func.pixel_to_plane_linear(i, j, *self.crpix, pixelscale, *crtan)
 
     @forward
     def plane_to_pixel(self, x, y, crtan):
@@ -299,7 +296,7 @@ class Image(Module):
         """
         kwargs = {
             "data": torch.clone(self.data.detach()),
-            "pixelscale": self.pixelscale,
+            "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
@@ -317,7 +314,7 @@ class Image(Module):
         """
         kwargs = {
             "data": torch.zeros_like(self.data),
-            "pixelscale": self.pixelscale,
+            "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
@@ -351,10 +348,10 @@ class Image(Module):
             "CRPIX2": self.crpix[1],
             "CRTAN1": self.crtan.value[0].item(),
             "CRTAN2": self.crtan.value[1].item(),
-            "CD1_1": self.pixelscale[0][0].item(),
-            "CD1_2": self.pixelscale[0][1].item(),
-            "CD2_1": self.pixelscale[1][0].item(),
-            "CD2_2": self.pixelscale[1][1].item(),
+            "CD1_1": self.pixelscale.value[0][0].item(),
+            "CD1_2": self.pixelscale.value[0][1].item(),
+            "CD2_1": self.pixelscale.value[1][0].item(),
+            "CD2_2": self.pixelscale.value[1][1].item(),
             "MAGZP": self.zeropoint.item() if self.zeropoint is not None else -999,
             "IDNTY": self.identity,
         }
@@ -448,17 +445,15 @@ class Image(Module):
             )
         raise ValueError()
 
-    def get_window(self, other: Union[Window, "Image"], _indices=None, **kwargs):
+    def get_window(self, other: Union[Window, "Image"], indices=None, **kwargs):
         """Get a new image object which is a window of this image
         corresponding to the other image's window. This will return a
         new image object with the same properties as this one, but with
         the data cropped to the other image's window.
 
         """
-        if _indices is None:
+        if indices is None:
             indices = self.get_indices(other if isinstance(other, Window) else other.window)
-        else:
-            indices = _indices
         new_img = self.copy(
             data=self.data[indices],
             crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
@@ -514,14 +509,6 @@ class ImageList(Module):
             raise InvalidImage(
                 f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.images)}"
             )
-
-    @property
-    def pixelscale(self):
-        return tuple(image.pixelscale for image in self.images)
-
-    @property
-    def zeropoint(self):
-        return tuple(image.zeropoint for image in self.images)
 
     @property
     def data(self):

@@ -32,10 +32,11 @@ def fft_shift_kernel(shape, di, dj):
     """FFT shift theorem gives "exact" shift in phase space. Not really exact for DFT"""
     ni, nj = shape
     ki = torch.fft.fftfreq(ni, dtype=di.dtype, device=di.device)
-    kj = torch.fft.rfftfreq(nj, dtype=di.dtype, device=di.device)
+    kj = torch.fft.fftfreq(nj, dtype=di.dtype, device=di.device)
     Ki, Kj = torch.meshgrid(ki, kj, indexing="ij")
-    phase = -2j * torch.pi * (Ki * torch.arctan(di) + Kj * torch.arctan(dj))
-    return torch.exp(phase)
+    phase = -2j * torch.pi * (Ki * di + Kj * dj)
+    gauss = torch.exp(-0.5 * (Ki**2 + Kj**2) * 5**2)
+    return torch.exp(phase) * gauss
 
 
 def convolve(image, psf):

@@ -231,9 +231,13 @@ def model_image(
     sample_image = sample_image.data.detach().cpu().numpy()
 
     # Default kwargs for image
+    vmin = kwargs.pop("vmin", None)
+    vmax = kwargs.pop("vmax", None)
     kwargs = {
         "cmap": cmap_grad,
-        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        "norm": matplotlib.colors.LogNorm(
+            vmin=vmin, vmax=vmax
+        ),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
         **kwargs,
     }
 

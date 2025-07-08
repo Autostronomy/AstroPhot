@@ -4,7 +4,6 @@ import torch
 from scipy.optimize import minimize
 
 from ..utils.decorators import ignore_numpy_warnings
-from ..utils.interpolate import default_prof
 from .. import AP_config
 
 
@@ -95,41 +94,20 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         return np.mean(residual[N][:-2])
 
     res = minimize(optim, x0=x0, args=(R, I, S), method="Nelder-Mead")
-    if not res.success:
-        if AP_config.ap_verbose >= 2:
-            AP_config.ap_logger.warning(
-                f"initialization fit not successful for {model.name}, falling back to defaults"
-            )
-    else:
+    if res.success:
         x0 = res.x
-    # import matplotlib.pyplot as plt
+    elif AP_config.ap_verbose >= 2:
+        AP_config.ap_logger.warning(
+            f"initialization fit not successful for {model.name}, falling back to defaults"
+        )
 
-    # plt.plot(R, I, "o", label="data")
-    # plt.plot(R, np.log10(prof_func(R, *x0)), label="fit")
-    # plt.title(f"Initial fit for {model.name}")
-    # plt.legend()
-    # plt.show()
-    reses = []
-    for i in range(10):
-        N = np.random.randint(0, len(R), len(R))
-        reses.append(minimize(optim, x0=x0, args=(R[N], I[N], S[N]), method="Nelder-Mead"))
     for param, x0x in zip(params, x0):
         if not model[param].initialized:
-            if (
-                model[param].valid[0] is not None
-                and x0x < model[param].valid[0].detach().cpu().numpy()
-            ) or (
-                model[param].valid[1] is not None
-                and x0x > model[param].valid[1].detach().cpu().numpy()
-            ):
-                x0x = model[param].from_valid(
+            if not model[param].is_valid(x0x):
+                x0x = model[param].soft_valid(
                     torch.tensor(x0x, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
                 )
             model[param].dynamic_value = x0x
-        if model[param].uncertainty is None:
-            model[param].uncertainty = np.std(
-                list(subres.x[params.index(param)] for subres in reses)
-            )
 
 
 @torch.no_grad()
@@ -149,7 +127,6 @@ def parametric_segment_initialize(
     w = cycle / segments
     v = w * np.arange(segments)
     values = []
-    uncertainties = []
     for s in range(segments):
         angle_range = (v[s] - w / 2, v[s] + w / 2)
         # Get the sub-image area corresponding to the model image
@@ -177,15 +154,8 @@ def parametric_segment_initialize(
         else:
             x0 = res.x
 
-        reses = []
-        for i in range(10):
-            N = np.random.randint(0, len(R), len(R))
-            reses.append(minimize(optim, x0=x0, args=(R[N], I[N], S[N]), method="Nelder-Mead"))
         values.append(x0)
-        uncertainties.append(np.std(np.stack(reses), axis=0))
     values = np.stack(values).T
-    uncertainties = np.stack(uncertainties).T
-    for param, v, u in zip(params, values, uncertainties):
+    for param, v in zip(params, values):
         if not model[param].initialized:
             model[param].dynamic_value = v
-            model[param].uncertainty = u

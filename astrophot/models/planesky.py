@@ -39,15 +39,8 @@ class PlaneSky(SkyModel):
         if not self.I0.initialized:
             dat = self.target[self.window].data.detach().cpu().numpy().copy()
             self.I0.dynamic_value = np.median(dat) / self.target.pixel_area.item()
-            self.I0.uncertainty = (iqr(dat, rng=(16, 84)) / 2.0) / np.sqrt(
-                np.prod(self.window.shape.detach().cpu().numpy())
-            )
         if not self.delta.initialized:
             self.delta.dynamic_value = [0.0, 0.0]
-            self.delta.uncertainty = [
-                self.default_uncertainty,
-                self.default_uncertainty,
-            ]
 
     @forward
     def brightness(self, x, y, I0, delta):

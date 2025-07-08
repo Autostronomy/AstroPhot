@@ -3,9 +3,11 @@ from typing import Optional
 import torch
 import numpy as np
 
+from .base import Model
 from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings
-from ..image import Window, ModelImage
+from ..utils.interpolate import interp2d
+from ..image import Window, PSFImage
 from ..errors import SpecificationConflict
 from ..param import forward
 from . import func
@@ -41,7 +43,7 @@ class PointSource(ComponentModel):
         super().__init__(*args, **kwargs)
 
         if self.psf is None:
-            raise SpecificationConflict("Point_Source needs psf information")
+            raise SpecificationConflict("Point_Source needs a psf!")
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -55,7 +57,6 @@ class PointSource(ComponentModel):
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         self.logflux.dynamic_value = np.log10(np.abs(np.sum(dat - edge_average)))
-        self.logflux.uncertainty = torch.std(dat) / np.sqrt(np.prod(dat.shape))
 
     # Psf convolution should be on by default since this is a delta function
     @property
@@ -64,6 +65,14 @@ class PointSource(ComponentModel):
 
     @psf_mode.setter
     def psf_mode(self, value):
+        pass
+
+    @property
+    def integrate_mode(self):
+        return "none"
+
+    @integrate_mode.setter
+    def integrate_mode(self, value):
         pass
 
     @forward
@@ -97,45 +106,26 @@ class PointSource(ComponentModel):
         if window is None:
             window = self.window
 
-        # Adjust for supersampled PSF
-        psf_upscale = torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
+        if isinstance(self.psf, PSFImage):
+            psf = self.psf.data
+        elif isinstance(self.psf, Model):
+            psf = self.psf().data
+        else:
+            raise TypeError(
+                f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
+            )
 
         # Make the image object to which the samples will be tracked
-        working_image = ModelImage(window=window, upsample=psf_upscale)
+        working_image = self.target[window].model_image(upsample=self.psf_upscale)
 
-        # Compute the center offset
-        pixel_center = torch.stack(working_image.plane_to_pixel(*center))
-        pixel_shift = pixel_center - torch.round(pixel_center)
-        psf = self.psf.data
-        shift_kernel = func.fft_shift_kernel(psf.shape, pixel_shift[0], pixel_shift[1])
-        psf = torch.fft.irfft2(shift_kernel * torch.fft.rfft2(psf, s=psf.shape), s=psf.shape)
-        # (
-        #     torch.nn.functional.conv2d(
-        #         self.psf.data.value.view(1, 1, *self.psf.data.shape),
-        #         shift_kernel.view(1, 1, *shift_kernel.shape),
-        #         padding="valid",  # fixme add note about valid padding
-        #     )
-        #     .squeeze(0)
-        #     .squeeze(0)
-        # )
-        psf = flux * psf
-
-        # Fill pixels with the PSF image
-        pixel_center = torch.round(pixel_center).int()
-        psf_window = Window(
-            (
-                pixel_center[0] - psf.shape[0] // 2,
-                pixel_center[0] + psf.shape[0] // 2 + 1,
-                pixel_center[1] - psf.shape[1] // 2,
-                pixel_center[1] + psf.shape[1] // 2 + 1,
-            ),
-            image=working_image,
+        i, j = working_image.pixel_center_meshgrid()
+        i0, j0 = working_image.plane_to_pixel(*center)
+        working_image.data = interp2d(
+            psf, i - i0 + (psf.shape[0] // 2), j - j0 + (psf.shape[1] // 2)
         )
-        working_image[psf_window].data += psf[working_image.get_other_indices(psf_window)]
-        working_image = working_image.reduce(psf_upscale)
 
-        # Return to image pixelscale
-        if self.mask is not None:
-            working_image.data = working_image.data * (~self.mask)
+        working_image.data = flux * working_image.data
+
+        working_image = working_image.reduce(self.psf_upscale)
 
         return working_image

@@ -23,13 +23,8 @@ class PSFModel(SampleMixin, Model):
 
     """
 
-    # Specifications for the model parameters including units, value, uncertainty, limits, locked, and cyclic
     _parameter_specs = {
-        "center": {
-            "units": "arcsec",
-            "value": (0.0, 0.0),
-            "uncertainty": (0.1, 0.1),
-        },
+        "center": {"units": "arcsec", "value": (0.0, 0.0), "shape": (2,)},
     }
     _model_type = "psf"
     usable = False
@@ -76,7 +71,7 @@ class PSFModel(SampleMixin, Model):
 
         """
         # Create an image to store pixel samples
-        working_image = ModelImage(window=self.window)
+        working_image = self.target[self.window].model_image()
         working_image.data = self.sample_image(working_image)
 
         # normalize to total flux 1

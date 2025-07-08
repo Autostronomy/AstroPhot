@@ -34,9 +34,6 @@ class FlatSky(SkyModel):
 
         dat = self.target[self.window].data.detach().cpu().numpy().copy()
         self.I.value = np.median(dat) / self.target.pixel_area.item()
-        self.I.uncertainty = (
-            iqr(dat, rng=(16, 84)) / (2.0 * self.target.pixel_area.item())
-        ) / np.sqrt(np.prod(self.window.shape))
 
     @forward
     def brightness(self, x, y, I):

@@ -19,12 +19,7 @@ class EdgeonModel(ComponentModel):
 
     _model_type = "edgeon"
     _parameter_specs = {
-        "PA": {
-            "units": "radians",
-            "valid": (0, np.pi),
-            "cyclic": True,
-            "uncertainty": 0.06,
-        },
+        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "shape": ()},
     }
     usable = False
 
@@ -51,7 +46,6 @@ class EdgeonModel(ComponentModel):
             self.PA.dynamic_value = np.pi / 2
         else:
             self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
-        self.PA.uncertainty = self.PA.value * self.default_uncertainty
 
     @forward
     def transform_coordinates(self, x, y, PA):
@@ -67,8 +61,8 @@ class EdgeonSech(EdgeonModel):
 
     _model_type = "sech2"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2"},
-        "hs": {"units": "arcsec", "valid": (0, None)},
+        "I0": {"units": "flux/arcsec^2", "shape": ()},
+        "hs": {"units": "arcsec", "valid": (0, None), "shape": ()},
     }
     usable = False
 
@@ -87,10 +81,8 @@ class EdgeonSech(EdgeonModel):
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
             self.I0.dynamic_value = torch.mean(chunk) / self.target.pixel_area
-            self.I0.uncertainty = torch.std(chunk) / self.target.pixel_area
         if not self.hs.initialized:
             self.hs.value = torch.max(self.window.shape) * target_area.pixel_length * 0.1
-            self.hs.uncertainty = self.hs.value / 2
 
     @forward
     def brightness(self, x, y, I0, hs):
@@ -105,7 +97,7 @@ class EdgeonIsothermal(EdgeonSech):
     """
 
     _model_type = "isothermal"
-    _parameter_specs = {"rs": {"units": "arcsec", "valid": (0, None)}}
+    _parameter_specs = {"rs": {"units": "arcsec", "valid": (0, None), "shape": ()}}
     usable = True
 
     @torch.no_grad()
@@ -115,7 +107,6 @@ class EdgeonIsothermal(EdgeonSech):
         if self.rs.initialized:
             return
         self.rs.value = torch.max(self.window.shape) * self.target.pixel_length * 0.4
-        self.rs.uncertainty = self.rs.value / 2
 
     @forward
     def radial_model(self, R, rs):

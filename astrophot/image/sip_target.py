@@ -1,52 +1,58 @@
-from target_image import TargetImage
-from distort_image import DistortImageMixin
-from . import func
+import torch
+
+from .target_image import TargetImage
+from .mixins import SIPMixin
 
 
-class SIPTargetImage(DistortImageMixin, TargetImage):
+class SIPTargetImage(SIPMixin, TargetImage):
+    """
+    A TargetImage with SIP distortion coefficients.
+    This class is used to represent a target image with SIP distortion coefficients.
+    It inherits from TargetImage and SIPMixin.
+    """
 
-    def __init__(self, *args, sipA=(), sipB=(), sipAP=(), sipBP=(), pixel_area_map=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.sipA = sipA
-        self.sipB = sipB
-        self.sipAP = sipAP
-        self.sipBP = sipBP
+    def jacobian_image(self, **kwargs):
+        kwargs = {
+            "pixel_area_map": self.pixel_area_map,
+            "sipA": self.sipA,
+            "sipB": self.sipB,
+            "sipAP": self.sipAP,
+            "sipBP": self.sipBP,
+            "distortion_ij": self.distortion_ij,
+            "distortion_IJ": self.distortion_IJ,
+            **kwargs,
+        }
+        return super().jacobian_image(**kwargs)
 
-        i, j = self.pixel_center_meshgrid()
-        u, v = i - self.crpix[0], j - self.crpix[1]
-        self.distortion_ij = func.sip_delta(u, v, self.sipA, self.sipB)
-        self.distortion_IJ = func.sip_delta(u, v, self.sipAP, self.sipBP)  # fixme maybe
-
-        if pixel_area_map is None:
-            self.update_pixel_area_map()
-        else:
-            self._pixel_area_map = pixel_area_map
-
-    @property
-    def pixel_area_map(self):
-        return self._pixel_area_map
-
-    def update_pixel_area_map(self):
-        """
-        Update the pixel area map based on the current SIP coefficients.
-        """
-        i, j = self.pixel_corner_meshgrid()
-        x, y = self.pixel_to_plane(i, j)
-
-        # 1: [:-1, :-1]
-        # 2: [:-1, 1:]
-        # 3: [1:, 1:]
-        # 4: [1:, :-1]
-        A = 0.5 * (
-            x[:-1, :-1] * y[:-1, 1:]
-            + x[:-1, 1:] * y[1:, 1:]
-            + x[1:, 1:] * y[1:, :-1]
-            + x[1:, :-1] * y[:-1, :-1]
-            - (
-                x[:-1, 1:] * y[:-1, :-1]
-                + x[1:, 1:] * y[:-1, 1:]
-                + x[1:, :-1] * y[1:, 1:]
-                + x[:-1, :-1] * y[1:, :-1]
+    def model_image(self, upsample=1, pad=0, **kwargs):
+        new_area_map = self.pixel_area_map
+        new_distortion_ij = self.distortion_ij
+        new_distortion_IJ = self.distortion_IJ
+        if upsample > 1:
+            new_area_map = self.pixel_area_map.repeat_interleave(upsample, dim=0)
+            new_area_map = new_area_map.repeat_interleave(upsample, dim=1)
+            new_area_map = new_area_map / upsample**2
+            U = torch.nn.Upsample(scale_factor=upsample, mode="bilinear", align_corners=False)
+            new_distortion_ij = U(self.distortion_ij)
+            new_distortion_IJ = U(self.distortion_IJ)
+        if pad > 0:
+            new_area_map = torch.nn.functional.pad(
+                new_area_map, (pad, pad, pad, pad), mode="replicate"
             )
-        )
-        self._pixel_area_map = A.abs()
+            new_distortion_ij = torch.nn.functional.pad(
+                new_distortion_ij, (pad, pad, pad, pad), mode="replicate"
+            )
+            new_distortion_IJ = torch.nn.functional.pad(
+                new_distortion_IJ, (pad, pad, pad, pad), mode="replicate"
+            )
+        kwargs = {
+            "pixel_area_map": new_area_map,
+            "sipA": self.sipA,
+            "sipB": self.sipB,
+            "sipAP": self.sipAP,
+            "sipBP": self.sipBP,
+            "distortion_ij": new_distortion_ij,
+            "distortion_IJ": new_distortion_IJ,
+            **kwargs,
+        }
+        return super().model_image(**kwargs)

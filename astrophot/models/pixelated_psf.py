@@ -49,7 +49,6 @@ class PixelatedPSF(PSFModel):
             return
         target_area = self.target[self.window]
         self.pixels.dynamic_value = target_area.data.clone() / target_area.pixel_area
-        self.pixels.uncertainty = torch.abs(self.pixels.value) * self.default_uncertainty
 
     @forward
     def brightness(self, x, y, pixels, center):

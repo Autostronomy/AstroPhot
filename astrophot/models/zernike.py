@@ -45,7 +45,6 @@ class ZernikePSF(PSFModel):
 
         # Set the default coefficients to zeros
         self.Anm.dynamic_value = torch.zeros(len(self.nm_list))
-        self.Anm.uncertainty = self.default_uncertainty * torch.ones_like(self.Anm.value)
         if self.nm_list[0] == (0, 0):
             self.Anm.value[0] = torch.median(self.target[self.window].data) / self.target.pixel_area
 

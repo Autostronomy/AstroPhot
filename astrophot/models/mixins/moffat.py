@@ -15,9 +15,9 @@ class MoffatMixin:
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10), "uncertainty": 0.05},
-        "Rd": {"units": "arcsec", "valid": (0, None)},
-        "I0": {"units": "flux/arcsec^2"},
+        "n": {"units": "none", "valid": (0.1, 10), "shape": ()},
+        "Rd": {"units": "arcsec", "valid": (0, None), "shape": ()},
+        "I0": {"units": "flux/arcsec^2", "shape": ()},
     }
 
     @torch.no_grad()
@@ -38,7 +38,7 @@ class iMoffatMixin:
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10), "uncertainty": 0.05},
+        "n": {"units": "none", "valid": (0.1, 10)},
         "Rd": {"units": "arcsec", "valid": (0, None)},
         "I0": {"units": "flux/arcsec^2"},
     }

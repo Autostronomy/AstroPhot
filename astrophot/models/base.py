@@ -83,10 +83,9 @@ class Model(Module):
 
     _model_type = "model"
     _parameter_specs = {}
-    default_uncertainty = 1e-2  # During initialization, uncertainty will be assumed 1% of initial value if no uncertainty is given
     # Softening length used for numerical stability and/or integration stability to avoid discontinuities (near R=0)
     softening = 1e-3  # arcsec
-    _options = ("default_uncertainty", "softening")
+    _options = ("softening",)
     usable = False
 
     def __new__(cls, *, filename=None, model_type=None, **kwargs):

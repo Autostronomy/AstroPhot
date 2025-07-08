@@ -2,6 +2,7 @@
 from typing import Sequence
 
 import torch
+import numpy as np
 
 from .base import BaseOptimizer
 from .. import AP_config
@@ -302,7 +303,7 @@ class LM(BaseOptimizer):
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
                 break
 
-            self.L = res["L"]
+            self.L = np.clip(res["L"], 1e-9, 1e9)
             self.L_history.append(res["L"])
             self.loss_history.append(res["chi2"])
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())

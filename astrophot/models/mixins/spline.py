@@ -36,7 +36,6 @@ class SplineMixin:
             rad_bins=[0] + list((prof[:-1] + prof[1:]) / 2) + [prof[-1] * 100],
         )
         self.I_R.dynamic_value = 10**I
-        self.I_R.uncertainty = S
 
     @forward
     def radial_model(self, R, I_R):
@@ -65,7 +64,6 @@ class iSplineMixin:
             prof = self.I_R.prof
 
         value = np.zeros((self.segments, len(prof)))
-        uncertainty = np.zeros((self.segments, len(prof)))
         cycle = np.pi if self.symmetric else 2 * np.pi
         w = cycle / self.segments
         v = w * np.arange(self.segments)
@@ -80,9 +78,7 @@ class iSplineMixin:
                 angle_range=angle_range,
             )
             value[s] = 10**I
-            uncertainty[s] = S
         self.I_R.dynamic_value = value
-        self.I_R.uncertainty = uncertainty
 
     @forward
     def iradial_model(self, i, R, I_R):
