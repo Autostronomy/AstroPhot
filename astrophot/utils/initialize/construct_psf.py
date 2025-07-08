@@ -1,7 +1,5 @@
 import numpy as np
 
-from ..interpolate import shift_Lanczos_np
-
 
 def gaussian_psf(sigma, img_width, pixelscale, upsample=4):
     assert img_width % 2 == 1, "psf images should have an odd shape"

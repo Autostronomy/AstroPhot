@@ -6,6 +6,7 @@ import numpy as np
 
 from .base import BaseOptimizer
 from .. import AP_config
+from ..models import Model
 
 __all__ = ["Grad"]
 
@@ -39,7 +40,9 @@ class Grad(BaseOptimizer):
 
     """
 
-    def __init__(self, model: "AstroPhot_Model", initial_state: Sequence = None, **kwargs) -> None:
+    def __init__(
+        self, model: Model, initial_state: Sequence = None, likelihood="gaussian", **kwargs
+    ) -> None:
         """Initialize the gradient descent optimizer.
 
         Args:
@@ -51,7 +54,8 @@ class Grad(BaseOptimizer):
         """
 
         super().__init__(model, initial_state, **kwargs)
-        self.model.parameters.flat_detach()
+
+        self.likelihood = likelihood
 
         # set parameters from the user
         self.patience = kwargs.get("patience", None)
@@ -69,23 +73,17 @@ class Grad(BaseOptimizer):
             (self.current_state,), **self.optim_kwargs
         )
 
-    def compute_loss(self) -> torch.Tensor:
-        Ym = self.model(parameters=self.current_state, as_representation=True).flatten("data")
-        Yt = self.model.target[self.model.window].flatten("data")
-        W = (
-            self.model.target[self.model.window].flatten("variance")
-            if self.model.target.has_variance
-            else 1.0
-        )
-        ndf = len(Yt) - len(self.current_state)
-        if self.model.target.has_mask:
-            mask = self.model.target[self.model.window].flatten("mask")
-            ndf -= torch.sum(mask)
-            mask = torch.logical_not(mask)
-            loss = torch.sum((Ym[mask] - Yt[mask]) ** 2 / W[mask]) / ndf
+    def density(self, state: torch.Tensor) -> torch.Tensor:
+        """
+        Returns the density of the model at the given state vector.
+        This is used to calculate the likelihood of the model at the given state.
+        """
+        if self.likelihood == "gaussian":
+            return self.model.gaussian_log_likelihood(state)
+        elif self.likelihood == "poisson":
+            return self.model.poisson_log_likelihood(state)
         else:
-            loss = torch.sum((Ym - Yt) ** 2 / W) / ndf
-        return loss
+            raise ValueError(f"Unknown likelihood type: {self.likelihood}")
 
     def step(self) -> None:
         """Take a single gradient step. Take a single gradient step.
@@ -98,9 +96,8 @@ class Grad(BaseOptimizer):
         self.iteration += 1
 
         self.optimizer.zero_grad()
-        self.model.parameters.flat_detach()
-
-        loss = self.compute_loss()
+        self.current_state.requires_grad = True
+        loss = self.density(self.current_state)
 
         loss.backward()
 
@@ -145,10 +142,9 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.parameters.vector_set_representation(self.res())
+        self.model.fill_dynamic_values(self.res())
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
-        self.model.parameters.flat_detach()
         return self

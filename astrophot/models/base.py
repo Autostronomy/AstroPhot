@@ -201,7 +201,7 @@ class Model(Module):
         return parameter_specs
 
     @forward
-    def gaussian_negative_log_likelihood(
+    def gaussian_log_likelihood(
         self,
         window: Optional[Window] = None,
     ) -> torch.Tensor:
@@ -217,17 +217,17 @@ class Model(Module):
         mask = data.mask
         data = data.data
         if isinstance(data, ImageList):
-            nll = sum(
-                torch.sum(((mo - da) ** 2 * wgt)[~ma]) / 2.0
+            nll = 0.5 * sum(
+                torch.sum(((mo - da) ** 2 * wgt)[~ma])
                 for mo, da, wgt, ma in zip(model, data, weight, mask)
             )
         else:
-            nll = torch.sum(((model - data) ** 2 * weight)[~mask]) / 2.0
+            nll = 0.5 * torch.sum(((model - data) ** 2 * weight)[~mask])
 
-        return nll
+        return -nll
 
     @forward
-    def poisson_negative_log_likelihood(
+    def poisson_log_likelihood(
         self,
         window: Optional[Window] = None,
     ) -> torch.Tensor:
@@ -249,7 +249,7 @@ class Model(Module):
         else:
             nll = torch.sum((model - data * (model + 1e-10).log() + torch.lgamma(data + 1))[~mask])
 
-        return nll
+        return -nll
 
     @forward
     def total_flux(self, window=None) -> torch.Tensor:
