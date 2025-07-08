@@ -20,4 +20,4 @@ def modified_ferrer(R, rout, alpha, beta, I0):
     array_like
         The modified Ferrer profile evaluated at R.
     """
-    return (I0 * (1 + (R / rout) ** alpha) ** (2 - beta)) * (R < rout)
+    return I0 * ((1 - (R / rout) ** (2 - beta)) ** alpha) * (R < rout)

@@ -43,6 +43,10 @@ class SersicMixin:
     def initialize(self):
         super().initialize()
 
+        # Only auto initialize for standard parametrization
+        if not hasattr(self, "logIe"):
+            return
+
         parametric_initialize(
             self,
             self.target[self.window],
@@ -87,6 +91,10 @@ class iSersicMixin:
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
+
+        # Only auto initialize for standard parametrization
+        if not hasattr(self, "logIe"):
+            return
 
         parametric_segment_initialize(
             model=self,

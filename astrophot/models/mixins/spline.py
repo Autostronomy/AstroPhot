@@ -12,6 +12,13 @@ class SplineMixin:
 
     _model_type = "spline"
     _parameter_specs = {"I_R": {"units": "flux/arcsec^2"}}
+    _overload_parameter_specs = {
+        "logI_R": {
+            "units": "log10(flux/arcsec^2)",
+            "overloads": "I_R",
+            "overload_function": lambda p: 10**p.logI_R.value,
+        }
+    }
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -35,7 +42,10 @@ class SplineMixin:
             self.radius_metric,
             rad_bins=[0] + list((prof[:-1] + prof[1:]) / 2) + [prof[-1] * 100],
         )
-        self.I_R.dynamic_value = 10**I
+        if hasattr(self, "logI_R"):
+            self.logI_R.dynamic_value = I
+        else:
+            self.I_R.dynamic_value = 10**I
 
     @forward
     def radial_model(self, R, I_R):
@@ -46,6 +56,13 @@ class iSplineMixin:
 
     _model_type = "spline"
     _parameter_specs = {"I_R": {"units": "flux/arcsec^2"}}
+    _overload_parameter_specs = {
+        "logI_R": {
+            "units": "log10(flux/arcsec^2)",
+            "overloads": "I_R",
+            "overload_function": lambda p: 10**p.logI_R.value,
+        }
+    }
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -77,8 +94,12 @@ class iSplineMixin:
                 rad_bins=[0] + list((prof[s][:-1] + prof[s][1:]) / 2) + [prof[s][-1] * 100],
                 angle_range=angle_range,
             )
-            value[s] = 10**I
-        self.I_R.dynamic_value = value
+            value[s] = I
+
+        if hasattr(self, "logI_R"):
+            self.logI_R.dynamic_value = value
+        else:
+            self.I_R.dynamic_value = 10**value
 
     @forward
     def iradial_model(self, i, R, I_R):

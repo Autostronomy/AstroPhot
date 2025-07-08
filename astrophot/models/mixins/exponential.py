@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return R[4], 10 ** F[4]
+    return R[4], F[4]
 
 
 class ExponentialMixin:
@@ -31,14 +31,30 @@ class ExponentialMixin:
         "Re": {"units": "arcsec", "valid": (0, None)},
         "Ie": {"units": "flux/arcsec^2"},
     }
+    _overload_parameter_specs = {
+        "logIe": {
+            "units": "log10(flux/arcsec^2)",
+            "shape": (),
+            "overloads": "Ie",
+            "overload_function": lambda p: 10**p.logIe.value,
+        }
+    }
 
     @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
 
+        # Only auto initialize for standard parametrization
+        if not hasattr(self, "logIe"):
+            return
+
         parametric_initialize(
-            self, self.target[self.window], exponential_np, ("Re", "Ie"), _x0_func
+            self,
+            self.target[self.window],
+            lambda r, *x: exponential_np(r, x[0], 10 ** x[1]),
+            ("Re", "logIe"),
+            _x0_func,
         )
 
     @forward
@@ -66,17 +82,29 @@ class iExponentialMixin:
         "Re": {"units": "arcsec", "valid": (0, None)},
         "Ie": {"units": "flux/arcsec^2"},
     }
+    _overload_parameter_specs = {
+        "logIe": {
+            "units": "log10(flux/arcsec^2)",
+            "shape": (),
+            "overloads": "Ie",
+            "overload_function": lambda p: 10**p.logIe.value,
+        }
+    }
 
     @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
 
+        # Only auto initialize for standard parametrization
+        if not hasattr(self, "logIe"):
+            return
+
         parametric_segment_initialize(
             model=self,
-            target=self.target,
-            prof_func=exponential_np,
-            params=("Re", "Ie"),
+            target=self.target[self.window],
+            prof_func=lambda r, *x: exponential_np(r, x[0], 10 ** x[1]),
+            params=("Re", "logIe"),
             x0_func=_x0_func,
             segments=self.segments,
         )

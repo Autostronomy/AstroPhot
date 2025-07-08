@@ -32,10 +32,9 @@ class PSFImage(DataMixin, Image):
     """
 
     def __init__(self, *args, **kwargs):
-        kwargs.update({"crpix": (0, 0), "crtan": (0, 0)})
+        kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
         super().__init__(*args, **kwargs)
         self.crpix = (np.array(self.data.shape, dtype=float) - 1.0) / 2
-        del self.crval
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""

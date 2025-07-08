@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import iqr
 import torch
 
 from .sky_model_object import SkyModel

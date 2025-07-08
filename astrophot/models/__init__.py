@@ -21,6 +21,7 @@ from .pixelated_psf import PixelatedPSF
 # Subtypes of SkyModel
 from .flatsky import FlatSky
 from .planesky import PlaneSky
+from .bilinear_sky import BilinearSky
 
 # Special galaxy types
 from .edgeon import EdgeonModel, EdgeonSech, EdgeonIsothermal
@@ -121,6 +122,7 @@ __all__ = (
     "PixelatedPSF",
     "FlatSky",
     "PlaneSky",
+    "BilinearSky",
     "EdgeonModel",
     "EdgeonSech",
     "EdgeonIsothermal",

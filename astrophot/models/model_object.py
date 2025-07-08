@@ -151,14 +151,11 @@ class ComponentModel(SampleMixin, Model):
         if self.psf is not None and isinstance(self.psf, Model):
             self.psf.initialize()
 
-        target_area = self.target[self.window]
-
         # Use center of window if a center hasn't been set yet
-        if self.center.value is None:
-            self.center.dynamic_value = target_area.center
-        else:
+        if self.center.initialized:
             return
 
+        target_area = self.target[self.window]
         dat = np.copy(target_area.data.detach().cpu().numpy())
         if target_area.has_mask:
             mask = target_area.mask.detach().cpu().numpy()

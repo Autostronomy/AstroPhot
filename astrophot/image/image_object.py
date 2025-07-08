@@ -7,7 +7,7 @@ from astropy.io import fits
 
 from ..param import Module, Param, forward
 from .. import AP_config
-from ..utils.conversions.units import deg_to_arcsec
+from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
 from .window import Window, WindowList
 from ..errors import InvalidImage
 from . import func
@@ -82,6 +82,7 @@ class Image(Module):
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
+        self.zeropoint = zeropoint
 
         if filename is not None:
             self.load(filename)
@@ -119,8 +120,6 @@ class Image(Module):
         if isinstance(pixelscale, (float, int)):
             pixelscale = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
         self.pixelscale = pixelscale
-
-        self.zeropoint = zeropoint
 
     @property
     def data(self):
@@ -344,14 +343,14 @@ class Image(Module):
             "CTYPE2": "DEC--TAN",
             "CRVAL1": self.crval.value[0].item(),
             "CRVAL2": self.crval.value[1].item(),
-            "CRPIX1": self.crpix[0],
-            "CRPIX2": self.crpix[1],
+            "CRPIX1": self.crpix[0] + 1,
+            "CRPIX2": self.crpix[1] + 1,
             "CRTAN1": self.crtan.value[0].item(),
             "CRTAN2": self.crtan.value[1].item(),
-            "CD1_1": self.pixelscale.value[0][0].item(),
-            "CD1_2": self.pixelscale.value[0][1].item(),
-            "CD2_1": self.pixelscale.value[1][0].item(),
-            "CD2_2": self.pixelscale.value[1][1].item(),
+            "CD1_1": self.pixelscale.value[0][0].item() * arcsec_to_deg,
+            "CD1_2": self.pixelscale.value[0][1].item() * arcsec_to_deg,
+            "CD2_1": self.pixelscale.value[1][0].item() * arcsec_to_deg,
+            "CD2_2": self.pixelscale.value[1][1].item() * arcsec_to_deg,
             "MAGZP": self.zeropoint.item() if self.zeropoint is not None else -999,
             "IDNTY": self.identity,
         }
@@ -384,10 +383,16 @@ class Image(Module):
         hdulist = fits.open(filename)
         self.data = np.array(hdulist[0].data, dtype=np.float64)
         self.pixelscale = (
-            (hdulist[0].header["CD1_1"], hdulist[0].header["CD1_2"]),
-            (hdulist[0].header["CD2_1"], hdulist[0].header["CD2_2"]),
+            np.array(
+                (
+                    (hdulist[0].header["CD1_1"], hdulist[0].header["CD1_2"]),
+                    (hdulist[0].header["CD2_1"], hdulist[0].header["CD2_2"]),
+                ),
+                dtype=np.float64,
+            )
+            * deg_to_arcsec
         )
-        self.crpix = (hdulist[0].header["CRPIX1"], hdulist[0].header["CRPIX2"])
+        self.crpix = (hdulist[0].header["CRPIX1"] - 1, hdulist[0].header["CRPIX2"] - 1)
         self.crval = (hdulist[0].header["CRVAL1"], hdulist[0].header["CRVAL2"])
         if "CRTAN1" in hdulist[0].header and "CRTAN2" in hdulist[0].header:
             self.crtan = (hdulist[0].header["CRTAN1"], hdulist[0].header["CRTAN2"])

@@ -20,6 +20,9 @@ class SkyModel(ComponentModel):
         created and before it is used. This is where we can set the
         center to be a locked parameter.
         """
+        if not self.center.initialized:
+            target_area = self.target[self.window]
+            self.center.value = target_area.center
         super().initialize()
         self.center.to_static()
 

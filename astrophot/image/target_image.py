@@ -194,6 +194,7 @@ class TargetImage(DataMixin, Image):
                     (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
                 ),
             )
+        return hdulist
 
     def jacobian_image(
         self,
