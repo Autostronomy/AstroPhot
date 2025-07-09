@@ -70,9 +70,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
         )
     else:
         im = ax.pcolormesh(
-            X.T,
-            Y.T,
-            dat.T,
+            X,
+            Y,
+            dat,
             cmap="gray_r",
             norm=ImageNormalize(
                 stretch=HistEqStretch(
@@ -85,9 +85,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
         )
 
         im = ax.pcolormesh(
-            X.T,
-            Y.T,
-            np.ma.masked_where(dat < (sky + 3 * noise), dat).T,
+            X,
+            Y,
+            np.ma.masked_where(dat < (sky + 3 * noise), dat),
             cmap=cmap_grad,
             norm=matplotlib.colors.LogNorm(),
             clim=[sky + 3 * noise, None],
@@ -137,7 +137,7 @@ def psf_image(
         )
 
     # Plot the image
-    ax.pcolormesh(x.T, y.T, psf.T, **kwargs)
+    ax.pcolormesh(x, y, psf, **kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -258,7 +258,7 @@ def model_image(
         sample_image[target.mask.detach().cpu().numpy()] = np.nan
 
     # Plot the image
-    im = ax.pcolormesh(X.T, Y.T, sample_image.T, **kwargs)
+    im = ax.pcolormesh(X, Y, sample_image, **kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -398,7 +398,7 @@ def residual_image(
         "vmax": vmax,
     }
     imshow_kwargs.update(kwargs)
-    im = ax.pcolormesh(X.T, Y.T, residuals.T, **imshow_kwargs)
+    im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
     ax.set_ylabel("Tangent Plane Y [arcsec]")

@@ -180,12 +180,12 @@ class TargetImage(DataMixin, Image):
                 AP_config.ap_logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
         return images
 
-    def load(self, filename: str):
+    def load(self, filename: str, hduext=0):
         """Load the image from a FITS file. This will load the data, WCS, and
         any ancillary data such as variance, mask, and PSF.
 
         """
-        hdulist = super().load(filename)
+        hdulist = super().load(filename, hduext=hduext)
         if "PSF" in hdulist:
             self.psf = PSFImage(
                 data=np.array(hdulist["PSF"].data, dtype=np.float64),

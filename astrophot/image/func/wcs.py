@@ -112,10 +112,10 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     Tuple: [Tensor, Tensor]
         Tuple containing the x and y tangent plane coordinates in arcsec.
     """
-    uv = torch.stack((j.reshape(-1) - j0, i.reshape(-1) - i0), dim=1)
-    xy = (CD @ uv.T).T
+    uv = torch.stack((j.flatten() - j0, i.flatten() - i0), dim=0)
+    xy = CD @ uv
 
-    return xy[:, 0].reshape(i.shape) + x0, xy[:, 1].reshape(j.shape) + y0
+    return xy[0].reshape(i.shape) + x0, xy[1].reshape(i.shape) + y0
 
 
 def sip_delta(u, v, sipA=(), sipB=()):
@@ -138,7 +138,7 @@ def sip_delta(u, v, sipA=(), sipB=()):
         delta_u = delta_u + sipA[(a, b)] * (u_a[a] * v_b[b])
     for a, b in sipB:
         delta_v = delta_v + sipB[(a, b)] * (u_a[a] * v_b[b])
-    return delta_u, delta_v
+    return delta_v, delta_u
 
 
 def pixel_to_plane_sip(i, j, i0, j0, CD, sip_powers=[], sip_coefs=[], x0=0.0, y0=0.0):
@@ -204,7 +204,7 @@ def pixel_to_plane_sip(i, j, i0, j0, CD, sip_powers=[], sip_coefs=[], x0=0.0, y0
     return plane[..., 0] + x0, plane[..., 1] + y0
 
 
-def plane_to_pixel_linear(x, y, i0, j0, iCD, x0=0.0, y0=0.0):
+def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     """
     Convert tangent plane coordinates to pixel coordinates using the WCS
     information. This matches the FITS convention for linear transformations.
@@ -232,7 +232,7 @@ def plane_to_pixel_linear(x, y, i0, j0, iCD, x0=0.0, y0=0.0):
     Tuple: [Tensor, Tensor]
         Tuple containing the i and j pixel coordinates in pixel units.
     """
-    xy = torch.stack((x.reshape(-1) - x0, y.reshape(-1) - y0), dim=1)
-    uv = (iCD @ xy.T).T
+    xy = torch.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
+    uv = torch.linalg.inv(CD) @ xy
 
     return uv[:, 1].reshape(x.shape) + i0, uv[:, 0].reshape(y.shape) + j0

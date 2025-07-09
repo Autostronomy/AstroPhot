@@ -9,47 +9,76 @@ from ...param import forward
 
 class SIPMixin:
 
-    def __init__(self, *args, sipA=(), sipB=(), sipAP=(), sipBP=(), pixel_area_map=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    expect_ctype = (("RA---TAN-SIP",), ("DEC--TAN-SIP",))
+
+    def __init__(
+        self,
+        *args,
+        sipA={},
+        sipB={},
+        sipAP={},
+        sipBP={},
+        pixel_area_map=None,
+        distortion_ij=None,
+        distortion_IJ=None,
+        filename=None,
+        **kwargs,
+    ):
+        super().__init__(*args, filename=filename, **kwargs)
+        if filename is not None:
+            return
         self.sipA = sipA
         self.sipB = sipB
         self.sipAP = sipAP
         self.sipBP = sipBP
 
-        i, j = self.pixel_center_meshgrid()
-        u, v = i - self.crpix[0], j - self.crpix[1]
-        self.distortion_ij = func.sip_delta(u, v, self.sipA, self.sipB)
-        self.distortion_IJ = func.sip_delta(u, v, self.sipAP, self.sipBP)  # fixme maybe
-
-        if pixel_area_map is None:
-            self.update_pixel_area_map()
-        else:
-            self._pixel_area_map = pixel_area_map
+        self.update_distortion_model(
+            distortion_ij=distortion_ij, distortion_IJ=distortion_IJ, pixel_area_map=pixel_area_map
+        )
 
     @forward
     def pixel_to_plane(self, i, j, crtan, pixelscale):
-        di = interp2d(self.distortion_ij[0], i, j)
-        dj = interp2d(self.distortion_ij[1], i, j)
+        di = interp2d(self.distortion_ij[0], j, i)
+        dj = interp2d(self.distortion_ij[1], j, i)
         return func.pixel_to_plane_linear(i + di, j + dj, *self.crpix, pixelscale, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crtan):
-        I, J = func.plane_to_pixel_linear(x, y, *self.crpix, self.pixelscale_inv, *crtan)
-        dI = interp2d(self.distortion_IJ[0], I, J)
-        dJ = interp2d(self.distortion_IJ[1], I, J)
+    def plane_to_pixel(self, x, y, crtan, pixelscale):
+        I, J = func.plane_to_pixel_linear(x, y, *self.crpix, pixelscale, *crtan)
+        dI = interp2d(self.distortion_IJ[0], J, I)
+        dJ = interp2d(self.distortion_IJ[1], J, I)
         return I + dI, J + dJ
 
     @property
     def pixel_area_map(self):
         return self._pixel_area_map
 
-    def update_pixel_area_map(self):
+    def update_distortion_model(self, distortion_ij=None, distortion_IJ=None, pixel_area_map=None):
         """
         Update the pixel area map based on the current SIP coefficients.
         """
+
+        # Pixelized distortion model
+        #############################################################
+        if distortion_ij is None or distortion_IJ is None:
+            i, j = self.pixel_center_meshgrid()
+            v, u = i - self.crpix[0], j - self.crpix[1]
+            if distortion_ij is None:
+                distortion_ij = func.sip_delta(u, v, self.sipA, self.sipB)
+            if distortion_IJ is None:
+                distortion_IJ = func.sip_delta(u, v, self.sipAP, self.sipBP)  # fixme maybe
+        self.distortion_ij = distortion_ij
+        self.distortion_IJ = distortion_IJ
+
+        # Pixel area map
+        #############################################################
+        if pixel_area_map is not None:
+            self._pixel_area_map = pixel_area_map
+            return
         i, j = self.pixel_corner_meshgrid()
         x, y = self.pixel_to_plane(i, j)
 
+        # Shoelace formula for pixel area
         # 1: [:-1, :-1]
         # 2: [:-1, 1:]
         # 3: [1:, 1:]
@@ -106,14 +135,51 @@ class SIPMixin:
         info["CTYPE1"] = "RA---TAN-SIP"
         info["CTYPE2"] = "DEC--TAN-SIP"
         for a, b in self.sipA:
-            info[f"A{a}_{b}"] = self.sipA[(a, b)]
+            info[f"A_{a}_{b}"] = self.sipA[(a, b)]
         for a, b in self.sipB:
-            info[f"B{a}_{b}"] = self.sipB[(a, b)]
+            info[f"B_{a}_{b}"] = self.sipB[(a, b)]
         for a, b in self.sipAP:
-            info[f"AP{a}_{b}"] = self.sipAP[(a, b)]
+            info[f"AP_{a}_{b}"] = self.sipAP[(a, b)]
         for a, b in self.sipBP:
-            info[f"BP{a}_{b}"] = self.sipBP[(a, b)]
+            info[f"BP_{a}_{b}"] = self.sipBP[(a, b)]
         return info
+
+    def load(self, filename: str, hduext=0):
+        hdulist = super().load(filename, hduext=hduext)
+        self.sipA = {}
+        if "A_ORDER" in hdulist[hduext].header:
+            a_order = hdulist[hduext].header["A_ORDER"]
+            for i in range(a_order + 1):
+                for j in range(a_order + 1 - i):
+                    key = (i, j)
+                    if f"A_{i}_{j}" in hdulist[hduext].header:
+                        self.sipA[key] = hdulist[hduext].header[f"A_{i}_{j}"]
+        self.sipB = {}
+        if "B_ORDER" in hdulist[hduext].header:
+            b_order = hdulist[hduext].header["B_ORDER"]
+            for i in range(b_order + 1):
+                for j in range(b_order + 1 - i):
+                    key = (i, j)
+                    if f"B_{i}_{j}" in hdulist[hduext].header:
+                        self.sipB[key] = hdulist[hduext].header[f"B_{i}_{j}"]
+        self.sipAP = {}
+        if "AP_ORDER" in hdulist[hduext].header:
+            ap_order = hdulist[hduext].header["AP_ORDER"]
+            for i in range(ap_order + 1):
+                for j in range(ap_order + 1 - i):
+                    key = (i, j)
+                    if f"AP_{i}_{j}" in hdulist[hduext].header:
+                        self.sipAP[key] = hdulist[hduext].header[f"AP_{i}_{j}"]
+        self.sipBP = {}
+        if "BP_ORDER" in hdulist[hduext].header:
+            bp_order = hdulist[hduext].header["BP_ORDER"]
+            for i in range(bp_order + 1):
+                for j in range(bp_order + 1 - i):
+                    key = (i, j)
+                    if f"BP_{i}_{j}" in hdulist[hduext].header:
+                        self.sipBP[key] = hdulist[hduext].header[f"BP_{i}_{j}"]
+        self.update_distortion_model()
+        return hdulist
 
     def reduce(self, scale, **kwargs):
         MS = self.data.shape[0] // scale

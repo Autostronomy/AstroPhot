@@ -267,12 +267,12 @@ class DataMixin:
             images.append(fits.ImageHDU(self.mask.detach().cpu().numpy(), name="MASK"))
         return images
 
-    def load(self, filename: str):
+    def load(self, filename: str, hduext=0):
         """Load the image from a FITS file. This will load the data, WCS, and
         any ancillary data such as variance, mask, and PSF.
 
         """
-        hdulist = super().load(filename)
+        hdulist = super().load(filename, hduext=hduext)
         if "WEIGHT" in hdulist:
             self.weight = np.array(hdulist["WEIGHT"].data, dtype=np.float64)
         if "MASK" in hdulist:

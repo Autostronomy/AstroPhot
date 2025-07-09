@@ -37,11 +37,11 @@ def interp2d(
 
     # reshape for indexing purposes
     start_shape = x.shape
-    x = x.view(-1)
-    y = y.view(-1)
+    x = x.flatten()
+    y = y.flatten()
 
     # valid
-    valid = (x >= -0.5) & (x < (w - 0.5)) & (y >= -0.5) & (y < (h - 0.5))
+    valid = (x >= -0.5) & (x <= (w - 0.5)) & (y >= -0.5) & (y <= (h - 0.5))
 
     x0 = x.floor().long()
     y0 = y.floor().long()

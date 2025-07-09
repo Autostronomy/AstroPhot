@@ -32,6 +32,7 @@ class Image(Module):
     """
 
     default_pixelscale = ((1.0, 0.0), (0.0, 1.0))
+    expect_ctype = (("RA---TAN",), ("DEC--TAN",))
 
     def __init__(
         self,
@@ -44,6 +45,7 @@ class Image(Module):
         crval: Union[torch.Tensor, tuple] = (0.0, 0.0),
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
+        hduext=0,
         identity: str = None,
         name: Optional[str] = None,
     ) -> None:
@@ -85,7 +87,7 @@ class Image(Module):
         self.zeropoint = zeropoint
 
         if filename is not None:
-            self.load(filename)
+            self.load(filename, hduext=hduext)
             return
 
         if identity is None:
@@ -94,17 +96,17 @@ class Image(Module):
             self.identity = identity
 
         if wcs is not None:
-            if wcs.wcs.ctype[0] != "RA---TAN":  # fixme handle sip
+            if wcs.wcs.ctype[0] not in self.expect_ctype[0]:
                 AP_config.ap_logger.warning(
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
-            if wcs.wcs.ctype[1] != "DEC--TAN":
+            if wcs.wcs.ctype[1] not in self.expect_ctype[1]:
                 AP_config.ap_logger.warning(
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
 
             crval = wcs.wcs.crval
-            crpix = np.array(wcs.wcs.crpix) - 1  # handle FITS 1-indexing
+            crpix = np.array(wcs.wcs.crpix)[::-1] - 1  # handle FITS 1-indexing
 
             if pixelscale is not None:
                 AP_config.ap_logger.warning(
@@ -209,8 +211,8 @@ class Image(Module):
         return func.pixel_to_plane_linear(i, j, *self.crpix, pixelscale, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crtan):
-        return func.plane_to_pixel_linear(x, y, *self.crpix, self.pixelscale_inv, *crtan)
+    def plane_to_pixel(self, x, y, crtan, pixelscale):
+        return func.plane_to_pixel_linear(x, y, *self.crpix, pixelscale, *crtan)
 
     @forward
     def plane_to_world(self, x, y, crval):
@@ -343,8 +345,8 @@ class Image(Module):
             "CTYPE2": "DEC--TAN",
             "CRVAL1": self.crval.value[0].item(),
             "CRVAL2": self.crval.value[1].item(),
-            "CRPIX1": self.crpix[0] + 1,
-            "CRPIX2": self.crpix[1] + 1,
+            "CRPIX2": self.crpix[0] + 1,
+            "CRPIX1": self.crpix[1] + 1,
             "CRTAN1": self.crtan.value[0].item(),
             "CRTAN2": self.crtan.value[1].item(),
             "CD1_1": self.pixelscale.value[0][0].item() * arcsec_to_deg,
@@ -363,8 +365,8 @@ class Image(Module):
     def get_astropywcs(self, **kwargs):
         kwargs = {
             "NAXIS": 2,
-            "NAXIS1": self.shape[0].item(),
-            "NAXIS2": self.shape[1].item(),
+            "NAXIS2": self.shape[0].item(),
+            "NAXIS1": self.shape[1].item(),
             **self.fits_info(),
             **kwargs,
         }
@@ -374,35 +376,35 @@ class Image(Module):
         hdulist = fits.HDUList(self.fits_images())
         hdulist.writeto(filename, overwrite=True)
 
-    def load(self, filename: str):
+    def load(self, filename: str, hduext=0):
         """Load an image from a FITS file. This will load the primary HDU
         and set the data, pixelscale, crpix, crval, and crtan attributes
         accordingly. If the WCS is not tangent plane, it will warn the user.
 
         """
         hdulist = fits.open(filename)
-        self.data = np.array(hdulist[0].data, dtype=np.float64)
+        self.data = np.array(hdulist[hduext].data, dtype=np.float64)
         self.pixelscale = (
             np.array(
                 (
-                    (hdulist[0].header["CD1_1"], hdulist[0].header["CD1_2"]),
-                    (hdulist[0].header["CD2_1"], hdulist[0].header["CD2_2"]),
+                    (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
+                    (hdulist[hduext].header["CD2_1"], hdulist[hduext].header["CD2_2"]),
                 ),
                 dtype=np.float64,
             )
             * deg_to_arcsec
         )
-        self.crpix = (hdulist[0].header["CRPIX1"] - 1, hdulist[0].header["CRPIX2"] - 1)
-        self.crval = (hdulist[0].header["CRVAL1"], hdulist[0].header["CRVAL2"])
-        if "CRTAN1" in hdulist[0].header and "CRTAN2" in hdulist[0].header:
-            self.crtan = (hdulist[0].header["CRTAN1"], hdulist[0].header["CRTAN2"])
+        self.crpix = (hdulist[hduext].header["CRPIX2"] - 1, hdulist[hduext].header["CRPIX1"] - 1)
+        self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
+        if "CRTAN1" in hdulist[hduext].header and "CRTAN2" in hdulist[hduext].header:
+            self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
         else:
             self.crtan = (0.0, 0.0)
-        if "MAGZP" in hdulist[0].header and hdulist[0].header["MAGZP"] > -998:
-            self.zeropoint = hdulist[0].header["MAGZP"]
+        if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:
+            self.zeropoint = hdulist[hduext].header["MAGZP"]
         else:
             self.zeropoint = None
-        self.identity = hdulist[0].header.get("IDNTY", str(id(self)))
+        self.identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
         return hdulist
 
     def corners(self):
