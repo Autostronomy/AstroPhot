@@ -29,7 +29,6 @@ class SampleMixin:
         "sampling_mode",
         "jacobian_maxparams",
         "jacobian_maxpixels",
-        "psf_subpixel_shift",
         "integrate_mode",
         "integrate_tolerance",
         "integrate_max_depth",

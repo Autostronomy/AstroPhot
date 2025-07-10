@@ -15,7 +15,20 @@ def gradient(J, W, R):
 def damp_hessian(hess, L):
     I = torch.eye(len(hess), dtype=hess.dtype, device=hess.device)
     D = torch.ones_like(hess) - I
-    return hess * (I + D / (1 + L)) + L * I * (1 + torch.diag(hess))
+    return hess * (I + D / (1 + L)) + L * I * torch.diag(hess)
+
+
+def solve(hess, grad, L):
+    hessD = damp_hessian(hess, L)  # (N, N)
+    while True:
+        try:
+            h = torch.linalg.solve(hessD, grad)
+            break
+        except torch._C._LinAlgError:
+            print("Damping Hessian", L)
+            hessD = hessD + L * torch.eye(len(hessD), dtype=hessD.dtype, device=hessD.device)
+            L = L * 2
+    return hessD, h
 
 
 def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.0):
@@ -32,8 +45,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     nostep = True
     improving = None
     for _ in range(10):
-        hessD = damp_hessian(hess, L)  # (N, N)
-        h = torch.linalg.solve(hessD, grad)  # (N, 1)
+        hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
 
         chi21 = torch.sum(weight * (data - M1) ** 2).item() / ndf
@@ -52,7 +64,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
         # Avoid highly non-linear regions
-        if rho < 0.1 or rho > 2:
+        if rho < 0.1 or rho > 10:
             L *= Lup
             if improving is True:
                 break

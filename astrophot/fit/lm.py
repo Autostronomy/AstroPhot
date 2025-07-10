@@ -278,7 +278,7 @@ class LM(BaseOptimizer):
                             jacobian=self.jacobian,
                             ndf=self.ndf,
                             chi2=self.loss_history[-1],
-                            L=self.L / self.Ldn,
+                            L=self.L,
                             Lup=self.Lup,
                             Ldn=self.Ldn,
                         )
@@ -292,7 +292,7 @@ class LM(BaseOptimizer):
                         jacobian=self.jacobian,
                         ndf=self.ndf,
                         chi2=self.loss_history[-1],
-                        L=self.L / self.Ldn,
+                        L=self.L,
                         Lup=self.Lup,
                         Ldn=self.Ldn,
                     )

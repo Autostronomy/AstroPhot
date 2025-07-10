@@ -4,6 +4,8 @@ from .lm import LM
 # from .gradient import *
 from .iterative import Iter
 
+from .scipy_fit import ScipyFit
+
 # from .minifit import *
 
 # try:
@@ -13,7 +15,7 @@ from .iterative import Iter
 #     print("Could not load HMC or NUTS due to:", str(e))
 # from .mhmcmc import *
 
-__all__ = ["LM", "Iter"]
+__all__ = ["LM", "Iter", "ScipyFit"]
 
 """
 base: This module defines the base class BaseOptimizer,

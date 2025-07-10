@@ -235,4 +235,4 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     xy = torch.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
     uv = torch.linalg.inv(CD) @ xy
 
-    return uv[:, 1].reshape(x.shape) + i0, uv[:, 0].reshape(y.shape) + j0
+    return uv[1].reshape(x.shape) + i0, uv[0].reshape(y.shape) + j0
