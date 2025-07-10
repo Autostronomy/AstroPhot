@@ -40,8 +40,9 @@ class BaseImage(Module):
         if value is None:
             self._data = torch.empty((0, 0), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         else:
-            self._data = torch.as_tensor(
-                value, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
+            self._data = torch.transpose(
+                torch.as_tensor(value, dtype=AP_config.ap_dtype, device=AP_config.ap_device), 0, 1
             )
 
     @property
@@ -87,7 +88,7 @@ class BaseImage(Module):
 
         """
         kwargs = {
-            "data": torch.clone(self.data.detach()),
+            "data": torch.transpose(torch.clone(self.data.detach()), 0, 1),
             "crpix": self.crpix,
             "identity": self.identity,
             "name": self.name,
@@ -101,7 +102,7 @@ class BaseImage(Module):
 
         """
         kwargs = {
-            "data": torch.zeros_like(self.data),
+            "data": torch.transpose(torch.zeros_like(self.data), 0, 1),
             "crpix": self.crpix,
             "identity": self.identity,
             "name": self.name,

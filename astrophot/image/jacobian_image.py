@@ -45,7 +45,7 @@ class JacobianImage(Image):
                 other_loc = self.parameters.index(other_identity)
             else:
                 continue
-            self.data[self_indices[0], self_indices[1], other_loc] += other.data[
+            self._data[self_indices[0], self_indices[1], other_loc] += other.data[
                 other_indices[0], other_indices[1], i
             ]
         return self

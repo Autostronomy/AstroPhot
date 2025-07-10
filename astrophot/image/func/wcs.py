@@ -112,7 +112,7 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     Tuple: [Tensor, Tensor]
         Tuple containing the x and y tangent plane coordinates in arcsec.
     """
-    uv = torch.stack((j.flatten() - j0, i.flatten() - i0), dim=0)
+    uv = torch.stack((i.flatten() - i0, j.flatten() - j0), dim=0)
     xy = CD @ uv
 
     return xy[0].reshape(i.shape) + x0, xy[1].reshape(i.shape) + y0
@@ -138,7 +138,7 @@ def sip_delta(u, v, sipA=(), sipB=()):
         delta_u = delta_u + sipA[(a, b)] * (u_a[a] * v_b[b])
     for a, b in sipB:
         delta_v = delta_v + sipB[(a, b)] * (u_a[a] * v_b[b])
-    return delta_v, delta_u
+    return delta_u, delta_v
 
 
 def pixel_to_plane_sip(i, j, i0, j0, CD, sip_powers=[], sip_coefs=[], x0=0.0, y0=0.0):
@@ -235,4 +235,4 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     xy = torch.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
     uv = torch.linalg.inv(CD) @ xy
 
-    return uv[1].reshape(x.shape) + i0, uv[0].reshape(y.shape) + j0
+    return uv[0].reshape(x.shape) + i0, uv[1].reshape(y.shape) + j0

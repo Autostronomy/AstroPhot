@@ -10,6 +10,8 @@ from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
 from .window import Window, WindowList
 from ..errors import InvalidImage, SpecificationConflict
+
+# from .base import BaseImage
 from . import func
 
 __all__ = ["Image", "ImageList"]
@@ -48,6 +50,7 @@ class Image(Module):
         hduext=0,
         identity: str = None,
         name: Optional[str] = None,
+        _data: Optional[torch.Tensor] = None,
     ) -> None:
         """Initialize an instance of the APImage class.
 
@@ -66,7 +69,10 @@ class Image(Module):
 
         """
         super().__init__(name=name)
-        self.data = data  # units: flux
+        if _data is None:
+            self.data = data  # units: flux
+        else:
+            self._data = _data
         self.crval = Param(
             "crval", shape=(2,), units="deg", dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
@@ -134,8 +140,9 @@ class Image(Module):
         if value is None:
             self._data = torch.empty((0, 0), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         else:
-            self._data = torch.as_tensor(
-                value, dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
+            self._data = torch.transpose(
+                torch.as_tensor(value, dtype=AP_config.ap_dtype, device=AP_config.ap_device), 0, 1
             )
 
     @property
@@ -296,7 +303,7 @@ class Image(Module):
 
         """
         kwargs = {
-            "data": torch.clone(self.data.detach()),
+            "_data": torch.clone(self.data.detach()),
             "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
@@ -314,7 +321,7 @@ class Image(Module):
 
         """
         kwargs = {
-            "data": torch.zeros_like(self.data),
+            "_data": torch.zeros_like(self.data),
             "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
@@ -345,21 +352,21 @@ class Image(Module):
             crpix = self.crpix - crop
         elif len(pixels) == 2:  # different crop in each dimension
             data = self.data[
-                pixels[1] : self.data.shape[0] - pixels[1],
-                pixels[0] : self.data.shape[1] - pixels[0],
+                pixels[0] : self.data.shape[0] - pixels[0],
+                pixels[1] : self.data.shape[1] - pixels[1],
             ]
             crpix = self.crpix - pixels
         elif len(pixels) == 4:  # different crop on all sides
             data = self.data[
-                pixels[2] : self.data.shape[0] - pixels[3],
-                pixels[0] : self.data.shape[1] - pixels[1],
+                pixels[0] : self.data.shape[0] - pixels[1],
+                pixels[2] : self.data.shape[1] - pixels[3],
             ]
-            crpix = self.crpix - pixels[0::2]  # fixme
+            crpix = self.crpix - pixels[0::2]
         else:
             raise ValueError(
                 f"Invalid crop shape {pixels}, must be (int,), (int, int), or (int, int, int, int)!"
             )
-        return self.copy(data=data, crpix=crpix, **kwargs)
+        return self.copy(_data=data, crpix=crpix, **kwargs)
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
@@ -388,7 +395,7 @@ class Image(Module):
         pixelscale = self.pixelscale.value * scale
         crpix = (self.crpix + 0.5) / scale - 0.5
         return self.copy(
-            data=data,
+            _data=data,
             pixelscale=pixelscale,
             crpix=crpix,
             **kwargs,
@@ -400,6 +407,7 @@ class Image(Module):
         if device is None:
             device = AP_config.ap_device
         super().to(dtype=dtype, device=device)
+        self._data = self._data.to(dtype=dtype, device=device)
         if self.zeropoint is not None:
             self.zeropoint = self.zeropoint.to(dtype=dtype, device=device)
         return self
@@ -413,8 +421,8 @@ class Image(Module):
             "CTYPE2": "DEC--TAN",
             "CRVAL1": self.crval.value[0].item(),
             "CRVAL2": self.crval.value[1].item(),
-            "CRPIX2": self.crpix[0] + 1,
-            "CRPIX1": self.crpix[1] + 1,
+            "CRPIX1": self.crpix[0] + 1,
+            "CRPIX2": self.crpix[1] + 1,
             "CRTAN1": self.crtan.value[0].item(),
             "CRTAN2": self.crtan.value[1].item(),
             "CD1_1": self.pixelscale.value[0][0].item() * arcsec_to_deg,
@@ -427,14 +435,17 @@ class Image(Module):
 
     def fits_images(self):
         return [
-            fits.PrimaryHDU(self.data.detach().cpu().numpy(), header=fits.Header(self.fits_info()))
+            fits.PrimaryHDU(
+                torch.transpose(self.data, 0, 1).detach().cpu().numpy(),
+                header=fits.Header(self.fits_info()),
+            )
         ]
 
     def get_astropywcs(self, **kwargs):
         kwargs = {
             "NAXIS": 2,
-            "NAXIS2": self.shape[0].item(),
-            "NAXIS1": self.shape[1].item(),
+            "NAXIS1": self.shape[0].item(),
+            "NAXIS2": self.shape[1].item(),
             **self.fits_info(),
             **kwargs,
         }
@@ -453,11 +464,6 @@ class Image(Module):
         hdulist = fits.open(filename)
         self.data = np.array(hdulist[hduext].data, dtype=np.float64)
 
-        # NOTE: numpy arrays are indexed backwards as array[axis2,axis1], therefore we should
-        # import the CD matrix as ((CD1_2, CD1_1), (CD2_2, CD2_1)) since CD is indexed as CD{world}_{pixel}
-        # but it would be unweildy to use a CD matrix that includes an axis reversal, so instead we manually
-        # perform the axis reversal internally to the pixel_to_plane and plane_to_pixel methods. This fully
-        # accounts for the FITS vs numpy indexing differences, so other things like CRPIX must be flipped on import.
         self.pixelscale = (
             np.array(
                 (
@@ -468,7 +474,7 @@ class Image(Module):
             )
             * deg_to_arcsec
         )
-        self.crpix = (hdulist[hduext].header["CRPIX2"] - 1, hdulist[hduext].header["CRPIX1"] - 1)
+        self.crpix = (hdulist[hduext].header["CRPIX1"] - 1, hdulist[hduext].header["CRPIX2"] - 1)
         self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
         if "CRTAN1" in hdulist[hduext].header and "CRTAN2" in hdulist[hduext].header:
             self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
@@ -536,7 +542,7 @@ class Image(Module):
         if indices is None:
             indices = self.get_indices(other if isinstance(other, Window) else other.window)
         new_img = self.copy(
-            data=self.data[indices],
+            _data=self.data[indices],
             crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
             **kwargs,
         )
@@ -545,35 +551,35 @@ class Image(Module):
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data = new_img.data - other[self].data
+            new_img._data = new_img.data - other[self].data
             return new_img
         else:
             new_img = self.copy()
-            new_img.data = new_img.data - other
+            new_img._data = new_img.data - other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img.data = new_img.data + other[self].data
+            new_img._data = new_img.data + other[self].data
             return new_img
         else:
             new_img = self.copy()
-            new_img.data = new_img.data + other
+            new_img._data = new_img.data + other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data[self.get_indices(other.window)] += other.data[other.get_indices(self.window)]
+            self._data[self.get_indices(other.window)] += other.data[other.get_indices(self.window)]
         else:
-            self.data = self.data + other
+            self._data = self.data + other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data[self.get_indices(other.window)] -= other.data[other.get_indices(self.window)]
+            self._data[self.get_indices(other.window)] -= other.data[other.get_indices(self.window)]
         else:
-            self.data = self.data - other
+            self._data = self.data - other
         return self
 
     def __getitem__(self, *args):

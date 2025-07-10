@@ -51,7 +51,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
     dat = np.copy(target_area.data.detach().cpu().numpy())
     if target_area.has_mask:
         dat[target_area.mask.detach().cpu().numpy()] = np.nan
-    X, Y = target_area.pixel_to_plane(*target_area.pixel_corner_meshgrid())
+    X, Y = target_area.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sky = np.nanmedian(dat)
@@ -63,9 +63,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
     if kwargs.get("linear", False):
         im = ax.pcolormesh(
-            X.T,
-            Y.T,
-            dat.T,
+            X,
+            Y,
+            dat,
             cmap=cmap_grad,
         )
     else:

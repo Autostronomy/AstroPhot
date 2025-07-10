@@ -171,7 +171,7 @@ class TargetImage(DataMixin, Image):
             if isinstance(self.psf, PSFImage):
                 images.append(
                     fits.ImageHDU(
-                        self.psf.data.detach().cpu().numpy(),
+                        torch.transpose(self.psf.data, 0, 1).detach().cpu().numpy(),
                         name="PSF",
                         header=fits.Header(self.psf.fits_info()),
                     )
@@ -221,14 +221,14 @@ class TargetImage(DataMixin, Image):
             "name": self.name + "_jacobian",
             **kwargs,
         }
-        return JacobianImage(parameters=parameters, data=data, **kwargs)
+        return JacobianImage(parameters=parameters, _data=data, **kwargs)
 
     def model_image(self, upsample=1, pad=0, **kwargs):
         """
         Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
         """
         kwargs = {
-            "data": torch.zeros(
+            "_data": torch.zeros(
                 (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
                 dtype=self.data.dtype,
                 device=self.data.device,

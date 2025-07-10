@@ -13,16 +13,31 @@ from ..window import Window
 
 class DataMixin:
 
-    def __init__(self, *args, mask=None, std=None, variance=None, weight=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        mask=None,
+        std=None,
+        variance=None,
+        weight=None,
+        _mask=None,
+        _weight=None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
 
-        self.mask = mask
+        if _mask is None:
+            self.mask = mask
+        else:
+            self._mask = _mask
         if (std is not None) + (variance is not None) + (weight is not None) > 1:
             raise SpecificationConflict(
                 "Can only define one of: std, variance, or weight for a given image."
             )
 
-        if std is not None:
+        if _weight is not None:
+            self._weight = _weight
+        elif std is not None:
             self.std = std
         elif variance is not None:
             self.variance = variance
@@ -31,7 +46,7 @@ class DataMixin:
 
         # Set nan pixels to be masked automatically
         if torch.any(torch.isnan(self.data)).item():
-            self.mask = self.mask | torch.isnan(self.data)
+            self._mask = self.mask | torch.isnan(self.data)
 
     @property
     def std(self):
@@ -153,12 +168,15 @@ class DataMixin:
             self._weight = None
             return
         if isinstance(weight, str) and weight == "auto":
-            weight = 1 / auto_variance(self.data, self.mask)
-        if weight.shape != self.data.shape:
+            weight = 1 / auto_variance(self.data, self.mask).T
+        self._weight = torch.transpose(
+            torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device), 0, 1
+        )
+        if self._weight.shape != self.data.shape:
+            self._weight = None
             raise SpecificationConflict(
                 f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
             )
-        self._weight = torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
 
     @property
     def has_weight(self):
@@ -197,11 +215,14 @@ class DataMixin:
         if mask is None:
             self._mask = None
             return
+        self._mask = torch.transpose(
+            torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device), 0, 1
+        )
         if mask.shape != self.data.shape:
+            self._mask = None
             raise SpecificationConflict(
                 f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
             )
-        self._mask = torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device)
 
     @property
     def has_mask(self):
@@ -227,7 +248,7 @@ class DataMixin:
         if self.has_weight:
             self._weight = self._weight.to(dtype=dtype, device=device)
         if self.has_mask:
-            self._mask = self.mask.to(dtype=torch.bool, device=device)
+            self._mask = self._mask.to(dtype=torch.bool, device=device)
         return self
 
     def copy(self, **kwargs):
@@ -236,7 +257,7 @@ class DataMixin:
         an image and then will want the original again.
 
         """
-        kwargs = {"mask": self._mask, "weight": self._weight, **kwargs}
+        kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
         return super().copy(**kwargs)
 
     def blank_copy(self, **kwargs):
@@ -244,7 +265,7 @@ class DataMixin:
         except that its data is now filled with zeros.
 
         """
-        kwargs = {"mask": self._mask, "weight": self._weight, **kwargs}
+        kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
         return super().blank_copy(**kwargs)
 
     def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
@@ -253,8 +274,8 @@ class DataMixin:
             indices = self.get_indices(other if isinstance(other, Window) else other.window)
         return super().get_window(
             other,
-            weight=self._weight[indices] if self.has_weight else None,
-            mask=self._mask[indices] if self.has_mask else None,
+            _weight=self._weight[indices] if self.has_weight else None,
+            _mask=self._mask[indices] if self.has_mask else None,
             indices=indices,
             **kwargs,
         )
@@ -262,9 +283,15 @@ class DataMixin:
     def fits_images(self):
         images = super().fits_images()
         if self.has_weight:
-            images.append(fits.ImageHDU(self.weight.detach().cpu().numpy(), name="WEIGHT"))
+            images.append(
+                fits.ImageHDU(
+                    torch.transpose(self.weight, 0, 1).detach().cpu().numpy(), name="WEIGHT"
+                )
+            )
         if self.has_mask:
-            images.append(fits.ImageHDU(self.mask.detach().cpu().numpy(), name="MASK"))
+            images.append(
+                fits.ImageHDU(torch.transpose(self.mask, 0, 1).detach().cpu().numpy(), name="MASK")
+            )
         return images
 
     def load(self, filename: str, hduext=0):
@@ -301,6 +328,7 @@ class DataMixin:
                 self.variance[: MS * scale, : NS * scale]
                 .reshape(MS, scale, NS, scale)
                 .sum(axis=(1, 3))
+                .T
                 if self.has_variance
                 else None
             ),

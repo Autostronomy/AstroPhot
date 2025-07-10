@@ -131,7 +131,7 @@ class SIPTargetImage(SIPMixin, TargetImage):
             "sipBP": self.sipBP,
             "distortion_ij": new_distortion_ij,
             "distortion_IJ": new_distortion_IJ,
-            "data": torch.zeros(
+            "_data": torch.zeros(
                 (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
                 dtype=self.data.dtype,
                 device=self.data.device,

@@ -18,11 +18,8 @@ class ModelImage(Image):
 
     """
 
-    def clear_image(self):
-        self.data = torch.zeros_like(self.data)
-
     def fluxdensity_to_flux(self):
-        self.data = self.data * self.pixel_area
+        self._data = self.data * self.pixel_area
 
 
 ######################################################################

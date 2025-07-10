@@ -223,12 +223,12 @@ class ComponentModel(SampleMixin, Model):
 
             working_image = self.target[window].model_image(upsample=psf_upscale, pad=psf_pad)
             sample = self.sample_image(working_image)
-            working_image.data = func.convolve(sample, psf)
+            working_image._data = func.convolve(sample, psf)
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
         elif "none" in self.psf_mode:
             working_image = self.target[window].model_image()
-            working_image.data = self.sample_image(working_image)
+            working_image._data = self.sample_image(working_image)
         else:
             raise SpecificationConflict(
                 f"Unknown PSF mode {self.psf_mode} for model {self.name}. "

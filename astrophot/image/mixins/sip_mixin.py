@@ -64,7 +64,7 @@ class SIPMixin:
         #############################################################
         if distortion_ij is None or distortion_IJ is None:
             i, j = self.pixel_center_meshgrid()
-            v, u = i - self.crpix[0], j - self.crpix[1]
+            u, v = i - self.crpix[0], j - self.crpix[1]
             if distortion_ij is None:
                 distortion_ij = torch.stack(func.sip_delta(u, v, self.sipA, self.sipB), dim=0)
             if distortion_IJ is None:
