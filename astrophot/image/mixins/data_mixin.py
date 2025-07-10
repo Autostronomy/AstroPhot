@@ -277,6 +277,8 @@ class DataMixin:
             self.weight = np.array(hdulist["WEIGHT"].data, dtype=np.float64)
         if "MASK" in hdulist:
             self.mask = np.array(hdulist["MASK"].data, dtype=bool)
+        elif "DQ" in hdulist:
+            self.mask = np.array(hdulist["DQ"].data, dtype=bool)
         return hdulist
 
     def reduce(self, scale, **kwargs):

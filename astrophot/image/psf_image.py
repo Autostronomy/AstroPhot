@@ -34,7 +34,7 @@ class PSFImage(DataMixin, Image):
     def __init__(self, *args, **kwargs):
         kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
         super().__init__(*args, **kwargs)
-        self.crpix = (np.array(self.data.shape, dtype=float) - 1.0) / 2
+        self.crpix = (np.array(self.data.shape, dtype=np.float64) - 1.0) / 2
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
@@ -65,7 +65,7 @@ class PSFImage(DataMixin, Image):
             "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,
-            "crval": (0.0, 0.0),
+            "crval": self.crval.value,
             "zeropoint": self.zeropoint,
             "identity": self.identity,
             **kwargs,
@@ -81,12 +81,11 @@ class PSFImage(DataMixin, Image):
             "pixelscale": self.pixelscale.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,
-            "crval": (0.0, 0.0),
-            "zeropoint": self.zeropoint,
+            "crval": self.crval.value,
             "identity": self.identity,
             **kwargs,
         }
-        return ModelImage(**kwargs)
+        return PSFImage(**kwargs)
 
     @property
     def zeropoint(self):

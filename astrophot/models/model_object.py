@@ -3,11 +3,10 @@ from typing import Optional
 import numpy as np
 import torch
 
-from ..param import forward, OverrideParam
+from ..param import forward
 from .base import Model
 from . import func
 from ..image import (
-    ModelImage,
     TargetImage,
     Window,
     PSFImage,
@@ -15,7 +14,7 @@ from ..image import (
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
 from .. import AP_config
-from ..errors import InvalidTarget
+from ..errors import InvalidTarget, SpecificationConflict
 from .mixins import SampleMixin
 
 __all__ = ["ComponentModel"]
@@ -52,21 +51,12 @@ class ComponentModel(SampleMixin, Model):
 
     """
 
-    _parameter_specs = {
-        "center": {"units": "arcsec", "shape": (2,)},
-    }
+    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,)}}
 
     # Scope for PSF convolution
     psf_mode = "none"  # none, full
-    # Method to use when performing subpixel shifts.
-    psf_subpixel_shift = (
-        False  # False: no shift to align sampling with pixel center, True: use FFT shift theorem
-    )
 
-    _options = (
-        "psf_mode",
-        "psf_subpixel_shift",
-    )
+    _options = ("psf_mode",)
     usable = False
 
     def __init__(self, *args, psf=None, **kwargs):
@@ -211,9 +201,6 @@ class ComponentModel(SampleMixin, Model):
         if window is None:
             window = self.window
 
-        if "window" in self.psf_mode:
-            raise NotImplementedError("PSF convolution in sub-window not available yet")
-
         if "full" in self.psf_mode:
             if isinstance(self.psf, PSFImage):
                 psf_upscale = (
@@ -235,27 +222,18 @@ class ComponentModel(SampleMixin, Model):
                 )
 
             working_image = self.target[window].model_image(upsample=psf_upscale, pad=psf_pad)
-
-            # Sub pixel shift to align the model with the center of a pixel
-            if self.psf_subpixel_shift:
-                pixel_center = torch.stack(working_image.plane_to_pixel(*center))
-                pixel_centered = torch.round(pixel_center)
-                pixel_shift = pixel_center - pixel_centered
-                with OverrideParam(
-                    self.center, torch.stack(working_image.pixel_to_plane(*pixel_centered))
-                ):
-                    sample = self.sample_image(working_image)
-            else:
-                pixel_shift = None
-                sample = self.sample_image(working_image)
-
-            working_image.data = func.convolve_and_shift(sample, psf, pixel_shift)
+            sample = self.sample_image(working_image)
+            working_image.data = func.convolve(sample, psf)
             working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
 
-        else:
+        elif "none" in self.psf_mode:
             working_image = self.target[window].model_image()
-            sample = self.sample_image(working_image)
-            working_image.data = sample
+            working_image.data = self.sample_image(working_image)
+        else:
+            raise SpecificationConflict(
+                f"Unknown PSF mode {self.psf_mode} for model {self.name}. "
+                "Must be one of 'none' or 'full'."
+            )
 
         # Units from flux/arcsec^2 to flux
         working_image.fluxdensity_to_flux()

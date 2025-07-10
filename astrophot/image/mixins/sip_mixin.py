@@ -1,5 +1,7 @@
 from typing import Union
 
+import torch
+
 from ..image_object import Image
 from ..window import Window
 from .. import func
@@ -64,9 +66,10 @@ class SIPMixin:
             i, j = self.pixel_center_meshgrid()
             v, u = i - self.crpix[0], j - self.crpix[1]
             if distortion_ij is None:
-                distortion_ij = func.sip_delta(u, v, self.sipA, self.sipB)
+                distortion_ij = torch.stack(func.sip_delta(u, v, self.sipA, self.sipB), dim=0)
             if distortion_IJ is None:
-                distortion_IJ = func.sip_delta(u, v, self.sipAP, self.sipBP)  # fixme maybe
+                # fixme maybe
+                distortion_IJ = torch.stack(func.sip_delta(u, v, self.sipAP, self.sipBP), dim=0)
         self.distortion_ij = distortion_ij
         self.distortion_IJ = distortion_IJ
 

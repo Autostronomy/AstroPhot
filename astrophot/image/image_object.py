@@ -9,7 +9,7 @@ from ..param import Module, Param, forward
 from .. import AP_config
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
 from .window import Window, WindowList
-from ..errors import InvalidImage
+from ..errors import InvalidImage, SpecificationConflict
 from . import func
 
 __all__ = ["Image", "ImageList"]
@@ -40,7 +40,7 @@ class Image(Module):
         data: Optional[torch.Tensor] = None,
         pixelscale: Optional[Union[float, torch.Tensor]] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
-        crpix: Union[torch.Tensor, tuple] = (0, 0),
+        crpix: Union[torch.Tensor, tuple] = (0.0, 0.0),
         crtan: Union[torch.Tensor, tuple] = (0.0, 0.0),
         crval: Union[torch.Tensor, tuple] = (0.0, 0.0),
         wcs: Optional[AstropyWCS] = None,
@@ -326,6 +326,74 @@ class Image(Module):
         }
         return self.__class__(**kwargs)
 
+    def crop(self, pixels, **kwargs):
+        """Crop the image by the number of pixels given. This will crop
+        the image in all four directions by the number of pixels given.
+
+        given data shape (N, M) the new shape will be:
+
+        crop - int: crop the same number of pixels on all sides. new shape (N - 2*crop, M - 2*crop)
+        crop - (int, int): crop each dimension by the number of pixels given. new shape (N - 2*crop[1], M - 2*crop[0])
+        crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
+        """
+        if len(pixels) == 1:  # same crop in all dimension
+            crop = pixels if isinstance(pixels, int) else pixels[0]
+            data = self.data[
+                crop : self.data.shape[0] - crop,
+                crop : self.data.shape[1] - crop,
+            ]
+            crpix = self.crpix - crop
+        elif len(pixels) == 2:  # different crop in each dimension
+            data = self.data[
+                pixels[1] : self.data.shape[0] - pixels[1],
+                pixels[0] : self.data.shape[1] - pixels[0],
+            ]
+            crpix = self.crpix - pixels
+        elif len(pixels) == 4:  # different crop on all sides
+            data = self.data[
+                pixels[2] : self.data.shape[0] - pixels[3],
+                pixels[0] : self.data.shape[1] - pixels[1],
+            ]
+            crpix = self.crpix - pixels[0::2]  # fixme
+        else:
+            raise ValueError(
+                f"Invalid crop shape {pixels}, must be (int,), (int, int), or (int, int, int, int)!"
+            )
+        return self.copy(data=data, crpix=crpix, **kwargs)
+
+    def reduce(self, scale: int, **kwargs):
+        """This operation will downsample an image by the factor given. If
+        scale = 2 then 2x2 blocks of pixels will be summed together to
+        form individual larger pixels. A new image object will be
+        returned with the appropriate pixelscale and data tensor. Note
+        that the window does not change in this operation since the
+        pixels are condensed, but the pixel size is increased
+        correspondingly.
+
+        Parameters:
+            scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
+
+        """
+        if not isinstance(scale, int) and not (
+            isinstance(scale, torch.Tensor) and scale.dtype is torch.int32
+        ):
+            raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
+        if scale == 1:
+            return self
+
+        MS = self.data.shape[0] // scale
+        NS = self.data.shape[1] // scale
+
+        data = self.data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
+        pixelscale = self.pixelscale.value * scale
+        crpix = (self.crpix + 0.5) / scale - 0.5
+        return self.copy(
+            data=data,
+            pixelscale=pixelscale,
+            crpix=crpix,
+            **kwargs,
+        )
+
     def to(self, dtype=None, device=None):
         if dtype is None:
             dtype = AP_config.ap_dtype
@@ -384,6 +452,12 @@ class Image(Module):
         """
         hdulist = fits.open(filename)
         self.data = np.array(hdulist[hduext].data, dtype=np.float64)
+
+        # NOTE: numpy arrays are indexed backwards as array[axis2,axis1], therefore we should
+        # import the CD matrix as ((CD1_2, CD1_1), (CD2_2, CD2_1)) since CD is indexed as CD{world}_{pixel}
+        # but it would be unweildy to use a CD matrix that includes an axis reversal, so instead we manually
+        # perform the axis reversal internally to the pixel_to_plane and plane_to_pixel methods. This fully
+        # accounts for the FITS vs numpy indexing differences, so other things like CRPIX must be flipped on import.
         self.pixelscale = (
             np.array(
                 (

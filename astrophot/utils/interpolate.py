@@ -45,12 +45,10 @@ def interp2d(
 
     x0 = x.floor().long()
     y0 = y.floor().long()
-    x1 = x0 + 1
-    y1 = y0 + 1
     x0 = x0.clamp(0, w - 2)
-    x1 = x1.clamp(1, w - 1)
+    x1 = x0 + 1
     y0 = y0.clamp(0, h - 2)
-    y1 = y1.clamp(1, h - 1)
+    y1 = y0 + 1
 
     fa = im[y0, x0]
     fb = im[y1, x0]
@@ -61,6 +59,57 @@ def interp2d(
     wb = (x1 - x) * (y - y0)
     wc = (x - x0) * (y1 - y)
     wd = (x - x0) * (y - y0)
+
+    result = fa * wa + fb * wb + fc * wc + fd * wd
+
+    return (result * valid).reshape(start_shape)
+
+
+def interp2d_ij(
+    im: torch.Tensor,
+    i: torch.Tensor,
+    j: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Interpolates a 2D image at specified coordinates.
+    Similar to `torch.nn.functional.grid_sample` with `align_corners=False`.
+
+    Args:
+        im (Tensor): A 2D tensor representing the image.
+        x (Tensor): A tensor of x coordinates (in pixel space) at which to interpolate.
+        y (Tensor): A tensor of y coordinates (in pixel space) at which to interpolate.
+
+    Returns:
+        Tensor: Tensor with the same shape as `x` and `y` containing the interpolated values.
+    """
+
+    # Convert coordinates to pixel indices
+    h, w = im.shape
+
+    # reshape for indexing purposes
+    start_shape = i.shape
+    i = i.flatten()
+    j = j.flatten()
+
+    # valid
+    valid = (i >= -0.5) & (i <= (h - 0.5)) & (j >= -0.5) & (j <= (w - 0.5))
+
+    i0 = i.floor().long()
+    j0 = j.floor().long()
+    i0 = i0.clamp(0, h - 2)
+    i1 = i0 + 1
+    j0 = j0.clamp(0, w - 2)
+    j1 = j0 + 1
+
+    fa = im[i0, j0]
+    fb = im[i0, j1]
+    fc = im[i1, j0]
+    fd = im[i1, j1]
+
+    wa = (i1 - i) * (j1 - j)
+    wb = (i1 - i) * (j - j0)
+    wc = (i - i0) * (j1 - j)
+    wd = (i - i0) * (j - j0)
 
     result = fa * wa + fb * wb + fc * wc + fd * wd
 

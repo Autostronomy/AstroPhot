@@ -122,6 +122,9 @@ class Window:
         new_j_high = min(self.j_high, other.j_high)
         return Window((new_i_low, new_i_high, new_j_low, new_j_high), self.image)
 
+    def __str__(self):
+        return f"Window({self.i_low}, {self.i_high}, {self.j_low}, {self.j_high})"
+
 
 class WindowList:
     def __init__(self, windows: list[Window]):

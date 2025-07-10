@@ -93,6 +93,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
             clim=[sky + 3 * noise, None],
         )
 
+    if torch.linalg.det(target.pixelscale.value) < 0:
+        ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
     ax.set_ylabel("Tangent Plane Y [arcsec]")
@@ -260,6 +262,9 @@ def model_image(
     # Plot the image
     im = ax.pcolormesh(X, Y, sample_image, **kwargs)
 
+    if torch.linalg.det(target.pixelscale.value) < 0:
+        ax.invert_xaxis()
+
     # Enforce equal spacing on x y
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
@@ -399,6 +404,8 @@ def residual_image(
     }
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
+    if torch.linalg.det(target.pixelscale.value) < 0:
+        ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
     ax.set_ylabel("Tangent Plane Y [arcsec]")

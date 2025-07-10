@@ -44,17 +44,7 @@ class JacobianImage(Image):
             if other_identity in self.parameters:
                 other_loc = self.parameters.index(other_identity)
             else:
-                data = torch.zeros(
-                    self.data.shape[0],
-                    self.data.shape[1],
-                    self.data.shape[2] + 1,
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-                data[:, :, :-1] = self.data
-                self.data = data
-                self.parameters.append(other_identity)
-                other_loc = -1
+                continue
             self.data[self_indices[0], self_indices[1], other_loc] += other.data[
                 other_indices[0], other_indices[1], i
             ]

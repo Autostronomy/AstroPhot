@@ -244,20 +244,6 @@ class TargetImage(DataMixin, Image):
         }
         return ModelImage(**kwargs)
 
-    def reduce(self, scale, **kwargs):
-        """Returns a new `Target_Image` object with a reduced resolution
-        compared to the current image. `scale` should be an integer
-        indicating how much to reduce the resolution. If the
-        `Target_Image` was originally (48,48) pixels across with a
-        pixelscale of 1 and `reduce(2)` is called then the image will
-        be (24,24) pixels and the pixelscale will be 2. If `reduce(3)`
-        is called then the returned image will be (16,16) pixels
-        across and the pixelscale will be 3.
-
-        """
-
-        return super().reduce(scale=scale, psf=self.psf, **kwargs)
-
 
 class TargetImageList(ImageList):
     def __init__(self, *args, **kwargs):

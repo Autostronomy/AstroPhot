@@ -33,7 +33,7 @@ class FlatSky(SkyModel):
             return
 
         dat = self.target[self.window].data.detach().cpu().numpy().copy()
-        self.I.value = np.median(dat) / self.target.pixel_area.item()
+        self.I.dynamic_value = np.median(dat) / self.target.pixel_area.item()
 
     @forward
     def brightness(self, x, y, I):

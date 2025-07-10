@@ -1,6 +1,6 @@
 from .image_object import Image, ImageList
 from .target_image import TargetImage, TargetImageList
-from .sip_target import SIPTargetImage
+from .sip_image import SIPTargetImage
 from .jacobian_image import JacobianImage, JacobianImageList
 from .psf_image import PSFImage
 from .model_image import ModelImage, ModelImageList
