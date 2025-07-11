@@ -60,7 +60,7 @@ class AiryPSF(RadialMixin, PSFModel):
             ]
             self.I0.dynamic_value = torch.mean(mid_chunk) / self.target.pixel_area
         if not self.aRL.initialized:
-            self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixel_length
+            self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixelscale
 
     @forward
     def radial_model(self, R, I0, aRL):

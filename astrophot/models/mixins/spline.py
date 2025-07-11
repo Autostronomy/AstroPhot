@@ -31,7 +31,7 @@ class SplineMixin:
         target_area = self.target[self.window]
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
-            prof = default_prof(self.window.shape, target_area.pixel_length, 2, 0.2)
+            prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
             self.I_R.prof = prof
         else:
             prof = self.I_R.prof
@@ -75,7 +75,7 @@ class iSplineMixin:
         target_area = self.target[self.window]
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
-            prof = default_prof(self.window.shape, target_area.pixel_length, 2, 0.2)
+            prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
             self.I_R.prof = [prof] * self.segments
         else:
             prof = self.I_R.prof

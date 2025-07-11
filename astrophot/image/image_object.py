@@ -19,32 +19,24 @@ __all__ = ["Image", "ImageList"]
 
 class Image(Module):
     """Core class to represent images with pixel values, pixel scale,
-       and a window defining the spatial coordinates on the sky.
-       It supports arithmetic operations with other image objects while preserving logical image boundaries.
-       It also provides methods for determining the coordinate locations of pixels
-
-    Parameters:
-        data: the matrix of pixel values for the image
-        pixelscale: the length of one side of a pixel in arcsec/pixel
-        window: an AstroPhot Window object which defines the spatial coordinates on the sky
-        filename: a filename from which to load the image.
-        zeropoint: photometric zero point for converting from pixel flux to magnitude
-        metadata: Any information the user wishes to associate with this image, stored in a python dictionary
-        origin: The origin of the image in the coordinate system.
+    and a window defining the spatial coordinates on the sky.
+    It supports arithmetic operations with other image objects while preserving logical image boundaries.
+    It also provides methods for determining the coordinate locations of pixels
     """
 
-    default_pixelscale = ((1.0, 0.0), (0.0, 1.0))
+    default_CD = ((1.0, 0.0), (0.0, 1.0))
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
 
     def __init__(
         self,
         *,
         data: Optional[torch.Tensor] = None,
-        pixelscale: Optional[Union[float, torch.Tensor]] = None,
+        CD: Optional[Union[float, torch.Tensor]] = None,
         zeropoint: Optional[Union[float, torch.Tensor]] = None,
         crpix: Union[torch.Tensor, tuple] = (0.0, 0.0),
         crtan: Union[torch.Tensor, tuple] = (0.0, 0.0),
         crval: Union[torch.Tensor, tuple] = (0.0, 0.0),
+        pixelscale: Optional[Union[torch.Tensor, float]] = None,
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
         hduext=0,
@@ -83,8 +75,8 @@ class Image(Module):
             dtype=AP_config.ap_dtype,
             device=AP_config.ap_device,
         )
-        self.pixelscale = Param(
-            "pixelscale",
+        self.CD = Param(
+            "CD",
             shape=(2, 2),
             units="arcsec/pixel",
             dtype=AP_config.ap_dtype,
@@ -114,20 +106,24 @@ class Image(Module):
             crval = wcs.wcs.crval
             crpix = np.array(wcs.wcs.crpix)[::-1] - 1  # handle FITS 1-indexing
 
-            if pixelscale is not None:
+            if CD is not None:
                 AP_config.ap_logger.warning(
-                    "WCS pixelscale set with supplied WCS, ignoring user supplied pixelscale!"
+                    "WCS CD set with supplied WCS, ignoring user supplied CD!"
                 )
-            pixelscale = deg_to_arcsec * wcs.pixel_scale_matrix
+            CD = deg_to_arcsec * wcs.pixel_scale_matrix
 
         # set the data
         self.crval = crval
         self.crtan = crtan
         self.crpix = crpix
 
-        if isinstance(pixelscale, (float, int)):
-            pixelscale = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
-        self.pixelscale = pixelscale
+        if isinstance(CD, (float, int)):
+            CD = np.array([[CD, 0.0], [0.0, CD]], dtype=np.float64)
+        elif CD is None and pixelscale is not None:
+            CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
+        elif CD is None:
+            CD = self.default_CD
+        self.CD = CD
 
     @property
     def data(self):
@@ -178,7 +174,7 @@ class Image(Module):
         shape = torch.as_tensor(
             self.data.shape[:2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
         )
-        return self.pixel_to_plane(*((shape - 1) / 2))
+        return torch.stack(self.pixel_to_plane(*((shape - 1) / 2)))
 
     @property
     def shape(self):
@@ -187,39 +183,30 @@ class Image(Module):
 
     @property
     @forward
-    def pixel_area(self, pixelscale):
+    def pixel_area(self, CD):
         """The area inside a pixel in arcsec^2"""
-        return torch.linalg.det(pixelscale).abs()
+        return torch.linalg.det(CD).abs()
 
     @property
     @forward
-    def pixel_length(self):
-        """The approximate length of a pixel, which is just
+    def pixelscale(self):
+        """The approximate side length of a pixel, which is just
         sqrt(pixel_area). For square pixels this is the actual pixel
         length, for rectangular pixels it is a kind of average.
 
-        The pixel_length is typically not used for exact calculations
+        The pixelscale is not used for exact calculations
         and instead sets a size scale within an image.
 
         """
         return self.pixel_area.sqrt()
 
-    @property
     @forward
-    def pixelscale_inv(self, pixelscale):
-        """The inverse of the pixel scale matrix, which is used to
-        transform tangent plane coordinates into pixel coordinates.
-
-        """
-        return torch.linalg.inv(pixelscale)
+    def pixel_to_plane(self, i, j, crtan, CD):
+        return func.pixel_to_plane_linear(i, j, *self.crpix, CD, *crtan)
 
     @forward
-    def pixel_to_plane(self, i, j, crtan, pixelscale):
-        return func.pixel_to_plane_linear(i, j, *self.crpix, pixelscale, *crtan)
-
-    @forward
-    def plane_to_pixel(self, x, y, crtan, pixelscale):
-        return func.plane_to_pixel_linear(x, y, *self.crpix, pixelscale, *crtan)
+    def plane_to_pixel(self, x, y, crtan, CD):
+        return func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
 
     @forward
     def plane_to_world(self, x, y, crval):
@@ -304,7 +291,7 @@ class Image(Module):
         """
         kwargs = {
             "_data": torch.clone(self.data.detach()),
-            "pixelscale": self.pixelscale.value,
+            "CD": self.CD.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
             "crtan": self.crtan.value,
@@ -322,16 +309,9 @@ class Image(Module):
         """
         kwargs = {
             "_data": torch.zeros_like(self.data),
-            "pixelscale": self.pixelscale.value,
-            "crpix": self.crpix,
-            "crval": self.crval.value,
-            "crtan": self.crtan.value,
-            "zeropoint": self.zeropoint,
-            "identity": self.identity,
-            "name": self.name,
             **kwargs,
         }
-        return self.__class__(**kwargs)
+        return self.copy(**kwargs)
 
     def crop(self, pixels, **kwargs):
         """Crop the image by the number of pixels given. This will crop
@@ -392,11 +372,11 @@ class Image(Module):
         NS = self.data.shape[1] // scale
 
         data = self.data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
-        pixelscale = self.pixelscale.value * scale
+        CD = self.CD.value * scale
         crpix = (self.crpix + 0.5) / scale - 0.5
         return self.copy(
             _data=data,
-            pixelscale=pixelscale,
+            CD=CD,
             crpix=crpix,
             **kwargs,
         )
@@ -425,10 +405,10 @@ class Image(Module):
             "CRPIX2": self.crpix[1] + 1,
             "CRTAN1": self.crtan.value[0].item(),
             "CRTAN2": self.crtan.value[1].item(),
-            "CD1_1": self.pixelscale.value[0][0].item() * arcsec_to_deg,
-            "CD1_2": self.pixelscale.value[0][1].item() * arcsec_to_deg,
-            "CD2_1": self.pixelscale.value[1][0].item() * arcsec_to_deg,
-            "CD2_2": self.pixelscale.value[1][1].item() * arcsec_to_deg,
+            "CD1_1": self.CD.value[0][0].item() * arcsec_to_deg,
+            "CD1_2": self.CD.value[0][1].item() * arcsec_to_deg,
+            "CD2_1": self.CD.value[1][0].item() * arcsec_to_deg,
+            "CD2_2": self.CD.value[1][1].item() * arcsec_to_deg,
             "MAGZP": self.zeropoint.item() if self.zeropoint is not None else -999,
             "IDNTY": self.identity,
         }
@@ -457,14 +437,14 @@ class Image(Module):
 
     def load(self, filename: str, hduext=0):
         """Load an image from a FITS file. This will load the primary HDU
-        and set the data, pixelscale, crpix, crval, and crtan attributes
+        and set the data, CD, crpix, crval, and crtan attributes
         accordingly. If the WCS is not tangent plane, it will warn the user.
 
         """
         hdulist = fits.open(filename)
         self.data = np.array(hdulist[hduext].data, dtype=np.float64)
 
-        self.pixelscale = (
+        self.CD = (
             np.array(
                 (
                     (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
@@ -601,11 +581,6 @@ class ImageList(Module):
     def data(self):
         return tuple(image.data for image in self.images)
 
-    @data.setter
-    def data(self, data):
-        for image, dat in zip(self.images, data):
-            image.data = dat
-
     def copy(self):
         return self.__class__(
             tuple(image.copy() for image in self.images),
@@ -626,7 +601,9 @@ class ImageList(Module):
             if other.identity == image.identity:
                 return i
         else:
-            raise ValueError("Could not find identity match between image list and input image")
+            raise IndexError(
+                f"Could not find identity match between image list {self.name} and input image {other.name}"
+            )
 
     def match_indices(self, other: "ImageList"):
         """Match the indices of the images in this list with those in another Image_List."""
@@ -634,7 +611,7 @@ class ImageList(Module):
         for other_image in other.images:
             try:
                 i = self.index(other_image)
-            except ValueError:
+            except IndexError:
                 continue
             indices.append(i)
         return indices
@@ -665,7 +642,10 @@ class ImageList(Module):
         if isinstance(other, ImageList):
             new_list = []
             for other_image in other.images:
-                i = self.index(other_image)
+                try:
+                    i = self.index(other_image)
+                except IndexError:
+                    continue
                 self_image = self.images[i]
                 new_list.append(self_image + other_image)
             return self.__class__(new_list)
@@ -675,7 +655,10 @@ class ImageList(Module):
     def __isub__(self, other):
         if isinstance(other, ImageList):
             for other_image in other.images:
-                i = self.index(other_image)
+                try:
+                    i = self.index(other_image)
+                except IndexError:
+                    continue
                 self.images[i] -= other_image
         elif isinstance(other, Image):
             i = self.index(other)
@@ -687,7 +670,10 @@ class ImageList(Module):
     def __iadd__(self, other):
         if isinstance(other, ImageList):
             for other_image in other.images:
-                i = self.index(other_image)
+                try:
+                    i = self.index(other_image)
+                except IndexError:
+                    continue
                 self.images[i] += other_image
         elif isinstance(other, Image):
             i = self.index(other)
@@ -716,6 +702,8 @@ class ImageList(Module):
             elif isinstance(args[0], Window):
                 i = self.index(args[0].image)
                 return self.images[i].get_window(args[0])
+            elif isinstance(args[0], int):
+                return self.images[args[0]]
         super().__getitem__(*args)
 
     def __iter__(self):

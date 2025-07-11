@@ -4,7 +4,6 @@ import torch
 import numpy as np
 
 from .image_object import Image
-from .model_image import ModelImage
 from .jacobian_image import JacobianImage
 from .. import AP_config
 from .mixins import DataMixin
@@ -43,6 +42,10 @@ class PSFImage(DataMixin, Image):
         if self.has_weight:
             self.weight = self.weight * norm**2
 
+    @property
+    def psf_pad(self):
+        return np.max(self.data.shape) // 2
+
     def jacobian_image(
         self,
         parameters: Optional[List[str]] = None,
@@ -62,7 +65,7 @@ class PSFImage(DataMixin, Image):
                 device=AP_config.ap_device,
             )
         kwargs = {
-            "pixelscale": self.pixelscale.value,
+            "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,
             "crval": self.crval.value,
@@ -78,7 +81,7 @@ class PSFImage(DataMixin, Image):
         """
         kwargs = {
             "data": torch.zeros_like(self.data),
-            "pixelscale": self.pixelscale.value,
+            "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,
             "crval": self.crval.value,

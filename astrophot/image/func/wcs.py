@@ -43,7 +43,7 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
     return x * rad_to_arcsec / cosc + x0, y * rad_to_arcsec / cosc + y0
 
 
-def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-3):
+def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-10):
     """
     Convert plane coordinates (x, y) to world coordinates (RA, Dec) using the gnomonic projection.
     Parameters

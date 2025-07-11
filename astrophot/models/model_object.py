@@ -14,7 +14,7 @@ from ..image import (
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
 from .. import AP_config
-from ..errors import InvalidTarget, SpecificationConflict
+from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
 __all__ = ["ComponentModel"]
@@ -54,9 +54,9 @@ class ComponentModel(SampleMixin, Model):
     _parameter_specs = {"center": {"units": "arcsec", "shape": (2,)}}
 
     # Scope for PSF convolution
-    psf_mode = "none"  # none, full
+    psf_convolve = False
 
-    _options = ("psf_mode",)
+    _options = ("psf_convolve",)
     usable = False
 
     def __init__(self, *args, psf=None, **kwargs):
@@ -75,15 +75,13 @@ class ComponentModel(SampleMixin, Model):
             self._psf = None
         elif isinstance(val, PSFImage):
             self._psf = val
+            self.psf_convolve = True
         elif isinstance(val, Model):
             self._psf = val
+            self.psf_convolve = True
         else:
-            self._psf = PSFImage(name="psf", data=val, pixelscale=self.target.pixelscale)
-            AP_config.ap_logger.warning(
-                "Setting PSF with pixel image, assuming target pixelscale is the same as "
-                "PSF pixelscale. To remove this warning, set PSFs as an ap.image.PSF_Image "
-                "or ap.models.PSF_Model object instead."
-            )
+            self._psf = self.target.psf_image(data=val)
+            self.psf_convolve = True
         self.update_psf_upscale()
 
     def update_psf_upscale(self):
@@ -92,11 +90,11 @@ class ComponentModel(SampleMixin, Model):
             self.psf_upscale = 1
         elif isinstance(self.psf, PSFImage):
             self.psf_upscale = (
-                torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
+                torch.round(self.target.pixelscale / self.psf.pixelscale).int().item()
             )
         elif isinstance(self.psf, Model):
             self.psf_upscale = (
-                torch.round(self.target.pixel_length / self.psf.target.pixel_length).int().item()
+                torch.round(self.target.pixelscale / self.psf.target.pixelscale).int().item()
             )
         else:
             raise TypeError(
@@ -170,7 +168,6 @@ class ComponentModel(SampleMixin, Model):
     def sample(
         self,
         window: Optional[Window] = None,
-        center=None,
     ):
         """Evaluate the model on the pixels defined in an image. This
         function properly calls integration methods and PSF
@@ -201,41 +198,21 @@ class ComponentModel(SampleMixin, Model):
         if window is None:
             window = self.window
 
-        if "full" in self.psf_mode:
-            if isinstance(self.psf, PSFImage):
-                psf_upscale = (
-                    torch.round(self.target.pixel_length / self.psf.pixel_length).int().item()
-                )
-                psf_pad = np.max(self.psf.shape) // 2
-                psf = self.psf.data
-            elif isinstance(self.psf, Model):
-                psf_upscale = (
-                    torch.round(self.target.pixel_length / self.psf.target.pixel_length)
-                    .int()
-                    .item()
-                )
-                psf_pad = np.max(self.psf.window.shape) // 2
-                psf = self.psf().data
-            else:
-                raise TypeError(
-                    f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
-                )
+        if self.psf_convolve:
+            psf = self.psf() if isinstance(self.psf, Model) else self.psf
 
-            working_image = self.target[window].model_image(upsample=psf_upscale, pad=psf_pad)
+            working_image = self.target[window].model_image(
+                upsample=self.psf_upscale, pad=psf.psf_pad
+            )
             sample = self.sample_image(working_image)
-            working_image._data = func.convolve(sample, psf)
-            working_image = working_image.crop([psf_pad]).reduce(psf_upscale)
+            working_image._data = func.convolve(sample, psf.data)
+            working_image = working_image.crop(psf.psf_pad).reduce(self.psf_upscale)
 
-        elif "none" in self.psf_mode:
+        else:
             working_image = self.target[window].model_image()
             working_image._data = self.sample_image(working_image)
-        else:
-            raise SpecificationConflict(
-                f"Unknown PSF mode {self.psf_mode} for model {self.name}. "
-                "Must be one of 'none' or 'full'."
-            )
 
-        # Units from flux/arcsec^2 to flux
+        # Units from flux/arcsec^2 to flux, multiply by pixel area
         working_image.fluxdensity_to_flux()
 
         return working_image

@@ -218,7 +218,7 @@ class DataMixin:
         self._mask = torch.transpose(
             torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device), 0, 1
         )
-        if mask.shape != self.data.shape:
+        if self._mask.shape != self.data.shape:
             self._mask = None
             raise SpecificationConflict(
                 f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
@@ -290,7 +290,9 @@ class DataMixin:
             )
         if self.has_mask:
             images.append(
-                fits.ImageHDU(torch.transpose(self.mask, 0, 1).detach().cpu().numpy(), name="MASK")
+                fits.ImageHDU(
+                    torch.transpose(self.mask, 0, 1).detach().cpu().numpy().astype(int), name="MASK"
+                )
             )
         return images
 
@@ -324,15 +326,15 @@ class DataMixin:
 
         return super().reduce(
             scale=scale,
-            variance=(
-                self.variance[: MS * scale, : NS * scale]
+            _weight=(
+                1
+                / self.variance[: MS * scale, : NS * scale]
                 .reshape(MS, scale, NS, scale)
                 .sum(axis=(1, 3))
-                .T
                 if self.has_variance
                 else None
             ),
-            mask=(
+            _mask=(
                 self.mask[: MS * scale, : NS * scale]
                 .reshape(MS, scale, NS, scale)
                 .amax(axis=(1, 3))

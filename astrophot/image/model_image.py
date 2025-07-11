@@ -1,9 +1,5 @@
-import numpy as np
-import torch
-
-from .. import AP_config
 from .image_object import Image, ImageList
-from ..errors import InvalidImage, SpecificationConflict
+from ..errors import InvalidImage
 
 __all__ = ["ModelImage", "ModelImageList"]
 
@@ -26,11 +22,7 @@ class ModelImage(Image):
 class ModelImageList(ImageList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not all(isinstance(image, ModelImage) for image in self.images):
+        if not all(isinstance(image, (ModelImage, ModelImageList)) for image in self.images):
             raise InvalidImage(
                 f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.images)}"
             )
-
-    def clear_image(self):
-        for image in self.images:
-            image.clear_image()

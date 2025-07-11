@@ -5,6 +5,7 @@ import torch
 from scipy.stats import binned_statistic, iqr
 
 from .. import AP_config
+from ..models import Model
 
 # from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
@@ -22,7 +23,7 @@ __all__ = [
 def radial_light_profile(
     fig,
     ax,
-    model,
+    model: Model,
     rad_unit="arcsec",
     extend_profile=1.0,
     R0=0.0,
@@ -32,7 +33,7 @@ def radial_light_profile(
     xx = torch.linspace(
         R0,
         max(model.window.shape)
-        * model.target.pixel_length.detach().cpu().numpy()
+        * model.target.pixelscale.detach().cpu().numpy()
         * extend_profile
         / 2,
         int(resolution),
@@ -72,7 +73,7 @@ def radial_light_profile(
 def radial_median_profile(
     fig,
     ax,
-    model: "Model",
+    model: Model,
     count_limit: int = 10,
     return_profile: bool = False,
     rad_unit: str = "arcsec",
@@ -98,11 +99,11 @@ def radial_median_profile(
     """
 
     Rlast_pix = max(model.window.shape) / 2
-    Rlast_phys = Rlast_pix * model.target.pixel_length.item()
+    Rlast_phys = Rlast_pix * model.target.pixelscale.item()
 
     Rbins = [0.0]
     while Rbins[-1] < Rlast_phys:
-        Rbins.append(Rbins[-1] + max(2 * model.target.pixel_length.item(), Rbins[-1] * 0.1))
+        Rbins.append(Rbins[-1] + max(2 * model.target.pixelscale.item(), Rbins[-1] * 0.1))
     Rbins = np.array(Rbins)
 
     with torch.no_grad():
@@ -170,14 +171,14 @@ def radial_median_profile(
 def ray_light_profile(
     fig,
     ax,
-    model,
+    model: Model,
     rad_unit="arcsec",
     extend_profile=1.0,
     resolution=1000,
 ):
     xx = torch.linspace(
         0,
-        max(model.window.shape) * model.target.pixel_length * extend_profile / 2,
+        max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
         int(resolution),
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
@@ -204,14 +205,14 @@ def ray_light_profile(
 def wedge_light_profile(
     fig,
     ax,
-    model,
+    model: Model,
     rad_unit="arcsec",
     extend_profile=1.0,
     resolution=1000,
 ):
     xx = torch.linspace(
         0,
-        max(model.window.shape) * model.target.pixel_length * extend_profile / 2,
+        max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
         int(resolution),
         dtype=AP_config.ap_dtype,
         device=AP_config.ap_device,
@@ -235,7 +236,7 @@ def wedge_light_profile(
     return fig, ax
 
 
-def warp_phase_profile(fig, ax, model, rad_unit="arcsec"):
+def warp_phase_profile(fig, ax, model: Model, rad_unit="arcsec"):
 
     ax.plot(
         model.q_R.prof.detach().cpu().numpy(),

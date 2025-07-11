@@ -56,7 +56,14 @@ class Param(CParam):
     def soft_valid(self, value):
         if self.valid[0] is None and self.valid[1] is None:
             return value
-        vrange = self.valid[1] - self.valid[0]
-        return torch.clamp(
-            value, min=self.valid[0] + 0.1 * vrange, max=self.valid[1] - 0.1 * vrange
-        )
+        if self.valid[0] is not None and self.valid[1] is not None:
+            vrange = 0.1 * (self.valid[1] - self.valid[0])
+            smin = self.valid[0] + 0.1 * vrange
+            smax = self.valid[1] - 0.1 * vrange
+        elif self.valid[0] is not None:
+            smin = self.valid[0] + 0.1
+            smax = None
+        elif self.valid[1] is not None:
+            smin = None
+            smax = self.valid[1] - 0.1
+        return torch.clamp(value, min=smin, max=smax)

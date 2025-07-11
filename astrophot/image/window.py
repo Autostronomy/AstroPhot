@@ -105,7 +105,7 @@ class Window:
     def __and__(self, other: "Window"):
         if not isinstance(other, Window):
             raise TypeError(f"Cannot intersect Window with {type(other)}")
-        if self.image != other.image:
+        if self.image.identity != other.image.identity:
             raise InvalidWindow(
                 f"Cannot combine Windows from different images: {self.image.identity} and {other.image.identity}"
             )
@@ -116,6 +116,7 @@ class Window:
             or self.j_low >= other.j_high
         ):
             return Window((0, 0, 0, 0), self.image)
+        # fixme handle crpix
         new_i_low = max(self.i_low, other.i_low)
         new_i_high = min(self.i_high, other.i_high)
         new_j_low = max(self.j_low, other.j_low)

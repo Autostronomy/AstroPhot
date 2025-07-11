@@ -25,7 +25,6 @@ def solve(hess, grad, L):
             h = torch.linalg.solve(hessD, grad)
             break
         except torch._C._LinAlgError:
-            print("Damping Hessian", L)
             hessD = hessD + L * torch.eye(len(hessD), dtype=hessD.dtype, device=hessD.device)
             L = L * 2
     return hessD, h

@@ -63,8 +63,8 @@ class MultiGaussianExpansion(ComponentModel):
 
         if not self.sigma.initialized:
             self.sigma.dynamic_value = np.logspace(
-                np.log10(target_area.pixel_length.item() * 3),
-                max(target_area.shape) * target_area.pixel_length.item() * 0.7,
+                np.log10(target_area.pixelscale.item() * 3),
+                max(target_area.shape) * target_area.pixelscale.item() * 0.7,
                 self.n_components,
             )
         if not self.flux.initialized:

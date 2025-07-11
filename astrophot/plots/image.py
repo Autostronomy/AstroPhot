@@ -93,7 +93,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
             clim=[sky + 3 * noise, None],
         )
 
-    if torch.linalg.det(target.pixelscale.value) < 0:
+    if torch.linalg.det(target.CD.value) < 0:
         ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
@@ -231,7 +231,7 @@ def model_image(
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sample_image = sample_image.data.detach().cpu().numpy()
-
+    print("sample_image shape", sample_image.shape)
     # Default kwargs for image
     vmin = kwargs.pop("vmin", None)
     vmax = kwargs.pop("vmax", None)
@@ -262,7 +262,7 @@ def model_image(
     # Plot the image
     im = ax.pcolormesh(X, Y, sample_image, **kwargs)
 
-    if torch.linalg.det(target.pixelscale.value) < 0:
+    if torch.linalg.det(target.CD.value) < 0:
         ax.invert_xaxis()
 
     # Enforce equal spacing on x y
@@ -357,7 +357,17 @@ def residual_image(
     X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
+    print("target crpix", target.crpix, "sample crpix", sample_image.crpix)
     residuals = (target - sample_image).data
+    print(
+        "residuals shape",
+        residuals.shape,
+        "target shape",
+        target.data.shape,
+        "sample shape",
+        sample_image.data.shape,
+    )
+
     if normalize_residuals is True:
         residuals = residuals / torch.sqrt(target.variance)
     elif isinstance(normalize_residuals, torch.Tensor):
@@ -404,7 +414,7 @@ def residual_image(
     }
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
-    if torch.linalg.det(target.pixelscale.value) < 0:
+    if torch.linalg.det(target.CD.value) < 0:
         ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")

@@ -1,7 +1,23 @@
 import argparse
 import requests
 import torch
-from . import models, image, plots, utils, fit, AP_config
+from . import models, plots, utils, fit, AP_config
+
+from .image import (
+    Image,
+    ImageList,
+    TargetImage,
+    TargetImageList,
+    SIPTargetImage,
+    JacobianImage,
+    JacobianImageList,
+    PSFImage,
+    ModelImage,
+    ModelImageList,
+    Window,
+    WindowList,
+)
+from .models import Model
 
 try:
     from ._version import version as VERSION  # noqa
@@ -119,3 +135,29 @@ def run_from_terminal() -> None:
         AP_config.ap_logger.info("collected the tutorials")
     else:
         raise ValueError(f"Unrecognized request")
+
+
+__all__ = (
+    "models",
+    "Model",
+    "Image",
+    "ImageList",
+    "TargetImage",
+    "TargetImageList",
+    "SIPTargetImage",
+    "JacobianImage",
+    "JacobianImageList",
+    "PSFImage",
+    "ModelImage",
+    "ModelImageList",
+    "Window",
+    "WindowList",
+    "plots",
+    "utils",
+    "fit",
+    "AP_config",
+    "run_from_terminal",
+    "__version__",
+    "__author__",
+    "__email__",
+)

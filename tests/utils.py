@@ -37,33 +37,33 @@ def make_basic_sersic(
     Re=7.1,
     Ie=0,
     rand=12345,
+    **kwargs,
 ):
 
     np.random.seed(rand)
     mask = np.zeros((N, M), dtype=bool)
     mask[0][0] = True
-    target = ap.image.Target_Image(
+    target = ap.TargetImage(
         data=np.zeros((N, M)),
         pixelscale=pixelscale,
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
         mask=mask,
+        **kwargs,
     )
 
-    MODEL = ap.models.Sersic_Galaxy(
+    MODEL = ap.models.SersicGalaxy(
         name="basic sersic model",
         target=target,
-        parameters={
-            "center": [x, y],
-            "PA": PA,
-            "q": q,
-            "n": n,
-            "Re": Re,
-            "Ie": Ie,
-        },
+        center=[x, y],
+        PA=PA,
+        q=q,
+        n=n,
+        Re=Re,
+        Ie=Ie,
         sampling_mode="quad:5",
     )
 
-    img = MODEL().data.detach().cpu().numpy()
+    img = MODEL().data.T.detach().cpu().numpy()
     target.data = (
         img
         + np.random.normal(scale=0.1, size=img.shape)
@@ -127,9 +127,10 @@ def make_basic_gaussian_psf(
     psf = ap.utils.initialize.gaussian_psf(sigma / pixelscale, N, pixelscale)
     psf += np.random.normal(scale=psf / 2)
     psf[psf < 0] = 0
-    target = ap.image.PSF_Image(
-        data=psf / np.sum(psf),
+    target = ap.PSFImage(
+        data=psf,
         pixelscale=pixelscale,
     )
+    target.normalize()
 
     return target

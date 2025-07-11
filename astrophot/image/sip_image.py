@@ -85,7 +85,7 @@ class SIPModelImage(SIPMixin, ModelImage):
         )
 
     def fluxdensity_to_flux(self):
-        self.data = self.data * self.pixel_area_map
+        self._data = self.data * self.pixel_area_map
 
 
 class SIPTargetImage(SIPMixin, TargetImage):
@@ -136,7 +136,7 @@ class SIPTargetImage(SIPMixin, TargetImage):
                 dtype=self.data.dtype,
                 device=self.data.device,
             ),
-            "pixelscale": self.pixelscale.value / upsample,
+            "CD": self.CD.value / upsample,
             "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,
             "crtan": self.crtan.value,
             "crval": self.crval.value,

@@ -37,7 +37,7 @@ def _sample_image(
     # Bin fluxes by radius
     if rad_bins is None:
         rad_bins = np.logspace(
-            np.log10(R.min() * 0.9 + image.pixel_length / 2), np.log10(R.max() * 1.1), 11
+            np.log10(R.min() * 0.9 + image.pixelscale / 2), np.log10(R.max() * 1.1), 11
         )
     else:
         rad_bins = np.array(rad_bins)

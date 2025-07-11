@@ -65,6 +65,13 @@ class JacobianImageList(ImageList):
 
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not all(isinstance(image, (JacobianImage, JacobianImageList)) for image in self.images):
+            raise InvalidImage(
+                f"JacobianImageList can only hold JacobianImage objects, not {tuple(type(image) for image in self.images)}"
+            )
+
     def flatten(self, attribute="data"):
         if len(self.images) > 1:
             for image in self.images[1:]:

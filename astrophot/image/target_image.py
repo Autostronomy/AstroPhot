@@ -135,7 +135,7 @@ class TargetImage(DataMixin, Image):
         else:
             self._psf = PSFImage(
                 data=psf,
-                pixelscale=self.pixelscale,
+                CD=self.CD,
                 name=self.name + "_psf",
             )
 
@@ -147,23 +147,6 @@ class TargetImage(DataMixin, Image):
         """
         kwargs = {"psf": self.psf, **kwargs}
         return super().copy(**kwargs)
-
-    def blank_copy(self, **kwargs):
-        """Produces a blank copy of the image which has the same properties
-        except that its data is now filled with zeros.
-
-        """
-        kwargs = {"psf": self.psf, **kwargs}
-        return super().blank_copy(**kwargs)
-
-    def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
-        """Get a sub-region of the image as defined by an other image on the sky."""
-        return super().get_window(
-            other,
-            psf=self.psf,
-            indices=indices,
-            **kwargs,
-        )
 
     def fits_images(self):
         images = super().fits_images()
@@ -189,7 +172,7 @@ class TargetImage(DataMixin, Image):
         if "PSF" in hdulist:
             self.psf = PSFImage(
                 data=np.array(hdulist["PSF"].data, dtype=np.float64),
-                pixelscale=(
+                CD=(
                     (hdulist["PSF"].header["CD1_1"], hdulist["PSF"].header["CD1_2"]),
                     (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
                 ),
@@ -212,7 +195,7 @@ class TargetImage(DataMixin, Image):
                 device=AP_config.ap_device,
             )
         kwargs = {
-            "pixelscale": self.pixelscale.value,
+            "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,
             "crval": self.crval.value,
@@ -233,7 +216,7 @@ class TargetImage(DataMixin, Image):
                 dtype=self.data.dtype,
                 device=self.data.device,
             ),
-            "pixelscale": self.pixelscale.value / upsample,
+            "CD": self.CD.value / upsample,
             "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,
             "crtan": self.crtan.value,
             "crval": self.crval.value,
@@ -244,11 +227,39 @@ class TargetImage(DataMixin, Image):
         }
         return ModelImage(**kwargs)
 
+    def psf_image(self, data, upscale=1, **kwargs):
+        kwargs = {
+            "_data": data,
+            "CD": self.CD.value / upscale,
+            "identity": self.identity,
+            "name": self.name + "_psf",
+            **kwargs,
+        }
+        return PSFImage(**kwargs)
+
+    def reduce(self, scale, **kwargs):
+        """Returns a new `Target_Image` object with a reduced resolution
+        compared to the current image. `scale` should be an integer
+        indicating how much to reduce the resolution. If the
+        `Target_Image` was originally (48,48) pixels across with a
+        pixelscale of 1 and `reduce(2)` is called then the image will
+        be (24,24) pixels and the pixelscale will be 2. If `reduce(3)`
+        is called then the returned image will be (16,16) pixels
+        across and the pixelscale will be 3.
+
+        """
+
+        return super().reduce(
+            scale=scale,
+            psf=(self.psf.reduce(scale) if isinstance(self.psf, PSFImage) else None),
+            **kwargs,
+        )
+
 
 class TargetImageList(ImageList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not all(isinstance(image, TargetImage) for image in self.images):
+        if not all(isinstance(image, (TargetImage, TargetImageList)) for image in self.images):
             raise InvalidImage(
                 f"Target_Image_List can only hold Target_Image objects, not {tuple(type(image) for image in self.images)}"
             )
@@ -289,58 +300,6 @@ class TargetImageList(ImageList):
     def model_image(self):
         return ModelImageList(list(image.model_image() for image in self.images))
 
-    def match_indices(self, other):
-        indices = []
-        if isinstance(other, TargetImageList):
-            for other_image in other.images:
-                for isi, self_image in enumerate(self.images):
-                    if other_image.identity == self_image.identity:
-                        indices.append(isi)
-                        break
-                else:
-                    indices.append(None)
-        elif isinstance(other, TargetImage):
-            for isi, self_image in enumerate(self.images):
-                if other.identity == self_image.identity:
-                    indices = isi
-                    break
-            else:
-                indices = None
-        return indices
-
-    def __isub__(self, other):
-        if isinstance(other, ImageList):
-            for other_image in other.images:
-                for self_image in self.images:
-                    if other_image.identity == self_image.identity:
-                        self_image -= other_image
-                        break
-        elif isinstance(other, Image):
-            for self_image in self.images:
-                if other.identity == self_image.identity:
-                    self_image -= other
-                    break
-        else:
-            for self_image, other_image in zip(self.images, other):
-                self_image -= other_image
-        return self
-
-    def __iadd__(self, other):
-        if isinstance(other, ImageList):
-            for other_image in other.images:
-                for self_image in self.images:
-                    if other_image.identity == self_image.identity:
-                        self_image += other_image
-                        break
-        elif isinstance(other, Image):
-            for self_image in self.images:
-                if other.identity == self_image.identity:
-                    self_image += other
-        else:
-            for self_image, other_image in zip(self.images, other):
-                self_image += other_image
-        return self
-
     @property
     def mask(self):
         return tuple(image.mask for image in self.images)
@@ -366,11 +325,3 @@ class TargetImageList(ImageList):
     @property
     def has_psf(self):
         return any(image.has_psf for image in self.images)
-
-    @property
-    def psf_border(self):
-        return tuple(image.psf_border for image in self.images)
-
-    @property
-    def psf_border_int(self):
-        return tuple(image.psf_border_int for image in self.images)

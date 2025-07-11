@@ -101,6 +101,10 @@ class SampleMixin:
             )
         if self.integrate_mode == "threshold":
             sample = self._sample_integrate(sample, image)
+        elif self.integrate_mode != "none":
+            raise SpecificationConflict(
+                f"Unknown integrate mode {self.integrate_mode} for model {self.name}"
+            )
         return sample
 
     def _jacobian(self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor):

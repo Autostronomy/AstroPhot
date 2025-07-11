@@ -205,11 +205,11 @@ class WarpMixin:
 
         if not self.PA_R.initialized:
             if self.PA_R.prof is None:
-                self.PA_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
+                self.PA_R.prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
             self.PA_R.dynamic_value = np.zeros(len(self.PA_R.prof)) + np.pi / 2
         if not self.q_R.initialized:
             if self.q_R.prof is None:
-                self.q_R.prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
+                self.q_R.prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
             self.q_R.dynamic_value = np.ones(len(self.q_R.prof)) * 0.8
 
     @forward
@@ -247,7 +247,7 @@ class TruncationMixin:
     def initialize(self):
         super().initialize()
         if not self.Rt.initialize:
-            prof = default_prof(self.window.shape, self.target.pixel_length, 2, 0.2)
+            prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
             self.Rt.dynamic_value = prof[len(prof) // 2]
         if not self.sharpness.initialized:
             self.sharpness.dynamic_value = 1.0
