@@ -82,7 +82,7 @@ class EdgeonSech(EdgeonModel):
             ]
             self.I0.dynamic_value = torch.mean(chunk) / self.target.pixel_area
         if not self.hs.initialized:
-            self.hs.value = torch.max(self.window.shape) * target_area.pixelscale * 0.1
+            self.hs.value = max(self.window.shape) * target_area.pixelscale * 0.1
 
     @forward
     def brightness(self, x, y, I0, hs):
@@ -106,7 +106,7 @@ class EdgeonIsothermal(EdgeonSech):
         super().initialize()
         if self.rs.initialized:
             return
-        self.rs.value = torch.max(self.window.shape) * self.target.pixelscale * 0.4
+        self.rs.value = max(self.window.shape) * self.target.pixelscale * 0.4
 
     @forward
     def radial_model(self, R, rs):

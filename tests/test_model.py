@@ -57,7 +57,7 @@ def test_model_errors():
     target = ap.image.Image(data=arr, pixelscale=1.0, zeropoint=1.0)
 
     with pytest.raises(ap.errors.InvalidTarget):
-        model = ap.Model(
+        ap.Model(
             name="test model",
             model_type="sersic galaxy model",
             target=target,
@@ -66,7 +66,7 @@ def test_model_errors():
     # model that doesn't exist
     target = make_basic_sersic()
     with pytest.raises(ap.errors.UnrecognizedModel):
-        model = ap.Model(
+        ap.Model(
             name="test model",
             model_type="sersic gaaxy model",
             target=target,
@@ -90,9 +90,23 @@ def test_all_model_sample(model_type):
             P.value is not None
         ), f"Model type {model_type} parameter {P.name} should not be None after initialization"
     img = MODEL()
+    import matplotlib.pyplot as plt
+
+    print(MODEL)
+    fig, ax = plt.subplots(1, 2)
+    ap.plots.model_image(fig, ax[0], MODEL)
+    ap.plots.residual_image(fig, ax[1], MODEL)
+    plt.savefig(f"test_{model_type}_sample.png")
+    plt.close()
     assert torch.all(
         torch.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
+    res = ap.fit.LM(MODEL, max_iter=10).fit()
+    print(res.message)
+    assert res.loss_history[0] > res.loss_history[-1], (
+        f"Model {model_type} should fit to the target image, but did not. "
+        f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
+    )
 
 
 def test_sersic_save_load():

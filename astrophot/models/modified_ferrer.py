@@ -31,15 +31,17 @@ class ModifiedFerrerPSF(ModifiedFerrerMixin, RadialMixin, PSFModel):
     usable = True
 
 
-class ModifiedFerrerSuperEllipse(ModifiedFerrerMixin, SuperEllipseMixin, GalaxyModel):
+class ModifiedFerrerSuperEllipse(ModifiedFerrerMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class ModifiedFerrerFourierEllipse(ModifiedFerrerMixin, FourierEllipseMixin, GalaxyModel):
+class ModifiedFerrerFourierEllipse(
+    ModifiedFerrerMixin, FourierEllipseMixin, RadialMixin, GalaxyModel
+):
     usable = True
 
 
-class ModifiedFerrerWarp(ModifiedFerrerMixin, WarpMixin, GalaxyModel):
+class ModifiedFerrerWarp(ModifiedFerrerMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 

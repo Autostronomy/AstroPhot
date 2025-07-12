@@ -41,9 +41,7 @@ class MultiGaussianExpansion(ComponentModel):
                     self.n_components = self[key].value.shape[0]
                     break
             else:
-                raise ValueError(
-                    f"n_components must be specified when initial values is not defined."
-                )
+                self.n_components = 1
         else:
             self.n_components = int(n_components)
 

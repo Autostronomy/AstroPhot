@@ -31,15 +31,17 @@ class EmpiricalKingPSF(EmpiricalKingMixin, RadialMixin, PSFModel):
     usable = True
 
 
-class EmpiricalKingSuperEllipse(EmpiricalKingMixin, SuperEllipseMixin, GalaxyModel):
+class EmpiricalKingSuperEllipse(EmpiricalKingMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class EmpiricalKingFourierEllipse(EmpiricalKingMixin, FourierEllipseMixin, GalaxyModel):
+class EmpiricalKingFourierEllipse(
+    EmpiricalKingMixin, FourierEllipseMixin, RadialMixin, GalaxyModel
+):
     usable = True
 
 
-class EmpiricalKingWarp(EmpiricalKingMixin, WarpMixin, GalaxyModel):
+class EmpiricalKingWarp(EmpiricalKingMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 

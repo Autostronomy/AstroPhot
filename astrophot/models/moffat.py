@@ -90,15 +90,15 @@ class Moffat2DPSF(InclinedMixin, MoffatPSF):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
-class MoffatSuperEllipse(MoffatMixin, SuperEllipseMixin, GalaxyModel):
+class MoffatSuperEllipse(MoffatMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class MoffatFourierEllipse(MoffatMixin, FourierEllipseMixin, GalaxyModel):
+class MoffatFourierEllipse(MoffatMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class MoffatWarp(MoffatMixin, WarpMixin, GalaxyModel):
+class MoffatWarp(MoffatMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 

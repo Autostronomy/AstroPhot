@@ -47,15 +47,15 @@ class GaussianPSF(GaussianMixin, RadialMixin, PSFModel):
     usable = True
 
 
-class GaussianSuperEllipse(GaussianMixin, SuperEllipseMixin, GalaxyModel):
+class GaussianSuperEllipse(GaussianMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class GaussianFourierEllipse(GaussianMixin, FourierEllipseMixin, GalaxyModel):
+class GaussianFourierEllipse(GaussianMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class GaussianWarp(GaussianMixin, WarpMixin, GalaxyModel):
+class GaussianWarp(GaussianMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 

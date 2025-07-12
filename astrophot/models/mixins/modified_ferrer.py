@@ -2,6 +2,7 @@ import torch
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
+from ...utils.parametric_profiles import modified_ferrer_np
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from .. import func
 
@@ -40,7 +41,7 @@ class ModifiedFerrerMixin:
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: func.modified_ferrer(r, x[0], x[1], x[2], 10 ** x[3]),
+            lambda r, *x: modified_ferrer_np(r, x[0], x[1], x[2], 10 ** x[3]),
             ("rout", "alpha", "beta", "logI0"),
             x0_func,
         )
@@ -80,7 +81,7 @@ class iModifiedFerrerMixin:
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: func.modified_ferrer(r, x[0], x[1], x[2], 10 ** x[3]),
+            prof_func=lambda r, *x: modified_ferrer_np(r, x[0], x[1], x[2], 10 ** x[3]),
             params=("rout", "alpha", "beta", "logI0"),
             x0_func=x0_func,
             segments=self.segments,

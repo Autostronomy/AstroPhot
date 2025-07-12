@@ -49,7 +49,7 @@ class InclinedMixin:
                 l = (0.7, 1.0)
             else:
                 l = np.sort(np.linalg.eigvals(M))
-            self.q.dynamic_value = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
+            self.q.dynamic_value = np.clip(np.sqrt(np.abs(l[0] / l[1])), 0.1, 0.9)
 
     @forward
     def transform_coordinates(self, x, y, PA, q):
@@ -83,7 +83,7 @@ class SuperEllipseMixin:
 
     _model_type = "superellipse"
     _parameter_specs = {
-        "C": {"units": "none", "value": 2.0, "valid": (0, None)},
+        "C": {"units": "none", "dynamic_value": 2.0, "valid": (0, None)},
     }
 
     @forward
@@ -246,7 +246,7 @@ class TruncationMixin:
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
-        if not self.Rt.initialize:
+        if not self.Rt.initialized:
             prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
             self.Rt.dynamic_value = prof[len(prof) // 2]
         if not self.sharpness.initialized:

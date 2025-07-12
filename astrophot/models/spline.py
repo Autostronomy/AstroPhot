@@ -46,15 +46,15 @@ class SplinePSF(SplineMixin, RadialMixin, PSFModel):
     usable = True
 
 
-class SplineSuperEllipse(SplineMixin, SuperEllipseMixin, GalaxyModel):
+class SplineSuperEllipse(SplineMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class SplineFourierEllipse(SplineMixin, FourierEllipseMixin, GalaxyModel):
+class SplineFourierEllipse(SplineMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class SplineWarp(SplineMixin, WarpMixin, GalaxyModel):
+class SplineWarp(SplineMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 

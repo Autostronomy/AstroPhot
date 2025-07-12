@@ -6,7 +6,7 @@ def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
     prof = [0, min_pixels * pixelscale]
     while prof[-1] < (np.max(shape) * pixelscale / 2):
         prof.append(prof[-1] + max(min_pixels * pixelscale, prof[-1] * scale))
-    return prof
+    return np.array(prof)
 
 
 def interp1d_torch(x_in, y_in, x_out):

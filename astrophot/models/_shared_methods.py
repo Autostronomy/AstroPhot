@@ -14,6 +14,7 @@ def _sample_image(
     angle=None,
     rad_bins=None,
     angle_range=None,
+    cycle=2 * np.pi,
 ):
     dat = image.data.detach().cpu().numpy().copy()
     # Fill masked pixels
@@ -25,11 +26,12 @@ def _sample_image(
     dat -= np.median(edge)
     # Get the radius of each pixel relative to object center
     x, y = transform(*image.coordinate_center_meshgrid(), params=())
-
     R = radius(x, y, params=()).detach().cpu().numpy().flatten()
+
     if angle_range is not None:
-        T = angle(x, y).detach().cpu().numpy().flatten()
-        CHOOSE = ((T % (2 * np.pi)) > angle_range[0]) & ((T % (2 * np.pi)) < angle_range[1])
+        T = angle(x, y, params=()).detach().cpu().numpy().flatten()
+        T = (T - angle_range[0]) % cycle
+        CHOOSE = T < (angle_range[1] - angle_range[0])
         R = R[CHOOSE]
         dat = dat.flatten()[CHOOSE]
     raveldat = dat.ravel()
@@ -88,12 +90,15 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
     for i, param in enumerate(params):
         x0[i] = x0[i] if not model[param].initialized else model[param].npvalue
 
+    print(prof_func(R, *x0))
+
     def optim(x, r, f, u):
-        residual = ((f - np.log10(prof_func(r, *x))) / u) ** 2
+        residual = ((f - np.nan_to_num(np.log10(prof_func(r, *x)), nan=np.min(f))) / u) ** 2
         N = np.argsort(residual)
         return np.mean(residual[N][:-2])
 
     res = minimize(optim, x0=x0, args=(R, I, S), method="Nelder-Mead")
+    print(res)
     if res.success:
         x0 = res.x
     elif AP_config.ap_verbose >= 2:
@@ -136,6 +141,7 @@ def parametric_segment_initialize(
             model.radius_metric,
             angle=model.angular_metric,
             angle_range=angle_range,
+            cycle=cycle,
         )
 
         x0 = list(x0_func(model, R, I))

@@ -50,6 +50,8 @@ class GaussianEllipsoid(ComponentModel):
     }
     usable = True
 
+    @torch.no_grad()
+    @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
 
@@ -70,8 +72,15 @@ class GaussianEllipsoid(ComponentModel):
         edge_average = np.nanmedian(edge)
         dat -= edge_average
         x, y = target_area.coordinate_center_meshgrid()
-        x = (x - self.center.value[0]).detach().cpu().numpy()
-        y = (y - self.center.value[1]).detach().cpu().numpy()
+        center = self.center.value
+        x = x - center[0]
+        y = y - center[1]
+        r = self.radius_metric(x, y, params=()).detach().cpu().numpy()
+        self.sigma_a.dynamic_value = np.sqrt(np.sum((r * dat) ** 2) / np.sum(r**2))
+
+        x = x.detach().cpu().numpy()
+        y = y.detach().cpu().numpy()
+
         mu20 = np.median(dat * np.abs(x))
         mu02 = np.median(dat * np.abs(y))
         mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))

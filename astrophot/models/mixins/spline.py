@@ -25,8 +25,12 @@ class SplineMixin:
     def initialize(self):
         super().initialize()
 
-        if self.I_R.value is not None:
-            return
+        try:
+            if self.logI_R.initialized:
+                return
+        except AttributeError:
+            if self.I_R.initialized:
+                return
 
         target_area = self.target[self.window]
         # Create the I_R profile radii if needed
@@ -42,9 +46,9 @@ class SplineMixin:
             self.radius_metric,
             rad_bins=[0] + list((prof[:-1] + prof[1:]) / 2) + [prof[-1] * 100],
         )
-        if hasattr(self, "logI_R"):
+        try:
             self.logI_R.dynamic_value = I
-        else:
+        except AttributeError:
             self.I_R.dynamic_value = 10**I
 
     @forward
@@ -69,18 +73,23 @@ class iSplineMixin:
     def initialize(self):
         super().initialize()
 
-        if self.I_R.value is not None:
-            return
+        try:
+            if self.logI_R.initialized:
+                return
+        except AttributeError:
+            if self.I_R.initialized:
+                return
 
         target_area = self.target[self.window]
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
             prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
-            self.I_R.prof = [prof] * self.segments
+            prof = np.stack([prof] * self.segments)
+            self.I_R.prof = prof
         else:
             prof = self.I_R.prof
 
-        value = np.zeros((self.segments, len(prof)))
+        value = np.zeros(prof.shape)
         cycle = np.pi if self.symmetric else 2 * np.pi
         w = cycle / self.segments
         v = w * np.arange(self.segments)
@@ -93,6 +102,7 @@ class iSplineMixin:
                 angle=self.angular_metric,
                 rad_bins=[0] + list((prof[s][:-1] + prof[s][1:]) / 2) + [prof[s][-1] * 100],
                 angle_range=angle_range,
+                cycle=cycle,
             )
             value[s] = I
 

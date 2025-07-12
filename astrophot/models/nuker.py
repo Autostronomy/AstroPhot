@@ -51,15 +51,15 @@ class NukerPSF(NukerMixin, RadialMixin, PSFModel):
     usable = True
 
 
-class NukerSuperEllipse(NukerMixin, SuperEllipseMixin, GalaxyModel):
+class NukerSuperEllipse(NukerMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class NukerFourierEllipse(NukerMixin, FourierEllipseMixin, GalaxyModel):
+class NukerFourierEllipse(NukerMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
-class NukerWarp(NukerMixin, WarpMixin, GalaxyModel):
+class NukerWarp(NukerMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
