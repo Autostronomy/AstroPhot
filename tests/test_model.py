@@ -73,28 +73,29 @@ def test_model_errors():
         )
 
 
-def test_all_model_sample():
+@pytest.mark.parametrize(
+    "model_type", ap.models.ComponentModel.List_Models(usable=True, types=True)
+)
+def test_all_model_sample(model_type):
 
     target = make_basic_sersic()
-    for model_type in ap.models.ComponentModel.List_Models(usable=True, types=True):
-        print(model_type)
-        MODEL = ap.Model(
-            name="test model",
-            model_type=model_type,
-            target=target,
-        )
-        MODEL.initialize()
-        for P in MODEL.dynamic_params:
-            assert (
-                P.value is not None
-            ), f"Model type {model_type} parameter {P.name} should not be None after initialization"
-        img = MODEL()
-        assert torch.all(
-            torch.isfinite(img.data)
-        ), "Model should evaluate a real number for the full image"
+    MODEL = ap.Model(
+        name="test model",
+        model_type=model_type,
+        target=target,
+    )
+    MODEL.initialize()
+    for P in MODEL.dynamic_params:
+        assert (
+            P.value is not None
+        ), f"Model type {model_type} parameter {P.name} should not be None after initialization"
+    img = MODEL()
+    assert torch.all(
+        torch.isfinite(img.data)
+    ), "Model should evaluate a real number for the full image"
 
 
-def test_sersic_save_load(self):
+def test_sersic_save_load():
 
     target = make_basic_sersic()
     model = ap.Model(
@@ -128,5 +129,5 @@ def test_sersic_save_load(self):
     assert model.n.value.item() == 2, "Model n should be loaded correctly"
     assert model.Re.value.item() == 5, "Model Re should be loaded correctly"
     assert model.logIe.value.item() == 1, "Model logIe should be loaded correctly"
-    assert model.target.crtan[0] == 0.0, "Model target crtan should be loaded correctly"
-    assert model.target.crtan[1] == 0.0, "Model target crtan should be loaded correctly"
+    assert model.target.crtan.value[0] == 0.0, "Model target crtan should be loaded correctly"
+    assert model.target.crtan.value[1] == 0.0, "Model target crtan should be loaded correctly"

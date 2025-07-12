@@ -302,9 +302,11 @@ class Model(Module):
                 result.add(model)
         return result
 
+    @forward
     def radius_metric(self, x, y):
         return (x**2 + y**2 + self.softening**2).sqrt()
 
+    @forward
     def angular_metric(self, x, y):
         return torch.atan2(y, x)
 

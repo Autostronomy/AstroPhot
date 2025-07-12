@@ -26,7 +26,7 @@ def _sample_image(
     # Get the radius of each pixel relative to object center
     x, y = transform(*image.coordinate_center_meshgrid(), params=())
 
-    R = radius(x, y).detach().cpu().numpy().flatten()
+    R = radius(x, y, params=()).detach().cpu().numpy().flatten()
     if angle_range is not None:
         T = angle(x, y).detach().cpu().numpy().flatten()
         CHOOSE = ((T % (2 * np.pi)) > angle_range[0]) & ((T % (2 * np.pi)) < angle_range[1])

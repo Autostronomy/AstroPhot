@@ -229,7 +229,7 @@ class TargetImage(DataMixin, Image):
 
     def psf_image(self, data, upscale=1, **kwargs):
         kwargs = {
-            "_data": data,
+            "data": data,
             "CD": self.CD.value / upscale,
             "identity": self.identity,
             "name": self.name + "_psf",

@@ -44,7 +44,7 @@ class PSFImage(DataMixin, Image):
 
     @property
     def psf_pad(self):
-        return np.max(self.data.shape) // 2
+        return max(self.data.shape) // 2
 
     def jacobian_image(
         self,

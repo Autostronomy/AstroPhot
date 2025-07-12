@@ -26,6 +26,7 @@ from .bilinear_sky import BilinearSky
 # Special galaxy types
 from .edgeon import EdgeonModel, EdgeonSech, EdgeonIsothermal
 from .multi_gaussian_expansion import MultiGaussianExpansion
+from .gaussian_ellipsoid import GaussianEllipsoid
 
 # Standard models based on a core radial profile
 from .sersic import (
@@ -127,6 +128,7 @@ __all__ = (
     "EdgeonSech",
     "EdgeonIsothermal",
     "MultiGaussianExpansion",
+    "GaussianEllipsoid",
     "FourierEllipseGalaxy",
     "SersicGalaxy",
     "SersicPSF",

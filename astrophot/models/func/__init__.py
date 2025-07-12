@@ -22,6 +22,7 @@ from .moffat import moffat
 from .modified_ferrer import modified_ferrer
 from .empirical_king import empirical_king
 from .gaussian import gaussian
+from .gaussian_ellipsoid import euler_rotation_matrix
 from .exponential import exponential
 from .nuker import nuker
 from .spline import spline
@@ -46,6 +47,7 @@ __all__ = (
     "modified_ferrer",
     "empirical_king",
     "gaussian",
+    "euler_rotation_matrix",
     "exponential",
     "nuker",
     "spline",

@@ -71,6 +71,10 @@ class ComponentModel(SampleMixin, Model):
 
     @psf.setter
     def psf(self, val):
+        try:
+            del self._psf  # Remove old PSF if it exists
+        except AttributeError:
+            pass
         if val is None:
             self._psf = None
         elif isinstance(val, PSFImage):

@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
