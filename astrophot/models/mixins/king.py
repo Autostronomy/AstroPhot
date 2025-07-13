@@ -1,7 +1,9 @@
 import torch
+import numpy as np
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
+from ...utils.parametric_profiles import king_np
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from .. import func
 
@@ -37,11 +39,14 @@ class KingMixin:
         if not hasattr(self, "logI0"):
             return
 
+        if not self.alpha.initialized:
+            self.alpha.dynamic_value = 2.0
+
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: func.king(r, x[0], x[1], x[2], 10 ** x[3]),
-            ("Rc", "Rt", "alpha", "logI0"),
+            lambda r, *x: king_np(r, x[0], x[1], 2.0, 10 ** x[2]),
+            ("Rc", "Rt", "logI0"),
             x0_func,
         )
 
@@ -54,15 +59,14 @@ class iKingMixin:
 
     _model_type = "king"
     _parameter_specs = {
-        "Rc": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "Rt": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "alpha": {"units": "unitless", "valid": (0, 10), "shape": ()},
-        "I0": {"units": "flux/arcsec^2", "shape": ()},
+        "Rc": {"units": "arcsec", "valid": (0.0, None)},
+        "Rt": {"units": "arcsec", "valid": (0.0, None)},
+        "alpha": {"units": "unitless", "valid": (0, 10)},
+        "I0": {"units": "flux/arcsec^2"},
     }
     _overload_parameter_specs = {
         "logI0": {
             "units": "log10(flux/arcsec^2)",
-            "shape": (),
             "overloads": "I0",
             "overload_function": lambda p: 10**p.logI0.value,
         }
@@ -77,11 +81,13 @@ class iKingMixin:
         if not hasattr(self, "logI0"):
             return
 
+        if not self.alpha.initialized:
+            self.alpha.dynamic_value = 2.0 * np.ones(self.segments)
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: func.king(r, x[0], x[1], x[2], 10 ** x[3]),
-            params=("Rc", "Rt", "alpha", "logI0"),
+            prof_func=lambda r, *x: king_np(r, x[0], x[1], 2.0, 10 ** x[2]),
+            params=("Rc", "Rt", "logI0"),
             x0_func=x0_func,
             segments=self.segments,
         )

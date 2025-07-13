@@ -1,3 +1,6 @@
+import torch
+
+
 def king(R, Rc, Rt, alpha, I0):
     """
     Empirical King profile.
@@ -22,4 +25,6 @@ def king(R, Rc, Rt, alpha, I0):
     """
     beta = 1 / (1 + (Rt / Rc) ** 2) ** (1 / alpha)
     gamma = 1 / (1 + (R / Rc) ** 2) ** (1 / alpha)
-    return I0 * (R < Rt) * ((gamma - beta) / (1 - beta)) ** alpha
+    return torch.where(
+        R < Rt, I0 * ((torch.clamp(gamma, 0, 1) - beta) / (1 - beta)) ** alpha, torch.zeros_like(R)
+    )

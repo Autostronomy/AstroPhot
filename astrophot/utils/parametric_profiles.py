@@ -77,7 +77,7 @@ def nuker_np(R, Rb, Ib, alpha, beta, gamma):
     )
 
 
-def modified_ferrer_np(R, rout, alpha, beta, I0):
+def ferrer_np(R, rout, alpha, beta, I0):
     """
     Modified Ferrer profile.
 
@@ -100,3 +100,30 @@ def modified_ferrer_np(R, rout, alpha, beta, I0):
         The modified Ferrer profile evaluated at R.
     """
     return (R < rout) * I0 * ((1 - (np.clip(R, 0, rout) / rout) ** (2 - beta)) ** alpha)
+
+
+def king_np(R, Rc, Rt, alpha, I0):
+    """
+    Empirical King profile.
+
+    Parameters
+    ----------
+    R : array_like
+        The radial distance from the center.
+    Rc : float
+        The core radius of the profile.
+    Rt : float
+        The truncation radius of the profile.
+    alpha : float
+        The power-law index of the profile.
+    I0 : float
+        The central intensity of the profile.
+
+    Returns
+    -------
+    array_like
+        The intensity at each radial distance.
+    """
+    beta = 1 / (1 + (Rt / Rc) ** 2) ** (1 / alpha)
+    gamma = 1 / (1 + (R / Rc) ** 2) ** (1 / alpha)
+    return (R < Rt) * I0 * ((np.clip(gamma, 0, 1) - beta) / (1 - beta)) ** alpha

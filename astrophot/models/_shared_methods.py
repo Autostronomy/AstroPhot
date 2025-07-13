@@ -90,15 +90,13 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
     for i, param in enumerate(params):
         x0[i] = x0[i] if not model[param].initialized else model[param].npvalue
 
-    print(prof_func(R, *x0))
-
     def optim(x, r, f, u):
         residual = ((f - np.nan_to_num(np.log10(prof_func(r, *x)), nan=np.min(f))) / u) ** 2
         N = np.argsort(residual)
         return np.mean(residual[N][:-2])
 
     res = minimize(optim, x0=x0, args=(R, I, S), method="Nelder-Mead")
-    print(res)
+
     if res.success:
         x0 = res.x
     elif AP_config.ap_verbose >= 2:

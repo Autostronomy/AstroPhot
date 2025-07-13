@@ -90,23 +90,27 @@ def test_all_model_sample(model_type):
             P.value is not None
         ), f"Model type {model_type} parameter {P.name} should not be None after initialization"
     img = MODEL()
-    import matplotlib.pyplot as plt
-
-    print(MODEL)
-    fig, ax = plt.subplots(1, 2)
-    ap.plots.model_image(fig, ax[0], MODEL)
-    ap.plots.residual_image(fig, ax[1], MODEL)
-    plt.savefig(f"test_{model_type}_sample.png")
-    plt.close()
     assert torch.all(
         torch.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
     res = ap.fit.LM(MODEL, max_iter=10).fit()
-    print(res.message)
-    assert res.loss_history[0] > res.loss_history[-1], (
-        f"Model {model_type} should fit to the target image, but did not. "
-        f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
-    )
+
+    if "sky" in model_type or model_type in [
+        "spline ray galaxy model",
+        "exponential warp galaxy model",
+        "spline wedge galaxy model",
+    ]:  # sky has little freedom to fit
+        assert res.loss_history[0] > res.loss_history[-1], (
+            f"Model {model_type} should fit to the target image, but did not. "
+            f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
+        )
+    else:
+        print(res.message)
+        print(res.loss_history)
+        assert res.loss_history[0] > (2 * res.loss_history[-1]), (
+            f"Model {model_type} should fit to the target image, but did not. "
+            f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
+        )
 
 
 def test_sersic_save_load():
