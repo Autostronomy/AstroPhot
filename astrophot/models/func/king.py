@@ -1,4 +1,4 @@
-def empirical_king(R, Rc, Rt, alpha, I0):
+def king(R, Rc, Rt, alpha, I0):
     """
     Empirical King profile.
 

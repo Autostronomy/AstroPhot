@@ -9,8 +9,8 @@ from .transform import (
 from .sersic import SersicMixin, iSersicMixin
 from .exponential import ExponentialMixin, iExponentialMixin
 from .moffat import MoffatMixin, iMoffatMixin
-from .modified_ferrer import ModifiedFerrerMixin, iModifiedFerrerMixin
-from .empirical_king import EmpiricalKingMixin, iEmpiricalKingMixin
+from .ferrer import FerrerMixin, iFerrerMixin
+from .king import KingMixin, iKingMixin
 from .gaussian import GaussianMixin, iGaussianMixin
 from .nuker import NukerMixin, iNukerMixin
 from .spline import SplineMixin, iSplineMixin
@@ -31,10 +31,10 @@ __all__ = (
     "iExponentialMixin",
     "MoffatMixin",
     "iMoffatMixin",
-    "ModifiedFerrerMixin",
-    "iModifiedFerrerMixin",
-    "EmpiricalKingMixin",
-    "iEmpiricalKingMixin",
+    "FerrerMixin",
+    "iFerrerMixin",
+    "KingMixin",
+    "iKingMixin",
     "GaussianMixin",
     "iGaussianMixin",
     "NukerMixin",

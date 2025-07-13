@@ -1,7 +1,7 @@
 import torch
 
 
-def modified_ferrer(R, rout, alpha, beta, I0):
+def ferrer(R, rout, alpha, beta, I0):
     """
     Modified Ferrer profile.
 
