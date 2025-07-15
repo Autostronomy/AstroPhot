@@ -125,17 +125,6 @@ class Model(Module):
                 key, **parameter_specs[key], dtype=AP_config.ap_dtype, device=AP_config.ap_device
             )
             setattr(self, key, param)
-        overload_specs = self.build_parameter_specs(kwargs, self.overload_parameter_specs)
-        for key in overload_specs:
-            overload = overload_specs[key].pop("overloads")
-            if self[overload].value is not None:
-                continue
-            self[overload].value = overload_specs[key].pop("overload_function")
-            param = Param(
-                key, **overload_specs[key], dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-            setattr(self, key, param)
-            self[overload].link(key, self[key])
 
         self.saveattrs.update(self.options)
         self.saveattrs.add("window.extent")
@@ -174,16 +163,6 @@ class Model(Module):
             if subcls is object:
                 continue
             specs.update(getattr(subcls, "_parameter_specs", {}))
-        return specs
-
-    @classproperty
-    def overload_parameter_specs(cls) -> dict:
-        """Collects all parameter specifications from the class hierarchy."""
-        specs = {}
-        for subcls in reversed(cls.mro()):
-            if subcls is object:
-                continue
-            specs.update(getattr(subcls, "_overload_parameter_specs", {}))
         return specs
 
     def build_parameter_specs(self, kwargs, parameter_specs) -> dict:

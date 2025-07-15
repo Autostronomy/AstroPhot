@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[4]
+    return R[4], 10 ** F[4]
 
 
 class ExponentialMixin:
@@ -28,16 +28,8 @@ class ExponentialMixin:
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "arcsec", "valid": (0, None)},
-        "Ie": {"units": "flux/arcsec^2"},
-    }
-    _overload_parameter_specs = {
-        "logIe": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "Ie",
-            "overload_function": lambda p: 10**p.logIe.value,
-        }
+        "Re": {"units": "arcsec", "valid": (0, None), "shape": ()},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
     }
 
     @torch.no_grad()
@@ -45,15 +37,11 @@ class ExponentialMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logIe"):
-            return
-
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: exponential_np(r, x[0], 10 ** x[1]),
-            ("Re", "logIe"),
+            exponential_np,
+            ("Re", "Ie"),
             _x0_func,
         )
 
@@ -80,15 +68,7 @@ class iExponentialMixin:
     _model_type = "exponential"
     _parameter_specs = {
         "Re": {"units": "arcsec", "valid": (0, None)},
-        "Ie": {"units": "flux/arcsec^2"},
-    }
-    _overload_parameter_specs = {
-        "logIe": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "Ie",
-            "overload_function": lambda p: 10**p.logIe.value,
-        }
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None)},
     }
 
     @torch.no_grad()
@@ -96,15 +76,11 @@ class iExponentialMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logIe"):
-            return
-
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: exponential_np(r, x[0], 10 ** x[1]),
-            params=("Re", "logIe"),
+            prof_func=exponential_np,
+            params=("Re", "Ie"),
             x0_func=_x0_func,
             segments=self.segments,
         )

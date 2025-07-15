@@ -9,7 +9,7 @@ from .. import func
 
 
 def x0_func(model_params, R, F):
-    return R[2], R[5], 2, F[0]
+    return R[2], R[5], 2, 10 ** F[0]
 
 
 class KingMixin:
@@ -19,15 +19,7 @@ class KingMixin:
         "Rc": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
         "Rt": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
         "alpha": {"units": "unitless", "valid": (0, None), "shape": ()},
-        "I0": {"units": "flux/arcsec^2", "shape": ()},
-    }
-    _overload_parameter_specs = {
-        "logI0": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "I0",
-            "overload_function": lambda p: 10**p.logI0.value,
-        }
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
     }
 
     @torch.no_grad()
@@ -35,18 +27,14 @@ class KingMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logI0"):
-            return
-
         if not self.alpha.initialized:
             self.alpha.dynamic_value = 2.0
 
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: king_np(r, x[0], x[1], 2.0, 10 ** x[2]),
-            ("Rc", "Rt", "logI0"),
+            lambda r, *x: king_np(r, x[0], x[1], 2.0, x[2]),
+            ("Rc", "Rt", "I0"),
             x0_func,
         )
 
@@ -62,14 +50,7 @@ class iKingMixin:
         "Rc": {"units": "arcsec", "valid": (0.0, None)},
         "Rt": {"units": "arcsec", "valid": (0.0, None)},
         "alpha": {"units": "unitless", "valid": (0, 10)},
-        "I0": {"units": "flux/arcsec^2"},
-    }
-    _overload_parameter_specs = {
-        "logI0": {
-            "units": "log10(flux/arcsec^2)",
-            "overloads": "I0",
-            "overload_function": lambda p: 10**p.logI0.value,
-        }
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None)},
     }
 
     @torch.no_grad()
@@ -77,17 +58,13 @@ class iKingMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logI0"):
-            return
-
         if not self.alpha.initialized:
             self.alpha.dynamic_value = 2.0 * np.ones(self.segments)
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: king_np(r, x[0], x[1], 2.0, 10 ** x[2]),
-            params=("Rc", "Rt", "logI0"),
+            prof_func=lambda r, *x: king_np(r, x[0], x[1], 2.0, x[2]),
+            params=("Rc", "Rt", "I0"),
             x0_func=x0_func,
             segments=self.segments,
         )

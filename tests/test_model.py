@@ -105,8 +105,6 @@ def test_all_model_sample(model_type):
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
         )
     else:
-        print(res.message)
-        print(res.loss_history)
         assert res.loss_history[0] > (2 * res.loss_history[-1]), (
             f"Model {model_type} should fit to the target image, but did not. "
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
@@ -149,3 +147,36 @@ def test_sersic_save_load():
     assert model.logIe.value.item() == 1, "Model logIe should be loaded correctly"
     assert model.target.crtan.value[0] == 0.0, "Model target crtan should be loaded correctly"
     assert model.target.crtan.value[1] == 0.0, "Model target crtan should be loaded correctly"
+
+
+@pytest.mark.parametrize("center", [[20, 20], [25.1, 17.324567]])
+@pytest.mark.parametrize("PA", [0, 60 * np.pi / 180])
+@pytest.mark.parametrize("q", [0.2, 0.8])
+@pytest.mark.parametrize("n", [1, 4])
+@pytest.mark.parametrize("Re", [10, 25.1])
+def test_chunk_sample(center, PA, q, n, Re):
+    target = make_basic_sersic()
+    model = ap.Model(
+        name="test sersic",
+        model_type="sersic galaxy model",
+        center=center,
+        PA=PA,
+        q=q,
+        n=n,
+        Re=Re,
+        Ie=10.0,
+        target=target,
+        integrate_mode="none",
+    )
+
+    full_img = model.sample()
+
+    chunk_img = target.model_image()
+
+    for chunk in model.window.chunk(20**2):
+        sample = model.sample(window=chunk)
+        chunk_img += sample
+
+    assert torch.allclose(
+        full_img.data, chunk_img.data
+    ), "Chunked sample should match full sample within tolerance"

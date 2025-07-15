@@ -11,26 +11,15 @@ from .. import func
 class SplineMixin:
 
     _model_type = "spline"
-    _parameter_specs = {"I_R": {"units": "flux/arcsec^2"}}
-    _overload_parameter_specs = {
-        "logI_R": {
-            "units": "log10(flux/arcsec^2)",
-            "overloads": "I_R",
-            "overload_function": lambda p: 10**p.logI_R.value,
-        }
-    }
+    _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None)}}
 
     @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
 
-        try:
-            if self.logI_R.initialized:
-                return
-        except AttributeError:
-            if self.I_R.initialized:
-                return
+        if self.I_R.initialized:
+            return
 
         target_area = self.target[self.window]
         # Create the I_R profile radii if needed
@@ -46,10 +35,7 @@ class SplineMixin:
             self.radius_metric,
             rad_bins=[0] + list((prof[:-1] + prof[1:]) / 2) + [prof[-1] * 100],
         )
-        try:
-            self.logI_R.dynamic_value = I
-        except AttributeError:
-            self.I_R.dynamic_value = 10**I
+        self.I_R.dynamic_value = 10**I
 
     @forward
     def radial_model(self, R, I_R):
@@ -59,26 +45,15 @@ class SplineMixin:
 class iSplineMixin:
 
     _model_type = "spline"
-    _parameter_specs = {"I_R": {"units": "flux/arcsec^2"}}
-    _overload_parameter_specs = {
-        "logI_R": {
-            "units": "log10(flux/arcsec^2)",
-            "overloads": "I_R",
-            "overload_function": lambda p: 10**p.logI_R.value,
-        }
-    }
+    _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None)}}
 
     @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
 
-        try:
-            if self.logI_R.initialized:
-                return
-        except AttributeError:
-            if self.I_R.initialized:
-                return
+        if self.I_R.initialized:
+            return
 
         target_area = self.target[self.window]
         # Create the I_R profile radii if needed
@@ -106,10 +81,7 @@ class iSplineMixin:
             )
             value[s] = I
 
-        if hasattr(self, "logI_R"):
-            self.logI_R.dynamic_value = value
-        else:
-            self.I_R.dynamic_value = 10**value
+        self.I_R.dynamic_value = 10**value
 
     @forward
     def iradial_model(self, i, R, I_R):

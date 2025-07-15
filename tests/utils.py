@@ -26,7 +26,7 @@ def get_astropy_wcs():
 
 
 def make_basic_sersic(
-    N=50,
+    N=52,
     M=50,
     pixelscale=0.8,
     x=20.5,

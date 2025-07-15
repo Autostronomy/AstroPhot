@@ -72,6 +72,8 @@ def _sample_image(
     N = np.isfinite(S)
     if not np.all(N):
         S[~N] = np.abs(np.interp(R[~N], R[N], S[N]))
+    Sm = np.median(S)
+    S[S < Sm] = Sm  # remove very small uncertainties
 
     return R, I, S
 
@@ -107,6 +109,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
     for param, x0x in zip(params, x0):
         if not model[param].initialized:
             if not model[param].is_valid(x0x):
+                print("soft valid", param, x0x)
                 x0x = model[param].soft_valid(
                     torch.tensor(x0x, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
                 )

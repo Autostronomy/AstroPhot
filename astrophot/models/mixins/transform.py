@@ -11,7 +11,7 @@ from ... import AP_config
 class InclinedMixin:
 
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0, 1), "shape": ()},
+        "q": {"units": "b/a", "valid": (0.01, 1), "shape": ()},
         "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "shape": ()},
     }
 

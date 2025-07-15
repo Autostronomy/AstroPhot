@@ -10,7 +10,6 @@ from ..utils.interpolate import interp2d
 from ..image import Window, PSFImage
 from ..errors import SpecificationConflict
 from ..param import forward
-from . import func
 
 __all__ = ("PointSource",)
 
@@ -26,15 +25,7 @@ class PointSource(ComponentModel):
 
     _model_type = "point"
     _parameter_specs = {
-        "flux": {"units": "flux", "shape": ()},
-    }
-    _overload_parameter_specs = {
-        "logflux": {
-            "units": "log10(flux)",
-            "shape": (),
-            "overloads": "flux",
-            "overload_function": lambda p: 10**p.logflux.value,
-        }
+        "flux": {"units": "flux", "valid": (0, None), "shape": ()},
     }
     usable = True
 
@@ -50,13 +41,13 @@ class PointSource(ComponentModel):
     def initialize(self):
         super().initialize()
 
-        if not hasattr(self, "logflux") or self.logflux.initialized:
+        if self.flux.initialized:
             return
         target_area = self.target[self.window]
         dat = target_area.data.detach().cpu().numpy().copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
-        self.logflux.dynamic_value = np.log10(np.abs(np.sum(dat - edge_average)))
+        self.flux.dynamic_value = np.abs(np.sum(dat - edge_average))
 
     # Psf convolution should be on by default since this is a delta function
     @property

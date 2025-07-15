@@ -8,7 +8,7 @@ from .. import func
 
 
 def x0_func(model_params, R, F):
-    return R[5], 1, 1, F[0]
+    return R[5], 1, 1, 10 ** F[0]
 
 
 class FerrerMixin:
@@ -18,15 +18,7 @@ class FerrerMixin:
         "rout": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
         "alpha": {"units": "unitless", "valid": (0, 10), "shape": ()},
         "beta": {"units": "unitless", "valid": (0, 2), "shape": ()},
-        "I0": {"units": "flux/arcsec^2", "shape": ()},
-    }
-    _overload_parameter_specs = {
-        "logI0": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "I0",
-            "overload_function": lambda p: 10**p.logI0.value,
-        }
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
     }
 
     @torch.no_grad()
@@ -34,15 +26,11 @@ class FerrerMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logI0"):
-            return
-
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: ferrer_np(r, x[0], x[1], x[2], 10 ** x[3]),
-            ("rout", "alpha", "beta", "logI0"),
+            ferrer_np,
+            ("rout", "alpha", "beta", "I0"),
             x0_func,
         )
 
@@ -58,15 +46,7 @@ class iFerrerMixin:
         "rout": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
         "alpha": {"units": "unitless", "valid": (0, 10), "shape": ()},
         "beta": {"units": "unitless", "valid": (0, 2), "shape": ()},
-        "I0": {"units": "flux/arcsec^2", "shape": ()},
-    }
-    _overload_parameter_specs = {
-        "logI0": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "I0",
-            "overload_function": lambda p: 10**p.logI0.value,
-        }
+        "I0": {"units": "flux/arcsec^2", "valid": (0.0, None), "shape": ()},
     }
 
     @torch.no_grad()
@@ -74,15 +54,11 @@ class iFerrerMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logI0"):
-            return
-
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: ferrer_np(r, x[0], x[1], x[2], 10 ** x[3]),
-            params=("rout", "alpha", "beta", "logI0"),
+            prof_func=ferrer_np,
+            params=("rout", "alpha", "beta", "I0"),
             x0_func=x0_func,
             segments=self.segments,
         )

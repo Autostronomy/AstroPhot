@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
@@ -8,7 +9,7 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return 2.0, R[4], F[0]
+    return 2.0, R[4], 10 ** F[0]
 
 
 class MoffatMixin:
@@ -17,15 +18,7 @@ class MoffatMixin:
     _parameter_specs = {
         "n": {"units": "none", "valid": (0.1, 10), "shape": ()},
         "Rd": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "I0": {"units": "flux/arcsec^2", "shape": ()},
-    }
-    _overload_parameter_specs = {
-        "logI0": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "I0",
-            "overload_function": lambda p: 10**p.logI0.value,
-        }
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
     }
 
     @torch.no_grad()
@@ -33,15 +26,11 @@ class MoffatMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logI0"):
-            return
-
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: moffat_np(r, x[0], x[1], 10 ** x[2]),
-            ("n", "Rd", "logI0"),
+            moffat_np,
+            ("n", "Rd", "I0"),
             _x0_func,
         )
 
@@ -56,15 +45,7 @@ class iMoffatMixin:
     _parameter_specs = {
         "n": {"units": "none", "valid": (0.1, 10)},
         "Rd": {"units": "arcsec", "valid": (0, None)},
-        "I0": {"units": "flux/arcsec^2"},
-    }
-    _overload_parameter_specs = {
-        "logI0": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "I0",
-            "overload_function": lambda p: 10**p.logI0.value,
-        }
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None)},
     }
 
     @torch.no_grad()
@@ -72,15 +53,11 @@ class iMoffatMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logI0"):
-            return
-
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: moffat_np(r, x[0], x[1], 10 ** x[2]),
-            params=("n", "Rd", "logI0"),
+            prof_func=moffat_np,
+            params=("n", "Rd", "I0"),
             x0_func=_x0_func,
             segments=self.segments,
         )

@@ -8,7 +8,7 @@ from .. import func
 
 
 def _x0_func(model_params, R, F):
-    return R[4], F[4], 1.0, 2.0, 0.5
+    return R[4], 10 ** F[4], 1.0, 2.0, 0.5
 
 
 class NukerMixin:
@@ -16,18 +16,10 @@ class NukerMixin:
     _model_type = "nuker"
     _parameter_specs = {
         "Rb": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "Ib": {"units": "flux/arcsec^2", "shape": ()},
+        "Ib": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
         "alpha": {"units": "none", "valid": (0, None), "shape": ()},
         "beta": {"units": "none", "valid": (0, None), "shape": ()},
         "gamma": {"units": "none", "shape": ()},
-    }
-    _overload_parameter_specs = {
-        "logIb": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "Ib",
-            "overload_function": lambda p: 10**p.logIb.value,
-        }
     }
 
     @torch.no_grad()
@@ -35,15 +27,11 @@ class NukerMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logIb"):
-            return
-
         parametric_initialize(
             self,
             self.target[self.window],
-            lambda r, *x: nuker_np(r, x[0], 10 ** x[1], x[2], x[3], x[4]),
-            ("Rb", "logIb", "alpha", "beta", "gamma"),
+            nuker_np,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
             _x0_func,
         )
 
@@ -57,18 +45,10 @@ class iNukerMixin:
     _model_type = "nuker"
     _parameter_specs = {
         "Rb": {"units": "arcsec", "valid": (0, None)},
-        "Ib": {"units": "flux/arcsec^2"},
+        "Ib": {"units": "flux/arcsec^2", "valid": (0, None)},
         "alpha": {"units": "none", "valid": (0, None)},
         "beta": {"units": "none", "valid": (0, None)},
         "gamma": {"units": "none"},
-    }
-    _overload_parameter_specs = {
-        "logIb": {
-            "units": "log10(flux/arcsec^2)",
-            "shape": (),
-            "overloads": "Ib",
-            "overload_function": lambda p: 10**p.logIb.value,
-        }
     }
 
     @torch.no_grad()
@@ -76,15 +56,11 @@ class iNukerMixin:
     def initialize(self):
         super().initialize()
 
-        # Only auto initialize for standard parametrization
-        if not hasattr(self, "logIb"):
-            return
-
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],
-            prof_func=lambda r, *x: nuker_np(r, x[0], 10 ** x[1], x[2], x[3], x[4]),
-            params=("Rb", "logIb", "alpha", "beta", "gamma"),
+            prof_func=nuker_np,
+            params=("Rb", "Ib", "alpha", "beta", "gamma"),
             x0_func=_x0_func,
             segments=self.segments,
         )
