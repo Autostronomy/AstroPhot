@@ -1,8 +1,8 @@
-import unittest
 import astrophot as ap
 import torch
 import numpy as np
 from utils import make_basic_gaussian_psf
+import pytest
 
 # torch.autograd.set_detect_anomaly(True)
 ######################################################################
@@ -10,73 +10,50 @@ from utils import make_basic_gaussian_psf
 ######################################################################
 
 
-class TestAllPSFModelBasics(unittest.TestCase):
-    def test_all_psfmodel_sample(self):
+@pytest.mark.parametrize("model_type", ap.models.PSFModel.List_Models(usable=True, types=True))
+def test_all_psfmodel_sample(model_type):
 
-        target = make_basic_gaussian_psf()
-        for model_type in ap.models.PSF_Model.List_Model_Names(usable=True):
-            print(model_type)
-            MODEL = ap.models.AstroPhot_Model(
-                name="test model",
-                model_type=model_type,
-                target=target,
-            )
-            MODEL.initialize()
-            for P in MODEL.parameter_order:
-                self.assertIsNotNone(
-                    MODEL[P].value,
-                    f"Model type {model_type} parameter {P} should not be None after initialization",
+    target = make_basic_gaussian_psf(pixelscale=0.8)
+    if "eigen" in model_type:
+        kwargs = {
+            "eigen_basis": np.stack(
+                list(
+                    ap.utils.initialize.gaussian_psf(sigma / 0.8, 25, 0.8)
+                    for sigma in np.linspace(1, 10, 5)
                 )
-            print(MODEL.parameters)
-            img = MODEL()
-            self.assertTrue(
-                torch.all(torch.isfinite(img.data)),
-                "Model should evaluate a real number for the full image",
             )
-            self.assertIsInstance(str(MODEL), str, "String representation should return string")
-            self.assertIsInstance(repr(MODEL), str, "Repr should return string")
-
-
-class TestEigenPSF(unittest.TestCase):
-    def test_init(self):
-        target = make_basic_gaussian_psf(N=51, rand=666)
-        dat = target.data.detach()
-        dat[dat < 0] = 0
-        target = ap.image.PSF_Image(data=dat, pixelscale=target.pixelscale)
-        basis = np.stack(
-            list(
-                make_basic_gaussian_psf(N=51, sigma=s, rand=int(4923 * s)).data
-                for s in np.linspace(8, 1, 5)
-            )
+        }
+    else:
+        kwargs = {}
+    MODEL = ap.Model(
+        name="test model",
+        model_type=model_type,
+        target=target,
+        **kwargs,
+    )
+    MODEL.initialize()
+    print(MODEL)
+    for P in MODEL.dynamic_params:
+        assert P.value is not None, (
+            f"Model type {model_type} parameter {P} should not be None after initialization",
         )
-        # basis = np.random.rand(10,51,51)
-        EM = ap.models.AstroPhot_Model(
-            model_type="eigen psf model",
-            eigen_basis=basis,
-            eigen_pixelscale=1,
-            target=target,
-        )
+    img = MODEL()
+    import matplotlib.pyplot as plt
 
-        EM.initialize()
+    plt.imshow(img.data.detach().cpu().numpy())
+    plt.colorbar()
+    plt.title(f"Model type: {model_type}")
+    plt.savefig(f"test_psfmodel_{model_type}.png")
+    assert torch.all(
+        torch.isfinite(img.data)
+    ), "Model should evaluate a real number for the full image"
 
-        res = ap.fit.LM(EM, verbose=1).fit()
-
-        self.assertEqual(res.message, "success")
-
-
-class TestPixelPSF(unittest.TestCase):
-    def test_init(self):
-        target = make_basic_gaussian_psf(N=11)
-        target.data[target.data < 0] = 0
-        target = ap.image.PSF_Image(
-            data=target.data / torch.sum(target.data), pixelscale=target.pixelscale
-        )
-
-        PM = ap.models.AstroPhot_Model(
-            model_type="pixelated psf model",
-            target=target,
-        )
-
-        PM.initialize()
-
-        self.assertTrue(torch.allclose(PM().data, target.data))
+    if model_type == "pixelated psf model":
+        MODEL.pixels = ap.utils.initialize.gaussian_psf(3 / 0.8, 25, 0.8)
+    res = ap.fit.LM(MODEL, max_iter=10).fit()
+    print(res.message)
+    print(res.loss_history)
+    assert res.loss_history[0] > (2 * res.loss_history[-1]), (
+        f"Model {model_type} should fit to the target image, but did not. "
+        f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
+    )

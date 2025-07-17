@@ -27,3 +27,12 @@ def pixel_quad_meshgrid(shape, dtype, device, order=3):
     i = torch.repeat_interleave(i[..., None], order**2, -1) + di.flatten()
     j = torch.repeat_interleave(j[..., None], order**2, -1) + dj.flatten()
     return i, j, w.flatten()
+
+
+def rotate(theta, x, y):
+    """
+    Applies a rotation matrix to the X,Y coordinates
+    """
+    s = theta.sin()
+    c = theta.cos()
+    return c * x - s * y, s * x + c * y

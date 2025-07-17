@@ -250,7 +250,7 @@ def warp_phase_profile(fig, ax, model: Model, rad_unit="arcsec"):
         model.PA_R.npvalue / np.pi,
         linewidth=2,
         color=main_pallet["primary2"],
-        label=f"{model.name} position angle",
+        label=f"{model.name} position angle/$\\pi$",
     )
     ax.set_ylim([0, 1])
     ax.set_ylabel("q [b/a], PA [rad/$\\pi$]")

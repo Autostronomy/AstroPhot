@@ -5,7 +5,8 @@ from .sky_model_object import SkyModel
 from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
 from ..param import forward
-from .. import AP_config
+from . import func
+from ..utils.initialize import polar_decomposition
 
 __all__ = ["BilinearSky"]
 
@@ -21,6 +22,8 @@ class BilinearSky(SkyModel):
     _model_type = "bilinear"
     _parameter_specs = {
         "I": {"units": "flux/arcsec^2"},
+        "PA": {"units": "radians", "shape": ()},
+        "scale": {"units": "arcsec/grid-unit", "shape": ()},
     }
     sampling_mode = "midpoint"
     usable = True
@@ -37,7 +40,16 @@ class BilinearSky(SkyModel):
 
         if self.I.initialized:
             self.nodes = tuple(self.I.value.shape)
-            self.update_transform()
+
+        if not self.PA.initialized:
+            R, _ = polar_decomposition(self.target.CD.value.detach().cpu().numpy())
+            self.PA.value = np.arccos(np.abs(R[0, 0]))
+        if not self.scale.initialized:
+            self.scale.value = (
+                self.target.pixelscale.item() * self.target.data.shape[0] / self.nodes[0]
+            )
+
+        if self.I.initialized:
             return
 
         target_dat = self.target[self.window]
@@ -57,36 +69,15 @@ class BilinearSky(SkyModel):
             )
             / self.target.pixel_area.item()
         )
-        self.update_transform()
-
-    def update_transform(self):
-        target_dat = self.target[self.window]
-        P = torch.stack(list(torch.stack(c) for c in target_dat.corners()))
-        centroid = P.mean(dim=0)
-        dP = P - centroid
-        evec = torch.linalg.eig(dP.T @ dP / 4)[1].real.to(
-            dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        if torch.dot(evec[0], P[3] - P[0]).abs() < torch.dot(evec[1], P[3] - P[0]).abs():
-            evec = evec.flip(0)
-        evec[0] = evec[0] * self.nodes[0] / torch.linalg.norm(P[3] - P[0])
-        evec[1] = evec[1] * self.nodes[1] / torch.linalg.norm(P[1] - P[0])
-        self.evec = evec
-        self.shift = torch.tensor(
-            [(self.nodes[0] - 1) / 2, (self.nodes[1] - 1) / 2],
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
-        )
 
     @forward
-    def transform_coordinates(self, x, y):
+    def transform_coordinates(self, x, y, I, PA, scale):
         x, y = super().transform_coordinates(x, y)
-        xy = torch.stack((x, y), dim=-1)
-        xy = xy @ self.evec
-        xy = xy + self.shift
-        return xy[..., 0], xy[..., 1]
+        i, j = func.rotate(-PA, x, y)
+        pixel_center = (I.shape[0] - 1) / 2, (I.shape[1] - 1) / 2
+        return i / scale + pixel_center[0], j / scale + pixel_center[1]
 
     @forward
     def brightness(self, x, y, I):
         x, y = self.transform_coordinates(x, y)
-        return interp2d(I, x, y)
+        return interp2d(I, y, x)

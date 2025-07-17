@@ -13,9 +13,8 @@ from .sky_model_object import SkyModel
 from .point_source import PointSource
 
 # subtypes of PSFModel
-from .eigen import EigenPSF
+from .basis import PixelBasisPSF
 from .airy import AiryPSF
-from .zernike import ZernikePSF
 from .pixelated_psf import PixelatedPSF
 
 # Subtypes of SkyModel
@@ -117,9 +116,8 @@ __all__ = (
     "SuperEllipseGalaxy",
     "WedgeGalaxy",
     "WarpGalaxy",
-    "EigenPSF",
+    "PixelBasisPSF",
     "AiryPSF",
-    "ZernikePSF",
     "PixelatedPSF",
     "FlatSky",
     "PlaneSky",

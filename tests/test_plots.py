@@ -75,7 +75,7 @@ def test_residual_image():
         q=0.5,
         n=2,
         Re=5,
-        logIe=1,
+        Ie=1,
         target=target,
     )
     new_model.initialize()
@@ -131,7 +131,7 @@ def test_radial_profile():
         q=0.5,
         n=2,
         Re=5,
-        logIe=1,
+        Ie=1,
         target=target,
     )
     new_model.initialize()
@@ -153,7 +153,7 @@ def test_radial_median_profile():
         q=0.5,
         n=2,
         Re=5,
-        logIe=1,
+        Ie=1,
         target=target,
     )
     new_model.initialize()

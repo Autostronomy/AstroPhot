@@ -2,6 +2,7 @@ from .segmentation_map import *
 from .center import center_of_mass, recursive_center_of_mass
 from .construct_psf import gaussian_psf, moffat_psf, construct_psf
 from .variance import auto_variance
+from .PA import polar_decomposition
 
 __all__ = (
     "center_of_mass",
@@ -17,4 +18,5 @@ __all__ = (
     "filter_windows",
     "transfer_windows",
     "auto_variance",
+    "polar_decomposition",
 )

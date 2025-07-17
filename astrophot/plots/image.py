@@ -109,6 +109,8 @@ def psf_image(
     ax,
     psf,
     cmap_levels=None,
+    vmin=None,
+    vmax=None,
     **kwargs,
 ):
     if isinstance(psf, PSFModel):
@@ -128,7 +130,9 @@ def psf_image(
     # Default kwargs for image
     kwargs = {
         "cmap": cmap_grad,
-        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        "norm": matplotlib.colors.LogNorm(
+            vmin=vmin, vmax=vmax
+        ),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
         **kwargs,
     }
 

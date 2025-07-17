@@ -125,11 +125,10 @@ def make_basic_gaussian_psf(
 
     np.random.seed(rand)
     psf = ap.utils.initialize.gaussian_psf(sigma / pixelscale, N, pixelscale)
-    psf += np.random.normal(scale=psf / 2)
-    psf[psf < 0] = 0
     target = ap.PSFImage(
-        data=psf,
+        data=psf + np.random.normal(scale=np.sqrt(psf) / 10),
         pixelscale=pixelscale,
+        variance=psf / 100,
     )
     target.normalize()
 

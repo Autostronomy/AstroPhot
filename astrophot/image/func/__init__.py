@@ -3,6 +3,7 @@ from .image import (
     pixel_corner_meshgrid,
     pixel_simpsons_meshgrid,
     pixel_quad_meshgrid,
+    rotate,
 )
 from .wcs import (
     world_to_plane_gnomonic,
@@ -18,6 +19,7 @@ __all__ = (
     "pixel_corner_meshgrid",
     "pixel_simpsons_meshgrid",
     "pixel_quad_meshgrid",
+    "rotate",
     "world_to_plane_gnomonic",
     "plane_to_world_gnomonic",
     "pixel_to_plane_linear",

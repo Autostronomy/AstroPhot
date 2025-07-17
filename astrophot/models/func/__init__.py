@@ -27,6 +27,7 @@ from .exponential import exponential
 from .nuker import nuker
 from .spline import spline
 from .transform import rotate
+from .zernike import zernike_n_m_list, zernike_n_m_modes
 
 __all__ = (
     "all_subclasses",
@@ -55,4 +56,6 @@ __all__ = (
     "recursive_quad_integrate",
     "upsample",
     "rotate",
+    "zernike_n_m_list",
+    "zernike_n_m_modes",
 )
