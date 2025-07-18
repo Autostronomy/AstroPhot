@@ -108,7 +108,6 @@ def radial_median_profile(
     while Rbins[-1] < Rlast_phys:
         Rbins.append(Rbins[-1] + max(2 * model.target.pixelscale.item(), Rbins[-1] * 0.1))
     Rbins = np.array(Rbins)
-    Rbins = Rbins * model.target.pixel_length.item()  # back to physical units
 
     with torch.no_grad():
         image = model.target[model.window]
