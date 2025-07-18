@@ -8,6 +8,7 @@ from .integration import (
     single_quad_integrate,
     recursive_quad_integrate,
     upsample,
+    recursive_bright_integrate,
 )
 from .convolution import (
     lanczos_kernel,
@@ -55,6 +56,7 @@ __all__ = (
     "single_quad_integrate",
     "recursive_quad_integrate",
     "upsample",
+    "recursive_bright_integrate",
     "rotate",
     "zernike_n_m_list",
     "zernike_n_m_modes",

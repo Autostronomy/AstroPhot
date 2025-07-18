@@ -40,6 +40,8 @@ class PixelatedPSF(PSFModel):
     _model_type = "pixelated"
     _parameter_specs = {"pixels": {"units": "flux/arcsec^2"}}
     usable = True
+    sampling_mode = "midpoint"
+    integrate_mode = "none"
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -54,7 +56,5 @@ class PixelatedPSF(PSFModel):
     def brightness(self, x, y, pixels, center):
         with OverrideParam(self.target.crtan, center):
             pX, pY = self.target.plane_to_pixel(x, y)
-
-        result = interp2d(pixels, pX, pY)
-
+        result = interp2d(pixels, pY, pX)
         return result

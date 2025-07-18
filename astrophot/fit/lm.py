@@ -253,6 +253,7 @@ class LM(BaseOptimizer):
         if len(self.current_state) == 0:
             if self.verbose > 0:
                 AP_config.ap_logger.warning("No parameters to optimize. Exiting fit")
+            self.message = "No parameters to optimize. Exiting fit"
             return self
 
         self._covariance_matrix = None
@@ -328,7 +329,7 @@ class LM(BaseOptimizer):
 
         if self.verbose > 0:
             AP_config.ap_logger.info(
-                f"Final Chi^2/DoF: {self.loss_history[-1]:.4g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
+                f"Final Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
             )
 
         self.model.fill_dynamic_values(self.current_state)

@@ -79,7 +79,7 @@ class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
         return moffat_I0_to_flux(I0, n, Rd, 1.0)
 
 
-class Moffat2DPSF(InclinedMixin, MoffatPSF):
+class Moffat2DPSF(MoffatMixin, InclinedMixin, RadialMixin, PSFModel):
 
     _model_type = "2d"
     _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}

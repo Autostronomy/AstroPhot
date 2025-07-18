@@ -19,9 +19,10 @@ class SampleMixin:
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_maxparams = 10
     jacobian_maxpixels = 1000**2
-    integrate_mode = "threshold"  # none, threshold
+    integrate_mode = "bright"  # none, bright, threshold
     integrate_tolerance = 1e-4  # total flux fraction
-    integrate_max_depth = 3
+    integrate_fraction = 0.05  # fraction of the pixels to super sample
+    integrate_max_depth = 2
     integrate_gridding = 5
     integrate_quad_order = 3
 
@@ -31,13 +32,31 @@ class SampleMixin:
         "jacobian_maxpixels",
         "integrate_mode",
         "integrate_tolerance",
+        "integrate_fraction",
         "integrate_max_depth",
         "integrate_gridding",
         "integrate_quad_order",
     )
 
     @forward
-    def _sample_integrate(self, sample, image: Image):
+    def _bright_integrate(self, sample, image):
+        i, j = image.pixel_center_meshgrid()
+        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
+        sample_flat = sample.flatten(-2)
+        select = torch.topk(sample_flat, N, dim=-1).indices
+        sample_flat[select] = func.recursive_bright_integrate(
+            i.flatten(-2)[select],
+            j.flatten(-2)[select],
+            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+            bright_frac=self.integrate_fraction,
+            quad_order=self.integrate_quad_order,
+            gridding=self.integrate_gridding,
+            max_depth=self.integrate_max_depth,
+        )
+        return sample_flat.reshape(sample.shape)
+
+    @forward
+    def _threshold_integrate(self, sample, image: Image):
         i, j = image.pixel_center_meshgrid()
         kernel = func.curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
         curvature = (
@@ -100,7 +119,9 @@ class SampleMixin:
                 f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
             )
         if self.integrate_mode == "threshold":
-            sample = self._sample_integrate(sample, image)
+            sample = self._threshold_integrate(sample, image)
+        elif self.integrate_mode == "bright":
+            sample = self._bright_integrate(sample, image)
         elif self.integrate_mode != "none":
             raise SpecificationConflict(
                 f"Unknown integrate mode {self.integrate_mode} for model {self.name}"

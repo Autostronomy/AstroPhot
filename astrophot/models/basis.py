@@ -85,7 +85,9 @@ class PixelBasisPSF(PSFModel):
             self.basis = np.stack(basis, axis=0)
 
         if not self.weights.initialized:
-            self.weights.dynamic_value = 1 / np.arange(len(self.basis))
+            w = np.zeros(self.basis.shape[0])
+            w[0] = 1.0
+            self.weights.dynamic_value = w
 
     @forward
     def transform_coordinates(self, x, y, PA, scale):

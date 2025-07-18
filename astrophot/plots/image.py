@@ -391,7 +391,7 @@ def residual_image(
         residuals = np.arctan(
             residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2)
         )
-        vmax = np.max(np.abs(residuals[np.isfinite(residuals)]))
+        vmax = np.pi / 2
         if normalize_residuals:
             default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
         else:

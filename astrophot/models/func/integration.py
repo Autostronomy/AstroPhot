@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from ...utils.integration import quad_table
 
@@ -99,3 +100,42 @@ def recursive_quad_integrate(
     ).mean(dim=-1)
 
     return integral
+
+
+def recursive_bright_integrate(
+    i,
+    j,
+    brightness_ij,
+    bright_frac,
+    scale=1.0,
+    quad_order=3,
+    gridding=5,
+    _current_depth=0,
+    max_depth=1,
+):
+    scale = 1 / (gridding**_current_depth)
+    z, _ = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
+
+    if _current_depth >= max_depth:
+        return z
+
+    N = max(1, int(np.prod(z.shape) * bright_frac))
+    z_flat = z.flatten()
+
+    select = torch.topk(z_flat, N, dim=-1).indices
+
+    si, sj = upsample(i.flatten()[select], j.flatten()[select], quad_order, scale)
+
+    z_flat[select] = recursive_bright_integrate(
+        si,
+        sj,
+        brightness_ij,
+        bright_frac,
+        scale=scale,
+        quad_order=quad_order,
+        gridding=gridding,
+        _current_depth=_current_depth + 1,
+        max_depth=max_depth,
+    ).mean(dim=-1)
+
+    return z_flat.reshape(z.shape)
