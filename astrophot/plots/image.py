@@ -83,15 +83,16 @@ def target_image(fig, ax, target, window=None, **kwargs):
                 vmin=np.nanmin(dat),
             ),
         )
-
-        im = ax.pcolormesh(
-            X,
-            Y,
-            np.ma.masked_where(dat < (sky + 3 * noise), dat),
-            cmap=cmap_grad,
-            norm=matplotlib.colors.LogNorm(),
-            clim=[sky + 3 * noise, None],
-        )
+        pickhist = dat < (sky + 3 * noise)
+        if np.sum(~pickhist) > 5:  # only draw log if multiple pixels above noise
+            im = ax.pcolormesh(
+                X,
+                Y,
+                np.ma.masked_where(pickhist, dat),
+                cmap=cmap_grad,
+                norm=matplotlib.colors.LogNorm(),
+                clim=[sky + 3 * noise, None],
+            )
 
     if torch.linalg.det(target.CD.value) < 0:
         ax.invert_xaxis()

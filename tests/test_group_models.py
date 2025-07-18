@@ -1,6 +1,9 @@
 import astrophot as ap
 import torch
 import numpy as np
+import torch
+
+import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian_psf
 
 

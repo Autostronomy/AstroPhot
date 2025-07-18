@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Literal
 
 import numpy as np
 import torch
@@ -93,7 +94,9 @@ def radial_median_profile(
       model (AstroPhot_Model): Model object from which to determine the radial binning. Also provides the target image to extract the data
       count_limit (int): The limit of pixels in a bin, below which uncertainties are not computed. Default: 10
       return_profile (bool): Instead of just returning the fig and ax object, will return the extracted profile formatted as: Rbins (the radial bin edges), medians (the median in each bin), scatter (the 16-84 quartile range / 2), count (the number of pixels in each bin). Default: False
-      rad_unit (str): The name of the physical radius units. Default: "arcsec"
+      rad_unit (str): The name of the radius units to plot. If you select "pixel" then the plot will work in pixel units (physical radii divided by pixelscale) if you choose any other string then it will remain in the physical units of the image and the axis label will be whatever you set the value to. Default: "arcsec". Options: "arcsec", "pixel"
+      bin_scale (float): The geometric scaling factor for the binning, each bin will be this much larger than the previous. Default: 0.1
+      min_bin_width (float): The minimum width of a bin in pixel units, default is 2 so that each bin will have some data to compute the median with. Default: 2
       doassert (bool): If any requirements are imposed on which kind of profile can be plotted, this activates them. Default: True
 
     """
@@ -105,6 +108,7 @@ def radial_median_profile(
     while Rbins[-1] < Rlast_phys:
         Rbins.append(Rbins[-1] + max(2 * model.target.pixelscale.item(), Rbins[-1] * 0.1))
     Rbins = np.array(Rbins)
+    Rbins = Rbins * model.target.pixel_length.item()  # back to physical units
 
     with torch.no_grad():
         image = model.target[model.window]

@@ -9,6 +9,7 @@ class PSFGroupModel(GroupModel):
 
     _model_type = "psf"
     usable = True
+    normalize_psf = True
 
     @property
     def target(self):
