@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from ...errors import OptimizeStop
+from ...errors import OptimizeStopFail, OptimizeStopSuccess
 
 
 def hessian(J, W):
@@ -37,6 +37,10 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     R = data - M0  # (M,)
     grad = gradient(J, weight, R)  # (N, 1)
     hess = hessian(J, weight)  # (N, N)
+    if torch.allclose(grad, torch.zeros_like(grad)):
+        raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
+    print("grad", grad)
+    print("hess", hess)
 
     best = {"x": torch.zeros_like(x), "chi2": chi20, "L": L}
     scary = {"x": None, "chi2": chi20, "L": L}
@@ -46,7 +50,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     for _ in range(10):
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
-
+        print("h", h)
         chi21 = torch.sum(weight * (data - M1) ** 2).item() / ndf
 
         # Handle nan chi2
@@ -92,6 +96,6 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     if nostep:
         if scary["x"] is not None:
             return scary
-        raise OptimizeStop("Could not find step to improve chi^2")
+        raise OptimizeStopFail("Could not find step to improve chi^2")
 
     return best

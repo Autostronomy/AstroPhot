@@ -87,22 +87,20 @@ def make_basic_gaussian(
 ):
 
     np.random.seed(rand)
-    target = ap.image.Target_Image(
+    target = ap.TargetImage(
         data=np.zeros((N, M)),
         pixelscale=pixelscale,
         psf=ap.utils.initialize.gaussian_psf(2 / pixelscale, 11, pixelscale),
     )
 
-    MODEL = ap.models.Gaussian_Galaxy(
+    MODEL = ap.models.GaussianGalaxy(
         name="basic gaussian source",
         target=target,
-        parameters={
-            "center": [x, y],
-            "sigma": sigma,
-            "flux": flux,
-            "PA": {"value": 0.0, "locked": True},
-            "q": {"value": 0.99, "locked": True},
-        },
+        center=[x, y],
+        sigma=sigma,
+        flux=flux,
+        PA=0.0,
+        q=0.99,
     )
 
     img = MODEL().data.detach().cpu().numpy()

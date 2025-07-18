@@ -7,7 +7,7 @@ import numpy as np
 from .base import BaseOptimizer
 from .. import AP_config
 from . import func
-from ..errors import OptimizeStop
+from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from ..param import ValidContext
 
 __all__ = ("LM",)
@@ -204,7 +204,7 @@ class LM(BaseOptimizer):
                 self.model.target[self.fit_window].flatten("data"), dtype=torch.bool
             )
         if self.mask is not None and torch.sum(self.mask).item() == 0:
-            raise OptimizeStop("No data to fit. All pixels are masked")
+            raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
         self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]
@@ -298,10 +298,15 @@ class LM(BaseOptimizer):
                         Ldn=self.Ldn,
                     )
                     self.current_state = res["x"].detach()
-            except OptimizeStop:
+            except OptimizeStopFail:
                 if self.verbose > 0:
                     AP_config.ap_logger.warning("Could not find step to improve Chi^2, stopping")
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
+                break
+            except OptimizeStopSuccess as e:
+                if self.verbose > 0:
+                    AP_config.ap_logger.info(f"Optimization converged successfully: {e}")
+                self.message = self.message + "success"
                 break
 
             self.L = np.clip(res["L"], 1e-9, 1e9)

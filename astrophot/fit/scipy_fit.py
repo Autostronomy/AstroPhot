@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 
 from .base import BaseOptimizer
 from .. import AP_config
-from ..errors import OptimizeStop
+from ..errors import OptimizeStopSuccess
 
 __all__ = ("ScipyFit",)
 
@@ -52,7 +52,7 @@ class ScipyFit(BaseOptimizer):
                 self.model.target[self.fit_window].flatten("data"), dtype=torch.bool
             )
         if self.mask is not None and torch.sum(self.mask).item() == 0:
-            raise OptimizeStop("No data to fit. All pixels are masked")
+            raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
         self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]

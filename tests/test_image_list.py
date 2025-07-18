@@ -33,7 +33,7 @@ def test_copy():
     arr2 = torch.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0, name="image2")
 
-    test_image = ap.image.ImageList((base_image1, base_image2))
+    test_image = ap.ImageList((base_image1, base_image2))
 
     copy_image = test_image.copy()
     copy_image.images[0] += 5
@@ -55,13 +55,13 @@ def test_image_arithmetic():
     base_image1 = ap.Image(data=arr1, pixelscale=1.0, zeropoint=1.0, name="image1")
     arr2 = torch.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0, name="image2")
-    test_image = ap.image.ImageList((base_image1, base_image2))
+    test_image = ap.ImageList((base_image1, base_image2))
 
     base_image3 = base_image1.copy()
     base_image3 += 1
     base_image4 = base_image2.copy()
     base_image4 -= 2
-    second_image = ap.image.ImageList((base_image3, base_image4))
+    second_image = ap.ImageList((base_image3, base_image4))
 
     # Test iadd
     test_image += second_image
@@ -103,7 +103,7 @@ def test_model_image_list_error():
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0)
 
     with pytest.raises(ap.errors.InvalidImage):
-        ap.image.ModelImageList((base_image1, base_image2))
+        ap.ModelImageList((base_image1, base_image2))
 
 
 def test_target_image_list_creation():
@@ -161,7 +161,7 @@ def test_targetlist_errors():
         zeropoint=2.0,
     )
     with pytest.raises(ap.errors.InvalidImage):
-        ap.image.TargetImageList((base_image1, base_image2))
+        ap.TargetImageList((base_image1, base_image2))
 
 
 def test_jacobian_image_list_error():
@@ -173,4 +173,4 @@ def test_jacobian_image_list_error():
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0)
 
     with pytest.raises(ap.errors.InvalidImage):
-        ap.image.JacobianImageList((base_image1, base_image2))
+        ap.JacobianImageList((base_image1, base_image2))

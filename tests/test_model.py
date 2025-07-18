@@ -22,7 +22,7 @@ def test_model_sampling_modes():
         q=0.5,
         n=2,
         Re=5,
-        logIe=1,
+        Ie=1,
         target=target,
     )
     model()
@@ -95,11 +95,16 @@ def test_all_model_sample(model_type):
     ), "Model should evaluate a real number for the full image"
     res = ap.fit.LM(MODEL, max_iter=10).fit()
 
-    if "sky" in model_type or model_type in [
-        "spline ray galaxy model",
-        "exponential warp galaxy model",
-        "spline wedge galaxy model",
-    ]:  # sky has little freedom to fit
+    if (
+        "sky" in model_type
+        or "king" in model_type
+        or model_type
+        in [
+            "spline ray galaxy model",
+            "exponential warp galaxy model",
+            "spline wedge galaxy model",
+        ]
+    ):  # sky has little freedom to fit
         assert res.loss_history[0] > res.loss_history[-1], (
             f"Model {model_type} should fit to the target image, but did not. "
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
@@ -122,7 +127,7 @@ def test_sersic_save_load():
         q=0.5,
         n=2,
         Re=5,
-        logIe=1,
+        Ie=1,
         target=target,
     )
 
@@ -133,7 +138,7 @@ def test_sersic_save_load():
     model.q = 0.8
     model.n = 3
     model.Re = 10
-    model.logIe = 2
+    model.Ie = 2
     target.crtan = [1.0, 2.0]
     model.append_state("test_AstroPhot_sersic.hdf5")
     model.load_state("test_AstroPhot_sersic.hdf5", index=0)
@@ -144,7 +149,7 @@ def test_sersic_save_load():
     assert model.q.value.item() == 0.5, "Model q should be loaded correctly"
     assert model.n.value.item() == 2, "Model n should be loaded correctly"
     assert model.Re.value.item() == 5, "Model Re should be loaded correctly"
-    assert model.logIe.value.item() == 1, "Model logIe should be loaded correctly"
+    assert model.Ie.value.item() == 1, "Model Ie should be loaded correctly"
     assert model.target.crtan.value[0] == 0.0, "Model target crtan should be loaded correctly"
     assert model.target.crtan.value[1] == 0.0, "Model target crtan should be loaded correctly"
 

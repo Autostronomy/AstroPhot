@@ -49,6 +49,7 @@ def test_chunk_jacobian(center, PA, q, n, Re):
     ), "Pixel chunked Jacobian should match full Jacobian"
 
 
+# LM already tested extensively
 # def test_lm():
 #     target = make_basic_sersic()
 #     new_model = ap.Model(
