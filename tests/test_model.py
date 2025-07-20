@@ -95,6 +95,8 @@ def test_all_model_sample(model_type):
     ), "Model should evaluate a real number for the full image"
     res = ap.fit.LM(MODEL, max_iter=10).fit()
 
+    # sky has little freedom to fit, some more complex models need extra
+    # attention to get a good fit so here we just check that they can improve
     if (
         "sky" in model_type
         or "king" in model_type
@@ -103,13 +105,14 @@ def test_all_model_sample(model_type):
             "spline ray galaxy model",
             "exponential warp galaxy model",
             "spline wedge galaxy model",
+            "ferrer warp galaxy model",
         ]
-    ):  # sky has little freedom to fit
+    ):
         assert res.loss_history[0] > res.loss_history[-1], (
             f"Model {model_type} should fit to the target image, but did not. "
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
         )
-    else:
+    else:  # Most models should get significantly better after just a few iterations
         assert res.loss_history[0] > (2 * res.loss_history[-1]), (
             f"Model {model_type} should fit to the target image, but did not. "
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"

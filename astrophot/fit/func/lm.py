@@ -61,13 +61,13 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
         if chi21 < scary["chi2"]:
             scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L}
 
-        # if torch.allclose(h, torch.zeros_like(h)):
-        #     raise OptimizeStopSuccess("Step with zero length means optimization complete.")
+        if torch.allclose(h, torch.zeros_like(h)) and L < 0.1:
+            raise OptimizeStopSuccess("Step with zero length means optimization complete.")
 
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
         # Avoid highly non-linear regions
-        if rho < 0.1 or rho > 10:
+        if rho < 0.1 or rho > 2:
             L *= Lup
             if improving is True:
                 break

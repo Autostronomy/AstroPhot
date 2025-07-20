@@ -15,6 +15,7 @@ version of each tutorial is available here.
     ModelZoo
     BasicPSFModels
     JointModels
+    ImageAlignment
     CustomModels
     AdvancedPSFModels
     ConstrainedModels

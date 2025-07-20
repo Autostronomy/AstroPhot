@@ -4,6 +4,7 @@ from copy import deepcopy
 import torch
 import numpy as np
 
+from caskade import Param as CParam
 from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
 from ..image import Window, ImageList, ModelImage, ModelImageList
@@ -113,6 +114,9 @@ class Model(Module):
             else:
                 parameter_specs[p]["dynamic_value"] = kwargs.pop(p)
                 parameter_specs[p].pop("value", None)
+            if isinstance(parameter_specs[p].get("dynamic_value", None), CParam):
+                parameter_specs[p]["value"] = parameter_specs[p]["dynamic_value"]
+                parameter_specs[p].pop("dynamic_value", None)
 
         return parameter_specs
 
