@@ -11,6 +11,8 @@ from .mixins import (
     WarpMixin,
     iGaussianMixin,
 )
+from ..utils.decorators import combine_docstrings
+
 
 __all__ = [
     "GaussianGalaxy",
@@ -23,45 +25,37 @@ __all__ = [
 ]
 
 
+@combine_docstrings
 class GaussianGalaxy(GaussianMixin, RadialMixin, GalaxyModel):
-    """Basic galaxy model with Gaussian as the radial light profile. The
-    gaussian radial profile is defined as:
-
-    I(R) = F * exp(-0.5 R^2/S^2) / sqrt(2pi*S^2)
-
-    where I(R) is the prightness as a function of semi-major axis
-    length, F is the total flux in the model, R is the semi-major
-    axis, and S is the standard deviation.
-
-    Parameters:
-        sigma: standard deviation of the gaussian profile, must be a positive value
-        flux: the total flux in the gaussian model, represented as the log of the total
-
-    """
-
     usable = True
 
 
+@combine_docstrings
 class GaussianPSF(GaussianMixin, RadialMixin, PSFModel):
     _parameter_specs = {"flux": {"units": "flux", "value": 1.0}}
     usable = True
 
 
+@combine_docstrings
 class GaussianSuperEllipse(GaussianMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class GaussianFourierEllipse(GaussianMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class GaussianWarp(GaussianMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class GaussianRay(iGaussianMixin, RayMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class GaussianWedge(iGaussianMixin, WedgeMixin, GalaxyModel):
     usable = True

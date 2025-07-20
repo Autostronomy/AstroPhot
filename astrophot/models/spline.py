@@ -10,6 +10,8 @@ from .mixins import (
     FourierEllipseMixin,
     WarpMixin,
 )
+from ..utils.decorators import combine_docstrings
+
 
 __all__ = [
     "SplineGalaxy",
@@ -22,45 +24,36 @@ __all__ = [
 ]
 
 
+@combine_docstrings
 class SplineGalaxy(SplineMixin, RadialMixin, GalaxyModel):
-    """Basic galaxy model with a spline radial light profile. The
-    light profile is defined as a cubic spline interpolation of the
-    stored brightness values:
-
-    I(R) = interp(R, profR, I)
-
-    where I(R) is the brightness along the semi-major axis, interp is
-    a cubic spline function, R is the semi-major axis length, profR is
-    a list of radii for the spline, I is a corresponding list of
-    brightnesses at each profR value.
-
-    Parameters:
-        I(R): Tensor of brighntess values, represented as the log of the brightness divided by pixelscale squared
-
-    """
-
     usable = True
 
 
+@combine_docstrings
 class SplinePSF(SplineMixin, RadialMixin, PSFModel):
     usable = True
 
 
+@combine_docstrings
 class SplineSuperEllipse(SplineMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class SplineFourierEllipse(SplineMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class SplineWarp(SplineMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class SplineRay(iSplineMixin, RayMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class SplineWedge(iSplineMixin, WedgeMixin, GalaxyModel):
     usable = True

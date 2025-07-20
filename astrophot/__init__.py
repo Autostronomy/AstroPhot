@@ -2,6 +2,7 @@ import argparse
 import requests
 import torch
 from . import models, plots, utils, fit, AP_config
+from .param import forward, Param, Module
 
 from .image import (
     Image,
@@ -155,6 +156,9 @@ __all__ = (
     "plots",
     "utils",
     "fit",
+    "forward",
+    "Param",
+    "Module",
     "AP_config",
     "run_from_terminal",
     "__version__",

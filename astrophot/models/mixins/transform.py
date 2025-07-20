@@ -9,6 +9,23 @@ from ... import AP_config
 
 
 class InclinedMixin:
+    """A model which defines a position angle and axis ratio.
+
+    PA and q operate on the coordinates to transform the model. Given some x,y
+    the updated values are:
+
+    $$x', y' = \\rm{rotate}(-PA + \\pi/2, x, y)$$
+    $$y'' = y' / q$$
+
+    where x' and y'' are the final transformed coordinates. The pi/2 is included
+    such that the position angle is defined with 0 at north. The -PA is such
+    that the position angle increases to the East. Thus, the position angle is a
+    standard East of North definition assuming the WCS of the image is correct.
+
+    Note that this means radii are defined with $R = \\sqrt{x^2 +
+    (\\frac{y}{q})^2}$ rather than the common alternative which is $R =
+    \\sqrt{qx^2 + \\frac{y^2}{q}}$
+    """
 
     _parameter_specs = {
         "q": {"units": "b/a", "valid": (0.01, 1), "shape": ()},
@@ -53,22 +70,20 @@ class InclinedMixin:
 
     @forward
     def transform_coordinates(self, x, y, PA, q):
-        """
-        Transform coordinates based on the position angle and axis ratio.
-        """
         x, y = super().transform_coordinates(x, y)
         x, y = func.rotate(-PA + np.pi / 2, x, y)
         return x, y / q
 
 
 class SuperEllipseMixin:
-    """Expanded galaxy model which includes a superellipse transformation
-    in its radius metric. This allows for the expression of "boxy" and
-    "disky" isophotes instead of pure ellipses. This is a common
+    """Generalizes the definition of radius and so modifies the evaluation of radial models.
+
+    A superellipse transformation allows for the expression of "boxy" and
+    "disky" modifications to traditional elliptical isophotes. This is a common
     extension of the standard elliptical representation, especially
     for early-type galaxies. The functional form for this is:
 
-    R = (|X|^C + |Y|^C)^(1/C)
+    $$R = (|x|^C + |y|^C)^(1/C)$$
 
     where R is the new distance metric, X Y are the coordinates, and C
     is the coefficient for the superellipse. C can take on any value
@@ -92,44 +107,43 @@ class SuperEllipseMixin:
 
 
 class FourierEllipseMixin:
-    """Expanded galaxy model which includes a Fourier transformation in
-    its radius metric. This allows for the expression of arbitrarily
-    complex isophotes instead of pure ellipses. This is a common
-    extension of the standard elliptical representation. The form of
-    the Fourier perturbations is:
+    """Sine wave perturbation of the elliptical radius metric.
 
-    R' = R * exp(sum_m(a_m * cos(m * theta + phi_m)))
+    This allows for the expression of arbitrarily complex isophotes instead of
+    pure ellipses. This is a common extension of the standard elliptical
+    representation. The form of the Fourier perturbations is:
 
-    where R' is the new radius value, R is the original ellipse
-    radius, a_m is the amplitude of the m'th Fourier mode, m is the
-    index of the Fourier mode, theta is the angle around the ellipse,
-    and phi_m is the phase of the m'th fourier mode. This
-    representation is somewhat different from other Fourier mode
-    implementations where instead of an expoenntial it is just 1 +
-    sum_m(...), we opt for this formulation as it is more numerically
-    stable. It cannot ever produce negative radii, but to first order
-    the two representation are the same as can be seen by a Taylor
-    expansion of exp(x) = 1 + x + O(x^2).
+    $$R' = R * \\exp(\\sum_m(a_m * \\cos(m * \\theta + \\phi_m)))$$
 
-    One can create extremely complex shapes using different Fourier
-    modes, however usually it is only low order modes that are of
-    interest. For intuition, the first Fourier mode is roughly
-    equivalent to a lopsided galaxy, one side will be compressed and
-    the opposite side will be expanded. The second mode is almost
-    never used as it is nearly degenerate with ellipticity. The third
-    mode is an alternate kind of lopsidedness for a galaxy which makes
-    it somewhat triangular, meaning that it is wider on one side than
-    the other. The fourth mode is similar to a boxyness/diskyness
-    parameter which tends to make more pronounced peanut shapes since
-    it is more rounded than a superellipse representation. Modes
-    higher than 4 are only useful in very specialized situations. In
-    general one should consider carefully why the Fourier modes are
-    being used for the science case at hand.
+    where R' is the new radius value, R is the original radius (typically
+    computed as $\\sqrt{x^2+y^2}$), m is the index of the Fourier mode, a_m is
+    the amplitude of the m'th Fourier mode, theta is the angle around the
+    ellipse (typically $\\arctan(y/x)$), and phi_m is the phase of the m'th
+    fourier mode.
+
+    One can create extremely complex shapes using different Fourier modes,
+    however usually it is only low order modes that are of interest. For
+    intuition, the first Fourier mode is roughly equivalent to a lopsided
+    galaxy, one side will be compressed and the opposite side will be expanded.
+    The second mode is almost never used as it is nearly degenerate with
+    ellipticity. The third mode is an alternate kind of lopsidedness for a
+    galaxy which makes it somewhat triangular, meaning that it is wider on one
+    side than the other. The fourth mode is similar to a boxyness/diskyness
+    parameter of a superelllipse which tends to make more pronounced peanut
+    shapes since it is more rounded than a superellipse representation. Modes
+    higher than 4 are only useful in very specialized situations. In general one
+    should consider carefully why the Fourier modes are being used for the
+    science case at hand.
 
     Parameters:
-        am: Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.
-        phi_m: Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis. It is cyclically defined in the range [0,2pi)
+        am: Tensor of amplitudes for the Fourier modes, indicates the strength
+            of each mode.
+        phim: Tensor of phases for the Fourier modes, adjusts the
+            orientation of the mode perturbation relative to the major axis. It
+            is cyclically defined in the range [0,2pi)
 
+    Options:
+        modes: Tuple of integers indicating which Fourier modes to use.
     """
 
     _model_type = "fourier"
@@ -167,28 +181,26 @@ class FourierEllipseMixin:
 
 
 class WarpMixin:
-    """Galaxy model which includes radially varrying PA and q
-    profiles. This works by warping the coordinates using the same
-    transform for a global PA/q except applied to each pixel
-    individually. In the limit that PA and q are a constant, this
-    recovers a basic galaxy model with global PA/q. However, a linear
-    PA profile will give a spiral appearance, variations of PA/q
-    profiles can create complex galaxy models. The form of the
-    coordinate transformation looks like:
+    """Warped model with varying PA and q as a function of radius.
 
-    X, Y = meshgrid(image)
-    R = sqrt(X^2 + Y^2)
-    X', Y' = Rot(theta(R), X, Y)
-    Y'' = Y' / q(R)
+    This works by warping the coordinates using the same transform for a global
+    PA, q except applied to each pixel individually based on its unwarped radius
+    value. In the limit that PA and q are a constant, this recovers a basic
+    model with global PA, q. However, a linear PA profile will give a spiral
+    appearance, variations of PA, q profiles can create complex galaxy models.
+    The form of the coordinate transformation for each pixel looks like:
 
-    where the definitions are the same as for a regular galaxy model,
-    except now the theta is a function of radius R (before
-    transformation) and the axis ratio q is also a function of radius
-    (before the transformation).
+    $$R = \\sqrt{x^2 + y^2}$$
+    $$x', y' = \\rm{rotate}(-PA(R) + \\pi/2, x, y)$$
+    $$y'' = y' / q(R)$$
+
+    Note that now PA and q are functions of radius R, which is computed from the
+    original coordinates X, Y. This is achieved by making PA and q a spline
+    profile.
 
     Parameters:
-        q(R): Tensor of axis ratio values for axis ratio spline
-        PA(R): Tensor of position angle values as input to the spline
+        q_R: Tensor of axis ratio values for axis ratio spline
+        PA_R: Tensor of position angle values as input to the spline
 
     """
 
@@ -218,23 +230,39 @@ class WarpMixin:
         R = self.radius_metric(x, y)
         PA = func.spline(R, self.PA_R.prof, PA_R, extend="const")
         q = func.spline(R, self.q_R.prof, q_R, extend="const")
-        x, y = func.rotate(PA, x, y)
+        x, y = func.rotate(-PA + np.pi / 2, x, y)
         return x, y / q
 
 
 class TruncationMixin:
-    """Mixin for models that include a truncation radius. This is used to
-    limit the radial extent of the model, effectively setting a maximum
-    radius beyond which the model's brightness is zero.
+    """Truncated model with radial brightness profile.
+
+    This model will smoothly truncate the radial brightness profile at Rt. The
+    truncation is centered on Rt and thus two identical models with the same Rt
+    (and St) where one is inner truncated and the other is outer truncated will
+    reproduce nearly the same as a single un-truncated model.
+
+    By default the St parameter is set fixed to 1.0, giving a relatively smooth
+    truncation. This can be set to a smaller value for sharper truncations or a
+    larger value for even more gradual truncation. It can be set dynamic to be
+    optimized in a model, though it is possible for this parameter to be
+    unstable if there isn't a clear truncation signal in the data.
 
     Parameters:
-        R_trunc: The truncation radius in arcseconds.
+        Rt: The truncation radius in arcseconds.
+        St: The steepness of the truncation profile, controlling how quickly
+            the brightness drops to zero at the truncation radius.
+
+    Options:
+        outer_truncation: If True, the model will truncate the brightness beyond
+            the truncation radius. If False, the model will truncate the
+            brightness within the truncation radius.
     """
 
     _model_type = "truncated"
     _parameter_specs = {
         "Rt": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "sharpness": {"units": "none", "valid": (0, None), "shape": ()},
+        "St": {"units": "none", "valid": (0, None), "shape": (), "value": 1.0},
     }
     _options = ("outer_truncation",)
 
@@ -249,12 +277,10 @@ class TruncationMixin:
         if not self.Rt.initialized:
             prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
             self.Rt.dynamic_value = prof[len(prof) // 2]
-        if not self.sharpness.initialized:
-            self.sharpness.dynamic_value = 1.0
 
     @forward
-    def radial_model(self, R, Rt, sharpness):
+    def radial_model(self, R, Rt, St):
         I = super().radial_model(R)
         if self.outer_truncation:
-            return I * (1 - torch.tanh(sharpness * (R - Rt))) / 2
-        return I * (torch.tanh(sharpness * (R - Rt)) + 1) / 2
+            return I * (1 - torch.tanh(St * (R - Rt))) / 2
+        return I * (torch.tanh(St * (R - Rt)) + 1) / 2

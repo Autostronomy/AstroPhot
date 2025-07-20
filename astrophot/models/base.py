@@ -2,6 +2,7 @@ from typing import Optional, Union
 from copy import deepcopy
 
 import torch
+import numpy as np
 
 from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
@@ -15,71 +16,7 @@ __all__ = ("Model",)
 
 ######################################################################
 class Model(Module):
-    """Core class for all AstroPhot models and model like objects. This
-    class defines the signatures to interact with AstroPhot models
-    both for users and internal functions.
-
-    Basic usage:
-
-    .. code-block:: python
-
-      import astrophot as ap
-
-      # Create a model object
-      model = ap.models.AstroPhot_Model(
-          name="unique name",
-          model_type="choose a model type",
-          target="Target_Image object",
-          window="[[xmin, xmax],[ymin,ymax]]",  # <window pixel coordinates>,
-          parameters="dict of parameter specifications if desired",
-      )
-
-      # Initialize parameters that weren't set on creation
-      model.initialize()
-
-      # Fit model to target
-      result = ap.fit.lm(model, verbose=1).fit()
-
-      # Plot the model
-      fig, ax = plt.subplots()
-      ap.plots.model_image(fig, ax, model)
-      plt.show()
-
-      # Sample the model
-      img = model()
-      pixels = img.data
-
-    AstroPhot models are one of the main ways that one interacts with
-    the code, either by setting model parameters or passing models to
-    other objects, one can perform a huge variety of fitting
-    tasks. The subclass `Component_Model` should be thought of as the
-    basic unit when constructing a model of an image while a
-    `Group_Model` is a composite structure that may represent a
-    complex object, a region of an image, or even a model spanning
-    many images. Constructing the `Component_Model`s is where most
-    work goes, these store the actual parameters that will be
-    optimized. It is important to remember that a `Component_Model`
-    only ever applies to a single image and a single component (star,
-    galaxy, or even sub-component of one of those) in that image.
-
-    A complex representation is made by stacking many
-    `Component_Model`s together, in total this may result in a very
-    large number of parameters. Trying to find starting values for all
-    of these parameters can be tedious and error prone, so instead all
-    built-in AstroPhot models can self initialize and find reasonable
-    starting parameters for most situations. Even still one may find
-    that for extremely complex fits, it is more stable to first run an
-    iterative fitter before global optimization to start the models in
-    better initial positions.
-
-    Args:
-        name (Optional[str]): every AstroPhot model should have a unique name
-        model_type (str): a model type string can determine which kind of AstroPhot model is instantiated.
-        target (Optional[Target_Image]): A Target_Image object which stores information about the image which the model is trying to fit.
-        filename (Optional[str]): name of a file to load AstroPhot parameters, window, and name. The model will still need to be told its target, device, and other information
-        window (Optional[Union[Window, tuple]]): A window on the target image in which the model will be optimized and evaluated. If not provided, the model will assume a window equal to the target it is fitting. The window may be formatted as (i_low, i_high, j_low, j_high) or as ((i_low, j_low), (i_high, j_high)).
-
-    """
+    """Base class for all AstroPhot models."""
 
     _model_type = "model"
     _parameter_specs = {}
@@ -230,10 +167,26 @@ class Model(Module):
 
         return -nll
 
-    @forward
     def total_flux(self, window=None) -> torch.Tensor:
         F = self(window=window)
         return torch.sum(F.data)
+
+    def total_flux_uncertainty(self, window=None) -> torch.Tensor:
+        jac = self.jacobian(window=window).flatten("data")
+        dF = torch.sum(jac, dim=0)  # VJP for sum(total_flux)
+        current_uncertainty = self.build_params_array_uncertainty()
+        return torch.sqrt(torch.sum((dF * current_uncertainty) ** 2))
+
+    def total_magnitude(self, window=None) -> torch.Tensor:
+        """Compute the total magnitude of the model in the given window."""
+        F = self.total_flux(window=window)
+        return -2.5 * torch.log10(F) + self.target.zeropoint
+
+    def total_magnitude_uncertainty(self, window=None) -> torch.Tensor:
+        """Compute the uncertainty in the total magnitude of the model in the given window."""
+        F = self.total_flux(window=window)
+        dF = self.total_flux_uncertainty(window=window)
+        return 2.5 * (dF / F) / np.log(10)
 
     @property
     def window(self) -> Optional[Window]:

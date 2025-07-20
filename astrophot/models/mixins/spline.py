@@ -9,6 +9,16 @@ from .. import func
 
 
 class SplineMixin:
+    """Spline radial model for brightness.
+
+    The `radial_model` function for this model is defined as a spline
+    interpolation from the parameter `I_R`. The `I_R` parameter is a tensor
+    that contains the radial profile of the brightness in units of
+    flux/arcsec^2. The radius of each node is determined from `I_R.prof`.
+
+    Parameters:
+        I_R: Tensor of radial brightness values in units of flux/arcsec^2.
+    """
 
     _model_type = "spline"
     _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None)}}
@@ -43,6 +53,20 @@ class SplineMixin:
 
 
 class iSplineMixin:
+    """Batched spline radial model for brightness.
+
+    The `radial_model` function for this model is defined as a spline
+    interpolation from the parameter `I_R`. The `I_R` parameter is a tensor that
+    contains the radial profile of the brightness in units of flux/arcsec^2. The
+    radius of each node is determined from `I_R.prof`.
+
+    Both `I_R` and `I_R.prof` are batched by their first dimension, allowing for
+    multiple spline profiles to be defined at once. Each individual spline model
+    is then `I_R[i]` and `I_R.prof[i]` where `i` indexes the profiles.
+
+    Parameters:
+        I_R: Tensor of radial brightness values in units of flux/arcsec^2.
+    """
 
     _model_type = "spline"
     _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None)}}

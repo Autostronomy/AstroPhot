@@ -240,7 +240,7 @@ class LM(BaseOptimizer):
         return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
 
     @torch.no_grad()
-    def fit(self) -> BaseOptimizer:
+    def fit(self, update_uncertainty=True) -> BaseOptimizer:
         """This performs the fitting operation. It iterates the LM step
         function until convergence is reached. Includes a message
         after fitting to indicate how the fitting exited. Typically if
@@ -338,6 +338,8 @@ class LM(BaseOptimizer):
             )
 
         self.model.fill_dynamic_values(self.current_state)
+        if update_uncertainty:
+            self.update_uncertainty()
 
         return self
 

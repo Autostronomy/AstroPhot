@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from math import prod
 from caskade import (
     Module as CModule,
@@ -17,6 +18,15 @@ class Module(CModule):
             for i in range(numel):
                 identities.append(f"{id(param)}_{i}")
         return identities
+
+    def build_params_array_uncertainty(self):
+        uncertainties = []
+        for param in self.dynamic_params:
+            if param.uncertainty is None:
+                uncertainties.append(torch.zeros_like(param.value.flatten()))
+            else:
+                uncertainties.append(param.uncertainty.flatten())
+        return torch.cat(tuple(uncertainties), dim=-1)
 
     def build_params_array_names(self):
         names = []

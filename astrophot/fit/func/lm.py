@@ -39,8 +39,6 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     hess = hessian(J, weight)  # (N, N)
     if torch.allclose(grad, torch.zeros_like(grad)):
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
-    print("grad", grad)
-    print("hess", hess)
 
     best = {"x": torch.zeros_like(x), "chi2": chi20, "L": L}
     scary = {"x": None, "chi2": chi20, "L": L}
@@ -50,7 +48,6 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
     for _ in range(10):
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
-        print("h", h)
         chi21 = torch.sum(weight * (data - M1) ** 2).item() / ndf
 
         # Handle nan chi2
@@ -63,6 +60,9 @@ def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.
 
         if chi21 < scary["chi2"]:
             scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L}
+
+        # if torch.allclose(h, torch.zeros_like(h)):
+        #     raise OptimizeStopSuccess("Step with zero length means optimization complete.")
 
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()

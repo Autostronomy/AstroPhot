@@ -14,6 +14,8 @@ from .mixins import (
     WarpMixin,
     iMoffatMixin,
 )
+from ..utils.decorators import combine_docstrings
+
 
 __all__ = (
     "MoffatGalaxy",
@@ -27,24 +29,8 @@ __all__ = (
 )
 
 
+@combine_docstrings
 class MoffatGalaxy(MoffatMixin, RadialMixin, GalaxyModel):
-    """basic galaxy model with a Moffat profile for the radial light
-    profile. The functional form of the Moffat profile is defined as:
-
-    I(R) = I0 / (1 + (R/Rd)^2)^n
-
-    where I(R) is the brightness profile as a function of semi-major
-    axis, R is the semi-major axis length, I0 is the central flux
-    density, Rd is the scale length for the profile, and n is the
-    concentration index which controls the shape of the profile.
-
-    Parameters:
-        n: Concentration index which controls the shape of the brightness profile
-        I0: brightness at the center of the profile, represented as the log of the brightness divided by pixel scale squared.
-        Rd: scale length radius
-
-    """
-
     usable = True
 
     @forward
@@ -52,24 +38,8 @@ class MoffatGalaxy(MoffatMixin, RadialMixin, GalaxyModel):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
+@combine_docstrings
 class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
-    """basic point source model with a Moffat profile for the radial light
-    profile. The functional form of the Moffat profile is defined as:
-
-    I(R) = I0 / (1 + (R/Rd)^2)^n
-
-    where I(R) is the brightness profile as a function of semi-major
-    axis, R is the semi-major axis length, I0 is the central flux
-    density, Rd is the scale length for the profile, and n is the
-    concentration index which controls the shape of the profile.
-
-    Parameters:
-        n: Concentration index which controls the shape of the brightness profile
-        I0: brightness at the center of the profile, represented as the log of the brightness divided by pixel scale squared.
-        Rd: scale length radius
-
-    """
-
     _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
 
     usable = True
@@ -79,6 +49,7 @@ class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
         return moffat_I0_to_flux(I0, n, Rd, 1.0)
 
 
+@combine_docstrings
 class Moffat2DPSF(MoffatMixin, InclinedMixin, RadialMixin, PSFModel):
 
     _model_type = "2d"
@@ -90,21 +61,26 @@ class Moffat2DPSF(MoffatMixin, InclinedMixin, RadialMixin, PSFModel):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
+@combine_docstrings
 class MoffatSuperEllipse(MoffatMixin, SuperEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class MoffatFourierEllipse(MoffatMixin, FourierEllipseMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class MoffatWarp(MoffatMixin, WarpMixin, RadialMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class MoffatRay(iMoffatMixin, RayMixin, GalaxyModel):
     usable = True
 
 
+@combine_docstrings
 class MoffatWedge(iMoffatMixin, WedgeMixin, GalaxyModel):
     usable = True

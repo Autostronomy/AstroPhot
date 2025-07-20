@@ -13,6 +13,24 @@ def x0_func(model_params, R, F):
 
 
 class KingMixin:
+    """Empirical King radial light profile (Elson 1999).
+
+    Often used for star clusters. By default the profile has `alpha = 2` but we
+    allow the parameter to vary freely for fitting. The functional form of the
+    Empirical King profile is defined as:
+
+    $$I(R) = I_0\\left[\\frac{1}{(1 + (R/R_c)^2)^{1/\\alpha}} - \\frac{1}{(1 + (R_t/R_c)^2)^{1/\\alpha}}\\right]^{\\alpha}\\left[1 - \\frac{1}{(1 + (R_t/R_c)^2)^{1/\\alpha}}\\right]^{-\\alpha}$$
+
+    where `R_c` is the core radius, `R_t` is the truncation radius, and `I_0` is
+    the intensity at the center of the profile. `alpha` is the concentration
+    index which controls the shape of the profile.
+
+    Parameters:
+        Rc: core radius
+        Rt: truncation radius
+        alpha: concentration index which controls the shape of the brightness profile
+        I0: intensity at the center of the profile
+    """
 
     _model_type = "king"
     _parameter_specs = {
@@ -44,6 +62,27 @@ class KingMixin:
 
 
 class iKingMixin:
+    """Empirical King radial light profile (Elson 1999).
+
+    Often used for star clusters. By default the profile has `alpha = 2` but we
+    allow the parameter to vary freely for fitting. The functional form of the
+    Empirical King profile is defined as:
+
+    $$I(R) = I_0\\left[\\frac{1}{(1 + (R/R_c)^2)^{1/\\alpha}} - \\frac{1}{(1 + (R_t/R_c)^2)^{1/\\alpha}}\\right]^{\\alpha}\\left[1 - \\frac{1}{(1 + (R_t/R_c)^2)^{1/\\alpha}}\\right]^{-\\alpha}$$
+
+    where `R_c` is the core radius, `R_t` is the truncation radius, and `I_0` is
+    the intensity at the center of the profile. `alpha` is the concentration
+    index which controls the shape of the profile.
+
+    `Rc`, `Rt`, `alpha`, and `I0` are batched by their first dimension, allowing
+    for multiple King profiles to be defined at once.
+
+    Parameters:
+        Rc: core radius
+        Rt: truncation radius
+        alpha: concentration index which controls the shape of the brightness profile
+        I0: intensity at the center of the profile
+    """
 
     _model_type = "king"
     _parameter_specs = {

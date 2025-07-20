@@ -12,14 +12,15 @@ def _x0_func(model_params, R, F):
 
 
 class ExponentialMixin:
-    """Mixin for models that use an exponential profile for the radial light
-    profile. The functional form of the exponential profile is defined as:
+    """Exponential radial light profile.
 
-    I(R) = Ie * exp(- (R / Re))
+    An exponential is a classical radial model used in many contexts. The
+    functional form of the exponential profile is defined as:
 
-    where I(R) is the brightness profile as a function of semi-major
-    axis, R is the semi-major axis length, Ie is the brightness at the
-    effective radius, and Re is the effective radius.
+    $$I(R) = I_e * \\exp(- b_1(\\frac{R}{R_e} - 1))$$
+
+    Ie is the brightness at the effective radius, and Re is the effective
+    radius. `b_1` is a constant that ensures `Ie` is the brightness at `R_e`.
 
     Parameters:
         Re: effective radius in arcseconds
@@ -51,14 +52,18 @@ class ExponentialMixin:
 
 
 class iExponentialMixin:
-    """Mixin for models that use an exponential profile for the radial light
-    profile. The functional form of the exponential profile is defined as:
+    """Exponential radial light profile.
 
-    I(R) = Ie * exp(- (R / Re))
+    An exponential is a classical radial model used in many contexts. The
+    functional form of the exponential profile is defined as:
 
-    where I(R) is the brightness profile as a function of semi-major
-    axis, R is the semi-major axis length, Ie is the brightness at the
-    effective radius, and Re is the effective radius.
+    $$I(R) = I_e * \\exp(- b_1(\\frac{R}{R_e} - 1))$$
+
+    Ie is the brightness at the effective radius, and Re is the effective
+    radius. `b_1` is a constant that ensures `Ie` is the brightness at `R_e`.
+
+    `Re` and `Ie` are batched by their first dimension, allowing for multiple
+    exponential profiles to be defined at once.
 
     Parameters:
         Re: effective radius in arcseconds

@@ -32,7 +32,7 @@ class SersicGalaxy(SersicMixin, RadialMixin, GalaxyModel):
     usable = True
 
     @forward
-    def total_flux(self, Ie, n, Re, q):
+    def total_flux(self, Ie, n, Re, q, window=None):
         return sersic_Ie_to_flux_torch(Ie, n, Re, q)
 
 
@@ -43,24 +43,6 @@ class TSersicGalaxy(TruncationMixin, SersicMixin, RadialMixin, GalaxyModel):
 
 @combine_docstrings
 class SersicPSF(SersicMixin, RadialMixin, PSFModel):
-    """basic point source model with a sersic profile for the radial light
-    profile. The functional form of the Sersic profile is defined as:
-
-    I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))
-
-    where I(R) is the brightness profile as a function of semi-major
-    axis, R is the semi-major axis length, Ie is the brightness as the
-    half light radius, bn is a function of n and is not involved in
-    the fit, Re is the half light radius, and n is the sersic index
-    which controls the shape of the profile.
-
-    Parameters:
-        n: Sersic index which controls the shape of the brightness profile
-        Ie: brightness at the half light radius, represented as the log of the brightness divided by pixel scale squared.
-        Re: half light radius
-
-    """
-
     _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0}}
     usable = True
 

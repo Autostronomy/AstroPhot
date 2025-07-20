@@ -12,15 +12,23 @@ def _x0_func(model, R, F):
 
 
 class SersicMixin:
-    """Sersic radial light profile. The functional form of the Sersic profile is defined as:
+    """Sersic radial light profile (Sersic 1963).
 
-    $$I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))$$
+    This is a classic profile used widely in galaxy modelling. It can be a good
+    starting point for many extended objects. The functional form of the Sersic
+    profile is defined as:
+
+    $$I(R) = I_e * \\exp(- b_n((R/R_e)^(1/n) - 1))$$
+
+    It is a generalization of a gaussian, exponential, and de-Vaucouleurs
+    profile. The Sersic index `n` controls the shape of the profile, with `n=1`
+    being an exponential profile, `n=4` being a de-Vaucouleurs profile, and
+    `n=0.5` being a Gaussian profile.
 
     Parameters:
         n: Sersic index which controls the shape of the brightness profile
         Re: half light radius [arcsec]
         Ie: intensity at the half light radius [flux/arcsec^2]
-
     """
 
     _model_type = "sersic"
@@ -45,15 +53,26 @@ class SersicMixin:
 
 
 class iSersicMixin:
-    """Sersic radial light profile. The functional form of the Sersic profile is defined as:
+    """Sersic radial light profile (Sersic 1963).
 
-    $$I(R) = Ie * exp(- bn((R/Re)^(1/n) - 1))$$
+    This is a classic profile used widely in galaxy modelling. It can be a good
+    starting point for many extended objects. The functional form of the Sersic
+    profile is defined as:
+
+    $$I(R) = I_e * \\exp(- b_n((R/R_e)^(1/n) - 1))$$
+
+    It is a generalization of a gaussian, exponential, and de-Vaucouleurs
+    profile. The Sersic index `n` controls the shape of the profile, with `n=1`
+    being an exponential profile, `n=4` being a de-Vaucouleurs profile, and
+    `n=0.5` being a Gaussian profile.
+
+    `n`, `Re`, and `Ie` are batched by their first dimension, allowing for
+    multiple Sersic profiles to be defined at once.
 
     Parameters:
         n: Sersic index which controls the shape of the brightness profile
         Re: half light radius [arcsec]
         Ie: intensity at the half light radius [flux/arcsec^2]
-
     """
 
     _model_type = "sersic"

@@ -21,42 +21,21 @@ __all__ = ["ComponentModel"]
 
 
 class ComponentModel(SampleMixin, Model):
-    """Component_Model(name, target, window, locked, **kwargs)
+    """Component of a model for an object in an image.
 
-    Component_Model is a base class for models that represent single
-    objects or parametric forms. It provides the basis for subclassing
-    models and requires the definition of parameters, initialization,
-    and model evaluation functions. This class also handles
-    integration, PSF convolution, and computing the Jacobian matrix.
+    This is a single component of an image model. It has a position on the sky
+    determined by `center` and may or may not be convolved with a PSF to represent some data.
 
-    Attributes:
-      parameter_specs (dict): Specifications for the model parameters.
-      _parameter_order (tuple): Fixed order of parameters.
-      psf_mode (str): Technique and scope for PSF convolution.
-      sampling_mode (str): Method for initial sampling of model. Can be one of midpoint, trapezoid, simpson. Default: midpoint
-      sampling_tolerance (float): accuracy to which each pixel should be evaluated. Default: 1e-2
-      integrate_mode (str): Integration scope for the model. One of none, threshold, full where threshold will select which pixels to integrate while full (in development) will integrate all pixels. Default: threshold
-      integrate_max_depth (int): Maximum recursion depth when performing sub pixel integration.
-      integrate_gridding (int): Amount by which to subdivide pixels when doing recursive pixel integration.
-      integrate_quad_level (int): The initial quadrature level for sub pixel integration. Please always choose an odd number 3 or higher.
-      softening (float): Softening length used for numerical stability and integration stability to avoid discontinuities (near R=0). Effectively has units of arcsec. Default: 1e-5
-      jacobian_chunksize (int): Maximum size of parameter list before jacobian will be broken into smaller chunks.
-      special_kwargs (list): Parameters which are treated specially by the model object and should not be updated directly.
-      usable (bool): Indicates if the model is usable.
-
-    Methods:
-      initialize: Determine initial values for the center coordinates.
-      sample: Evaluate the model on the space covered by an image object.
-      jacobian: Compute the Jacobian matrix for this model.
+    Options:
+        psf_convolve: Whether to convolve the model with a PSF. (bool)
 
     """
 
     _parameter_specs = {"center": {"units": "arcsec", "shape": (2,)}}
 
-    # Scope for PSF convolution
-    psf_convolve = False
-
     _options = ("psf_convolve",)
+    psf_convolve: bool = False
+
     usable = False
 
     def __init__(self, *args, psf=None, **kwargs):

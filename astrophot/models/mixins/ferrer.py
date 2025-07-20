@@ -12,6 +12,24 @@ def x0_func(model_params, R, F):
 
 
 class FerrerMixin:
+    """Modified Ferrer radial light profile (Binney & Tremaine 1987).
+
+    This model has a relatively flat brightness core and then a truncation. It
+    is used in specialized circumstances such as fitting the bar of a galaxy.
+    The functional form of the Modified Ferrer profile is defined as:
+
+    $$I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}$$
+
+    where `rout` is the outer truncation radius, `alpha` controls the steepness
+    of the truncation, `beta` controls the shape, and `I0` is the intensity at
+    the center of the profile.
+
+    Parameters:
+        rout: Outer truncation radius in arcseconds.
+        alpha: Inner slope parameter.
+        beta: Outer slope parameter.
+        I0: Intensity at the center of the profile in flux/arcsec^2
+    """
 
     _model_type = "ferrer"
     _parameter_specs = {
@@ -40,6 +58,27 @@ class FerrerMixin:
 
 
 class iFerrerMixin:
+    """Modified Ferrer radial light profile (Binney & Tremaine 1987).
+
+    This model has a relatively flat brightness core and then a truncation. It
+    is used in specialized circumstances such as fitting the bar of a galaxy.
+    The functional form of the Modified Ferrer profile is defined as:
+
+    $$I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}$$
+
+    where `rout` is the outer truncation radius, `alpha` controls the steepness
+    of the truncation, `beta` controls the shape, and `I0` is the intensity at
+    the center of the profile.
+
+    `rout`, `alpha`, `beta`, and `I0` are batched by their first dimension,
+    allowing for multiple Ferrer profiles to be defined at once.
+
+    Parameters:
+        rout: Outer truncation radius in arcseconds.
+        alpha: Inner slope parameter.
+        beta: Outer slope parameter.
+        I0: Intensity at the center of the profile in flux/arcsec^2
+    """
 
     _model_type = "ferrer"
     _parameter_specs = {
