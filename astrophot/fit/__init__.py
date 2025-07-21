@@ -13,7 +13,7 @@ from .scipy_fit import ScipyFit
 #     from .nuts import *
 # except AssertionError as e:
 #     print("Could not load HMC or NUTS due to:", str(e))
-# from .mhmcmc import *
+from .mhmcmc import MHMCMC
 
 __all__ = ["LM", "Grad", "Iter", "ScipyFit"]
 

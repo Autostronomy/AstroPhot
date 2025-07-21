@@ -82,4 +82,7 @@ class MHMCMC(BaseOptimizer):
             self.chain = sampler.get_chain()
         else:
             self.chain = np.append(self.chain, sampler.get_chain(), axis=0)
+        self.model.fill_dynamic_values(
+            torch.tensor(self.chain[-1][0], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        )
         return self

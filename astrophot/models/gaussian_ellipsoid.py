@@ -97,11 +97,6 @@ class GaussianEllipsoid(ComponentModel):
         self.flux.dynamic_value = np.sum(dat)
 
     @forward
-    def total_flux(self, flux):
-        """Total flux of the Gaussian ellipsoid."""
-        return flux
-
-    @forward
     def brightness(self, x, y, sigma_a, sigma_b, sigma_c, alpha, beta, gamma, flux):
         """Brightness of the Gaussian ellipsoid."""
         D = torch.diag(torch.stack((sigma_a, sigma_b, sigma_c)) ** 2)

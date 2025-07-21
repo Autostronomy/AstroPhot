@@ -96,10 +96,6 @@ class MultiGaussianExpansion(ComponentModel):
             self.q.dynamic_value = ones * np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     @forward
-    def total_flux(self, flux):
-        return torch.sum(flux)
-
-    @forward
     def transform_coordinates(self, x, y, q, PA):
         x, y = super().transform_coordinates(x, y)
         if PA.numel() == 1:

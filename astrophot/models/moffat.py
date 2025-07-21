@@ -34,7 +34,7 @@ class MoffatGalaxy(MoffatMixin, RadialMixin, GalaxyModel):
     usable = True
 
     @forward
-    def total_flux(self, n, Rd, I0, q):
+    def total_flux(self, window=None, n=None, Rd=None, I0=None, q=None):
         return moffat_I0_to_flux(I0, n, Rd, q)
 
 
@@ -45,7 +45,7 @@ class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
     usable = True
 
     @forward
-    def total_flux(self, n, Rd, I0):
+    def total_flux(self, window=None, n=None, Rd=None, I0=None):
         return moffat_I0_to_flux(I0, n, Rd, 1.0)
 
 
@@ -55,10 +55,6 @@ class Moffat2DPSF(MoffatMixin, InclinedMixin, RadialMixin, PSFModel):
     _model_type = "2d"
     _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
     usable = True
-
-    @forward
-    def total_flux(self, n, Rd, I0, q):
-        return moffat_I0_to_flux(I0, n, Rd, q)
 
 
 @combine_docstrings

@@ -36,7 +36,7 @@ class KingMixin:
     _parameter_specs = {
         "Rc": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
         "Rt": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "alpha": {"units": "unitless", "valid": (0, None), "shape": ()},
+        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (), "value": 2.0},
         "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
     }
 
@@ -98,7 +98,7 @@ class iKingMixin:
         super().initialize()
 
         if not self.alpha.initialized:
-            self.alpha.dynamic_value = 2.0 * np.ones(self.segments)
+            self.alpha.value = 2.0 * np.ones(self.segments)
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],

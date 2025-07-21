@@ -98,6 +98,7 @@ def test_model_errors():
 def test_all_model_sample(model_type):
 
     target = make_basic_sersic()
+    target.zeropoint = 22.5
     MODEL = ap.Model(
         name="test model",
         model_type=model_type,
@@ -137,6 +138,18 @@ def test_all_model_sample(model_type):
             f"Model {model_type} should fit to the target image, but did not. "
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
         )
+
+    F = MODEL.total_flux()
+    assert torch.isfinite(F), "Model total flux should be finite after fitting"
+    assert F > 0, "Model total flux should be positive after fitting"
+    U = MODEL.total_flux_uncertainty()
+    assert torch.isfinite(U), "Model total flux uncertainty should be finite after fitting"
+    assert U >= 0, "Model total flux uncertainty should be non-negative after fitting"
+    M = MODEL.total_magnitude()
+    assert torch.isfinite(M), "Model total magnitude should be finite after fitting"
+    U_M = MODEL.total_magnitude_uncertainty()
+    assert torch.isfinite(U_M), "Model total magnitude uncertainty should be finite after fitting"
+    assert U_M >= 0, "Model total magnitude uncertainty should be non-negative after fitting"
 
 
 def test_sersic_save_load():
