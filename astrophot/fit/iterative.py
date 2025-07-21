@@ -44,21 +44,19 @@ class Iter(BaseOptimizer):
     def __init__(
         self,
         model: Model,
-        method: BaseOptimizer = LM,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
-        method_kwargs: Dict[str, Any] = {},
+        lm_kwargs: Dict[str, Any] = {},
         **kwargs: Dict[str, Any],
     ) -> None:
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         self.current_state = model.build_params_array()
-        self.method = method
-        self.method_kwargs = method_kwargs
-        if "relative_tolerance" not in method_kwargs and isinstance(method, LM):
+        self.lm_kwargs = lm_kwargs
+        if "relative_tolerance" not in lm_kwargs:
             # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
-            self.method_kwargs["relative_tolerance"] = 1e-3
-            self.method_kwargs["max_iter"] = 15
+            self.lm_kwargs["relative_tolerance"] = 1e-3
+            self.lm_kwargs["max_iter"] = 15
         #          # pixels      # parameters
         self.ndf = self.model.target[self.model.window].flatten("data").size(0) - len(
             self.current_state
@@ -67,7 +65,7 @@ class Iter(BaseOptimizer):
             # subtract masked pixels from degrees of freedom
             self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
 
-    def sub_step(self, model: Model) -> None:
+    def sub_step(self, model: Model, update_uncertainty=False) -> None:
         """
         Perform optimization for a single model.
 
@@ -77,7 +75,7 @@ class Iter(BaseOptimizer):
         self.Y -= model()
         initial_values = model.target.copy()
         model.target = model.target - self.Y
-        res = self.method(model, **self.method_kwargs).fit()
+        res = LM(model, **self.lm_kwargs).fit(update_uncertainty=update_uncertainty)
         self.Y += model()
         if self.verbose > 1:
             AP_config.ap_logger.info(res.message)
@@ -134,7 +132,7 @@ class Iter(BaseOptimizer):
 
         self.iteration += 1
 
-    def fit(self) -> BaseOptimizer:
+    def fit(self, update_uncertainty=True) -> BaseOptimizer:
         """
         Fit the models to the target.
 
@@ -160,6 +158,11 @@ class Iter(BaseOptimizer):
         self.model.fill_dynamic_values(
             torch.tensor(self.res(), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
         )
+        if update_uncertainty:
+            for model in self.model.models:
+                if self.verbose > 1:
+                    AP_config.ap_logger.info(model.name)
+                self.sub_step(model, update_uncertainty=True)
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"

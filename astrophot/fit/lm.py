@@ -363,7 +363,7 @@ class LM(BaseOptimizer):
                 "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will massage Hessian to continue but results should be inspected."
             )
             hess += torch.eye(len(hess), dtype=AP_config.ap_dtype, device=AP_config.ap_device) * (
-                torch.diag(hess) == 0
+                torch.diag(hess) < 1e-9
             )
             self._covariance_matrix = torch.linalg.inv(hess)
         return self._covariance_matrix
