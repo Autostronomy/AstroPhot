@@ -11,11 +11,7 @@ from .integration import (
     recursive_bright_integrate,
 )
 from .convolution import (
-    lanczos_kernel,
-    bilinear_kernel,
-    fft_shift_kernel,
     convolve,
-    convolve_and_shift,
     curvature_kernel,
 )
 from .sersic import sersic, sersic_n_to_b
@@ -37,11 +33,7 @@ __all__ = (
     "pixel_corner_integrator",
     "pixel_simpsons_integrator",
     "pixel_quad_integrator",
-    "lanczos_kernel",
-    "bilinear_kernel",
-    "fft_shift_kernel",
     "convolve",
-    "convolve_and_shift",
     "curvature_kernel",
     "sersic",
     "sersic_n_to_b",

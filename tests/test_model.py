@@ -53,6 +53,20 @@ def test_model_sampling_modes():
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
+    # Without subpixel integration
+    model.integrate_mode = "threshold"
+    auto = model().data.detach().cpu().numpy()
+    model.sampling_mode = "midpoint"
+    midpoint = model().data.detach().cpu().numpy()
+    model.sampling_mode = "simpsons"
+    simpsons = model().data.detach().cpu().numpy()
+    model.sampling_mode = "quad:5"
+    quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
+    assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
+    assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
+    assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
+
     model.integrate_mode = "should raise"
     with pytest.raises(ap.errors.SpecificationConflict):
         model()

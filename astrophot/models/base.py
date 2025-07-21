@@ -140,11 +140,11 @@ class Model(Module):
         data = data.data
         if isinstance(data, ImageList):
             nll = 0.5 * sum(
-                torch.sum(((mo - da) ** 2 * wgt)[~ma])
+                torch.sum(((da - mo) ** 2 * wgt)[~ma])
                 for mo, da, wgt, ma in zip(model, data, weight, mask)
             )
         else:
-            nll = 0.5 * torch.sum(((model - data) ** 2 * weight)[~mask])
+            nll = 0.5 * torch.sum(((data - model) ** 2 * weight)[~mask])
 
         return -nll
 

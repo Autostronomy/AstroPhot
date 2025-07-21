@@ -73,6 +73,32 @@ def test_fitters(fitter):
     assert pll_final > pll_init, f"{fitter.__name__} should improve the poisson log likelihood"
 
 
+def test_gradient():
+    target = make_basic_sersic()
+    target.weight = 1 / (10 + target.variance.T)
+    model = ap.Model(
+        name="test sersic",
+        model_type="sersic galaxy model",
+        center=[20, 20],
+        PA=np.pi,
+        q=0.7,
+        n=2,
+        Re=15,
+        Ie=10.0,
+        target=target,
+    )
+    model.initialize()
+    x = model.build_params_array()
+    grad = model.gradient()
+    assert torch.all(torch.isfinite(grad)), "Gradient should be finite"
+    assert grad.shape == x.shape, "Gradient shape should match parameters shape"
+    x.requires_grad = True
+    ll = model.gaussian_log_likelihood(x)
+    ll.backward()
+    autograd = x.grad
+    assert torch.allclose(grad, autograd, rtol=1e-4), "Gradient should match autograd gradient"
+
+
 # class TestHMC(unittest.TestCase):
 #     def test_hmc_sample(self):
 #         np.random.seed(12345)
