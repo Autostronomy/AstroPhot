@@ -70,6 +70,7 @@ class Image(Module):
         )
         self.crtan = Param(
             "crtan",
+            crtan,
             shape=(2,),
             units="arcsec",
             dtype=AP_config.ap_dtype,
@@ -114,7 +115,6 @@ class Image(Module):
 
         # set the data
         self.crval = crval
-        self.crtan = crtan
         self.crpix = crpix
 
         if isinstance(CD, (float, int)):
@@ -464,12 +464,8 @@ class Image(Module):
         self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
         if "CRTAN1" in hdulist[hduext].header and "CRTAN2" in hdulist[hduext].header:
             self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
-        else:
-            self.crtan = (0.0, 0.0)
         if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:
             self.zeropoint = hdulist[hduext].header["MAGZP"]
-        else:
-            self.zeropoint = None
         self.identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
         return hdulist
 

@@ -30,11 +30,11 @@ def solve(hess, grad, L):
     return hessD, h
 
 
-def lm_step(x, data, model, weight, jacobian, ndf, chi2, L=1.0, Lup=9.0, Ldn=11.0):
-    chi20 = chi2
+def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0):
     M0 = model(x)  # (M,)
     J = jacobian(x)  # (M, N)
     R = data - M0  # (M,)
+    chi20 = torch.sum(weight * R**2).item() / ndf
     grad = gradient(J, weight, R)  # (N, 1)
     hess = hessian(J, weight)  # (N, N)
     if torch.allclose(grad, torch.zeros_like(grad)):

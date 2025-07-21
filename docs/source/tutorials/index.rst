@@ -17,5 +17,6 @@ version of each tutorial is available here.
     JointModels
     ImageAlignment
     CustomModels
+    GravitationalLensing
     AdvancedPSFModels
     ConstrainedModels
