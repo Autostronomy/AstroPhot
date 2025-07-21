@@ -39,7 +39,7 @@ Repository = "https://github.com/Autostronomy/AstroPhot"
 Issues = "https://github.com/Autostronomy/AstroPhot/issues"
 
 [project.optional-dependencies]
-dev = ["pre-commit", "nbval", "nbconvert", "graphviz", "ipywidgets", "jupyter-book", "matplotlib", "photutils", "scikit-image", "caustics"]
+dev = ["pre-commit", "nbval", "nbconvert", "graphviz", "ipywidgets", "jupyter-book", "matplotlib", "photutils", "scikit-image", "caustics", "emcee"]
 
 [project.scripts]
 astrophot = "astrophot:run_from_terminal"
