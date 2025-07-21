@@ -40,15 +40,15 @@ class SIPMixin:
 
     @forward
     def pixel_to_plane(self, i, j, crtan, CD):
-        di = interp2d(self.distortion_ij[0], j, i)
-        dj = interp2d(self.distortion_ij[1], j, i)
+        di = interp2d(self.distortion_ij[0], j, i, padding_mode="border")
+        dj = interp2d(self.distortion_ij[1], j, i, padding_mode="border")
         return func.pixel_to_plane_linear(i + di, j + dj, *self.crpix, CD, *crtan)
 
     @forward
     def plane_to_pixel(self, x, y, crtan, CD):
         I, J = func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
-        dI = interp2d(self.distortion_IJ[0], J, I)
-        dJ = interp2d(self.distortion_IJ[1], J, I)
+        dI = interp2d(self.distortion_IJ[0], J, I, padding_mode="border")
+        dJ = interp2d(self.distortion_IJ[1], J, I, padding_mode="border")
         return I + dI, J + dJ
 
     @property

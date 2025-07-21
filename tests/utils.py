@@ -8,19 +8,19 @@ def get_astropy_wcs():
         "SIMPLE": "T",
         "NAXIS": 2,
         "NAXIS1": 180,
-        "NAXIS2": 180,
+        "NAXIS2": 170,
         "CTYPE1": "RA---TAN",
         "CTYPE2": "DEC--TAN",
         "CRVAL1": 195.0588,
         "CRVAL2": 28.0608,
         "CRPIX1": 90.5,
-        "CRPIX2": 90.5,
+        "CRPIX2": 85.5,
         "CD1_1": -0.000416666666666667,
         "CD1_2": 0.0,
         "CD2_1": 0.0,
         "CD2_2": 0.000416666666666667,
-        "IMAGEW": 180.0,
-        "IMAGEH": 180.0,
+        # "IMAGEW": 180.0,
+        # "IMAGEH": 170.0,
     }
     return WCS(hdr)
 

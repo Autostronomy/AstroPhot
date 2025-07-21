@@ -101,10 +101,12 @@ class SIPTargetImage(SIPMixin, TargetImage):
         new_distortion_IJ = self.distortion_IJ
         if upsample > 1:
             U = torch.nn.Upsample(scale_factor=upsample, mode="nearest")
-            new_area_map = U(new_area_map) / upsample**2
+            new_area_map = (
+                U(new_area_map.unsqueeze(0).unsqueeze(0)).squeeze(0).squeeze(0) / upsample**2
+            )
             U = torch.nn.Upsample(scale_factor=upsample, mode="bilinear", align_corners=False)
-            new_distortion_ij = U(self.distortion_ij)
-            new_distortion_IJ = U(self.distortion_IJ)
+            new_distortion_ij = U(self.distortion_ij.unsqueeze(1)).squeeze(1)
+            new_distortion_IJ = U(self.distortion_IJ.unsqueeze(1)).squeeze(1)
         if pad > 0:
             new_area_map = (
                 torch.nn.functional.pad(

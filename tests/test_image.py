@@ -2,7 +2,7 @@ import astrophot as ap
 import torch
 import numpy as np
 
-from utils import make_basic_sersic
+from utils import make_basic_sersic, get_astropy_wcs
 import pytest
 
 ######################################################################
@@ -10,14 +10,17 @@ import pytest
 ######################################################################
 
 
-def test_image_creation():
+@pytest.fixture()
+def base_image():
     arr = torch.zeros((10, 15))
-    base_image = ap.Image(
+    return ap.Image(
         data=arr,
         pixelscale=1.0,
         zeropoint=1.0,
     )
 
+
+def test_image_creation(base_image):
     assert base_image.pixelscale == 1.0, "image should track pixelscale"
     assert base_image.zeropoint == 1.0, "image should track zeropoint"
     assert base_image.crpix[0] == 0, "image should track crpix"
@@ -30,43 +33,33 @@ def test_image_creation():
     assert sliced_image.shape == (6, 3), "sliced image should have correct shape"
 
 
-def test_copy():
-    new_image = ap.Image(
-        data=torch.zeros((10, 15)),
-        pixelscale=1.0,
-        zeropoint=1.0,
-    )
-
-    copy_image = new_image.copy()
-    assert new_image.pixelscale == copy_image.pixelscale, "copied image should have same pixelscale"
-    assert new_image.zeropoint == copy_image.zeropoint, "copied image should have same zeropoint"
+def test_copy(base_image):
+    copy_image = base_image.copy()
     assert (
-        new_image.window.extent == copy_image.window.extent
+        base_image.pixelscale == copy_image.pixelscale
+    ), "copied image should have same pixelscale"
+    assert base_image.zeropoint == copy_image.zeropoint, "copied image should have same zeropoint"
+    assert (
+        base_image.window.extent == copy_image.window.extent
     ), "copied image should have same window"
     copy_image += 1
-    assert new_image.data[0][0] == 0.0, "copied image should not share data with original"
+    assert base_image.data[0][0] == 0.0, "copied image should not share data with original"
 
-    blank_copy_image = new_image.blank_copy()
+    blank_copy_image = base_image.blank_copy()
     assert (
-        new_image.pixelscale == blank_copy_image.pixelscale
+        base_image.pixelscale == blank_copy_image.pixelscale
     ), "copied image should have same pixelscale"
     assert (
-        new_image.zeropoint == blank_copy_image.zeropoint
+        base_image.zeropoint == blank_copy_image.zeropoint
     ), "copied image should have same zeropoint"
     assert (
-        new_image.window.extent == blank_copy_image.window.extent
+        base_image.window.extent == blank_copy_image.window.extent
     ), "copied image should have same window"
     blank_copy_image += 1
-    assert new_image.data[0][0] == 0.0, "copied image should not share data with original"
+    assert base_image.data[0][0] == 0.0, "copied image should not share data with original"
 
 
-def test_image_arithmetic():
-    arr = torch.zeros((10, 12))
-    base_image = ap.Image(
-        data=arr,
-        pixelscale=1.0,
-        zeropoint=1.0,
-    )
+def test_image_arithmetic(base_image):
     slicer = ap.Window((-1, 5, 6, 15), base_image)
     sliced_image = base_image[slicer]
     sliced_image += 1
@@ -348,3 +341,22 @@ def test_jacobian_add():
     ), "Jacobian should flatten to Npix*Nparams tensor"
     assert new_image.data[0, 0, 0].item() == 1, "Jacobian addition should not change original data"
     assert new_image.data[0, 0, 1].item() == 6, " Jacobian addition should add correctly"
+
+
+def test_image_with_wcs():
+    WCS = get_astropy_wcs()
+    image = ap.TargetImage(
+        data=np.ones((170, 180)),
+        wcs=WCS,
+    )
+    assert image.shape[0] == WCS.pixel_shape[0], "Image should have correct shape from WCS"
+    assert image.shape[1] == WCS.pixel_shape[1], "Image should have correct shape from WCS"
+    assert np.allclose(
+        image.CD.value * ap.utils.conversions.units.arcsec_to_deg, WCS.pixel_scale_matrix
+    ), "Image should have correct CD from WCS"
+    assert np.allclose(
+        image.crpix, WCS.wcs.crpix[::-1] - 1
+    ), "Image should have correct CRPIX from WCS"
+    assert np.allclose(
+        image.crval.value.detach().cpu().numpy(), WCS.wcs.crval
+    ), "Image should have correct CRVAL from WCS"

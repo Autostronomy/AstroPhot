@@ -19,6 +19,7 @@ def interp2d(
     im: torch.Tensor,
     x: torch.Tensor,
     y: torch.Tensor,
+    padding_mode: str = "zeros",
 ) -> torch.Tensor:
     """
     Interpolates a 2D image at specified coordinates.
@@ -41,8 +42,13 @@ def interp2d(
     x = x.flatten()
     y = y.flatten()
 
-    # valid
-    valid = (x >= -0.5) & (x <= (w - 0.5)) & (y >= -0.5) & (y <= (h - 0.5))
+    if padding_mode == "zeros":
+        valid = (x >= -0.5) & (x <= (w - 0.5)) & (y >= -0.5) & (y <= (h - 0.5))
+    elif padding_mode == "border":
+        x = x.clamp(-0.5, w - 0.5)
+        y = y.clamp(-0.5, h - 0.5)
+    else:
+        raise ValueError(f"Unsupported padding mode: {padding_mode}")
 
     x0 = x.floor().long()
     y0 = y.floor().long()
@@ -63,7 +69,10 @@ def interp2d(
 
     result = fa * wa + fb * wb + fc * wc + fd * wd
 
-    return (result * valid).reshape(start_shape)
+    if padding_mode == "zeros":
+        return (result * valid).reshape(start_shape)
+    elif padding_mode == "border":
+        return result.reshape(start_shape)
 
 
 def interp2d_ij(

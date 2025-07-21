@@ -1,4 +1,5 @@
 caustics
+graphviz
 ipywidgets
 jupyter-book
 matplotlib

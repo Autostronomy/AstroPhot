@@ -234,13 +234,6 @@ class Image(Module):
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    @forward
-    def pixel_angle_to_plane_angle(self, theta, crtan):
-        """Convert an angle in pixel space (in radians) to an angle in the tangent plane (in radians)."""
-        i, j = torch.cos(theta), torch.sin(theta)
-        x, y = self.pixel_to_plane(i, j)
-        return torch.atan2(y - crtan[1], x - crtan[0])
-
     def pixel_center_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
         return func.pixel_center_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
