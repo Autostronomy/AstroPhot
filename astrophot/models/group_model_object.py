@@ -62,26 +62,34 @@ class GroupModel(Model):
 
         """
         if isinstance(self.target, ImageList):  # WindowList if target is a TargetImageList
-            new_window = [None] * len(self.target.images)
+            new_window = list(target.window.copy() for target in self.target)
+            n_windows = [0] * len(self.target.images)
             for model in self.models:
                 if isinstance(model.target, ImageList):
                     for target, window in zip(model.target, model.window):
                         index = self.target.index(target)
-                        if new_window[index] is None:
-                            new_window[index] = window.copy()
+                        if n_windows[index] == 0:
+                            new_window[index] &= window
                         else:
                             new_window[index] |= window
+                        n_windows[index] += 1
                 elif isinstance(model.target, TargetImage):
                     index = self.target.index(model.target)
-                    if new_window[index] is None:
-                        new_window[index] = model.window.copy()
+                    if n_windows[index] == 0:
+                        new_window[index] &= model.window
                     else:
                         new_window[index] |= model.window
+                    n_windows[index] += 1
                 else:
                     raise NotImplementedError(
                         f"Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image"
                     )
             new_window = WindowList(new_window)
+            for i, n in enumerate(n_windows):
+                if n == 0:
+                    AP_config.ap_logger.warning(
+                        f"Model {self.name} has no sub models in target '{self.target.images[i].name}', this may cause issues with fitting."
+                    )
         else:
             new_window = None
             for model in self.models:
@@ -143,7 +151,7 @@ class GroupModel(Model):
             indices = image.match_indices(model.target)
             if len(indices) == 0:
                 raise IndexError
-            use_window = WindowList(window_list=list(image.images[i].window for i in indices))
+            use_window = WindowList(windows=list(image.images[i].window for i in indices))
         elif isinstance(image, ImageList) and isinstance(model.target, Image):
             try:
                 image.index(model.target)
@@ -261,7 +269,7 @@ class GroupModel(Model):
         self._target = tar
 
     @property
-    def window(self) -> Optional[Window]:
+    def window(self) -> Optional[Union[Window, WindowList]]:
         """The window defines a region on the sky in which this model will be
         optimized and typically evaluated. Two models with
         non-overlapping windows are in effect independent of each

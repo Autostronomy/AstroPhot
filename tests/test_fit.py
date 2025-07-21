@@ -73,6 +73,46 @@ def test_fitters(fitter):
     assert pll_final > pll_init, f"{fitter.__name__} should improve the poisson log likelihood"
 
 
+def test_fitters_iter():
+    target = make_basic_sersic()
+    model1 = ap.Model(
+        name="test1",
+        model_type="sersic galaxy model",
+        center=[20, 20],
+        PA=np.pi,
+        q=0.7,
+        n=2,
+        Re=15,
+        Ie=10.0,
+        target=target,
+    )
+    model2 = ap.Model(
+        name="test2",
+        model_type="sersic galaxy model",
+        center=[20.5, 21],
+        PA=1.5 * np.pi,
+        q=0.9,
+        n=1,
+        Re=10,
+        Ie=8.0,
+        target=target,
+    )
+    model = ap.Model(
+        name="test group",
+        model_type="group model",
+        models=[model1, model2],
+        target=target,
+    )
+    model.initialize()
+    ll_init = model.gaussian_log_likelihood()
+    pll_init = model.poisson_log_likelihood()
+    result = ap.fit.Iter(model, max_iter=10).fit()
+    ll_final = model.gaussian_log_likelihood()
+    pll_final = model.poisson_log_likelihood()
+    assert ll_final > ll_init, f"Iter should improve the log likelihood"
+    assert pll_final > pll_init, f"Iter should improve the poisson log likelihood"
+
+
 def test_gradient():
     target = make_basic_sersic()
     target.weight = 1 / (10 + target.variance.T)
