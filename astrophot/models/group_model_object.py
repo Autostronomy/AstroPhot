@@ -50,6 +50,9 @@ class GroupModel(Model):
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)
+        for model in models:
+            if not isinstance(model, Model):
+                raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
         self.models = models
         self.update_window()
 

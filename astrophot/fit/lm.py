@@ -222,7 +222,7 @@ class LM(BaseOptimizer):
 
         # The forward model which computes the output image given input parameters
         self.forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[self.mask]
-        # Compute the jacobian in representation units (defined for -inf, inf)
+        # Compute the jacobian
         self.jacobian = lambda x: model.jacobian(window=self.fit_window, params=x).flatten("data")[
             self.mask
         ]
@@ -360,14 +360,9 @@ class LM(BaseOptimizer):
             self._covariance_matrix = torch.linalg.inv(hess)
         except:
             AP_config.ap_logger.warning(
-                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will massage Hessian to continue but results should be inspected."
+                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
             )
-            print("diag hess:", torch.diag(hess).cpu().numpy())
-            hess += torch.eye(len(hess), dtype=AP_config.ap_dtype, device=AP_config.ap_device) * (
-                torch.diag(hess) < 1e-9
-            )
-            print("diag hess after:", torch.diag(hess).cpu().numpy())
-            self._covariance_matrix = torch.linalg.inv(hess)
+            self._covariance_matrix = torch.linalg.pinv(hess)
         return self._covariance_matrix
 
     @torch.no_grad()

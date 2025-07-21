@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Literal
 
 import torch
 from scipy.optimize import minimize
@@ -16,21 +16,15 @@ class ScipyFit(BaseOptimizer):
         self,
         model,
         initial_state: Sequence = None,
-        method="Nelder-Mead",
-        max_iter: int = 100,
+        method: Literal[
+            "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", "trust-constr"
+        ] = "Nelder-Mead",
         ndf=None,
         **kwargs,
     ):
 
-        super().__init__(
-            model,
-            initial_state,
-            max_iter=max_iter,
-            **kwargs,
-        )
+        super().__init__(model, initial_state, **kwargs)
         self.method = method
-        # Maximum number of iterations of the algorithm
-        self.max_iter = max_iter
         # mask
         fit_mask = self.model.fit_mask()
         if isinstance(fit_mask, tuple):

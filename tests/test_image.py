@@ -21,11 +21,13 @@ def base_image():
 
 
 def test_image_creation(base_image):
+    base_image.to()
     assert base_image.pixelscale == 1.0, "image should track pixelscale"
     assert base_image.zeropoint == 1.0, "image should track zeropoint"
     assert base_image.crpix[0] == 0, "image should track crpix"
     assert base_image.crpix[1] == 0, "image should track crpix"
 
+    base_image.to(dtype=torch.float64)
     slicer = ap.Window((7, 13, 4, 7), base_image)
     sliced_image = base_image[slicer]
     assert sliced_image.crpix[0] == -7, "crpix of subimage should give relative position"

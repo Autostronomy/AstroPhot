@@ -17,23 +17,42 @@ def test_model_sampling_modes():
     model = ap.Model(
         name="test sersic",
         model_type="sersic galaxy model",
-        center=[20, 20],
+        center=[40, 41.9],
         PA=60 * np.pi / 180,
-        q=0.5,
-        n=2,
-        Re=5,
+        q=0.8,
+        n=0.5,
+        Re=20,
         Ie=1,
         target=target,
     )
-    model()
+
+    # With subpixel integration
+    auto = model().data.detach().cpu().numpy()
     model.sampling_mode = "midpoint"
-    model()
+    midpoint = model().data.detach().cpu().numpy()
     model.sampling_mode = "simpsons"
-    model()
-    model.sampling_mode = "quad:3"
-    model()
+    simpsons = model().data.detach().cpu().numpy()
+    model.sampling_mode = "quad:5"
+    quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
+    assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
+    assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
+    assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
+
+    # Without subpixel integration
     model.integrate_mode = "none"
-    model()
+    auto = model().data.detach().cpu().numpy()
+    model.sampling_mode = "midpoint"
+    midpoint = model().data.detach().cpu().numpy()
+    model.sampling_mode = "simpsons"
+    simpsons = model().data.detach().cpu().numpy()
+    model.sampling_mode = "quad:5"
+    quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
+    assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
+    assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
+    assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
+
     model.integrate_mode = "should raise"
     with pytest.raises(ap.errors.SpecificationConflict):
         model()
@@ -85,6 +104,7 @@ def test_all_model_sample(model_type):
         target=target,
     )
     MODEL.initialize()
+    MODEL.to()
     for P in MODEL.dynamic_params:
         assert (
             P.value is not None

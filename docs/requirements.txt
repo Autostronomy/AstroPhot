@@ -4,6 +4,7 @@ ipywidgets
 jupyter-book
 matplotlib
 nbsphinx
+nbval
 photutils
 scikit-image
 sphinx

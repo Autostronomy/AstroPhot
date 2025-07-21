@@ -41,7 +41,15 @@ class Grad(BaseOptimizer):
     """
 
     def __init__(
-        self, model: Model, initial_state: Sequence = None, likelihood="gaussian", **kwargs
+        self,
+        model: Model,
+        initial_state: Sequence = None,
+        likelihood="gaussian",
+        patience=None,
+        method="NAdam",
+        optim_kwargs={},
+        report_freq=10,
+        **kwargs,
     ) -> None:
         """Initialize the gradient descent optimizer.
 
@@ -58,10 +66,10 @@ class Grad(BaseOptimizer):
         self.likelihood = likelihood
 
         # set parameters from the user
-        self.patience = kwargs.get("patience", None)
-        self.method = kwargs.get("method", "NAdam").strip()
-        self.optim_kwargs = kwargs.get("optim_kwargs", {})
-        self.report_freq = kwargs.get("report_freq", 10)
+        self.patience = patience
+        self.method = method
+        self.optim_kwargs = optim_kwargs
+        self.report_freq = report_freq
 
         # Default learning rate if none given. Equalt to 1 / sqrt(parames)
         if "lr" not in self.optim_kwargs:
@@ -79,9 +87,9 @@ class Grad(BaseOptimizer):
         This is used to calculate the likelihood of the model at the given state.
         """
         if self.likelihood == "gaussian":
-            return self.model.gaussian_log_likelihood(state)
+            return -self.model.gaussian_log_likelihood(state)
         elif self.likelihood == "poisson":
-            return self.model.poisson_log_likelihood(state)
+            return -self.model.poisson_log_likelihood(state)
         else:
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
 
@@ -107,12 +115,14 @@ class Grad(BaseOptimizer):
             self.iteration % int(self.max_iter / self.report_freq) == 0
         ) or self.iteration == self.max_iter:
             if self.verbose > 0:
-                AP_config.ap_logger.info(f"iter: {self.iteration}, loss: {loss.item()}")
+                AP_config.ap_logger.info(
+                    f"iter: {self.iteration}, posterior density: {loss.item():.e6}"
+                )
             if self.verbose > 1:
                 AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
 
-    def fit(self) -> "BaseOptimizer":
+    def fit(self) -> BaseOptimizer:
         """
         Perform an iterative fit of the model parameters using the specified optimizer.
 
@@ -142,7 +152,9 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.fill_dynamic_values(self.res())
+        self.model.fill_dynamic_values(
+            torch.tensor(self.res(), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        )
         if self.verbose > 1:
             AP_config.ap_logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
