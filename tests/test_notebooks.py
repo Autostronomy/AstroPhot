@@ -1,7 +1,13 @@
+import platform
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 import glob
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    platform.system() in ["Windows", "Darwin"],
+    reason="Graphviz not installed on Windows runner",
+)
 
 notebooks = glob.glob("../docs/source/tutorials/*.ipynb")
 

@@ -116,7 +116,7 @@ class Grad(BaseOptimizer):
         ) or self.iteration == self.max_iter:
             if self.verbose > 0:
                 AP_config.ap_logger.info(
-                    f"iter: {self.iteration}, posterior density: {loss.item():.e6}"
+                    f"iter: {self.iteration}, posterior density: {loss.item():.6e}"
                 )
             if self.verbose > 1:
                 AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
