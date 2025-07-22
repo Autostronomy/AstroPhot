@@ -17,6 +17,8 @@ def sip_target():
         data=arr,
         pixelscale=1.0,
         zeropoint=1.0,
+        variance=torch.ones_like(arr),
+        mask=torch.zeros_like(arr),
         sipA={(1, 0): 1e-4, (0, 1): 1e-4, (2, 3): -1e-5},
         sipB={(1, 0): -1e-4, (0, 1): 5e-5, (2, 3): 2e-6},
         sipAP={(1, 0): -1e-4, (0, 1): -1e-4, (2, 3): 1e-5},
@@ -66,6 +68,30 @@ def test_sip_image_creation(sip_target):
         32,
         22,
     ), "model image distortion model should have correct shape"
+
+    # reduce
+    sip_model_reduce = sip_model_image.reduce(scale=1)
+    assert sip_model_reduce is sip_model_image, "reduce should return the same image if scale is 1"
+    sip_model_reduce = sip_model_image.reduce(scale=2)
+    assert sip_model_reduce.shape == (16, 11), "reduced model image should have correct shape"
+
+    # crop
+    sip_model_crop = sip_model_image.crop(1)
+    assert sip_model_crop.shape == (30, 20), "cropped model image should have correct shape"
+    sip_model_crop = sip_model_image.crop([1])
+    assert sip_model_crop.shape == (30, 20), "cropped model image should have correct shape"
+    sip_model_crop = sip_model_image.crop([1, 2])
+    assert sip_model_crop.shape == (30, 18), "cropped model image should have correct shape"
+    sip_model_crop = sip_model_image.crop([1, 2, 3, 4])
+    assert sip_model_crop.shape == (29, 15), "cropped model image should have correct shape"
+
+    sip_model_crop.flux_density_to_flux()
+    assert torch.all(
+        sip_model_crop.data >= 0
+    ), "cropped model image data should be non-negative after flux density to flux conversion"
+    assert torch.all(
+        sip_model_crop.variance >= 0
+    ), "cropped model image variance should be non-negative after flux density to flux conversion"
 
 
 def test_sip_image_wcs_roundtrip(sip_target):

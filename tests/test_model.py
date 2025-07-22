@@ -165,6 +165,11 @@ def test_all_model_sample(model_type):
     assert torch.isfinite(U_M), "Model total magnitude uncertainty should be finite after fitting"
     assert U_M >= 0, "Model total magnitude uncertainty should be non-negative after fitting"
 
+    allnames = set()
+    for name in MODEL.build_params_array_names():
+        assert name not in allnames, f"Duplicate parameter name found: {name}"
+        allnames.add(name)
+
 
 def test_sersic_save_load():
 
