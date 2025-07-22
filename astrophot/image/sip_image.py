@@ -32,8 +32,8 @@ class SIPModelImage(SIPMixin, ModelImage):
             )
         kwargs = {
             "pixel_area_map": self.pixel_area_map[crop],
-            "distortion_ij": self.distortion_ij[crop],
-            "distortion_IJ": self.distortion_IJ[crop],
+            "distortion_ij": self.distortion_ij[:, crop[0], crop[1]],
+            "distortion_IJ": self.distortion_IJ[:, crop[0], crop[1]],
             **kwargs,
         }
         return super().crop(pixels, **kwargs)
@@ -68,14 +68,14 @@ class SIPModelImage(SIPMixin, ModelImage):
                 .sum(axis=(1, 3))
             ),
             "distortion_ij": (
-                self.distortion_ij[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .mean(axis=(1, 3))
+                self.distortion_ij[:, : MS * scale, : NS * scale]
+                .reshape(2, MS, scale, NS, scale)
+                .mean(axis=(2, 4))
             ),
             "distortion_IJ": (
-                self.distortion_IJ[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .mean(axis=(1, 3))
+                self.distortion_IJ[:, : MS * scale, : NS * scale]
+                .reshape(2, MS, scale, NS, scale)
+                .mean(axis=(2, 4))
             ),
             **kwargs,
         }

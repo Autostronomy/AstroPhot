@@ -195,27 +195,3 @@ class SIPMixin:
                         self.sipBP[key] = hdulist[hduext].header[f"BP_{i}_{j}"]
         self.update_distortion_model()
         return hdulist
-
-    def reduce(self, scale, **kwargs):
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
-
-        return super().reduce(
-            scale=scale,
-            pixel_area_map=(
-                self.pixel_area_map[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .sum(axis=(1, 3))
-            ),
-            distortion_ij=(
-                self.distortion_ij[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .mean(axis=(1, 3))
-            ),
-            distortion_IJ=(
-                self.distortion_IJ[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .mean(axis=(1, 3))
-            ),
-            **kwargs,
-        )
