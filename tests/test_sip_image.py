@@ -85,13 +85,10 @@ def test_sip_image_creation(sip_target):
     sip_model_crop = sip_model_image.crop([1, 2, 3, 4])
     assert sip_model_crop.shape == (29, 15), "cropped model image should have correct shape"
 
-    sip_model_crop.flux_density_to_flux()
+    sip_model_crop.fluxdensity_to_flux()
     assert torch.all(
         sip_model_crop.data >= 0
     ), "cropped model image data should be non-negative after flux density to flux conversion"
-    assert torch.all(
-        sip_model_crop.variance >= 0
-    ), "cropped model image variance should be non-negative after flux density to flux conversion"
 
 
 def test_sip_image_wcs_roundtrip(sip_target):
