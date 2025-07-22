@@ -137,14 +137,26 @@ class SIPMixin:
         info = super().fits_info()
         info["CTYPE1"] = "RA---TAN-SIP"
         info["CTYPE2"] = "DEC--TAN-SIP"
+        a_order = 0
         for a, b in self.sipA:
             info[f"A_{a}_{b}"] = self.sipA[(a, b)]
+            a_order = max(a_order, a + b)
+        info["A_ORDER"] = a_order
+        b_order = 0
         for a, b in self.sipB:
             info[f"B_{a}_{b}"] = self.sipB[(a, b)]
+            b_order = max(b_order, a + b)
+        info["B_ORDER"] = b_order
+        ap_order = 0
         for a, b in self.sipAP:
             info[f"AP_{a}_{b}"] = self.sipAP[(a, b)]
+            ap_order = max(ap_order, a + b)
+        info["AP_ORDER"] = ap_order
+        bp_order = 0
         for a, b in self.sipBP:
             info[f"BP_{a}_{b}"] = self.sipBP[(a, b)]
+            bp_order = max(bp_order, a + b)
+        info["BP_ORDER"] = bp_order
         return info
 
     def load(self, filename: str, hduext=0):
