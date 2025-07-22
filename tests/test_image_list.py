@@ -95,6 +95,14 @@ def test_image_arithmetic():
         base_image2.data, torch.ones_like(base_image2.data)
     ), "image addition should update its region"
 
+    new_image = test_image + second_image
+    new_image = test_image - second_image
+    new_image = new_image.to(dtype=torch.float32, device="cpu")
+    assert isinstance(new_image, ap.ImageList), "new image should be an ImageList"
+
+    new_image += base_image1
+    new_image -= base_image2
+
 
 def test_model_image_list_error():
     arr1 = torch.zeros((10, 15))

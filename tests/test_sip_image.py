@@ -78,3 +78,38 @@ def test_sip_image_wcs_roundtrip(sip_target):
 
     assert torch.allclose(i, i2, atol=0.5), "i coordinates should match after WCS roundtrip"
     assert torch.allclose(j, j2, atol=0.5), "j coordinates should match after WCS roundtrip"
+
+
+def test_sip_image_save_load(sip_target):
+    """
+    Test that SIP images can be saved and loaded correctly.
+    """
+    # Save the SIP image to a file
+    sip_target.save("test_sip_image.fits")
+
+    # Load the SIP image from the file
+    loaded_image = ap.SIPTargetImage(filename="test_sip_image.fits")
+
+    # Check that the loaded image matches the original
+    assert torch.allclose(
+        sip_target.data, loaded_image.data
+    ), "Loaded image data should match original"
+    assert torch.allclose(
+        sip_target.pixelscale, loaded_image.pixelscale
+    ), "Loaded image pixelscale should match original"
+    assert torch.allclose(
+        sip_target.zeropoint, loaded_image.zeropoint
+    ), "Loaded image zeropoint should match original"
+    print(loaded_image.sipA)
+    assert all(
+        np.allclose(sip_target.sipA[key], loaded_image.sipA[key]) for key in sip_target.sipA
+    ), "Loaded image sipA should match original"
+    assert all(
+        np.allclose(sip_target.sipB[key], loaded_image.sipB[key]) for key in sip_target.sipB
+    ), "Loaded image sipB should match original"
+    assert all(
+        np.allclose(sip_target.sipAP[key], loaded_image.sipAP[key]) for key in sip_target.sipAP
+    ), "Loaded image sipAP should match original"
+    assert all(
+        np.allclose(sip_target.sipBP[key], loaded_image.sipBP[key]) for key in sip_target.sipBP
+    ), "Loaded image sipBP should match original"
