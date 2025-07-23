@@ -4,7 +4,7 @@ import numpy as np
 from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings
 from ..utils.interpolate import interp2d
-from .. import AP_config
+from .. import config
 from ..errors import SpecificationConflict
 from ..param import forward
 from . import func
@@ -53,7 +53,7 @@ class PixelBasisPSF(PSFModel):
         else:
             # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
             self._basis = torch.transpose(
-                torch.as_tensor(value, dtype=AP_config.ap_dtype, device=AP_config.ap_device), 1, 2
+                torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE), 1, 2
             )
 
     @torch.no_grad()

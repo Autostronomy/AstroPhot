@@ -5,7 +5,7 @@ import numpy as np
 from astropy.io import fits
 
 from ...utils.initialize import auto_variance
-from ... import AP_config
+from ... import config
 from ...errors import SpecificationConflict
 from ..image_object import Image
 from ..window import Window
@@ -170,7 +170,7 @@ class DataMixin:
         if isinstance(weight, str) and weight == "auto":
             weight = 1 / auto_variance(self.data, self.mask).T
         self._weight = torch.transpose(
-            torch.as_tensor(weight, dtype=AP_config.ap_dtype, device=AP_config.ap_device), 0, 1
+            torch.as_tensor(weight, dtype=config.DTYPE, device=config.DEVICE), 0, 1
         )
         if self._weight.shape != self.data.shape:
             self._weight = None
@@ -216,7 +216,7 @@ class DataMixin:
             self._mask = None
             return
         self._mask = torch.transpose(
-            torch.as_tensor(mask, dtype=torch.bool, device=AP_config.ap_device), 0, 1
+            torch.as_tensor(mask, dtype=torch.bool, device=config.DEVICE), 0, 1
         )
         if self._mask.shape != self.data.shape:
             self._mask = None
@@ -240,9 +240,9 @@ class DataMixin:
 
         """
         if dtype is not None:
-            dtype = AP_config.ap_dtype
+            dtype = config.DTYPE
         if device is not None:
-            device = AP_config.ap_device
+            device = config.DEVICE
         super().to(dtype=dtype, device=device)
 
         if self.has_weight:

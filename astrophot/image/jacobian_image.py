@@ -3,7 +3,6 @@ from typing import List
 import torch
 
 from .image_object import Image, ImageList
-from .. import AP_config
 from ..errors import SpecificationConflict, InvalidImage
 
 __all__ = ["JacobianImage", "JacobianImageList"]

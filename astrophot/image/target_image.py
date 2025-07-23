@@ -9,7 +9,7 @@ from .window import Window
 from .jacobian_image import JacobianImage, JacobianImageList
 from .model_image import ModelImage, ModelImageList
 from .psf_image import PSFImage
-from .. import AP_config
+from .. import config
 from ..errors import InvalidImage
 from .mixins import DataMixin
 
@@ -160,7 +160,7 @@ class TargetImage(DataMixin, Image):
                     )
                 )
             else:
-                AP_config.ap_logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
+                config.logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
         return images
 
     def load(self, filename: str, hduext=0):
@@ -191,8 +191,8 @@ class TargetImage(DataMixin, Image):
         if data is None:
             data = torch.zeros(
                 (*self.data.shape, len(parameters)),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
+                dtype=config.DTYPE,
+                device=config.DEVICE,
             )
         kwargs = {
             "CD": self.CD.value,

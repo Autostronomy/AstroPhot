@@ -1,7 +1,7 @@
 import argparse
 import requests
 import torch
-from . import models, plots, utils, fit, AP_config
+from . import config, models, plots, utils, fit
 from .param import forward, Param, Module
 
 from .image import (
@@ -40,7 +40,7 @@ def run_from_terminal() -> None:
     Running from terminal no longer supported. This is only used for convenience to download the tutorials.
 
     """
-    AP_config.ap_logger.debug("running from the terminal, not sure if it will catch me.")
+    config.logger.debug("running from the terminal, not sure if it will catch me.")
     parser = argparse.ArgumentParser(
         prog="astrophot",
         description="Fast and flexible astronomical image photometry package. For the documentation go to: https://astrophot.readthedocs.io",
@@ -96,16 +96,16 @@ def run_from_terminal() -> None:
     args = parser.parse_args()
 
     if args.log is not None:
-        AP_config.set_logging_output(
+        config.set_logging_output(
             stdout=not args.q, filename=None if args.log == "none" else args.log
         )
     elif args.q:
-        AP_config.set_logging_output(stdout=not args.q, filename="AstroPhot.log")
+        config.set_logging_output(stdout=not args.q, filename="AstroPhot.log")
 
     if args.dtype is not None:
-        AP_config.dtype = torch.float64 if args.dtype == "float64" else torch.float32
+        config.DTYPE = torch.float64 if args.dtype == "float64" else torch.float32
     if args.device is not None:
-        AP_config.device = "cpu" if args.device == "cpu" else "cuda:0"
+        config.DEVICE = "cpu" if args.device == "cpu" else "cuda:0"
 
     if args.filename is None:
         raise RuntimeError(
@@ -133,7 +133,7 @@ def run_from_terminal() -> None:
                     f"WARNING: couldn't find tutorial: {url[url.rfind('/')+1:]} check internet connection"
                 )
 
-        AP_config.ap_logger.info("collected the tutorials")
+        config.logger.info("collected the tutorials")
     else:
         raise ValueError(f"Unrecognized request")
 
@@ -159,7 +159,7 @@ __all__ = (
     "forward",
     "Param",
     "Module",
-    "AP_config",
+    "config",
     "run_from_terminal",
     "__version__",
     "__author__",

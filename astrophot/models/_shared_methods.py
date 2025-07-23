@@ -4,7 +4,7 @@ import torch
 from scipy.optimize import minimize
 
 from ..utils.decorators import ignore_numpy_warnings
-from .. import AP_config
+from .. import config
 
 
 def _sample_image(
@@ -101,17 +101,13 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
 
     if res.success:
         x0 = res.x
-    elif AP_config.ap_verbose >= 2:
-        AP_config.ap_logger.warning(
-            f"initialization fit not successful for {model.name}, falling back to defaults"
-        )
 
     for param, x0x in zip(params, x0):
         if not model[param].initialized:
             if not model[param].is_valid(x0x):
                 print("soft valid", param, x0x)
                 x0x = model[param].soft_valid(
-                    torch.tensor(x0x, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+                    torch.tensor(x0x, dtype=config.DTYPE, device=config.DEVICE)
                 )
             model[param].dynamic_value = x0x
 
@@ -153,12 +149,7 @@ def parametric_segment_initialize(
             return np.mean(residual[N][:-2])
 
         res = minimize(optim, x0=x0, args=(R, I, S), method="Nelder-Mead")
-        if not res.success:
-            if AP_config.ap_verbose >= 2:
-                AP_config.ap_logger.warning(
-                    f"initialization fit not successful for {model.name}, falling back to defaults"
-                )
-        else:
+        if res.success:
             x0 = res.x
 
         values.append(x0)

@@ -1,6 +1,6 @@
 from .segmentation_map import *
 from .center import center_of_mass, recursive_center_of_mass
-from .construct_psf import gaussian_psf, moffat_psf, construct_psf
+from .construct_psf import gaussian_psf, moffat_psf
 from .variance import auto_variance
 from .PA import polar_decomposition
 
@@ -9,7 +9,6 @@ __all__ = (
     "recursive_center_of_mass",
     "gaussian_psf",
     "moffat_psf",
-    "construct_psf",
     "centroids_from_segmentation_map",
     "PA_from_segmentation_map",
     "q_from_segmentation_map",

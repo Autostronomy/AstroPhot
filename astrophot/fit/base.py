@@ -5,7 +5,7 @@ import torch
 from scipy.optimize import minimize
 from scipy.special import gammainc
 
-from .. import AP_config
+from .. import config
 from ..models import Model
 from ..image import Window
 from ..param import ValidContext
@@ -118,7 +118,7 @@ class BaseOptimizer(object):
         """
         N = np.isfinite(self.loss_history)
         if np.sum(N) == 0:
-            AP_config.ap_logger.warning(
+            config.logger.warning(
                 "Getting optimizer res with no real loss history, using current state"
             )
             return self.current_state.detach().cpu().numpy()
@@ -154,4 +154,4 @@ class BaseOptimizer(object):
 
             if res.success:
                 return res.x[0]
-        raise RuntimeError(f"Unable to compute Chi^2 contour for ndf: {ndf}")
+        raise RuntimeError(f"Unable to compute Chi^2 contour for n params: {n_params}")

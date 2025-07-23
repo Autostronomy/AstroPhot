@@ -4,7 +4,7 @@ import torch
 from scipy.optimize import minimize
 
 from .base import BaseOptimizer
-from .. import AP_config
+from .. import config
 from ..errors import OptimizeStopSuccess
 
 __all__ = ("ScipyFit",)
@@ -54,9 +54,9 @@ class ScipyFit(BaseOptimizer):
         # 1 / (sigma^2)
         kW = kwargs.get("W", None)
         if kW is not None:
-            self.W = torch.as_tensor(
-                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            ).flatten()[self.mask]
+            self.W = torch.as_tensor(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
+                self.mask
+            ]
         elif model.target.has_variance:
             self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
         else:
@@ -106,7 +106,7 @@ class ScipyFit(BaseOptimizer):
 
         res = minimize(
             lambda x: self.chi2_ndf(
-                torch.tensor(x, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+                torch.tensor(x, dtype=config.DTYPE, device=config.DEVICE)
             ).item(),
             self.current_state,
             method=self.method,
@@ -117,11 +117,9 @@ class ScipyFit(BaseOptimizer):
         )
         self.scipy_res = res
         self.message = self.message + f"success: {res.success}, message: {res.message}"
-        self.current_state = torch.tensor(
-            res.x, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
+        self.current_state = torch.tensor(res.x, dtype=config.DTYPE, device=config.DEVICE)
         if self.verbose > 0:
-            AP_config.ap_logger.info(
+            config.logger.info(
                 f"Final Chi^2/DoF: {self.chi2_ndf(self.current_state):.6g}. Converged: {self.message}"
             )
         self.model.fill_dynamic_values(self.current_state)

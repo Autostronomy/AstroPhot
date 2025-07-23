@@ -13,7 +13,7 @@ from ..image import (
 )
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings
-from .. import AP_config
+from .. import config
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
@@ -136,7 +136,7 @@ class ComponentModel(SampleMixin, Model):
         if not np.all(np.isfinite(COM)):
             return
         COM_center = target_area.pixel_to_plane(
-            *torch.tensor(COM, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            *torch.tensor(COM, dtype=config.DTYPE, device=config.DEVICE)
         )
         self.center.dynamic_value = COM_center
 

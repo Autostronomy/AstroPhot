@@ -5,7 +5,7 @@ import torch
 import numpy as np
 
 from .base import BaseOptimizer
-from .. import AP_config
+from .. import config
 from ..models import Model
 
 __all__ = ["Grad"]
@@ -115,11 +115,9 @@ class Grad(BaseOptimizer):
             self.iteration % int(self.max_iter / self.report_freq) == 0
         ) or self.iteration == self.max_iter:
             if self.verbose > 0:
-                AP_config.ap_logger.info(
-                    f"iter: {self.iteration}, posterior density: {loss.item():.6e}"
-                )
+                config.logger.info(f"iter: {self.iteration}, posterior density: {loss.item():.6e}")
             if self.verbose > 1:
-                AP_config.ap_logger.info(f"gradient: {self.current_state.grad}")
+                config.logger.info(f"gradient: {self.current_state.grad}")
         self.optimizer.step()
 
     def fit(self) -> BaseOptimizer:
@@ -153,10 +151,10 @@ class Grad(BaseOptimizer):
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
         self.model.fill_dynamic_values(
-            torch.tensor(self.res(), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if self.verbose > 1:
-            AP_config.ap_logger.info(
+            config.logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
         return self

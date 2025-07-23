@@ -6,7 +6,7 @@ from astropy.wcs import WCS as AstropyWCS
 from astropy.io import fits
 
 from ..param import Module, Param, forward
-from .. import AP_config
+from .. import config
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
 from .window import Window, WindowList
 from ..errors import InvalidImage, SpecificationConflict
@@ -66,22 +66,22 @@ class Image(Module):
         else:
             self._data = _data
         self.crval = Param(
-            "crval", shape=(2,), units="deg", dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            "crval", shape=(2,), units="deg", dtype=config.DTYPE, device=config.DEVICE
         )
         self.crtan = Param(
             "crtan",
             crtan,
             shape=(2,),
             units="arcsec",
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
+            dtype=config.DTYPE,
+            device=config.DEVICE,
         )
         self.CD = Param(
             "CD",
             shape=(2, 2),
             units="arcsec/pixel",
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
+            dtype=config.DTYPE,
+            device=config.DEVICE,
         )
         self.zeropoint = zeropoint
 
@@ -96,11 +96,11 @@ class Image(Module):
 
         if wcs is not None:
             if wcs.wcs.ctype[0] not in self.expect_ctype[0]:
-                AP_config.ap_logger.warning(
+                config.logger.warning(
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
             if wcs.wcs.ctype[1] not in self.expect_ctype[1]:
-                AP_config.ap_logger.warning(
+                config.logger.warning(
                     "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
                 )
 
@@ -108,9 +108,7 @@ class Image(Module):
             crpix = np.array(wcs.wcs.crpix)[::-1] - 1  # handle FITS 1-indexing
 
             if CD is not None:
-                AP_config.ap_logger.warning(
-                    "WCS CD set with supplied WCS, ignoring user supplied CD!"
-                )
+                config.logger.warning("WCS CD set with supplied WCS, ignoring user supplied CD!")
             CD = deg_to_arcsec * wcs.pixel_scale_matrix
 
         # set the data
@@ -134,11 +132,11 @@ class Image(Module):
     def data(self, value: Optional[torch.Tensor]):
         """Set the image data. If value is None, the data is initialized to an empty tensor."""
         if value is None:
-            self._data = torch.empty((0, 0), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            self._data = torch.empty((0, 0), dtype=config.DTYPE, device=config.DEVICE)
         else:
             # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
             self._data = torch.transpose(
-                torch.as_tensor(value, dtype=AP_config.ap_dtype, device=AP_config.ap_device), 0, 1
+                torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE), 0, 1
             )
 
     @property
@@ -161,9 +159,7 @@ class Image(Module):
         if value is None:
             self._zeropoint = None
         else:
-            self._zeropoint = torch.as_tensor(
-                value, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+            self._zeropoint = torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE)
 
     @property
     def window(self):
@@ -171,9 +167,7 @@ class Image(Module):
 
     @property
     def center(self):
-        shape = torch.as_tensor(
-            self.data.shape[:2], dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
+        shape = torch.as_tensor(self.data.shape[:2], dtype=config.DTYPE, device=config.DEVICE)
         return torch.stack(self.pixel_to_plane(*((shape - 1) / 2)))
 
     @property
@@ -236,21 +230,19 @@ class Image(Module):
 
     def pixel_center_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
-        return func.pixel_center_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
+        return func.pixel_center_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
     def pixel_corner_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
-        return func.pixel_corner_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
+        return func.pixel_corner_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
     def pixel_simpsons_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
-        return func.pixel_simpsons_meshgrid(self.shape, AP_config.ap_dtype, AP_config.ap_device)
+        return func.pixel_simpsons_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
     def pixel_quad_meshgrid(self, order=3):
         """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
-        return func.pixel_quad_meshgrid(
-            self.shape, AP_config.ap_dtype, AP_config.ap_device, order=order
-        )
+        return func.pixel_quad_meshgrid(self.shape, config.DTYPE, config.DEVICE, order=order)
 
     @forward
     def coordinate_center_meshgrid(self):
@@ -382,9 +374,9 @@ class Image(Module):
 
     def to(self, dtype=None, device=None):
         if dtype is None:
-            dtype = AP_config.ap_dtype
+            dtype = config.DTYPE
         if device is None:
-            device = AP_config.ap_device
+            device = config.DEVICE
         super().to(dtype=dtype, device=device)
         self._data = self._data.to(dtype=dtype, device=device)
         if self.zeropoint is not None:
@@ -463,19 +455,17 @@ class Image(Module):
         return hdulist
 
     def corners(self):
-        pixel_lowleft = torch.tensor(
-            (-0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
+        pixel_lowleft = torch.tensor((-0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE)
         pixel_lowright = torch.tensor(
-            (self.data.shape[0] - 0.5, -0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            (self.data.shape[0] - 0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE
         )
         pixel_upleft = torch.tensor(
-            (-0.5, self.data.shape[1] - 0.5), dtype=AP_config.ap_dtype, device=AP_config.ap_device
+            (-0.5, self.data.shape[1] - 0.5), dtype=config.DTYPE, device=config.DEVICE
         )
         pixel_upright = torch.tensor(
             (self.data.shape[0] - 0.5, self.data.shape[1] - 0.5),
-            dtype=AP_config.ap_dtype,
-            device=AP_config.ap_device,
+            dtype=config.DTYPE,
+            device=config.DEVICE,
         )
         lowleft = self.pixel_to_plane(*pixel_lowleft)
         lowright = self.pixel_to_plane(*pixel_lowright)
@@ -613,9 +603,9 @@ class ImageList(Module):
 
     def to(self, dtype=None, device=None):
         if dtype is not None:
-            dtype = AP_config.ap_dtype
+            dtype = config.DTYPE
         if device is not None:
-            device = AP_config.ap_device
+            device = config.DEVICE
         super().to(dtype=dtype, device=device)
         return self
 

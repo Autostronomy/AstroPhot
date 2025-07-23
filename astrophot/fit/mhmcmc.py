@@ -11,7 +11,7 @@ except ImportError:
 
 from .base import BaseOptimizer
 from ..models import Model
-from .. import AP_config
+from .. import config
 
 __all__ = ["MHMCMC"]
 
@@ -45,7 +45,7 @@ class MHMCMC(BaseOptimizer):
         Returns the density of the model at the given state vector.
         This is used to calculate the likelihood of the model at the given state.
         """
-        state = torch.tensor(state, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        state = torch.tensor(state, dtype=config.DTYPE, device=config.DEVICE)
         if self.likelihood == "gaussian":
             return np.array(list(self.model.gaussian_log_likelihood(s).item() for s in state))
         elif self.likelihood == "poisson":
@@ -83,6 +83,6 @@ class MHMCMC(BaseOptimizer):
         else:
             self.chain = np.append(self.chain, sampler.get_chain(), axis=0)
         self.model.fill_dynamic_values(
-            torch.tensor(self.chain[-1][0], dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            torch.tensor(self.chain[-1][0], dtype=config.DTYPE, device=config.DEVICE)
         )
         return self

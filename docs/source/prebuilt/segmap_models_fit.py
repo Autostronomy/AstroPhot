@@ -180,7 +180,7 @@ result = ap.fit.Iter(model, verbose=1).fit()
 # Report Results
 # ----------------------------------------------------------------------
 if not sky_locked:
-    print(models[0].parameters)
+    print(models[0])
 
 if not primary_model is None:
     print(primary_model)

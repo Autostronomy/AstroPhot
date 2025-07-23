@@ -5,7 +5,7 @@ import torch
 import numpy as np
 
 from .base import BaseOptimizer
-from .. import AP_config
+from .. import config
 from . import func
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from ..param import ValidContext
@@ -212,9 +212,9 @@ class LM(BaseOptimizer):
         # 1 / (sigma^2)
         kW = kwargs.get("W", None)
         if kW is not None:
-            self.W = torch.as_tensor(
-                kW, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            ).flatten()[self.mask]
+            self.W = torch.as_tensor(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
+                self.mask
+            ]
         elif model.target.has_variance:
             self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
         else:
@@ -252,7 +252,7 @@ class LM(BaseOptimizer):
 
         if len(self.current_state) == 0:
             if self.verbose > 0:
-                AP_config.ap_logger.warning("No parameters to optimize. Exiting fit")
+                config.logger.warning("No parameters to optimize. Exiting fit")
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -261,13 +261,13 @@ class LM(BaseOptimizer):
         self.L_history = [self.L]
         self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
         if self.verbose > 0:
-            AP_config.ap_logger.info(
+            config.logger.info(
                 f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
             )
 
         for _ in range(self.max_iter):
             if self.verbose > 0:
-                AP_config.ap_logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+                config.logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
                     with ValidContext(self.model):
@@ -298,12 +298,12 @@ class LM(BaseOptimizer):
                     self.current_state = res["x"].detach()
             except OptimizeStopFail:
                 if self.verbose > 0:
-                    AP_config.ap_logger.warning("Could not find step to improve Chi^2, stopping")
+                    config.logger.warning("Could not find step to improve Chi^2, stopping")
                 self.message = self.message + "fail. Could not find step to improve Chi^2"
                 break
             except OptimizeStopSuccess as e:
                 if self.verbose > 0:
-                    AP_config.ap_logger.info(f"Optimization converged successfully: {e}")
+                    config.logger.info(f"Optimization converged successfully: {e}")
                 self.message = self.message + "success"
                 break
 
@@ -331,7 +331,7 @@ class LM(BaseOptimizer):
             self.message = self.message + "fail. Maximum iterations"
 
         if self.verbose > 0:
-            AP_config.ap_logger.info(
+            config.logger.info(
                 f"Final Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
             )
 
@@ -359,7 +359,7 @@ class LM(BaseOptimizer):
         try:
             self._covariance_matrix = torch.linalg.inv(hess)
         except:
-            AP_config.ap_logger.warning(
+            config.logger.warning(
                 "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
             )
             self._covariance_matrix = torch.linalg.pinv(hess)
@@ -379,8 +379,8 @@ class LM(BaseOptimizer):
             try:
                 self.model.fill_dynamic_value_uncertainties(torch.sqrt(torch.abs(torch.diag(cov))))
             except RuntimeError as e:
-                AP_config.ap_logger.warning(f"Unable to update uncertainty due to: {e}")
+                config.logger.warning(f"Unable to update uncertainty due to: {e}")
         else:
-            AP_config.ap_logger.warning(
+            config.logger.warning(
                 "Unable to update uncertainty due to non finite covariance matrix"
             )

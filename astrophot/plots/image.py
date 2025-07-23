@@ -9,7 +9,7 @@ from scipy.stats import iqr
 
 from ..models import GroupModel, PSFModel
 from ..image import ImageList, WindowList
-from .. import AP_config
+from .. import config
 from ..utils.conversions.units import flux_to_sb
 from ..utils.decorators import ignore_numpy_warnings
 from .visuals import *
@@ -378,7 +378,7 @@ def residual_image(
 
     if scaling == "clip":
         if normalize_residuals is not True:
-            AP_config.logger.warning(
+            config.logger.warning(
                 "Using clipping scaling without normalizing residuals. This may lead to confusing results."
             )
         residuals = np.clip(residuals, -5, 5)

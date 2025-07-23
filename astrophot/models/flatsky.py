@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import iqr
 import torch
 
 from ..utils.decorators import ignore_numpy_warnings

@@ -9,7 +9,7 @@ from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
 from ..image import Window, ImageList, ModelImage, ModelImageList
 from ..errors import UnrecognizedModel, InvalidWindow
-from .. import AP_config
+from .. import config
 from . import func
 
 __all__ = ("Model",)
@@ -59,9 +59,7 @@ class Model(Module):
         # Create Param objects for this Module
         parameter_specs = self.build_parameter_specs(kwargs, self.parameter_specs)
         for key in parameter_specs:
-            param = Param(
-                key, **parameter_specs[key], dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
+            param = Param(key, **parameter_specs[key], dtype=config.DTYPE, device=config.DEVICE)
             setattr(self, key, param)
 
         self.saveattrs.update(self.options)
@@ -250,9 +248,9 @@ class Model(Module):
 
     def to(self, dtype=None, device=None):
         if dtype is None:
-            dtype = AP_config.ap_dtype
+            dtype = config.DTYPE
         if device is None:
-            device = AP_config.ap_device
+            device = config.DEVICE
         super().to(dtype=dtype, device=device)
 
     @forward

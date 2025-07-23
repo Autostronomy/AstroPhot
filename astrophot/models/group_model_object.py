@@ -16,7 +16,7 @@ from ..image import (
     JacobianImage,
     JacobianImageList,
 )
-from .. import AP_config
+from .. import config
 from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget, InvalidWindow
 
@@ -87,7 +87,7 @@ class GroupModel(Model):
             new_window = WindowList(new_window)
             for i, n in enumerate(n_windows):
                 if n == 0:
-                    AP_config.ap_logger.warning(
+                    config.logger.warning(
                         f"Model {self.name} has no sub models in target '{self.target.images[i].name}', this may cause issues with fitting."
                     )
         else:
@@ -109,7 +109,7 @@ class GroupModel(Model):
           target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
         for model in self.models:
-            AP_config.ap_logger.info(f"Initializing model {model.name}")
+            config.logger.info(f"Initializing model {model.name}")
             model.initialize()
 
     def fit_mask(self) -> torch.Tensor:

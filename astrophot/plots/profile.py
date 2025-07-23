@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from scipy.stats import binned_statistic, iqr
 
-from .. import AP_config
+from .. import config
 from ..models import Model
 
 # from ..models import Warp_Galaxy
@@ -38,8 +38,8 @@ def radial_light_profile(
         * extend_profile
         / 2,
         int(resolution),
-        dtype=AP_config.ap_dtype,
-        device=AP_config.ap_device,
+        dtype=config.DTYPE,
+        device=config.DEVICE,
     )
     flux = model.radial_model(xx, params=()).detach().cpu().numpy()
     if model.target.zeropoint is not None:
@@ -183,8 +183,8 @@ def ray_light_profile(
         0,
         max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
         int(resolution),
-        dtype=AP_config.ap_dtype,
-        device=AP_config.ap_device,
+        dtype=config.DTYPE,
+        device=config.DEVICE,
     )
     for r in range(model.segments):
         if model.segments <= 3:
@@ -217,8 +217,8 @@ def wedge_light_profile(
         0,
         max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
         int(resolution),
-        dtype=AP_config.ap_dtype,
-        device=AP_config.ap_device,
+        dtype=config.DTYPE,
+        device=config.DEVICE,
     )
     for r in range(model.segments):
         if model.segments <= 3:

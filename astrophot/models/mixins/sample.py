@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from ...param import forward
-from ... import AP_config
+from ... import config
 from ...image import Image, Window, JacobianImage
 from .. import func
 from ...errors import SpecificationConflict
@@ -81,7 +81,7 @@ class SampleMixin:
     @forward
     def _threshold_integrate(self, sample, image: Image):
         i, j = image.pixel_center_meshgrid()
-        kernel = func.curvature_kernel(AP_config.ap_dtype, AP_config.ap_device)
+        kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
             torch.nn.functional.pad(
                 torch.nn.functional.conv2d(

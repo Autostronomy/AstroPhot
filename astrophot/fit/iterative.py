@@ -10,7 +10,7 @@ import torch
 from .base import BaseOptimizer
 from ..models import Model
 from .lm import LM
-from .. import AP_config
+from .. import config
 
 __all__ = [
     "Iter",
@@ -78,7 +78,7 @@ class Iter(BaseOptimizer):
         res = LM(model, **self.lm_kwargs).fit(update_uncertainty=update_uncertainty)
         self.Y += model()
         if self.verbose > 1:
-            AP_config.ap_logger.info(res.message)
+            config.logger.info(res.message)
         model.target = initial_values
 
     def step(self) -> None:
@@ -86,12 +86,12 @@ class Iter(BaseOptimizer):
         Perform a single iteration of optimization.
         """
         if self.verbose > 0:
-            AP_config.ap_logger.info("--------iter-------")
+            config.logger.info("--------iter-------")
 
         # Fit each model individually
         for model in self.model.models:
             if self.verbose > 0:
-                AP_config.ap_logger.info(model.name)
+                config.logger.info(model.name)
             self.sub_step(model)
         # Update the current state
         self.current_state = self.model.build_params_array()
@@ -99,7 +99,7 @@ class Iter(BaseOptimizer):
         # Update the loss value
         with torch.no_grad():
             if self.verbose > 0:
-                AP_config.ap_logger.info("Update Chi^2 with new parameters")
+                config.logger.info("Update Chi^2 with new parameters")
             self.Y = self.model(params=self.current_state)
             D = self.model.target[self.model.window].flatten("data")
             V = (
@@ -116,7 +116,7 @@ class Iter(BaseOptimizer):
             else:
                 loss = torch.sum(((D - self.Y.flatten("data")) ** 2 / V)) / self.ndf
         if self.verbose > 0:
-            AP_config.ap_logger.info(f"Loss: {loss.item()}")
+            config.logger.info(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy((self.current_state).detach().cpu().numpy()))
         self.loss_history.append(loss.item())
 
@@ -156,15 +156,15 @@ class Iter(BaseOptimizer):
             self.message = self.message + "fail interrupted"
 
         self.model.fill_dynamic_values(
-            torch.tensor(self.res(), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if update_uncertainty:
             for model in self.model.models:
                 if self.verbose > 1:
-                    AP_config.ap_logger.info(model.name)
+                    config.logger.info(model.name)
                 self.sub_step(model, update_uncertainty=True)
         if self.verbose > 1:
-            AP_config.ap_logger.info(
+            config.logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
 
@@ -227,11 +227,11 @@ class IterParam(BaseOptimizer):
         res = None
 
         if self.verbose > 0:
-            AP_config.ap_logger.info("--------iter-------")
+            config.logger.info("--------iter-------")
 
         # Loop through all the chunks
         while True:
-            chunk = torch.zeros(len(init_param_ids), dtype=torch.bool, device=AP_config.ap_device)
+            chunk = torch.zeros(len(init_param_ids), dtype=torch.bool, device=config.DEVICE)
             if isinstance(self.chunks, int):
                 if len(param_ids) == 0:
                     break
@@ -270,7 +270,7 @@ class IterParam(BaseOptimizer):
                     "Unrecognized chunks value, should be one of int, tuple. not: {type(self.chunks)}"
                 )
             if self.verbose > 1:
-                AP_config.ap_logger.info(str(chunk))
+                config.logger.info(str(chunk))
             del res
             with Param_Mask(self.model.parameters, chunk):
                 res = LM(
@@ -279,16 +279,16 @@ class IterParam(BaseOptimizer):
                     **self.LM_kwargs,
                 ).fit()
             if self.verbose > 0:
-                AP_config.ap_logger.info(f"chunk loss: {res.res_loss()}")
+                config.logger.info(f"chunk loss: {res.res_loss()}")
             if self.verbose > 1:
-                AP_config.ap_logger.info(f"chunk message: {res.message}")
+                config.logger.info(f"chunk message: {res.message}")
 
         self.loss_history.append(res.res_loss())
         self.lambda_history.append(
             self.model.parameters.vector_representation().detach().cpu().numpy()
         )
         if self.verbose > 0:
-            AP_config.ap_logger.info(f"Loss: {self.loss_history[-1]}")
+            config.logger.info(f"Loss: {self.loss_history[-1]}")
 
         # test for convergence
         if self.iteration >= 2 and (
@@ -328,7 +328,7 @@ class IterParam(BaseOptimizer):
 
         self.model.parameters.vector_set_representation(self.res())
         if self.verbose > 1:
-            AP_config.ap_logger.info(
+            config.logger.info(
                 f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
             )
 

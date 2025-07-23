@@ -5,7 +5,7 @@ from ...utils.decorators import ignore_numpy_warnings
 from ...utils.interpolate import default_prof
 from ...param import forward
 from .. import func
-from ... import AP_config
+from ... import config
 
 
 class InclinedMixin:
@@ -155,7 +155,7 @@ class FourierEllipseMixin:
 
     def __init__(self, *args, modes=(3, 4), **kwargs):
         super().__init__(*args, **kwargs)
-        self.modes = torch.tensor(modes, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+        self.modes = torch.tensor(modes, dtype=config.DTYPE, device=config.DEVICE)
 
     @forward
     def radius_metric(self, x, y, am, phim):

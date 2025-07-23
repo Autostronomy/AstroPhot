@@ -6,7 +6,7 @@ import numpy as np
 from .base import BaseOptimizer
 from ..models import AstroPhot_Model
 from .lm import LM
-from .. import AP_config
+from .. import config
 
 __all__ = ["MiniFit"]
 
@@ -42,7 +42,7 @@ class MiniFit(BaseOptimizer):
             self.downsample_factor += 1
 
         if self.verbose > 0:
-            AP_config.ap_logger.info(f"Downsampling target by {self.downsample_factor}x")
+            config.logger.info(f"Downsampling target by {self.downsample_factor}x")
 
         self.small_target = small_target
         self.model.target = small_target

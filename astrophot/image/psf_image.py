@@ -5,7 +5,7 @@ import numpy as np
 
 from .image_object import Image
 from .jacobian_image import JacobianImage
-from .. import AP_config
+from .. import config
 from .mixins import DataMixin
 
 __all__ = ["PSFImage"]
@@ -61,8 +61,8 @@ class PSFImage(DataMixin, Image):
         elif data is None:
             data = torch.zeros(
                 (*self.data.shape, len(parameters)),
-                dtype=AP_config.ap_dtype,
-                device=AP_config.ap_device,
+                dtype=config.DTYPE,
+                device=config.DEVICE,
             )
         kwargs = {
             "CD": self.CD.value,

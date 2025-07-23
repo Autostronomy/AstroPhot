@@ -2,29 +2,28 @@ import sys
 import logging
 import torch
 
-__all__ = ["ap_dtype", "ap_device", "ap_logger", "set_logging_output"]
+__all__ = ["DTYPE", "DEVICE", "logger", "set_logging_output"]
 
-ap_dtype = torch.float64
-ap_device = "cuda:0" if torch.cuda.is_available() else "cpu"
-ap_verbose = 0
+DTYPE = torch.float64
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 logging.basicConfig(
     filename="AstroPhot.log",
     level=logging.INFO,
     format="%(asctime)s:%(levelname)s: %(message)s",
 )
-ap_logger = logging.getLogger()
+logger = logging.getLogger()
 out_handler = logging.StreamHandler(sys.stdout)
 out_handler.setLevel(logging.INFO)
 out_handler.setFormatter(logging.Formatter("%(message)s"))
-ap_logger.addHandler(out_handler)
+logger.addHandler(out_handler)
 
 
 def set_logging_output(stdout=True, filename=None, **kwargs):
     """
     Change the logging system for AstroPhot.
     Here you can set whether output prints to screen or to a logging file.
-    This function will remove all handlers from the current logger in ap_logger,
+    This function will remove all handlers from the current logger in logger,
     then add new handlers based on the input to the function.
 
     Parameters:
@@ -39,11 +38,11 @@ def set_logging_output(stdout=True, filename=None, **kwargs):
 
     """
     hi = 0
-    while hi < len(ap_logger.handlers):
-        if isinstance(ap_logger.handlers[hi], logging.StreamHandler):
-            ap_logger.removeHandler(ap_logger.handlers[hi])
-        elif isinstance(ap_logger.handlers[hi], logging.FileHandler):
-            ap_logger.removeHandler(ap_logger.handlers[hi])
+    while hi < len(logger.handlers):
+        if isinstance(logger.handlers[hi], logging.StreamHandler):
+            logger.removeHandler(logger.handlers[hi])
+        elif isinstance(logger.handlers[hi], logging.FileHandler):
+            logger.removeHandler(logger.handlers[hi])
         else:
             hi += 1
 
@@ -51,8 +50,8 @@ def set_logging_output(stdout=True, filename=None, **kwargs):
         out_handler = logging.StreamHandler(sys.stdout)
         out_handler.setLevel(kwargs.get("stdout_level", logging.INFO))
         out_handler.setFormatter(kwargs.get("stdout_formatter", logging.Formatter("%(message)s")))
-        ap_logger.addHandler(out_handler)
-        ap_logger.debug("logging now going to stdout")
+        logger.addHandler(out_handler)
+        logger.debug("logging now going to stdout")
     if filename is not None:
         out_handler = logging.FileHandler(filename)
         out_handler.setLevel(kwargs.get("filename_level", logging.INFO))
@@ -62,5 +61,5 @@ def set_logging_output(stdout=True, filename=None, **kwargs):
                 logging.Formatter("%(asctime)s:%(levelname)s: %(message)s"),
             )
         )
-        ap_logger.addHandler(out_handler)
-        ap_logger.debug("logging now going to %s" % filename)
+        logger.addHandler(out_handler)
+        logger.debug("logging now going to %s" % filename)
