@@ -39,6 +39,14 @@ class Module(CModule):
                     names.append(f"{param.name}_{i}")
         return names
 
+    def build_params_array_units(self):
+        units = []
+        for param in self.dynamic_params:
+            numel = max(1, np.prod(param.shape))
+            for _ in range(numel):
+                units.append(param.unit)
+        return units
+
     def fill_dynamic_value_uncertainties(self, uncertainty):
         if self.active:
             raise ActiveStateError(f"Cannot fill dynamic values when Module {self.name} is active")
