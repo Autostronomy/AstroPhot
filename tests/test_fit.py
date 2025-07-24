@@ -112,6 +112,36 @@ def test_fitters_iter():
     assert ll_final > ll_init, f"Iter should improve the log likelihood"
     assert pll_final > pll_init, f"Iter should improve the poisson log likelihood"
 
+    # test hessian
+    Hgauss = model.hessian(likelihood="gaussian")
+    assert torch.all(torch.isfinite(Hgauss)), "Hessian should be finite for Gaussian likelihood"
+    Hpoisson = model.hessian(likelihood="poisson")
+    assert torch.all(torch.isfinite(Hpoisson)), "Hessian should be finite for Poisson likelihood"
+
+
+def test_hessian():
+    target = make_basic_sersic()
+    model = ap.Model(
+        name="test sersic",
+        model_type="sersic galaxy model",
+        center=[20, 20],
+        PA=np.pi,
+        q=0.7,
+        n=2,
+        Re=15,
+        Ie=10.0,
+        target=target,
+    )
+    model.initialize()
+    Hgauss = model.hessian(likelihood="gaussian")
+    assert torch.all(torch.isfinite(Hgauss)), "Hessian should be finite for Gaussian likelihood"
+    Hpoisson = model.hessian(likelihood="poisson")
+    assert torch.all(torch.isfinite(Hpoisson)), "Hessian should be finite for Poisson likelihood"
+    assert Hgauss is not None, "Hessian should be computed for Gaussian likelihood"
+    assert Hpoisson is not None, "Hessian should be computed for Poisson likelihood"
+    with pytest.raises(ValueError):
+        model.hessian(likelihood="unknown")
+
 
 def test_gradient():
     target = make_basic_sersic()

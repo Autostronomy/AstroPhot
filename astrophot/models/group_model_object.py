@@ -174,6 +174,18 @@ class GroupModel(Model):
             )
         return use_window
 
+    def _ensure_vmap_compatible(self, image, other):
+        if isinstance(image, ImageList):
+            for img in image.images:
+                self._ensure_vmap_compatible(img, other)
+            return
+        if isinstance(other, ImageList):
+            for img in other.images:
+                self._ensure_vmap_compatible(image, img)
+            return
+        if image.identity == other.identity:
+            image += torch.zeros_like(other.data[0, 0])
+
     @forward
     def sample(
         self,
@@ -202,7 +214,9 @@ class GroupModel(Model):
                 except IndexError:
                     # If the model target is not in the image, skip it
                     continue
-            image += model(window=model.window & use_window)
+            model_image = model(window=model.window & use_window)
+            self._ensure_vmap_compatible(image, model_image)
+            image += model_image
 
         return image
 

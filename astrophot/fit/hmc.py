@@ -2,15 +2,19 @@
 from typing import Optional, Sequence
 
 import torch
-import pyro
-import pyro.distributions as dist
-from pyro.infer import MCMC as pyro_MCMC
-from pyro.infer import HMC as pyro_HMC
-from pyro.infer.mcmc.adaptation import BlockMassMatrix
-from pyro.ops.welford import WelfordCovariance
+
+try:
+    import pyro
+    import pyro.distributions as dist
+    from pyro.infer import MCMC as pyro_MCMC
+    from pyro.infer import HMC as pyro_HMC
+    from pyro.infer.mcmc.adaptation import BlockMassMatrix
+    from pyro.ops.welford import WelfordCovariance
+except ImportError:
+    pyro = None
 
 from .base import BaseOptimizer
-from ..models import AstroPhot_Model
+from ..models import Model
 
 __all__ = ["HMC"]
 
@@ -80,21 +84,33 @@ class HMC(BaseOptimizer):
 
     def __init__(
         self,
-        model: AstroPhot_Model,
+        model: Model,
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
+        inv_mass: Optional[torch.Tensor] = None,
+        epsilon: float = 1e-5,
+        leapfrog_steps: int = 20,
+        progress_bar: bool = True,
+        prior: Optional[dist.Distribution] = None,
+        warmup: int = 100,
+        hmc_kwargs: dict = {},
+        mcmc_kwargs: dict = {},
+        likelihood: str = "gaussian",
         **kwargs,
     ):
+        if pyro is None:
+            raise ImportError("Pyro must be installed to use HMC.")
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.inv_mass = kwargs.get("inv_mass", None)
-        self.epsilon = kwargs.get("epsilon", 1e-3)
-        self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
-        self.progress_bar = kwargs.get("progress_bar", True)
-        self.prior = kwargs.get("prior", None)
-        self.warmup = kwargs.get("warmup", 100)
-        self.hmc_kwargs = kwargs.get("hmc_kwargs", {})
-        self.mcmc_kwargs = kwargs.get("mcmc_kwargs", {})
+        self.inv_mass = inv_mass
+        self.epsilon = epsilon
+        self.leapfrog_steps = leapfrog_steps
+        self.progress_bar = progress_bar
+        self.prior = prior
+        self.warmup = warmup
+        self.hmc_kwargs = hmc_kwargs
+        self.mcmc_kwargs = mcmc_kwargs
+        self.likelihood = likelihood
         self.acceptance = None
 
     def fit(
@@ -116,10 +132,12 @@ class HMC(BaseOptimizer):
         def step(model, prior):
             x = pyro.sample("x", prior)
             # Log-likelihood function
-            model.parameters.flat_detach()
-            log_likelihood_value = -model.negative_log_likelihood(
-                parameters=x, as_representation=True
-            )
+            if self.likelihood == "gaussian":
+                log_likelihood_value = model.gaussian_log_likelihood(params=x)
+            elif self.likelihood == "poisson":
+                log_likelihood_value = model.poisson_log_likelihood(params=x)
+            else:
+                raise ValueError(f"Unsupported likelihood type: {self.likelihood}")
             # Observe the log-likelihood
             pyro.factor("obs", log_likelihood_value)
 
@@ -145,7 +163,7 @@ class HMC(BaseOptimizer):
             hmc_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.parameters.vector_representation()}
+        init_params = {"x": self.model.build_params_array()}
 
         # Run MCMC with the HMC sampler and the initial guess
         mcmc_kwargs = {
@@ -163,9 +181,6 @@ class HMC(BaseOptimizer):
         # Extract posterior samples
         chain = mcmc.get_samples()["x"]
 
-        with torch.no_grad():
-            for i in range(len(chain)):
-                chain[i] = self.model.parameters.vector_transform_rep_to_val(chain[i])
         self.chain = chain
 
         return self

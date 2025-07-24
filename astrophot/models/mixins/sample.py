@@ -2,6 +2,7 @@ from typing import Optional, Literal
 
 import numpy as np
 from torch.autograd.functional import jacobian
+from torch.func import jacfwd, hessian
 import torch
 from torch import Tensor
 
@@ -152,6 +153,11 @@ class SampleMixin:
         return sample
 
     def _jacobian(self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor):
+        # return jacfwd( # this should be more efficient, but the trace overhead is too high
+        #     lambda x: self.sample(
+        #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
+        #     ).data
+        # )(params)
         return jacobian(
             lambda x: self.sample(
                 window=window, params=torch.cat((params_pre, x, params_post), dim=-1)

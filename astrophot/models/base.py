@@ -2,6 +2,7 @@ from typing import Optional, Union
 from copy import deepcopy
 
 import torch
+from torch.func import hessian
 import numpy as np
 
 from caskade import Param as CParam
@@ -136,7 +137,7 @@ class Model(Module):
         weight = data.weight
         mask = data.mask
         data = data.data
-        if isinstance(data, ImageList):
+        if isinstance(data, tuple):
             nll = 0.5 * sum(
                 torch.sum(((da - mo) ** 2 * wgt)[~ma])
                 for mo, da, wgt, ma in zip(model, data, weight, mask)
@@ -161,7 +162,7 @@ class Model(Module):
         mask = data.mask
         data = data.data
 
-        if isinstance(data, ImageList):
+        if isinstance(data, tuple):
             nll = sum(
                 torch.sum((mo - da * (mo + 1e-10).log() + torch.lgamma(da + 1))[~ma])
                 for mo, da, ma in zip(model, data, mask)
@@ -170,6 +171,14 @@ class Model(Module):
             nll = torch.sum((model - data * (model + 1e-10).log() + torch.lgamma(data + 1))[~mask])
 
         return -nll
+
+    def hessian(self, likelihood="gaussian"):
+        if likelihood == "gaussian":
+            return hessian(self.gaussian_log_likelihood)(self.build_params_array())
+        elif likelihood == "poisson":
+            return hessian(self.poisson_log_likelihood)(self.build_params_array())
+        else:
+            raise ValueError(f"Unknown likelihood type: {likelihood}")
 
     def total_flux(self, window=None) -> torch.Tensor:
         F = self(window=window)

@@ -59,6 +59,7 @@ class MHMCMC(BaseOptimizer):
         nsamples: Optional[int] = None,
         restart_chain: bool = True,
         skip_initial_state_check: bool = True,
+        flat_chain: bool = True,
     ):
         """
         Performs the MCMC sampling using a Metropolis Hastings acceptance step and records the chain for later examination.
@@ -79,10 +80,10 @@ class MHMCMC(BaseOptimizer):
         sampler = emcee.EnsembleSampler(nwalkers, ndim, self.density, vectorize=True)
         state = sampler.run_mcmc(state, nsamples, skip_initial_state_check=skip_initial_state_check)
         if restart_chain:
-            self.chain = sampler.get_chain()
+            self.chain = sampler.get_chain(flat=flat_chain)
         else:
-            self.chain = np.append(self.chain, sampler.get_chain(), axis=0)
+            self.chain = np.append(self.chain, sampler.get_chain(flat=flat_chain), axis=0)
         self.model.fill_dynamic_values(
-            torch.tensor(self.chain[-1][0], dtype=config.DTYPE, device=config.DEVICE)
+            torch.tensor(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
         )
         return self
