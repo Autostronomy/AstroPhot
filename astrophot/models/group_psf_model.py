@@ -1,6 +1,7 @@
 from .group_model_object import GroupModel
 from ..image import PSFImage
 from ..errors import InvalidTarget
+from ..param import forward
 
 __all__ = ["PSFGroupModel"]
 
@@ -10,6 +11,8 @@ class PSFGroupModel(GroupModel):
     _model_type = "psf"
     usable = True
     normalize_psf = True
+
+    _options = ("normalize_psf",)
 
     @property
     def target(self):
@@ -28,3 +31,11 @@ class PSFGroupModel(GroupModel):
             pass
 
         self._target = target
+
+    @forward
+    def sample(self, *args, **kwargs):
+        """Sample the PSF group model on the target image."""
+        psf_img = super().sample(*args, **kwargs)
+        if self.normalize_psf:
+            psf_img.normalize()
+        return psf_img

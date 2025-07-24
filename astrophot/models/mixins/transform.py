@@ -103,7 +103,7 @@ class SuperEllipseMixin:
 
     @forward
     def radius_metric(self, x, y, C):
-        return torch.pow(x.abs().pow(C) + y.abs().pow(C), 1.0 / C)
+        return torch.pow(x.abs().pow(C) + y.abs().pow(C) + self.softening**C, 1.0 / C)
 
 
 class FourierEllipseMixin:
