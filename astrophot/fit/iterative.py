@@ -132,13 +132,7 @@ class Iter(BaseOptimizer):
 
         self.iteration += 1
 
-    def fit(self, update_uncertainty=True) -> BaseOptimizer:
-        """
-        Fit the models to the target.
-
-
-        """
-
+    def fit(self) -> BaseOptimizer:
         self.iteration = 0
         self.Y = self.model(params=self.current_state)
         start_fit = time()

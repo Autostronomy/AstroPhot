@@ -49,8 +49,8 @@ def test_chunk_jacobian(center, PA, q, n, Re):
     ), "Pixel chunked Jacobian should match full Jacobian"
 
 
-@pytest.mark.parametrize("fitter", [ap.fit.LM, ap.fit.Grad, ap.fit.ScipyFit, ap.fit.MHMCMC])
-def test_fitters(fitter):
+@pytest.fixture
+def sersic_model():
     target = make_basic_sersic()
     model = ap.Model(
         name="test sersic",
@@ -63,6 +63,15 @@ def test_fitters(fitter):
         Ie=10.0,
         target=target,
     )
+    model.initialize()
+    return model
+
+
+@pytest.mark.parametrize(
+    "fitter", [ap.fit.LM, ap.fit.Grad, ap.fit.ScipyFit, ap.fit.MHMCMC, ap.fit.MiniFit]
+)
+def test_fitters(fitter, sersic_model):
+    model = sersic_model
     model.initialize()
     ll_init = model.gaussian_log_likelihood()
     pll_init = model.poisson_log_likelihood()
@@ -119,19 +128,8 @@ def test_fitters_iter():
     assert torch.all(torch.isfinite(Hpoisson)), "Hessian should be finite for Poisson likelihood"
 
 
-def test_hessian():
-    target = make_basic_sersic()
-    model = ap.Model(
-        name="test sersic",
-        model_type="sersic galaxy model",
-        center=[20, 20],
-        PA=np.pi,
-        q=0.7,
-        n=2,
-        Re=15,
-        Ie=10.0,
-        target=target,
-    )
+def test_hessian(sersic_model):
+    model = sersic_model
     model.initialize()
     Hgauss = model.hessian(likelihood="gaussian")
     assert torch.all(torch.isfinite(Hgauss)), "Hessian should be finite for Gaussian likelihood"
@@ -143,20 +141,10 @@ def test_hessian():
         model.hessian(likelihood="unknown")
 
 
-def test_gradient():
-    target = make_basic_sersic()
+def test_gradient(sersic_model):
+    model = sersic_model
+    target = model.target
     target.weight = 1 / (10 + target.variance.T)
-    model = ap.Model(
-        name="test sersic",
-        model_type="sersic galaxy model",
-        center=[20, 20],
-        PA=np.pi,
-        q=0.7,
-        n=2,
-        Re=15,
-        Ie=10.0,
-        target=target,
-    )
     model.initialize()
     x = model.build_params_array()
     grad = model.gradient()
@@ -167,6 +155,9 @@ def test_gradient():
     ll.backward()
     autograd = x.grad
     assert torch.allclose(grad, autograd, rtol=1e-4), "Gradient should match autograd gradient"
+
+    funcgrad = torch.func.grad(model.gaussian_log_likelihood)(x)
+    assert torch.allclose(grad, funcgrad, rtol=1e-4), "Gradient should match functional gradient"
 
 
 # class TestHMC(unittest.TestCase):

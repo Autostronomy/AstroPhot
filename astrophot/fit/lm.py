@@ -110,47 +110,6 @@ class LM(BaseOptimizer):
     state, and various other optional parameters as inputs and seeks
     to find the parameters that minimize the cost function.
 
-    Args:
-      model: The model to be optimized.
-      initial_state (Sequence): Initial values for the parameters to be optimized.
-      max_iter (int): Maximum number of iterations for the algorithm.
-      relative_tolerance (float): Tolerance level for relative change in cost function value to trigger termination of the algorithm.
-      fit_parameters_identity: Used to select a subset of parameters. This is mostly used internally.
-      verbose: Controls the verbosity of the output during optimization. A higher value results in more detailed output. If not provided, defaults to 0 (no output).
-      max_step_iter (optional): The maximum number of steps while searching for chi^2 improvement on a single Jacobian evaluation. Default is 10.
-      curvature_limit (optional): Controls how cautious the optimizer is for changing curvature. It should be a number greater than 0, where smaller is more cautious. Default is 1.
-      Lup and Ldn (optional): These adjust the step sizes for the damping parameter. Default is 5 and 3 respectively.
-      L0 (optional): This is the starting damping parameter. For easy problems with good initialization, this can be set lower. Default is 1.
-      acceleration (optional): Controls the use of geodesic acceleration, which can be helpful in some scenarios. Set 1 for full acceleration, 0 for no acceleration. Default is 0.
-
-    Here is some basic usage of the LM optimizer:
-
-    .. code-block:: python
-
-      import astrophot as ap
-
-      # build model
-      # ...
-
-      # Initialize model parameters
-      model.initialize()
-
-      # Fit the parameters
-      result = ap.fit.lm(model, verbose=1)
-
-      # Check that a minimum was found
-      print(result.message)
-
-      # See the minimum chi^2 value
-      print(f"min chi2: {result.res_loss()}")
-
-      # Update parameter uncertainties
-      result.update_uncertainty()
-
-      # Extract multivariate Gaussian of uncertainties
-      mu = result.res()
-      cov = result.covariance_matrix
-
     """
 
     def __init__(
@@ -178,11 +137,10 @@ class LM(BaseOptimizer):
         self.max_iter = max_iter
         # Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation
         self.max_step_iter = max_step_iter
-        # These are the adjustment step sized for the damping parameter
         self.Lup = Lup
         self.Ldn = Ldn
-        # This is the starting damping parameter, for easy problems with good initialization, this can be set lower
         self.L = L0
+
         # mask
         fit_mask = self.model.fit_mask()
         if isinstance(fit_mask, tuple):
@@ -215,7 +173,7 @@ class LM(BaseOptimizer):
             self.W = torch.as_tensor(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
-        elif model.target.has_variance:
+        elif model.target.has_weight:
             self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
         else:
             self.W = torch.ones_like(self.Y)

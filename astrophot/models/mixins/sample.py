@@ -198,6 +198,9 @@ class SampleMixin:
             return jac_img
 
         identities = self.build_params_array_identities()
+        if len(jac_img.match_parameters(identities)[0]) == 0:
+            return jac_img
+
         target = self.target[window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
             chunksize = len(params) // self.jacobian_maxparams + 1

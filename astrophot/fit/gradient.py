@@ -71,7 +71,7 @@ class Grad(BaseOptimizer):
         self.optim_kwargs = optim_kwargs
         self.report_freq = report_freq
 
-        # Default learning rate if none given. Equalt to 1 / sqrt(parames)
+        # Default learning rate if none given. Equal to 1 / sqrt(parames)
         if "lr" not in self.optim_kwargs:
             self.optim_kwargs["lr"] = 0.1 / (len(self.current_state) ** (0.5))
 

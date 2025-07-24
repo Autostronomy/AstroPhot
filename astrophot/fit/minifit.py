@@ -4,7 +4,7 @@ from typing import Dict, Any
 import numpy as np
 
 from .base import BaseOptimizer
-from ..models import AstroPhot_Model
+from ..models import Model
 from .lm import LM
 from .. import config
 
@@ -14,8 +14,8 @@ __all__ = ["MiniFit"]
 class MiniFit(BaseOptimizer):
     def __init__(
         self,
-        model: AstroPhot_Model,
-        downsample_factor: int = 1,
+        model: Model,
+        downsample_factor: int = 2,
         max_pixels: int = 10000,
         method: BaseOptimizer = LM,
         initial_state: np.ndarray = None,
@@ -37,7 +37,7 @@ class MiniFit(BaseOptimizer):
         target_area = self.model.target[self.model.window]
         while True:
             small_target = target_area.reduce(self.downsample_factor)
-            if small_target.size < self.max_pixels:
+            if np.prod(small_target.shape) < self.max_pixels:
                 break
             self.downsample_factor += 1
 
