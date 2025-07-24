@@ -4,8 +4,6 @@ from typing import Union
 import numpy as np
 import torch
 from astropy.io import fits
-from ..angle_operations import Angle_COM_PA
-from ..operations import axis_ratio_com
 
 __all__ = (
     "centroids_from_segmentation_map",
@@ -32,9 +30,9 @@ def _select_img(img, hduli):
 
 def centroids_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
-    image: Union[np.ndarray, str],
+    image: "Image",
+    sky_level=None,
     hdul_index_seg: int = 0,
-    hdul_index_img: int = 0,
     skip_index: tuple = (0,),
 ):
     """identify centroid centers for all segments in a segmentation map
@@ -56,89 +54,122 @@ def centroids_from_segmentation_map(
     """
 
     seg_map = _select_img(seg_map, hdul_index_seg)
-    image = _select_img(image, hdul_index_img)
 
+    seg_map = seg_map.T
+    if sky_level is None:
+        sky_level = np.nanmedian(image.data)
+
+    data = image.data.detach().cpu().numpy() - sky_level
     centroids = {}
 
-    XX, YY = np.meshgrid(np.arange(seg_map.shape[1]), np.arange(seg_map.shape[0]))
+    II, JJ = np.meshgrid(np.arange(seg_map.shape[0]), np.arange(seg_map.shape[1]), indexing="ij")
 
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        xcentroid = np.sum(XX[N] * image[N]) / np.sum(image[N])
-        ycentroid = np.sum(YY[N] * image[N]) / np.sum(image[N])
-        centroids[index] = [xcentroid, ycentroid]
+        icentroid = np.sum(II[N] * data[N]) / np.sum(data[N])
+        jcentroid = np.sum(JJ[N] * data[N]) / np.sum(data[N])
+        xcentroid, ycentroid = image.pixel_to_plane(
+            torch.tensor(icentroid, dtype=image.data.dtype, device=image.data.device),
+            torch.tensor(jcentroid, dtype=image.data.dtype, device=image.data.device),
+            params=(),
+        )
+        centroids[index] = [xcentroid.item(), ycentroid.item()]
 
     return centroids
 
 
 def PA_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
-    image: Union[np.ndarray, str],
+    image: "Image",
     centroids=None,
+    sky_level=None,
     hdul_index_seg: int = 0,
-    hdul_index_img: int = 0,
     skip_index: tuple = (0,),
-    north=np.pi / 2,
+    softening=1e-3,
 ):
 
     seg_map = _select_img(seg_map, hdul_index_seg)
-    image = _select_img(image, hdul_index_img)
+
+    # reverse to match numpy indexing
+    seg_map = seg_map.T
+    if sky_level is None:
+        sky_level = np.nanmedian(image.data)
+
+    data = image.data.detach().cpu().numpy() - sky_level
 
     if centroids is None:
         centroids = centroids_from_segmentation_map(
             seg_map=seg_map, image=image, skip_index=skip_index
         )
 
-    XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-
+    x, y = image.coordinate_center_meshgrid()
+    x = x.detach().cpu().numpy()
+    y = y.detach().cpu().numpy()
     PAs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        PA = (
-            Angle_COM_PA(image[N], XX[N] - centroids[index][0], YY[N] - centroids[index][1]) + north
-        )
-        PAs[index] = PA
+        xx = x[N] - centroids[index][0]
+        yy = y[N] - centroids[index][1]
+        mu20 = np.median(data[N] * np.abs(xx))
+        mu02 = np.median(data[N] * np.abs(yy))
+        mu11 = np.median(data[N] * xx * yy / np.sqrt(np.abs(xx * yy) + softening**2))
+        M = np.array([[mu20, mu11], [mu11, mu02]])
+        if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
+            PAs[index] = np.pi / 2
+        else:
+            PAs[index] = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
 
     return PAs
 
 
 def q_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
-    image: Union[np.ndarray, str],
+    image: "Image",
     centroids=None,
-    PAs=None,
+    sky_level=None,
     hdul_index_seg: int = 0,
-    hdul_index_img: int = 0,
     skip_index: tuple = (0,),
-    north=np.pi / 2,
+    softening=1e-3,
 ):
 
     seg_map = _select_img(seg_map, hdul_index_seg)
-    image = _select_img(image, hdul_index_img)
+
+    # reverse to match numpy indexing
+    seg_map = seg_map.T
+
+    if sky_level is None:
+        sky_level = np.nanmedian(image.data)
+
+    data = image.data.detach().cpu().numpy() - sky_level
 
     if centroids is None:
         centroids = centroids_from_segmentation_map(
             seg_map=seg_map, image=image, skip_index=skip_index
         )
-    if PAs is None:
-        PAs = PA_from_segmentation_map(
-            seg_map=seg_map, image=image, centroids=centroids, skip_index=skip_index
-        )
 
-    XX, YY = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-
+    x, y = image.coordinate_center_meshgrid()
+    x = x.detach().cpu().numpy()
+    y = y.detach().cpu().numpy()
     qs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
         N = seg_map == index
-        qs[index] = axis_ratio_com(
-            image[N], PAs[index] + north, XX[N] - centroids[index][0], YY[N] - centroids[index][1]
-        )
+        xx = x[N] - centroids[index][0]
+        yy = y[N] - centroids[index][1]
+        mu20 = np.median(data[N] * np.abs(xx))
+        mu02 = np.median(data[N] * np.abs(yy))
+        mu11 = np.median(data[N] * xx * yy / np.sqrt(np.abs(xx * yy) + softening**2))
+        M = np.array([[mu20, mu11], [mu11, mu02]])
+        if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
+            qs[index] = 0.7
+        else:
+            l = np.abs(np.sort(np.linalg.eigvals(M)))
+            qs[index] = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     return qs
 
@@ -151,7 +182,7 @@ def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
     boxes according to given factors and returns the coordinates.
 
     each window is formatted as a list of lists with:
-    window = [[xmin,xmax],[ymin,ymax]]
+    window = [[xmin,ymin],[xmax,ymax]]
 
     expand_scale changes the base window by the given
     factor. expand_border is added afterwards on all sides (so an
@@ -168,47 +199,52 @@ def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
         else:
             raise ValueError(f"unrecognized file type, should be one of: fits, npy\n{seg_map}")
 
+    seg_map = seg_map.T
+
     windows = {}
 
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
             continue
-        Yid, Xid = np.where(seg_map == index)
+        Iid, Jid = np.where(seg_map == index)
         # Get window from segmap
-        windows[index] = [[np.min(Xid), np.max(Xid)], [np.min(Yid), np.max(Yid)]]
+        windows[index] = [[np.min(Iid), np.min(Jid)], [np.max(Iid), np.max(Jid)]]
 
     return windows
 
 
-def scale_windows(windows, image_shape=None, expand_scale=1.0, expand_border=0.0):
+def scale_windows(windows, image: "Image" = None, expand_scale=1.0, expand_border=0.0):
     new_windows = {}
     for index in list(windows.keys()):
         new_window = deepcopy(windows[index])
         # Get center and shape of the window
         center = (
-            (new_window[0][0] + new_window[0][1]) / 2,
-            (new_window[1][0] + new_window[1][1]) / 2,
+            (new_window[0][0] + new_window[1][0]) / 2,
+            (new_window[0][1] + new_window[1][1]) / 2,
         )
         shape = (
-            new_window[0][1] - new_window[0][0],
-            new_window[1][1] - new_window[1][0],
+            new_window[1][0] - new_window[0][0],
+            new_window[1][1] - new_window[0][1],
         )
         # Update the window with any expansion coefficients
         new_window = [
             [
                 int(center[0] - expand_scale * shape[0] / 2 - expand_border),
-                int(center[0] + expand_scale * shape[0] / 2 + expand_border),
+                int(center[1] - expand_scale * shape[1] / 2 - expand_border),
             ],
             [
-                int(center[1] - expand_scale * shape[1] / 2 - expand_border),
+                int(center[0] + expand_scale * shape[0] / 2 + expand_border),
                 int(center[1] + expand_scale * shape[1] / 2 + expand_border),
             ],
         ]
         # Ensure the window does not exceed the borders of the image
-        if image_shape is not None:
+        if image is not None:
             new_window = [
-                [max(0, new_window[0][0]), min(image_shape[1], new_window[0][1])],
-                [max(0, new_window[1][0]), min(image_shape[0], new_window[1][1])],
+                [max(0, new_window[0][0]), max(0, new_window[0][1])],
+                [
+                    min(image.data.shape[0], new_window[1][0]),
+                    min(image.data.shape[1], new_window[1][1]),
+                ],
             ]
         new_windows[index] = new_window
     return new_windows
@@ -222,7 +258,7 @@ def filter_windows(
     max_area=None,
     min_flux=None,
     max_flux=None,
-    image=None,
+    image: "Image" = None,
 ):
     """
     Filter a set of windows based on a set of criteria.
@@ -242,8 +278,8 @@ def filter_windows(
         if min_size is not None:
             if (
                 min(
-                    windows[w][0][1] - windows[w][0][0],
-                    windows[w][1][1] - windows[w][1][0],
+                    windows[w][1][0] - windows[w][0][0],
+                    windows[w][1][1] - windows[w][0][1],
                 )
                 < min_size
             ):
@@ -251,28 +287,28 @@ def filter_windows(
         if max_size is not None:
             if (
                 max(
-                    windows[w][0][1] - windows[w][0][0],
-                    windows[w][1][1] - windows[w][1][0],
+                    windows[w][1][0] - windows[w][0][0],
+                    windows[w][1][1] - windows[w][0][1],
                 )
                 > max_size
             ):
                 continue
         if min_area is not None:
             if (
-                (windows[w][0][1] - windows[w][0][0]) * (windows[w][1][1] - windows[w][1][0])
+                (windows[w][1][0] - windows[w][0][0]) * (windows[w][1][1] - windows[w][0][1])
             ) < min_area:
                 continue
         if max_area is not None:
             if (
-                (windows[w][0][1] - windows[w][0][0]) * (windows[w][1][1] - windows[w][1][0])
+                (windows[w][1][0] - windows[w][0][0]) * (windows[w][1][1] - windows[w][0][1])
             ) > max_area:
                 continue
         if min_flux is not None:
             if (
                 np.sum(
-                    image[
-                        windows[w][1][0] : windows[w][1][1],
-                        windows[w][0][0] : windows[w][0][1],
+                    image.data[
+                        windows[w][0][0] : windows[w][1][0],
+                        windows[w][0][1] : windows[w][1][1],
                     ]
                 )
                 < min_flux
@@ -281,9 +317,9 @@ def filter_windows(
         if max_flux is not None:
             if (
                 np.sum(
-                    image[
-                        windows[w][1][0] : windows[w][1][1],
-                        windows[w][0][0] : windows[w][0][1],
+                    image.data[
+                        windows[w][0][0] : windows[w][1][0],
+                        windows[w][0][1] : windows[w][1][1],
                     ]
                 )
                 > max_flux
@@ -303,7 +339,7 @@ def transfer_windows(windows, base_image, new_image):
     ----------
     windows : dict
         A dictionary of windows to be transferred. Each window is formatted as a list of lists with:
-        window = [[xmin,xmax],[ymin,ymax]]
+        window = [[xmin,ymin],[xmax,ymax]]
     base_image : Image
         The image object from which the windows are being transferred.
     new_image : Image
@@ -311,32 +347,31 @@ def transfer_windows(windows, base_image, new_image):
     """
     new_windows = {}
     for w in list(windows.keys()):
-        bottom_corner = np.clip(
-            np.floor(
-                new_image.plane_to_pixel(
-                    base_image.pixel_to_plane(torch.tensor([windows[w][0][0], windows[w][1][0]]))
-                )
-                .detach()
-                .cpu()
-                .numpy()
-            ),
-            a_min=0,
-            a_max=np.array(new_image.shape) - 1,
-        )
-        top_corner = np.clip(
-            np.ceil(
-                new_image.plane_to_pixel(
-                    base_image.pixel_to_plane(torch.tensor([windows[w][0][1], windows[w][1][1]]))
-                )
-                .detach()
-                .cpu()
-                .numpy()
-            ),
-            a_min=0,
-            a_max=np.array(new_image.shape) - 1,
-        )
+        four_corners_base = torch.tensor(
+            [
+                windows[w][0],
+                windows[w][1],
+                [windows[w][0][0], windows[w][1][1]],
+                [windows[w][1][0], windows[w][0][1]],
+            ],
+            dtype=base_image.data.dtype,
+            device=base_image.data.device,
+        )  # (4,2)
+        four_corners_new = (
+            torch.stack(
+                new_image.plane_to_pixel(*base_image.pixel_to_plane(*four_corners_base.T)), dim=-1
+            )
+            .detach()
+            .cpu()
+            .numpy()
+        )  # (4,2)
+
+        bottom_corner = np.floor(np.min(four_corners_new, axis=0)).astype(int)
+        bottom_corner = np.clip(bottom_corner, 0, np.array(new_image.shape))
+        top_corner = np.ceil(np.max(four_corners_new, axis=0)).astype(int)
+        top_corner = np.clip(top_corner, 0, np.array(new_image.shape))
         new_windows[w] = [
-            [bottom_corner[0], top_corner[0]],
-            [bottom_corner[1], top_corner[1]],
+            [int(bottom_corner[0]), int(bottom_corner[1])],
+            [int(top_corner[0]), int(top_corner[1])],
         ]
     return new_windows

@@ -1,16 +1,15 @@
-from typing import List
+from typing import List, Union
 
 import torch
 
-from .image_object import Image, Image_List
-from .. import AP_config
+from .image_object import Image, ImageList
 from ..errors import SpecificationConflict, InvalidImage
 
-__all__ = ["Jacobian_Image", "Jacobian_Image_List"]
+__all__ = ["JacobianImage", "JacobianImageList"]
 
 
 ######################################################################
-class Jacobian_Image(Image):
+class JacobianImage(Image):
     """Jacobian of a model evaluated in an image.
 
     Image object which represents the evaluation of a jacobian on an
@@ -23,103 +22,42 @@ class Jacobian_Image(Image):
     def __init__(
         self,
         parameters: List[str],
-        target_identity: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        self.target_identity = target_identity
         self.parameters = list(parameters)
         if len(self.parameters) != len(set(self.parameters)):
             raise SpecificationConflict("Every parameter should be unique upon jacobian creation")
 
-    def flatten(self, attribute: str = "data"):
-        return getattr(self, attribute).reshape((-1, len(self.parameters)))
-
     def copy(self, **kwargs):
-        return super().copy(
-            parameters=self.parameters, target_identity=self.target_identity, **kwargs
-        )
+        return super().copy(parameters=self.parameters, **kwargs)
 
-    def get_state(self):
-        state = super().get_state()
-        state["target_identity"] = self.target_identity
-        state["parameters"] = self.parameters
-        return state
+    def match_parameters(self, other: Union["JacobianImage", "JacobianImageList", List]):
+        self_i = []
+        other_i = []
+        other_parameters = other if isinstance(other, list) else other.parameters
+        for i, other_param in enumerate(other_parameters):
+            if other_param in self.parameters:
+                self_i.append(self.parameters.index(other_param))
+                other_i.append(i)
+        return self_i, other_i
 
-    def set_state(self, state):
-        super().set_state(state)
-        self.target_identity = state["target_identity"]
-        self.parameters = state["parameters"]
-
-    def get_fits_state(self):
-        states = super().get_fits_state()
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                state["HEADER"]["TRGTID"] = self.target_identity
-                state["HEADER"]["PARAMS"] = str(self.parameters)
-        return states
-
-    def set_fits_state(self, states):
-        super().set_fits_state(states)
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                self.target_identity = state["HEADER"]["TRGTID"]
-                self.parameters = eval(state["HEADER"]["params"])
-
-    def __add__(self, other):
-        raise NotImplementedError("Jacobian images cannot add like this, use +=")
-
-    def __sub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __isub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __iadd__(self, other):
-        if not isinstance(other, Jacobian_Image):
+    def __iadd__(self, other: "JacobianImage"):
+        if not isinstance(other, JacobianImage):
             raise InvalidImage("Jacobian images can only add with each other, not: type(other)")
 
-        # exclude null jacobian images
-        if other.data is None:
-            return self
-        if self.data is None:
-            return other
-
-        full_window = self.window | other.window
-
-        self_indices = other.window.get_other_indices(self)
-        other_indices = self.window.get_other_indices(other)
-        for i, other_identity in enumerate(other.parameters):
-            if other_identity in self.parameters:
-                other_loc = self.parameters.index(other_identity)
-            else:
-                self.set_data(
-                    torch.cat(
-                        (
-                            self.data,
-                            torch.zeros(
-                                self.data.shape[0],
-                                self.data.shape[1],
-                                1,
-                                dtype=AP_config.ap_dtype,
-                                device=AP_config.ap_device,
-                            ),
-                        ),
-                        dim=2,
-                    ),
-                    require_shape=False,
-                )
-                self.parameters.append(other_identity)
-                other_loc = -1
-            self.data[self_indices[0], self_indices[1], other_loc] += other.data[
-                other_indices[0], other_indices[1], i
+        self_indices = self.get_indices(other.window)
+        other_indices = other.get_indices(self.window)
+        for self_i, other_i in zip(*self.match_parameters(other)):
+            self._data[self_indices[0], self_indices[1], self_i] += other.data[
+                other_indices[0], other_indices[1], other_i
             ]
         return self
 
 
 ######################################################################
-class Jacobian_Image_List(Image_List, Jacobian_Image):
+class JacobianImageList(ImageList):
     """For joint modelling, represents Jacobians evaluated on a list of
     images.
 
@@ -132,44 +70,35 @@ class Jacobian_Image_List(Image_List, Jacobian_Image):
 
     """
 
-    def __init__(self, image_list):
-        super().__init__(image_list)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not all(isinstance(image, (JacobianImage, JacobianImageList)) for image in self.images):
+            raise InvalidImage(
+                f"JacobianImageList can only hold JacobianImage objects, not {tuple(type(image) for image in self.images)}"
+            )
+
+    @property
+    def parameters(self) -> List[str]:
+        """List of parameters for the jacobian images in this list."""
+        if not self.images:
+            return []
+        return self.images[0].parameters
 
     def flatten(self, attribute="data"):
-        if len(self.image_list) > 1:
-            for image in self.image_list[1:]:
-                if self.image_list[0].parameters != image.parameters:
+        if len(self.images) > 1:
+            for image in self.images[1:]:
+                if self.images[0].parameters != image.parameters:
                     raise SpecificationConflict(
                         "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
                     )
-        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
+        return torch.cat(tuple(image.flatten(attribute) for image in self.images), dim=0)
 
-    def __add__(self, other):
-        raise NotImplementedError("Jacobian images cannot add like this, use +=")
-
-    def __sub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __isub__(self, other):
-        raise NotImplementedError("Jacobian images cannot subtract")
-
-    def __iadd__(self, other):
-        if isinstance(other, Jacobian_Image_List):
-            for other_image in other.image_list:
-                for self_image in self.image_list:
-                    if other_image.target_identity == self_image.target_identity:
-                        self_image += other_image
-                        break
-                else:
-                    self.image_list.append(other_image)
-        elif isinstance(other, Jacobian_Image):
-            for self_image in self.image_list:
-                if other.target_identity == self_image.target_identity:
-                    self_image += other
-                    break
-            else:
-                self.image_list.append(other_image)
-        else:
-            for self_image, other_image in zip(self.image_list, other):
-                self_image += other_image
-        return self
+    def match_parameters(self, other: Union[JacobianImage, "JacobianImageList", List[str]]):
+        self_i = []
+        other_i = []
+        other_parameters = other if isinstance(other, list) else other.parameters
+        for i, other_param in enumerate(other_parameters):
+            if other_param in self.parameters:
+                self_i.append(self.parameters.index(other_param))
+                other_i.append(i)
+        return self_i, other_i

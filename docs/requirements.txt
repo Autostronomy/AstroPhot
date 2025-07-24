@@ -1,3 +1,5 @@
+caustics
+graphviz
 ipywidgets
 jupyter-book
 matplotlib
@@ -6,3 +8,4 @@ photutils
 scikit-image
 sphinx
 sphinx-rtd-theme
+tqdm

@@ -46,9 +46,7 @@ def auto_variance(data, mask=None):
 
     # Check if the variance is increasing with flux
     if p[0] < 0:
-        raise InvalidData(
-            "Variance appears to be decreasing with flux! Cannot accurately estimate variance."
-        )
+        return np.ones_like(data) * var
     # Compute the approximate variance map
     variance = np.clip(p[0] * data + p[1], np.min(std) ** 2, None)
     variance[np.logical_not(mask)] = np.inf

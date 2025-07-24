@@ -1,3 +1,4 @@
+from typing import Literal
 import numpy as np
 import torch
 
@@ -6,16 +7,18 @@ from matplotlib.patches import Polygon
 import matplotlib
 from scipy.stats import iqr
 
-from ..models import Group_Model, PSF_Model, AstroPhot_Model
-from ..image import Image_List, Window_List
-from .. import AP_config
+from ..models import GroupModel, PSFModel, PSFGroupModel
+from ..image import ImageList, WindowList
+from .. import config
 from ..utils.conversions.units import flux_to_sb
+from ..utils.decorators import ignore_numpy_warnings
 from .visuals import *
 
 
 __all__ = ["target_image", "psf_image", "model_image", "residual_image", "model_window"]
 
 
+@ignore_numpy_warnings
 def target_image(fig, ax, target, window=None, **kwargs):
     """
     This function is used to display a target image using the provided figure and axes.
@@ -38,19 +41,17 @@ def target_image(fig, ax, target, window=None, **kwargs):
     """
 
     # recursive call for target image list
-    if isinstance(target, Image_List):
-        for i in range(len(target.image_list)):
-            target_image(fig, ax[i], target.image_list[i], window=window, **kwargs)
+    if isinstance(target, ImageList):
+        for i in range(len(target.images)):
+            target_image(fig, ax[i], target.images[i], window=window, **kwargs)
         return fig, ax
     if window is None:
         window = target.window
-    if kwargs.get("flipx", False):
-        ax.invert_xaxis()
     target_area = target[window]
     dat = np.copy(target_area.data.detach().cpu().numpy())
     if target_area.has_mask:
         dat[target_area.mask.detach().cpu().numpy()] = np.nan
-    X, Y = target_area.get_coordinate_corner_meshgrid()
+    X, Y = target_area.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sky = np.nanmedian(dat)
@@ -72,7 +73,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
             X,
             Y,
             dat,
-            cmap="Greys",
+            cmap="gray_r",
             norm=ImageNormalize(
                 stretch=HistEqStretch(
                     dat[np.logical_and(dat <= (sky + 3 * noise), np.isfinite(dat))]
@@ -93,6 +94,8 @@ def target_image(fig, ax, target, window=None, **kwargs):
                 clim=[sky + 3 * noise, None],
             )
 
+    if torch.linalg.det(target.CD.value) < 0:
+        ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
     ax.set_ylabel("Tangent Plane Y [arcsec]")
@@ -101,54 +104,47 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def psf_image(
     fig,
     ax,
     psf,
-    window=None,
     cmap_levels=None,
-    flipx=False,
+    vmin=None,
+    vmax=None,
     **kwargs,
 ):
-    if isinstance(psf, AstroPhot_Model):
+    if isinstance(psf, (PSFModel, PSFGroupModel)):
         psf = psf()
     # recursive call for target image list
-    if isinstance(psf, Image_List):
-        for i in range(len(psf.image_list)):
-            psf_image(fig, ax[i], psf.image_list[i], window=window, **kwargs)
+    if isinstance(psf, ImageList):
+        for i in range(len(psf.images)):
+            psf_image(fig, ax[i], psf.images[i], **kwargs)
         return fig, ax
 
-    if window is None:
-        window = psf.window
-    if flipx:
-        ax.invert_xaxis()
-
-    # cut out the requested window
-    psf = psf[window]
-
     # Evaluate the model image
-    X, Y = psf.get_coordinate_corner_meshgrid()
-    X = X.detach().cpu().numpy()
-    Y = Y.detach().cpu().numpy()
+    x, y = psf.coordinate_corner_meshgrid()
+    x = x.detach().cpu().numpy()
+    y = y.detach().cpu().numpy()
     psf = psf.data.detach().cpu().numpy()
 
     # Default kwargs for image
-    imshow_kwargs = {
+    kwargs = {
         "cmap": cmap_grad,
-        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        "norm": matplotlib.colors.LogNorm(
+            vmin=vmin, vmax=vmax
+        ),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        **kwargs,
     }
-
-    # Update with user provided kwargs
-    imshow_kwargs.update(kwargs)
 
     # if requested, convert the continuous colourmap into discrete levels
     if cmap_levels is not None:
-        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(
-            list(imshow_kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
+        kwargs["cmap"] = matplotlib.colors.ListedColormap(
+            list(kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
         )
 
     # Plot the image
-    im = ax.pcolormesh(X, Y, psf, **imshow_kwargs)
+    ax.pcolormesh(x, y, psf, **kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -159,6 +155,7 @@ def psf_image(
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def model_image(
     fig,
     ax,
@@ -169,9 +166,7 @@ def model_image(
     showcbar=True,
     target_mask=False,
     cmap_levels=None,
-    flipx=False,
     magunits=True,
-    sample_full_image=False,
     **kwargs,
 ):
     """
@@ -193,7 +188,6 @@ def model_image(
         cmap_levels (int, optional): The number of discrete levels to convert the continuous color map to.
             If not `None`, the color map is converted to a ListedColormap with the specified number of levels.
             Defaults to `None`.
-        sample_full_image: If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.
         **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Returns:
@@ -206,11 +200,7 @@ def model_image(
     """
 
     if sample_image is None:
-        if sample_full_image:
-            sample_image = model.make_model_image()
-            sample_image = model(sample_image)
-        else:
-            sample_image = model()
+        sample_image = model()
 
     # Use model target if not given
     if target is None:
@@ -221,63 +211,67 @@ def model_image(
         window = model.window
 
     # Handle image lists
-    if isinstance(sample_image, Image_List):
-        for i, images in enumerate(zip(sample_image, target, window)):
+    if isinstance(sample_image, ImageList):
+        for i, (images, targets, windows) in enumerate(zip(sample_image, target, window)):
             model_image(
                 fig,
                 ax[i],
                 model,
-                sample_image=images[0],
-                window=images[2],
-                target=images[1],
+                sample_image=images,
+                window=windows,
+                target=targets,
                 showcbar=showcbar,
                 target_mask=target_mask,
                 cmap_levels=cmap_levels,
-                flipx=flipx,
                 magunits=magunits,
                 **kwargs,
             )
         return fig, ax
 
-    if flipx:
-        ax.invert_xaxis()
-
     # cut out the requested window
     sample_image = sample_image[window]
 
     # Evaluate the model image
-    X, Y = sample_image.get_coordinate_corner_meshgrid()
+    X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
     sample_image = sample_image.data.detach().cpu().numpy()
 
     # Default kwargs for image
-    imshow_kwargs = {
+    kwargs = {
         "cmap": cmap_grad,
-        "norm": matplotlib.colors.LogNorm(),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+        **kwargs,
     }
-
-    # Update with user provided kwargs
-    imshow_kwargs.update(kwargs)
 
     # if requested, convert the continuous colourmap into discrete levels
     if cmap_levels is not None:
-        imshow_kwargs["cmap"] = matplotlib.colors.ListedColormap(
-            list(imshow_kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
+        kwargs["cmap"] = matplotlib.colors.ListedColormap(
+            list(kwargs["cmap"](c) for c in np.linspace(0.0, 1.0, cmap_levels))
         )
 
     # If zeropoint is available, convert to surface brightness units
     if target.zeropoint is not None and magunits:
         sample_image = flux_to_sb(sample_image, target.pixel_area.item(), target.zeropoint.item())
-        del imshow_kwargs["norm"]
-        imshow_kwargs["cmap"] = imshow_kwargs["cmap"].reversed()
+        kwargs["cmap"] = kwargs["cmap"].reversed()
+    else:
+        vmin = kwargs.pop("vmin", None)
+        vmax = kwargs.pop("vmax", None)
+        kwargs = {
+            "norm": matplotlib.colors.LogNorm(
+                vmin=vmin, vmax=vmax
+            ),  # "norm": ImageNormalize(stretch=LogStretch(), clip=False),
+            **kwargs,
+        }
 
     # Apply the mask if available
     if target_mask and target.has_mask:
         sample_image[target.mask.detach().cpu().numpy()] = np.nan
 
     # Plot the image
-    im = ax.pcolormesh(X, Y, sample_image, **imshow_kwargs)
+    im = ax.pcolormesh(X, Y, sample_image, **kwargs)
+
+    if torch.linalg.det(target.CD.value) < 0:
+        ax.invert_xaxis()
 
     # Enforce equal spacing on x y
     ax.axis("equal")
@@ -296,6 +290,7 @@ def model_image(
 
 
 @torch.no_grad()
+@ignore_numpy_warnings
 def residual_image(
     fig,
     ax,
@@ -304,11 +299,9 @@ def residual_image(
     sample_image=None,
     showcbar=True,
     window=None,
-    center_residuals=False,
     clb_label=None,
     normalize_residuals=False,
-    flipx=False,
-    sample_full_image=False,
+    scaling: Literal["arctan", "clip", "none"] = "arctan",
     **kwargs,
 ):
     """
@@ -350,12 +343,8 @@ def residual_image(
     if target is None:
         target = model.target
     if sample_image is None:
-        if sample_full_image:
-            sample_image = model.make_model_image()
-            sample_image = model(sample_image)
-        else:
-            sample_image = model()
-    if isinstance(window, Window_List) or isinstance(target, Image_List):
+        sample_image = model()
+    if isinstance(window, WindowList) or isinstance(target, ImageList):
         for i_ax, win, tar, sam in zip(ax, window, target, sample_image):
             residual_image(
                 fig,
@@ -365,89 +354,106 @@ def residual_image(
                 sample_image=sam,
                 window=win,
                 showcbar=showcbar,
-                center_residuals=center_residuals,
                 clb_label=clb_label,
                 normalize_residuals=normalize_residuals,
-                flipx=flipx,
                 **kwargs,
             )
         return fig, ax
 
-    if flipx:
-        ax.invert_xaxis()
-    X, Y = sample_image[window].get_coordinate_corner_meshgrid()
+    sample_image = sample_image[window]
+    target = target[window]
+    X, Y = sample_image.coordinate_corner_meshgrid()
     X = X.detach().cpu().numpy()
     Y = Y.detach().cpu().numpy()
-    residuals = (target[window] - sample_image[window]).data
-    if isinstance(normalize_residuals, bool) and normalize_residuals:
-        residuals = residuals / torch.sqrt(target[window].variance)
+    residuals = (target - sample_image).data
+
+    if normalize_residuals is True:
+        residuals = residuals / torch.sqrt(target.variance)
     elif isinstance(normalize_residuals, torch.Tensor):
         residuals = residuals / torch.sqrt(normalize_residuals)
         normalize_residuals = True
+    if target.has_mask:
+        residuals[target.mask] = np.nan
     residuals = residuals.detach().cpu().numpy()
 
-    if target.has_mask:
-        residuals[target[window].mask.detach().cpu().numpy()] = np.nan
-    if center_residuals:
-        residuals -= np.nanmedian(residuals)
-    residuals = np.arctan(residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2))
-    extreme = np.max(np.abs(residuals[np.isfinite(residuals)]))
+    if scaling == "clip":
+        if normalize_residuals is not True:
+            config.logger.warning(
+                "Using clipping scaling without normalizing residuals. This may lead to confusing results."
+            )
+        residuals = np.clip(residuals, -5, 5)
+        vmax = 5
+        default_label = (
+            f"(Target - {model.name}) / $\\sigma$"
+            if normalize_residuals
+            else f"(Target - {model.name})"
+        )
+    elif scaling == "arctan":
+        residuals = np.arctan(
+            residuals / (iqr(residuals[np.isfinite(residuals)], rng=[10, 90]) * 2)
+        )
+        vmax = np.pi / 2
+        if normalize_residuals:
+            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
+        else:
+            default_label = f"tan$^{{-1}}$(Target - {model.name})"
+    elif scaling == "none":
+        vmax = np.max(np.abs(residuals[np.isfinite(residuals)]))
+        default_label = (
+            f"(Target - {model.name}) / $\\sigma$"
+            if normalize_residuals
+            else f"(Target - {model.name})"
+        )
+    else:
+        raise ValueError(f"Unknown scaling type {scaling}. Use 'clip', 'arctan', or 'none'.")
     imshow_kwargs = {
         "cmap": cmap_div,
-        "vmin": -extreme,
-        "vmax": extreme,
+        "vmin": -vmax,
+        "vmax": vmax,
     }
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
+    if torch.linalg.det(target.CD.value) < 0:
+        ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
     ax.set_ylabel("Tangent Plane Y [arcsec]")
 
     if showcbar:
-        if normalize_residuals:
-            default_label = f"tan$^{{-1}}$((Target - {model.name}) / $\\sigma$)"
-        else:
-            default_label = f"tan$^{{-1}}$(Target - {model.name})"
         clb = fig.colorbar(im, ax=ax, label=default_label if clb_label is None else clb_label)
         clb.ax.set_yticks([])
         clb.ax.set_yticklabels([])
     return fig, ax
 
 
+@ignore_numpy_warnings
 def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
+    if target is None:
+        target = model.target
     if isinstance(ax, np.ndarray):
         for i, axitem in enumerate(ax):
-            model_window(fig, axitem, model, target=model.target.image_list[i], **kwargs)
+            model_window(fig, axitem, model, target=target.images[i], **kwargs)
         return fig, ax
 
-    if isinstance(model, Group_Model):
-        for m in model.models.values():
-            if isinstance(m.window, Window_List):
-                use_window = m.window.window_list[m.target.index(target)]
+    if isinstance(model, GroupModel):
+        for m in model.models:
+            if isinstance(m.window, WindowList):
+                use_window = m.window.windows[m.target.index(target)]
             else:
                 use_window = m.window
 
-            lowright = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-            lowright[1] = 0.0
-            lowright = use_window.origin + use_window.pixel_to_plane_delta(lowright)
-            lowright = lowright.detach().cpu().numpy()
-            upleft = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-            upleft[0] = 0.0
-            upleft = use_window.origin + use_window.pixel_to_plane_delta(upleft)
-            upleft = upleft.detach().cpu().numpy()
-            end = use_window.origin + use_window.end
-            end = end.detach().cpu().numpy()
+            corners = target[use_window].corners()
             x = [
-                use_window.origin[0].detach().cpu().numpy(),
-                lowright[0],
-                end[0],
-                upleft[0],
+                corners[0][0].item(),
+                corners[1][0].item(),
+                corners[2][0].item(),
+                corners[3][0].item(),
             ]
             y = [
-                use_window.origin[1].detach().cpu().numpy(),
-                lowright[1],
-                end[1],
-                upleft[1],
+                corners[0][1].item(),
+                corners[1][1].item(),
+                corners[2][1].item(),
+                corners[3][1].item(),
             ]
             ax.add_patch(
                 Polygon(
@@ -458,31 +464,19 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
                 )
             )
     else:
-        if isinstance(model.window, Window_List):
-            use_window = model.window.window_list[model.target.index(target)]
-        else:
-            use_window = model.window
-        lowright = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-        lowright[1] = 0.0
-        lowright = use_window.origin + use_window.pixel_to_plane_delta(lowright)
-        lowright = lowright.detach().cpu().numpy()
-        upleft = use_window.pixel_shape.clone().to(dtype=AP_config.ap_dtype)
-        upleft[0] = 0.0
-        upleft = use_window.origin + use_window.pixel_to_plane_delta(upleft)
-        upleft = upleft.detach().cpu().numpy()
-        end = use_window.origin + use_window.end
-        end = end.detach().cpu().numpy()
+        use_window = model.window
+        corners = target[use_window].corners()
         x = [
-            use_window.origin[0].detach().cpu().numpy(),
-            lowright[0],
-            end[0],
-            upleft[0],
+            corners[0][0].item(),
+            corners[1][0].item(),
+            corners[2][0].item(),
+            corners[3][0].item(),
         ]
         y = [
-            use_window.origin[1].detach().cpu().numpy(),
-            lowright[1],
-            end[1],
-            upleft[1],
+            corners[0][1].item(),
+            corners[1][1].item(),
+            corners[2][1].item(),
+            corners[3][1].item(),
         ]
         ax.add_patch(
             Polygon(

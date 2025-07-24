@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib.patches import Ellipse
 from matplotlib import pyplot as plt
 from scipy.stats import norm
+from .visuals import main_pallet
 
 __all__ = ("covariance_matrix",)
 
@@ -13,7 +14,7 @@ def covariance_matrix(
     labels=None,
     figsize=(10, 10),
     reference_values=None,
-    ellipse_colors="g",
+    ellipse_colors=main_pallet["primary1"],
     showticks=True,
     **kwargs,
 ):
@@ -32,13 +33,13 @@ def covariance_matrix(
                     100,
                 )
                 y = norm.pdf(x, mean[i], np.sqrt(covariance_matrix[i, i]))
-                ax.plot(x, y, color="g")
+                ax.plot(x, y, color=ellipse_colors, lw=1.5)
                 ax.set_xlim(
                     mean[i] - 3 * np.sqrt(covariance_matrix[i, i]),
                     mean[i] + 3 * np.sqrt(covariance_matrix[i, i]),
                 )
                 if reference_values is not None:
-                    ax.axvline(reference_values[i], color="red", linestyle="-", lw=1)
+                    ax.axvline(reference_values[i], color=main_pallet["pop"], linestyle="-", lw=1)
             elif j < i:
                 cov = covariance_matrix[np.ix_([j, i], [j, i])]
                 lambda_, v = np.linalg.eig(cov)
@@ -52,6 +53,7 @@ def covariance_matrix(
                         angle=angle,
                         edgecolor=ellipse_colors,
                         facecolor="none",
+                        lw=1.5,
                     )
                     ax.add_artist(ellipse)
 
@@ -67,8 +69,8 @@ def covariance_matrix(
                 )
 
                 if reference_values is not None:
-                    ax.axvline(reference_values[j], color="red", linestyle="-", lw=1)
-                    ax.axhline(reference_values[i], color="red", linestyle="-", lw=1)
+                    ax.axvline(reference_values[j], color=main_pallet["pop"], linestyle="-", lw=1)
+                    ax.axhline(reference_values[i], color=main_pallet["pop"], linestyle="-", lw=1)
 
             if j > i:
                 ax.axis("off")
