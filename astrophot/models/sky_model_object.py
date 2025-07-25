@@ -1,9 +1,9 @@
-from .model_object import Component_Model
+from .model_object import ComponentModel
 
-__all__ = ["Sky_Model"]
+__all__ = ["SkyModel"]
 
 
-class Sky_Model(Component_Model):
+class SkyModel(ComponentModel):
     """prototype class for any sky background model. This simply imposes
     that the center is a locked parameter, not involved in the
     fit. Also, a sky model object has no psf mode or integration mode
@@ -12,11 +12,19 @@ class Sky_Model(Component_Model):
 
     """
 
-    model_type = f"sky {Component_Model.model_type}"
-    parameter_specs = {
-        "center": {"units": "arcsec", "locked": True, "uncertainty": 0.0},
-    }
+    _model_type = "sky"
     usable = False
+
+    def initialize(self):
+        """Initialize the sky model, this is called after the model is
+        created and before it is used. This is where we can set the
+        center to be a locked parameter.
+        """
+        if not self.center.initialized:
+            target_area = self.target[self.window]
+            self.center.value = target_area.center
+        super().initialize()
+        self.center.to_static()
 
     @property
     def psf_mode(self):

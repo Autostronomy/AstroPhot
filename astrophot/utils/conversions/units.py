@@ -1,6 +1,7 @@
 import numpy as np
 
 deg_to_arcsec = 3600.0
+arcsec_to_deg = 1.0 / deg_to_arcsec
 
 
 def flux_to_sb(flux, pixel_area, zeropoint):

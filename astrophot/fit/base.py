@@ -5,7 +5,10 @@ import torch
 from scipy.optimize import minimize
 from scipy.special import gammainc
 
-from .. import AP_config
+from .. import config
+from ..models import Model
+from ..image import Window
+from ..param import ValidContext
 
 
 __all__ = ["BaseOptimizer"]
@@ -25,11 +28,14 @@ class BaseOptimizer(object):
 
     def __init__(
         self,
-        model: "AstroPhot_Model",
+        model: Model,
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
-        fit_window: Optional["Window"] = None,
-        **kwargs,
+        fit_window: Optional[Window] = None,
+        verbose: int = 0,
+        max_iter: int = None,
+        save_steps: Optional[str] = None,
+        fit_valid: bool = True,
     ) -> None:
         """
         Initializes a new instance of the class.
@@ -56,29 +62,24 @@ class BaseOptimizer(object):
         """
 
         self.model = model
-        self.verbose = kwargs.get("verbose", 0)
+        self.verbose = verbose
+
+        if initial_state is None:
+            self.current_state = model.build_params_array()
+        else:
+            self.current_state = torch.as_tensor(
+                initial_state, dtype=model.dtype, device=model.device
+            )
 
         if fit_window is None:
             self.fit_window = self.model.window
         else:
             self.fit_window = fit_window & self.model.window
 
-        if initial_state is None:
-            self.model.initialize()
-            initial_state = self.model.parameters.vector_representation()
-        else:
-            initial_state = torch.as_tensor(
-                initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-            )
-
-        self.current_state = torch.as_tensor(
-            initial_state, dtype=AP_config.ap_dtype, device=AP_config.ap_device
-        )
-        if self.verbose > 1:
-            AP_config.ap_logger.info(f"initial state: {self.current_state}")
-        self.max_iter = kwargs.get("max_iter", 100 * len(initial_state))
+        self.max_iter = max_iter if max_iter is not None else 100 * len(self.current_state)
         self.iteration = 0
-        self.save_steps = kwargs.get("save_steps", None)
+        self.save_steps = save_steps
+        self.fit_valid = fit_valid
 
         self.relative_tolerance = relative_tolerance
         self.lambda_history = []
@@ -117,7 +118,7 @@ class BaseOptimizer(object):
         """
         N = np.isfinite(self.loss_history)
         if np.sum(N) == 0:
-            AP_config.ap_logger.warning(
+            config.logger.warning(
                 "Getting optimizer res with no real loss history, using current state"
             )
             return self.current_state.detach().cpu().numpy()
@@ -153,4 +154,4 @@ class BaseOptimizer(object):
 
             if res.success:
                 return res.x[0]
-        raise RuntimeError(f"Unable to compute Chi^2 contour for ndf: {ndf}")
+        raise RuntimeError(f"Unable to compute Chi^2 contour for n params: {n_params}")

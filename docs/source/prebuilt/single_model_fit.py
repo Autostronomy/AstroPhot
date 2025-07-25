@@ -22,13 +22,10 @@ import matplotlib.pyplot as plt
 ######################################################################
 name = "object_name"  # used for saving files
 target_file = "<required>.fits"  # can be a numpy array instead
-mask_file = None  # "<path to mask>.fits" # can be a numpy array instead
 psf_file = None  # "<path to psf>.fits" # can be a numpy array instead
-variance_file = None  # "<path to variance>.fits" # or numpy array or "auto"
-pixelscale = 0.1  # arcsec/pixel
 zeropoint = 22.5  # mag
 initial_params = None  # e.g. {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
-window = None  # None to fit whole image, otherwise ((xmin,xmax),(ymin,ymax)) pixels
+window = None  # None to fit whole image, otherwise (xmin,xmax,ymin,ymax) pixels
 initial_sky = None  # If None, sky will be estimated
 sky_locked = False
 model_type = "sersic galaxy model"
@@ -38,8 +35,6 @@ save_model_image = True
 save_residual_image = True
 save_covariance_matrix = True
 target_hdu = 0  # FITS file index for image data
-mask_hdu = 0
-variance_hdu = 0
 psf_hdu = 0
 sky_model_type = "flat sky model"
 ######################################################################
@@ -47,79 +42,43 @@ sky_model_type = "flat sky model"
 # load target
 # ---------------------------------------------------------------------
 print("loading target")
-if isinstance(target_file, str):
-    hdu = fits.open(target_file)
-    target_data = np.array(hdu[target_hdu].data, dtype=np.float64)
-else:
-    target_data = target_file
+target = ap.TargetImage(
+    filename=target_file,
+    hduext=target_hdu,
+    zeropoint=zeropoint,
+)
 
-# load mask, variance, and psf
-# ---------------------------------------------------------------------
-# Mask
-if isinstance(mask_file, str):
-    print("loading mask")
-    hdu = fits.open(mask_file)
-    mask_data = np.array(hdu[mask_hdu].data, dtype=bool)
-elif mask_file is None:
-    mask_data = None
-else:
-    mask_data = mask_file
-# Variance
-if isinstance(variance_file, str) and not variance_file == "auto":
-    print("loading variance")
-    hdu = fits.open(variance_file)
-    variance_data = np.array(hdu[variance_hdu].data, dtype=np.float64)
-elif variance_file is None:
-    variance_data = None
-else:
-    variance_data = variance_file
 # PSF
 if isinstance(psf_file, str):
     print("loading psf")
     hdu = fits.open(psf_file)
     psf_data = np.array(hdu[psf_hdu].data, dtype=np.float64)
-    psf = ap.image.PSF_Image(
-        data=psf_data,
-        pixelscale=pixelscale,
-    )
+    target.psf = target.psf_image(data=psf_data)
 elif psf_file is None:
     psf = None
 else:
-    psf = ap.image.PSF_Image(
-        data=psf_file,
-        pixelscale=pixelscale,
-    )
-
-# Create target object
-# ---------------------------------------------------------------------
-target = ap.image.Target_Image(
-    data=target_data,
-    pixelscale=pixelscale,
-    zeropoint=zeropoint,
-    mask=mask_data,
-    psf=psf,
-    variance=variance_data,
-)
+    target.psf = target.psf_image(data=psf_file)
 
 # Create Model
 # ---------------------------------------------------------------------
-model_object = ap.models.AstroPhot_Model(
+model_object = ap.Model(
     name=name,
     model_type=model_type,
     target=target,
-    psf_mode="full" if psf_file is not None else "none",
-    parameters=initial_params,
+    psf_convolve=True if psf_file is not None else False,
+    **initial_params,
     window=window,
 )
-model_sky = ap.models.AstroPhot_Model(
+model_sky = ap.Model(
     name="sky",
     model_type=sky_model_type,
     target=target,
-    parameters={"F": initial_sky} if initial_sky is not None else {},
+    I=initial_sky if initial_sky is not None else {},
     window=window,
-    locked=sky_locked,
 )
-model = ap.models.AstroPhot_Model(
+if sky_locked:
+    model_sky.to_static()
+model = ap.Model(
     name="astrophot model",
     model_type="group model",
     target=target,
@@ -132,26 +91,15 @@ print("Initializing model")
 model.initialize()
 print("Fitting model")
 result = ap.fit.LM(model, verbose=1).fit()
-print("Update uncertainty")
-result.update_uncertainty()
 
 # Report Results
 # ----------------------------------------------------------------------
-if not sky_locked:
-    print(model_sky.parameters)
-print(model_object.parameters)
-totflux = model_object.total_flux().detach().cpu().numpy()
-try:
-    totflux_err = model_object.total_flux_uncertainty().detach().cpu().numpy()
-except AttributeError:
-    print(
-        "sorry, total flux uncertainty not available yet for this model. You are welcome to contribute! :)"
-    )
-    totflux_err = 0
-print(
-    f"Total Magnitude: {zeropoint - 2.5 * np.log10(totflux)} +- {2.5 * totflux_err / (totflux * np.log(10))}"
-)
-model.save(f"{name}_parameters.yaml")
+print(model)
+totmag = model_object.total_magnitude().detach().cpu().numpy()
+totmag_err = model_object.total_magnitude_uncertainty().detach().cpu().numpy()
+print(f"Total Magnitude: {totmag} +- {totmag_err}")
+
+model.save_state(f"{name}_parameters.hdf5")
 if save_model_image:
     model().save(f"{name}_model_image.fits")
     fig, ax = plt.subplots()

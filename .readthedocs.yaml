@@ -23,6 +23,7 @@ build:
     python: "3.9"
   apt_packages:
     - pandoc # Specify pandoc to be installed via apt-get
+    - graphviz
   jobs:
     pre_build:
       # Generate the Sphinx configuration for this Jupyter Book so it builds.
