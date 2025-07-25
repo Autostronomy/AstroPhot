@@ -11,6 +11,9 @@ from .wcs import (
     pixel_to_plane_linear,
     plane_to_pixel_linear,
     sip_delta,
+    sip_coefs,
+    sip_backward_transform,
+    sip_matrix,
 )
 from .window import window_or, window_and
 
@@ -25,6 +28,9 @@ __all__ = (
     "pixel_to_plane_linear",
     "plane_to_pixel_linear",
     "sip_delta",
+    "sip_coefs",
+    "sip_backward_transform",
+    "sip_matrix",
     "window_or",
     "window_and",
 )
