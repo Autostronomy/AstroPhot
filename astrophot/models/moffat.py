@@ -33,25 +33,15 @@ __all__ = (
 class MoffatGalaxy(MoffatMixin, RadialMixin, GalaxyModel):
     usable = True
 
-    @forward
-    def total_flux(self, window=None, n=None, Rd=None, I0=None, q=None):
-        return moffat_I0_to_flux(I0, n, Rd, q)
-
 
 @combine_docstrings
 class MoffatPSF(MoffatMixin, RadialMixin, PSFModel):
     _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
-
     usable = True
-
-    @forward
-    def total_flux(self, window=None, n=None, Rd=None, I0=None):
-        return moffat_I0_to_flux(I0, n, Rd, 1.0)
 
 
 @combine_docstrings
 class Moffat2DPSF(MoffatMixin, InclinedMixin, RadialMixin, PSFModel):
-
     _model_type = "2d"
     _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
     usable = True

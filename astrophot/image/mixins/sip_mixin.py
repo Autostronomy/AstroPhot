@@ -34,6 +34,9 @@ class SIPMixin:
         self.sipAP = sipAP
         self.sipBP = sipBP
 
+        if len(self.sipAP) == 0 and len(self.sipA) > 0:
+            self.compute_backward_sip_coefs()
+
         self.update_distortion_model(
             distortion_ij=distortion_ij, distortion_IJ=distortion_IJ, pixel_area_map=pixel_area_map
         )
@@ -54,6 +57,40 @@ class SIPMixin:
     @property
     def pixel_area_map(self):
         return self._pixel_area_map
+
+    @property
+    def A_ORDER(self):
+        if self.sipA:
+            return max(a + b for a, b in self.sipA)
+        return 0
+
+    @property
+    def B_ORDER(self):
+        if self.sipB:
+            return max(a + b for a, b in self.sipB)
+        return 0
+
+    def compute_backward_sip_coefs(self):
+        """
+        Credit: Shu Liu and Lei Hi, see here:
+        https://github.com/Roman-Supernova-PIT/sfft/blob/master/sfft/utils/CupyWCSTransform.py
+
+        Compute the backward transformation from (U, V) to (u, v)
+        """
+        i, j = self.pixel_center_meshgrid()
+        u, v = i - self.crpix[0], j - self.crpix[1]
+        du, dv = func.sip_delta(u, v, self.sipA, self.sipB)
+        U = (u + du).flatten()
+        V = (v + dv).flatten()
+        AP, BP = func.sip_backward_transform(
+            u.flatten(), v.flatten(), U, V, self.A_ORDER, self.B_ORDER
+        )
+        self.sipAP = dict(
+            ((p, q), ap.item()) for (p, q), ap in zip(func.sip_coefs(self.A_ORDER), AP)
+        )
+        self.sipBP = dict(
+            ((p, q), bp.item()) for (p, q), bp in zip(func.sip_coefs(self.B_ORDER), BP)
+        )
 
     def update_distortion_model(self, distortion_ij=None, distortion_IJ=None, pixel_area_map=None):
         """
@@ -107,6 +144,8 @@ class SIPMixin:
             "sipAP": self.sipAP,
             "sipBP": self.sipBP,
             "pixel_area_map": self.pixel_area_map,
+            "distortion_ij": self.distortion_ij,
+            "distortion_IJ": self.distortion_IJ,
             **kwargs,
         }
         return super().copy(**kwargs)
@@ -118,6 +157,8 @@ class SIPMixin:
             "sipAP": self.sipAP,
             "sipBP": self.sipBP,
             "pixel_area_map": self.pixel_area_map,
+            "distortion_ij": self.distortion_ij,
+            "distortion_IJ": self.distortion_IJ,
             **kwargs,
         }
         return super().blank_copy(**kwargs)
@@ -129,6 +170,8 @@ class SIPMixin:
         return super().get_window(
             other,
             pixel_area_map=self.pixel_area_map[indices],
+            distortion_ij=self.distortion_ij[:, indices[0], indices[1]],
+            distortion_IJ=self.distortion_IJ[:, indices[0], indices[1]],
             indices=indices,
             **kwargs,
         )

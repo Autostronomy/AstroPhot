@@ -4,7 +4,8 @@ import numpy as np
 
 def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
     prof = [0, min_pixels * pixelscale]
-    while prof[-1] < (np.max(shape) * pixelscale / 2):
+    imagescale = max(shape)  # np.sqrt(np.sum(np.array(shape) ** 2))
+    while prof[-1] < (imagescale * pixelscale / 2):
         prof.append(prof[-1] + max(min_pixels * pixelscale, prof[-1] * scale))
     return np.array(prof)
 

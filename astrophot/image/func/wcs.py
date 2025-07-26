@@ -118,6 +118,37 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     return xy[0].reshape(i.shape) + x0, xy[1].reshape(i.shape) + y0
 
 
+def sip_coefs(order):
+    coefs = []
+    for p in range(order + 1):
+        for q in range(order + 1 - p):
+            coefs.append((p, q))
+    return tuple(coefs)
+
+
+def sip_matrix(u, v, order):
+    M = torch.zeros((len(u), (order + 1) * (order + 2) // 2), dtype=u.dtype, device=u.device)
+    for i, (p, q) in enumerate(sip_coefs(order)):
+        M[:, i] = u**p * v**q
+    return M
+
+
+def sip_backward_transform(u, v, U, V, A_ORDER, B_ORDER):
+    """
+    Credit: Shu Liu and Lei Hi, see here:
+    https://github.com/Roman-Supernova-PIT/sfft/blob/master/sfft/utils/CupyWCSTransform.py
+
+    Compute the backward transformation from (U, V) to (u, v)
+    """
+
+    FP_UV = sip_matrix(U, V, A_ORDER)
+    GP_UV = sip_matrix(U, V, B_ORDER)
+
+    AP = torch.linalg.lstsq(FP_UV, (u.flatten() - U).reshape(-1, 1))[0].squeeze(1)
+    BP = torch.linalg.lstsq(GP_UV, (v.flatten() - V).reshape(-1, 1))[0].squeeze(1)
+    return AP, BP
+
+
 def sip_delta(u, v, sipA=(), sipB=()):
     """
     u = j - j0
@@ -139,69 +170,6 @@ def sip_delta(u, v, sipA=(), sipB=()):
     for a, b in sipB:
         delta_v = delta_v + sipB[(a, b)] * (u_a[a] * v_b[b])
     return delta_u, delta_v
-
-
-def pixel_to_plane_sip(i, j, i0, j0, CD, sip_powers=[], sip_coefs=[], x0=0.0, y0=0.0):
-    """
-    Convert pixel coordinates to a tangent plane using the WCS information. This
-    matches the FITS convention for SIP transformations.
-
-    For more information see:
-
-    * FITS World Coordinate System (WCS):
-      https://fits.gsfc.nasa.gov/fits_wcs.html
-    * Representations of world coordinates in FITS, 2002, by Geisen and
-      Calabretta
-    * The SIP Convention for Representing Distortion in FITS Image Headers,
-      2008, by Shupe and Hook
-
-    Parameters
-    ----------
-    i: Tensor
-        The first coordinate of the pixel in pixel units.
-    j: Tensor
-        The second coordinate of the pixel in pixel units.
-    i0: Tensor
-        The i reference pixel coordinate in pixel units.
-    j0: Tensor
-        The j reference pixel coordinate in pixel units.
-    CD: Tensor
-        The CD matrix in degrees per pixel. This 2x2 matrix is used to convert
-        from pixel to degree units and also handles rotation/skew.
-    sip_powers: Tensor
-        The powers of the pixel coordinates for the SIP distortion, should be a
-        shape (N orders, 2) tensor. ``N orders`` is the number of non-zero
-        polynomial coefficients. The second axis has the powers in order ``i,
-        j``.
-    sip_coefs: Tensor
-        The coefficients of the pixel coordinates for the SIP distortion, should
-        be a shape (N orders, 2) tensor. ``N orders`` is the number of non-zero
-        polynomial coefficients. The second axis has the coefficients in order
-        ``delta_x, delta_y``.
-    x0: float
-        The x reference coordinate in arcsec.
-    y0: float
-        The y reference coordinate in arcsec.
-
-    Note
-    ----
-    The representation of the SIP powers and coefficients assumes that the SIP
-    polynomial will use the same orders for both the x and y coordinates. If
-    this is not the case you may use zeros for the coefficients to ensure all
-    polynomial combinations are evaluated. However, it is very common to have
-    the same orders for both.
-
-    Returns
-    -------
-    Tuple: [Tensor, Tensor]
-        Tuple containing the x and y tangent plane coordinates in arcsec.
-    """
-    uv = torch.stack((j.reshape(-1) - j0, i.reshape(-1) - i0), dim=1)
-    delta_p = torch.zeros_like(uv)
-    for p in range(len(sip_powers)):
-        delta_p += sip_coefs[p] * torch.prod(uv ** sip_powers[p], dim=-1).unsqueeze(-1)
-    plane = torch.einsum("ij,...j->...i", CD, uv + delta_p)
-    return plane[..., 0] + x0, plane[..., 1] + y0
 
 
 def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
