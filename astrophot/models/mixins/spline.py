@@ -35,6 +35,7 @@ class SplineMixin:
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
             prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
+            prof = np.append(prof, prof[-1] * 10)
             self.I_R.prof = prof
         else:
             prof = self.I_R.prof
@@ -49,7 +50,8 @@ class SplineMixin:
 
     @forward
     def radial_model(self, R, I_R):
-        return func.spline(R, self.I_R.prof, I_R)
+        ret = func.spline(R, self.I_R.prof, I_R)
+        return ret
 
 
 class iSplineMixin:
@@ -83,6 +85,7 @@ class iSplineMixin:
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
             prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
+            prof = np.append(prof, prof[-1] * 10)
             prof = np.stack([prof] * self.segments)
             self.I_R.prof = prof
         else:

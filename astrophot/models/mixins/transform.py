@@ -98,7 +98,7 @@ class SuperEllipseMixin:
 
     _model_type = "superellipse"
     _parameter_specs = {
-        "C": {"units": "none", "dynamic_value": 2.0, "valid": (0, None)},
+        "C": {"units": "none", "dynamic_value": 2.0, "valid": (0, 10)},
     }
 
     @forward
