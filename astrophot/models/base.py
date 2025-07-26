@@ -186,6 +186,7 @@ class Model(Module):
 
     def total_flux_uncertainty(self, window=None) -> torch.Tensor:
         jac = self.jacobian(window=window).flatten("data")
+        print("jac finite", torch.isfinite(jac).all())
         dF = torch.sum(jac, dim=0)  # VJP for sum(total_flux)
         current_uncertainty = self.build_params_array_uncertainty()
         return torch.sqrt(torch.sum((dF * current_uncertainty) ** 2))

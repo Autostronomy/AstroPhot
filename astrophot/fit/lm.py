@@ -257,7 +257,10 @@ class LM(BaseOptimizer):
             except OptimizeStopFail:
                 if self.verbose > 0:
                     config.logger.warning("Could not find step to improve Chi^2, stopping")
-                self.message = self.message + "fail. Could not find step to improve Chi^2"
+                self.message = (
+                    self.message
+                    + "success by immobility. Could not find step to improve Chi^2. Convergence not guaranteed"
+                )
                 break
             except OptimizeStopSuccess as e:
                 if self.verbose > 0:
@@ -270,20 +273,8 @@ class LM(BaseOptimizer):
             self.loss_history.append(res["chi2"])
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
 
-            if len(self.loss_history) >= 3:
-                if (self.loss_history[-3] - self.loss_history[-1]) / self.loss_history[
-                    -1
-                ] < self.relative_tolerance and self.L < 0.1:
-                    self.message = self.message + "success"
-                    break
-            if len(self.loss_history) > 10:
-                if (self.loss_history[-10] - self.loss_history[-1]) / self.loss_history[
-                    -1
-                ] < self.relative_tolerance:
-                    self.message = (
-                        self.message + "success by immobility. Convergence not guaranteed"
-                    )
-                    break
+            if self.check_convergence():
+                break
 
         else:
             self.message = self.message + "fail. Maximum iterations"
@@ -298,6 +289,36 @@ class LM(BaseOptimizer):
             self.update_uncertainty()
 
         return self
+
+    def check_convergence(self) -> bool:
+        """Check if the optimization has converged based on the last
+        iteration's chi^2 and the relative tolerance.
+
+        Returns:
+            bool: True if the optimization has converged, False otherwise.
+        """
+        if len(self.loss_history) < 3:
+            return False
+        good_history = [self.loss_history[0]]
+        for l in self.loss_history[1:]:
+            if good_history[-1] > l:
+                good_history.append(l)
+        if len(self.loss_history) - len(good_history) >= 10:
+            self.message = self.message + "success by immobility. Convergence not guaranteed"
+            return True
+        if len(good_history) < 3:
+            return False
+        if (good_history[-2] - good_history[-1]) / good_history[
+            -1
+        ] < self.relative_tolerance and self.L < 0.1:
+            self.message = self.message + "success"
+            return True
+        if len(good_history) < 10:
+            return False
+        if (good_history[-10] - good_history[-1]) / good_history[-1] < self.relative_tolerance:
+            self.message = self.message + "success by immobility. Convergence not guaranteed"
+            return True
+        return False
 
     @property
     @torch.no_grad()

@@ -30,7 +30,8 @@ def solve(hess, grad, L):
     return hessD, h
 
 
-def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0):
+def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tolerance=1e-4):
+    L0 = L
     M0 = model(x)  # (M,)
     J = jacobian(x)  # (M, N)
     R = data - M0  # (M,)
@@ -41,8 +42,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0):
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
 
     best = {"x": torch.zeros_like(x), "chi2": chi20, "L": L}
-    scary = {"x": None, "chi2": chi20, "L": L}
-
+    scary = {"x": None, "chi2": np.inf, "L": None}
     nostep = True
     improving = None
     for _ in range(10):
@@ -58,14 +58,15 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0):
             improving = False
             continue
 
-        if chi21 < scary["chi2"]:
-            scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L}
-
         if torch.allclose(h, torch.zeros_like(h)) and L < 0.1:
             raise OptimizeStopSuccess("Step with zero length means optimization complete.")
 
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
+
+        if chi21 < scary["chi2"] and rho > -10:
+            scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L0}
+
         # Avoid highly non-linear regions
         if rho < 0.1 or rho > 2:
             L *= Lup
@@ -94,7 +95,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0):
             break
 
     if nostep:
-        if scary["x"] is not None:
+        if scary["x"] is not None and (scary["chi2"] - chi20) / chi20 < tolerance:
             return scary
         raise OptimizeStopFail("Could not find step to improve chi^2")
 

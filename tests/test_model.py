@@ -153,6 +153,8 @@ def test_all_model_sample(model_type):
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
         )
 
+    print(MODEL)  # test printing
+
     F = MODEL.total_flux()
     assert torch.isfinite(F), "Model total flux should be finite after fitting"
     assert F > 0, "Model total flux should be positive after fitting"
