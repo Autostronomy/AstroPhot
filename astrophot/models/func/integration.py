@@ -67,7 +67,7 @@ def recursive_quad_integrate(
     i,
     j,
     brightness_ij,
-    threshold,
+    curve_frac,
     scale=1.0,
     quad_order=3,
     gridding=5,
@@ -79,7 +79,8 @@ def recursive_quad_integrate(
     if _current_depth >= max_depth:
         return z
 
-    select = torch.abs(z - z0) > threshold / scale**2
+    N = max(1, int(np.prod(z.shape) * curve_frac))
+    select = torch.topk(torch.abs(z - z0).flatten(), N, dim=-1).indices
 
     integral = torch.zeros_like(z)
     integral[~select] = z[~select]
@@ -90,7 +91,7 @@ def recursive_quad_integrate(
         si,
         sj,
         brightness_ij,
-        threshold,
+        curve_frac=curve_frac,
         scale=scale / gridding,
         quad_order=quad_order,
         gridding=gridding,

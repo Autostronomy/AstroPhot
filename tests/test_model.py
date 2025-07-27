@@ -54,7 +54,7 @@ def test_model_sampling_modes():
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
     # Without subpixel integration
-    model.integrate_mode = "threshold"
+    model.integrate_mode = "curvature"
     auto = model().data.detach().cpu().numpy()
     model.sampling_mode = "midpoint"
     midpoint = model().data.detach().cpu().numpy()

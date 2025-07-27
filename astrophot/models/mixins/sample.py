@@ -43,8 +43,7 @@ class SampleMixin:
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_maxparams = 10
     jacobian_maxpixels = 1000**2
-    integrate_mode = "bright"  # none, bright, threshold
-    integrate_tolerance = 1e-4  # total flux fraction
+    integrate_mode = "bright"  # none, bright, curvature
     integrate_fraction = 0.05  # fraction of the pixels to super sample
     integrate_max_depth = 2
     integrate_gridding = 5
@@ -55,7 +54,6 @@ class SampleMixin:
         "jacobian_maxparams",
         "jacobian_maxpixels",
         "integrate_mode",
-        "integrate_tolerance",
         "integrate_fraction",
         "integrate_max_depth",
         "integrate_gridding",
@@ -63,11 +61,10 @@ class SampleMixin:
     )
 
     @forward
-    def _bright_integrate(self, sample, image):
+    def _bright_integrate(self, sample, image: Image):
         i, j = image.pixel_center_meshgrid()
         N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
         sample_flat = sample.flatten(-2)
-        print(f"Integrating {N} brightest pixels of {sample_flat.shape} total pixels")
         select = torch.topk(sample_flat, N, dim=-1).indices
         sample_flat[select] = func.recursive_bright_integrate(
             i.flatten(-2)[select],
@@ -82,7 +79,7 @@ class SampleMixin:
         return sample_flat.reshape(sample.shape)
 
     @forward
-    def _threshold_integrate(self, sample, image: Image):
+    def _curvature_integrate(self, sample, image: Image):
         i, j = image.pixel_center_meshgrid()
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
@@ -99,21 +96,21 @@ class SampleMixin:
             .squeeze(0)
             .abs()
         )
-        total_est = torch.sum(sample)
-        threshold = total_est * self.integrate_tolerance
-        select = curvature > threshold
+        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
+        select = torch.topk(curvature.flatten(-2), N, dim=-1).indices
 
-        sample[select] = func.recursive_quad_integrate(
-            i[select],
-            j[select],
+        sample_flat = sample.flatten(-2)
+        sample_flat[select] = func.recursive_quad_integrate(
+            i.flatten(-2)[select],
+            j.flatten(-2)[select],
             lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
             scale=image.base_scale,
-            threshold=threshold,
+            curve_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
             max_depth=self.integrate_max_depth,
         )
-        return sample
+        return sample_flat.reshape(sample.shape)
 
     @forward
     def sample_image(self, image: Image):
@@ -128,13 +125,9 @@ class SampleMixin:
         else:
             sampling_mode = self.sampling_mode
         if sampling_mode == "midpoint":
-            print(f"Sampling model {self.name} with midpoint sampling")
             x, y = image.coordinate_center_meshgrid()
-            print(f"x shape: {x.shape}, y shape: {y.shape}")
             res = self.brightness(x, y)
-            print(f"Brightness result shape: {res.shape}")
             sample = func.pixel_center_integrator(res)
-            print(f"Sample shape: {sample.shape}")
         elif sampling_mode == "simpsons":
             x, y = image.coordinate_simpsons_meshgrid()
             res = self.brightness(x, y)
@@ -149,8 +142,8 @@ class SampleMixin:
             raise SpecificationConflict(
                 f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
             )
-        if self.integrate_mode == "threshold":
-            sample = self._threshold_integrate(sample, image)
+        if self.integrate_mode == "curvature":
+            sample = self._curvature_integrate(sample, image)
         elif self.integrate_mode == "bright":
             sample = self._bright_integrate(sample, image)
         elif self.integrate_mode != "none":
