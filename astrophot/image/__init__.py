@@ -1,6 +1,7 @@
 from .image_object import Image, ImageList
 from .target_image import TargetImage, TargetImageList
-from .sip_image import SIPTargetImage
+from .sip_image import SIPModelImage, SIPTargetImage
+from .cmos_image import CMOSModelImage, CMOSTargetImage
 from .jacobian_image import JacobianImage, JacobianImageList
 from .psf_image import PSFImage
 from .model_image import ModelImage, ModelImageList
@@ -12,7 +13,10 @@ __all__ = (
     "ImageList",
     "TargetImage",
     "TargetImageList",
+    "SIPModelImage",
     "SIPTargetImage",
+    "CMOSModelImage",
+    "CMOSTargetImage",
     "JacobianImage",
     "JacobianImageList",
     "PSFImage",

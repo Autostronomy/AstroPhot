@@ -74,7 +74,6 @@ def recursive_quad_integrate(
     _current_depth=0,
     max_depth=1,
 ):
-    scale = 1 / (gridding**_current_depth)
     z, z0 = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
 
     if _current_depth >= max_depth:
@@ -92,7 +91,7 @@ def recursive_quad_integrate(
         sj,
         brightness_ij,
         threshold,
-        scale=scale,
+        scale=scale / gridding,
         quad_order=quad_order,
         gridding=gridding,
         _current_depth=_current_depth + 1,
@@ -113,7 +112,6 @@ def recursive_bright_integrate(
     _current_depth=0,
     max_depth=1,
 ):
-    scale = 1 / (gridding**_current_depth)
     z, _ = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
 
     if _current_depth >= max_depth:
@@ -131,7 +129,7 @@ def recursive_bright_integrate(
         sj,
         brightness_ij,
         bright_frac,
-        scale=scale,
+        scale=scale / gridding,
         quad_order=quad_order,
         gridding=gridding,
         _current_depth=_current_depth + 1,

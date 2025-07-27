@@ -26,6 +26,7 @@ class Image(Module):
 
     default_CD = ((1.0, 0.0), (0.0, 1.0))
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
+    base_scale = 1.0
 
     def __init__(
         self,
@@ -268,12 +269,7 @@ class Image(Module):
         i, j, _ = self.pixel_quad_meshgrid(order=order)
         return self.pixel_to_plane(i, j)
 
-    def copy(self, **kwargs):
-        """Produce a copy of this image with all of the same properties. This
-        can be used when one wishes to make temporary modifications to
-        an image and then will want the original again.
-
-        """
+    def copy_kwargs(self, **kwargs):
         kwargs = {
             "_data": torch.clone(self.data.detach()),
             "CD": self.CD.value,
@@ -285,7 +281,15 @@ class Image(Module):
             "name": self.name,
             **kwargs,
         }
-        return self.__class__(**kwargs)
+        return kwargs
+
+    def copy(self, **kwargs):
+        """Produce a copy of this image with all of the same properties. This
+        can be used when one wishes to make temporary modifications to
+        an image and then will want the original again.
+
+        """
+        return self.__class__(**self.copy_kwargs(**kwargs))
 
     def blank_copy(self, **kwargs):
         """Produces a blank copy of the image which has the same properties

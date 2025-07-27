@@ -137,7 +137,7 @@ class SIPMixin:
         )
         self._pixel_area_map = A.abs()
 
-    def copy(self, **kwargs):
+    def copy_kwargs(self, **kwargs):
         kwargs = {
             "sipA": self.sipA,
             "sipB": self.sipB,
@@ -148,20 +148,7 @@ class SIPMixin:
             "distortion_IJ": self.distortion_IJ,
             **kwargs,
         }
-        return super().copy(**kwargs)
-
-    def blank_copy(self, **kwargs):
-        kwargs = {
-            "sipA": self.sipA,
-            "sipB": self.sipB,
-            "sipAP": self.sipAP,
-            "sipBP": self.sipBP,
-            "pixel_area_map": self.pixel_area_map,
-            "distortion_ij": self.distortion_ij,
-            "distortion_IJ": self.distortion_IJ,
-            **kwargs,
-        }
-        return super().blank_copy(**kwargs)
+        return super().copy_kwargs(**kwargs)
 
     def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""

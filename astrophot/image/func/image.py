@@ -9,6 +9,12 @@ def pixel_center_meshgrid(shape, dtype, device):
     return torch.meshgrid(i, j, indexing="ij")
 
 
+def cmos_pixel_center_meshgrid(shape, loc, dtype, device):
+    i = torch.arange(shape[0], dtype=dtype, device=device) + loc[0]
+    j = torch.arange(shape[1], dtype=dtype, device=device) + loc[1]
+    return torch.meshgrid(i, j, indexing="ij")
+
+
 def pixel_corner_meshgrid(shape, dtype, device):
     i = torch.arange(shape[0] + 1, dtype=dtype, device=device) - 0.5
     j = torch.arange(shape[1] + 1, dtype=dtype, device=device) - 0.5

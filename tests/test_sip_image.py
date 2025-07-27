@@ -2,7 +2,6 @@ import astrophot as ap
 import torch
 import numpy as np
 
-from utils import make_basic_sersic
 import pytest
 
 ######################################################################

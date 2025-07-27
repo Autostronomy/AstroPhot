@@ -251,22 +251,14 @@ class DataMixin:
             self._mask = self._mask.to(dtype=torch.bool, device=device)
         return self
 
-    def copy(self, **kwargs):
+    def copy_kwargs(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
         can be used when one wishes to make temporary modifications to
         an image and then will want the original again.
 
         """
         kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
-        return super().copy(**kwargs)
-
-    def blank_copy(self, **kwargs):
-        """Produces a blank copy of the image which has the same properties
-        except that its data is now filled with zeros.
-
-        """
-        kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
-        return super().blank_copy(**kwargs)
+        return super().copy_kwargs(**kwargs)
 
     def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""

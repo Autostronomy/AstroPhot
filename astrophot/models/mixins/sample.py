@@ -67,11 +67,13 @@ class SampleMixin:
         i, j = image.pixel_center_meshgrid()
         N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
         sample_flat = sample.flatten(-2)
+        print(f"Integrating {N} brightest pixels of {sample_flat.shape} total pixels")
         select = torch.topk(sample_flat, N, dim=-1).indices
         sample_flat[select] = func.recursive_bright_integrate(
             i.flatten(-2)[select],
             j.flatten(-2)[select],
             lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+            scale=image.base_scale,
             bright_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
@@ -105,6 +107,7 @@ class SampleMixin:
             i[select],
             j[select],
             lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+            scale=image.base_scale,
             threshold=threshold,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
@@ -125,9 +128,13 @@ class SampleMixin:
         else:
             sampling_mode = self.sampling_mode
         if sampling_mode == "midpoint":
+            print(f"Sampling model {self.name} with midpoint sampling")
             x, y = image.coordinate_center_meshgrid()
+            print(f"x shape: {x.shape}, y shape: {y.shape}")
             res = self.brightness(x, y)
+            print(f"Brightness result shape: {res.shape}")
             sample = func.pixel_center_integrator(res)
+            print(f"Sample shape: {sample.shape}")
         elif sampling_mode == "simpsons":
             x, y = image.coordinate_simpsons_meshgrid()
             res = self.brightness(x, y)

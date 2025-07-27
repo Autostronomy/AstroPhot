@@ -1,5 +1,6 @@
 from .image import (
     pixel_center_meshgrid,
+    cmos_pixel_center_meshgrid,
     pixel_corner_meshgrid,
     pixel_simpsons_meshgrid,
     pixel_quad_meshgrid,
@@ -19,6 +20,7 @@ from .window import window_or, window_and
 
 __all__ = (
     "pixel_center_meshgrid",
+    "cmos_pixel_center_meshgrid",
     "pixel_corner_meshgrid",
     "pixel_simpsons_meshgrid",
     "pixel_quad_meshgrid",

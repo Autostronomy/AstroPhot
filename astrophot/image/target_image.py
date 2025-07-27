@@ -139,14 +139,9 @@ class TargetImage(DataMixin, Image):
                 name=self.name + "_psf",
             )
 
-    def copy(self, **kwargs):
-        """Produce a copy of this image with all of the same properties. This
-        can be used when one wishes to make temporary modifications to
-        an image and then will want the original again.
-
-        """
+    def copy_kwargs(self, **kwargs):
         kwargs = {"psf": self.psf, **kwargs}
-        return super().copy(**kwargs)
+        return super().copy_kwargs(**kwargs)
 
     def fits_images(self):
         images = super().fits_images()
