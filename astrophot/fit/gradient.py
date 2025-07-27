@@ -1,12 +1,15 @@
 # Traditional gradient descent with Adam
 from time import time
 from typing import Sequence
+from caustics import ValidContext
 import torch
 import numpy as np
 
 from .base import BaseOptimizer
 from .. import config
 from ..models import Model
+from ..errors import OptimizeStopFail, OptimizeStopSuccess
+from . import func
 
 __all__ = ["Grad"]
 
@@ -156,5 +159,101 @@ class Grad(BaseOptimizer):
         if self.verbose > 1:
             config.logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
+            )
+        return self
+
+
+class Slalom(BaseOptimizer):
+
+    def __init__(
+        self,
+        model: Model,
+        initial_state: Sequence = None,
+        S=1e-4,
+        likelihood: str = "gaussian",
+        report_freq: int = 10,
+        relative_tolerance: float = 1e-4,
+        momentum: float = 0.5,
+        max_iter: int = 1000,
+        **kwargs,
+    ) -> None:
+        """Initialize the Slalom optimizer."""
+        super().__init__(
+            model, initial_state, relative_tolerance=relative_tolerance, max_iter=max_iter, **kwargs
+        )
+        self.likelihood = likelihood
+        self.S = S
+        self.report_freq = report_freq
+        self.momentum = momentum
+
+    def density(self, state: torch.Tensor) -> torch.Tensor:
+        """Calculate the density of the model at the given state."""
+        if self.likelihood == "gaussian":
+            return -self.model.gaussian_log_likelihood(state)
+        elif self.likelihood == "poisson":
+            return -self.model.poisson_log_likelihood(state)
+        else:
+            raise ValueError(f"Unknown likelihood type: {self.likelihood}")
+
+    def fit(self) -> BaseOptimizer:
+        """Perform the Slalom optimization."""
+
+        grad_func = torch.func.grad(self.density)
+        momentum = torch.zeros_like(self.current_state)
+        self.S_history = [self.S]
+        self.loss_history = [self.density(self.current_state).item()]
+        self.lambda_history = [self.current_state.detach().cpu().numpy()]
+        self.start_fit = time()
+
+        for i in range(self.max_iter):
+
+            try:
+                # Perform the Slalom step
+                vstate = self.model.to_valid(self.current_state)
+                with ValidContext(self.model):
+                    self.S, loss, grad = func.slalom_step(
+                        self.density, grad_func, vstate, m=momentum, S=self.S
+                    )
+                self.current_state = self.model.from_valid(
+                    vstate - self.S * (grad + momentum) / torch.linalg.norm(grad + momentum)
+                )
+                momentum = self.momentum * (momentum + grad)
+            except OptimizeStopSuccess as e:
+                self.message = self.message + str(e)
+                break
+            except OptimizeStopFail as e:
+                if torch.allclose(momentum, torch.zeros_like(momentum)):
+                    self.message = self.message + str(e)
+                    break
+                print("momentum reset")
+                momentum = torch.zeros_like(self.current_state)
+                continue
+            # Log the loss
+            self.S_history.append(self.S)
+            self.loss_history.append(loss)
+            self.lambda_history.append(self.current_state.detach().cpu().numpy())
+
+            if self.verbose > 0 and (i % int(self.report_freq) == 0 or i == self.max_iter - 1):
+                config.logger.info(
+                    f"iter: {i}, step size: {self.S:.6e}, posterior density: {loss:.6e}"
+                )
+
+            if len(self.loss_history) >= 5:
+                relative_loss = (self.loss_history[-5] - self.loss_history[-1]) / self.loss_history[
+                    -1
+                ]
+                if relative_loss < self.relative_tolerance:
+                    self.message = self.message + " success"
+                    break
+        else:
+            self.message = self.message + " fail. max iteration reached"
+
+        # Set the model parameters to the best values from the fit
+        self.model.fill_dynamic_values(
+            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
+        )
+        if self.verbose > 0:
+            config.logger.info(
+                f"Slalom Fitting complete in {time() - self.start_fit} sec with message: {self.message}"
             )
         return self

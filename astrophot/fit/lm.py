@@ -281,10 +281,12 @@ class LM(BaseOptimizer):
 
         if self.verbose > 0:
             config.logger.info(
-                f"Final Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
+                f"Final Chi^2/DoF: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
             )
 
-        self.model.fill_dynamic_values(self.current_state)
+        self.model.fill_dynamic_values(
+            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
+        )
         if update_uncertainty:
             self.update_uncertainty()
 

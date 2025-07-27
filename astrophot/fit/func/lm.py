@@ -42,7 +42,7 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tol
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
 
     best = {"x": torch.zeros_like(x), "chi2": chi20, "L": L}
-    scary = {"x": None, "chi2": np.inf, "L": None}
+    scary = {"x": None, "chi2": np.inf, "L": None, "rho": np.inf}
     nostep = True
     improving = None
     for _ in range(10):
@@ -64,8 +64,10 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tol
         # actual chi2 improvement vs expected from linearization
         rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
 
-        if chi21 < scary["chi2"] and rho > -10:
-            scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L0}
+        if (chi21 < (chi20 + tolerance) and abs(rho - 1) < abs(scary["rho"] - 1)) or (
+            chi21 < scary["chi2"] and rho > -10
+        ):
+            scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L0, "rho": rho}
 
         # Avoid highly non-linear regions
         if rho < 0.1 or rho > 2:

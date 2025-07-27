@@ -68,7 +68,16 @@ def sersic_model():
 
 
 @pytest.mark.parametrize(
-    "fitter", [ap.fit.LM, ap.fit.Grad, ap.fit.ScipyFit, ap.fit.MHMCMC, ap.fit.MiniFit]
+    "fitter",
+    [
+        ap.fit.LM,
+        ap.fit.Grad,
+        ap.fit.ScipyFit,
+        ap.fit.MHMCMC,
+        ap.fit.HMC,
+        ap.fit.MiniFit,
+        ap.fit.Slalom,
+    ],
 )
 def test_fitters(fitter, sersic_model):
     model = sersic_model

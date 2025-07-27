@@ -15,6 +15,7 @@ except ImportError:
 
 from .base import BaseOptimizer
 from ..models import Model
+from .. import config
 
 __all__ = ["HMC"]
 
@@ -88,8 +89,8 @@ class HMC(BaseOptimizer):
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
         inv_mass: Optional[torch.Tensor] = None,
-        epsilon: float = 1e-5,
-        leapfrog_steps: int = 20,
+        epsilon: float = 1e-4,
+        leapfrog_steps: int = 10,
         progress_bar: bool = True,
         prior: Optional[dist.Distribution] = None,
         warmup: int = 100,
@@ -182,5 +183,7 @@ class HMC(BaseOptimizer):
         chain = mcmc.get_samples()["x"]
 
         self.chain = chain
-
+        self.model.fill_dynamic_values(
+            torch.as_tensor(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
+        )
         return self
