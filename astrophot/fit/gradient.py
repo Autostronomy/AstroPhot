@@ -225,7 +225,6 @@ class Slalom(BaseOptimizer):
                 if torch.allclose(momentum, torch.zeros_like(momentum)):
                     self.message = self.message + str(e)
                     break
-                print("momentum reset")
                 momentum = torch.zeros_like(self.current_state)
                 continue
             # Log the loss

@@ -10,16 +10,10 @@ def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
     return np.array(prof)
 
 
-def interp1d_torch(x_in, y_in, x_out):
-    indices = torch.searchsorted(x_in[:-1], x_out) - 1
-    weights = (y_in[1:] - y_in[:-1]) / (x_in[1:] - x_in[:-1])
-    return y_in[indices] + weights[indices] * (x_out - x_in[indices])
-
-
 def interp2d(
     im: torch.Tensor,
-    x: torch.Tensor,
-    y: torch.Tensor,
+    i: torch.Tensor,
+    j: torch.Tensor,
     padding_mode: str = "zeros",
 ) -> torch.Tensor:
     """
@@ -28,70 +22,11 @@ def interp2d(
 
     Args:
         im (Tensor): A 2D tensor representing the image.
-        x (Tensor): A tensor of x coordinates (in pixel space) at which to interpolate.
-        y (Tensor): A tensor of y coordinates (in pixel space) at which to interpolate.
+        i (Tensor): A tensor of i coordinates (in pixel space) at which to interpolate.
+        j (Tensor): A tensor of j coordinates (in pixel space) at which to interpolate.
 
     Returns:
-        Tensor: Tensor with the same shape as `x` and `y` containing the interpolated values.
-    """
-
-    # Convert coordinates to pixel indices
-    h, w = im.shape
-
-    # reshape for indexing purposes
-    start_shape = x.shape
-    x = x.flatten()
-    y = y.flatten()
-
-    if padding_mode == "zeros":
-        valid = (x >= -0.5) & (x <= (w - 0.5)) & (y >= -0.5) & (y <= (h - 0.5))
-    elif padding_mode == "border":
-        x = x.clamp(-0.5, w - 0.5)
-        y = y.clamp(-0.5, h - 0.5)
-    else:
-        raise ValueError(f"Unsupported padding mode: {padding_mode}")
-
-    x0 = x.floor().long()
-    y0 = y.floor().long()
-    x0 = x0.clamp(0, w - 2)
-    x1 = x0 + 1
-    y0 = y0.clamp(0, h - 2)
-    y1 = y0 + 1
-
-    fa = im[y0, x0]
-    fb = im[y1, x0]
-    fc = im[y0, x1]
-    fd = im[y1, x1]
-
-    wa = (x1 - x) * (y1 - y)
-    wb = (x1 - x) * (y - y0)
-    wc = (x - x0) * (y1 - y)
-    wd = (x - x0) * (y - y0)
-
-    result = fa * wa + fb * wb + fc * wc + fd * wd
-
-    if padding_mode == "zeros":
-        return (result * valid).reshape(start_shape)
-    elif padding_mode == "border":
-        return result.reshape(start_shape)
-
-
-def interp2d_ij(
-    im: torch.Tensor,
-    i: torch.Tensor,
-    j: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Interpolates a 2D image at specified coordinates.
-    Similar to `torch.nn.functional.grid_sample` with `align_corners=False`.
-
-    Args:
-        im (Tensor): A 2D tensor representing the image.
-        x (Tensor): A tensor of x coordinates (in pixel space) at which to interpolate.
-        y (Tensor): A tensor of y coordinates (in pixel space) at which to interpolate.
-
-    Returns:
-        Tensor: Tensor with the same shape as `x` and `y` containing the interpolated values.
+        Tensor: Tensor with the same shape as `i` and `j` containing the interpolated values.
     """
 
     # Convert coordinates to pixel indices
@@ -124,4 +59,8 @@ def interp2d_ij(
 
     result = fa * wa + fb * wb + fc * wc + fd * wd
 
-    return (result * valid).view(*start_shape)
+    if padding_mode == "zeros":
+        return (result * valid).reshape(start_shape)
+    elif padding_mode == "border":
+        return result.reshape(start_shape)
+    raise ValueError(f"Unsupported padding mode: {padding_mode}")

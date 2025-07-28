@@ -190,14 +190,7 @@ def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
 
     """
 
-    if isinstance(seg_map, str):
-        if seg_map.endswith(".fits"):
-            hdul = fits.open(seg_map)
-            seg_map = hdul[hdul_index].data
-        elif seg_map.endswith(".npy"):
-            seg_map = np.load(seg_map)
-        else:
-            raise ValueError(f"unrecognized file type, should be one of: fits, npy\n{seg_map}")
+    seg_map = _select_img(seg_map, hdul_index)
 
     seg_map = seg_map.T
 

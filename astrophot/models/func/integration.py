@@ -82,12 +82,11 @@ def recursive_quad_integrate(
     N = max(1, int(np.prod(z.shape) * curve_frac))
     select = torch.topk(torch.abs(z - z0).flatten(), N, dim=-1).indices
 
-    integral = torch.zeros_like(z)
-    integral[~select] = z[~select]
+    integral_flat = z.clone().flatten()
 
-    si, sj = upsample(i[select], j[select], quad_order, scale)
+    si, sj = upsample(i.flatten()[select], j.flatten()[select], quad_order, scale)
 
-    integral[select] = recursive_quad_integrate(
+    integral_flat[select] = recursive_quad_integrate(
         si,
         sj,
         brightness_ij,
@@ -99,7 +98,7 @@ def recursive_quad_integrate(
         max_depth=max_depth,
     ).mean(dim=-1)
 
-    return integral
+    return integral_flat.reshape(z.shape)
 
 
 def recursive_bright_integrate(

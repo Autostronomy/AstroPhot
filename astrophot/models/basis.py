@@ -99,4 +99,4 @@ class PixelBasisPSF(PSFModel):
     @forward
     def brightness(self, x, y, weights):
         x, y = self.transform_coordinates(x, y)
-        return torch.sum(torch.vmap(lambda w, b: w * interp2d(b, y, x))(weights, self.basis), dim=0)
+        return torch.sum(torch.vmap(lambda w, b: w * interp2d(b, x, y))(weights, self.basis), dim=0)

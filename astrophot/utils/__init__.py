@@ -4,12 +4,10 @@ from . import (
     decorators,
     integration,
     interpolate,
-    optimization,
     parametric_profiles,
 )
 
 __all__ = [
-    "optimization",
     "decorators",
     "interpolate",
     "integration",

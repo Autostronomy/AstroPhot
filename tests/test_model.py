@@ -27,9 +27,11 @@ def test_model_sampling_modes():
     )
 
     # With subpixel integration
+    model.integrate_mode = "bright"
     auto = model().data.detach().cpu().numpy()
     model.sampling_mode = "midpoint"
     midpoint = model().data.detach().cpu().numpy()
+    midpoint_bright = midpoint.copy()
     model.sampling_mode = "simpsons"
     simpsons = model().data.detach().cpu().numpy()
     model.sampling_mode = "quad:5"
@@ -48,12 +50,15 @@ def test_model_sampling_modes():
     simpsons = model().data.detach().cpu().numpy()
     model.sampling_mode = "quad:5"
     quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(
+        midpoint, midpoint_bright, rtol=1e-2
+    ), "no integrate sampling should match bright sampling"
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
-    # Without subpixel integration
+    # curvature based subpixel integration
     model.integrate_mode = "curvature"
     auto = model().data.detach().cpu().numpy()
     model.sampling_mode = "midpoint"
@@ -62,6 +67,9 @@ def test_model_sampling_modes():
     simpsons = model().data.detach().cpu().numpy()
     model.sampling_mode = "quad:5"
     quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(
+        midpoint, midpoint_bright, rtol=1e-2
+    ), "curvature integrate sampling should match bright sampling"
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"

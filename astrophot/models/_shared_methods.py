@@ -105,7 +105,6 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
     for param, x0x in zip(params, x0):
         if not model[param].initialized:
             if not model[param].is_valid(x0x):
-                print("soft valid", param, x0x)
                 x0x = model[param].soft_valid(
                     torch.tensor(x0x, dtype=config.DTYPE, device=config.DEVICE)
                 )

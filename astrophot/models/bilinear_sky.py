@@ -80,4 +80,4 @@ class BilinearSky(SkyModel):
     @forward
     def brightness(self, x, y, I):
         x, y = self.transform_coordinates(x, y)
-        return interp2d(I, y, x)
+        return interp2d(I, x, y)

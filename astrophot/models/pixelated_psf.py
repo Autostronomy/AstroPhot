@@ -55,6 +55,6 @@ class PixelatedPSF(PSFModel):
     @forward
     def brightness(self, x, y, pixels, center):
         with OverrideParam(self.target.crtan, center):
-            pX, pY = self.target.plane_to_pixel(x, y)
-        result = interp2d(pixels, pY, pX)
+            i, j = self.target.plane_to_pixel(x, y)
+        result = interp2d(pixels, i, j)
         return result
