@@ -19,4 +19,5 @@ version of each tutorial is available here.
     CustomModels
     GravitationalLensing
     AdvancedPSFModels
+    ImageTypes
     ConstrainedModels
