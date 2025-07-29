@@ -38,12 +38,12 @@ sphinx:
   extra_extensions:
     - "sphinx.ext.autodoc"
     - "sphinx.ext.autosummary"
-    - "sphinx.ext.napoleon"
-    - "sphinx.ext.doctest"
-    - "sphinx.ext.coverage"
-    - "sphinx.ext.mathjax"
-    - "sphinx.ext.ifconfig"
     - "sphinx.ext.viewcode"
+    # - "sphinx.ext.napoleon"
+    # - "sphinx.ext.doctest"
+    # - "sphinx.ext.coverage"
+    # - "sphinx.ext.mathjax"
+    # - "sphinx.ext.ifconfig"
   config:
     html_theme_options:
       logo:

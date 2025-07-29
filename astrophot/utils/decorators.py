@@ -38,6 +38,6 @@ def combine_docstrings(cls):
     combined_docs = [cls.__doc__ or ""]
     for base in cls.__bases__:
         if base.__doc__:
-            combined_docs.append(f"\n[UNIT {base.__name__}]\n{base.__doc__}")
+            combined_docs.append(f"\n[UNIT {base.__name__}]\n\n{base.__doc__}")
     cls.__doc__ = "\n".join(combined_docs).strip()
     return cls
