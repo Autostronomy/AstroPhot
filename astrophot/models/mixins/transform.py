@@ -83,7 +83,9 @@ class SuperEllipseMixin:
     extension of the standard elliptical representation, especially
     for early-type galaxies. The functional form for this is:
 
-    $$R = (|x|^C + |y|^C)^(1/C)$$
+    $$
+      R = (|x|^C + |y|^C)^(1/C)
+    $$
 
     where R is the new distance metric, X Y are the coordinates, and C
     is the coefficient for the superellipse. C can take on any value
@@ -136,14 +138,17 @@ class FourierEllipseMixin:
     science case at hand.
 
     Parameters:
-        am: Tensor of amplitudes for the Fourier modes, indicates the strength
+        am:
+            Tensor of amplitudes for the Fourier modes, indicates the strength
             of each mode.
-        phim: Tensor of phases for the Fourier modes, adjusts the
+        phim:
+            Tensor of phases for the Fourier modes, adjusts the
             orientation of the mode perturbation relative to the major axis. It
             is cyclically defined in the range [0,2pi)
 
     Options:
-        modes: Tuple of integers indicating which Fourier modes to use.
+        modes:
+            Tuple of integers indicating which Fourier modes to use.
     """
 
     _model_type = "fourier"

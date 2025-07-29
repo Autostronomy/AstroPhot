@@ -17,7 +17,9 @@ class GaussianMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
+    ```{math}
+    I(R) = \frac{{\rm flux}}{\sqrt{2\pi}\sigma} \exp(-R^2 / (2 \sigma^2))
+    ```
 
     where `I_0` is the intensity at the center of the profile and `sigma` is the
     standard deviation which controls the width of the profile.
@@ -57,7 +59,9 @@ class iGaussianMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
+    ```{math}
+    I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+    ```
 
     where `sigma` is the standard deviation which controls the width of the
     profile and `flux` gives the total flux of the profile (assuming no

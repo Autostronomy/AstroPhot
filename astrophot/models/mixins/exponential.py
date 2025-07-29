@@ -17,10 +17,12 @@ class ExponentialMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp(- b_1(\\frac{R}{R_e} - 1))$$
+    $$
+      I(R) = I_e * \exp(- b_1(\frac{R}{R_e} - 1))
+    $$
 
     Ie is the brightness at the effective radius, and Re is the effective
-    radius. `b_1` is a constant that ensures `Ie` is the brightness at `R_e`.
+    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
 
     Parameters:
         Re: effective radius in arcseconds
@@ -57,10 +59,12 @@ class iExponentialMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp(- b_1(\\frac{R}{R_e} - 1))$$
+    $$
+      I(R) = I_e * \exp(- b_1(\frac{R}{R_e} - 1))
+    $$
 
-    Ie is the brightness at the effective radius, and Re is the effective
-    radius. `b_1` is a constant that ensures `Ie` is the brightness at `R_e`.
+    $I_e$ is the brightness at the effective radius, and $R_e$ is the effective
+    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
 
     `Re` and `Ie` are batched by their first dimension, allowing for multiple
     exponential profiles to be defined at once.
