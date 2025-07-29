@@ -123,6 +123,7 @@ class LM(BaseOptimizer):
         L0=1.0,
         max_step_iter: int = 10,
         ndf=None,
+        likelihood="gaussian",
         **kwargs,
     ):
 
@@ -140,6 +141,9 @@ class LM(BaseOptimizer):
         self.Lup = Lup
         self.Ldn = Ldn
         self.L = L0
+        self.likelihood = likelihood
+        if self.likelihood not in ["gaussian", "poisson"]:
+            raise ValueError(f"Unsupported likelihood: {self.likelihood}")
 
         # mask
         fit_mask = self.model.fit_mask()
@@ -197,6 +201,10 @@ class LM(BaseOptimizer):
     def chi2_ndf(self):
         return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
 
+    def poisson_2nll_ndf(self):
+        M = self.forward(self.current_state)
+        return 2 * torch.sum(M - self.Y * torch.log(M + 1e-10)) / self.ndf
+
     @torch.no_grad()
     def fit(self, update_uncertainty=True) -> BaseOptimizer:
         """This performs the fitting operation. It iterates the LM step
@@ -214,8 +222,13 @@ class LM(BaseOptimizer):
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
+        if self.likelihood == "gaussian":
+            quantity = "Chi^2/DoF"
+            self.loss_history = [self.chi2_ndf().item()]
+        elif self.likelihood == "poisson":
+            quantity = "2NLL/DoF"
+            self.loss_history = [self.poisson_2nll_ndf().item()]
         self._covariance_matrix = None
-        self.loss_history = [self.chi2_ndf().item()]
         self.L_history = [self.L]
         self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
         if self.verbose > 0:
@@ -225,7 +238,7 @@ class LM(BaseOptimizer):
 
         for _ in range(self.max_iter):
             if self.verbose > 0:
-                config.logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+                config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
                     with ValidContext(self.model):
@@ -235,10 +248,10 @@ class LM(BaseOptimizer):
                             model=self.forward,
                             weight=self.W,
                             jacobian=self.jacobian,
-                            ndf=self.ndf,
                             L=self.L,
                             Lup=self.Lup,
                             Ldn=self.Ldn,
+                            likelihood=self.likelihood,
                         )
                     self.current_state = self.model.from_valid(res["x"]).detach()
                 else:
@@ -248,10 +261,10 @@ class LM(BaseOptimizer):
                         model=self.forward,
                         weight=self.W,
                         jacobian=self.jacobian,
-                        ndf=self.ndf,
                         L=self.L,
                         Lup=self.Lup,
                         Ldn=self.Ldn,
+                        likelihood=self.likelihood,
                     )
                     self.current_state = res["x"].detach()
             except OptimizeStopFail:
@@ -270,7 +283,7 @@ class LM(BaseOptimizer):
 
             self.L = np.clip(res["L"], 1e-9, 1e9)
             self.L_history.append(res["L"])
-            self.loss_history.append(res["chi2"])
+            self.loss_history.append(2 * res["nll"] / self.ndf)
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
 
             if self.check_convergence():
@@ -281,7 +294,7 @@ class LM(BaseOptimizer):
 
         if self.verbose > 0:
             config.logger.info(
-                f"Final Chi^2/DoF: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
+                f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
             )
 
         self.model.fill_dynamic_values(
@@ -336,7 +349,10 @@ class LM(BaseOptimizer):
         if self._covariance_matrix is not None:
             return self._covariance_matrix
         J = self.jacobian(self.current_state)
-        hess = func.hessian(J, self.W)
+        if self.likelihood == "gaussian":
+            hess = func.hessian(J, self.W)
+        elif self.likelihood == "poisson":
+            hess = func.hessian_poisson(J, self.Y, self.forward(self.current_state))
         try:
             self._covariance_matrix = torch.linalg.inv(hess)
         except:

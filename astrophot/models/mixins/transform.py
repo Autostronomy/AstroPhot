@@ -50,9 +50,9 @@ class InclinedMixin:
         x, y = target_area.coordinate_center_meshgrid()
         x = (x - self.center.value[0]).detach().cpu().numpy()
         y = (y - self.center.value[1]).detach().cpu().numpy()
-        mu20 = np.median(dat * np.abs(x))
-        mu02 = np.median(dat * np.abs(y))
-        mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
+        mu20 = np.mean(dat * np.abs(x))
+        mu02 = np.mean(dat * np.abs(y))
+        mu11 = np.mean(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if not self.PA.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):

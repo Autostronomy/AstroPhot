@@ -4,12 +4,39 @@ import numpy as np
 from ...errors import OptimizeStopFail, OptimizeStopSuccess
 
 
+def nll(D, M, W):
+    """
+    Negative log-likelihood for Gaussian noise.
+    D: data
+    M: model prediction
+    W: weights
+    """
+    return 0.5 * torch.sum(W * (D - M) ** 2)
+
+
+def nll_poisson(D, M):
+    """
+    Negative log-likelihood for Poisson noise.
+    D: data
+    M: model prediction
+    """
+    return torch.sum(M - D * torch.log(M + 1e-10))  # Adding small value to avoid log(0)
+
+
+def gradient(J, W, D, M):
+    return J.T @ (W * (D - M)).unsqueeze(1)
+
+
+def gradient_poisson(J, D, M):
+    return J.T @ (D / M - 1).unsqueeze(1)
+
+
 def hessian(J, W):
     return J.T @ (W.unsqueeze(1) * J)
 
 
-def gradient(J, W, R):
-    return J.T @ (W * R).unsqueeze(1)
+def hessian_poisson(J, D, M):
+    return J.T @ ((D / (M**2 + 1e-10)).unsqueeze(1) * J)
 
 
 def damp_hessian(hess, L):
@@ -30,28 +57,50 @@ def solve(hess, grad, L):
     return hessD, h
 
 
-def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tolerance=1e-4):
+def lm_step(
+    x,
+    data,
+    model,
+    weight,
+    jacobian,
+    L=1.0,
+    Lup=9.0,
+    Ldn=11.0,
+    tolerance=1e-4,
+    likelihood="gaussian",
+):
     L0 = L
     M0 = model(x)  # (M,)
     J = jacobian(x)  # (M, N)
-    R = data - M0  # (M,)
-    chi20 = torch.sum(weight * R**2).item() / ndf
-    grad = gradient(J, weight, R)  # (N, 1)
-    hess = hessian(J, weight)  # (N, N)
+
+    if likelihood == "gaussian":
+        nll0 = nll(data, M0, weight).item()  # torch.sum(weight * R**2).item() / ndf
+        grad = gradient(J, weight, data, M0)  # (N, 1)
+        hess = hessian(J, weight)  # (N, N)
+    elif likelihood == "poisson":
+        nll0 = nll_poisson(data, M0).item()
+        grad = gradient_poisson(J, data, M0)  # (N, 1)
+        hess = hessian_poisson(J, data, M0)  # (N, N)
+    else:
+        raise ValueError(f"Unsupported likelihood: {likelihood}")
+
     if torch.allclose(grad, torch.zeros_like(grad)):
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
 
-    best = {"x": torch.zeros_like(x), "chi2": chi20, "L": L}
-    scary = {"x": None, "chi2": np.inf, "L": None, "rho": np.inf}
+    best = {"x": torch.zeros_like(x), "nll": nll0, "L": L}
+    scary = {"x": None, "nll": np.inf, "L": None, "rho": np.inf}
     nostep = True
     improving = None
     for _ in range(10):
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
-        chi21 = torch.sum(weight * (data - M1) ** 2).item() / ndf
+        if likelihood == "gaussian":
+            nll1 = nll(data, M1, weight).item()  # torch.sum(weight * (data - M1) ** 2).item() / ndf
+        elif likelihood == "poisson":
+            nll1 = nll_poisson(data, M1).item()
 
         # Handle nan chi2
-        if not np.isfinite(chi21):
+        if not np.isfinite(nll1):
             L *= Lup
             if improving is True:
                 break
@@ -61,13 +110,13 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tol
         if torch.allclose(h, torch.zeros_like(h)) and L < 0.1:
             raise OptimizeStopSuccess("Step with zero length means optimization complete.")
 
-        # actual chi2 improvement vs expected from linearization
-        rho = (chi20 - chi21) * ndf / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
+        # actual nll improvement vs expected from linearization
+        rho = (nll0 - nll1) / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
 
-        if (chi21 < (chi20 + tolerance) and abs(rho - 1) < abs(scary["rho"] - 1)) or (
-            chi21 < scary["chi2"] and rho > -10
+        if (nll1 < (nll0 + tolerance) and abs(rho - 1) < abs(scary["rho"] - 1)) or (
+            nll1 < scary["nll"] and rho > -10
         ):
-            scary = {"x": x + h.squeeze(1), "chi2": chi21, "L": L0, "rho": rho}
+            scary = {"x": x + h.squeeze(1), "nll": nll1, "L": L0, "rho": rho}
 
         # Avoid highly non-linear regions
         if rho < 0.1 or rho > 2:
@@ -77,8 +126,8 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tol
             improving = False
             continue
 
-        if chi21 < best["chi2"]:  # new best
-            best = {"x": x + h.squeeze(1), "chi2": chi21, "L": L}
+        if nll1 < best["nll"]:  # new best
+            best = {"x": x + h.squeeze(1), "nll": nll1, "L": L}
             nostep = False
             L /= Ldn
             if L < 1e-8 or improving is False:
@@ -93,11 +142,11 @@ def lm_step(x, data, model, weight, jacobian, ndf, L=1.0, Lup=9.0, Ldn=11.0, tol
             improving = False
 
         # If we are improving chi2 by more than 10% then we can stop
-        if (best["chi2"] - chi20) / chi20 < -0.1:
+        if (best["nll"] - nll0) / nll0 < -0.1:
             break
 
     if nostep:
-        if scary["x"] is not None and (scary["chi2"] - chi20) / chi20 < tolerance:
+        if scary["x"] is not None and (scary["nll"] - nll0) / nll0 < tolerance:
             return scary
         raise OptimizeStopFail("Could not find step to improve chi^2")
 
