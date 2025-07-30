@@ -22,25 +22,12 @@ class Grad(BaseOptimizer):
     The optimizer is instantiated with a set of initial parameters and optimization options provided by the user.
     The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
-    Parameters:
-        model (AstroPhot_Model): an AstroPhot_Model object with which to perform optimization.
-        initial_state (torch.Tensor, optional): an optional initial state for optimization.
-        method (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
-        patience (int or None, optional): the number of iterations without improvement before the optimizer will exit early. Defaults to None.
-        optim_kwargs (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
-
-    Attributes:
-        model (AstroPhot_Model): the AstroPhot_Model object to optimize.
-        current_state (torch.Tensor): the current state of the parameters being optimized.
-        iteration (int): the number of iterations performed during the optimization.
-        loss_history (list): the history of loss values at each iteration of the optimization.
-        lambda_history (list): the history of parameter values at each iteration of the optimization.
-        optimizer (torch.optimizer): the PyTorch optimizer object being used.
-        patience (int or None): the number of iterations without improvement before the optimizer will exit early.
-        method (str): the optimization method being used.
-        optim_kwargs (dict): the dictionary of keyword arguments passed to the PyTorch optimizer.
-
-
+    **Args:**
+    -  `model` (AstroPhot_Model): an AstroPhot_Model object with which to perform optimization.
+    -  `initial_state` (torch.Tensor, optional): an optional initial state for optimization.
+    -  `method` (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
+    -  `patience` (int or None, optional): the number of iterations without improvement before the optimizer will exit early. Defaults to None.
+    -  `optim_kwargs` (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
     """
 
     def __init__(
@@ -54,15 +41,6 @@ class Grad(BaseOptimizer):
         report_freq=10,
         **kwargs,
     ) -> None:
-        """Initialize the gradient descent optimizer.
-
-        Args:
-            - model: instance of the model to be optimized.
-            - initial_state: Initial state of the model.
-            - patience: (optional) If a positive integer, then stop the optimization if there has been no improvement in the loss for this number of iterations.
-            - method: (optional) The name of the optimization method to use. Default is NAdam.
-            - optim_kwargs: (optional) Keyword arguments to be passed to the optimizer.
-        """
 
         super().__init__(model, initial_state, **kwargs)
 
@@ -164,6 +142,25 @@ class Grad(BaseOptimizer):
 
 
 class Slalom(BaseOptimizer):
+    """Slalom optimizer for AstroPhot_Model objects.
+
+    Slalom is a gradient descent optimization algorithm that uses a few
+    evaluations along the direction of the gradient to find the optimal step
+    size. This is done by assuming that the posterior density is a parabola and
+    then finding the minimum.
+
+    The optimizer quickly finds the minimum of the posterior density along the
+    gradient direction, then updates the gradient at the new position and
+    repeats. This continues until it reaches a set of 5 steps which collectively
+    improve the posterior density by an amount smaller than the
+    `relative_tolerance` threshold, indicating that convergence has been
+    achieved. Note that this convergence criteria is not a guarantee, simply a
+    heuristic. The default tolerance was such that the optimizer will
+    substantially improve from the starting point, and do so quickly, but may
+    not reach all the way to the minimum of the posterior density. Like other
+    gradient descent algorithms, Slalom slows down considerably when trying to
+    achieve very high precision.
+    """
 
     def __init__(
         self,

@@ -4,7 +4,9 @@ import numpy as np
 __all__ = ("default_prof", "interp2d")
 
 
-def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
+def default_prof(
+    shape: tuple[int, int], pixelscale: float, min_pixels: int = 2, scale: float = 0.2
+) -> np.ndarray:
     prof = [0, min_pixels * pixelscale]
     imagescale = max(shape)  # np.sqrt(np.sum(np.array(shape) ** 2))
     while prof[-1] < (imagescale * pixelscale / 2):

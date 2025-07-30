@@ -1,5 +1,7 @@
+from typing import Tuple
 import numpy as np
 import torch
+from torch import Tensor
 
 from ...utils.decorators import ignore_numpy_warnings
 from ...utils.interpolate import default_prof
@@ -14,17 +16,25 @@ class InclinedMixin:
     PA and q operate on the coordinates to transform the model. Given some x,y
     the updated values are:
 
-    $$x', y' = \\rm{rotate}(-PA + \\pi/2, x, y)$$
+    $$x', y' = {\\rm rotate}(-PA + \\pi/2, x, y)$$
     $$y'' = y' / q$$
 
-    where x' and y'' are the final transformed coordinates. The pi/2 is included
+    where x' and y'' are the final transformed coordinates. The $\pi/2$ is included
     such that the position angle is defined with 0 at north. The -PA is such
     that the position angle increases to the East. Thus, the position angle is a
     standard East of North definition assuming the WCS of the image is correct.
 
     Note that this means radii are defined with $R = \\sqrt{x^2 +
-    (\\frac{y}{q})^2}$ rather than the common alternative which is $R =
+    \\left(\\frac{y}{q}\\right)^2}$ rather than the common alternative which is $R =
     \\sqrt{qx^2 + \\frac{y^2}{q}}$
+
+    **Parameters:**
+    -    `q`: Axis ratio of the model, defined as the ratio of the
+        semi-minor axis to the semi-major axis. A value of 1.0 is
+        circular.
+    -    `PA`: Position angle of the model, defined as the angle
+        between the semi-major axis and North, measured East of North.
+        A value of 0.0 is North, a value of pi/2 is East.
     """
 
     _parameter_specs = {
@@ -69,7 +79,9 @@ class InclinedMixin:
             self.q.dynamic_value = np.clip(np.sqrt(np.abs(l[0] / l[1])), 0.1, 0.9)
 
     @forward
-    def transform_coordinates(self, x, y, PA, q):
+    def transform_coordinates(
+        self, x: Tensor, y: Tensor, PA: Tensor, q: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         x, y = func.rotate(-PA + np.pi / 2, x, y)
         return x, y / q
@@ -80,21 +92,22 @@ class SuperEllipseMixin:
 
     A superellipse transformation allows for the expression of "boxy" and
     "disky" modifications to traditional elliptical isophotes. This is a common
-    extension of the standard elliptical representation, especially
-    for early-type galaxies. The functional form for this is:
+    extension of the standard elliptical representation, especially for
+    early-type galaxies. The functional form for this is:
 
-    $$
-      R = (|x|^C + |y|^C)^(1/C)
-    $$
+    $$R = (|x|^C + |y|^C)^{1/C}$$
 
-    where R is the new distance metric, X Y are the coordinates, and C
-    is the coefficient for the superellipse. C can take on any value
-    greater than zero where C = 2 is the standard distance metric, 0 <
-    C < 2 creates disky or pointed perturbations to an ellipse, and C
-    > 2 transforms an ellipse to be more boxy.
+    where $R$ is the new distance metric, $X$ and $Y$ are the coordinates, and $C$ is the
+    coefficient for the superellipse. $C$ can take on any value greater than zero
+    where $C = 2$ is the standard distance metric, $0 < C < 2$ creates disky or
+    pointed perturbations to an ellipse, and $C > 2$ transforms an ellipse to be
+    more boxy.
 
-    Parameters:
-        C: superellipse distance metric parameter.
+    **Parameters:**
+    -   `C`: Superellipse distance metric parameter, controls the shape of the isophotes.
+        A value of 2.0 is a standard elliptical distance metric, values
+        less than 2.0 create disky or pointed perturbations to an ellipse,
+        and values greater than 2.0 create boxy perturbations to an ellipse.
 
     """
 
@@ -104,7 +117,7 @@ class SuperEllipseMixin:
     }
 
     @forward
-    def radius_metric(self, x, y, C):
+    def radius_metric(self, x: Tensor, y: Tensor, C: Tensor) -> Tensor:
         return torch.pow(x.abs().pow(C) + y.abs().pow(C) + self.softening**C, 1.0 / C)
 
 
@@ -115,7 +128,7 @@ class FourierEllipseMixin:
     pure ellipses. This is a common extension of the standard elliptical
     representation. The form of the Fourier perturbations is:
 
-    $$R' = R * \\exp(\\sum_m(a_m * \\cos(m * \\theta + \\phi_m)))$$
+    $$R' = R * \\exp\\left(\\sum_m(a_m * \\cos(m * \\theta + \\phi_m))\\right)$$
 
     where R' is the new radius value, R is the original radius (typically
     computed as $\\sqrt{x^2+y^2}$), m is the index of the Fourier mode, a_m is
@@ -137,18 +150,15 @@ class FourierEllipseMixin:
     should consider carefully why the Fourier modes are being used for the
     science case at hand.
 
-    Parameters:
-        am:
-            Tensor of amplitudes for the Fourier modes, indicates the strength
+    **Parameters:**
+    -    `am`: Tensor of amplitudes for the Fourier modes, indicates the strength
             of each mode.
-        phim:
-            Tensor of phases for the Fourier modes, adjusts the
+    -    `phim`: Tensor of phases for the Fourier modes, adjusts the
             orientation of the mode perturbation relative to the major axis. It
             is cyclically defined in the range [0,2pi)
 
-    Options:
-        modes:
-            Tuple of integers indicating which Fourier modes to use.
+    **Options:**
+    -    `modes`: Tuple of integers indicating which Fourier modes to use.
     """
 
     _model_type = "fourier"
@@ -158,12 +168,12 @@ class FourierEllipseMixin:
     }
     _options = ("modes",)
 
-    def __init__(self, *args, modes=(3, 4), **kwargs):
+    def __init__(self, *args, modes: Tuple[int] = (3, 4), **kwargs):
         super().__init__(*args, **kwargs)
         self.modes = torch.tensor(modes, dtype=config.DTYPE, device=config.DEVICE)
 
     @forward
-    def radius_metric(self, x, y, am, phim):
+    def radius_metric(self, x: Tensor, y: Tensor, am: Tensor, phim: Tensor) -> Tensor:
         R = super().radius_metric(x, y)
         theta = self.angular_metric(x, y)
         return R * torch.exp(
@@ -203,9 +213,9 @@ class WarpMixin:
     original coordinates X, Y. This is achieved by making PA and q a spline
     profile.
 
-    Parameters:
-        q_R: Tensor of axis ratio values for axis ratio spline
-        PA_R: Tensor of position angle values as input to the spline
+    **Parameters:**
+    -  `q_R`: Tensor of axis ratio values for axis ratio spline
+    -  `PA_R`: Tensor of position angle values as input to the spline
 
     """
 
@@ -230,7 +240,9 @@ class WarpMixin:
             self.q_R.dynamic_value = np.ones(len(self.q_R.prof)) * 0.8
 
     @forward
-    def transform_coordinates(self, x, y, q_R, PA_R):
+    def transform_coordinates(
+        self, x: Tensor, y: Tensor, q_R: Tensor, PA_R: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         R = self.radius_metric(x, y)
         PA = func.spline(R, self.PA_R.prof, PA_R, extend="const")
@@ -253,15 +265,15 @@ class TruncationMixin:
     optimized in a model, though it is possible for this parameter to be
     unstable if there isn't a clear truncation signal in the data.
 
-    Parameters:
-        Rt: The truncation radius in arcseconds.
-        St: The steepness of the truncation profile, controlling how quickly
-            the brightness drops to zero at the truncation radius.
+    **Parameters:**
+    -  `Rt`: The truncation radius in arcseconds.
+    -  `St`: The steepness of the truncation profile, controlling how quickly
+             the brightness drops to zero at the truncation radius.
 
-    Options:
-        outer_truncation: If True, the model will truncate the brightness beyond
-            the truncation radius. If False, the model will truncate the
-            brightness within the truncation radius.
+    **Options:**
+    -   `outer_truncation`: If True, the model will truncate the brightness beyond
+         the truncation radius. If False, the model will truncate the
+         brightness within the truncation radius.
     """
 
     _model_type = "truncated"
@@ -271,7 +283,7 @@ class TruncationMixin:
     }
     _options = ("outer_truncation",)
 
-    def __init__(self, *args, outer_truncation=True, **kwargs):
+    def __init__(self, *args, outer_truncation: bool = True, **kwargs):
         super().__init__(*args, **kwargs)
         self.outer_truncation = outer_truncation
 
@@ -284,7 +296,7 @@ class TruncationMixin:
             self.Rt.dynamic_value = prof[len(prof) // 2]
 
     @forward
-    def radial_model(self, R, Rt, St):
+    def radial_model(self, R: Tensor, Rt: Tensor, St: Tensor) -> Tensor:
         I = super().radial_model(R)
         if self.outer_truncation:
             return I * (1 - torch.tanh(St * (R - Rt))) / 2

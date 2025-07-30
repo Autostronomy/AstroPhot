@@ -83,7 +83,8 @@ def radial_median_profile(
     rad_unit: str = "arcsec",
     plot_kwargs: dict = {},
 ):
-    """Plot an SB profile by taking flux median at each radius.
+    """
+    Plot an SB profile by taking flux median at each radius.
 
     Using the coordinate transforms defined by the model object,
     assigns a radius to each pixel then bins the pixel-radii and

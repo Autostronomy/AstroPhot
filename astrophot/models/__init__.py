@@ -129,6 +129,7 @@ from .mixins import (
     WarpMixin,
     TruncationMixin,
 )
+from . import func
 
 
 __all__ = (
@@ -233,4 +234,5 @@ __all__ = (
     "FourierEllipseMixin",
     "WarpMixin",
     "TruncationMixin",
+    "func",
 )

@@ -1,14 +1,16 @@
 import torch
 import numpy as np
+from torch import Tensor
 
 from .model_object import ComponentModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
 from ..param import forward
 
 __all__ = ["GaussianEllipsoid"]
 
 
+@combine_docstrings
 class GaussianEllipsoid(ComponentModel):
     """Model that represents a galaxy as a 3D Gaussian ellipsoid.
 
@@ -35,6 +37,15 @@ class GaussianEllipsoid(ComponentModel):
         of the disk and gamma is related to the position angle of the disk. The
         initialization for this model assumes exactly this interpretation with a
         disk thickness of sigma_c = 0.2 *sigma_a.
+
+    **Parameters:**
+    -    `sigma_a`: Standard deviation of the Gaussian along the alpha axis in arcseconds.
+    -    `sigma_b`: Standard deviation of the Gaussian along the beta axis in arcseconds.
+    -    `sigma_c`: Standard deviation of the Gaussian along the gamma axis in arcseconds.
+    -    `alpha`: Euler angle representing the rotation around the alpha axis in radians.
+    -    `beta`: Euler angle representing the rotation around the beta axis in radians.
+    -    `gamma`: Euler angle representing the rotation around the gamma axis in radians.
+    -    `flux`: Total flux of the galaxy in arbitrary units.
 
     """
 
@@ -97,7 +108,18 @@ class GaussianEllipsoid(ComponentModel):
         self.flux.dynamic_value = np.sum(dat)
 
     @forward
-    def brightness(self, x, y, sigma_a, sigma_b, sigma_c, alpha, beta, gamma, flux):
+    def brightness(
+        self,
+        x: Tensor,
+        y: Tensor,
+        sigma_a: Tensor,
+        sigma_b: Tensor,
+        sigma_c: Tensor,
+        alpha: Tensor,
+        beta: Tensor,
+        gamma: Tensor,
+        flux: Tensor,
+    ) -> Tensor:
         """Brightness of the Gaussian ellipsoid."""
         D = torch.diag(torch.stack((sigma_a, sigma_b, sigma_c)) ** 2)
         R = func.euler_rotation_matrix(alpha, beta, gamma)

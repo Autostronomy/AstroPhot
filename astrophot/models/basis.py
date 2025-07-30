@@ -1,8 +1,10 @@
+from typing import Union, Tuple
 import torch
+from torch import Tensor
 import numpy as np
 
 from .psf_model_object import PSFModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from .. import config
 from ..errors import SpecificationConflict
@@ -13,6 +15,7 @@ from ..utils.initialize import polar_decomposition
 __all__ = ["BasisPSF"]
 
 
+@combine_docstrings
 class PixelBasisPSF(PSFModel):
     """point source model which uses multiple images as a basis for the
     PSF as its representation for point sources. Using bilinear interpolation it
@@ -21,6 +24,11 @@ class PixelBasisPSF(PSFModel):
     as any image can be supplied. Bilinear interpolation is very fast and
     accurate for smooth models, so it is possible to do the expensive
     interpolation before optimization and save time.
+
+    **Parameters:**
+    -    `weights`: The weights of the basis set of images in units of flux.
+    -    `PA`: The position angle of the PSF in radians.
+    -    `scale`: The scale of the PSF in arcseconds per grid unit.
     """
 
     _model_type = "basis"
@@ -31,7 +39,7 @@ class PixelBasisPSF(PSFModel):
     }
     usable = True
 
-    def __init__(self, *args, basis="zernike:3", **kwargs):
+    def __init__(self, *args, basis: Union[str, Tensor] = "zernike:3", **kwargs):
         """Initialize the PixelBasisPSF model with a basis set of images."""
         super().__init__(*args, **kwargs)
         self.basis = basis
@@ -42,7 +50,7 @@ class PixelBasisPSF(PSFModel):
         return self._basis
 
     @basis.setter
-    def basis(self, value):
+    def basis(self, value: Union[str, Tensor]):
         """Set the basis set of images. If value is None, the basis is initialized to an empty tensor."""
         if value is None:
             raise SpecificationConflict(
@@ -90,13 +98,15 @@ class PixelBasisPSF(PSFModel):
             self.weights.dynamic_value = w
 
     @forward
-    def transform_coordinates(self, x, y, PA, scale):
+    def transform_coordinates(
+        self, x: Tensor, y: Tensor, PA: Tensor, scale: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         i, j = func.rotate(-PA, x, y)
         pixel_center = (self.basis.shape[1] - 1) / 2, (self.basis.shape[2] - 1) / 2
         return i / scale + pixel_center[0], j / scale + pixel_center[1]
 
     @forward
-    def brightness(self, x, y, weights):
+    def brightness(self, x: Tensor, y: Tensor, weights: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
         return torch.sum(torch.vmap(lambda w, b: w * interp2d(b, x, y))(weights, self.basis), dim=0)

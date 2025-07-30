@@ -2,24 +2,25 @@ import numpy as np
 import torch
 
 from .sky_model_object import SkyModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..param import forward
 
 __all__ = ["PlaneSky"]
 
 
+@combine_docstrings
 class PlaneSky(SkyModel):
     """Sky background model using a tilted plane for the sky flux. The brightness for each pixel is defined as:
 
-    I(X, Y) = S + X*dx + Y*dy
+    $$I(X, Y) = I_0 + X*\\delta_x + Y*\\delta_y$$
 
-    where I(X,Y) is the brightness as a function of image position X Y,
-    S is the central sky brightness value, and dx dy are the slopes of
+    where $I(X,Y)$ is the brightness as a function of image position $X, Y$,
+    $I_0$ is the central sky brightness value, and $\\delta_x, \\delta_y$ are the slopes of
     the sky brightness plane.
 
-    Parameters:
-        sky: central sky brightness value
-        delta: Tensor for slope of the sky brightness in each image dimension
+    **Parameters:**
+    -    `I0`: central sky brightness value
+    -    `delta`: Tensor for slope of the sky brightness in each image dimension
 
     """
 

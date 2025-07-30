@@ -1,8 +1,10 @@
 from .model_object import ComponentModel
+from ..utils.decorators import combine_docstrings
 
 __all__ = ["SkyModel"]
 
 
+@combine_docstrings
 class SkyModel(ComponentModel):
     """prototype class for any sky background model. This simply imposes
     that the center is a locked parameter, not involved in the

@@ -6,7 +6,7 @@ from .jacobian_image import JacobianImage, JacobianImageList
 from .psf_image import PSFImage
 from .model_image import ModelImage, ModelImageList
 from .window import Window, WindowList
-
+from . import func
 
 __all__ = (
     "Image",
@@ -24,4 +24,5 @@ __all__ = (
     "ModelImageList",
     "Window",
     "WindowList",
+    "func",
 )

@@ -1,5 +1,6 @@
 from functools import wraps
 import warnings
+from inspect import cleandoc
 
 import numpy as np
 
@@ -37,9 +38,12 @@ def ignore_numpy_warnings(func):
 
 
 def combine_docstrings(cls):
-    combined_docs = [cls.__doc__ or ""]
+    try:
+        combined_docs = [cleandoc(cls.__doc__)]
+    except AttributeError:
+        combined_docs = []
     for base in cls.__bases__:
         if base.__doc__:
-            combined_docs.append(f"\n[UNIT {base.__name__}]\n\n{base.__doc__}")
+            combined_docs.append(f"\n\n> SUBUNIT {base.__name__}\n\n{cleandoc(base.__doc__)}")
     cls.__doc__ = "\n".join(combined_docs).strip()
     return cls

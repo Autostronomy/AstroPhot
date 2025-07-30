@@ -5,7 +5,7 @@ import numpy as np
 
 from .base import Model
 from .model_object import ComponentModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from ..image import Window, PSFImage
 from ..errors import SpecificationConflict
@@ -14,12 +14,16 @@ from ..param import forward
 __all__ = ("PointSource",)
 
 
+@combine_docstrings
 class PointSource(ComponentModel):
     """Describes a point source in the image, this is a delta function at
     some position in the sky. This is typically used to describe
     stars, supernovae, very small galaxies, quasars, asteroids or any
     other object which can essentially be entirely described by a
     position and total flux (no structure).
+
+    **Parameters:**
+    -    `flux`: The total flux of the point source
 
     """
 

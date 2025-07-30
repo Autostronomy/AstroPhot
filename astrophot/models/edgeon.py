@@ -1,8 +1,10 @@
+from typing import Tuple
 import torch
 import numpy as np
+from torch import Tensor
 
 from .model_object import ComponentModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
 from ..param import forward
 
@@ -14,6 +16,9 @@ class EdgeonModel(ComponentModel):
     representation such as radial light profile or the structure of
     the galaxy on the sky. Defines an edgeon galaxy as an object with
     a position angle, no inclination information is included.
+
+    **Parameters:**
+    -    `PA`: Position angle of the edgeon disk in radians.
 
     """
 
@@ -48,7 +53,7 @@ class EdgeonModel(ComponentModel):
             self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
 
     @forward
-    def transform_coordinates(self, x, y, PA):
+    def transform_coordinates(self, x: Tensor, y: Tensor, PA: Tensor) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         return func.rotate(-(PA + np.pi / 2), x, y)
 
@@ -57,6 +62,9 @@ class EdgeonSech(EdgeonModel):
     """An edgeon profile where the vertical distribution is a sech^2
     profile, subclasses define the radial profile.
 
+    **Parameters:**
+    -    `I0`: The central intensity of the sech^2 profile in flux/arcsec^2.
+    -    `hs`: The scale height of the sech^2 profile in arcseconds.
     """
 
     _model_type = "sech2"
@@ -85,15 +93,18 @@ class EdgeonSech(EdgeonModel):
             self.hs.value = max(self.window.shape) * target_area.pixelscale * 0.1
 
     @forward
-    def brightness(self, x, y, I0, hs):
+    def brightness(self, x: Tensor, y: Tensor, I0: Tensor, hs: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
         return I0 * self.radial_model(x) / (torch.cosh((y + self.softening) / hs) ** 2)
 
 
+@combine_docstrings
 class EdgeonIsothermal(EdgeonSech):
     """A self-gravitating locally-isothermal edgeon disk. This comes from
     van der Kruit & Searle 1981.
 
+    **Parameters:**
+    -    `rs`: Scale radius of the isothermal disk in arcseconds.
     """
 
     _model_type = "isothermal"
@@ -109,7 +120,7 @@ class EdgeonIsothermal(EdgeonSech):
         self.rs.value = max(self.window.shape) * self.target.pixelscale * 0.4
 
     @forward
-    def radial_model(self, R, rs):
+    def radial_model(self, R: Tensor, rs: Tensor) -> Tensor:
         Rscaled = torch.abs(R / rs)
         return (
             Rscaled

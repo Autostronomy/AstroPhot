@@ -54,9 +54,9 @@ class GroupModel(Model):
             if not isinstance(model, Model):
                 raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
         self.models = models
-        self.update_window()
+        self._update_window()
 
-    def update_window(self):
+    def _update_window(self):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.
 
@@ -146,7 +146,7 @@ class GroupModel(Model):
                 mask[group_indices] &= model.fit_mask()[model_indices]
         return mask
 
-    def match_window(self, image, window, model):
+    def match_window(self, image: Union[Image, ImageList], window: Window, model: Model) -> Window:
         if isinstance(image, ImageList) and isinstance(model.target, ImageList):
             indices = image.match_indices(model.target)
             if len(indices) == 0:
@@ -174,7 +174,9 @@ class GroupModel(Model):
             )
         return use_window
 
-    def _ensure_vmap_compatible(self, image, other):
+    def _ensure_vmap_compatible(
+        self, image: Union[Image, ImageList], other: Union[Image, ImageList]
+    ):
         if isinstance(image, ImageList):
             for img in image.images:
                 self._ensure_vmap_compatible(img, other)

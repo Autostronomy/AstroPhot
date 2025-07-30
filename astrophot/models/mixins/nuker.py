@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
@@ -23,12 +24,12 @@ class NukerMixin:
     slope, $\\beta$ gives the outer slope, $\\alpha$ is somewhat degenerate with
     the other slopes.
 
-    Parameters:
-        Rb: scale length radius
-        Ib: intensity at the scale length
-        alpha: sharpness of transition between power law slopes
-        beta: outer power law slope
-        gamma: inner power law slope
+    **Parameters:**
+    -    `Rb`: scale length radius
+    -    `Ib`: intensity at the scale length
+    -    `alpha`: sharpness of transition between power law slopes
+    -    `beta`: outer power law slope
+    -    `gamma`: inner power law slope
     """
 
     _model_type = "nuker"
@@ -54,7 +55,9 @@ class NukerMixin:
         )
 
     @forward
-    def radial_model(self, R, Rb, Ib, alpha, beta, gamma):
+    def radial_model(
+        self, R: Tensor, Rb: Tensor, Ib: Tensor, alpha: Tensor, beta: Tensor, gamma: Tensor
+    ) -> Tensor:
         return func.nuker(R, Rb, Ib, alpha, beta, gamma)
 
 
@@ -73,12 +76,12 @@ class iNukerMixin:
     `Rb`, `Ib`, `alpha`, `beta`, and `gamma` are batched by their first
     dimension, allowing for multiple Nuker profiles to be defined at once.
 
-    Parameters:
-        Rb: scale length radius
-        Ib: intensity at the scale length
-        alpha: sharpness of transition between power law slopes
-        beta: outer power law slope
-        gamma: inner power law slope
+    **Parameters:**
+    -    `Rb`: scale length radius
+    -    `Ib`: intensity at the scale length
+    -    `alpha`: sharpness of transition between power law slopes
+    -    `beta`: outer power law slope
+    -    `gamma`: inner power law slope
     """
 
     _model_type = "nuker"
@@ -105,5 +108,7 @@ class iNukerMixin:
         )
 
     @forward
-    def iradial_model(self, i, R, Rb, Ib, alpha, beta, gamma):
+    def iradial_model(
+        self, i: int, R: Tensor, Rb: Tensor, Ib: Tensor, alpha: Tensor, beta: Tensor, gamma: Tensor
+    ) -> Tensor:
         return func.nuker(R, Rb[i], Ib[i], alpha[i], beta[i], gamma[i])

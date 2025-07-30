@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 import numpy as np
 
 from ...param import forward
@@ -25,11 +26,11 @@ class KingMixin:
     the intensity at the center of the profile. `alpha` is the concentration
     index which controls the shape of the profile.
 
-    Parameters:
-        Rc: core radius
-        Rt: truncation radius
-        alpha: concentration index which controls the shape of the brightness profile
-        I0: intensity at the center of the profile
+    **Parameters:**
+    -    `Rc`: core radius
+    -    `Rt`: truncation radius
+    -    `alpha`: concentration index which controls the shape of the brightness profile
+    -    `I0`: intensity at the center of the profile
     """
 
     _model_type = "king"
@@ -57,7 +58,7 @@ class KingMixin:
         )
 
     @forward
-    def radial_model(self, R, Rc, Rt, alpha, I0):
+    def radial_model(self, R: Tensor, Rc: Tensor, Rt: Tensor, alpha: Tensor, I0: Tensor) -> Tensor:
         return func.king(R, Rc, Rt, alpha, I0)
 
 
@@ -77,11 +78,11 @@ class iKingMixin:
     `Rc`, `Rt`, `alpha`, and `I0` are batched by their first dimension, allowing
     for multiple King profiles to be defined at once.
 
-    Parameters:
-        Rc: core radius
-        Rt: truncation radius
-        alpha: concentration index which controls the shape of the brightness profile
-        I0: intensity at the center of the profile
+    **Parameters:**
+    -    `Rc`: core radius
+    -    `Rt`: truncation radius
+    -    `alpha`: concentration index which controls the shape of the brightness profile
+    -    `I0`: intensity at the center of the profile
     """
 
     _model_type = "king"
@@ -109,5 +110,7 @@ class iKingMixin:
         )
 
     @forward
-    def iradial_model(self, i, R, Rc, Rt, alpha, I0):
+    def iradial_model(
+        self, i: int, R: Tensor, Rc: Tensor, Rt: Tensor, alpha: Tensor, I0: Tensor
+    ) -> Tensor:
         return func.king(R, Rc[i], Rt[i], alpha[i], I0[i])

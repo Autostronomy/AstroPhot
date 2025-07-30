@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
@@ -18,17 +19,17 @@ class SersicMixin:
     starting point for many extended objects. The functional form of the Sersic
     profile is defined as:
 
-    $$I(R) = I_e * \\exp(- b_n((R/R_e)^(1/n) - 1))$$
+    $$I(R) = I_e * \\exp(- b_n((R/R_e)^{1/n} - 1))$$
 
     It is a generalization of a gaussian, exponential, and de-Vaucouleurs
     profile. The Sersic index `n` controls the shape of the profile, with `n=1`
     being an exponential profile, `n=4` being a de-Vaucouleurs profile, and
     `n=0.5` being a Gaussian profile.
 
-    Parameters:
-        n: Sersic index which controls the shape of the brightness profile
-        Re: half light radius [arcsec]
-        Ie: intensity at the half light radius [flux/arcsec^2]
+    **Parameters:**
+    -    `n`: Sersic index which controls the shape of the brightness profile
+    -    `Re`: half light radius [arcsec]
+    -    `Ie`: intensity at the half light radius [flux/arcsec^2]
     """
 
     _model_type = "sersic"
@@ -48,7 +49,7 @@ class SersicMixin:
         )
 
     @forward
-    def radial_model(self, R, n, Re, Ie):
+    def radial_model(self, R: Tensor, n: Tensor, Re: Tensor, Ie: Tensor) -> Tensor:
         return func.sersic(R, n, Re, Ie)
 
 
@@ -59,7 +60,7 @@ class iSersicMixin:
     starting point for many extended objects. The functional form of the Sersic
     profile is defined as:
 
-    $$I(R) = I_e * \\exp(- b_n((R/R_e)^(1/n) - 1))$$
+    $$I(R) = I_e * \\exp(- b_n((R/R_e)^{1/n} - 1))$$
 
     It is a generalization of a gaussian, exponential, and de-Vaucouleurs
     profile. The Sersic index `n` controls the shape of the profile, with `n=1`
@@ -69,10 +70,10 @@ class iSersicMixin:
     `n`, `Re`, and `Ie` are batched by their first dimension, allowing for
     multiple Sersic profiles to be defined at once.
 
-    Parameters:
-        n: Sersic index which controls the shape of the brightness profile
-        Re: half light radius [arcsec]
-        Ie: intensity at the half light radius [flux/arcsec^2]
+    **Parameters:**
+    -   `n`: Sersic index which controls the shape of the brightness profile
+    -   `Re`: half light radius [arcsec]
+    -   `Ie`: intensity at the half light radius [flux/arcsec^2]
     """
 
     _model_type = "sersic"
@@ -97,5 +98,5 @@ class iSersicMixin:
         )
 
     @forward
-    def iradial_model(self, i, R, n, Re, Ie):
+    def iradial_model(self, i: int, R: Tensor, n: Tensor, Re: Tensor, Ie: Tensor) -> Tensor:
         return func.sersic(R, n[i], Re[i], Ie[i])

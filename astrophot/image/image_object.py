@@ -246,7 +246,7 @@ class Image(Module):
         return func.pixel_quad_meshgrid(self.shape, config.DTYPE, config.DEVICE, order=order)
 
     @forward
-    def coordinate_center_meshgrid(self):
+    def coordinate_center_meshgrid(self) -> torch.Tensor:
         """Get a meshgrid of coordinate locations in the image, centered on the pixel grid."""
         i, j = self.pixel_center_meshgrid()
         return self.pixel_to_plane(i, j)

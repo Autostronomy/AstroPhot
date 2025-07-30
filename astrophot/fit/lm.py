@@ -29,65 +29,67 @@ class LM(BaseOptimizer):
     The cost function that the LM algorithm tries to minimize is of
     the form:
 
-    .. math::
-        f(\\boldsymbol{\\beta}) = \\frac{1}{2}\\sum_{i=1}^{N} r_i(\\boldsymbol{\\beta})^2
+    $$f(\\boldsymbol{\\beta}) = \\frac{1}{2}\\sum_{i=1}^{N} r_i(\\boldsymbol{\\beta})^2$$
 
-    where :math:`\\boldsymbol{\\beta}` is the vector of parameters,
-    :math:`r_i` are the residuals, and :math:`N` is the number of
+    where $\\boldsymbol{\\beta}$ is the vector of parameters,
+    $r_i$ are the residuals, and $N$ is the number of
     observations.
 
     The LM algorithm iteratively performs the following update to the parameters:
 
-    .. math::
-        \\boldsymbol{\\beta}_{n+1} = \\boldsymbol{\\beta}_{n} - (J^T J + \\lambda diag(J^T J))^{-1} J^T \\boldsymbol{r}
+    $$\\boldsymbol{\\beta}_{n+1} = \\boldsymbol{\\beta}_{n} - (J^T J + \\lambda diag(J^T J))^{-1} J^T \\boldsymbol{r}$$
 
     where:
-        - :math:`J` is the Jacobian matrix whose elements are :math:`J_{ij} = \\frac{\\partial r_i}{\\partial \\beta_j}`,
-        - :math:`\\boldsymbol{r}` is the vector of residuals :math:`r_i(\\boldsymbol{\\beta})`,
-        - :math:`\\lambda` is a damping factor which is adjusted at each iteration.
+    - $J$ is the Jacobian matrix whose elements are $J_{ij} = \\frac{\\partial r_i}{\\partial \\beta_j}$,
+    - $\\boldsymbol{r}$ is the vector of residuals $r_i(\\boldsymbol{\\beta})$,
+    - $\\lambda$ is a damping factor which is adjusted at each iteration.
 
-    When :math:`\\lambda = 0` this can be seen as the Gauss-Newton
-    method. In the limit that :math:`\\lambda` is large, the
-    :math:`J^T J` matrix (an approximation of the Hessian) becomes
-    subdominant and the update essentially points along :math:`J^T
-    \\boldsymbol{r}` which is the gradient. In this scenario the
-    gradient descent direction is also modified by the :math:`\\lambda
-    diag(J^T J)` scaling which in some sense makes each gradient
+    When $\\lambda = 0$ this can be seen as the Gauss-Newton
+    method. In the limit that $\\lambda$ is large, the
+    $J^T J$ matrix (an approximation of the Hessian) becomes
+    subdominant and the update essentially points along $J^T
+    \\boldsymbol{r}$ which is the gradient. In this scenario the
+    gradient descent direction is also modified by the $\\lambda
+    diag(J^T J)$ scaling which in some sense makes each gradient
     unitless and further improves the step. Note as well that as
-    :math:`\\lambda` gets larger the step taken will be smaller, which
+    $\\lambda$ gets larger the step taken will be smaller, which
     helps to ensure convergence when the initial guess of the
     parameters are far from the optimal solution.
 
-    Note that the residuals :math:`r_i` are typically also scaled by
+    Note that the residuals $r_i$ are typically also scaled by
     the variance of the pixels, but this does not change the equations
     above. For a detailed explanation of the LM method see the article
     by Henri Gavin on which much of the AstroPhot LM implementation is
     based::
 
-        @article{Gavin2019,
-            title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},
-            author={Gavin, Henri P},
-            journal={Department of Civil and Environmental Engineering, Duke University},
-            volume={19},
-            year={2019}
-        }
+    ```{latex}
+    @article{Gavin2019,
+        title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},
+        author={Gavin, Henri P},
+        journal={Department of Civil and Environmental Engineering, Duke University},
+        volume={19},
+        year={2019}
+    }
+    ```
 
     as well as the paper on LM geodesic acceleration by Mark
     Transtrum::
 
-        @article{Tanstrum2012,
-           author = {{Transtrum}, Mark K. and {Sethna}, James P.},
-            title = "{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}",
-             year = 2012,
-              doi = {10.48550/arXiv.1201.5885},
-           adsurl = {https://ui.adsabs.harvard.edu/abs/2012arXiv1201.5885T},
-        }
+    ```{latex}
+    @article{Tanstrum2012,
+       author = {{Transtrum}, Mark K. and {Sethna}, James P.},
+        title = "{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}",
+         year = 2012,
+          doi = {10.48550/arXiv.1201.5885},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2012arXiv1201.5885T},
+    }
+    ```
 
-    The damping factor :math:`\\lambda` is adjusted at each iteration:
+    The damping factor $\\lambda$ is adjusted at each iteration:
     it is effectively increased when we are far from the solution, and
     decreased when we are close to it. In practice, the algorithm
-    attempts to pick the smallest :math:`\\lambda` that is can while
-    making sure that the :math:`\\chi^2` decreases at each step.
+    attempts to pick the smallest $\\lambda$ that is can while
+    making sure that the $\\chi^2$ decreases at each step.
 
     The main advantage of the LM algorithm is its adaptability. When
     the current estimate is far from the optimum, the algorithm
@@ -99,7 +101,7 @@ class LM(BaseOptimizer):
     enhancements to improve its performance. For example, the Jacobian
     may be approximated with finite differences, geodesic acceleration
     can be used to speed up convergence, and more sophisticated
-    strategies can be used to adjust the damping factor :math:`\\lambda`.
+    strategies can be used to adjust the damping factor $\\lambda$.
 
     The exact performance of the LM algorithm will depend on the
     nature of the problem, including the complexity of the function

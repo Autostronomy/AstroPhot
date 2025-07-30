@@ -1,7 +1,7 @@
 import argparse
 import requests
 import torch
-from . import config, models, plots, utils, fit
+from . import config, models, plots, utils, fit, image
 from .param import forward, Param, Module
 
 from .image import (
@@ -143,6 +143,7 @@ def run_from_terminal() -> None:
 
 __all__ = (
     "models",
+    "image",
     "Model",
     "Image",
     "ImageList",
