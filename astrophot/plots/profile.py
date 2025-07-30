@@ -31,6 +31,9 @@ def radial_light_profile(
     resolution=1000,
     plot_kwargs={},
 ):
+    """
+    Used to plot the brightness profile as a function of radius for modes which define a `radial_model`
+    """
     xx = torch.linspace(
         R0,
         max(model.window.shape)
@@ -179,6 +182,9 @@ def ray_light_profile(
     extend_profile=1.0,
     resolution=1000,
 ):
+    """
+    Used for plotting ray type models which define a `iradial_model` method. These have multiple radial profiles.
+    """
     xx = torch.linspace(
         0,
         max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
@@ -213,6 +219,7 @@ def wedge_light_profile(
     extend_profile=1.0,
     resolution=1000,
 ):
+    """same as ray light profile but for wedges"""
     xx = torch.linspace(
         0,
         max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
@@ -240,7 +247,7 @@ def wedge_light_profile(
 
 
 def warp_phase_profile(fig, ax, model: Model, rad_unit="arcsec"):
-
+    """Used to plot the phase profile of a warp model. This gives the axis ratio and position angle as a function of radius."""
     ax.plot(
         model.q_R.prof.detach().cpu().numpy(),
         model.q_R.npvalue,

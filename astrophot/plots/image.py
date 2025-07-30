@@ -114,6 +114,7 @@ def psf_image(
     vmax=None,
     **kwargs,
 ):
+    """For plotting PSF images, or the output of a PSF model."""
     if isinstance(psf, (PSFModel, PSFGroupModel)):
         psf = psf()
     # recursive call for target image list
@@ -428,6 +429,7 @@ def residual_image(
 
 @ignore_numpy_warnings
 def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
+    """Used for plotting the window(s) of a model on an image."""
     if target is None:
         target = model.target
     if isinstance(ax, np.ndarray):

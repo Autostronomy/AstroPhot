@@ -3,6 +3,8 @@ from functools import lru_cache
 from scipy.special import roots_legendre
 import torch
 
+__all__ = ("quad_table",)
+
 
 @lru_cache(maxsize=32)
 def quad_table(order, dtype, device):

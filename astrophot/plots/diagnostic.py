@@ -18,6 +18,8 @@ def covariance_matrix(
     showticks=True,
     **kwargs,
 ):
+    """
+    Create a covariance matrix plot."""
     num_params = covariance_matrix.shape[0]
     fig, axes = plt.subplots(num_params, num_params, figsize=figsize)
     plt.subplots_adjust(wspace=0.0, hspace=0.0)

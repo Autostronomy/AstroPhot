@@ -7,6 +7,9 @@ __all__ = ["PSFGroupModel"]
 
 
 class PSFGroupModel(GroupModel):
+    """
+    A group of PSF models. Behaves similarly to a `GroupModel`, but specifically designed for PSF models.
+    """
 
     _model_type = "psf"
     usable = True

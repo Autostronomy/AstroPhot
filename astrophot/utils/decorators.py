@@ -3,6 +3,8 @@ import warnings
 
 import numpy as np
 
+__all__ = ("classproperty", "ignore_numpy_warnings", "combine_docstrings")
+
 
 class classproperty:
     def __init__(self, fget):

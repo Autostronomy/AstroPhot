@@ -1,6 +1,16 @@
 import numpy as np
 from .conversions.functions import sersic_n_to_b
 
+__all__ = (
+    "sersic_np",
+    "gaussian_np",
+    "exponential_np",
+    "moffat_np",
+    "nuker_np",
+    "ferrer_np",
+    "king_np",
+)
+
 
 def sersic_np(R, n, Re, Ie):
     """Sersic 1d profile function, works more generally with numpy

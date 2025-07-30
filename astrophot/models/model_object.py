@@ -21,7 +21,8 @@ __all__ = ["ComponentModel"]
 
 
 class ComponentModel(SampleMixin, Model):
-    """Component of a model for an object in an image.
+    """
+    Component of a model for an object in an image.
 
     This is a single component of an image model. It has a position on the sky
     determined by `center` and may or may not be convolved with a PSF to represent some data.

@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+__all__ = ("default_prof", "interp2d")
+
 
 def default_prof(shape, pixelscale, min_pixels=2, scale=0.2):
     prof = [0, min_pixels * pixelscale]
