@@ -18,7 +18,7 @@ class CMOSTargetImage(CMOSMixin, TargetImage):
     It inherits from TargetImage and CMOSMixin.
     """
 
-    def model_image(self, upsample=1, pad=0, **kwargs):
+    def model_image(self, upsample: int = 1, pad: int = 0, **kwargs) -> CMOSModelImage:
         """Model the image with CMOS-specific features."""
         if upsample > 1 or pad > 0:
             raise NotImplementedError("Upsampling and padding are not implemented for CMOS images.")

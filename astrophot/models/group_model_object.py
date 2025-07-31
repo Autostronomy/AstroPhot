@@ -104,9 +104,6 @@ class GroupModel(Model):
     def initialize(self):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
-
-        Args:
-          target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
         for model in self.models:
             config.logger.info(f"Initializing model {model.name}")
@@ -198,8 +195,8 @@ class GroupModel(Model):
         model is called individually and the results are added
         together in one larger image.
 
-        Args:
-          image (Optional["Model_Image"]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
+        **Args:**
+        -  `image` (Optional[ModelImage]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
 
         """
         if window is None:
@@ -233,8 +230,10 @@ class GroupModel(Model):
         full jacobian (Npixels * Nparameters) of zeros then call the
         jacobian method of each sub model and add it in to the total.
 
-        Args:
-          pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+        **Args:**
+        -  `pass_jacobian` (Optional[JacobianImage]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+        -  `window` (Optional[Window]): A window within which to evaluate the jacobian. If not provided, the model's window will be used.
+        -  `params` (Optional[Sequence[Param]]): Parameters to use for the jacobian. If not provided, the model's parameters will be used.
 
         """
         if window is None:

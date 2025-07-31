@@ -1,4 +1,8 @@
-def rotate(theta, x, y):
+from typing import Tuple
+from torch import Tensor
+
+
+def rotate(theta: Tensor, x: Tensor, y: Tensor) -> Tuple[Tensor, Tensor]:
     """
     Applies a rotation matrix to the X,Y coordinates
     """

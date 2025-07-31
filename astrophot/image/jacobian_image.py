@@ -5,7 +5,7 @@ import torch
 from .image_object import Image, ImageList
 from ..errors import SpecificationConflict, InvalidImage
 
-__all__ = ["JacobianImage", "JacobianImageList"]
+__all__ = ("JacobianImage", "JacobianImageList")
 
 
 ######################################################################
@@ -84,7 +84,7 @@ class JacobianImageList(ImageList):
             return []
         return self.images[0].parameters
 
-    def flatten(self, attribute="data"):
+    def flatten(self, attribute: str = "data"):
         if len(self.images) > 1:
             for image in self.images[1:]:
                 if self.images[0].parameters != image.parameters:

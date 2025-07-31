@@ -15,4 +15,5 @@ chapters:
   - file: contributing
   - file: citation
   - file: license
+  - file: astrophotdocs/index
   - file: modules

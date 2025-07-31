@@ -11,18 +11,18 @@ from ..image import Window
 from ..param import ValidContext
 
 
-__all__ = ["BaseOptimizer"]
+__all__ = ("BaseOptimizer",)
 
 
 class BaseOptimizer(object):
     """
     Base optimizer object that other optimizers inherit from. Ensures consistent signature for the classes.
 
-    Parameters:
-        model: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
-        initial_state: optional initialization for the parameters as a 1D tensor [tensor]
-        max_iter: maximum allowed number of iterations [int]
-        relative_tolerance: tolerance for counting success steps as: 0 < (Chi2^2 - Chi1^2)/Chi1^2 < tol [float]
+    **Args:**
+    -  `model`: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
+    -  `initial_state`: optional initialization for the parameters as a 1D tensor [tensor]
+    -  `max_iter`: maximum allowed number of iterations [int]
+    -  `relative_tolerance`: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]
 
     """
 
@@ -37,29 +37,6 @@ class BaseOptimizer(object):
         save_steps: Optional[str] = None,
         fit_valid: bool = True,
     ) -> None:
-        """
-        Initializes a new instance of the class.
-
-        Args:
-            model (object): An object representing the model.
-            initial_state (Optional[Sequence]): The initial state of the model could be any tensor.
-                           If `None`, the model's default initial state will be used.
-            relative_tolerance (float): The relative tolerance for the optimization.
-            fit_parameters_identity (Optional[tuple]): a tuple of parameter identity strings which tell the LM optimizer which parameters of the model to fit.
-            **kwargs (dict): Additional keyword arguments.
-
-        Attributes:
-            model (object): An object representing the model.
-            verbose (int): The verbosity level.
-            current_state (Tensor): The current state of the model.
-            max_iter (int): The maximum number of iterations.
-            iteration (int): The current iteration number.
-            save_steps (Optional[str]): Save intermediate results to this path.
-            relative_tolerance (float): The relative tolerance for the optimization.
-            lambda_history (List[ndarray]): A list of the optimization steps.
-            loss_history (List[float]): A list of the optimization losses.
-            message (str): An informational message.
-        """
 
         self.model = model
         self.verbose = verbose
@@ -88,17 +65,18 @@ class BaseOptimizer(object):
 
     def fit(self) -> "BaseOptimizer":
         """
-        Raises:
-            NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
+        **Raises:**
+        -  `NotImplementedError`: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
         """
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
     def step(self, current_state: torch.Tensor = None) -> None:
-        """Args:
-            current_state (torch.Tensor, optional): Current state of the model parameters. Defaults to None.
+        """
+        **Args:**
+        - `current_state` (torch.Tensor, optional): Current state of the model parameters. Defaults to None.
 
-        Raises:
-            NotImplementedError: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
+        **Raises:**
+        -  `NotImplementedError`: Error is raised if this method is not implemented in a subclass of BaseOptimizer.
         """
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
@@ -106,15 +84,16 @@ class BaseOptimizer(object):
         """
         Returns the minimum value of chi^2 loss in the loss history.
 
-        Returns:
-                float: Minimum value of chi^2 loss.
+        **Returns:**
+        -  `float`: Minimum value of chi^2 loss.
         """
         return np.nanmin(self.loss_history)
 
     def res(self) -> np.ndarray:
         """Returns the value of lambda (regularization strength) at which minimum chi^2 loss was achieved.
 
-        Returns: ndarray which is the Value of lambda at which minimum chi^2 loss was achieved.
+        **Returns:**
+        -  `ndarray`: Value of lambda at which minimum chi^2 loss was achieved.
         """
         N = np.isfinite(self.loss_history)
         if np.sum(N) == 0:
@@ -133,16 +112,15 @@ class BaseOptimizer(object):
         """
         Calculates the chi^2 contour for the given number of parameters.
 
-        Args:
-            n_params (int): The number of parameters.
-            confidence (float, optional): The confidence interval (default is 0.682689492137).
+        **Args:**
+        - `n_params` (int): The number of parameters.
+        - `confidence` (float, optional): The confidence interval (default is 0.682689492137).
 
-        Returns:
-            float: The calculated chi^2 contour value.
+        **Returns:**
+        - `float`: The calculated chi^2 contour value.
 
-        Raises:
-            RuntimeError: If unable to compute the Chi^2 contour for the given number of parameters.
-
+        **Raises:**
+        - `RuntimeError`: If unable to compute the Chi^2 contour for the given number of parameters.
         """
 
         def _f(x: float, nu: int) -> float:

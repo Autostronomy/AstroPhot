@@ -1,7 +1,7 @@
 import torch
 
 
-def _h_poly(t):
+def _h_poly(t: torch.Tensor) -> torch.Tensor:
     """Helper function to compute the 'h' polynomial matrix used in the
     cubic spline.
 
@@ -26,19 +26,11 @@ def cubic_spline_torch(x: torch.Tensor, y: torch.Tensor, xs: torch.Tensor) -> to
     """Compute the 1D cubic spline interpolation for the given data points
     using PyTorch.
 
-    Args:
-        x (Tensor): A 1D tensor representing the x-coordinates of the known data points.
-        y (Tensor): A 1D tensor representing the y-coordinates of the known data points.
-        xs (Tensor): A 1D tensor representing the x-coordinates of the positions where
-                     the cubic spline function should be evaluated.
-        extend (str, optional): The method for handling extrapolation, either "const" or "linear".
-                                Default is "const".
-                                "const": Use the value of the last known data point for extrapolation.
-                                "linear": Use linear extrapolation based on the last two known data points.
-
-    Returns:
-        Tensor: A 1D tensor representing the interpolated values at the specified positions (xs).
-
+    **Args:**
+    -  `x` (Tensor): A 1D tensor representing the x-coordinates of the known data points.
+    -  `y` (Tensor): A 1D tensor representing the y-coordinates of the known data points.
+    -  `xs` (Tensor): A 1D tensor representing the x-coordinates of the positions where
+                the cubic spline function should be evaluated.
     """
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
     m = torch.cat([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
@@ -49,14 +41,17 @@ def cubic_spline_torch(x: torch.Tensor, y: torch.Tensor, xs: torch.Tensor) -> to
     return ret
 
 
-def spline(R, profR, profI, extend="zeros"):
+def spline(
+    R: torch.Tensor, profR: torch.Tensor, profI: torch.Tensor, extend: str = "zeros"
+) -> torch.Tensor:
     """Spline 1d profile function, cubic spline between points up
     to second last point beyond which is linear
 
-    Parameters:
-        R: Radii tensor at which to evaluate the sersic function
-        profR: radius values for the surface density profile in the same units as R
-        profI: surface density values for the surface density profile
+    **Args:**
+    -  `R`: Radii tensor at which to evaluate the spline function
+    -  `profR`: radius values for the surface density profile in the same units as `R`
+    -  `profI`: surface density values for the surface density profile
+    -  `extend`: How to extend the spline beyond the last point. Options are 'zeros' or 'const'.
     """
     I = cubic_spline_torch(profR, profI, R.view(-1)).reshape(*R.shape)
     if extend == "zeros":

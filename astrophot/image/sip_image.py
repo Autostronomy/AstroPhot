@@ -1,3 +1,4 @@
+from typing import Tuple, Union
 import torch
 
 from .target_image import TargetImage
@@ -7,7 +8,7 @@ from .mixins import SIPMixin
 
 class SIPModelImage(SIPMixin, ModelImage):
 
-    def crop(self, pixels, **kwargs):
+    def crop(self, pixels: Union[int, Tuple[int, int], Tuple[int, int, int, int]], **kwargs):
         """
         Crop the image by the number of pixels given. This will crop
         the image in all four directions by the number of pixels given.
@@ -47,8 +48,8 @@ class SIPModelImage(SIPMixin, ModelImage):
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        Parameters:
-            scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
+        **Args:**
+        -  `scale`: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
 
         """
         if not isinstance(scale, int) and not (
@@ -95,7 +96,7 @@ class SIPTargetImage(SIPMixin, TargetImage):
     It inherits from TargetImage and SIPMixin.
     """
 
-    def model_image(self, upsample=1, pad=0, **kwargs):
+    def model_image(self, upsample: int = 1, pad: int = 0, **kwargs) -> SIPModelImage:
         new_area_map = self.pixel_area_map
         new_distortion_ij = self.distortion_ij
         new_distortion_IJ = self.distortion_IJ

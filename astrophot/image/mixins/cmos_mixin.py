@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 from .. import func
 from ... import config
 
@@ -8,7 +10,14 @@ class CMOSMixin:
     CMOS-specific functionality to image processing classes.
     """
 
-    def __init__(self, *args, subpixel_loc=(0, 0), subpixel_scale=1.0, filename=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        subpixel_loc: Tuple[float, float] = (0, 0),
+        subpixel_scale: float = 1.0,
+        filename: Optional[str] = None,
+        **kwargs,
+    ):
         super().__init__(*args, filename=filename, **kwargs)
         if filename is not None:
             return
@@ -38,7 +47,7 @@ class CMOSMixin:
         info["SPIXSCL"] = self.subpixel_scale
         return info
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         hdulist = super().load(filename, hduext=hduext)
         if "SPIXLOC1" in hdulist[hduext].header:
             self.subpixel_loc = (

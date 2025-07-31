@@ -4,6 +4,7 @@ graphviz
 ipywidgets
 jupyter-book
 matplotlib
+nbformat
 nbsphinx
 photutils
 scikit-image

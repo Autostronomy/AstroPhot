@@ -118,10 +118,6 @@ class ComponentModel(SampleMixin, Model):
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
         until the iterations move by less than a pixel.
-
-        Args:
-          target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
-
         """
         if self.psf is not None and isinstance(self.psf, Model):
             self.psf.initialize()

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional, Tuple
 
 import torch
 
@@ -16,14 +16,14 @@ class SIPMixin:
     def __init__(
         self,
         *args,
-        sipA={},
-        sipB={},
-        sipAP={},
-        sipBP={},
-        pixel_area_map=None,
-        distortion_ij=None,
-        distortion_IJ=None,
-        filename=None,
+        sipA: dict[Tuple[int, int], float] = {},
+        sipB: dict[Tuple[int, int], float] = {},
+        sipAP: dict[Tuple[int, int], float] = {},
+        sipBP: dict[Tuple[int, int], float] = {},
+        pixel_area_map: Optional[torch.Tensor] = None,
+        distortion_ij: Optional[torch.Tensor] = None,
+        distortion_IJ: Optional[torch.Tensor] = None,
+        filename: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(*args, filename=filename, **kwargs)
@@ -42,13 +42,17 @@ class SIPMixin:
         )
 
     @forward
-    def pixel_to_plane(self, i, j, crtan, CD):
+    def pixel_to_plane(
+        self, i: torch.Tensor, j: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         di = interp2d(self.distortion_ij[0], i, j, padding_mode="border")
         dj = interp2d(self.distortion_ij[1], i, j, padding_mode="border")
         return func.pixel_to_plane_linear(i + di, j + dj, *self.crpix, CD, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crtan, CD):
+    def plane_to_pixel(
+        self, x: torch.Tensor, y: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         I, J = func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
         dI = interp2d(self.distortion_IJ[0], I, J, padding_mode="border")
         dJ = interp2d(self.distortion_IJ[1], I, J, padding_mode="border")
@@ -59,13 +63,13 @@ class SIPMixin:
         return self._pixel_area_map
 
     @property
-    def A_ORDER(self):
+    def A_ORDER(self) -> int:
         if self.sipA:
             return max(a + b for a, b in self.sipA)
         return 0
 
     @property
-    def B_ORDER(self):
+    def B_ORDER(self) -> int:
         if self.sipB:
             return max(a + b for a, b in self.sipB)
         return 0
@@ -92,7 +96,12 @@ class SIPMixin:
             ((p, q), bp.item()) for (p, q), bp in zip(func.sip_coefs(self.B_ORDER), BP)
         )
 
-    def update_distortion_model(self, distortion_ij=None, distortion_IJ=None, pixel_area_map=None):
+    def update_distortion_model(
+        self,
+        distortion_ij: Optional[torch.Tensor] = None,
+        distortion_IJ: Optional[torch.Tensor] = None,
+        pixel_area_map: Optional[torch.Tensor] = None,
+    ):
         """
         Update the pixel area map based on the current SIP coefficients.
         """
@@ -189,7 +198,7 @@ class SIPMixin:
         info["BP_ORDER"] = bp_order
         return info
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         hdulist = super().load(filename, hduext=hduext)
         self.sipA = {}
         if "A_ORDER" in hdulist[hduext].header:

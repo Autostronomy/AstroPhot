@@ -1,20 +1,21 @@
+from typing import Tuple
 import torch
 import numpy as np
 
 from ...utils.integration import quad_table
 
 
-def pixel_center_integrator(Z: torch.Tensor):
+def pixel_center_integrator(Z: torch.Tensor) -> torch.Tensor:
     return Z
 
 
-def pixel_corner_integrator(Z: torch.Tensor):
+def pixel_corner_integrator(Z: torch.Tensor) -> torch.Tensor:
     kernel = torch.ones((1, 1, 2, 2), dtype=Z.dtype, device=Z.device) / 4.0
     Z = torch.nn.functional.conv2d(Z.view(1, 1, *Z.shape), kernel, padding="valid")
     return Z.squeeze(0).squeeze(0)
 
 
-def pixel_simpsons_integrator(Z: torch.Tensor):
+def pixel_simpsons_integrator(Z: torch.Tensor) -> torch.Tensor:
     kernel = (
         torch.tensor([[[[1, 4, 1], [4, 16, 4], [1, 4, 1]]]], dtype=Z.dtype, device=Z.device) / 36.0
     )
@@ -22,21 +23,14 @@ def pixel_simpsons_integrator(Z: torch.Tensor):
     return Z.squeeze(0).squeeze(0)
 
 
-def pixel_quad_integrator(Z: torch.Tensor, w: torch.Tensor = None, order=3):
+def pixel_quad_integrator(Z: torch.Tensor, w: torch.Tensor = None, order: int = 3) -> torch.Tensor:
     """
     Integrate the pixel values using quadrature weights.
 
-    Parameters
-    ----------
-    Z : torch.Tensor
-        The tensor containing pixel values.
-    w : torch.Tensor
-        The quadrature weights.
-
-    Returns
-    -------
-    torch.Tensor
-        The integrated value.
+    **Args:**
+    -  `Z`: The tensor containing pixel values.
+    -  `w`: The quadrature weights.
+    -  `order`: The order of the quadrature.
     """
     if w is None:
         _, _, w = quad_table(order, Z.dtype, Z.device)
@@ -44,7 +38,9 @@ def pixel_quad_integrator(Z: torch.Tensor, w: torch.Tensor = None, order=3):
     return Z.sum(dim=(-1))
 
 
-def upsample(i, j, order, scale):
+def upsample(
+    i: torch.Tensor, j: torch.Tensor, order: int, scale: float
+) -> Tuple[torch.Tensor, torch.Tensor]:
     dp = torch.linspace(-1, 1, order, dtype=i.dtype, device=i.device) * (order - 1) / (2.0 * order)
     di, dj = torch.meshgrid(dp, dp, indexing="xy")
 
@@ -53,7 +49,9 @@ def upsample(i, j, order, scale):
     return si, sj
 
 
-def single_quad_integrate(i, j, brightness_ij, scale, quad_order=3):
+def single_quad_integrate(
+    i: torch.Tensor, j: torch.Tensor, brightness_ij, scale: float, quad_order: int = 3
+) -> Tuple[torch.Tensor, torch.Tensor]:
     di, dj, w = quad_table(quad_order, i.dtype, i.device)
     qi = torch.repeat_interleave(i.unsqueeze(-1), quad_order**2, -1) + scale * di.flatten()
     qj = torch.repeat_interleave(j.unsqueeze(-1), quad_order**2, -1) + scale * dj.flatten()
@@ -64,16 +62,16 @@ def single_quad_integrate(i, j, brightness_ij, scale, quad_order=3):
 
 
 def recursive_quad_integrate(
-    i,
-    j,
-    brightness_ij,
-    curve_frac,
-    scale=1.0,
-    quad_order=3,
-    gridding=5,
-    _current_depth=0,
-    max_depth=1,
-):
+    i: torch.Tensor,
+    j: torch.Tensor,
+    brightness_ij: callable,
+    curve_frac: float,
+    scale: float = 1.0,
+    quad_order: int = 3,
+    gridding: int = 5,
+    _current_depth: int = 0,
+    max_depth: int = 1,
+) -> torch.Tensor:
     z, z0 = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
 
     if _current_depth >= max_depth:
@@ -102,16 +100,16 @@ def recursive_quad_integrate(
 
 
 def recursive_bright_integrate(
-    i,
-    j,
-    brightness_ij,
-    bright_frac,
-    scale=1.0,
-    quad_order=3,
-    gridding=5,
-    _current_depth=0,
-    max_depth=1,
-):
+    i: torch.Tensor,
+    j: torch.Tensor,
+    brightness_ij: callable,
+    bright_frac: float,
+    scale: float = 1.0,
+    quad_order: int = 3,
+    gridding: int = 5,
+    _current_depth: int = 0,
+    max_depth: int = 1,
+) -> torch.Tensor:
     z, _ = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
 
     if _current_depth >= max_depth:

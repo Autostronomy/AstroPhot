@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class Window:
                 "Extent must be formatted as (i_low, i_high, j_low, j_high) or ((i_low, j_low), (i_high, j_high))"
             )
 
-    def chunk(self, chunk_size: int):
+    def chunk(self, chunk_size: int) -> List["Window"]:
         # number of pixels on each axis
         px = self.i_high - self.i_low
         py = self.j_high - self.j_low
@@ -135,7 +135,7 @@ class WindowList:
             )
         self.windows = windows
 
-    def index(self, other: Window):
+    def index(self, other: Window) -> int:
         for i, window in enumerate(self.windows):
             if other.identity == window.identity:
                 return i

@@ -310,9 +310,6 @@ class LM(BaseOptimizer):
     def check_convergence(self) -> bool:
         """Check if the optimization has converged based on the last
         iteration's chi^2 and the relative tolerance.
-
-        Returns:
-            bool: True if the optimization has converged, False otherwise.
         """
         if len(self.loss_history) < 3:
             return False
@@ -341,10 +338,9 @@ class LM(BaseOptimizer):
     @torch.no_grad()
     def covariance_matrix(self) -> torch.Tensor:
         """The covariance matrix for the model at the current
-        parameters. This can be used to construct a full Gaussian PDF
-        for the parameters using: :math:`\\mathcal{N}(\\mu,\\Sigma)`
-        where :math:`\\mu` is the optimized parameters and
-        :math:`\\Sigma` is the covariance matrix.
+        parameters. This can be used to construct a full Gaussian PDF for the
+        parameters using: $\\mathcal{N}(\\mu,\\Sigma)$ where $\\mu$ is the
+        optimized parameters and $\\Sigma$ is the covariance matrix.
 
         """
 

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch import Tensor
 
 from .sky_model_object import SkyModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
@@ -43,5 +44,5 @@ class PlaneSky(SkyModel):
             self.delta.dynamic_value = [0.0, 0.0]
 
     @forward
-    def brightness(self, x, y, I0, delta):
+    def brightness(self, x: Tensor, y: Tensor, I0: Tensor, delta: Tensor) -> Tensor:
         return I0 + x * delta[0] + y * delta[1]

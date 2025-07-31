@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import torch
 import numpy as np
@@ -16,12 +16,12 @@ class DataMixin:
     def __init__(
         self,
         *args,
-        mask=None,
-        std=None,
-        variance=None,
-        weight=None,
-        _mask=None,
-        _weight=None,
+        mask: Optional[torch.Tensor] = None,
+        std: Optional[torch.Tensor] = None,
+        variance: Optional[torch.Tensor] = None,
+        weight: Optional[torch.Tensor] = None,
+        _mask: Optional[torch.Tensor] = None,
+        _weight: Optional[torch.Tensor] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -76,7 +76,7 @@ class DataMixin:
         self.weight = 1 / std**2
 
     @property
-    def has_std(self):
+    def has_std(self) -> bool:
         """Returns True when the image object has stored standard deviation values. If
         this is False and the std property is called then a
         tensor of ones will be returned.
@@ -115,7 +115,7 @@ class DataMixin:
         self.weight = 1 / variance
 
     @property
-    def has_variance(self):
+    def has_variance(self) -> bool:
         """Returns True when the image object has stored variance values. If
         this is False and the variance property is called then a
         tensor of ones will be returned.
@@ -179,7 +179,7 @@ class DataMixin:
             )
 
     @property
-    def has_weight(self):
+    def has_weight(self) -> bool:
         """Returns True when the image object has stored weight values. If
         this is False and the weight property is called then a
         tensor of ones will be returned.
@@ -225,7 +225,7 @@ class DataMixin:
             )
 
     @property
-    def has_mask(self):
+    def has_mask(self) -> bool:
         """
         Single boolean to indicate if a mask has been provided by the user.
         """
@@ -288,7 +288,7 @@ class DataMixin:
             )
         return images
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         """Load the image from a FITS file. This will load the data, WCS, and
         any ancillary data such as variance, mask, and PSF.
 
@@ -302,7 +302,7 @@ class DataMixin:
             self.mask = np.array(hdulist["DQ"].data, dtype=bool)
         return hdulist
 
-    def reduce(self, scale, **kwargs):
+    def reduce(self, scale: int, **kwargs) -> Image:
         """Returns a new `Target_Image` object with a reduced resolution
         compared to the current image. `scale` should be an integer
         indicating how much to reduce the resolution. If the

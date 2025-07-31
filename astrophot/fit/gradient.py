@@ -142,7 +142,7 @@ class Grad(BaseOptimizer):
 
 
 class Slalom(BaseOptimizer):
-    """Slalom optimizer for AstroPhot_Model objects.
+    """Slalom optimizer for Model objects.
 
     Slalom is a gradient descent optimization algorithm that uses a few
     evaluations along the direction of the gradient to find the optimal step

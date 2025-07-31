@@ -11,23 +11,15 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
     """
     Convert world coordinates (RA, Dec) to plane coordinates (x, y) using the gnomonic projection.
 
-    Parameters
-    ----------
-    ra : torch.Tensor
-        Right Ascension in degrees.
-    dec : torch.Tensor
-        Declination in degrees.
-    ra0 : torch.Tensor
-        Reference Right Ascension in degrees.
-    dec0 : torch.Tensor
-        Reference Declination in degrees.
+    **Args:**
+    - `ra`: (torch.Tensor) Right Ascension in degrees.
+    - `dec`: (torch.Tensor) Declination in degrees.
+    - `ra0`: (torch.Tensor) Reference Right Ascension in degrees.
+    - `dec0`: (torch.Tensor) Reference Declination in degrees.
 
-    Returns
-    -------
-    x : torch.Tensor
-        x coordinate in arcseconds.
-    y : torch.Tensor
-        y coordinate in arcseconds.
+    **Returns:**
+    - `x`: (torch.Tensor) x coordinate in arcseconds.
+    - `y`: (torch.Tensor) y coordinate in arcseconds.
     """
     ra = ra * deg_to_rad
     dec = dec * deg_to_rad
@@ -46,25 +38,17 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
 def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-10):
     """
     Convert plane coordinates (x, y) to world coordinates (RA, Dec) using the gnomonic projection.
-    Parameters
-    ----------
-    x : torch.Tensor
-        x coordinate in arcseconds.
-    y : torch.Tensor
-        y coordinate in arcseconds.
-    ra0 : torch.Tensor
-        Reference Right Ascension in degrees.
-    dec0 : torch.Tensor
-        Reference Declination in degrees.
-    s : float
-        Small constant to avoid division by zero.
 
-    Returns
-    -------
-    ra : torch.Tensor
-        Right Ascension in degrees.
-    dec : torch.Tensor
-        Declination in degrees.
+    **Args:**
+    - `x`: (Tensor) x coordinate in arcseconds.
+    - `y`: (Tensor) y coordinate in arcseconds.
+    - `ra0`: (Tensor) Reference Right Ascension in degrees.
+    - `dec0`: (Tensor) Reference Declination in degrees.
+    - `s`: (float) Small constant to avoid division by zero.
+
+    **Returns:**
+    - `ra`: (Tensor) Right Ascension in degrees.
+    - `dec`: (Tensor) Declination in degrees.
     """
     x = (x - x0) * arcsec_to_rad
     y = (y - y0) * arcsec_to_rad
@@ -89,28 +73,18 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     Convert pixel coordinates to a tangent plane using the WCS information. This
     matches the FITS convention for linear transformations.
 
-    Parameters
-    ----------
-    i: Tensor
-        The first coordinate of the pixel in pixel units.
-    j: Tensor
-        The second coordinate of the pixel in pixel units.
-    i0: Tensor
-        The i reference pixel coordinate in pixel units.
-    j0: Tensor
-        The j reference pixel coordinate in pixel units.
-    CD: Tensor
-        The CD matrix in arcsec per pixel. This 2x2 matrix is used to convert
-        from pixel to arcsec units and also handles rotation/skew.
-    x0: float
-        The x reference coordinate in arcsec.
-    y0: float
-        The y reference coordinate in arcsec.
+    **Args:**
+    -  `i` (Tensor): The first coordinate of the pixel in pixel units.
+    -  `j` (Tensor): The second coordinate of the pixel in pixel units.
+    -  `i0` (Tensor): The i reference pixel coordinate in pixel units.
+    -  `j0` (Tensor): The j reference pixel coordinate in pixel units.
+    -  `CD` (Tensor): The CD matrix in arcsec per pixel. This 2x2 matrix is used to convert
+       from pixel to arcsec units and also handles rotation/skew.
+    -  `x0` (float): The x reference coordinate in arcseconds.
+    -  `y0` (float): The y reference coordinate in arcseconds.
 
-    Returns
-    -------
-    Tuple: [Tensor, Tensor]
-        Tuple containing the x and y tangent plane coordinates in arcsec.
+    **Returns:**
+    -  Tuple[Tensor, Tensor]: Tuple containing the x and y coordinates in arcseconds
     """
     uv = torch.stack((i.flatten() - i0, j.flatten() - j0), dim=0)
     xy = CD @ uv
@@ -177,28 +151,17 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     Convert tangent plane coordinates to pixel coordinates using the WCS
     information. This matches the FITS convention for linear transformations.
 
-    Parameters
-    ----------
-    x: Tensor
-        The first coordinate of the pixel in arcsec.
-    y: Tensor
-        The second coordinate of the pixel in arcsec.
-    i0: Tensor
-        The i reference pixel coordinate in pixel units.
-    j0: Tensor
-        The j reference pixel coordinate in pixel units.
-    iCD: Tensor
-        The inverse CD matrix in arcsec per pixel. This 2x2 matrix is used to convert
-        from pixel to arcsec units and also handles rotation/skew.
-    x0: float
-        The x reference coordinate in arcsec.
-    y0: float
-        The y reference coordinate in arcsec.
+    **Args:**
+    - `x`: (Tensor) The first coordinate of the pixel in arcsec.
+    - `y`: (Tensor) The second coordinate of the pixel in arcsec.
+    - `i0`: (Tensor) The i reference pixel coordinate in pixel units.
+    - `j0`: (Tensor) The j reference pixel coordinate in pixel units.
+    - `CD`: (Tensor) The CD matrix in arcsec per pixel.
+    - `x0`: (float) The x reference coordinate in arcsec.
+    - `y0`: (float) The y reference coordinate in arcsec.
 
-    Returns
-    -------
-    Tuple: [Tensor, Tensor]
-        Tuple containing the i and j pixel coordinates in pixel units.
+    **Returns:**
+    -  Tuple[Tensor, Tensor]: Tuple containing the i and j pixel coordinates in pixel units.
     """
     xy = torch.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
     uv = torch.linalg.inv(CD) @ xy

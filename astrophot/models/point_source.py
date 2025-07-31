@@ -5,6 +5,7 @@ import numpy as np
 
 from .base import Model
 from .model_object import ComponentModel
+from ..image import ModelImage
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from ..image import Window, PSFImage
@@ -55,11 +56,11 @@ class PointSource(ComponentModel):
 
     # Psf convolution should be on by default since this is a delta function
     @property
-    def psf_mode(self):
-        return "full"
+    def psf_convolve(self):
+        return True
 
-    @psf_mode.setter
-    def psf_mode(self, value):
+    @psf_convolve.setter
+    def psf_convolve(self, value):
         pass
 
     @property
@@ -71,7 +72,12 @@ class PointSource(ComponentModel):
         pass
 
     @forward
-    def sample(self, window: Optional[Window] = None, center=None, flux=None):
+    def sample(
+        self,
+        window: Optional[Window] = None,
+        center: torch.Tensor = None,
+        flux: torch.Tensor = None,
+    ) -> ModelImage:
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF
         convolution. This should not be overloaded except in special

@@ -1,8 +1,5 @@
-from caskade import forward
-
 from .galaxy_model_object import GalaxyModel
 from .psf_model_object import PSFModel
-from ..utils.conversions.functions import moffat_I0_to_flux
 from .mixins import (
     MoffatMixin,
     InclinedMixin,

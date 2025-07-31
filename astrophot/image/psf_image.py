@@ -38,12 +38,12 @@ class PSFImage(DataMixin, Image):
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
         norm = torch.sum(self.data)
-        self.data = self.data / norm
+        self._data = self.data / norm
         if self.has_weight:
-            self.weight = self.weight * norm**2
+            self._weight = self.weight * norm**2
 
     @property
-    def psf_pad(self):
+    def psf_pad(self) -> int:
         return max(self.data.shape) // 2
 
     def jacobian_image(
@@ -51,7 +51,7 @@ class PSFImage(DataMixin, Image):
         parameters: Optional[List[str]] = None,
         data: Optional[torch.Tensor] = None,
         **kwargs,
-    ):
+    ) -> JacobianImage:
         """
         Construct a blank `Jacobian_Image` object formatted like this current `PSF_Image` object. Mostly used internally.
         """
@@ -75,9 +75,9 @@ class PSFImage(DataMixin, Image):
         }
         return JacobianImage(parameters=parameters, data=data, **kwargs)
 
-    def model_image(self, **kwargs):
+    def model_image(self, **kwargs) -> "PSFImage":
         """
-        Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
+        Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         kwargs = {
             "data": torch.zeros_like(self.data),

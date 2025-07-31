@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import torch
 import numpy as np
@@ -19,9 +19,10 @@ __all__ = ["Image", "ImageList"]
 
 class Image(Module):
     """Core class to represent images with pixel values, pixel scale,
-    and a window defining the spatial coordinates on the sky.
-    It supports arithmetic operations with other image objects while preserving logical image boundaries.
-    It also provides methods for determining the coordinate locations of pixels
+    and a window defining the spatial coordinates on the sky. It supports
+    arithmetic operations with other image objects while preserving logical
+    image boundaries. It also provides methods for determining the coordinate
+    locations of pixels
     """
 
     default_CD = ((1.0, 0.0), (0.0, 1.0))
@@ -40,27 +41,11 @@ class Image(Module):
         pixelscale: Optional[Union[torch.Tensor, float]] = None,
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
-        hduext=0,
+        hduext: int = 0,
         identity: str = None,
         name: Optional[str] = None,
         _data: Optional[torch.Tensor] = None,
-    ) -> None:
-        """Initialize an instance of the APImage class.
-
-        Parameters:
-        -----------
-        data : numpy.ndarray or None, optional
-            The image data. Default is None.
-        wcs : astropy.wcs.wcs.WCS or None, optional
-            A WCS object which defines a coordinate system for the image. Note that AstroPhot only handles basic WCS conventions. It will use the WCS object to get `wcs.pixel_to_world(-0.5, -0.5)` to determine the position of the origin in world coordinates. It will also extract the `pixel_scale_matrix` to index pixels going forward.
-        pixelscale : float or None, optional
-            The physical scale of the pixels in the image, in units of arcseconds. Default is None.
-        filename : str or None, optional
-            The name of a file containing the image data. Default is None.
-        zeropoint : float or None, optional
-            The image's zeropoint, used for flux calibration. Default is None.
-
-        """
+    ):
         super().__init__(name=name)
         if _data is None:
             self.data = data  # units: flux
@@ -141,7 +126,7 @@ class Image(Module):
             )
 
     @property
-    def crpix(self):
+    def crpix(self) -> np.ndarray:
         """The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates."""
         return self._crpix
 
@@ -150,7 +135,7 @@ class Image(Module):
         self._crpix = np.asarray(value, dtype=np.float64)
 
     @property
-    def zeropoint(self):
+    def zeropoint(self) -> torch.Tensor:
         """The zeropoint of the image, which is used to convert from pixel flux to magnitude."""
         return self._zeropoint
 
@@ -163,7 +148,7 @@ class Image(Module):
             self._zeropoint = torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE)
 
     @property
-    def window(self):
+    def window(self) -> Window:
         return Window(window=((0, 0), self.data.shape[:2]), image=self)
 
     @property
@@ -196,23 +181,33 @@ class Image(Module):
         return self.pixel_area.sqrt()
 
     @forward
-    def pixel_to_plane(self, i, j, crtan, CD):
+    def pixel_to_plane(
+        self, i: torch.Tensor, j: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return func.pixel_to_plane_linear(i, j, *self.crpix, CD, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crtan, CD):
+    def plane_to_pixel(
+        self, x: torch.Tensor, y: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
 
     @forward
-    def plane_to_world(self, x, y, crval):
+    def plane_to_world(
+        self, x: torch.Tensor, y: torch.Tensor, crval: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return func.plane_to_world_gnomonic(x, y, *crval)
 
     @forward
-    def world_to_plane(self, ra, dec, crval):
+    def world_to_plane(
+        self, ra: torch.Tensor, dec: torch.Tensor, crval: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return func.world_to_plane_gnomonic(ra, dec, *crval)
 
     @forward
-    def world_to_pixel(self, ra, dec):
+    def world_to_pixel(
+        self, ra: torch.Tensor, dec: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """A wrapper which applies :meth:`world_to_plane` then
         :meth:`plane_to_pixel`, see those methods for further
         information.
@@ -221,7 +216,7 @@ class Image(Module):
         return self.plane_to_pixel(*self.world_to_plane(ra, dec))
 
     @forward
-    def pixel_to_world(self, i, j):
+    def pixel_to_world(self, i: torch.Tensor, j: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """A wrapper which applies :meth:`pixel_to_plane` then
         :meth:`plane_to_world`, see those methods for further
         information.
@@ -229,47 +224,47 @@ class Image(Module):
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    def pixel_center_meshgrid(self):
+    def pixel_center_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
         return func.pixel_center_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
-    def pixel_corner_meshgrid(self):
+    def pixel_corner_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
         return func.pixel_corner_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
-    def pixel_simpsons_meshgrid(self):
+    def pixel_simpsons_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
         return func.pixel_simpsons_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
-    def pixel_quad_meshgrid(self, order=3):
+    def pixel_quad_meshgrid(self, order=3) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
         return func.pixel_quad_meshgrid(self.shape, config.DTYPE, config.DEVICE, order=order)
 
     @forward
-    def coordinate_center_meshgrid(self) -> torch.Tensor:
+    def coordinate_center_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of coordinate locations in the image, centered on the pixel grid."""
         i, j = self.pixel_center_meshgrid()
         return self.pixel_to_plane(i, j)
 
     @forward
-    def coordinate_corner_meshgrid(self):
+    def coordinate_corner_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of coordinate locations in the image, with corners at the pixel grid."""
         i, j = self.pixel_corner_meshgrid()
         return self.pixel_to_plane(i, j)
 
     @forward
-    def coordinate_simpsons_meshgrid(self):
+    def coordinate_simpsons_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of coordinate locations in the image, with Simpson's rule sampling."""
         i, j = self.pixel_simpsons_meshgrid()
         return self.pixel_to_plane(i, j)
 
     @forward
-    def coordinate_quad_meshgrid(self, order=3):
+    def coordinate_quad_meshgrid(self, order=3) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a meshgrid of coordinate locations in the image, with quadrature sampling."""
         i, j, _ = self.pixel_quad_meshgrid(order=order)
         return self.pixel_to_plane(i, j)
 
-    def copy_kwargs(self, **kwargs):
+    def copy_kwargs(self, **kwargs) -> dict:
         kwargs = {
             "_data": torch.clone(self.data.detach()),
             "CD": self.CD.value,
@@ -302,7 +297,7 @@ class Image(Module):
         }
         return self.copy(**kwargs)
 
-    def crop(self, pixels, **kwargs):
+    def crop(self, pixels: Union[int, Tuple[int, int], Tuple[int, int, int, int]], **kwargs):
         """Crop the image by the number of pixels given. This will crop
         the image in all four directions by the number of pixels given.
 
@@ -390,7 +385,7 @@ class Image(Module):
     def flatten(self, attribute: str = "data") -> torch.Tensor:
         return getattr(self, attribute).flatten(end_dim=1)
 
-    def fits_info(self):
+    def fits_info(self) -> dict:
         return {
             "CTYPE1": "RA---TAN",
             "CTYPE2": "DEC--TAN",
@@ -430,7 +425,7 @@ class Image(Module):
         hdulist = fits.HDUList(self.fits_images())
         hdulist.writeto(filename, overwrite=True)
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         """Load an image from a FITS file. This will load the primary HDU
         and set the data, CD, crpix, crval, and crtan attributes
         accordingly. If the WCS is not tangent plane, it will warn the user.
@@ -458,7 +453,7 @@ class Image(Module):
         self.identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
         return hdulist
 
-    def corners(self):
+    def corners(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         pixel_lowleft = torch.tensor((-0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE)
         pixel_lowright = torch.tensor(
             (self.data.shape[0] - 0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE
@@ -613,7 +608,7 @@ class ImageList(Module):
         super().to(dtype=dtype, device=device)
         return self
 
-    def flatten(self, attribute="data"):
+    def flatten(self, attribute: str = "data") -> torch.Tensor:
         return torch.cat(tuple(image.flatten(attribute) for image in self.images))
 
     def __sub__(self, other):

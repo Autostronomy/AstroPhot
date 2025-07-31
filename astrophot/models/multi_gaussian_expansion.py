@@ -1,4 +1,6 @@
+from typing import Optional, Tuple
 import torch
+from torch import Tensor
 import numpy as np
 
 from .model_object import ComponentModel
@@ -34,7 +36,7 @@ class MultiGaussianExpansion(ComponentModel):
     }
     usable = True
 
-    def __init__(self, *args, n_components=None, **kwargs):
+    def __init__(self, *args, n_components: Optional[int] = None, **kwargs):
         super().__init__(*args, **kwargs)
         if n_components is None:
             for key in ("q", "sigma", "flux"):
@@ -97,7 +99,9 @@ class MultiGaussianExpansion(ComponentModel):
             self.q.dynamic_value = ones * np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     @forward
-    def transform_coordinates(self, x, y, q, PA):
+    def transform_coordinates(
+        self, x: Tensor, y: Tensor, q: Tensor, PA: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         if PA.numel() == 1:
             x, y = func.rotate(-(PA + np.pi / 2), x, y)
@@ -109,7 +113,7 @@ class MultiGaussianExpansion(ComponentModel):
         return x, y
 
     @forward
-    def brightness(self, x, y, flux, sigma, q):
+    def brightness(self, x: Tensor, y: Tensor, flux: Tensor, sigma: Tensor, q: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
         R = self.radius_metric(x, y)
         return torch.sum(

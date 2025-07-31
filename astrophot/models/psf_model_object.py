@@ -1,8 +1,10 @@
+from typing import Optional, Tuple
 import torch
+from torch import Tensor
 from caskade import forward
 
 from .base import Model
-from ..image import ModelImage, PSFImage
+from ..image import ModelImage, PSFImage, Window
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
@@ -39,13 +41,13 @@ class PSFModel(SampleMixin, Model):
         pass
 
     @forward
-    def transform_coordinates(self, x, y, center):
+    def transform_coordinates(self, x: Tensor, y: Tensor, center: Tensor) -> Tuple[Tensor, Tensor]:
         return x - center[0], y - center[1]
 
     # Fit loop functions
     ######################################################################
     @forward
-    def sample(self, window=None):
+    def sample(self, window: Optional[Window] = None) -> PSFImage:
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods. This should not
         be overloaded except in special cases.
@@ -57,17 +59,14 @@ class PSFModel(SampleMixin, Model):
         pixel grid. The final model is then added to the requested
         image.
 
-        Args:
-          image (Optional[Image]): An AstroPhot Image object (likely a Model_Image)
-                                     on which to evaluate the model values. If not
-                                     provided, a new Model_Image object will be created.
-          window (Optional[Window]): A window within which to evaluate the model.
+        **Args:**
+        -  `window` (Optional[Window]): A window within which to evaluate the model.
                                    Should only be used if a subset of the full image
                                    is needed. If not provided, the entire image will
                                    be used.
 
-        Returns:
-          Image: The image with the computed model values.
+        **Returns:**
+        -  `PSFImage`: The image with the computed model values.
 
         """
         # Create an image to store pixel samples
@@ -80,7 +79,7 @@ class PSFModel(SampleMixin, Model):
 
         return working_image
 
-    def fit_mask(self):
+    def fit_mask(self) -> Tensor:
         return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)
 
     @property
@@ -104,5 +103,5 @@ class PSFModel(SampleMixin, Model):
         self._target = target
 
     @forward
-    def __call__(self, window=None) -> ModelImage:
+    def __call__(self, window: Optional[Window] = None) -> ModelImage:
         return self.sample(window=window)
