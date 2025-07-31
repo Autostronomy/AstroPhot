@@ -12,6 +12,22 @@ __all__ = ["MiniFit"]
 
 
 class MiniFit(BaseOptimizer):
+    """MiniFit optimizer that applies a fitting method to a downsampled version
+    of the model's target image.
+
+    This is useful for quickly optimizing parameters on a smaller scale before
+    applying them to the full resolution image. With fewer pixels, the optimization
+    can be faster and more efficient, especially for large images.
+
+    This Optimizer can wrap any optimizer that follows the BaseOptimizer interface.
+
+    **Args:**
+    -  `downsample_factor`: Factor by which to downsample the target image. Default is 2.
+    -  `max_pixels`: Maximum number of pixels in the downsampled image. Default is 10000.
+    -  `method`: The optimizer method to use, e.g., `LM` for Levenberg-Marquardt. Default is `LM`.
+    -  `method_kwargs`: Additional keyword arguments to pass to the optimizer method.
+    """
+
     def __init__(
         self,
         model: Model,

@@ -10,12 +10,14 @@ from .. import config
 from ..models import Model
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from . import func
+from ..utils.decorators import combine_docstrings
 
 __all__ = ["Grad"]
 
 
+@combine_docstrings
 class Grad(BaseOptimizer):
-    """A gradient descent optimization wrapper for AstroPhot_Model objects.
+    """A gradient descent optimization wrapper for AstroPhot Model objects.
 
     The default method is "NAdam", a variant of the Adam optimization algorithm.
     This optimizer uses a combination of gradient descent and Nesterov momentum for faster convergence.
@@ -23,11 +25,11 @@ class Grad(BaseOptimizer):
     The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
     **Args:**
-    -  `model` (AstroPhot_Model): an AstroPhot_Model object with which to perform optimization.
-    -  `initial_state` (torch.Tensor, optional): an optional initial state for optimization.
+    -  `likelihood` (str, optional): The likelihood function to use for the optimization. Defaults to "gaussian".
     -  `method` (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
-    -  `patience` (int or None, optional): the number of iterations without improvement before the optimizer will exit early. Defaults to None.
     -  `optim_kwargs` (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
+    -  `patience` (int, optional): number of steps with no improvement before stopping the optimization. Defaults to 10.
+    -  `report_freq` (int, optional): frequency of reporting the optimization progress. Defaults to 10 steps.
     """
 
     def __init__(
@@ -35,9 +37,9 @@ class Grad(BaseOptimizer):
         model: Model,
         initial_state: Sequence = None,
         likelihood="gaussian",
-        patience=None,
         method="NAdam",
         optim_kwargs={},
+        patience: int = 10,
         report_freq=10,
         **kwargs,
     ) -> None:
@@ -64,8 +66,10 @@ class Grad(BaseOptimizer):
 
     def density(self, state: torch.Tensor) -> torch.Tensor:
         """
-        Returns the density of the model at the given state vector.
-        This is used to calculate the likelihood of the model at the given state.
+        Returns the density of the model at the given state vector. This is used
+        to calculate the likelihood of the model at the given state. Based on
+        ``self.likelihood``, will be either the Gaussian or Poisson negative log
+        likelihood.
         """
         if self.likelihood == "gaussian":
             return -self.model.gaussian_log_likelihood(state)
@@ -75,7 +79,7 @@ class Grad(BaseOptimizer):
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
 
     def step(self) -> None:
-        """Take a single gradient step. Take a single gradient step.
+        """Take a single gradient step.
 
         Computes the loss function of the model,
         computes the gradient of the parameters using automatic differentiation,
@@ -124,7 +128,7 @@ class Grad(BaseOptimizer):
                     self.message = self.message + " fail no improvement"
                     break
                 L = np.sort(self.loss_history)
-                if len(L) >= 3 and 0 < L[1] - L[0] < 1e-6 and 0 < L[2] - L[1] < 1e-6:
+                if len(L) >= 5 and 0 < (L[4] - L[0]) / L[0] < self.relative_tolerance:
                     self.message = self.message + " success"
                     break
         except KeyboardInterrupt:
@@ -160,6 +164,14 @@ class Slalom(BaseOptimizer):
     not reach all the way to the minimum of the posterior density. Like other
     gradient descent algorithms, Slalom slows down considerably when trying to
     achieve very high precision.
+
+    **Args:**
+    -  `S` (float, optional): The initial step size for the Slalom optimizer. Defaults to 1e-4.
+    -  `likelihood` (str, optional): The likelihood function to use for the optimization. Defaults to "gaussian".
+    -  `report_freq` (int, optional): Frequency of reporting the optimization progress. Defaults to 10 steps.
+    -  `relative_tolerance` (float, optional): The relative tolerance for convergence. Defaults to 1e-4.
+    -  `momentum` (float, optional): The momentum factor for the Slalom optimizer. Defaults to 0.5.
+    -  `max_iter` (int, optional): The maximum number of iterations for the optimizer. Defaults to 1000.
     """
 
     def __init__(
@@ -184,7 +196,9 @@ class Slalom(BaseOptimizer):
         self.momentum = momentum
 
     def density(self, state: torch.Tensor) -> torch.Tensor:
-        """Calculate the density of the model at the given state."""
+        """Calculate the density of the model at the given state. Based on
+        ``self.likelihood``, will be either the Gaussian or Poisson negative log
+        likelihood."""
         if self.likelihood == "gaussian":
             return -self.model.gaussian_log_likelihood(state)
         elif self.likelihood == "poisson":

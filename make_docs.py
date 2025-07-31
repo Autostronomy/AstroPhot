@@ -61,13 +61,14 @@ def gather_docs(module, module_only=False):
                 if attrobj.__doc__ is None:
                     continue
                 sig = str(signature(attrobj)).replace("self,", "").replace("self", "")
-                subfuncs.append(f"> **method**: {attr}{sig}\n\n" + cleandoc(attrobj.__doc__))
+                subfuncs.append(f"<u>**method:**</u> {attr}{sig}\n\n" + cleandoc(attrobj.__doc__))
             if len(subfuncs) > 1:
                 docs[name] = "\n\n".join(subfuncs)
         elif isinstance(obj, FunctionType):
             if obj.__doc__ is None:
                 continue
-            docs[name] = cleandoc(obj.__doc__)
+            sig = str(signature(obj))
+            docs[name] = "<u>**signature:**</u> " + name + sig + "\n\n" + cleandoc(obj.__doc__)
         elif isinstance(obj, ModuleType):
             docs[name] = gather_docs(obj)
         else:

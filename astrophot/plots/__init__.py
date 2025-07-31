@@ -2,7 +2,6 @@ from .profile import (
     radial_light_profile,
     radial_median_profile,
     ray_light_profile,
-    wedge_light_profile,
     warp_phase_profile,
 )
 from .image import target_image, model_image, residual_image, model_window, psf_image
@@ -13,7 +12,6 @@ __all__ = (
     "radial_light_profile",
     "radial_median_profile",
     "ray_light_profile",
-    "wedge_light_profile",
     "warp_phase_profile",
     "target_image",
     "model_image",

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional, Union
 import numpy as np
 import torch
 
@@ -8,32 +8,31 @@ import matplotlib
 from scipy.stats import iqr
 
 from ..models import GroupModel, PSFModel, PSFGroupModel
-from ..image import ImageList, WindowList
+from ..image import ImageList, WindowList, PSFImage
 from .. import config
 from ..utils.conversions.units import flux_to_sb
 from ..utils.decorators import ignore_numpy_warnings
 from .visuals import *
 
 
-__all__ = ["target_image", "psf_image", "model_image", "residual_image", "model_window"]
+__all__ = ("target_image", "psf_image", "model_image", "residual_image", "model_window")
 
 
 @ignore_numpy_warnings
 def target_image(fig, ax, target, window=None, **kwargs):
     """
-    This function is used to display a target image using the provided figure and axes.
+    This function is used to display a target image using the provided figure
+    and axes. The target is plotted using histogram equalization for better
+    visibility of the image data for the faint areas of the image, while it uses
+    log scale normalization for the bright areas.
 
-    Args:
-        fig (matplotlib.figure.Figure): The figure object in which the target image will be displayed.
-        ax (matplotlib.axes.Axes): The axes object on which the target image will be plotted.
-        target (Image or Image_List): The image or list of images to be displayed.
-        window (Window, optional): The window through which the image is viewed. If `None`, the window of the
-            provided `target` is used. Defaults to `None`.
-        **kwargs: Arbitrary keyword arguments.
-
-    Returns:
-        fig (matplotlib.figure.Figure): The figure object containing the displayed target image.
-        ax (matplotlib.axes.Axes): The axes object containing the displayed target image.
+    **Args:**
+    - `fig` (matplotlib.figure.Figure): The figure object in which the target image will be displayed.
+    - `ax` (matplotlib.axes.Axes): The axes object on which the target image will be plotted.
+    - `target` (Image or Image_List): The image or list of images to be displayed.
+    - `window` (Window, optional): The window through which the image is viewed. If `None`, the window of the
+        provided `target` is used. Defaults to `None`.
+    - **kwargs: Arbitrary keyword arguments.
 
     Note:
         If the `target` is an `Image_List`, this function will recursively call itself for each image in the list.
@@ -58,8 +57,6 @@ def target_image(fig, ax, target, window=None, **kwargs):
     noise = iqr(dat[np.isfinite(dat)], rng=(16, 84)) / 2
     if noise == 0:
         noise = np.nanstd(dat)
-    vmin = sky - 5 * noise
-    vmax = sky + 5 * noise
 
     if kwargs.get("linear", False):
         im = ax.pcolormesh(
@@ -108,13 +105,22 @@ def target_image(fig, ax, target, window=None, **kwargs):
 def psf_image(
     fig,
     ax,
-    psf,
-    cmap_levels=None,
-    vmin=None,
-    vmax=None,
+    psf: Union[PSFImage, PSFModel, PSFGroupModel],
+    cmap_levels: Optional[int] = None,
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
     **kwargs,
 ):
-    """For plotting PSF images, or the output of a PSF model."""
+    """For plotting PSF images, or the output of a PSF model.
+
+    **Args:**
+    - `fig` (matplotlib.figure.Figure): The figure object in which the PSF image will be displayed.
+    - `ax` (matplotlib.axes.Axes): The axes object on which the PSF image will be plotted.
+    - `psf` (PSFImage or PSFModel or PSFGroupModel): The PSF model or group model to be displayed.
+    - `cmap_levels` (int, optional): The number of discrete levels to convert the continuous color map to. If not `None`, the color map is converted to a ListedColormap with the specified number of levels. Defaults to `None`.
+    - `vmin` (float, optional): The minimum value for the color scale. Defaults to `None`.
+    - `vmax` (float, optional): The maximum value for the color scale. Defaults to `None`.
+    """
     if isinstance(psf, (PSFModel, PSFGroupModel)):
         psf = psf()
     # recursive call for target image list
@@ -164,36 +170,31 @@ def model_image(
     sample_image=None,
     window=None,
     target=None,
-    showcbar=True,
-    target_mask=False,
-    cmap_levels=None,
-    magunits=True,
+    showcbar: bool = True,
+    target_mask: bool = False,
+    cmap_levels: Optional[int] = None,
+    magunits: bool = True,
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
     **kwargs,
 ):
     """
     This function is used to generate a model image and display it using the provided figure and axes.
 
-    Args:
-        fig (matplotlib.figure.Figure): The figure object in which the image will be displayed.
-        ax (matplotlib.axes.Axes): The axes object on which the image will be plotted.
-        model (Model): The model object used to generate a model image if `sample_image` is not provided.
-        sample_image (Image or Image_List, optional): The image or list of images to be displayed.
-            If `None`, a model image is generated using the provided `model`. Defaults to `None`.
-        window (Window, optional): The window through which the image is viewed. If `None`, the window of the
-            provided `model` is used. Defaults to `None`.
-        target (Target, optional): The target or list of targets for the image or image list.
-            If `None`, the target of the `model` is used. Defaults to `None`.
-        showcbar (bool, optional): Whether to show the color bar. Defaults to `True`.
-        target_mask (bool, optional): Whether to apply the mask of the target. If `True` and if the target has a mask,
-            the mask is applied to the image. Defaults to `False`.
-        cmap_levels (int, optional): The number of discrete levels to convert the continuous color map to.
-            If not `None`, the color map is converted to a ListedColormap with the specified number of levels.
-            Defaults to `None`.
-        **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
-
-    Returns:
-        fig (matplotlib.figure.Figure): The figure object containing the displayed image.
-        ax (matplotlib.axes.Axes): The axes object containing the displayed image.
+    **Args:**
+    -  `fig` (matplotlib.figure.Figure): The figure object in which the image will be displayed.
+    -  `ax` (matplotlib.axes.Axes): The axes object on which the image will be plotted.
+    -  `model` (Model): The model object used to generate a model image if `sample_image` is not provided.
+    -  `sample_image` (Image or Image_List, optional): The image or list of images to be displayed. If `None`, a model image is generated using the provided `model`. Defaults to `None`.
+    -  `window` (Window, optional): The window through which the image is viewed. If `None`, the window of the provided `model` is used. Defaults to `None`.
+    -  `target` (Target, optional): The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
+    -  `showcbar` (bool, optional): Whether to show the color bar. Defaults to `True`.
+    -  `target_mask` (bool, optional): Whether to apply the mask of the target. If `True` and if the target has a mask, the mask is applied to the image. Defaults to `False`.
+    -  `cmap_levels` (int, optional): The number of discrete levels to convert the continuous color map to. If not `None`, the color map is converted to a ListedColormap with the specified number of levels. Defaults to `None`.
+    -  `magunits` (bool, optional): Whether to convert the image to surface brightness units. If `True`, the zeropoint of the target is used to convert the image to surface brightness units. Defaults to `True`.
+    -  `vmin` (float, optional): The minimum value for the color scale. Defaults to `None`.
+    -  `vmax` (float, optional): The maximum value for the color scale. Defaults to `None`.
+    -  **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Note:
         If the `sample_image` is an `Image_List`, this function will recursively call itself for each image in the list,
@@ -255,8 +256,6 @@ def model_image(
         sample_image = flux_to_sb(sample_image, target.pixel_area.item(), target.zeropoint.item())
         kwargs["cmap"] = kwargs["cmap"].reversed()
     else:
-        vmin = kwargs.pop("vmin", None)
-        vmax = kwargs.pop("vmax", None)
         kwargs = {
             "norm": matplotlib.colors.LogNorm(
                 vmin=vmin, vmax=vmax
@@ -307,31 +306,20 @@ def residual_image(
 ):
     """
     This function is used to calculate and display the residuals of a model image with respect to a target image.
-    The residuals are calculated as the difference between the target image and the sample image.
+    The residuals are calculated as the difference between the target image and the sample image and may be normalized by the standard deviation.
 
-    Args:
-        fig (matplotlib.figure.Figure): The figure object in which the residuals will be displayed.
-        ax (matplotlib.axes.Axes): The axes object on which the residuals will be plotted.
-        model (Model): The model object used to generate a model image if `sample_image` is not provided.
-        target (Target or Image_List, optional): The target or list of targets for the image or image list.
-            If `None`, the target of the `model` is used. Defaults to `None`.
-        sample_image (Image or Image_List, optional): The image or list of images from which residuals will be calculated.
-            If `None`, a model image is generated using the provided `model`. Defaults to `None`.
-        showcbar (bool, optional): Whether to show the color bar. Defaults to `True`.
-        window (Window or Window_List, optional): The window through which the image is viewed. If `None`, the window of the
-            provided `model` is used. Defaults to `None`.
-        center_residuals (bool, optional): Whether to subtract the median of the residuals. If `True`, the median is subtracted
-            from the residuals. Defaults to `False`.
-        clb_label (str, optional): The label for the colorbar. If `None`, a default label is used based on the normalization of the
-            residuals. Defaults to `None`.
-        normalize_residuals (bool, optional): Whether to normalize the residuals. If `True`, residuals are divided by the square root
-            of the variance of the target. Defaults to `False`.
-        sample_full_image: If True, every model will be sampled on the full image window. If False (default) each model will only be sampled in its fitting window.
-        **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
-
-    Returns:
-        fig (matplotlib.figure.Figure): The figure object containing the displayed residuals.
-        ax (matplotlib.axes.Axes): The axes object containing the displayed residuals.
+    **Args:**
+    - `fig` (matplotlib.figure.Figure): The figure object in which the residuals will be displayed.
+    - `ax` (matplotlib.axes.Axes): The axes object on which the residuals will be plotted.
+    - `model` (Model): The model object used to generate a model image if `sample_image` is not provided.
+    - `target` (Target or Image_List, optional): The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
+    - `sample_image` (Image or Image_List, optional): The image or list of images from which residuals will be calculated. If `None`, a model image is generated using the provided `model`. Defaults to `None`.
+    - `showcbar` (bool, optional): Whether to show the color bar. Defaults to `True`.
+    - `window` (Window or Window_List, optional): The window through which the image is viewed. If `None`, the window of the provided `model` is used. Defaults to `None`.
+    - `clb_label` (str, optional): The label for the colorbar. If `None`, a default label is used based on the normalization of the residuals. Defaults to `None`.
+    - `normalize_residuals` (bool, optional): Whether to normalize the residuals. If `True`, residuals are divided by the square root of the variance of the target. Defaults to `False`.
+    - `scaling` (str, optional): The scaling method for the residuals. Options are "arctan", "clip", or "none". arctan will show all residuals, though squish high values to make the fainter residuals more visible, clip will show the residuals in linear space but remove any values above/below 5 sigma, none does no scaling and simply shows the residuals in linear space. Defaults to "arctan".
+    - `**kwargs`: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Note:
         If the `window`, `target`, or `sample_image` are lists, this function will recursively call itself for each element in the list,
@@ -429,7 +417,17 @@ def residual_image(
 
 @ignore_numpy_warnings
 def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
-    """Used for plotting the window(s) of a model on an image."""
+    """Used for plotting the window(s) of a model on a target image. These
+    windows bound the region that a model will be evaluated/fit to.
+
+    **Args:**
+    - `fig` (matplotlib.figure.Figure): The figure object in which the model window will be displayed.
+    - `ax` (matplotlib.axes.Axes): The axes object on which the model window will be plotted.
+    - `model` (Model): The model object whose window will be displayed.
+    - `target` (Target or Image_List, optional): The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
+    - `rectangle_linewidth` (int, optional): The linewidth of the rectangle drawn around the model window. Defaults to 2.
+    - **kwargs: Arbitrary keyword arguments. These are used to override the default rectangle properties.
+    """
     if target is None:
         target = model.target
     if isinstance(ax, np.ndarray):
@@ -463,6 +461,7 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
                     fill=False,
                     linewidth=rectangle_linewidth,
                     edgecolor=main_pallet["secondary1"],
+                    **kwargs,
                 )
             )
     else:
@@ -486,6 +485,7 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
                 fill=False,
                 linewidth=rectangle_linewidth,
                 edgecolor=main_pallet["secondary1"],
+                **kwargs,
             )
         )
 
