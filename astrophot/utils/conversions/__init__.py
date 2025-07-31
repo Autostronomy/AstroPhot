@@ -21,7 +21,6 @@ from .units import (
     mag_to_flux,
     magperarcsec2_to_mag,
     mag_to_magperarcsec2,
-    PA_shift_convention,
 )
 
 __all__ = (
@@ -45,5 +44,4 @@ __all__ = (
     "mag_to_flux",
     "magperarcsec2_to_mag",
     "mag_to_magperarcsec2",
-    "PA_shift_convention",
 )
