@@ -11,7 +11,7 @@ very detailed, but can be a bit awkward in their formatting, the good news is
 that a lot of useful information is available there!
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
 
     models
     image

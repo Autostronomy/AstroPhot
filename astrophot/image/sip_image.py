@@ -7,6 +7,8 @@ from .mixins import SIPMixin
 
 
 class SIPModelImage(SIPMixin, ModelImage):
+    """
+    A ModelImage with SIP distortion coefficients."""
 
     def crop(self, pixels: Union[int, Tuple[int, int], Tuple[int, int, int, int]], **kwargs):
         """

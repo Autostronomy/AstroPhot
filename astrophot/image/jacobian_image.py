@@ -55,6 +55,16 @@ class JacobianImage(Image):
             ]
         return self
 
+    def plane_to_world(self, x, y):
+        raise NotImplementedError(
+            "JacobianImage does not support plane_to_world conversion. There is no meaningful world position of a PSF image."
+        )
+
+    def world_to_plane(self, ra, dec):
+        raise NotImplementedError(
+            "JacobianImage does not support world_to_plane conversion. There is no meaningful world position of a PSF image."
+        )
+
 
 ######################################################################
 class JacobianImageList(ImageList):

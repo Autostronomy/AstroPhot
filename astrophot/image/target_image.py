@@ -12,10 +12,12 @@ from .psf_image import PSFImage
 from .. import config
 from ..errors import InvalidImage
 from .mixins import DataMixin
+from ..utils.decorators import combine_docstrings
 
 __all__ = ["TargetImage", "TargetImageList"]
 
 
+@combine_docstrings
 class TargetImage(DataMixin, Image):
     """Image object which represents the data to be fit by a model. It can
     include a variance image, mask, and PSF as anciliary data which
@@ -29,32 +31,32 @@ class TargetImage(DataMixin, Image):
 
     Basic usage:
 
-    .. code-block:: python
+    ```{python}
+    import astrophot as ap
 
-      import astrophot as ap
+    # Create target image
+    image = ap.image.Target_Image(
+        data="pixel data",
+        wcs="astropy WCS object",
+        variance="pixel uncertainties",
+        psf="point spread function as PSF_Image object",
+        mask="True for pixels to ignore",
+    )
 
-      # Create target image
-      image = ap.image.Target_Image(
-          data="pixel data",
-          wcs="astropy WCS object",
-          variance="pixel uncertainties",
-          psf="point spread function as PSF_Image object",
-          mask=" True for pixels to ignore",
-      )
+    # Display the data
+    fig, ax = plt.subplots()
+    ap.plots.target_image(fig, ax, image)
+    plt.show()
 
-      # Display the data
-      fig, ax = plt.subplots()
-      ap.plots.target_image(fig, ax, image)
-      plt.show()
+    # Save the image
+    image.save("mytarget.fits")
 
-      # Save the image
-      image.save("mytarget.fits")
+    # Load the image
+    image2 = ap.image.Target_Image(filename="mytarget.fits")
 
-      # Load the image
-      image2 = ap.image.Target_Image(filename="mytarget.fits")
-
-      # Make low resolution version
-      lowrez = image.reduce(2)
+    # Make low resolution version
+    lowrez = image.reduce(2)
+    ```
 
     Some important information to keep in mind. First, providing an
     `astropy WCS` object is the best way to keep track of coordinates
@@ -97,9 +99,9 @@ class TargetImage(DataMixin, Image):
 
     @property
     def psf(self):
-        """The PSF for the `Target_Image`. This is used to convolve the
+        """The PSF for the `TargetImage`. This is used to convolve the
         model with the PSF before evaluating the likelihood. The PSF
-        should be a `PSF_Image` object or an `AstroPhot` PSF_Model.
+        should be a `PSFImage` object or an `AstroPhot` PSFModel.
 
         If no PSF is provided, then the image will not be convolved
         with a PSF and the model will be evaluated directly on the
@@ -113,12 +115,12 @@ class TargetImage(DataMixin, Image):
 
     @psf.setter
     def psf(self, psf):
-        """Provide a psf for the `Target_Image`. This is stored and passed to
+        """Provide a psf for the `TargetImage`. This is stored and passed to
         models which need to be convolved.
 
         The PSF doesn't need to have the same pixelscale as the
         image. It should be some multiple of the resolution of the
-        `Target_Image` though. So if the image has a pixelscale of 1,
+        `TargetImage` though. So if the image has a pixelscale of 1,
         the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """

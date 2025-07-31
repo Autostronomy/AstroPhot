@@ -14,20 +14,10 @@ __all__ = ["PSFImage"]
 class PSFImage(DataMixin, Image):
     """Image object which represents a model of PSF (Point Spread Function).
 
-    PSF_Image inherits from the base Image class and represents the model of a point spread function.
+    PSFImage inherits from the base Image class and represents the model of a point spread function.
     The point spread function characterizes the response of an imaging system to a point source or point object.
 
-    The shape of the PSF data must be odd.
-
-    Attributes:
-        data (torch.Tensor): The image data of the PSF.
-        identity (str): The identity of the image. Default is None.
-
-    Methods:
-        psf_border_int: Calculates and returns the convolution border size of the PSF image in integer format.
-        psf_border: Calculates and returns the convolution border size of the PSF image in the units of pixelscale.
-        _save_image_list: Saves the image list to the PSF HDU header.
-        reduce: Reduces the size of the image using a given scale factor.
+    The shape of the PSF data should be odd (for your sanity) but this is not enforced.
     """
 
     def __init__(self, *args, **kwargs):
@@ -53,7 +43,7 @@ class PSFImage(DataMixin, Image):
         **kwargs,
     ) -> JacobianImage:
         """
-        Construct a blank `Jacobian_Image` object formatted like this current `PSF_Image` object. Mostly used internally.
+        Construct a blank `JacobianImage` object formatted like this current `PSFImage` object. Mostly used internally.
         """
         if parameters is None:
             data = None

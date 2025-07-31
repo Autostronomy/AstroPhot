@@ -12,6 +12,20 @@ from ..window import Window
 
 
 class DataMixin:
+    """Mixin for data handling in image objects.
+
+    This mixin provides functionality for handling variance and mask,
+    as well as other ancillary data.
+
+    **Args:**
+    - `mask`: A boolean mask indicating which pixels to ignore.
+    - `std`: Standard deviation of the image pixels.
+    - `variance`: Variance of the image pixels.
+    - `weight`: Weights for the image pixels.
+
+    Note that only one of `std`, `variance`, or `weight` should be
+    provided at a time. If multiple are provided, an error will be raised.
+    """
 
     def __init__(
         self,
@@ -57,8 +71,7 @@ class DataMixin:
         stand in as the standard deviation values.
 
         The standard deviation is not stored directly, instead it is
-        computed as :math:`\\sqrt{1/W}` where :math:`W` is the
-        weights.
+        computed as $\\sqrt{1/W}$ where $W$ is the weights.
 
         """
         if self.has_variance:
@@ -96,7 +109,7 @@ class DataMixin:
         the variance values.
 
         The variance is not stored directly, instead it is
-        computed as :math:`\\frac{1}{W}` where :math:`W` is the
+        computed as $\\frac{1}{W}$ where $W$ is the
         weights.
 
         """
@@ -138,24 +151,18 @@ class DataMixin:
         likelihood. Most commonly this shows up as a :math:`\\chi^2`
         like:
 
-        .. math::
-
-          \\chi^2 = (\\vec{y} - \\vec{f(\\theta)})^TW(\\vec{y} - \\vec{f(\\theta)})
+        $$\\chi^2 = (\\vec{y} - \\vec{f(\\theta)})^TW(\\vec{y} - \\vec{f(\\theta)})$$
 
         which can be optimized to find parameter values. Using the
         Jacobian, which in this case is the derivative of every pixel
         wrt every parameter, the weight matrix also appears in the
         gradient:
 
-        .. math::
-
-          \\vec{g} = J^TW(\\vec{y} - \\vec{f(\\theta)})
+        $$\\vec{g} = J^TW(\\vec{y} - \\vec{f(\\theta)})$$
 
         and the hessian approximation used in Levenberg-Marquardt:
 
-        .. math::
-
-          H \\approx J^TWJ
+        $$H \\approx J^TWJ$$
 
         """
         if self.has_weight:
@@ -303,10 +310,10 @@ class DataMixin:
         return hdulist
 
     def reduce(self, scale: int, **kwargs) -> Image:
-        """Returns a new `Target_Image` object with a reduced resolution
+        """Returns a new `TargetImage` object with a reduced resolution
         compared to the current image. `scale` should be an integer
         indicating how much to reduce the resolution. If the
-        `Target_Image` was originally (48,48) pixels across with a
+        `TargetImage` was originally (48,48) pixels across with a
         pixelscale of 1 and `reduce(2)` is called then the image will
         be (24,24) pixels and the pixelscale will be 2. If `reduce(3)`
         is called then the returned image will be (16,16) pixels

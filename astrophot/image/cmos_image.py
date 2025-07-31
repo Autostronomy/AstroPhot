@@ -6,6 +6,8 @@ from .model_image import ModelImage
 
 
 class CMOSModelImage(CMOSMixin, ModelImage):
+    """A ModelImage with CMOS-specific functionality."""
+
     def fluxdensity_to_flux(self):
         # CMOS pixels only sensitive in sub area, so scale the flux density
         self._data = self.data * self.pixel_area * self.subpixel_scale**2

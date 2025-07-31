@@ -20,6 +20,8 @@ class ModelImage(Image):
 
 ######################################################################
 class ModelImageList(ImageList):
+    """A list of ModelImage objects."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not all(isinstance(image, (ModelImage, ModelImageList)) for image in self.images):

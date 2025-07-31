@@ -10,6 +10,7 @@ from ...param import forward
 
 
 class SIPMixin:
+    """A mixin class for SIP (Simple Image Polynomial) distortion model."""
 
     expect_ctype = (("RA---TAN-SIP",), ("DEC--TAN-SIP",))
 
