@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -31,7 +31,7 @@ def _select_img(img, hduli):
 def centroids_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: "Image",
-    sky_level=None,
+    sky_level: Optional[float] = None,
     hdul_index_seg: int = 0,
     skip_index: tuple = (0,),
 ):
@@ -41,16 +41,12 @@ def centroids_from_segmentation_map(
     pixel space. A dictionary of pixel centers is produced where the
     keys of the dictionary correspond to the segment id's.
 
-    Parameters:
-    ----------
-      seg_map (Union[np.ndarray, str]): A segmentation map which gives the object identity for each pixel
-      image (Union[np.ndarray, str]): An Image which will be used in the light weighted center of mass calculation
-      hdul_index_seg (int): If reading from a fits file this is the hdu list index at which the map is found. Default: 0
-      hdul_index_img (int): If reading from a fits file this is the hdu list index at which the image is found. Default: 0
-      skip_index (tuple): Lists which identities (if any) in the segmentation map should be ignored. Default (0,)
-
-    Returns:
-      centroids (dict): dictionary of centroid positions matched to each segment ID. The centroids are in pixel coordinates
+    **Args:**
+    -  `seg_map` (Union[np.ndarray, str]): A segmentation map which gives the object identity for each pixel
+    -  `image` (Union[np.ndarray, str]): An Image which will be used in the light weighted center of mass calculation
+    -  `sky_level` (float): The sky level to subtract from the image data before calculating centroids. Default: None, which uses the median of the image data.
+    -  `hdul_index_seg` (int): If reading from a fits file this is the hdu list index at which the map is found. Default: 0
+    -  `skip_index` (tuple): Lists which identities (if any) in the segmentation map should be ignored. Default (0,)
     """
 
     seg_map = _select_img(seg_map, hdul_index_seg)
@@ -84,10 +80,10 @@ def PA_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: "Image",
     centroids=None,
-    sky_level=None,
+    sky_level: Optional[float] = None,
     hdul_index_seg: int = 0,
     skip_index: tuple = (0,),
-    softening=1e-3,
+    softening: float = 1e-3,
 ):
 
     seg_map = _select_img(seg_map, hdul_index_seg)
@@ -130,10 +126,10 @@ def q_from_segmentation_map(
     seg_map: Union[np.ndarray, str],
     image: "Image",
     centroids=None,
-    sky_level=None,
+    sky_level: Optional[float] = None,
     hdul_index_seg: int = 0,
     skip_index: tuple = (0,),
-    softening=1e-3,
+    softening: float = 1e-3,
 ):
 
     seg_map = _select_img(seg_map, hdul_index_seg)
@@ -245,26 +241,26 @@ def scale_windows(windows, image: "Image" = None, expand_scale=1.0, expand_borde
 
 def filter_windows(
     windows,
-    min_size=None,
-    max_size=None,
-    min_area=None,
-    max_area=None,
-    min_flux=None,
-    max_flux=None,
+    min_size: Optional[float] = None,
+    max_size: Optional[float] = None,
+    min_area: Optional[float] = None,
+    max_area: Optional[float] = None,
+    min_flux: Optional[float] = None,
+    max_flux: Optional[float] = None,
     image: "Image" = None,
 ):
     """
     Filter a set of windows based on a set of criteria.
 
-    Parameters
-    ----------
-        min_size: minimum size of the window in pixels
-        max_size: maximum size of the window in pixels
-        min_area: minimum area of the window in pixels
-        max_area: maximum area of the window in pixels
-        min_flux: minimum flux of the window in ADU
-        max_flux: maximum flux of the window in ADU
-        image: the image from which the flux is calculated for min_flux and max_flux
+    **Args:**
+    -  `windows`: A dictionary of windows to filter. Each window is formatted as a list of lists with: window = [[xmin,ymin],[xmax,ymax]]
+    -  `min_size`: minimum size of the window in pixels
+    -  `max_size`: maximum size of the window in pixels
+    -  `min_area`: minimum area of the window in pixels
+    -  `max_area`: maximum area of the window in pixels
+    -  `min_flux`: minimum flux of the window in ADU
+    -  `max_flux`: maximum flux of the window in ADU
+    -  `image`: the image from which the flux is calculated for min_flux and max_flux
     """
     new_windows = {}
     for w in list(windows.keys()):
@@ -328,15 +324,10 @@ def transfer_windows(windows, base_image, new_image):
     for the relative adjustments in origin, pixelscale, and rotation between the
     two images.
 
-    Parameters
-    ----------
-    windows : dict
-        A dictionary of windows to be transferred. Each window is formatted as a list of lists with:
-        window = [[xmin,ymin],[xmax,ymax]]
-    base_image : Image
-        The image object from which the windows are being transferred.
-    new_image : Image
-        The image object to which the windows are being transferred.
+    **Args:**
+    -  `windows`: A dictionary of windows to be transferred. Each window is formatted as a list of lists with: window = [[xmin,ymin],[xmax,ymax]]
+    -  `base_image`: The image object from which the windows are being transferred.
+    -  `new_image`: The image object to which the windows are being transferred.
     """
     new_windows = {}
     for w in list(windows.keys()):

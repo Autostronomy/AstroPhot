@@ -2,6 +2,16 @@ import numpy as np
 
 
 def gaussian_psf(sigma, img_width, pixelscale, upsample=4, normalize=True):
+    """
+    create a gaussian point spread function (PSF) image.
+
+    **Args:**
+    -  `sigma`: Standard deviation of the Gaussian in arcseconds.
+    -  `img_width`: Width of the PSF image in pixels.
+    -  `pixelscale`: Pixel scale in arcseconds per pixel.
+    -  `upsample`: Upsampling factor to more accurately create the PSF (the outputted PSF is not upsampled).
+    -  `normalize`: Whether to normalize the PSF so that the sum of all pixels equals 1. If False, the PSF will not be normalized.
+    """
     assert img_width % 2 == 1, "psf images should have an odd shape"
 
     # Number of super sampled pixels
@@ -32,6 +42,17 @@ def gaussian_psf(sigma, img_width, pixelscale, upsample=4, normalize=True):
 
 
 def moffat_psf(n, Rd, img_width, pixelscale, upsample=4, normalize=True):
+    """
+    Create a Moffat point spread function (PSF) image.
+
+    **Args:**
+    -  `n`: Moffat index (power-law index).
+    -  `Rd`: Scale radius of the Moffat profile in arcseconds.
+    -  `img_width`: Width of the PSF image in pixels.
+    -  `pixelscale`: Pixel scale in arcseconds per pixel.
+    -  `upsample`: Upsampling factor to more accurately create the PSF (the outputted PSF is not upsampled).
+    -  `normalize`: Whether to normalize the PSF so that the sum of all pixels equals 1. If False, the PSF will not be normalized.
+    """
     assert img_width % 2 == 1, "psf images should have an odd shape"
 
     # Number of super sampled pixels
