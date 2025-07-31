@@ -43,7 +43,7 @@ class Iter(BaseOptimizer):
         model: Model,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
-        lm_kwargs: Dict[str, Any] = {},
+        lm_kwargs: Dict[str, Any] = {"verbose": 0},
         **kwargs: Dict[str, Any],
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)

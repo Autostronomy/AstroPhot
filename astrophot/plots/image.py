@@ -226,6 +226,8 @@ def model_image(
                 target_mask=target_mask,
                 cmap_levels=cmap_levels,
                 magunits=magunits,
+                vmin=vmin,
+                vmax=vmax,
                 **kwargs,
             )
         return fig, ax
@@ -255,6 +257,8 @@ def model_image(
     if target.zeropoint is not None and magunits:
         sample_image = flux_to_sb(sample_image, target.pixel_area.item(), target.zeropoint.item())
         kwargs["cmap"] = kwargs["cmap"].reversed()
+        kwargs["vmin"] = vmin
+        kwargs["vmax"] = vmax
     else:
         kwargs = {
             "norm": matplotlib.colors.LogNorm(
