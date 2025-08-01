@@ -1,7 +1,7 @@
 # Traditional gradient descent with Adam
 from time import time
 from typing import Sequence
-from caustics import ValidContext
+from caskade import ValidContext
 import torch
 import numpy as np
 
