@@ -98,7 +98,7 @@ class ScipyFit(BaseOptimizer):
         self.current_state = torch.tensor(res.x, dtype=config.DTYPE, device=config.DEVICE)
         if self.verbose > 0:
             config.logger.info(
-                f"Final 2NLL/DoF: {2*self.density(self.current_state)/self.ndf:.6g}. Converged: {self.message}"
+                f"Final 2NLL/DoF: {2*self.density(res.x)/self.ndf:.6g}. Converged: {self.message}"
             )
         self.model.fill_dynamic_values(self.current_state)
 
