@@ -1,11 +1,15 @@
 from .base import AstroPhotError
 
-__all__ = ("OptimizeStop",)
+__all__ = ("OptimizeStopFail", "OptimizeStopSuccess")
 
 
-class OptimizeStop(AstroPhotError):
+class OptimizeStopFail(AstroPhotError):
     """
-    Raised at any point to stop optimization process.
+    Raised at any point to stop optimization process due to failure.
     """
 
-    pass
+
+class OptimizeStopSuccess(AstroPhotError):
+    """
+    Raised at any point to stop optimization process due to success condition.
+    """

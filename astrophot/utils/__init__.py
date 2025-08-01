@@ -1,23 +1,17 @@
 from . import (
-    optimization,
-    angle_operations,
-    decorators,
-    interpolate,
-    operations,
-    parametric_profiles,
-    isophote,
-    initialize,
     conversions,
+    initialize,
+    decorators,
+    integration,
+    interpolate,
+    parametric_profiles,
 )
 
 __all__ = [
-    "optimization",
-    "angle_operations",
     "decorators",
     "interpolate",
-    "operations",
+    "integration",
     "parametric_profiles",
-    "isophote",
     "initialize",
     "conversions",
 ]

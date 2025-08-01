@@ -4,18 +4,34 @@ from typing import Dict, Any
 import numpy as np
 
 from .base import BaseOptimizer
-from ..models import AstroPhot_Model
+from ..models import Model
 from .lm import LM
-from .. import AP_config
+from .. import config
 
 __all__ = ["MiniFit"]
 
 
 class MiniFit(BaseOptimizer):
+    """MiniFit optimizer that applies a fitting method to a downsampled version
+    of the model's target image.
+
+    This is useful for quickly optimizing parameters on a smaller scale before
+    applying them to the full resolution image. With fewer pixels, the optimization
+    can be faster and more efficient, especially for large images.
+
+    This Optimizer can wrap any optimizer that follows the BaseOptimizer interface.
+
+    **Args:**
+    -  `downsample_factor`: Factor by which to downsample the target image. Default is 2.
+    -  `max_pixels`: Maximum number of pixels in the downsampled image. Default is 10000.
+    -  `method`: The optimizer method to use, e.g., `LM` for Levenberg-Marquardt. Default is `LM`.
+    -  `method_kwargs`: Additional keyword arguments to pass to the optimizer method.
+    """
+
     def __init__(
         self,
-        model: AstroPhot_Model,
-        downsample_factor: int = 1,
+        model: Model,
+        downsample_factor: int = 2,
         max_pixels: int = 10000,
         method: BaseOptimizer = LM,
         initial_state: np.ndarray = None,
@@ -37,12 +53,12 @@ class MiniFit(BaseOptimizer):
         target_area = self.model.target[self.model.window]
         while True:
             small_target = target_area.reduce(self.downsample_factor)
-            if small_target.size < self.max_pixels:
+            if np.prod(small_target.shape) < self.max_pixels:
                 break
             self.downsample_factor += 1
 
         if self.verbose > 0:
-            AP_config.ap_logger.info(f"Downsampling target by {self.downsample_factor}x")
+            config.logger.info(f"Downsampling target by {self.downsample_factor}x")
 
         self.small_target = small_target
         self.model.target = small_target

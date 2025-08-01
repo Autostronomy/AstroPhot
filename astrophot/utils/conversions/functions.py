@@ -1,12 +1,30 @@
+from typing import Union
 import numpy as np
 import torch
 from scipy.special import gamma
 from torch.special import gammaln
 
+__all__ = (
+    "sersic_n_to_b",
+    "sersic_I0_to_flux_np",
+    "sersic_flux_to_I0_np",
+    "sersic_Ie_to_flux_np",
+    "sersic_flux_to_Ie_np",
+    "sersic_I0_to_flux_torch",
+    "sersic_flux_to_I0_torch",
+    "sersic_Ie_to_flux_torch",
+    "sersic_flux_to_Ie_torch",
+    "sersic_inv_np",
+    "sersic_inv_torch",
+    "moffat_I0_to_flux",
+)
 
-def sersic_n_to_b(n):
+
+def sersic_n_to_b(
+    n: Union[float, np.ndarray, torch.Tensor],
+) -> Union[float, np.ndarray, torch.Tensor]:
     """Compute the `b(n)` for a sersic model. This factor ensures that
-    the :math:`R_e` and :math:`I_e` parameters do in fact correspond
+    the $R_e$ and $I_e$ parameters do in fact correspond
     to the half light values and not some other scale
     radius/intensity.
 
@@ -22,95 +40,90 @@ def sersic_n_to_b(n):
     )
 
 
-def sersic_I0_to_flux_np(I0, n, R, q):
+def sersic_I0_to_flux_np(I0: np.ndarray, n: np.ndarray, R: np.ndarray, q: np.ndarray) -> np.ndarray:
     """Compute the total flux integrated to infinity for a 2D elliptical
-    sersic given the :math:`I_0,n,R_s,q` parameters which uniquely
-    define the profile (:math:`I_0` is the central intensity in
-    flux/arcsec^2). Note that :math:`R_s` is not the effective radius,
+    sersic given the $I_0,n,R_s,q$ parameters which uniquely
+    define the profile ($I_0$ is the central intensity in
+    flux/arcsec^2). Note that $R_s$ is not the effective radius,
     but in fact the scale radius in the more straightforward sersic
     representation:
 
-    .. math::
+    $$I(R) = I_0e^{-(R/R_s)^{1/n}}$$
 
-      I(R) = I_0e^{-(R/R_s)^{1/n}}
-
-    Args:
-      I0: central intensity (flux/arcsec^2)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
+    **Args:**
+    -  `I0`: central intensity (flux/arcsec^2)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
     """
     return 2 * np.pi * I0 * q * n * R**2 * gamma(2 * n)
 
 
-def sersic_flux_to_I0_np(flux, n, R, q):
+def sersic_flux_to_I0_np(
+    flux: np.ndarray, n: np.ndarray, R: np.ndarray, q: np.ndarray
+) -> np.ndarray:
     """Compute the central intensity (flux/arcsec^2) for a 2D elliptical
-    sersic given the :math:`F,n,R_s,q` parameters which uniquely
-    define the profile (:math:`F` is the total flux integrated to
-    infinity). Note that :math:`R_s` is not the effective radius, but
+    sersic given the $F,n,R_s,q$ parameters which uniquely
+    define the profile ($F$ is the total flux integrated to
+    infinity). Note that $R_s$ is not the effective radius, but
     in fact the scale radius in the more straightforward sersic
     representation:
 
-    .. math::
+    $$I(R) = I_0e^{-(R/R_s)^{1/n}}$$
 
-      I(R) = I_0e^{-(R/R_s)^{1/n}}
-
-    Args:
-      flux: total flux integrated to infinity (flux)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
+    **Args:**
+    -  `flux`: total flux integrated to infinity (flux)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
     """
     return flux / (2 * np.pi * q * n * R**2 * gamma(2 * n))
 
 
-def sersic_Ie_to_flux_np(Ie, n, R, q):
+def sersic_Ie_to_flux_np(Ie: np.ndarray, n: np.ndarray, R: np.ndarray, q: np.ndarray) -> np.ndarray:
     """Compute the total flux integrated to infinity for a 2D elliptical
-    sersic given the :math:`I_e,n,R_e,q` parameters which uniquely
-    define the profile (:math:`I_e` is the intensity at :math:`R_e` in
-    flux/arcsec^2). Note that :math:`R_e` is the effective radius in
+    sersic given the $I_e,n,R_e,q$ parameters which uniquely
+    define the profile ($I_e$ is the intensity at $R_e$ in
+    flux/arcsec^2). Note that $R_e$ is the effective radius in
     the sersic representation:
 
-    .. math::
+    $$I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}$$
 
-      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}
-
-    Args:
-      Ie: intensity at the effective radius (flux/arcsec^2)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
-
+    **Args:**
+    -  `Ie`: intensity at the effective radius (flux/arcsec^2)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
     """
     bn = sersic_n_to_b(n)
     return 2 * np.pi * Ie * R**2 * q * n * (np.exp(bn) * bn ** (-2 * n)) * gamma(2 * n)
 
 
-def sersic_flux_to_Ie_np(flux, n, R, q):
-    """Compute the intensity at :math:`R_e` (flux/arcsec^2) for a 2D
-    elliptical sersic given the :math:`F,n,R_e,q` parameters which
-    uniquely define the profile (:math:`F` is the total flux
-    integrated to infinity). Note that :math:`R_e` is the effective
+def sersic_flux_to_Ie_np(
+    flux: np.ndarray, n: np.ndarray, R: np.ndarray, q: np.ndarray
+) -> np.ndarray:
+    """Compute the intensity at $R_e$ (flux/arcsec^2) for a 2D
+    elliptical sersic given the $F,n,R_e,q$ parameters which
+    uniquely define the profile ($F$ is the total flux
+    integrated to infinity). Note that $R_e$ is the effective
     radius in the sersic representation:
 
-    .. math::
+    $$I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}$$
 
-      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}
-
-    Args:
-      flux: flux integrated to infinity (flux)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
+    **Args:**
+    -  `flux`: flux integrated to infinity (flux)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
     """
     bn = sersic_n_to_b(n)
     return flux / (2 * np.pi * R**2 * q * n * (np.exp(bn) * bn ** (-2 * n)) * gamma(2 * n))
 
 
-def sersic_inv_np(I, n, Re, Ie):
+def sersic_inv_np(I: np.ndarray, n: np.ndarray, Re: np.ndarray, Ie: np.ndarray) -> np.ndarray:
     """Invert the sersic profile. Compute the radius corresponding to a
     given intensity for a pure sersic profile.
 
@@ -119,68 +132,67 @@ def sersic_inv_np(I, n, Re, Ie):
     return Re * ((1 - (1 / bn) * np.log(I / Ie)) ** (n))
 
 
-def sersic_I0_to_flux_torch(I0, n, R, q):
+def sersic_I0_to_flux_torch(
+    I0: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
+) -> torch.Tensor:
     """Compute the total flux integrated to infinity for a 2D elliptical
-    sersic given the :math:`I_0,n,R_s,q` parameters which uniquely
-    define the profile (:math:`I_0` is the central intensity in
-    flux/arcsec^2). Note that :math:`R_s` is not the effective radius,
+    sersic given the $I_0,n,R_s,q$ parameters which uniquely
+    define the profile ($I_0$ is the central intensity in
+    flux/arcsec^2). Note that $R_s$ is not the effective radius,
     but in fact the scale radius in the more straightforward sersic
     representation:
 
-    .. math::
+    $$I(R) = I_0e^{-(R/R_s)^{1/n}}$$
 
-      I(R) = I_0e^{-(R/R_s)^{1/n}}
-
-    Args:
-      I0: central intensity (flux/arcsec^2)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
+    **Args:**
+    -  `I0`: central intensity (flux/arcsec^2)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
 
     """
     return 2 * np.pi * I0 * q * n * R**2 * torch.exp(gammaln(2 * n))
 
 
-def sersic_flux_to_I0_torch(flux, n, R, q):
+def sersic_flux_to_I0_torch(
+    flux: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
+) -> torch.Tensor:
     """Compute the central intensity (flux/arcsec^2) for a 2D elliptical
-    sersic given the :math:`F,n,R_s,q` parameters which uniquely
-    define the profile (:math:`F` is the total flux integrated to
-    infinity). Note that :math:`R_s` is not the effective radius, but
+    sersic given the $F,n,R_s,q$ parameters which uniquely
+    define the profile ($F$ is the total flux integrated to
+    infinity). Note that $R_s$ is not the effective radius, but
     in fact the scale radius in the more straightforward sersic
     representation:
 
-    .. math::
+    $$I(R) = I_0e^{-(R/R_s)^{1/n}}$$
 
-      I(R) = I_0e^{-(R/R_s)^{1/n}}
-
-    Args:
-      flux: total flux integrated to infinity (flux)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
-
+    **Args:**
+    -  `flux`: total flux integrated to infinity (flux)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
     """
     return flux / (2 * np.pi * q * n * R**2 * torch.exp(gammaln(2 * n)))
 
 
-def sersic_Ie_to_flux_torch(Ie, n, R, q):
+def sersic_Ie_to_flux_torch(
+    Ie: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
+) -> torch.Tensor:
     """Compute the total flux integrated to infinity for a 2D elliptical
-    sersic given the :math:`I_e,n,R_e,q` parameters which uniquely
-    define the profile (:math:`I_e` is the intensity at :math:`R_e` in
-    flux/arcsec^2). Note that :math:`R_e` is the effective radius in
+    sersic given the $I_e,n,R_e,q$ parameters which uniquely
+    define the profile ($I_e$ is the intensity at $R_e$ in
+    flux/arcsec^2). Note that $R_e$ is the effective radius in
     the sersic representation:
 
-    .. math::
+    $$I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}$$
 
-      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}
-
-    Args:
-      Ie: intensity at the effective radius (flux/arcsec^2)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
+    **Args:**
+    -  `Ie`: intensity at the effective radius (flux/arcsec^2)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
 
     """
@@ -190,22 +202,22 @@ def sersic_Ie_to_flux_torch(Ie, n, R, q):
     )
 
 
-def sersic_flux_to_Ie_torch(flux, n, R, q):
-    """Compute the intensity at :math:`R_e` (flux/arcsec^2) for a 2D
-    elliptical sersic given the :math:`F,n,R_e,q` parameters which
-    uniquely define the profile (:math:`F` is the total flux
-    integrated to infinity). Note that :math:`R_e` is the effective
+def sersic_flux_to_Ie_torch(
+    flux: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
+) -> torch.Tensor:
+    """Compute the intensity at $R_e$ (flux/arcsec^2) for a 2D
+    elliptical sersic given the $F,n,R_e,q$ parameters which
+    uniquely define the profile ($F$ is the total flux
+    integrated to infinity). Note that $R_e$ is the effective
     radius in the sersic representation:
 
-    .. math::
+    $$I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}$$
 
-      I(R) = I_ee^{-b_n[(R/R_e)^{1/n}-1]}
-
-    Args:
-      flux: flux integrated to infinity (flux)
-      n: sersic index
-      R: Scale radius
-      q: axis ratio (b/a)
+    **Args:**
+    -  `flux`: flux integrated to infinity (flux)
+    -  `n`: sersic index
+    -  `R`: Scale radius
+    -  `q`: axis ratio (b/a)
 
 
     """
@@ -215,7 +227,9 @@ def sersic_flux_to_Ie_torch(flux, n, R, q):
     )
 
 
-def sersic_inv_torch(I, n, Re, Ie):
+def sersic_inv_torch(
+    I: torch.Tensor, n: torch.Tensor, Re: torch.Tensor, Ie: torch.Tensor
+) -> torch.Tensor:
     """Invert the sersic profile. Compute the radius corresponding to a
     given intensity for a pure sersic profile.
 
@@ -224,14 +238,14 @@ def sersic_inv_torch(I, n, Re, Ie):
     return Re * ((1 - (1 / bn) * torch.log(I / Ie)) ** (n))
 
 
-def moffat_I0_to_flux(I0, n, rd, q):
+def moffat_I0_to_flux(I0: float, n: float, rd: float, q: float) -> float:
     """
     Compute the total flux integrated to infinity for a moffat profile.
 
-    Args:
-      I0: central intensity (flux/arcsec^2)
-      n: moffat curvature parameter (unitless)
-      rd: scale radius
-      q: axis ratio
+    **Args:**
+    -  `I0`: central intensity (flux/arcsec^2)
+    -  `n`: moffat curvature parameter (unitless)
+    -  `rd`: scale radius
+    -  `q`: axis ratio
     """
     return I0 * np.pi * rd**2 * q / (n - 1)

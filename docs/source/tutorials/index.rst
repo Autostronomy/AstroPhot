@@ -15,6 +15,10 @@ version of each tutorial is available here.
     ModelZoo
     BasicPSFModels
     JointModels
+    ImageAlignment
+    PoissonLikelihood
     CustomModels
+    GravitationalLensing
     AdvancedPSFModels
+    ImageTypes
     ConstrainedModels

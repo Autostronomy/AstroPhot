@@ -2,17 +2,22 @@
 from typing import Optional, Sequence
 
 import torch
-import pyro
-import pyro.distributions as dist
-from pyro.infer import MCMC as pyro_MCMC
-from pyro.infer import HMC as pyro_HMC
-from pyro.infer.mcmc.adaptation import BlockMassMatrix
-from pyro.ops.welford import WelfordCovariance
+
+try:
+    import pyro
+    import pyro.distributions as dist
+    from pyro.infer import MCMC as pyro_MCMC
+    from pyro.infer import HMC as pyro_HMC
+    from pyro.infer.mcmc.adaptation import BlockMassMatrix
+    from pyro.ops.welford import WelfordCovariance
+except ImportError:
+    pyro = None
 
 from .base import BaseOptimizer
-from ..models import AstroPhot_Model
+from ..models import Model
+from .. import config
 
-__all__ = ["HMC"]
+__all__ = ("HMC",)
 
 
 ###########################################
@@ -24,10 +29,11 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
     """
     Sets up an initial mass matrix.
 
-    :param dict mass_matrix_shape: a dict that maps tuples of site names to the shape of
+    **Args:**
+    -  `mass_matrix_shape`: a dict that maps tuples of site names to the shape of
         the corresponding mass matrix. Each tuple of site names corresponds to a block.
-    :param bool adapt_mass_matrix: a flag to decide whether an adaptation scheme will be used.
-    :param dict options: tensor options to construct the initial mass matrix.
+    -  `adapt_mass_matrix`: a flag to decide whether an adaptation scheme will be used.
+    -  `options`: tensor options to construct the initial mass matrix.
     """
     inverse_mass_matrix = {}
     for site_names, shape in mass_matrix_shape.items():
@@ -53,48 +59,56 @@ BlockMassMatrix.configure = new_configure
 class HMC(BaseOptimizer):
     """Hamiltonian Monte-Carlo sampler wrapper for the Pyro package.
 
-    This MCMC algorithm uses gradients of the Chi^2 to more
-    efficiently explore the probability distribution. Consider using
-    the NUTS sampler instead of HMC, as it is generally better in most
-    aspects.
+    This MCMC algorithm uses gradients of the $\\chi^2$ to more
+    efficiently explore the probability distribution.
 
     More information on HMC can be found at:
     https://en.wikipedia.org/wiki/Hamiltonian_Monte_Carlo,
     https://arxiv.org/abs/1701.02434, and
     http://www.mcmchandbook.net/HandbookChapter5.pdf
 
-    Args:
-        model (AstroPhot_Model): The model which will be sampled.
-        initial_state (Optional[Sequence], optional): A 1D array with the values for each parameter in the model. These values should be in the form of "as_representation" in the model. Defaults to None.
-        max_iter (int, optional): The number of sampling steps to perform. Defaults to 1000.
-        epsilon (float, optional): The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
-        leapfrog_steps (int, optional): Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 20.
-        inv_mass (float or array, optional): Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.
-        progress_bar (bool, optional): Whether to display a progress bar during sampling. Defaults to True.
-        prior (distribution, optional): Prior distribution for the parameters. Defaults to None.
-        warmup (int, optional): Number of warmup steps before actual sampling begins. Defaults to 100.
-        hmc_kwargs (dict, optional): Additional keyword arguments for the HMC sampler. Defaults to {}.
-        mcmc_kwargs (dict, optional): Additional keyword arguments for the MCMC process. Defaults to {}.
+    **Args:**
+    -  `max_iter` (int, optional): The number of sampling steps to perform. Defaults to 1000.
+    -  `epsilon` (float, optional): The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
+    -  `leapfrog_steps` (int, optional): Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 10.
+    -  `inv_mass` (float or array, optional): Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.
+    -  `progress_bar` (bool, optional): Whether to display a progress bar during sampling. Defaults to True.
+    -  `prior` (distribution, optional): Prior distribution for the parameters. Defaults to None.
+    -  `warmup` (int, optional): Number of warmup steps before actual sampling begins. Defaults to 100.
+    -  `hmc_kwargs` (dict, optional): Additional keyword arguments for the HMC sampler. Defaults to {}.
+    -  `mcmc_kwargs` (dict, optional): Additional keyword arguments for the MCMC process. Defaults to {}.
 
     """
 
     def __init__(
         self,
-        model: AstroPhot_Model,
+        model: Model,
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
+        inv_mass: Optional[torch.Tensor] = None,
+        epsilon: float = 1e-4,
+        leapfrog_steps: int = 10,
+        progress_bar: bool = True,
+        prior: Optional[dist.Distribution] = None,
+        warmup: int = 100,
+        hmc_kwargs: dict = {},
+        mcmc_kwargs: dict = {},
+        likelihood: str = "gaussian",
         **kwargs,
     ):
+        if pyro is None:
+            raise ImportError("Pyro must be installed to use HMC.")
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.inv_mass = kwargs.get("inv_mass", None)
-        self.epsilon = kwargs.get("epsilon", 1e-3)
-        self.leapfrog_steps = kwargs.get("leapfrog_steps", 20)
-        self.progress_bar = kwargs.get("progress_bar", True)
-        self.prior = kwargs.get("prior", None)
-        self.warmup = kwargs.get("warmup", 100)
-        self.hmc_kwargs = kwargs.get("hmc_kwargs", {})
-        self.mcmc_kwargs = kwargs.get("mcmc_kwargs", {})
+        self.inv_mass = inv_mass
+        self.epsilon = epsilon
+        self.leapfrog_steps = leapfrog_steps
+        self.progress_bar = progress_bar
+        self.prior = prior
+        self.warmup = warmup
+        self.hmc_kwargs = hmc_kwargs
+        self.mcmc_kwargs = mcmc_kwargs
+        self.likelihood = likelihood
         self.acceptance = None
 
     def fit(
@@ -105,21 +119,20 @@ class HMC(BaseOptimizer):
 
         Records the chain for later examination.
 
-        Args:
+        **Args:**
             state (torch.Tensor, optional): Model parameters as a 1D tensor.
-
-        Returns:
-            HMC: An instance of the HMC class with updated chain.
 
         """
 
         def step(model, prior):
             x = pyro.sample("x", prior)
             # Log-likelihood function
-            model.parameters.flat_detach()
-            log_likelihood_value = -model.negative_log_likelihood(
-                parameters=x, as_representation=True
-            )
+            if self.likelihood == "gaussian":
+                log_likelihood_value = model.gaussian_log_likelihood(params=x)
+            elif self.likelihood == "poisson":
+                log_likelihood_value = model.poisson_log_likelihood(params=x)
+            else:
+                raise ValueError(f"Unsupported likelihood type: {self.likelihood}")
             # Observe the log-likelihood
             pyro.factor("obs", log_likelihood_value)
 
@@ -145,7 +158,7 @@ class HMC(BaseOptimizer):
             hmc_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.parameters.vector_representation()}
+        init_params = {"x": self.model.build_params_array()}
 
         # Run MCMC with the HMC sampler and the initial guess
         mcmc_kwargs = {
@@ -163,9 +176,8 @@ class HMC(BaseOptimizer):
         # Extract posterior samples
         chain = mcmc.get_samples()["x"]
 
-        with torch.no_grad():
-            for i in range(len(chain)):
-                chain[i] = self.model.parameters.vector_transform_rep_to_val(chain[i])
         self.chain = chain
-
+        self.model.fill_dynamic_values(
+            torch.as_tensor(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
+        )
         return self
