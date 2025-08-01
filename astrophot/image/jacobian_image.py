@@ -5,7 +5,7 @@ import torch
 from .image_object import Image, ImageList
 from ..errors import SpecificationConflict, InvalidImage
 
-__all__ = ["JacobianImage", "JacobianImageList"]
+__all__ = ("JacobianImage", "JacobianImageList")
 
 
 ######################################################################
@@ -55,6 +55,16 @@ class JacobianImage(Image):
             ]
         return self
 
+    def plane_to_world(self, x, y):
+        raise NotImplementedError(
+            "JacobianImage does not support plane_to_world conversion. There is no meaningful world position of a PSF image."
+        )
+
+    def world_to_plane(self, ra, dec):
+        raise NotImplementedError(
+            "JacobianImage does not support world_to_plane conversion. There is no meaningful world position of a PSF image."
+        )
+
 
 ######################################################################
 class JacobianImageList(ImageList):
@@ -84,7 +94,7 @@ class JacobianImageList(ImageList):
             return []
         return self.images[0].parameters
 
-    def flatten(self, attribute="data"):
+    def flatten(self, attribute: str = "data"):
         if len(self.images) > 1:
             for image in self.images[1:]:
                 if self.images[0].parameters != image.parameters:

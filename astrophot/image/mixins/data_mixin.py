@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import torch
 import numpy as np
@@ -12,16 +12,30 @@ from ..window import Window
 
 
 class DataMixin:
+    """Mixin for data handling in image objects.
+
+    This mixin provides functionality for handling variance and mask,
+    as well as other ancillary data.
+
+    **Args:**
+    - `mask`: A boolean mask indicating which pixels to ignore.
+    - `std`: Standard deviation of the image pixels.
+    - `variance`: Variance of the image pixels.
+    - `weight`: Weights for the image pixels.
+
+    Note that only one of `std`, `variance`, or `weight` should be
+    provided at a time. If multiple are provided, an error will be raised.
+    """
 
     def __init__(
         self,
         *args,
-        mask=None,
-        std=None,
-        variance=None,
-        weight=None,
-        _mask=None,
-        _weight=None,
+        mask: Optional[torch.Tensor] = None,
+        std: Optional[torch.Tensor] = None,
+        variance: Optional[torch.Tensor] = None,
+        weight: Optional[torch.Tensor] = None,
+        _mask: Optional[torch.Tensor] = None,
+        _weight: Optional[torch.Tensor] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -57,8 +71,7 @@ class DataMixin:
         stand in as the standard deviation values.
 
         The standard deviation is not stored directly, instead it is
-        computed as :math:`\\sqrt{1/W}` where :math:`W` is the
-        weights.
+        computed as $\\sqrt{1/W}$ where $W$ is the weights.
 
         """
         if self.has_variance:
@@ -76,7 +89,7 @@ class DataMixin:
         self.weight = 1 / std**2
 
     @property
-    def has_std(self):
+    def has_std(self) -> bool:
         """Returns True when the image object has stored standard deviation values. If
         this is False and the std property is called then a
         tensor of ones will be returned.
@@ -96,7 +109,7 @@ class DataMixin:
         the variance values.
 
         The variance is not stored directly, instead it is
-        computed as :math:`\\frac{1}{W}` where :math:`W` is the
+        computed as $\\frac{1}{W}$ where $W$ is the
         weights.
 
         """
@@ -115,7 +128,7 @@ class DataMixin:
         self.weight = 1 / variance
 
     @property
-    def has_variance(self):
+    def has_variance(self) -> bool:
         """Returns True when the image object has stored variance values. If
         this is False and the variance property is called then a
         tensor of ones will be returned.
@@ -138,24 +151,18 @@ class DataMixin:
         likelihood. Most commonly this shows up as a :math:`\\chi^2`
         like:
 
-        .. math::
-
-          \\chi^2 = (\\vec{y} - \\vec{f(\\theta)})^TW(\\vec{y} - \\vec{f(\\theta)})
+        $$\\chi^2 = (\\vec{y} - \\vec{f(\\theta)})^TW(\\vec{y} - \\vec{f(\\theta)})$$
 
         which can be optimized to find parameter values. Using the
         Jacobian, which in this case is the derivative of every pixel
         wrt every parameter, the weight matrix also appears in the
         gradient:
 
-        .. math::
-
-          \\vec{g} = J^TW(\\vec{y} - \\vec{f(\\theta)})
+        $$\\vec{g} = J^TW(\\vec{y} - \\vec{f(\\theta)})$$
 
         and the hessian approximation used in Levenberg-Marquardt:
 
-        .. math::
-
-          H \\approx J^TWJ
+        $$H \\approx J^TWJ$$
 
         """
         if self.has_weight:
@@ -179,7 +186,7 @@ class DataMixin:
             )
 
     @property
-    def has_weight(self):
+    def has_weight(self) -> bool:
         """Returns True when the image object has stored weight values. If
         this is False and the weight property is called then a
         tensor of ones will be returned.
@@ -225,7 +232,7 @@ class DataMixin:
             )
 
     @property
-    def has_mask(self):
+    def has_mask(self) -> bool:
         """
         Single boolean to indicate if a mask has been provided by the user.
         """
@@ -251,22 +258,14 @@ class DataMixin:
             self._mask = self._mask.to(dtype=torch.bool, device=device)
         return self
 
-    def copy(self, **kwargs):
+    def copy_kwargs(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
         can be used when one wishes to make temporary modifications to
         an image and then will want the original again.
 
         """
         kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
-        return super().copy(**kwargs)
-
-    def blank_copy(self, **kwargs):
-        """Produces a blank copy of the image which has the same properties
-        except that its data is now filled with zeros.
-
-        """
-        kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
-        return super().blank_copy(**kwargs)
+        return super().copy_kwargs(**kwargs)
 
     def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""
@@ -296,7 +295,7 @@ class DataMixin:
             )
         return images
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         """Load the image from a FITS file. This will load the data, WCS, and
         any ancillary data such as variance, mask, and PSF.
 
@@ -310,11 +309,11 @@ class DataMixin:
             self.mask = np.array(hdulist["DQ"].data, dtype=bool)
         return hdulist
 
-    def reduce(self, scale, **kwargs):
-        """Returns a new `Target_Image` object with a reduced resolution
+    def reduce(self, scale: int, **kwargs) -> Image:
+        """Returns a new `TargetImage` object with a reduced resolution
         compared to the current image. `scale` should be an integer
         indicating how much to reduce the resolution. If the
-        `Target_Image` was originally (48,48) pixels across with a
+        `TargetImage` was originally (48,48) pixels across with a
         pixelscale of 1 and `reduce(2)` is called then the image will
         be (24,24) pixels and the pixelscale will be 2. If `reduce(3)`
         is called then the returned image will be (16,16) pixels

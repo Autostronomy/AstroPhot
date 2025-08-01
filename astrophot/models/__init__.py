@@ -129,6 +129,7 @@ from .mixins import (
     WarpMixin,
     TruncationMixin,
 )
+from . import func
 
 
 __all__ = (
@@ -140,10 +141,6 @@ __all__ = (
     "GalaxyModel",
     "SkyModel",
     "PointSource",
-    "RayGalaxy",
-    "SuperEllipseGalaxy",
-    "WedgeGalaxy",
-    "WarpGalaxy",
     "PixelBasisPSF",
     "AiryPSF",
     "PixelatedPSF",
@@ -155,7 +152,6 @@ __all__ = (
     "EdgeonIsothermal",
     "MultiGaussianExpansion",
     "GaussianEllipsoid",
-    "FourierEllipseGalaxy",
     "SersicGalaxy",
     "SersicPSF",
     "SersicFourierEllipse",
@@ -238,4 +234,5 @@ __all__ = (
     "FourierEllipseMixin",
     "WarpMixin",
     "TruncationMixin",
+    "func",
 )

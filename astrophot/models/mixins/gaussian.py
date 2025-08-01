@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
@@ -17,14 +18,14 @@ class GaussianMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \exp(-R^2 / (2 \sigma^2))$$
+    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
 
     where `I_0` is the intensity at the center of the profile and `sigma` is the
     standard deviation which controls the width of the profile.
 
-    Parameters:
-        sigma: Standard deviation of the Gaussian profile in arcseconds.
-        flux: Total flux of the Gaussian profile.
+    **Parameters:**
+    -    `sigma`: Standard deviation of the Gaussian profile in arcseconds.
+    -    `flux`: Total flux of the Gaussian profile.
     """
 
     _model_type = "gaussian"
@@ -47,7 +48,7 @@ class GaussianMixin:
         )
 
     @forward
-    def radial_model(self, R, sigma, flux):
+    def radial_model(self, R: Tensor, sigma: Tensor, flux: Tensor) -> Tensor:
         return func.gaussian(R, sigma, flux)
 
 
@@ -57,7 +58,7 @@ class iGaussianMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \exp(-R^2 / (2 \sigma^2))$$
+    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
 
     where `sigma` is the standard deviation which controls the width of the
     profile and `flux` gives the total flux of the profile (assuming no
@@ -66,9 +67,9 @@ class iGaussianMixin:
     `sigma` and `flux` are batched by their first dimension, allowing for
     multiple Gaussian profiles to be defined at once.
 
-    Parameters:
-        sigma: Standard deviation of the Gaussian profile in arcseconds.
-        flux: Total flux of the Gaussian profile.
+    **Parameters:**
+    -    `sigma`: Standard deviation of the Gaussian profile in arcseconds.
+    -    `flux`: Total flux of the Gaussian profile.
     """
 
     _model_type = "gaussian"
@@ -92,5 +93,5 @@ class iGaussianMixin:
         )
 
     @forward
-    def iradial_model(self, i, R, sigma, flux):
+    def iradial_model(self, i: int, R: Tensor, sigma: Tensor, flux: Tensor) -> Tensor:
         return func.gaussian(R, sigma[i], flux[i])

@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
@@ -24,11 +25,11 @@ class FerrerMixin:
     of the truncation, `beta` controls the shape, and `I0` is the intensity at
     the center of the profile.
 
-    Parameters:
-        rout: Outer truncation radius in arcseconds.
-        alpha: Inner slope parameter.
-        beta: Outer slope parameter.
-        I0: Intensity at the center of the profile in flux/arcsec^2
+    **Parameters:**
+    -    `rout`: Outer truncation radius in arcseconds.
+    -    `alpha`: Inner slope parameter.
+    -    `beta`: Outer slope parameter.
+    -    `I0`: Intensity at the center of the profile in flux/arcsec^2
     """
 
     _model_type = "ferrer"
@@ -53,7 +54,9 @@ class FerrerMixin:
         )
 
     @forward
-    def radial_model(self, R, rout, alpha, beta, I0):
+    def radial_model(
+        self, R: Tensor, rout: Tensor, alpha: Tensor, beta: Tensor, I0: Tensor
+    ) -> Tensor:
         return func.ferrer(R, rout, alpha, beta, I0)
 
 
@@ -73,11 +76,11 @@ class iFerrerMixin:
     `rout`, `alpha`, `beta`, and `I0` are batched by their first dimension,
     allowing for multiple Ferrer profiles to be defined at once.
 
-    Parameters:
-        rout: Outer truncation radius in arcseconds.
-        alpha: Inner slope parameter.
-        beta: Outer slope parameter.
-        I0: Intensity at the center of the profile in flux/arcsec^2
+    **Parameters:**
+    -    `rout`: Outer truncation radius in arcseconds.
+    -    `alpha`: Inner slope parameter.
+    -    `beta`: Outer slope parameter.
+    -    `I0`: Intensity at the center of the profile in flux/arcsec^2
     """
 
     _model_type = "ferrer"
@@ -103,5 +106,7 @@ class iFerrerMixin:
         )
 
     @forward
-    def iradial_model(self, i, R, rout, alpha, beta, I0):
+    def iradial_model(
+        self, i: int, R: Tensor, rout: Tensor, alpha: Tensor, beta: Tensor, I0: Tensor
+    ) -> Tensor:
         return func.ferrer(R, rout[i], alpha[i], beta[i], I0[i])

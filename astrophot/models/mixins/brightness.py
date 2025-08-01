@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 import numpy as np
 
 from ...param import forward
@@ -22,7 +23,7 @@ class RadialMixin:
     """
 
     @forward
-    def brightness(self, x, y):
+    def brightness(self, x: Tensor, y: Tensor) -> Tensor:
         """
         Calculate the brightness at a given point (x, y) based on radial distance from the center.
         """
@@ -36,23 +37,23 @@ class WedgeMixin:
     model which defines multiple radial models separately along some number of
     wedges projected from the center. These wedges have sharp transitions along boundary angles theta.
 
-    Options:
-        symmetric: If True, the model will have symmetry for rotations of pi radians
-            and each ray will appear twice on the sky on opposite sides of the model.
-            If False, each ray is independent.
-        segments: The number of segments to divide the model into. This controls
-            how many rays are used in the model. The default is 2
+    **Options:**
+    -    `symmetric`: If True, the model will have symmetry for rotations of pi radians
+        and each ray will appear twice on the sky on opposite sides of the model.
+        If False, each ray is independent.
+    -    `segments`: The number of segments to divide the model into. This controls
+        how many rays are used in the model. The default is 2
     """
 
     _model_type = "wedge"
     _options = ("segments", "symmetric")
 
-    def __init__(self, *args, symmetric=True, segments=2, **kwargs):
+    def __init__(self, *args, symmetric: bool = True, segments: int = 2, **kwargs):
         super().__init__(*args, **kwargs)
         self.symmetric = symmetric
         self.segments = segments
 
-    def polar_model(self, R, T):
+    def polar_model(self, R: Tensor, T: Tensor) -> Tensor:
         model = torch.zeros_like(R)
         cycle = np.pi if self.symmetric else 2 * np.pi
         w = cycle / self.segments
@@ -63,7 +64,7 @@ class WedgeMixin:
             model[indices] += self.iradial_model(s, R[indices])
         return model
 
-    def brightness(self, x, y):
+    def brightness(self, x: Tensor, y: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
         return self.polar_model(self.radius_metric(x, y), self.angular_metric(x, y))
 
@@ -77,28 +78,28 @@ class RayMixin:
     function which depends on the number of rays, for example with two rays the
     brightness would be:
 
-    $$I(R,theta) = I_1(R)*\\cos(\\theta \\% \\pi) + I_2(R)*\\cos((theta + \\pi/2) \\% \\pi)$$
+    $$I(R,\\theta) = I_1(R)*\\cos(\\theta \\% \\pi) + I_2(R)*\\cos((\\theta + \\pi/2) \\% \\pi)$$
 
-    For `theta = 0` the brightness comes entirely from `I_1` while for `theta = pi/2`
+    For $\\theta = 0$ the brightness comes entirely from `I_1` while for $\\theta = \\pi/2$
     the brightness comes entirely from `I_2`.
 
-    Options:
-        symmetric: If True, the model will have symmetry for rotations of pi radians
-            and each ray will appear twice on the sky on opposite sides of the model.
-            If False, each ray is independent.
-        segments: The number of segments to divide the model into. This controls
-            how many rays are used in the model. The default is 2
+    **Options:**
+    -    `symmetric`: If True, the model will have symmetry for rotations of pi radians
+        and each ray will appear twice on the sky on opposite sides of the model.
+        If False, each ray is independent.
+    -    `segments`: The number of segments to divide the model into. This controls
+        how many rays are used in the model. The default is 2
     """
 
     _model_type = "ray"
     _options = ("symmetric", "segments")
 
-    def __init__(self, *args, symmetric=True, segments=2, **kwargs):
+    def __init__(self, *args, symmetric: bool = True, segments: int = 2, **kwargs):
         super().__init__(*args, **kwargs)
         self.symmetric = symmetric
         self.segments = segments
 
-    def polar_model(self, R, T):
+    def polar_model(self, R: Tensor, T: Tensor) -> Tensor:
         model = torch.zeros_like(R)
         weight = torch.zeros_like(R)
         cycle = np.pi if self.symmetric else 2 * np.pi
@@ -112,6 +113,6 @@ class RayMixin:
             weight[indices] += weights
         return model / weight
 
-    def brightness(self, x, y):
+    def brightness(self, x: Tensor, y: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
         return self.polar_model(self.radius_metric(x, y), self.angular_metric(x, y))

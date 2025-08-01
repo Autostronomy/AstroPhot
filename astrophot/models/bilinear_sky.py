@@ -1,8 +1,10 @@
+from typing import Tuple
 import numpy as np
 import torch
+from torch import Tensor
 
 from .sky_model_object import SkyModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from ..param import forward
 from . import func
@@ -11,11 +13,14 @@ from ..utils.initialize import polar_decomposition
 __all__ = ["BilinearSky"]
 
 
+@combine_docstrings
 class BilinearSky(SkyModel):
     """Sky background model using a coarse bilinear grid for the sky flux.
 
-    Parameters:
-        I: sky brightness grid
+    **Parameters:**
+    -    `I`: sky brightness grid
+    -    `PA`: position angle of the sky grid in radians.
+    -    `scale`: scale of the sky grid in arcseconds per grid unit.
 
     """
 
@@ -28,7 +33,7 @@ class BilinearSky(SkyModel):
     sampling_mode = "midpoint"
     usable = True
 
-    def __init__(self, *args, nodes=(3, 3), **kwargs):
+    def __init__(self, *args, nodes: Tuple[int, int] = (3, 3), **kwargs):
         """Initialize the BilinearSky model with a grid of nodes."""
         super().__init__(*args, **kwargs)
         self.nodes = nodes
@@ -71,13 +76,15 @@ class BilinearSky(SkyModel):
         )
 
     @forward
-    def transform_coordinates(self, x, y, I, PA, scale):
+    def transform_coordinates(
+        self, x: Tensor, y: Tensor, I: Tensor, PA: Tensor, scale: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         i, j = func.rotate(-PA, x, y)
         pixel_center = (I.shape[0] - 1) / 2, (I.shape[1] - 1) / 2
         return i / scale + pixel_center[0], j / scale + pixel_center[1]
 
     @forward
-    def brightness(self, x, y, I):
+    def brightness(self, x: Tensor, y: Tensor, I: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
-        return interp2d(I, y, x)
+        return interp2d(I, x, y)

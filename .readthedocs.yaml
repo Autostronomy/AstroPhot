@@ -26,6 +26,8 @@ build:
     - graphviz
   jobs:
     pre_build:
+      # Build docstring jupyter notebooks
+      - "python make_docs.py"
       # Generate the Sphinx configuration for this Jupyter Book so it builds.
       - "jupyter-book config sphinx docs/source/"
       # Create font cache ahead of jupyter book

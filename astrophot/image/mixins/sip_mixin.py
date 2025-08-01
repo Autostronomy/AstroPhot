@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional, Tuple
 
 import torch
 
@@ -10,20 +10,21 @@ from ...param import forward
 
 
 class SIPMixin:
+    """A mixin class for SIP (Simple Image Polynomial) distortion model."""
 
     expect_ctype = (("RA---TAN-SIP",), ("DEC--TAN-SIP",))
 
     def __init__(
         self,
         *args,
-        sipA={},
-        sipB={},
-        sipAP={},
-        sipBP={},
-        pixel_area_map=None,
-        distortion_ij=None,
-        distortion_IJ=None,
-        filename=None,
+        sipA: dict[Tuple[int, int], float] = {},
+        sipB: dict[Tuple[int, int], float] = {},
+        sipAP: dict[Tuple[int, int], float] = {},
+        sipBP: dict[Tuple[int, int], float] = {},
+        pixel_area_map: Optional[torch.Tensor] = None,
+        distortion_ij: Optional[torch.Tensor] = None,
+        distortion_IJ: Optional[torch.Tensor] = None,
+        filename: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(*args, filename=filename, **kwargs)
@@ -34,28 +35,74 @@ class SIPMixin:
         self.sipAP = sipAP
         self.sipBP = sipBP
 
+        if len(self.sipAP) == 0 and len(self.sipA) > 0:
+            self.compute_backward_sip_coefs()
+
         self.update_distortion_model(
             distortion_ij=distortion_ij, distortion_IJ=distortion_IJ, pixel_area_map=pixel_area_map
         )
 
     @forward
-    def pixel_to_plane(self, i, j, crtan, CD):
-        di = interp2d(self.distortion_ij[0], j, i, padding_mode="border")
-        dj = interp2d(self.distortion_ij[1], j, i, padding_mode="border")
+    def pixel_to_plane(
+        self, i: torch.Tensor, j: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        di = interp2d(self.distortion_ij[0], i, j, padding_mode="border")
+        dj = interp2d(self.distortion_ij[1], i, j, padding_mode="border")
         return func.pixel_to_plane_linear(i + di, j + dj, *self.crpix, CD, *crtan)
 
     @forward
-    def plane_to_pixel(self, x, y, crtan, CD):
+    def plane_to_pixel(
+        self, x: torch.Tensor, y: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         I, J = func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
-        dI = interp2d(self.distortion_IJ[0], J, I, padding_mode="border")
-        dJ = interp2d(self.distortion_IJ[1], J, I, padding_mode="border")
+        dI = interp2d(self.distortion_IJ[0], I, J, padding_mode="border")
+        dJ = interp2d(self.distortion_IJ[1], I, J, padding_mode="border")
         return I + dI, J + dJ
 
     @property
     def pixel_area_map(self):
         return self._pixel_area_map
 
-    def update_distortion_model(self, distortion_ij=None, distortion_IJ=None, pixel_area_map=None):
+    @property
+    def A_ORDER(self) -> int:
+        if self.sipA:
+            return max(a + b for a, b in self.sipA)
+        return 0
+
+    @property
+    def B_ORDER(self) -> int:
+        if self.sipB:
+            return max(a + b for a, b in self.sipB)
+        return 0
+
+    def compute_backward_sip_coefs(self):
+        """
+        Credit: Shu Liu and Lei Hi, see here:
+        https://github.com/Roman-Supernova-PIT/sfft/blob/master/sfft/utils/CupyWCSTransform.py
+
+        Compute the backward transformation from (U, V) to (u, v)
+        """
+        i, j = self.pixel_center_meshgrid()
+        u, v = i - self.crpix[0], j - self.crpix[1]
+        du, dv = func.sip_delta(u, v, self.sipA, self.sipB)
+        U = (u + du).flatten()
+        V = (v + dv).flatten()
+        AP, BP = func.sip_backward_transform(
+            u.flatten(), v.flatten(), U, V, self.A_ORDER, self.B_ORDER
+        )
+        self.sipAP = dict(
+            ((p, q), ap.item()) for (p, q), ap in zip(func.sip_coefs(self.A_ORDER), AP)
+        )
+        self.sipBP = dict(
+            ((p, q), bp.item()) for (p, q), bp in zip(func.sip_coefs(self.B_ORDER), BP)
+        )
+
+    def update_distortion_model(
+        self,
+        distortion_ij: Optional[torch.Tensor] = None,
+        distortion_IJ: Optional[torch.Tensor] = None,
+        pixel_area_map: Optional[torch.Tensor] = None,
+    ):
         """
         Update the pixel area map based on the current SIP coefficients.
         """
@@ -100,27 +147,18 @@ class SIPMixin:
         )
         self._pixel_area_map = A.abs()
 
-    def copy(self, **kwargs):
+    def copy_kwargs(self, **kwargs):
         kwargs = {
             "sipA": self.sipA,
             "sipB": self.sipB,
             "sipAP": self.sipAP,
             "sipBP": self.sipBP,
             "pixel_area_map": self.pixel_area_map,
+            "distortion_ij": self.distortion_ij,
+            "distortion_IJ": self.distortion_IJ,
             **kwargs,
         }
-        return super().copy(**kwargs)
-
-    def blank_copy(self, **kwargs):
-        kwargs = {
-            "sipA": self.sipA,
-            "sipB": self.sipB,
-            "sipAP": self.sipAP,
-            "sipBP": self.sipBP,
-            "pixel_area_map": self.pixel_area_map,
-            **kwargs,
-        }
-        return super().blank_copy(**kwargs)
+        return super().copy_kwargs(**kwargs)
 
     def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""
@@ -129,6 +167,8 @@ class SIPMixin:
         return super().get_window(
             other,
             pixel_area_map=self.pixel_area_map[indices],
+            distortion_ij=self.distortion_ij[:, indices[0], indices[1]],
+            distortion_IJ=self.distortion_IJ[:, indices[0], indices[1]],
             indices=indices,
             **kwargs,
         )
@@ -159,7 +199,7 @@ class SIPMixin:
         info["BP_ORDER"] = bp_order
         return info
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         hdulist = super().load(filename, hduext=hduext)
         self.sipA = {}
         if "A_ORDER" in hdulist[hduext].header:

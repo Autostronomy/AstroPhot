@@ -18,6 +18,20 @@ def covariance_matrix(
     showticks=True,
     **kwargs,
 ):
+    """
+    Create a covariance matrix plot. Creates a corner plot with ellipses representing the covariance between parameters.
+
+    **Args:**
+    - `covariance_matrix` (np.ndarray): Covariance matrix of shape (n_params, n_params).
+    - `mean` (np.ndarray): Mean values of the parameters, shape (n_params,).
+    - `labels` (list, optional): Labels for the parameters.
+    - `figsize` (tuple, optional): Size of the figure. Default is (10, 10).
+    - `reference_values` (np.ndarray, optional): Reference values for the parameters, used to draw vertical and horizontal lines. Typically these are the true values of the parameters.
+    - `ellipse_colors` (str or list, optional): Color for the ellipses. Default is `main_pallet["primary1"]`.
+    - `showticks` (bool, optional): Whether to show ticks on the axes. Default is True.
+
+    returns the fig and ax objects created to allow further customization by the user.
+    """
     num_params = covariance_matrix.shape[0]
     fig, axes = plt.subplots(num_params, num_params, figsize=figsize)
     plt.subplots_adjust(wspace=0.0, hspace=0.0)

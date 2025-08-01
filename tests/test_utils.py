@@ -85,17 +85,6 @@ def test_conversions_units():
         (1.0 + 2.5 * np.log10(np.pi)),
     ), "mag incorrectly converted to mag/arcsec^2 (area A given)"
 
-    # position angle PA to radians
-    assert np.isclose(
-        ap.utils.conversions.units.PA_shift_convention(1.0, unit="rad"),
-        ((1.0 - (np.pi / 2)) % np.pi),
-    ), "PA incorrectly converted to radians"
-
-    # position angle PA to degrees
-    assert np.isclose(
-        ap.utils.conversions.units.PA_shift_convention(1.0, unit="deg"), ((1.0 - (180 / 2)) % 180)
-    ), "PA incorrectly converted to degrees"
-
 
 def test_conversion_functions():
 

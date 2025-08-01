@@ -1,7 +1,8 @@
 import torch
+from torch import Tensor
 
 from .psf_model_object import PSFModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from caskade import OverrideParam
 from ..param import forward
@@ -9,6 +10,7 @@ from ..param import forward
 __all__ = ["PixelatedPSF"]
 
 
+@combine_docstrings
 class PixelatedPSF(PSFModel):
     """point source model which uses an image of the PSF as its
     representation for point sources. Using bilinear interpolation it
@@ -32,8 +34,8 @@ class PixelatedPSF(PSFModel):
     (essentially just divide the pixelscale by the upsampling factor
     you used).
 
-    Parameters:
-        pixels: the total flux within each pixel, represented as the log of the flux.
+    **Parameters:**
+    -    `pixels`: the total flux within each pixel, represented as the log of the flux.
 
     """
 
@@ -53,8 +55,8 @@ class PixelatedPSF(PSFModel):
         self.pixels.dynamic_value = target_area.data.clone() / target_area.pixel_area
 
     @forward
-    def brightness(self, x, y, pixels, center):
+    def brightness(self, x: Tensor, y: Tensor, pixels: Tensor, center: Tensor) -> Tensor:
         with OverrideParam(self.target.crtan, center):
-            pX, pY = self.target.plane_to_pixel(x, y)
-        result = interp2d(pixels, pY, pX)
+            i, j = self.target.plane_to_pixel(x, y)
+        result = interp2d(pixels, i, j)
         return result

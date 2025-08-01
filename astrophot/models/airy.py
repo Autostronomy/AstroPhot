@@ -1,6 +1,7 @@
 import torch
+from torch import Tensor
 
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .psf_model_object import PSFModel
 from .mixins import RadialMixin
 from ..param import forward
@@ -8,6 +9,7 @@ from ..param import forward
 __all__ = ("AiryPSF",)
 
 
+@combine_docstrings
 class AiryPSF(RadialMixin, PSFModel):
     """The Airy disk is an analytic description of the diffraction pattern
     for a circular aperture.
@@ -16,24 +18,27 @@ class AiryPSF(RadialMixin, PSFModel):
     of the lens system under the assumption that all elements are
     perfect. This expression goes as:
 
-    .. math::
+    $$I(\\theta) = I_0\\left[\\frac{2J_1(x)}{x}\\right]^2$$
+    $$x = ka\\sin(\\theta) = \\frac{2\\pi a r}{\\lambda R}$$
 
-      I(\\theta) = I_0\\left[\\frac{2J_1(x)}{x}\\right]^2
-
-      x = ka\\sin(\\theta) = \\frac{2\\pi a r}{\\lambda R}
-
-    where :math:`I(\\theta)` is the intensity as a function of the
+    where $I(\\theta)$ is the intensity as a function of the
     angular position within the diffraction system along its main
-    axis, :math:`I_0` is the central intensity of the airy disk,
-    :math:`J_1` is the Bessel function of the first kind of order one,
-    :math:`k = \\frac{2\\pi}{\\lambda}` is the wavenumber of the
-    light, :math:`a` is the aperture radius, :math:`r` is the radial
-    position from the center of the pattern, :math:`R` is the distance
+    axis, $I_0$ is the central intensity of the airy disk,
+    $J_1$ is the Bessel function of the first kind of order one,
+    $k = \\frac{2\\pi}{\\lambda}$ is the wavenumber of the
+    light, $a$ is the aperture radius, $r$ is the radial
+    position from the center of the pattern, $R$ is the distance
     from the circular aperture to the observation plane.
 
     In the `Airy_PSF` class we combine the parameters
-    :math:`a,R,\\lambda` into a single ratio to be optimized (or fixed
+    $a,R,\\lambda$ into a single ratio to be optimized (or fixed
     by the optical configuration).
+
+    **Parameters:**
+    -    `I0`: The central intensity of the airy disk in flux/arcsec^2.
+    -    `aRL`: The ratio of the aperture radius to the
+        product of the wavelength and the distance from the aperture to the
+        observation plane, $\\frac{a}{R \\lambda}$.
 
     """
 
@@ -63,6 +68,6 @@ class AiryPSF(RadialMixin, PSFModel):
             self.aRL.dynamic_value = (5.0 / 8.0) * 2 * self.target.pixelscale
 
     @forward
-    def radial_model(self, R, I0, aRL):
+    def radial_model(self, R: Tensor, I0: Tensor, aRL: Tensor) -> Tensor:
         x = 2 * torch.pi * aRL * R
         return I0 * (2 * torch.special.bessel_j1(x) / x) ** 2

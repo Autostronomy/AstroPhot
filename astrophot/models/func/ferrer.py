@@ -1,27 +1,18 @@
 import torch
 
 
-def ferrer(R, rout, alpha, beta, I0):
+def ferrer(
+    R: torch.Tensor, rout: torch.Tensor, alpha: torch.Tensor, beta: torch.Tensor, I0: torch.Tensor
+) -> torch.Tensor:
     """
     Modified Ferrer profile.
 
-    Parameters
-    ----------
-    R : array_like
-        Radial distance from the center.
-    rout : float
-        Outer radius of the profile.
-    alpha : float
-        Power-law index.
-    beta : float
-        Exponent for the modified Ferrer function.
-    I0 : float
-        Central intensity.
-
-    Returns
-    -------
-    array_like
-        The modified Ferrer profile evaluated at R.
+    **Args:**
+    -  `R`: Radius tensor at which to evaluate the modified Ferrer function
+    -  `rout`: Outer radius of the profile
+    -  `alpha`: Power-law index
+    -  `beta`: Exponent for the modified Ferrer function
+    -  `I0`: Central intensity
     """
     return torch.where(
         R < rout,

@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 import numpy as np
 
 from ...param import forward
@@ -16,8 +17,8 @@ class SplineMixin:
     that contains the radial profile of the brightness in units of
     flux/arcsec^2. The radius of each node is determined from `I_R.prof`.
 
-    Parameters:
-        I_R: Tensor of radial brightness values in units of flux/arcsec^2.
+    **Parameters:**
+    -    `I_R`: Tensor of radial brightness values in units of flux/arcsec^2.
     """
 
     _model_type = "spline"
@@ -35,6 +36,7 @@ class SplineMixin:
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
             prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
+            prof = np.append(prof, prof[-1] * 10)
             self.I_R.prof = prof
         else:
             prof = self.I_R.prof
@@ -48,8 +50,9 @@ class SplineMixin:
         self.I_R.dynamic_value = 10**I
 
     @forward
-    def radial_model(self, R, I_R):
-        return func.spline(R, self.I_R.prof, I_R)
+    def radial_model(self, R: Tensor, I_R: Tensor) -> Tensor:
+        ret = func.spline(R, self.I_R.prof, I_R)
+        return ret
 
 
 class iSplineMixin:
@@ -64,8 +67,8 @@ class iSplineMixin:
     multiple spline profiles to be defined at once. Each individual spline model
     is then `I_R[i]` and `I_R.prof[i]` where `i` indexes the profiles.
 
-    Parameters:
-        I_R: Tensor of radial brightness values in units of flux/arcsec^2.
+    **Parameters:**
+    -    `I_R`: Tensor of radial brightness values in units of flux/arcsec^2.
     """
 
     _model_type = "spline"
@@ -83,6 +86,7 @@ class iSplineMixin:
         # Create the I_R profile radii if needed
         if self.I_R.prof is None:
             prof = default_prof(self.window.shape, target_area.pixelscale, 2, 0.2)
+            prof = np.append(prof, prof[-1] * 10)
             prof = np.stack([prof] * self.segments)
             self.I_R.prof = prof
         else:
@@ -108,5 +112,5 @@ class iSplineMixin:
         self.I_R.dynamic_value = 10**value
 
     @forward
-    def iradial_model(self, i, R, I_R):
+    def iradial_model(self, i: int, R: Tensor, I_R: Tensor) -> Tensor:
         return func.spline(R, self.I_R.prof[i], I_R[i])

@@ -1,27 +1,18 @@
 import torch
 
 
-def king(R, Rc, Rt, alpha, I0):
+def king(
+    R: torch.Tensor, Rc: torch.Tensor, Rt: torch.Tensor, alpha: torch.Tensor, I0: torch.Tensor
+) -> torch.Tensor:
     """
     Empirical King profile.
 
-    Parameters
-    ----------
-    R : array_like
-        The radial distance from the center.
-    Rc : float
-        The core radius of the profile.
-    Rt : float
-        The truncation radius of the profile.
-    alpha : float
-        The power-law index of the profile.
-    I0 : float
-        The central intensity of the profile.
-
-    Returns
-    -------
-    array_like
-        The intensity at each radial distance.
+    **Args:**
+    -  `R`: Radial distance from the center of the profile.
+    -  `Rc`: Core radius of the profile.
+    -  `Rt`: Truncation radius of the profile.
+    -  `alpha`: Power-law index of the profile.
+    -  `I0`: Central intensity of the profile.
     """
     beta = 1 / (1 + (Rt / Rc) ** 2) ** (1 / alpha)
     gamma = 1 / (1 + (R / Rc) ** 2) ** (1 / alpha)

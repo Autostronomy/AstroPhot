@@ -12,35 +12,39 @@ from ..image import (
     PSFImage,
 )
 from ..utils.initialize import recursive_center_of_mass
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
-__all__ = ["ComponentModel"]
+__all__ = ("ComponentModel",)
 
 
+@combine_docstrings
 class ComponentModel(SampleMixin, Model):
     """Component of a model for an object in an image.
 
     This is a single component of an image model. It has a position on the sky
     determined by `center` and may or may not be convolved with a PSF to represent some data.
 
-    Options:
-        psf_convolve: Whether to convolve the model with a PSF. (bool)
+    **Parameters:**
+    -  `center`: The center of the component in arcseconds [x, y] defined on the tangent plane.
+
+    **Options:**
+    -  `psf_convolve`: Whether to convolve the model with a PSF. (bool)
 
     """
 
     _parameter_specs = {"center": {"units": "arcsec", "shape": (2,)}}
 
     _options = ("psf_convolve",)
-    psf_convolve: bool = False
 
     usable = False
 
-    def __init__(self, *args, psf=None, **kwargs):
+    def __init__(self, *args, psf=None, psf_convolve: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.psf = psf
+        self.psf_convolve = psf_convolve
 
     @property
     def psf(self):
@@ -65,9 +69,9 @@ class ComponentModel(SampleMixin, Model):
         else:
             self._psf = self.target.psf_image(data=val)
             self.psf_convolve = True
-        self.update_psf_upscale()
+        self._update_psf_upscale()
 
-    def update_psf_upscale(self):
+    def _update_psf_upscale(self):
         """Update the PSF upscale factor based on the current target pixel length."""
         if self.psf is None:
             self.psf_upscale = 1
@@ -101,7 +105,7 @@ class ComponentModel(SampleMixin, Model):
             pass
         self._target = tar
         try:
-            self.update_psf_upscale()
+            self._update_psf_upscale()
         except AttributeError:
             pass
 
@@ -114,10 +118,6 @@ class ComponentModel(SampleMixin, Model):
         with a local center of mass search which iterates by finding
         the center of light in a window, then iteratively updates
         until the iterations move by less than a pixel.
-
-        Args:
-          target (Optional[Target_Image]): A target image object to use as a reference when setting parameter values
-
         """
         if self.psf is not None and isinstance(self.psf, Model):
             self.psf.initialize()
@@ -164,17 +164,12 @@ class ComponentModel(SampleMixin, Model):
         with the original pixel grid. The final model is then added to
         the requested image.
 
-        Args:
-          image (Optional[Image]): An AstroPhot Image object (likely a Model_Image)
-                                     on which to evaluate the model values. If not
-                                     provided, a new Model_Image object will be created.
-          window (Optional[Window]): A window within which to evaluate the model.
-                                   Should only be used if a subset of the full image
-                                   is needed. If not provided, the entire image will
-                                   be used.
+        **Args:**
+        -  `window` (Optional[Window]): A window within which to evaluate the model.
+                    By default this is the model's window.
 
-        Returns:
-          Image: The image with the computed model values.
+        **Returns:**
+        -  `Image` (ModelImage): The image with the computed model values.
 
         """
         # Window within which to evaluate model

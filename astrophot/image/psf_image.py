@@ -14,20 +14,10 @@ __all__ = ["PSFImage"]
 class PSFImage(DataMixin, Image):
     """Image object which represents a model of PSF (Point Spread Function).
 
-    PSF_Image inherits from the base Image class and represents the model of a point spread function.
+    PSFImage inherits from the base Image class and represents the model of a point spread function.
     The point spread function characterizes the response of an imaging system to a point source or point object.
 
-    The shape of the PSF data must be odd.
-
-    Attributes:
-        data (torch.Tensor): The image data of the PSF.
-        identity (str): The identity of the image. Default is None.
-
-    Methods:
-        psf_border_int: Calculates and returns the convolution border size of the PSF image in integer format.
-        psf_border: Calculates and returns the convolution border size of the PSF image in the units of pixelscale.
-        _save_image_list: Saves the image list to the PSF HDU header.
-        reduce: Reduces the size of the image using a given scale factor.
+    The shape of the PSF data should be odd (for your sanity) but this is not enforced.
     """
 
     def __init__(self, *args, **kwargs):
@@ -38,12 +28,12 @@ class PSFImage(DataMixin, Image):
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
         norm = torch.sum(self.data)
-        self.data = self.data / norm
+        self._data = self.data / norm
         if self.has_weight:
-            self.weight = self.weight * norm**2
+            self._weight = self.weight * norm**2
 
     @property
-    def psf_pad(self):
+    def psf_pad(self) -> int:
         return max(self.data.shape) // 2
 
     def jacobian_image(
@@ -51,9 +41,9 @@ class PSFImage(DataMixin, Image):
         parameters: Optional[List[str]] = None,
         data: Optional[torch.Tensor] = None,
         **kwargs,
-    ):
+    ) -> JacobianImage:
         """
-        Construct a blank `Jacobian_Image` object formatted like this current `PSF_Image` object. Mostly used internally.
+        Construct a blank `JacobianImage` object formatted like this current `PSFImage` object. Mostly used internally.
         """
         if parameters is None:
             data = None
@@ -75,9 +65,9 @@ class PSFImage(DataMixin, Image):
         }
         return JacobianImage(parameters=parameters, data=data, **kwargs)
 
-    def model_image(self, **kwargs):
+    def model_image(self, **kwargs) -> "PSFImage":
         """
-        Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
+        Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         kwargs = {
             "data": torch.zeros_like(self.data),

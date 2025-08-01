@@ -2,7 +2,6 @@ import astrophot as ap
 import torch
 import numpy as np
 
-from utils import make_basic_sersic
 import pytest
 
 ######################################################################
@@ -21,8 +20,8 @@ def sip_target():
         mask=torch.zeros_like(arr),
         sipA={(1, 0): 1e-4, (0, 1): 1e-4, (2, 3): -1e-5},
         sipB={(1, 0): -1e-4, (0, 1): 5e-5, (2, 3): 2e-6},
-        sipAP={(1, 0): -1e-4, (0, 1): -1e-4, (2, 3): 1e-5},
-        sipBP={(1, 0): 1e-4, (0, 1): -5e-5, (2, 3): -2e-6},
+        # sipAP={(1, 0): -1e-4, (0, 1): -1e-4, (2, 3): 1e-5},
+        # sipBP={(1, 0): 1e-4, (0, 1): -5e-5, (2, 3): -2e-6},
     )
 
 
@@ -99,8 +98,8 @@ def test_sip_image_wcs_roundtrip(sip_target):
     x, y = sip_target.pixel_to_plane(i, j)
     i2, j2 = sip_target.plane_to_pixel(x, y)
 
-    assert torch.allclose(i, i2, atol=0.5), "i coordinates should match after WCS roundtrip"
-    assert torch.allclose(j, j2, atol=0.5), "j coordinates should match after WCS roundtrip"
+    assert torch.allclose(i, i2, atol=0.05), "i coordinates should match after WCS roundtrip"
+    assert torch.allclose(j, j2, atol=0.05), "j coordinates should match after WCS roundtrip"
 
 
 def test_sip_image_save_load(sip_target):

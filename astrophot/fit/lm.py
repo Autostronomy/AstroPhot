@@ -29,65 +29,67 @@ class LM(BaseOptimizer):
     The cost function that the LM algorithm tries to minimize is of
     the form:
 
-    .. math::
-        f(\\boldsymbol{\\beta}) = \\frac{1}{2}\\sum_{i=1}^{N} r_i(\\boldsymbol{\\beta})^2
+    $$f(\\boldsymbol{\\beta}) = \\frac{1}{2}\\sum_{i=1}^{N} r_i(\\boldsymbol{\\beta})^2$$
 
-    where :math:`\\boldsymbol{\\beta}` is the vector of parameters,
-    :math:`r_i` are the residuals, and :math:`N` is the number of
+    where $\\boldsymbol{\\beta}$ is the vector of parameters,
+    $r_i$ are the residuals, and $N$ is the number of
     observations.
 
     The LM algorithm iteratively performs the following update to the parameters:
 
-    .. math::
-        \\boldsymbol{\\beta}_{n+1} = \\boldsymbol{\\beta}_{n} - (J^T J + \\lambda diag(J^T J))^{-1} J^T \\boldsymbol{r}
+    $$\\boldsymbol{\\beta}_{n+1} = \\boldsymbol{\\beta}_{n} - (J^T J + \\lambda diag(J^T J))^{-1} J^T \\boldsymbol{r}$$
 
     where:
-        - :math:`J` is the Jacobian matrix whose elements are :math:`J_{ij} = \\frac{\\partial r_i}{\\partial \\beta_j}`,
-        - :math:`\\boldsymbol{r}` is the vector of residuals :math:`r_i(\\boldsymbol{\\beta})`,
-        - :math:`\\lambda` is a damping factor which is adjusted at each iteration.
+    - $J$ is the Jacobian matrix whose elements are $J_{ij} = \\frac{\\partial r_i}{\\partial \\beta_j}$,
+    - $\\boldsymbol{r}$ is the vector of residuals $r_i(\\boldsymbol{\\beta})$,
+    - $\\lambda$ is a damping factor which is adjusted at each iteration.
 
-    When :math:`\\lambda = 0` this can be seen as the Gauss-Newton
-    method. In the limit that :math:`\\lambda` is large, the
-    :math:`J^T J` matrix (an approximation of the Hessian) becomes
-    subdominant and the update essentially points along :math:`J^T
-    \\boldsymbol{r}` which is the gradient. In this scenario the
-    gradient descent direction is also modified by the :math:`\\lambda
-    diag(J^T J)` scaling which in some sense makes each gradient
+    When $\\lambda = 0$ this can be seen as the Gauss-Newton
+    method. In the limit that $\\lambda$ is large, the
+    $J^T J$ matrix (an approximation of the Hessian) becomes
+    subdominant and the update essentially points along $J^T
+    \\boldsymbol{r}$ which is the gradient. In this scenario the
+    gradient descent direction is also modified by the $\\lambda
+    diag(J^T J)$ scaling which in some sense makes each gradient
     unitless and further improves the step. Note as well that as
-    :math:`\\lambda` gets larger the step taken will be smaller, which
+    $\\lambda$ gets larger the step taken will be smaller, which
     helps to ensure convergence when the initial guess of the
     parameters are far from the optimal solution.
 
-    Note that the residuals :math:`r_i` are typically also scaled by
+    Note that the residuals $r_i$ are typically also scaled by
     the variance of the pixels, but this does not change the equations
     above. For a detailed explanation of the LM method see the article
     by Henri Gavin on which much of the AstroPhot LM implementation is
     based::
 
-        @article{Gavin2019,
-            title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},
-            author={Gavin, Henri P},
-            journal={Department of Civil and Environmental Engineering, Duke University},
-            volume={19},
-            year={2019}
-        }
+    ```{latex}
+    @article{Gavin2019,
+        title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},
+        author={Gavin, Henri P},
+        journal={Department of Civil and Environmental Engineering, Duke University},
+        volume={19},
+        year={2019}
+    }
+    ```
 
     as well as the paper on LM geodesic acceleration by Mark
     Transtrum::
 
-        @article{Tanstrum2012,
-           author = {{Transtrum}, Mark K. and {Sethna}, James P.},
-            title = "{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}",
-             year = 2012,
-              doi = {10.48550/arXiv.1201.5885},
-           adsurl = {https://ui.adsabs.harvard.edu/abs/2012arXiv1201.5885T},
-        }
+    ```{latex}
+    @article{Tanstrum2012,
+       author = {{Transtrum}, Mark K. and {Sethna}, James P.},
+        title = "{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}",
+         year = 2012,
+          doi = {10.48550/arXiv.1201.5885},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2012arXiv1201.5885T},
+    }
+    ```
 
-    The damping factor :math:`\\lambda` is adjusted at each iteration:
+    The damping factor $\\lambda$ is adjusted at each iteration:
     it is effectively increased when we are far from the solution, and
     decreased when we are close to it. In practice, the algorithm
-    attempts to pick the smallest :math:`\\lambda` that is can while
-    making sure that the :math:`\\chi^2` decreases at each step.
+    attempts to pick the smallest $\\lambda$ that is can while
+    making sure that the $\\chi^2$ decreases at each step.
 
     The main advantage of the LM algorithm is its adaptability. When
     the current estimate is far from the optimum, the algorithm
@@ -99,7 +101,7 @@ class LM(BaseOptimizer):
     enhancements to improve its performance. For example, the Jacobian
     may be approximated with finite differences, geodesic acceleration
     can be used to speed up convergence, and more sophisticated
-    strategies can be used to adjust the damping factor :math:`\\lambda`.
+    strategies can be used to adjust the damping factor $\\lambda$.
 
     The exact performance of the LM algorithm will depend on the
     nature of the problem, including the complexity of the function
@@ -123,6 +125,7 @@ class LM(BaseOptimizer):
         L0=1.0,
         max_step_iter: int = 10,
         ndf=None,
+        likelihood="gaussian",
         **kwargs,
     ):
 
@@ -140,6 +143,9 @@ class LM(BaseOptimizer):
         self.Lup = Lup
         self.Ldn = Ldn
         self.L = L0
+        self.likelihood = likelihood
+        if self.likelihood not in ["gaussian", "poisson"]:
+            raise ValueError(f"Unsupported likelihood: {self.likelihood}")
 
         # mask
         fit_mask = self.model.fit_mask()
@@ -197,6 +203,10 @@ class LM(BaseOptimizer):
     def chi2_ndf(self):
         return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
 
+    def poisson_2nll_ndf(self):
+        M = self.forward(self.current_state)
+        return 2 * torch.sum(M - self.Y * torch.log(M + 1e-10)) / self.ndf
+
     @torch.no_grad()
     def fit(self, update_uncertainty=True) -> BaseOptimizer:
         """This performs the fitting operation. It iterates the LM step
@@ -214,8 +224,13 @@ class LM(BaseOptimizer):
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
+        if self.likelihood == "gaussian":
+            quantity = "Chi^2/DoF"
+            self.loss_history = [self.chi2_ndf().item()]
+        elif self.likelihood == "poisson":
+            quantity = "2NLL/DoF"
+            self.loss_history = [self.poisson_2nll_ndf().item()]
         self._covariance_matrix = None
-        self.loss_history = [self.chi2_ndf().item()]
         self.L_history = [self.L]
         self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
         if self.verbose > 0:
@@ -225,7 +240,7 @@ class LM(BaseOptimizer):
 
         for _ in range(self.max_iter):
             if self.verbose > 0:
-                config.logger.info(f"Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+                config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
                     with ValidContext(self.model):
@@ -235,10 +250,10 @@ class LM(BaseOptimizer):
                             model=self.forward,
                             weight=self.W,
                             jacobian=self.jacobian,
-                            ndf=self.ndf,
                             L=self.L,
                             Lup=self.Lup,
                             Ldn=self.Ldn,
+                            likelihood=self.likelihood,
                         )
                     self.current_state = self.model.from_valid(res["x"]).detach()
                 else:
@@ -248,16 +263,19 @@ class LM(BaseOptimizer):
                         model=self.forward,
                         weight=self.W,
                         jacobian=self.jacobian,
-                        ndf=self.ndf,
                         L=self.L,
                         Lup=self.Lup,
                         Ldn=self.Ldn,
+                        likelihood=self.likelihood,
                     )
                     self.current_state = res["x"].detach()
             except OptimizeStopFail:
                 if self.verbose > 0:
                     config.logger.warning("Could not find step to improve Chi^2, stopping")
-                self.message = self.message + "fail. Could not find step to improve Chi^2"
+                self.message = (
+                    self.message
+                    + "success by immobility. Could not find step to improve Chi^2. Convergence not guaranteed"
+                )
                 break
             except OptimizeStopSuccess as e:
                 if self.verbose > 0:
@@ -267,53 +285,72 @@ class LM(BaseOptimizer):
 
             self.L = np.clip(res["L"], 1e-9, 1e9)
             self.L_history.append(res["L"])
-            self.loss_history.append(res["chi2"])
+            self.loss_history.append(2 * res["nll"] / self.ndf)
             self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
 
-            if len(self.loss_history) >= 3:
-                if (self.loss_history[-3] - self.loss_history[-1]) / self.loss_history[
-                    -1
-                ] < self.relative_tolerance and self.L < 0.1:
-                    self.message = self.message + "success"
-                    break
-            if len(self.loss_history) > 10:
-                if (self.loss_history[-10] - self.loss_history[-1]) / self.loss_history[
-                    -1
-                ] < self.relative_tolerance:
-                    self.message = (
-                        self.message + "success by immobility. Convergence not guaranteed"
-                    )
-                    break
+            if self.check_convergence():
+                break
 
         else:
             self.message = self.message + "fail. Maximum iterations"
 
         if self.verbose > 0:
             config.logger.info(
-                f"Final Chi^2/DoF: {self.loss_history[-1]:.6g}, L: {self.L_history[-1]:.3g}. Converged: {self.message}"
+                f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
             )
 
-        self.model.fill_dynamic_values(self.current_state)
+        self.model.fill_dynamic_values(
+            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
+        )
         if update_uncertainty:
             self.update_uncertainty()
 
         return self
 
+    def check_convergence(self) -> bool:
+        """Check if the optimization has converged based on the last
+        iteration's chi^2 and the relative tolerance.
+        """
+        if len(self.loss_history) < 3:
+            return False
+        good_history = [self.loss_history[0]]
+        for l in self.loss_history[1:]:
+            if good_history[-1] > l:
+                good_history.append(l)
+        if len(self.loss_history) - len(good_history) >= 10:
+            self.message = self.message + "success by immobility. Convergence not guaranteed"
+            return True
+        if len(good_history) < 3:
+            return False
+        if (good_history[-2] - good_history[-1]) / good_history[
+            -1
+        ] < self.relative_tolerance and self.L < 0.1:
+            self.message = self.message + "success"
+            return True
+        if len(good_history) < 10:
+            return False
+        if (good_history[-10] - good_history[-1]) / good_history[-1] < self.relative_tolerance:
+            self.message = self.message + "success by immobility. Convergence not guaranteed"
+            return True
+        return False
+
     @property
     @torch.no_grad()
     def covariance_matrix(self) -> torch.Tensor:
         """The covariance matrix for the model at the current
-        parameters. This can be used to construct a full Gaussian PDF
-        for the parameters using: :math:`\\mathcal{N}(\\mu,\\Sigma)`
-        where :math:`\\mu` is the optimized parameters and
-        :math:`\\Sigma` is the covariance matrix.
+        parameters. This can be used to construct a full Gaussian PDF for the
+        parameters using: $\\mathcal{N}(\\mu,\\Sigma)$ where $\\mu$ is the
+        optimized parameters and $\\Sigma$ is the covariance matrix.
 
         """
 
         if self._covariance_matrix is not None:
             return self._covariance_matrix
         J = self.jacobian(self.current_state)
-        hess = func.hessian(J, self.W)
+        if self.likelihood == "gaussian":
+            hess = func.hessian(J, self.W)
+        elif self.likelihood == "poisson":
+            hess = func.hessian_poisson(J, self.Y, self.forward(self.current_state))
         try:
             self._covariance_matrix = torch.linalg.inv(hess)
         except:

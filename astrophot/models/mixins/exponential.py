@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from ...param import forward
 from ...utils.decorators import ignore_numpy_warnings
@@ -17,14 +18,14 @@ class ExponentialMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp(- b_1(\\frac{R}{R_e} - 1))$$
+    $$I(R) = I_e * \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)$$
 
     Ie is the brightness at the effective radius, and Re is the effective
-    radius. `b_1` is a constant that ensures `Ie` is the brightness at `R_e`.
+    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
 
-    Parameters:
-        Re: effective radius in arcseconds
-        Ie: effective surface density in flux/arcsec^2
+    **Parameters:**
+    -    `Re`: effective radius in arcseconds
+    -    `Ie`: effective surface density in flux/arcsec^2
     """
 
     _model_type = "exponential"
@@ -47,7 +48,7 @@ class ExponentialMixin:
         )
 
     @forward
-    def radial_model(self, R, Re, Ie):
+    def radial_model(self, R: Tensor, Re: Tensor, Ie: Tensor) -> Tensor:
         return func.exponential(R, Re, Ie)
 
 
@@ -57,17 +58,17 @@ class iExponentialMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp(- b_1(\\frac{R}{R_e} - 1))$$
+    $$I(R) = I_e * \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)$$
 
-    Ie is the brightness at the effective radius, and Re is the effective
-    radius. `b_1` is a constant that ensures `Ie` is the brightness at `R_e`.
+    $I_e$ is the brightness at the effective radius, and $R_e$ is the effective
+    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
 
     `Re` and `Ie` are batched by their first dimension, allowing for multiple
     exponential profiles to be defined at once.
 
-    Parameters:
-        Re: effective radius in arcseconds
-        Ie: effective surface density in flux/arcsec^2
+    **Parameters:**
+    -    `Re`: effective radius in arcseconds
+    -    `Ie`: effective surface density in flux/arcsec^2
     """
 
     _model_type = "exponential"
@@ -91,5 +92,5 @@ class iExponentialMixin:
         )
 
     @forward
-    def iradial_model(self, i, R, Re, Ie):
+    def iradial_model(self, i: int, R: Tensor, Re: Tensor, Ie: Tensor) -> Tensor:
         return func.exponential(R, Re[i], Ie[i])

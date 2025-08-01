@@ -1,27 +1,30 @@
+from typing import Optional, Tuple
 import torch
+from torch import Tensor
 import numpy as np
 
 from .model_object import ComponentModel
-from ..utils.decorators import ignore_numpy_warnings
+from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
 from ..param import forward
 
 __all__ = ["MultiGaussianExpansion"]
 
 
+@combine_docstrings
 class MultiGaussianExpansion(ComponentModel):
     """Model that represents a galaxy as a sum of multiple Gaussian
     profiles. The model is defined as:
 
-    I(R) = sum_i flux_i * exp(-0.5*(R_i / sigma_i)^2) / (2 * pi * q_i * sigma_i^2)
+    $$I(R) = \\sum_i {\\rm flux}_i * \\exp(-0.5*(R_i / \\sigma_i)^2) / (2 * \\pi * q_i * \\sigma_i^2)$$
 
     where $R_i$ is a radius computed using $q_i$ and $PA_i$ for that component. All components share the same center.
 
-    Parameters:
-        q: axis ratio to scale minor axis from the ratio of the minor/major axis b/a, this parameter is unitless, it is restricted to the range (0,1)
-        PA: position angle of the semi-major axis relative to the image positive x-axis in radians, it is a cyclic parameter in the range [0,pi)
-        sigma: standard deviation of each Gaussian
-        flux: amplitude of each Gaussian
+    **Parameters:**
+    -    `q`: axis ratio to scale minor axis from the ratio of the minor/major axis b/a, this parameter is unitless, it is restricted to the range (0,1)
+    -    `PA`: position angle of the semi-major axis relative to the image positive x-axis in radians, it is a cyclic parameter in the range [0,pi)
+    -    `sigma`: standard deviation of each Gaussian
+    -    `flux`: amplitude of each Gaussian
     """
 
     _model_type = "mge"
@@ -33,7 +36,7 @@ class MultiGaussianExpansion(ComponentModel):
     }
     usable = True
 
-    def __init__(self, *args, n_components=None, **kwargs):
+    def __init__(self, *args, n_components: Optional[int] = None, **kwargs):
         super().__init__(*args, **kwargs)
         if n_components is None:
             for key in ("q", "sigma", "flux"):
@@ -96,7 +99,9 @@ class MultiGaussianExpansion(ComponentModel):
             self.q.dynamic_value = ones * np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     @forward
-    def transform_coordinates(self, x, y, q, PA):
+    def transform_coordinates(
+        self, x: Tensor, y: Tensor, q: Tensor, PA: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         x, y = super().transform_coordinates(x, y)
         if PA.numel() == 1:
             x, y = func.rotate(-(PA + np.pi / 2), x, y)
@@ -108,7 +113,7 @@ class MultiGaussianExpansion(ComponentModel):
         return x, y
 
     @forward
-    def brightness(self, x, y, flux, sigma, q):
+    def brightness(self, x: Tensor, y: Tensor, flux: Tensor, sigma: Tensor, q: Tensor) -> Tensor:
         x, y = self.transform_coordinates(x, y)
         R = self.radius_metric(x, y)
         return torch.sum(

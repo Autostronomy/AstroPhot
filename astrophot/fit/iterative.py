@@ -21,24 +21,21 @@ __all__ = [
 class Iter(BaseOptimizer):
     """Optimizer wrapper that performs optimization iteratively.
 
-    This optimizer applies a different optimizer to a group model iteratively.
-    It can be used for complex fits or when the number of models to fit is too large to fit in memory.
+    This optimizer applies the LM optimizer to a group model iteratively one
+    model at a time. It can be used for complex fits or when the number of
+    models to fit is too large to fit in memory. Note that it will iterate
+    through the group model, but if models within the group are themselves group
+    models, then they will be optimized as a whole. This gives some flexibility
+    to structure the models in a useful way.
 
-    Args:
-        model: An `AstroPhot_Model` object to perform optimization on.
-        method: The optimizer class to apply at each iteration step.
-        initial_state: Optional initial state for optimization, defaults to None.
-        max_iter: Maximum number of iterations, defaults to 100.
-        method_kwargs: Keyword arguments to pass to `method`.
-        **kwargs: Additional keyword arguments.
+    If not given, the `lm_kwargs` will be set to a relative tolerance of 1e-3
+    and a maximum of 15 iterations. This is to allow for faster convergence, it
+    is not worthwhile for a single model to spend lots of time optimizing when
+    its neighbors havent converged.
 
-    Attributes:
-        ndf: Degrees of freedom of the data.
-        method: The optimizer class to apply at each iteration step. Default: Levenberg-Marquardt
-        method_kwargs: Keyword arguments to pass to `method`.
-        iteration: The number of iterations performed.
-        lambda_history: A list of the states at each iteration step.
-        loss_history: A list of the losses at each iteration step
+    **Args:**
+    -    `max_iter`: Maximum number of iterations, defaults to 100.
+    -    `lm_kwargs`: Keyword arguments to pass to `LM` optimizer.
     """
 
     def __init__(
@@ -46,9 +43,9 @@ class Iter(BaseOptimizer):
         model: Model,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
-        lm_kwargs: Dict[str, Any] = {},
+        lm_kwargs: Dict[str, Any] = {"verbose": 0},
         **kwargs: Dict[str, Any],
-    ) -> None:
+    ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
         self.current_state = model.build_params_array()
@@ -65,12 +62,9 @@ class Iter(BaseOptimizer):
             # subtract masked pixels from degrees of freedom
             self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
 
-    def sub_step(self, model: Model, update_uncertainty=False) -> None:
+    def sub_step(self, model: Model, update_uncertainty=False):
         """
         Perform optimization for a single model.
-
-        Args:
-            model: The model to perform optimization on.
         """
         self.Y -= model()
         initial_values = model.target.copy()
@@ -81,7 +75,7 @@ class Iter(BaseOptimizer):
             config.logger.info(res.message)
         model.target = initial_values
 
-    def step(self) -> None:
+    def step(self):
         """
         Perform a single iteration of optimization.
         """
@@ -133,6 +127,9 @@ class Iter(BaseOptimizer):
         self.iteration += 1
 
     def fit(self) -> BaseOptimizer:
+        """
+        Perform the iterative fitting process until convergence or maximum iterations reached.
+        """
         self.iteration = 0
         self.Y = self.model(params=self.current_state)
         start_fit = time()

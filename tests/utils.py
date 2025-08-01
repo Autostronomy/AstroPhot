@@ -67,10 +67,10 @@ def make_basic_sersic(
     img = MODEL().data.T.detach().cpu().numpy()
     target.data = (
         img
-        + np.random.normal(scale=0.1, size=img.shape)
+        + np.random.normal(scale=0.5, size=img.shape)
         + np.random.normal(scale=np.sqrt(img) / 10)
     )
-    target.variance = 0.1**2 + img / 100
+    target.variance = 0.5**2 + img / 100
 
     return target
 

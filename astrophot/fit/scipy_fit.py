@@ -5,12 +5,25 @@ from scipy.optimize import minimize
 
 from .base import BaseOptimizer
 from .. import config
-from ..errors import OptimizeStopSuccess
 
 __all__ = ("ScipyFit",)
 
 
 class ScipyFit(BaseOptimizer):
+    """Scipy-based optimizer for fitting models to data using various
+    optimization methods.
+
+    The optimizer uses the `scipy.optimize.minimize` function to perform the
+    fitting. The Scipy package is widely used and well tested for optimization
+    tasks. It supports a variety of methods, however only a subset allow users to
+    define boundaries for the parameters. This wrapper is only for those methods.
+
+    **Args:**
+    -  `model`: The model to fit, which should be an instance of `Model`.
+    -  `initial_state`: Initial guess for the model parameters as a 1D tensor.
+    -  `method`: The optimization method to use. Default is "Nelder-Mead", but can be set to any of: "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", or "trust-constr".
+    -  `ndf`: Optional number of degrees of freedom for the fit. If not provided, it is calculated as the number of data points minus the number of parameters.
+    """
 
     def __init__(
         self,
@@ -19,67 +32,22 @@ class ScipyFit(BaseOptimizer):
         method: Literal[
             "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", "trust-constr"
         ] = "Nelder-Mead",
+        likelihood: Literal["gaussian", "poisson"] = "gaussian",
         ndf=None,
         **kwargs,
     ):
 
         super().__init__(model, initial_state, **kwargs)
         self.method = method
-        # mask
-        fit_mask = self.model.fit_mask()
-        if isinstance(fit_mask, tuple):
-            fit_mask = torch.cat(tuple(FM.flatten() for FM in fit_mask))
-        else:
-            fit_mask = fit_mask.flatten()
-        if torch.sum(fit_mask).item() == 0:
-            fit_mask = None
-
-        if model.target.has_mask:
-            mask = self.model.target[self.fit_window].flatten("mask")
-            if fit_mask is not None:
-                mask = mask | fit_mask
-            self.mask = ~mask
-        elif fit_mask is not None:
-            self.mask = ~fit_mask
-        else:
-            self.mask = torch.ones_like(
-                self.model.target[self.fit_window].flatten("data"), dtype=torch.bool
-            )
-        if self.mask is not None and torch.sum(self.mask).item() == 0:
-            raise OptimizeStopSuccess("No data to fit. All pixels are masked")
-
-        # Initialize optimizer attributes
-        self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]
-
-        # 1 / (sigma^2)
-        kW = kwargs.get("W", None)
-        if kW is not None:
-            self.W = torch.as_tensor(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
-                self.mask
-            ]
-        elif model.target.has_variance:
-            self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
-        else:
-            self.W = torch.ones_like(self.Y)
-
-        # The forward model which computes the output image given input parameters
-        self.forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[self.mask]
-        # Compute the jacobian in representation units (defined for -inf, inf)
-        self.jacobian = lambda x: model.jacobian(window=self.fit_window, params=x).flatten("data")[
-            self.mask
-        ]
-
-        # variable to store covariance matrix if it is ever computed
-        self._covariance_matrix = None
+        self.likelihood = likelihood
 
         # Degrees of freedom
         if ndf is None:
-            self.ndf = max(1.0, len(self.Y) - len(self.current_state))
+            sub_target = self.model.target[self.model.window]
+            ndf = sub_target.flatten("data").numel() - torch.sum(sub_target.flatten("mask")).item()
+            self.ndf = max(1.0, ndf - len(self.current_state))
         else:
             self.ndf = ndf
-
-    def chi2_ndf(self, x):
-        return torch.sum(self.W * (self.Y - self.forward(x)) ** 2) / self.ndf
 
     def numpy_bounds(self):
         """Convert the model's parameter bounds to a format suitable for scipy.optimize."""
@@ -102,12 +70,22 @@ class ScipyFit(BaseOptimizer):
                     bounds.append(tuple(bound))
         return bounds
 
+    def density(self, state: Sequence) -> float:
+        if self.likelihood == "gaussian":
+            return -self.model.gaussian_log_likelihood(
+                torch.tensor(state, dtype=config.DTYPE, device=config.DEVICE)
+            ).item()
+        elif self.likelihood == "poisson":
+            return -self.model.poisson_log_likelihood(
+                torch.tensor(state, dtype=config.DTYPE, device=config.DEVICE)
+            ).item()
+        else:
+            raise ValueError(f"Unknown likelihood type: {self.likelihood}")
+
     def fit(self):
 
         res = minimize(
-            lambda x: self.chi2_ndf(
-                torch.tensor(x, dtype=config.DTYPE, device=config.DEVICE)
-            ).item(),
+            lambda x: self.density(x),
             self.current_state,
             method=self.method,
             bounds=self.numpy_bounds(),
@@ -120,7 +98,7 @@ class ScipyFit(BaseOptimizer):
         self.current_state = torch.tensor(res.x, dtype=config.DTYPE, device=config.DEVICE)
         if self.verbose > 0:
             config.logger.info(
-                f"Final Chi^2/DoF: {self.chi2_ndf(self.current_state):.6g}. Converged: {self.message}"
+                f"Final 2NLL/DoF: {2*self.density(res.x)/self.ndf:.6g}. Converged: {self.message}"
             )
         self.model.fill_dynamic_values(self.current_state)
 

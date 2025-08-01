@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -12,10 +12,12 @@ from .psf_image import PSFImage
 from .. import config
 from ..errors import InvalidImage
 from .mixins import DataMixin
+from ..utils.decorators import combine_docstrings
 
 __all__ = ["TargetImage", "TargetImageList"]
 
 
+@combine_docstrings
 class TargetImage(DataMixin, Image):
     """Image object which represents the data to be fit by a model. It can
     include a variance image, mask, and PSF as anciliary data which
@@ -29,32 +31,32 @@ class TargetImage(DataMixin, Image):
 
     Basic usage:
 
-    .. code-block:: python
+    ```{python}
+    import astrophot as ap
 
-      import astrophot as ap
+    # Create target image
+    image = ap.image.Target_Image(
+        data="pixel data",
+        wcs="astropy WCS object",
+        variance="pixel uncertainties",
+        psf="point spread function as PSF_Image object",
+        mask="True for pixels to ignore",
+    )
 
-      # Create target image
-      image = ap.image.Target_Image(
-          data="pixel data",
-          wcs="astropy WCS object",
-          variance="pixel uncertainties",
-          psf="point spread function as PSF_Image object",
-          mask=" True for pixels to ignore",
-      )
+    # Display the data
+    fig, ax = plt.subplots()
+    ap.plots.target_image(fig, ax, image)
+    plt.show()
 
-      # Display the data
-      fig, ax = plt.subplots()
-      ap.plots.target_image(fig, ax, image)
-      plt.show()
+    # Save the image
+    image.save("mytarget.fits")
 
-      # Save the image
-      image.save("mytarget.fits")
+    # Load the image
+    image2 = ap.image.Target_Image(filename="mytarget.fits")
 
-      # Load the image
-      image2 = ap.image.Target_Image(filename="mytarget.fits")
-
-      # Make low resolution version
-      lowrez = image.reduce(2)
+    # Make low resolution version
+    lowrez = image.reduce(2)
+    ```
 
     Some important information to keep in mind. First, providing an
     `astropy WCS` object is the best way to keep track of coordinates
@@ -88,7 +90,7 @@ class TargetImage(DataMixin, Image):
             self.psf = psf
 
     @property
-    def has_psf(self):
+    def has_psf(self) -> bool:
         """Returns True when the target image object has a PSF model."""
         try:
             return self._psf is not None
@@ -97,9 +99,9 @@ class TargetImage(DataMixin, Image):
 
     @property
     def psf(self):
-        """The PSF for the `Target_Image`. This is used to convolve the
+        """The PSF for the `TargetImage`. This is used to convolve the
         model with the PSF before evaluating the likelihood. The PSF
-        should be a `PSF_Image` object or an `AstroPhot` PSF_Model.
+        should be a `PSFImage` object or an `AstroPhot` PSFModel.
 
         If no PSF is provided, then the image will not be convolved
         with a PSF and the model will be evaluated directly on the
@@ -113,12 +115,12 @@ class TargetImage(DataMixin, Image):
 
     @psf.setter
     def psf(self, psf):
-        """Provide a psf for the `Target_Image`. This is stored and passed to
+        """Provide a psf for the `TargetImage`. This is stored and passed to
         models which need to be convolved.
 
         The PSF doesn't need to have the same pixelscale as the
         image. It should be some multiple of the resolution of the
-        `Target_Image` though. So if the image has a pixelscale of 1,
+        `TargetImage` though. So if the image has a pixelscale of 1,
         the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """
@@ -139,14 +141,9 @@ class TargetImage(DataMixin, Image):
                 name=self.name + "_psf",
             )
 
-    def copy(self, **kwargs):
-        """Produce a copy of this image with all of the same properties. This
-        can be used when one wishes to make temporary modifications to
-        an image and then will want the original again.
-
-        """
+    def copy_kwargs(self, **kwargs):
         kwargs = {"psf": self.psf, **kwargs}
-        return super().copy(**kwargs)
+        return super().copy_kwargs(**kwargs)
 
     def fits_images(self):
         images = super().fits_images()
@@ -163,7 +160,7 @@ class TargetImage(DataMixin, Image):
                 config.logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
         return images
 
-    def load(self, filename: str, hduext=0):
+    def load(self, filename: str, hduext: int = 0):
         """Load the image from a FITS file. This will load the data, WCS, and
         any ancillary data such as variance, mask, and PSF.
 
@@ -184,9 +181,9 @@ class TargetImage(DataMixin, Image):
         parameters: List[str],
         data: Optional[torch.Tensor] = None,
         **kwargs,
-    ):
+    ) -> JacobianImage:
         """
-        Construct a blank `Jacobian_Image` object formatted like this current `Target_Image` object. Mostly used internally.
+        Construct a blank `JacobianImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         if data is None:
             data = torch.zeros(
@@ -206,9 +203,9 @@ class TargetImage(DataMixin, Image):
         }
         return JacobianImage(parameters=parameters, _data=data, **kwargs)
 
-    def model_image(self, upsample=1, pad=0, **kwargs):
+    def model_image(self, upsample: int = 1, pad: int = 0, **kwargs) -> ModelImage:
         """
-        Construct a blank `Model_Image` object formatted like this current `Target_Image` object. Mostly used internally.
+        Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         kwargs = {
             "_data": torch.zeros(
@@ -227,7 +224,7 @@ class TargetImage(DataMixin, Image):
         }
         return ModelImage(**kwargs)
 
-    def psf_image(self, data, upscale=1, **kwargs):
+    def psf_image(self, data: torch.Tensor, upscale: int = 1, **kwargs) -> PSFImage:
         kwargs = {
             "data": data,
             "CD": self.CD.value / upscale,
@@ -237,11 +234,11 @@ class TargetImage(DataMixin, Image):
         }
         return PSFImage(**kwargs)
 
-    def reduce(self, scale, **kwargs):
-        """Returns a new `Target_Image` object with a reduced resolution
+    def reduce(self, scale: int, **kwargs) -> "TargetImage":
+        """Returns a new `TargetImage` object with a reduced resolution
         compared to the current image. `scale` should be an integer
         indicating how much to reduce the resolution. If the
-        `Target_Image` was originally (48,48) pixels across with a
+        `TargetImage` was originally (48,48) pixels across with a
         pixelscale of 1 and `reduce(2)` is called then the image will
         be (24,24) pixels and the pixelscale will be 2. If `reduce(3)`
         is called then the returned image will be (16,16) pixels
@@ -290,14 +287,16 @@ class TargetImageList(ImageList):
     def has_weight(self):
         return any(image.has_weight for image in self.images)
 
-    def jacobian_image(self, parameters: List[str], data: Optional[List[torch.Tensor]] = None):
+    def jacobian_image(
+        self, parameters: List[str], data: Optional[List[torch.Tensor]] = None
+    ) -> JacobianImageList:
         if data is None:
             data = tuple(None for _ in range(len(self.images)))
         return JacobianImageList(
             list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
         )
 
-    def model_image(self):
+    def model_image(self) -> ModelImageList:
         return ModelImageList(list(image.model_image() for image in self.images))
 
     @property
@@ -310,7 +309,7 @@ class TargetImageList(ImageList):
             image.mask = M
 
     @property
-    def has_mask(self):
+    def has_mask(self) -> bool:
         return any(image.has_mask for image in self.images)
 
     @property
@@ -323,5 +322,5 @@ class TargetImageList(ImageList):
             image.psf = P
 
     @property
-    def has_psf(self):
+    def has_psf(self) -> bool:
         return any(image.has_psf for image in self.images)

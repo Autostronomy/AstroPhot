@@ -3,7 +3,7 @@ from functools import lru_cache
 import torch
 
 
-def convolve(image, psf):
+def convolve(image: torch.Tensor, psf: torch.Tensor) -> torch.Tensor:
 
     image_fft = torch.fft.rfft2(image, s=image.shape)
     psf_fft = torch.fft.rfft2(psf, s=image.shape)

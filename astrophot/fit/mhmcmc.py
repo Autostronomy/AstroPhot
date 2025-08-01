@@ -20,6 +20,14 @@ class MHMCMC(BaseOptimizer):
     """Metropolis-Hastings Markov-Chain Monte-Carlo sampler, based on:
     https://en.wikipedia.org/wiki/Metropolis-Hastings_algorithm . This is simply
     a thin wrapper for the Emcee package, which is a well-known MCMC sampler.
+
+    Note that the Emcee sampler requires multiple walkers to sample the
+    parameter space efficiently. The number of walkers is set to twice the
+    number of parameters by default, but can be made higher (not lower) if desired.
+    This is done by passing a 2D array of shape (nwalkers, ndim) to the `fit` method.
+
+    **Args:**
+    -  `likelihood`: The likelihood function to use for the MCMC sampling. Can be "gaussian" or "poisson". Default is "gaussian".
     """
 
     def __init__(

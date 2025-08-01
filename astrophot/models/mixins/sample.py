@@ -2,7 +2,6 @@ from typing import Optional, Literal
 
 import numpy as np
 from torch.autograd.functional import jacobian
-from torch.func import jacfwd, hessian
 import torch
 from torch import Tensor
 
@@ -15,26 +14,23 @@ from ...errors import SpecificationConflict
 
 class SampleMixin:
     """
-    options:
-        sampling_mode: The method used to sample the model in image pixels. Options are:
-            - auto: Automatically choose the sampling method based on the image size.
-            - midpoint: Use midpoint sampling, evaluate the brightness at the center of each pixel.
-            - simpsons: Use Simpson's rule for sampling integrating each pixel.
-            - quad:x: Use quadrature sampling with order x, where x is a positive integer to integrate each pixel.
-        jacobian_maxparams: The maximum number of parameters before the Jacobian will be broken into
-            smaller chunks. This is helpful for limiting the memory requirements to build a model.
-        jacobian_maxpixels: The maximum number of pixels before the Jacobian will be broken into
-            smaller chunks. This is helpful for limiting the memory requirements to build a model.
-        integrate_mode: The method used to select pixels to integrate further where the model varies significantly. Options are:
-            - none: No extra integration is performed (beyond the sampling_mode).
-            - bright: Select the brightest pixels for further integration.
-            - threshold: Select pixels which show signs of significant  higher order derivatives.
-        integrate_tolerance: The tolerance for selecting a pixel in the integration method. This is the total flux fraction
-            that is integrated over the image.
-        integrate_fraction: The fraction of the pixels to super sample during integration.
-        integrate_max_depth: The maximum depth of the integration method.
-        integrate_gridding: The gridding used for the integration method to super-sample a pixel at each iteration.
-        integrate_quad_order: The order of the quadrature used for the integration method on the super sampled pixels.
+    **Options:**
+    -    `sampling_mode`: The method used to sample the model in image pixels. Options are:
+            - `auto`: Automatically choose the sampling method based on the image size.
+            - `midpoint`: Use midpoint sampling, evaluate the brightness at the center of each pixel.
+            - `simpsons`: Use Simpson's rule for sampling integrating each pixel.
+            - `quad:x`: Use quadrature sampling with order x, where x is a positive integer to integrate each pixel.
+    -    `jacobian_maxparams`: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to build a model.
+    -    `jacobian_maxpixels`: The maximum number of pixels before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to build a model.
+    -    `integrate_mode`: The method used to select pixels to integrate further where the model varies significantly. Options are:
+            - `none`: No extra integration is performed (beyond the sampling_mode).
+            - `bright`: Select the brightest pixels for further integration.
+            - `threshold`: Select pixels which show signs of significant higher order derivatives.
+    -    `integrate_tolerance`: The tolerance for selecting a pixel in the integration method. This is the total flux fraction that is integrated over the image.
+    -    `integrate_fraction`: The fraction of the pixels to super sample during integration.
+    -    `integrate_max_depth`: The maximum depth of the integration method.
+    -    `integrate_gridding`: The gridding used for the integration method to super-sample a pixel at each iteration.
+    -    `integrate_quad_order`: The order of the quadrature used for the integration method on the super sampled pixels.
     """
 
     # Method for initial sampling of model
@@ -43,8 +39,7 @@ class SampleMixin:
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_maxparams = 10
     jacobian_maxpixels = 1000**2
-    integrate_mode = "bright"  # none, bright, threshold
-    integrate_tolerance = 1e-4  # total flux fraction
+    integrate_mode = "bright"  # none, bright, curvature
     integrate_fraction = 0.05  # fraction of the pixels to super sample
     integrate_max_depth = 2
     integrate_gridding = 5
@@ -55,7 +50,6 @@ class SampleMixin:
         "jacobian_maxparams",
         "jacobian_maxpixels",
         "integrate_mode",
-        "integrate_tolerance",
         "integrate_fraction",
         "integrate_max_depth",
         "integrate_gridding",
@@ -63,7 +57,7 @@ class SampleMixin:
     )
 
     @forward
-    def _bright_integrate(self, sample, image):
+    def _bright_integrate(self, sample: Tensor, image: Image) -> Tensor:
         i, j = image.pixel_center_meshgrid()
         N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
         sample_flat = sample.flatten(-2)
@@ -72,6 +66,7 @@ class SampleMixin:
             i.flatten(-2)[select],
             j.flatten(-2)[select],
             lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+            scale=image.base_scale,
             bright_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
@@ -80,7 +75,7 @@ class SampleMixin:
         return sample_flat.reshape(sample.shape)
 
     @forward
-    def _threshold_integrate(self, sample, image: Image):
+    def _curvature_integrate(self, sample: Tensor, image: Image) -> Tensor:
         i, j = image.pixel_center_meshgrid()
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
@@ -97,23 +92,24 @@ class SampleMixin:
             .squeeze(0)
             .abs()
         )
-        total_est = torch.sum(sample)
-        threshold = total_est * self.integrate_tolerance
-        select = curvature > threshold
+        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
+        select = torch.topk(curvature.flatten(-2), N, dim=-1).indices
 
-        sample[select] = func.recursive_quad_integrate(
-            i[select],
-            j[select],
+        sample_flat = sample.flatten(-2)
+        sample_flat[select] = func.recursive_quad_integrate(
+            i.flatten(-2)[select],
+            j.flatten(-2)[select],
             lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-            threshold=threshold,
+            scale=image.base_scale,
+            curve_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
             max_depth=self.integrate_max_depth,
         )
-        return sample
+        return sample_flat.reshape(sample.shape)
 
     @forward
-    def sample_image(self, image: Image):
+    def sample_image(self, image: Image) -> Tensor:
         if self.sampling_mode == "auto":
             N = np.prod(image.data.shape)
             if N <= 100:
@@ -142,8 +138,8 @@ class SampleMixin:
             raise SpecificationConflict(
                 f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
             )
-        if self.integrate_mode == "threshold":
-            sample = self._threshold_integrate(sample, image)
+        if self.integrate_mode == "curvature":
+            sample = self._curvature_integrate(sample, image)
         elif self.integrate_mode == "bright":
             sample = self._bright_integrate(sample, image)
         elif self.integrate_mode != "none":
@@ -152,7 +148,9 @@ class SampleMixin:
             )
         return sample
 
-    def _jacobian(self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor):
+    def _jacobian(
+        self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor
+    ) -> Tensor:
         # return jacfwd( # this should be more efficient, but the trace overhead is too high
         #     lambda x: self.sample(
         #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
@@ -173,7 +171,7 @@ class SampleMixin:
         window: Optional[Window] = None,
         pass_jacobian: Optional[JacobianImage] = None,
         params: Optional[Tensor] = None,
-    ):
+    ) -> JacobianImage:
         if window is None:
             window = self.window
 
@@ -224,7 +222,7 @@ class SampleMixin:
         window: Optional[Window] = None,
         params: Optional[Tensor] = None,
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
-    ):
+    ) -> Tensor:
         """Compute the gradient of the model with respect to its parameters."""
         if window is None:
             window = self.window

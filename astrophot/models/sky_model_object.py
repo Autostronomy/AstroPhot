@@ -1,8 +1,10 @@
 from .model_object import ComponentModel
+from ..utils.decorators import combine_docstrings
 
 __all__ = ["SkyModel"]
 
 
+@combine_docstrings
 class SkyModel(ComponentModel):
     """prototype class for any sky background model. This simply imposes
     that the center is a locked parameter, not involved in the
@@ -27,17 +29,17 @@ class SkyModel(ComponentModel):
         self.center.to_static()
 
     @property
-    def psf_mode(self):
-        return "none"
+    def psf_convolve(self) -> bool:
+        return False
 
-    @psf_mode.setter
-    def psf_mode(self, val):
+    @psf_convolve.setter
+    def psf_convolve(self, val: bool):
         pass
 
     @property
-    def integrate_mode(self):
+    def integrate_mode(self) -> str:
         return "none"
 
     @integrate_mode.setter
-    def integrate_mode(self, val):
+    def integrate_mode(self, val: str):
         pass

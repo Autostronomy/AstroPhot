@@ -44,7 +44,7 @@ class Module(CModule):
         for param in self.dynamic_params:
             numel = max(1, np.prod(param.shape))
             for _ in range(numel):
-                units.append(param.unit)
+                units.append(param.units)
         return units
 
     def fill_dynamic_value_uncertainties(self, uncertainty):

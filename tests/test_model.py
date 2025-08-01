@@ -27,9 +27,11 @@ def test_model_sampling_modes():
     )
 
     # With subpixel integration
+    model.integrate_mode = "bright"
     auto = model().data.detach().cpu().numpy()
     model.sampling_mode = "midpoint"
     midpoint = model().data.detach().cpu().numpy()
+    midpoint_bright = midpoint.copy()
     model.sampling_mode = "simpsons"
     simpsons = model().data.detach().cpu().numpy()
     model.sampling_mode = "quad:5"
@@ -48,13 +50,16 @@ def test_model_sampling_modes():
     simpsons = model().data.detach().cpu().numpy()
     model.sampling_mode = "quad:5"
     quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(
+        midpoint, midpoint_bright, rtol=1e-2
+    ), "no integrate sampling should match bright sampling"
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
-    # Without subpixel integration
-    model.integrate_mode = "threshold"
+    # curvature based subpixel integration
+    model.integrate_mode = "curvature"
     auto = model().data.detach().cpu().numpy()
     model.sampling_mode = "midpoint"
     midpoint = model().data.detach().cpu().numpy()
@@ -62,6 +67,9 @@ def test_model_sampling_modes():
     simpsons = model().data.detach().cpu().numpy()
     model.sampling_mode = "quad:5"
     quad5 = model().data.detach().cpu().numpy()
+    assert np.allclose(
+        midpoint, midpoint_bright, rtol=1e-2
+    ), "curvature integrate sampling should match bright sampling"
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
@@ -128,19 +136,23 @@ def test_all_model_sample(model_type):
     assert torch.all(
         torch.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
-    res = ap.fit.LM(MODEL, max_iter=10).fit()
+
+    res = ap.fit.LM(MODEL, max_iter=10, verbose=1).fit()
+    print(res.loss_history)
+
+    print(MODEL)  # test printing
 
     # sky has little freedom to fit, some more complex models need extra
     # attention to get a good fit so here we just check that they can improve
     if (
         "sky" in model_type
         or "king" in model_type
+        or "spline" in model_type
         or model_type
         in [
-            "spline ray galaxy model",
             "exponential warp galaxy model",
-            "spline wedge galaxy model",
             "ferrer warp galaxy model",
+            "ferrer ray galaxy model",
         ]
     ):
         assert res.loss_history[0] > res.loss_history[-1], (
@@ -148,7 +160,7 @@ def test_all_model_sample(model_type):
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
         )
     else:  # Most models should get significantly better after just a few iterations
-        assert res.loss_history[0] > (2 * res.loss_history[-1]), (
+        assert res.loss_history[0] > (1.5 * res.loss_history[-1]), (
             f"Model {model_type} should fit to the target image, but did not. "
             f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
         )

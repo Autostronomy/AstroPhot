@@ -1,7 +1,7 @@
 import argparse
 import requests
 import torch
-from . import config, models, plots, utils, fit
+from . import config, models, plots, utils, fit, image, errors
 from .param import forward, Param, Module
 
 from .image import (
@@ -9,7 +9,10 @@ from .image import (
     ImageList,
     TargetImage,
     TargetImageList,
+    SIPModelImage,
     SIPTargetImage,
+    CMOSModelImage,
+    CMOSTargetImage,
     JacobianImage,
     JacobianImageList,
     PSFImage,
@@ -140,12 +143,16 @@ def run_from_terminal() -> None:
 
 __all__ = (
     "models",
+    "image",
     "Model",
     "Image",
     "ImageList",
     "TargetImage",
     "TargetImageList",
+    "SIPModelImage",
     "SIPTargetImage",
+    "CMOSModelImage",
+    "CMOSTargetImage",
     "JacobianImage",
     "JacobianImageList",
     "PSFImage",
@@ -158,6 +165,7 @@ __all__ = (
     "fit",
     "forward",
     "Param",
+    "errors",
     "Module",
     "config",
     "run_from_terminal",

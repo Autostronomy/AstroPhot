@@ -16,7 +16,9 @@ version of each tutorial is available here.
     BasicPSFModels
     JointModels
     ImageAlignment
+    PoissonLikelihood
     CustomModels
     GravitationalLensing
     AdvancedPSFModels
+    ImageTypes
     ConstrainedModels
