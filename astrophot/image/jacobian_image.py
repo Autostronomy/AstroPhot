@@ -1,9 +1,8 @@
 from typing import List, Union
 
-import torch
-
 from .image_object import Image, ImageList
 from ..errors import SpecificationConflict, InvalidImage
+from ..backend import backend
 
 __all__ = ("JacobianImage", "JacobianImageList")
 
@@ -101,7 +100,7 @@ class JacobianImageList(ImageList):
                     raise SpecificationConflict(
                         "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
                     )
-        return torch.cat(tuple(image.flatten(attribute) for image in self.images), dim=0)
+        return backend.concatenate(tuple(image.flatten(attribute) for image in self.images), dim=0)
 
     def match_parameters(self, other: Union[JacobianImage, "JacobianImageList", List[str]]):
         self_i = []

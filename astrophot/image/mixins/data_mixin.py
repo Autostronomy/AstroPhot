@@ -1,11 +1,11 @@
 from typing import Union, Optional
 
-import torch
 import numpy as np
 from astropy.io import fits
 
 from ...utils.initialize import auto_variance
 from ... import config
+from ...backend import backend, ArrayLike
 from ...errors import SpecificationConflict
 from ..image_object import Image
 from ..window import Window
@@ -30,12 +30,12 @@ class DataMixin:
     def __init__(
         self,
         *args,
-        mask: Optional[torch.Tensor] = None,
-        std: Optional[torch.Tensor] = None,
-        variance: Optional[torch.Tensor] = None,
-        weight: Optional[torch.Tensor] = None,
-        _mask: Optional[torch.Tensor] = None,
-        _weight: Optional[torch.Tensor] = None,
+        mask: Optional[ArrayLike] = None,
+        std: Optional[ArrayLike] = None,
+        variance: Optional[ArrayLike] = None,
+        weight: Optional[ArrayLike] = None,
+        _mask: Optional[ArrayLike] = None,
+        _weight: Optional[ArrayLike] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -59,8 +59,8 @@ class DataMixin:
             self.weight = weight
 
         # Set nan pixels to be masked automatically
-        if torch.any(torch.isnan(self.data)).item():
-            self._mask = self.mask | torch.isnan(self.data)
+        if backend.any(backend.isnan(self.data)).item():
+            self._mask = self.mask | backend.isnan(self.data)
 
     @property
     def std(self):
@@ -75,8 +75,8 @@ class DataMixin:
 
         """
         if self.has_variance:
-            return torch.sqrt(self.variance)
-        return torch.ones_like(self.data)
+            return backend.sqrt(self.variance)
+        return backend.ones_like(self.data)
 
     @std.setter
     def std(self, std):
@@ -114,8 +114,8 @@ class DataMixin:
 
         """
         if self.has_variance:
-            return torch.where(self._weight == 0, torch.inf, 1 / self._weight)
-        return torch.ones_like(self.data)
+            return backend.where(self._weight == 0, backend.inf, 1 / self._weight)
+        return backend.ones_like(self.data)
 
     @variance.setter
     def variance(self, variance):
@@ -167,7 +167,7 @@ class DataMixin:
         """
         if self.has_weight:
             return self._weight
-        return torch.ones_like(self.data)
+        return backend.ones_like(self.data)
 
     @weight.setter
     def weight(self, weight):
@@ -176,8 +176,8 @@ class DataMixin:
             return
         if isinstance(weight, str) and weight == "auto":
             weight = 1 / auto_variance(self.data, self.mask).T
-        self._weight = torch.transpose(
-            torch.as_tensor(weight, dtype=config.DTYPE, device=config.DEVICE), 0, 1
+        self._weight = backend.transpose(
+            backend.as_array(weight, dtype=config.DTYPE, device=config.DEVICE), 0, 1
         )
         if self._weight.shape != self.data.shape:
             self._weight = None
@@ -215,15 +215,15 @@ class DataMixin:
         """
         if self.has_mask:
             return self._mask
-        return torch.zeros_like(self.data, dtype=torch.bool)
+        return backend.zeros_like(self.data, dtype=backend.bool)
 
     @mask.setter
     def mask(self, mask):
         if mask is None:
             self._mask = None
             return
-        self._mask = torch.transpose(
-            torch.as_tensor(mask, dtype=torch.bool, device=config.DEVICE), 0, 1
+        self._mask = backend.transpose(
+            backend.as_tensor(mask, dtype=backend.bool, device=config.DEVICE), 0, 1
         )
         if self._mask.shape != self.data.shape:
             self._mask = None
@@ -255,7 +255,7 @@ class DataMixin:
         if self.has_weight:
             self._weight = self._weight.to(dtype=dtype, device=device)
         if self.has_mask:
-            self._mask = self._mask.to(dtype=torch.bool, device=device)
+            self._mask = self._mask.to(dtype=backend.bool, device=device)
         return self
 
     def copy_kwargs(self, **kwargs):
@@ -284,13 +284,14 @@ class DataMixin:
         if self.has_weight:
             images.append(
                 fits.ImageHDU(
-                    torch.transpose(self.weight, 0, 1).detach().cpu().numpy(), name="WEIGHT"
+                    backend.transpose(self.weight, 0, 1).detach().cpu().numpy(), name="WEIGHT"
                 )
             )
         if self.has_mask:
             images.append(
                 fits.ImageHDU(
-                    torch.transpose(self.mask, 0, 1).detach().cpu().numpy().astype(int), name="MASK"
+                    backend.transpose(self.mask, 0, 1).detach().cpu().numpy().astype(int),
+                    name="MASK",
                 )
             )
         return images

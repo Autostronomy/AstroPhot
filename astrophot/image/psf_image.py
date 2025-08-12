@@ -1,11 +1,11 @@
 from typing import List, Optional
 
-import torch
 import numpy as np
 
 from .image_object import Image
 from .jacobian_image import JacobianImage
 from .. import config
+from ..backend import backend, ArrayLike
 from .mixins import DataMixin
 
 __all__ = ["PSFImage"]
@@ -27,7 +27,7 @@ class PSFImage(DataMixin, Image):
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
-        norm = torch.sum(self.data)
+        norm = backend.sum(self.data)
         self._data = self.data / norm
         if self.has_weight:
             self._weight = self.weight * norm**2
@@ -39,7 +39,7 @@ class PSFImage(DataMixin, Image):
     def jacobian_image(
         self,
         parameters: Optional[List[str]] = None,
-        data: Optional[torch.Tensor] = None,
+        data: Optional[ArrayLike] = None,
         **kwargs,
     ) -> JacobianImage:
         """
@@ -49,7 +49,7 @@ class PSFImage(DataMixin, Image):
             data = None
             parameters = []
         elif data is None:
-            data = torch.zeros(
+            data = backend.zeros(
                 (*self.data.shape, len(parameters)),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
@@ -70,7 +70,7 @@ class PSFImage(DataMixin, Image):
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         kwargs = {
-            "data": torch.zeros_like(self.data),
+            "data": backend.zeros_like(self.data),
             "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,

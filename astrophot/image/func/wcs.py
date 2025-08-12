@@ -1,5 +1,5 @@
 import numpy as np
-import torch
+from ...backend import backend
 
 deg_to_rad = np.pi / 180
 rad_to_deg = 180 / np.pi
@@ -26,11 +26,15 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
     ra0 = ra0 * deg_to_rad
     dec0 = dec0 * deg_to_rad
 
-    cosc = torch.sin(dec0) * torch.sin(dec) + torch.cos(dec0) * torch.cos(dec) * torch.cos(ra - ra0)
+    cosc = backend.sin(dec0) * backend.sin(dec) + backend.cos(dec0) * backend.cos(
+        dec
+    ) * backend.cos(ra - ra0)
 
-    x = torch.cos(dec) * torch.sin(ra - ra0)
+    x = backend.cos(dec) * backend.sin(ra - ra0)
 
-    y = torch.cos(dec0) * torch.sin(dec) - torch.sin(dec0) * torch.cos(dec) * torch.cos(ra - ra0)
+    y = backend.cos(dec0) * backend.sin(dec) - backend.sin(dec0) * backend.cos(dec) * backend.cos(
+        ra - ra0
+    )
 
     return x * rad_to_arcsec / cosc + x0, y * rad_to_arcsec / cosc + y0
 
@@ -55,15 +59,17 @@ def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-10):
     ra0 = ra0 * deg_to_rad
     dec0 = dec0 * deg_to_rad
 
-    rho = torch.sqrt(x**2 + y**2) + s
-    c = torch.arctan(rho)
+    rho = backend.sqrt(x**2 + y**2) + s
+    c = backend.arctan(rho)
 
-    ra = ra0 + torch.arctan2(
-        x * torch.sin(c),
-        rho * torch.cos(dec0) * torch.cos(c) - y * torch.sin(dec0) * torch.sin(c),
+    ra = ra0 + backend.arctan2(
+        x * backend.sin(c),
+        rho * backend.cos(dec0) * backend.cos(c) - y * backend.sin(dec0) * backend.sin(c),
     )
 
-    dec = torch.arcsin(torch.cos(c) * torch.sin(dec0) + y * torch.sin(c) * torch.cos(dec0) / rho)
+    dec = backend.arcsin(
+        backend.cos(c) * backend.sin(dec0) + y * backend.sin(c) * backend.cos(dec0) / rho
+    )
 
     return ra * rad_to_deg, dec * rad_to_deg
 
@@ -86,7 +92,7 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     **Returns:**
     -  Tuple[Tensor, Tensor]: Tuple containing the x and y coordinates in arcseconds
     """
-    uv = torch.stack((i.flatten() - i0, j.flatten() - j0), dim=0)
+    uv = backend.stack((i.flatten() - i0, j.flatten() - j0), dim=0)
     xy = CD @ uv
 
     return xy[0].reshape(i.shape) + x0, xy[1].reshape(i.shape) + y0
@@ -101,7 +107,7 @@ def sip_coefs(order):
 
 
 def sip_matrix(u, v, order):
-    M = torch.zeros((len(u), (order + 1) * (order + 2) // 2), dtype=u.dtype, device=u.device)
+    M = backend.zeros((len(u), (order + 1) * (order + 2) // 2), dtype=u.dtype, device=u.device)
     for i, (p, q) in enumerate(sip_coefs(order)):
         M[:, i] = u**p * v**q
     return M
@@ -118,8 +124,8 @@ def sip_backward_transform(u, v, U, V, A_ORDER, B_ORDER):
     FP_UV = sip_matrix(U, V, A_ORDER)
     GP_UV = sip_matrix(U, V, B_ORDER)
 
-    AP = torch.linalg.lstsq(FP_UV, (u.flatten() - U).reshape(-1, 1))[0].squeeze(1)
-    BP = torch.linalg.lstsq(GP_UV, (v.flatten() - V).reshape(-1, 1))[0].squeeze(1)
+    AP = backend.linalg.lstsq(FP_UV, (u.flatten() - U).reshape(-1, 1))[0].squeeze(1)
+    BP = backend.linalg.lstsq(GP_UV, (v.flatten() - V).reshape(-1, 1))[0].squeeze(1)
     return AP, BP
 
 
@@ -131,8 +137,8 @@ def sip_delta(u, v, sipA=(), sipB=()):
         The SIP coefficients, where the keys are tuples of powers (i, j) and the values are the coefficients.
         For example, {(1, 2): 0.1} means delta_u = 0.1 * (u * v^2).
     """
-    delta_u = torch.zeros_like(u)
-    delta_v = torch.zeros_like(v)
+    delta_u = backend.zeros_like(u)
+    delta_v = backend.zeros_like(v)
     # Get all used coefficient powers
     all_a = set(s[0] for s in sipA) | set(s[0] for s in sipB)
     all_b = set(s[1] for s in sipA) | set(s[1] for s in sipB)
@@ -163,7 +169,7 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     **Returns:**
     -  Tuple[Tensor, Tensor]: Tuple containing the i and j pixel coordinates in pixel units.
     """
-    xy = torch.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
-    uv = torch.linalg.inv(CD) @ xy
+    xy = backend.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
+    uv = backend.linalg.inv(CD) @ xy
 
     return uv[0].reshape(x.shape) + i0, uv[1].reshape(y.shape) + j0

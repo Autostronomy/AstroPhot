@@ -7,6 +7,7 @@ from astropy.io import fits
 
 from ..param import Module, Param, forward
 from .. import config
+from ..backend import backend, ArrayLike
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
 from .window import Window, WindowList
 from ..errors import InvalidImage, SpecificationConflict
@@ -49,19 +50,19 @@ class Image(Module):
     def __init__(
         self,
         *,
-        data: Optional[torch.Tensor] = None,
-        CD: Optional[Union[float, torch.Tensor]] = None,
-        zeropoint: Optional[Union[float, torch.Tensor]] = None,
-        crpix: Union[torch.Tensor, tuple] = (0.0, 0.0),
-        crtan: Union[torch.Tensor, tuple] = (0.0, 0.0),
-        crval: Union[torch.Tensor, tuple] = (0.0, 0.0),
-        pixelscale: Optional[Union[torch.Tensor, float]] = None,
+        data: Optional[ArrayLike] = None,
+        CD: Optional[Union[float, ArrayLike]] = None,
+        zeropoint: Optional[Union[float, ArrayLike]] = None,
+        crpix: Union[ArrayLike, tuple] = (0.0, 0.0),
+        crtan: Union[ArrayLike, tuple] = (0.0, 0.0),
+        crval: Union[ArrayLike, tuple] = (0.0, 0.0),
+        pixelscale: Optional[Union[ArrayLike, float]] = None,
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
         hduext: int = 0,
         identity: str = None,
         name: Optional[str] = None,
-        _data: Optional[torch.Tensor] = None,
+        _data: Optional[ArrayLike] = None,
     ):
         super().__init__(name=name)
         if _data is None:
@@ -132,14 +133,14 @@ class Image(Module):
         return self._data
 
     @data.setter
-    def data(self, value: Optional[torch.Tensor]):
+    def data(self, value: Optional[ArrayLike]):
         """Set the image data. If value is None, the data is initialized to an empty tensor."""
         if value is None:
-            self._data = torch.empty((0, 0), dtype=config.DTYPE, device=config.DEVICE)
+            self._data = backend.empty((0, 0), dtype=config.DTYPE, device=config.DEVICE)
         else:
             # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
-            self._data = torch.transpose(
-                torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE), 0, 1
+            self._data = backend.transpose(
+                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 0, 1
             )
 
     @property
@@ -148,11 +149,11 @@ class Image(Module):
         return self._crpix
 
     @crpix.setter
-    def crpix(self, value: Union[torch.Tensor, tuple]):
+    def crpix(self, value: Union[ArrayLike, tuple]):
         self._crpix = np.asarray(value, dtype=np.float64)
 
     @property
-    def zeropoint(self) -> torch.Tensor:
+    def zeropoint(self) -> ArrayLike:
         """The zeropoint of the image, which is used to convert from pixel flux to magnitude."""
         return self._zeropoint
 
@@ -162,7 +163,7 @@ class Image(Module):
         if value is None:
             self._zeropoint = None
         else:
-            self._zeropoint = torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE)
+            self._zeropoint = backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE)
 
     @property
     def window(self) -> Window:
@@ -170,8 +171,8 @@ class Image(Module):
 
     @property
     def center(self):
-        shape = torch.as_tensor(self.data.shape[:2], dtype=config.DTYPE, device=config.DEVICE)
-        return torch.stack(self.pixel_to_plane(*((shape - 1) / 2)))
+        shape = backend.as_array(self.data.shape[:2], dtype=config.DTYPE, device=config.DEVICE)
+        return backend.stack(self.pixel_to_plane(*((shape - 1) / 2)))
 
     @property
     def shape(self):
@@ -182,7 +183,7 @@ class Image(Module):
     @forward
     def pixel_area(self, CD):
         """The area inside a pixel in arcsec^2"""
-        return torch.linalg.det(CD).abs()
+        return backend.linalg.det(CD).abs()
 
     @property
     @forward
@@ -199,32 +200,38 @@ class Image(Module):
 
     @forward
     def pixel_to_plane(
-        self, i: torch.Tensor, j: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self,
+        i: ArrayLike,
+        j: ArrayLike,
+        crtan: ArrayLike,
+        CD: ArrayLike,
+    ) -> Tuple[ArrayLike, ArrayLike]:
         return func.pixel_to_plane_linear(i, j, *self.crpix, CD, *crtan)
 
     @forward
     def plane_to_pixel(
-        self, x: torch.Tensor, y: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        crtan: ArrayLike,
+        CD: ArrayLike,
+    ) -> Tuple[ArrayLike, ArrayLike]:
         return func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
 
     @forward
     def plane_to_world(
-        self, x: torch.Tensor, y: torch.Tensor, crval: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, x: ArrayLike, y: ArrayLike, crval: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         return func.plane_to_world_gnomonic(x, y, *crval)
 
     @forward
     def world_to_plane(
-        self, ra: torch.Tensor, dec: torch.Tensor, crval: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, ra: ArrayLike, dec: ArrayLike, crval: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         return func.world_to_plane_gnomonic(ra, dec, *crval)
 
     @forward
-    def world_to_pixel(
-        self, ra: torch.Tensor, dec: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def world_to_pixel(self, ra: ArrayLike, dec: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
         """A wrapper which applies :meth:`world_to_plane` then
         :meth:`plane_to_pixel`, see those methods for further
         information.
@@ -233,7 +240,7 @@ class Image(Module):
         return self.plane_to_pixel(*self.world_to_plane(ra, dec))
 
     @forward
-    def pixel_to_world(self, i: torch.Tensor, j: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def pixel_to_world(self, i: ArrayLike, j: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
         """A wrapper which applies :meth:`pixel_to_plane` then
         :meth:`plane_to_world`, see those methods for further
         information.
@@ -241,49 +248,49 @@ class Image(Module):
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    def pixel_center_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def pixel_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
         return func.pixel_center_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
-    def pixel_corner_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
         return func.pixel_corner_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
-    def pixel_simpsons_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def pixel_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
         return func.pixel_simpsons_meshgrid(self.shape, config.DTYPE, config.DEVICE)
 
-    def pixel_quad_meshgrid(self, order=3) -> Tuple[torch.Tensor, torch.Tensor]:
+    def pixel_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
         return func.pixel_quad_meshgrid(self.shape, config.DTYPE, config.DEVICE, order=order)
 
     @forward
-    def coordinate_center_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def coordinate_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of coordinate locations in the image, centered on the pixel grid."""
         i, j = self.pixel_center_meshgrid()
         return self.pixel_to_plane(i, j)
 
     @forward
-    def coordinate_corner_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def coordinate_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of coordinate locations in the image, with corners at the pixel grid."""
         i, j = self.pixel_corner_meshgrid()
         return self.pixel_to_plane(i, j)
 
     @forward
-    def coordinate_simpsons_meshgrid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def coordinate_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of coordinate locations in the image, with Simpson's rule sampling."""
         i, j = self.pixel_simpsons_meshgrid()
         return self.pixel_to_plane(i, j)
 
     @forward
-    def coordinate_quad_meshgrid(self, order=3) -> Tuple[torch.Tensor, torch.Tensor]:
+    def coordinate_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of coordinate locations in the image, with quadrature sampling."""
         i, j, _ = self.pixel_quad_meshgrid(order=order)
         return self.pixel_to_plane(i, j)
 
     def copy_kwargs(self, **kwargs) -> dict:
         kwargs = {
-            "_data": torch.clone(self.data.detach()),
+            "_data": backend.copy(self.data),
             "CD": self.CD.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
@@ -309,7 +316,7 @@ class Image(Module):
 
         """
         kwargs = {
-            "_data": torch.zeros_like(self.data),
+            "_data": backend.zeros_like(self.data),
             **kwargs,
         }
         return self.copy(**kwargs)
@@ -368,7 +375,7 @@ class Image(Module):
         -  `scale` (int): The scale factor by which to reduce the image.
         """
         if not isinstance(scale, int) and not (
-            isinstance(scale, torch.Tensor) and scale.dtype is torch.int32
+            isinstance(scale, ArrayLike) and scale.dtype is backend.int32
         ):
             raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
         if scale == 1:
@@ -398,7 +405,7 @@ class Image(Module):
             self.zeropoint = self.zeropoint.to(dtype=dtype, device=device)
         return self
 
-    def flatten(self, attribute: str = "data") -> torch.Tensor:
+    def flatten(self, attribute: str = "data") -> ArrayLike:
         return getattr(self, attribute).flatten(end_dim=1)
 
     def fits_info(self) -> dict:
@@ -422,7 +429,7 @@ class Image(Module):
     def fits_images(self):
         return [
             fits.PrimaryHDU(
-                torch.transpose(self.data, 0, 1).detach().cpu().numpy(),
+                backend.to_numpy(backend.transpose(self.data, 0, 1)),
                 header=fits.Header(self.fits_info()),
             )
         ]
@@ -469,15 +476,17 @@ class Image(Module):
         self.identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
         return hdulist
 
-    def corners(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        pixel_lowleft = torch.tensor((-0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE)
-        pixel_lowright = torch.tensor(
+    def corners(
+        self,
+    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
+        pixel_lowleft = backend.make_array((-0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE)
+        pixel_lowright = backend.make_array(
             (self.data.shape[0] - 0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE
         )
-        pixel_upleft = torch.tensor(
+        pixel_upleft = backend.make_array(
             (-0.5, self.data.shape[1] - 0.5), dtype=config.DTYPE, device=config.DEVICE
         )
-        pixel_upright = torch.tensor(
+        pixel_upright = backend.make_array(
             (self.data.shape[0] - 0.5, self.data.shape[1] - 0.5),
             dtype=config.DTYPE,
             device=config.DEVICE,
@@ -624,8 +633,8 @@ class ImageList(Module):
         super().to(dtype=dtype, device=device)
         return self
 
-    def flatten(self, attribute: str = "data") -> torch.Tensor:
-        return torch.cat(tuple(image.flatten(attribute) for image in self.images))
+    def flatten(self, attribute: str = "data") -> ArrayLike:
+        return backend.concatenate(tuple(image.flatten(attribute) for image in self.images))
 
     def __sub__(self, other):
         if isinstance(other, ImageList):

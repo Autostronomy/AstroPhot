@@ -4,6 +4,7 @@ import torch
 from .target_image import TargetImage
 from .model_image import ModelImage
 from .mixins import SIPMixin
+from ..backend import backend, ArrayLike
 
 
 class SIPModelImage(SIPMixin, ModelImage):
@@ -55,7 +56,7 @@ class SIPModelImage(SIPMixin, ModelImage):
 
         """
         if not isinstance(scale, int) and not (
-            isinstance(scale, torch.Tensor) and scale.dtype is torch.int32
+            isinstance(scale, ArrayLike) and scale.dtype is backend.int32
         ):
             raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
         if scale == 1:
