@@ -153,6 +153,7 @@ def test_all_model_sample(model_type):
             "exponential warp galaxy model",
             "ferrer warp galaxy model",
             "ferrer ray galaxy model",
+            "isothermal sech2 edgeon model",
         ]
     ):
         assert res.loss_history[0] > res.loss_history[-1], (

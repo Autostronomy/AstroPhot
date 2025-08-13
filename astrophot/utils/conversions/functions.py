@@ -1,8 +1,8 @@
 from typing import Union
 import numpy as np
-import torch
 from scipy.special import gamma
 from torch.special import gammaln
+from ...backend_obj import backend, ArrayLike
 
 __all__ = (
     "sersic_n_to_b",
@@ -21,8 +21,8 @@ __all__ = (
 
 
 def sersic_n_to_b(
-    n: Union[float, np.ndarray, torch.Tensor],
-) -> Union[float, np.ndarray, torch.Tensor]:
+    n: Union[float, np.ndarray, ArrayLike],
+) -> Union[float, np.ndarray, ArrayLike]:
     """Compute the `b(n)` for a sersic model. This factor ensures that
     the $R_e$ and $I_e$ parameters do in fact correspond
     to the half light values and not some other scale
@@ -132,9 +132,7 @@ def sersic_inv_np(I: np.ndarray, n: np.ndarray, Re: np.ndarray, Ie: np.ndarray) 
     return Re * ((1 - (1 / bn) * np.log(I / Ie)) ** (n))
 
 
-def sersic_I0_to_flux_torch(
-    I0: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
-) -> torch.Tensor:
+def sersic_I0_to_flux_torch(I0: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayLike) -> ArrayLike:
     """Compute the total flux integrated to infinity for a 2D elliptical
     sersic given the $I_0,n,R_s,q$ parameters which uniquely
     define the profile ($I_0$ is the central intensity in
@@ -152,12 +150,10 @@ def sersic_I0_to_flux_torch(
 
 
     """
-    return 2 * np.pi * I0 * q * n * R**2 * torch.exp(gammaln(2 * n))
+    return 2 * np.pi * I0 * q * n * R**2 * backend.exp(gammaln(2 * n))
 
 
-def sersic_flux_to_I0_torch(
-    flux: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
-) -> torch.Tensor:
+def sersic_flux_to_I0_torch(flux: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayLike) -> ArrayLike:
     """Compute the central intensity (flux/arcsec^2) for a 2D elliptical
     sersic given the $F,n,R_s,q$ parameters which uniquely
     define the profile ($F$ is the total flux integrated to
@@ -174,12 +170,10 @@ def sersic_flux_to_I0_torch(
     -  `q`: axis ratio (b/a)
 
     """
-    return flux / (2 * np.pi * q * n * R**2 * torch.exp(gammaln(2 * n)))
+    return flux / (2 * np.pi * q * n * R**2 * backend.exp(gammaln(2 * n)))
 
 
-def sersic_Ie_to_flux_torch(
-    Ie: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
-) -> torch.Tensor:
+def sersic_Ie_to_flux_torch(Ie: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayLike) -> ArrayLike:
     """Compute the total flux integrated to infinity for a 2D elliptical
     sersic given the $I_e,n,R_e,q$ parameters which uniquely
     define the profile ($I_e$ is the intensity at $R_e$ in
@@ -198,13 +192,18 @@ def sersic_Ie_to_flux_torch(
     """
     bn = sersic_n_to_b(n)
     return (
-        2 * np.pi * Ie * R**2 * q * n * (torch.exp(bn) * bn ** (-2 * n)) * torch.exp(gammaln(2 * n))
+        2
+        * np.pi
+        * Ie
+        * R**2
+        * q
+        * n
+        * (backend.exp(bn) * bn ** (-2 * n))
+        * backend.exp(gammaln(2 * n))
     )
 
 
-def sersic_flux_to_Ie_torch(
-    flux: torch.Tensor, n: torch.Tensor, R: torch.Tensor, q: torch.Tensor
-) -> torch.Tensor:
+def sersic_flux_to_Ie_torch(flux: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayLike) -> ArrayLike:
     """Compute the intensity at $R_e$ (flux/arcsec^2) for a 2D
     elliptical sersic given the $F,n,R_e,q$ parameters which
     uniquely define the profile ($F$ is the total flux
@@ -223,19 +222,17 @@ def sersic_flux_to_Ie_torch(
     """
     bn = sersic_n_to_b(n)
     return flux / (
-        2 * np.pi * R**2 * q * n * (torch.exp(bn) * bn ** (-2 * n)) * torch.exp(gammaln(2 * n))
+        2 * np.pi * R**2 * q * n * (backend.exp(bn) * bn ** (-2 * n)) * backend.exp(gammaln(2 * n))
     )
 
 
-def sersic_inv_torch(
-    I: torch.Tensor, n: torch.Tensor, Re: torch.Tensor, Ie: torch.Tensor
-) -> torch.Tensor:
+def sersic_inv_torch(I: ArrayLike, n: ArrayLike, Re: ArrayLike, Ie: ArrayLike) -> ArrayLike:
     """Invert the sersic profile. Compute the radius corresponding to a
     given intensity for a pure sersic profile.
 
     """
     bn = sersic_n_to_b(n)
-    return Re * ((1 - (1 / bn) * torch.log(I / Ie)) ** (n))
+    return Re * ((1 - (1 / bn) * backend.log(I / Ie)) ** (n))
 
 
 def moffat_I0_to_flux(I0: float, n: float, rd: float, q: float) -> float:

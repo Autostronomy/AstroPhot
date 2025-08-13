@@ -1,11 +1,11 @@
 from typing import Tuple
 import torch
 import numpy as np
-from torch import Tensor
 
 from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
+from ..backend_obj import backend, ArrayLike
 from ..param import forward
 
 __all__ = ["EdgeonModel", "EdgeonSech", "EdgeonIsothermal"]
@@ -35,14 +35,14 @@ class EdgeonModel(ComponentModel):
         if self.PA.initialized:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.detach().cpu().numpy().copy()
+        dat = backend.to_numpy(target_area.data).copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         dat = dat - edge_average
 
         x, y = target_area.coordinate_center_meshgrid()
-        x = (x - self.center.value[0]).detach().cpu().numpy()
-        y = (y - self.center.value[1]).detach().cpu().numpy()
+        x = backend.to_numpy(x - self.center.value[0])
+        y = backend.to_numpy(y - self.center.value[1])
         mu20 = np.median(dat * np.abs(x))
         mu02 = np.median(dat * np.abs(y))
         mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y)))
@@ -53,7 +53,9 @@ class EdgeonModel(ComponentModel):
             self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
 
     @forward
-    def transform_coordinates(self, x: Tensor, y: Tensor, PA: Tensor) -> Tuple[Tensor, Tensor]:
+    def transform_coordinates(
+        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
         return func.rotate(-(PA + np.pi / 2), x, y)
 
@@ -88,14 +90,14 @@ class EdgeonSech(EdgeonModel):
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
-            self.I0.dynamic_value = torch.mean(chunk) / self.target.pixel_area
+            self.I0.dynamic_value = backend.mean(chunk) / self.target.pixel_area
         if not self.hs.initialized:
             self.hs.value = max(self.window.shape) * target_area.pixelscale * 0.1
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor, I0: Tensor, hs: Tensor) -> Tensor:
+    def brightness(self, x: ArrayLike, y: ArrayLike, I0: ArrayLike, hs: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        return I0 * self.radial_model(x) / (torch.cosh((y + self.softening) / hs) ** 2)
+        return I0 * self.radial_model(x) / (backend.cosh((y + self.softening) / hs) ** 2)
 
 
 @combine_docstrings
@@ -120,10 +122,6 @@ class EdgeonIsothermal(EdgeonSech):
         self.rs.value = max(self.window.shape) * self.target.pixelscale * 0.4
 
     @forward
-    def radial_model(self, R: Tensor, rs: Tensor) -> Tensor:
-        Rscaled = torch.abs(R / rs)
-        return (
-            Rscaled
-            * torch.exp(-Rscaled)
-            * torch.special.scaled_modified_bessel_k1(Rscaled + self.softening / rs)
-        )
+    def radial_model(self, R: ArrayLike, rs: ArrayLike) -> ArrayLike:
+        Rscaled = backend.abs(R / rs)
+        return Rscaled * backend.exp(-Rscaled) * backend.bessel_k1(Rscaled + self.softening / rs)

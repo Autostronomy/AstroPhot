@@ -11,6 +11,7 @@ from ..utils.interpolate import interp2d
 from ..image import Window, PSFImage
 from ..errors import SpecificationConflict
 from ..param import forward
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ("PointSource",)
 
@@ -49,7 +50,7 @@ class PointSource(ComponentModel):
         if self.flux.initialized:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.detach().cpu().numpy().copy()
+        dat = backend.to_numpy(target_area.data).copy()
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         self.flux.dynamic_value = np.abs(np.sum(dat - edge_average))
@@ -75,8 +76,8 @@ class PointSource(ComponentModel):
     def sample(
         self,
         window: Optional[Window] = None,
-        center: torch.Tensor = None,
-        flux: torch.Tensor = None,
+        center: ArrayLike = None,
+        flux: ArrayLike = None,
     ) -> ModelImage:
         """Evaluate the model on the space covered by an image object. This
         function properly calls integration methods and PSF

@@ -6,6 +6,7 @@ import torch
 from scipy.stats import binned_statistic, iqr
 
 from .. import config
+from ..backend_obj import backend
 from ..models import Model
 
 # from ..models import Warp_Galaxy
@@ -44,7 +45,7 @@ def radial_light_profile(
     - `resolution` (int): The number of points to use in the profile. Default: 1000
     - `plot_kwargs` (dict): Additional keyword arguments to pass to the plot function, such as `linewidth`, `color`, etc.
     """
-    xx = torch.linspace(
+    xx = backend.linspace(
         R0,
         max(model.window.shape)
         * model.target.pixelscale.detach().cpu().numpy()
@@ -66,12 +67,11 @@ def radial_light_profile(
         "label": f"{model.name} profile",
     }
     kwargs.update(plot_kwargs)
-    with torch.no_grad():
-        ax.plot(
-            xx.detach().cpu().numpy(),
-            yy,
-            **kwargs,
-        )
+    ax.plot(
+        backend.to_numpy(xx),
+        yy,
+        **kwargs,
+    )
 
     if model.target.zeropoint is not None:
         ax.set_ylabel("Surface Brightness [mag/arcsec$^2$]")
@@ -125,10 +125,10 @@ def radial_median_profile(
         image = model.target[model.window]
         x, y = image.coordinate_center_meshgrid()
         x, y = model.transform_coordinates(x, y, params=())
-        R = (x**2 + y**2).sqrt()
-        R = R.detach().cpu().numpy()
+        R = backend.sqrt(x**2 + y**2)
+        R = backend.to_numpy(R)
 
-    dat = image.data.detach().cpu().numpy()
+    dat = backend.to_numpy(image.data)
     count, bins, binnum = binned_statistic(
         R.ravel(),
         dat.ravel(),
@@ -202,7 +202,7 @@ def ray_light_profile(
     - `extend_profile` (float): The factor by which to extend the profile beyond the maximum radius of the model's window. Default: 1.0
     - `resolution` (int): The number of points to use in the profile. Default: 1000
     """
-    xx = torch.linspace(
+    xx = backend.linspace(
         0,
         max(model.window.shape) * model.target.pixelscale * extend_profile / 2,
         int(resolution),
@@ -216,8 +216,8 @@ def ray_light_profile(
             col = cmap_grad(r / model.segments)
         with torch.no_grad():
             ax.plot(
-                xx.detach().cpu().numpy(),
-                np.log10(model.iradial_model(r, xx, params=()).detach().cpu().numpy()),
+                backend.to_numpy(xx),
+                np.log10(backend.to_numpy(model.iradial_model(r, xx, params=()))),
                 linewidth=2,
                 color=col,
                 label=f"{model.name} profile {r}",
@@ -231,14 +231,14 @@ def ray_light_profile(
 def warp_phase_profile(fig, ax, model: Model, rad_unit="arcsec"):
     """Used to plot the phase profile of a warp model. This gives the axis ratio and position angle as a function of radius."""
     ax.plot(
-        model.q_R.prof.detach().cpu().numpy(),
+        backend.to_numpy(model.q_R.prof),
         model.q_R.npvalue,
         linewidth=2,
         color=main_pallet["primary1"],
         label=f"{model.name} axis ratio",
     )
     ax.plot(
-        model.PA_R.prof.detach().cpu().numpy(),
+        backend.to_numpy(model.PA_R.prof),
         model.PA_R.npvalue / np.pi,
         linewidth=2,
         color=main_pallet["primary2"],

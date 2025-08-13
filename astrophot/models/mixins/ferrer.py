@@ -1,7 +1,7 @@
 import torch
-from torch import Tensor
 
 from ...param import forward
+from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
 from ...utils.parametric_profiles import ferrer_np
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
@@ -55,8 +55,8 @@ class FerrerMixin:
 
     @forward
     def radial_model(
-        self, R: Tensor, rout: Tensor, alpha: Tensor, beta: Tensor, I0: Tensor
-    ) -> Tensor:
+        self, R: ArrayLike, rout: ArrayLike, alpha: ArrayLike, beta: ArrayLike, I0: ArrayLike
+    ) -> ArrayLike:
         return func.ferrer(R, rout, alpha, beta, I0)
 
 
@@ -107,6 +107,12 @@ class iFerrerMixin:
 
     @forward
     def iradial_model(
-        self, i: int, R: Tensor, rout: Tensor, alpha: Tensor, beta: Tensor, I0: Tensor
-    ) -> Tensor:
+        self,
+        i: int,
+        R: ArrayLike,
+        rout: ArrayLike,
+        alpha: ArrayLike,
+        beta: ArrayLike,
+        I0: ArrayLike,
+    ) -> ArrayLike:
         return func.ferrer(R, rout[i], alpha[i], beta[i], I0[i])

@@ -1,8 +1,8 @@
 import torch
-from torch import Tensor
 import numpy as np
 
 from ...param import forward
+from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
 from ...utils.parametric_profiles import king_np
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
@@ -58,7 +58,9 @@ class KingMixin:
         )
 
     @forward
-    def radial_model(self, R: Tensor, Rc: Tensor, Rt: Tensor, alpha: Tensor, I0: Tensor) -> Tensor:
+    def radial_model(
+        self, R: ArrayLike, Rc: ArrayLike, Rt: ArrayLike, alpha: ArrayLike, I0: ArrayLike
+    ) -> ArrayLike:
         return func.king(R, Rc, Rt, alpha, I0)
 
 
@@ -111,6 +113,6 @@ class iKingMixin:
 
     @forward
     def iradial_model(
-        self, i: int, R: Tensor, Rc: Tensor, Rt: Tensor, alpha: Tensor, I0: Tensor
-    ) -> Tensor:
+        self, i: int, R: ArrayLike, Rc: ArrayLike, Rt: ArrayLike, alpha: ArrayLike, I0: ArrayLike
+    ) -> ArrayLike:
         return func.king(R, Rc[i], Rt[i], alpha[i], I0[i])

@@ -3,6 +3,7 @@ from torch import Tensor
 import numpy as np
 
 from ...param import forward
+from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
 from .._shared_methods import _sample_image
 from ...utils.interpolate import default_prof
@@ -50,7 +51,7 @@ class SplineMixin:
         self.I_R.dynamic_value = 10**I
 
     @forward
-    def radial_model(self, R: Tensor, I_R: Tensor) -> Tensor:
+    def radial_model(self, R: ArrayLike, I_R: ArrayLike) -> ArrayLike:
         ret = func.spline(R, self.I_R.prof, I_R)
         return ret
 
@@ -112,5 +113,5 @@ class iSplineMixin:
         self.I_R.dynamic_value = 10**value
 
     @forward
-    def iradial_model(self, i: int, R: Tensor, I_R: Tensor) -> Tensor:
+    def iradial_model(self, i: int, R: ArrayLike, I_R: ArrayLike) -> ArrayLike:
         return func.spline(R, self.I_R.prof[i], I_R[i])

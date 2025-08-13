@@ -10,6 +10,7 @@ from scipy.stats import iqr
 from ..models import GroupModel, PSFModel, PSFGroupModel
 from ..image import ImageList, WindowList, PSFImage
 from .. import config
+from ..backend_obj import backend
 from ..utils.conversions.units import flux_to_sb
 from ..utils.decorators import ignore_numpy_warnings
 from .visuals import *
@@ -47,12 +48,12 @@ def target_image(fig, ax, target, window=None, **kwargs):
     if window is None:
         window = target.window
     target_area = target[window]
-    dat = np.copy(target_area.data.detach().cpu().numpy())
+    dat = np.copy(backend.to_numpy(target_area.data))
     if target_area.has_mask:
-        dat[target_area.mask.detach().cpu().numpy()] = np.nan
+        dat[backend.to_numpy(target_area.mask)] = np.nan
     X, Y = target_area.coordinate_corner_meshgrid()
-    X = X.detach().cpu().numpy()
-    Y = Y.detach().cpu().numpy()
+    X = backend.to_numpy(X)
+    Y = backend.to_numpy(Y)
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)], rng=(16, 84)) / 2
     if noise == 0:
@@ -91,7 +92,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
                 clim=[sky + 3 * noise, None],
             )
 
-    if torch.linalg.det(target.CD.value) < 0:
+    if np.linalg.det(target.CD.npvalue) < 0:
         ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")
@@ -131,9 +132,9 @@ def psf_image(
 
     # Evaluate the model image
     x, y = psf.coordinate_corner_meshgrid()
-    x = x.detach().cpu().numpy()
-    y = y.detach().cpu().numpy()
-    psf = psf.data.detach().cpu().numpy()
+    x = backend.to_numpy(x)
+    y = backend.to_numpy(y)
+    psf = backend.to_numpy(psf.data)
 
     # Default kwargs for image
     kwargs = {
@@ -237,9 +238,9 @@ def model_image(
 
     # Evaluate the model image
     X, Y = sample_image.coordinate_corner_meshgrid()
-    X = X.detach().cpu().numpy()
-    Y = Y.detach().cpu().numpy()
-    sample_image = sample_image.data.detach().cpu().numpy()
+    X = backend.to_numpy(X)
+    Y = backend.to_numpy(Y)
+    sample_image = backend.to_numpy(sample_image.data)
 
     # Default kwargs for image
     kwargs = {
@@ -269,12 +270,12 @@ def model_image(
 
     # Apply the mask if available
     if target_mask and target.has_mask:
-        sample_image[target.mask.detach().cpu().numpy()] = np.nan
+        sample_image[backend.to_numpy(target.mask)] = np.nan
 
     # Plot the image
     im = ax.pcolormesh(X, Y, sample_image, **kwargs)
 
-    if torch.linalg.det(target.CD.value) < 0:
+    if np.linalg.det(target.CD.npvalue) < 0:
         ax.invert_xaxis()
 
     # Enforce equal spacing on x y
@@ -356,18 +357,18 @@ def residual_image(
     sample_image = sample_image[window]
     target = target[window]
     X, Y = sample_image.coordinate_corner_meshgrid()
-    X = X.detach().cpu().numpy()
-    Y = Y.detach().cpu().numpy()
+    X = backend.to_numpy(X)
+    Y = backend.to_numpy(Y)
     residuals = (target - sample_image).data
 
     if normalize_residuals is True:
-        residuals = residuals / torch.sqrt(target.variance)
-    elif isinstance(normalize_residuals, torch.Tensor):
-        residuals = residuals / torch.sqrt(normalize_residuals)
+        residuals = residuals / backend.sqrt(target.variance)
+    elif isinstance(normalize_residuals, backend.array_type):
+        residuals = residuals / backend.sqrt(normalize_residuals)
         normalize_residuals = True
     if target.has_mask:
         residuals[target.mask] = np.nan
-    residuals = residuals.detach().cpu().numpy()
+    residuals = backend.to_numpy(residuals)
 
     if scaling == "clip":
         if normalize_residuals is not True:
@@ -406,7 +407,7 @@ def residual_image(
     }
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
-    if torch.linalg.det(target.CD.value) < 0:
+    if np.linalg.det(target.CD.npvalue) < 0:
         ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")

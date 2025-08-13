@@ -1,12 +1,12 @@
 from typing import Union, Tuple
 import torch
-from torch import Tensor
 import numpy as np
 
 from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from ..errors import SpecificationConflict
 from ..param import forward
 from . import func
@@ -39,7 +39,7 @@ class PixelBasisPSF(PSFModel):
     }
     usable = True
 
-    def __init__(self, *args, basis: Union[str, Tensor] = "zernike:3", **kwargs):
+    def __init__(self, *args, basis: Union[str, ArrayLike] = "zernike:3", **kwargs):
         """Initialize the PixelBasisPSF model with a basis set of images."""
         super().__init__(*args, **kwargs)
         self.basis = basis
@@ -50,7 +50,7 @@ class PixelBasisPSF(PSFModel):
         return self._basis
 
     @basis.setter
-    def basis(self, value: Union[str, Tensor]):
+    def basis(self, value: Union[str, ArrayLike]):
         """Set the basis set of images. If value is None, the basis is initialized to an empty tensor."""
         if value is None:
             raise SpecificationConflict(
@@ -60,8 +60,8 @@ class PixelBasisPSF(PSFModel):
             self._basis = value
         else:
             # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
-            self._basis = torch.transpose(
-                torch.as_tensor(value, dtype=config.DTYPE, device=config.DEVICE), 1, 2
+            self._basis = backend.transpose(
+                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 1, 2
             )
 
     @torch.no_grad()
@@ -99,14 +99,16 @@ class PixelBasisPSF(PSFModel):
 
     @forward
     def transform_coordinates(
-        self, x: Tensor, y: Tensor, PA: Tensor, scale: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
         i, j = func.rotate(-PA, x, y)
         pixel_center = (self.basis.shape[1] - 1) / 2, (self.basis.shape[2] - 1) / 2
         return i / scale + pixel_center[0], j / scale + pixel_center[1]
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor, weights: Tensor) -> Tensor:
+    def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        return torch.sum(torch.vmap(lambda w, b: w * interp2d(b, x, y))(weights, self.basis), dim=0)
+        return backend.sum(
+            backend.vmap(lambda w, b: w * interp2d(b, x, y))(weights, self.basis), dim=0
+        )

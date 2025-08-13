@@ -7,7 +7,7 @@ from .base import Model
 from ..image import ModelImage, PSFImage, Window
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
-
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ["PSFModel"]
 
@@ -41,7 +41,9 @@ class PSFModel(SampleMixin, Model):
         pass
 
     @forward
-    def transform_coordinates(self, x: Tensor, y: Tensor, center: Tensor) -> Tuple[Tensor, Tensor]:
+    def transform_coordinates(
+        self, x: ArrayLike, y: ArrayLike, center: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         return x - center[0], y - center[1]
 
     # Fit loop functions
@@ -79,8 +81,8 @@ class PSFModel(SampleMixin, Model):
 
         return working_image
 
-    def fit_mask(self) -> Tensor:
-        return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)
+    def fit_mask(self) -> ArrayLike:
+        return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
 
     @property
     def target(self):

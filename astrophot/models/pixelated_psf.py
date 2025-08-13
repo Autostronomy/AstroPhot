@@ -1,11 +1,11 @@
 import torch
-from torch import Tensor
 
 from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from caskade import OverrideParam
 from ..param import forward
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ["PixelatedPSF"]
 
@@ -52,10 +52,12 @@ class PixelatedPSF(PSFModel):
         if self.pixels.initialized:
             return
         target_area = self.target[self.window]
-        self.pixels.dynamic_value = target_area.data.clone() / target_area.pixel_area
+        self.pixels.dynamic_value = backend.copy(target_area.data) / target_area.pixel_area
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor, pixels: Tensor, center: Tensor) -> Tensor:
+    def brightness(
+        self, x: ArrayLike, y: ArrayLike, pixels: ArrayLike, center: ArrayLike
+    ) -> ArrayLike:
         with OverrideParam(self.target.crtan, center):
             i, j = self.target.plane_to_pixel(x, y)
         result = interp2d(pixels, i, j)

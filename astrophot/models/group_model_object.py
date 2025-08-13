@@ -17,6 +17,7 @@ from ..image import (
     JacobianImageList,
 )
 from .. import config
+from ..backend_obj import backend
 from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget, InvalidWindow
 
@@ -119,7 +120,7 @@ class GroupModel(Model):
         """
         subtarget = self.target[self.window]
         if isinstance(subtarget, ImageList):
-            mask = tuple(torch.ones_like(submask) for submask in subtarget.mask)
+            mask = tuple(backend.ones_like(submask) for submask in subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 model_fit_mask = model.fit_mask()
@@ -135,7 +136,7 @@ class GroupModel(Model):
                     model_indices = model_subtarget.get_indices(subtarget.images[index].window)
                     mask[index][group_indices] &= model_fit_mask[model_indices]
         else:
-            mask = torch.ones_like(subtarget.mask)
+            mask = backend.ones_like(subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 group_indices = subtarget.get_indices(model.window)
@@ -183,7 +184,7 @@ class GroupModel(Model):
                 self._ensure_vmap_compatible(image, img)
             return
         if image.identity == other.identity:
-            image += torch.zeros_like(other.data[0, 0])
+            image += backend.zeros_like(other.data[0, 0])
 
     @forward
     def sample(

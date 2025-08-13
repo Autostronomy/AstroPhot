@@ -1,8 +1,6 @@
 from typing import Optional, Union
 from copy import deepcopy
 
-import torch
-from torch.func import hessian
 import numpy as np
 
 from caskade import Param as CParam
@@ -11,6 +9,7 @@ from ..utils.decorators import classproperty
 from ..image import Window, ImageList, ModelImage, ModelImageList
 from ..errors import UnrecognizedModel, InvalidWindow
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from . import func
 
 __all__ = ("Model",)
@@ -125,7 +124,7 @@ class Model(Module):
     def gaussian_log_likelihood(
         self,
         window: Optional[Window] = None,
-    ) -> torch.Tensor:
+    ) -> ArrayLike:
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
@@ -139,11 +138,11 @@ class Model(Module):
         data = data.data
         if isinstance(data, tuple):
             nll = 0.5 * sum(
-                torch.sum(((da - mo) ** 2 * wgt)[~ma])
+                backend.sum(((da - mo) ** 2 * wgt)[~ma])
                 for mo, da, wgt, ma in zip(model, data, weight, mask)
             )
         else:
-            nll = 0.5 * torch.sum(((data - model) ** 2 * weight)[~mask])
+            nll = 0.5 * backend.sum(((data - model) ** 2 * weight)[~mask])
 
         return -nll
 
@@ -151,7 +150,7 @@ class Model(Module):
     def poisson_log_likelihood(
         self,
         window: Optional[Window] = None,
-    ) -> torch.Tensor:
+    ) -> ArrayLike:
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
@@ -164,38 +163,40 @@ class Model(Module):
 
         if isinstance(data, tuple):
             nll = sum(
-                torch.sum((mo - da * (mo + 1e-10).log() + torch.lgamma(da + 1))[~ma])
+                backend.sum((mo - da * (mo + 1e-10).log() + backend.lgamma(da + 1))[~ma])
                 for mo, da, ma in zip(model, data, mask)
             )
         else:
-            nll = torch.sum((model - data * (model + 1e-10).log() + torch.lgamma(data + 1))[~mask])
+            nll = backend.sum(
+                (model - data * (model + 1e-10).log() + backend.lgamma(data + 1))[~mask]
+            )
 
         return -nll
 
     def hessian(self, likelihood="gaussian"):
         if likelihood == "gaussian":
-            return hessian(self.gaussian_log_likelihood)(self.build_params_array())
+            return backend.hessian(self.gaussian_log_likelihood)(self.build_params_array())
         elif likelihood == "poisson":
-            return hessian(self.poisson_log_likelihood)(self.build_params_array())
+            return backend.hessian(self.poisson_log_likelihood)(self.build_params_array())
         else:
             raise ValueError(f"Unknown likelihood type: {likelihood}")
 
-    def total_flux(self, window=None) -> torch.Tensor:
+    def total_flux(self, window=None) -> ArrayLike:
         F = self(window=window)
-        return torch.sum(F.data)
+        return backend.sum(F.data)
 
-    def total_flux_uncertainty(self, window=None) -> torch.Tensor:
+    def total_flux_uncertainty(self, window=None) -> ArrayLike:
         jac = self.jacobian(window=window).flatten("data")
-        dF = torch.sum(jac, dim=0)  # VJP for sum(total_flux)
+        dF = backend.sum(jac, dim=0)  # VJP for sum(total_flux)
         current_uncertainty = self.build_params_array_uncertainty()
-        return torch.sqrt(torch.sum((dF * current_uncertainty) ** 2))
+        return backend.sqrt(backend.sum((dF * current_uncertainty) ** 2))
 
-    def total_magnitude(self, window=None) -> torch.Tensor:
+    def total_magnitude(self, window=None) -> ArrayLike:
         """Compute the total magnitude of the model in the given window."""
         F = self.total_flux(window=window)
-        return -2.5 * torch.log10(F) + self.target.zeropoint
+        return -2.5 * backend.log10(F) + self.target.zeropoint
 
-    def total_magnitude_uncertainty(self, window=None) -> torch.Tensor:
+    def total_magnitude_uncertainty(self, window=None) -> ArrayLike:
         """Compute the uncertainty in the total magnitude of the model in the given window."""
         F = self.total_flux(window=window)
         dF = self.total_flux_uncertainty(window=window)
@@ -249,11 +250,11 @@ class Model(Module):
 
     @forward
     def radius_metric(self, x, y):
-        return (x**2 + y**2 + self.softening**2).sqrt()
+        return backend.sqrt(x**2 + y**2 + self.softening**2)
 
     @forward
     def angular_metric(self, x, y):
-        return torch.atan2(y, x)
+        return backend.arctan2(y, x)
 
     def to(self, dtype=None, device=None):
         if dtype is None:

@@ -1,10 +1,10 @@
 import numpy as np
 import torch
-from torch import Tensor
 
 from .sky_model_object import SkyModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..param import forward
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ["PlaneSky"]
 
@@ -38,11 +38,11 @@ class PlaneSky(SkyModel):
         super().initialize()
 
         if not self.I0.initialized:
-            dat = self.target[self.window].data.detach().cpu().numpy().copy()
+            dat = backend.to_numpy(self.target[self.window].data).copy()
             self.I0.dynamic_value = np.median(dat) / self.target.pixel_area.item()
         if not self.delta.initialized:
             self.delta.dynamic_value = [0.0, 0.0]
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor, I0: Tensor, delta: Tensor) -> Tensor:
+    def brightness(self, x: ArrayLike, y: ArrayLike, I0: ArrayLike, delta: ArrayLike) -> ArrayLike:
         return I0 + x * delta[0] + y * delta[1]

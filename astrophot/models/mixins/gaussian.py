@@ -1,7 +1,7 @@
 import torch
-from torch import Tensor
 
 from ...param import forward
+from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from ...utils.parametric_profiles import gaussian_np
@@ -48,7 +48,7 @@ class GaussianMixin:
         )
 
     @forward
-    def radial_model(self, R: Tensor, sigma: Tensor, flux: Tensor) -> Tensor:
+    def radial_model(self, R: ArrayLike, sigma: ArrayLike, flux: ArrayLike) -> ArrayLike:
         return func.gaussian(R, sigma, flux)
 
 
@@ -93,5 +93,5 @@ class iGaussianMixin:
         )
 
     @forward
-    def iradial_model(self, i: int, R: Tensor, sigma: Tensor, flux: Tensor) -> Tensor:
+    def iradial_model(self, i: int, R: ArrayLike, sigma: ArrayLike, flux: ArrayLike) -> ArrayLike:
         return func.gaussian(R, sigma[i], flux[i])

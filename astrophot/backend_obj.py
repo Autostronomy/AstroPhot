@@ -74,6 +74,11 @@ class Backend:
         self.mean = self._mean_torch
         self.sum = self._sum_torch
         self.topk = self._topk_torch
+        self.bessel_j1 = self._bessel_j1_torch
+        self.bessel_k1 = self._bessel_k1_torch
+        self.lgamma = self._lgamma_torch
+        self.hessian = self._hessian_torch
+        self.long = self._long_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
@@ -105,6 +110,11 @@ class Backend:
         self.mean = self._mean_jax
         self.sum = self._sum_jax
         self.topk = self._topk_jax
+        self.bessel_j1 = self._bessel_j1_jax
+        self.bessel_k1 = self._bessel_k1_jax
+        self.lgamma = self._lgamma_jax
+        self.hessian = self._hessian_jax
+        self.long = self._long_jax
 
     @property
     def array_type(self):
@@ -122,11 +132,11 @@ class Backend:
     def _array_type_jax(self):
         return self.module.ndarray
 
-    def _concatenate_torch(self, arrays, axis=0):
-        return self.module.cat(arrays, dim=axis)
+    def _concatenate_torch(self, arrays, dim=0):
+        return self.module.cat(arrays, dim=dim)
 
-    def _concatenate_jax(self, arrays, axis=0):
-        return self.module.concatenate(arrays, axis=axis)
+    def _concatenate_jax(self, arrays, dim=0):
+        return self.module.concatenate(arrays, axis=dim)
 
     def _copy_torch(self, array):
         return array.detach().clone()
@@ -239,6 +249,12 @@ class Backend:
     def _clamp_jax(self, array, min, max):
         return self.jax.clip(array, min, max)
 
+    def _long_torch(self, array):
+        return array.long()
+
+    def _long_jax(self, array):
+        return self.module.astype(array, self.module.int64)
+
     def _conv2d_torch(self, input, kernel, padding, stride=1):
         return self.module.nn.functional.conv2d(
             input,
@@ -270,6 +286,30 @@ class Backend:
     def _topk_jax(self, array, k, dim=None):
         return self.jax.lax.top_k(array, k=k, axis=dim)
 
+    def _bessel_j1_torch(self, array):
+        return self.module.special.bessel_j1(array)
+
+    def _bessel_j1_jax(self, array):
+        return self.jax.scipy.special.bessel_jn(array, 1)
+
+    def _bessel_k1_torch(self, array):
+        return self.module.special.modified_bessel_k1(array)
+
+    def _bessel_k1_jax(self, array):
+        return self.jax.scipy.special.kn(1, array)
+
+    def _lgamma_torch(self, array):
+        return self.module.lgamma(array)
+
+    def _lgamma_jax(self, array):
+        return self.jax.lax.lgamma(array)
+
+    def _hessian_torch(self, func):
+        return self.module.func.hessian(func)
+
+    def _hessian_jax(self, func):
+        return self.jax.hessian(func)
+
     def linspace(self, start, end, steps, dtype=None, device=None):
         return self.module.linspace(start, end, steps, dtype=dtype, device=device)
 
@@ -288,6 +328,9 @@ class Backend:
     def log(self, array):
         return self.module.log(array)
 
+    def log10(self, array):
+        return self.module.log10(array)
+
     def exp(self, array):
         return self.module.exp(array)
 
@@ -297,11 +340,20 @@ class Backend:
     def cos(self, array):
         return self.module.cos(array)
 
+    def cosh(self, array):
+        return self.module.cosh(array)
+
     def sqrt(self, array):
         return self.module.sqrt(array)
 
     def abs(self, array):
         return self.module.abs(array)
+
+    def floor(self, array):
+        return self.module.floor(array)
+
+    def tanh(self, array):
+        return self.module.tanh(array)
 
     def arctan(self, array):
         return self.module.arctan(array)
@@ -311,6 +363,9 @@ class Backend:
 
     def arcsin(self, array):
         return self.module.arcsin(array)
+
+    def round(self, array):
+        return self.module.round(array)
 
     def zeros(self, shape, dtype=None, device=None):
         return self.module.zeros(shape, dtype=dtype, device=device)
@@ -333,6 +388,9 @@ class Backend:
     def diag(self, array):
         return self.module.diag(array)
 
+    def outer(self, a, b):
+        return self.module.outer(a, b)
+
     def minimum(self, a, b):
         return self.module.minimum(a, b)
 
@@ -350,6 +408,9 @@ class Backend:
 
     def allclose(self, a, b, rtol=1e-5, atol=1e-8):
         return self.module.allclose(a, b, rtol=rtol, atol=atol)
+
+    def vmap(self, *args, **kwargs):
+        return self.module.vmap(*args, **kwargs)
 
     @property
     def linalg(self):
