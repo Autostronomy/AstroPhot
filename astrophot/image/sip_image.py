@@ -1,10 +1,9 @@
 from typing import Tuple, Union
-import torch
 
 from .target_image import TargetImage
 from .model_image import ModelImage
 from .mixins import SIPMixin
-from ..backend import backend, ArrayLike
+from ..backend_obj import backend, ArrayLike
 
 
 class SIPModelImage(SIPMixin, ModelImage):
@@ -104,30 +103,32 @@ class SIPTargetImage(SIPMixin, TargetImage):
         new_distortion_ij = self.distortion_ij
         new_distortion_IJ = self.distortion_IJ
         if upsample > 1:
-            U = torch.nn.Upsample(scale_factor=upsample, mode="nearest")
             new_area_map = (
-                U(new_area_map.unsqueeze(0).unsqueeze(0)).squeeze(0).squeeze(0) / upsample**2
+                backend.upsample2d(new_area_map.unsqueeze(0).unsqueeze(0), upsample, "nearest")
+                .squeeze(0)
+                .squeeze(0)
             )
-            U = torch.nn.Upsample(scale_factor=upsample, mode="bilinear", align_corners=False)
-            new_distortion_ij = U(self.distortion_ij.unsqueeze(1)).squeeze(1)
-            new_distortion_IJ = U(self.distortion_IJ.unsqueeze(1)).squeeze(1)
+            new_distortion_ij = backend.upsample2d(
+                new_distortion_ij.unsqueeze(1), upsample, "bilinear"
+            ).squeeze(1)
+            new_distortion_IJ = backend.upsample2d(
+                new_distortion_IJ.unsqueeze(1), upsample, "bilinear"
+            ).squeeze(1)
         if pad > 0:
             new_area_map = (
-                torch.nn.functional.pad(
-                    new_area_map.unsqueeze(0).unsqueeze(0), (pad, pad, pad, pad), mode="replicate"
+                backend.pad(
+                    new_area_map.unsqueeze(0).unsqueeze(0),
+                    (pad, pad, pad, pad),
+                    mode="replicate",
                 )
                 .squeeze(0)
                 .squeeze(0)
             )
-            new_distortion_ij = torch.nn.functional.pad(
-                new_distortion_ij.unsqueeze(1),
-                (pad, pad, pad, pad),
-                mode="replicate",
+            new_distortion_ij = backend.pad(
+                new_distortion_ij.unsqueeze(1), (pad, pad, pad, pad), mode="replicate"
             ).squeeze(1)
-            new_distortion_IJ = torch.nn.functional.pad(
-                new_distortion_IJ.unsqueeze(1),
-                (pad, pad, pad, pad),
-                mode="replicate",
+            new_distortion_IJ = backend.pad(
+                new_distortion_IJ.unsqueeze(1), (pad, pad, pad, pad), mode="replicate"
             ).squeeze(1)
         kwargs = {
             "pixel_area_map": new_area_map,
@@ -137,7 +138,7 @@ class SIPTargetImage(SIPMixin, TargetImage):
             "sipBP": self.sipBP,
             "distortion_ij": new_distortion_ij,
             "distortion_IJ": new_distortion_IJ,
-            "_data": torch.zeros(
+            "_data": backend.zeros(
                 (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
                 dtype=self.data.dtype,
                 device=self.data.device,

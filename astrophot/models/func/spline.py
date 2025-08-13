@@ -1,7 +1,7 @@
-import torch
+from ...backend_obj import backend, ArrayLike
 
 
-def _h_poly(t: torch.Tensor) -> torch.Tensor:
+def _h_poly(t: ArrayLike) -> ArrayLike:
     """Helper function to compute the 'h' polynomial matrix used in the
     cubic spline.
 
@@ -13,8 +13,8 @@ def _h_poly(t: torch.Tensor) -> torch.Tensor:
 
     """
 
-    tt = t[None, :] ** (torch.arange(4, device=t.device)[:, None])
-    A = torch.tensor(
+    tt = t[None, :] ** (backend.arange(4, device=t.device)[:, None])
+    A = backend.as_array(
         [[1, 0, -3, 2], [0, 1, -2, 1], [0, 0, 3, -2], [0, 0, -1, 1]],
         dtype=t.dtype,
         device=t.device,
@@ -22,7 +22,7 @@ def _h_poly(t: torch.Tensor) -> torch.Tensor:
     return A @ tt
 
 
-def cubic_spline_torch(x: torch.Tensor, y: torch.Tensor, xs: torch.Tensor) -> torch.Tensor:
+def cubic_spline_torch(x: ArrayLike, y: ArrayLike, xs: ArrayLike) -> ArrayLike:
     """Compute the 1D cubic spline interpolation for the given data points
     using PyTorch.
 
@@ -33,17 +33,15 @@ def cubic_spline_torch(x: torch.Tensor, y: torch.Tensor, xs: torch.Tensor) -> to
                 the cubic spline function should be evaluated.
     """
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
-    m = torch.cat([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
-    idxs = torch.searchsorted(x[:-1], xs) - 1
+    m = backend.concatenate([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
+    idxs = backend.searchsorted(x[:-1], xs) - 1
     dx = x[idxs + 1] - x[idxs]
     hh = _h_poly((xs - x[idxs]) / dx)
     ret = hh[0] * y[idxs] + hh[1] * m[idxs] * dx + hh[2] * y[idxs + 1] + hh[3] * m[idxs + 1] * dx
     return ret
 
 
-def spline(
-    R: torch.Tensor, profR: torch.Tensor, profI: torch.Tensor, extend: str = "zeros"
-) -> torch.Tensor:
+def spline(R: ArrayLike, profR: ArrayLike, profI: ArrayLike, extend: str = "zeros") -> ArrayLike:
     """Spline 1d profile function, cubic spline between points up
     to second last point beyond which is linear
 
@@ -53,7 +51,7 @@ def spline(
     -  `profI`: surface density values for the surface density profile
     -  `extend`: How to extend the spline beyond the last point. Options are 'zeros' or 'const'.
     """
-    I = cubic_spline_torch(profR, profI, R.view(-1)).reshape(*R.shape)
+    I = cubic_spline_torch(profR, profI, R.flatten()).reshape(*R.shape)
     if extend == "zeros":
         I[R > profR[-1]] = 0
     elif extend == "const":

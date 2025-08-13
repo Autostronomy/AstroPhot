@@ -1,14 +1,14 @@
-import torch
+from ...backend_obj import ArrayLike
 
 
 def nuker(
-    R: torch.Tensor,
-    Rb: torch.Tensor,
-    Ib: torch.Tensor,
-    alpha: torch.Tensor,
-    beta: torch.Tensor,
-    gamma: torch.Tensor,
-) -> torch.Tensor:
+    R: ArrayLike,
+    Rb: ArrayLike,
+    Ib: ArrayLike,
+    alpha: ArrayLike,
+    beta: ArrayLike,
+    gamma: ArrayLike,
+) -> ArrayLike:
     """Nuker 1d profile function
 
     **Args:**

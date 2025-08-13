@@ -5,7 +5,7 @@ from astropy.io import fits
 
 from ...utils.initialize import auto_variance
 from ... import config
-from ...backend import backend, ArrayLike
+from ...backend_obj import backend, ArrayLike
 from ...errors import SpecificationConflict
 from ..image_object import Image
 from ..window import Window
@@ -223,7 +223,7 @@ class DataMixin:
             self._mask = None
             return
         self._mask = backend.transpose(
-            backend.as_tensor(mask, dtype=backend.bool, device=config.DEVICE), 0, 1
+            backend.as_array(mask, dtype=backend.bool, device=config.DEVICE), 0, 1
         )
         if self._mask.shape != self.data.shape:
             self._mask = None

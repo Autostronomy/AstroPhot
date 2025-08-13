@@ -1,8 +1,6 @@
 # Apply a different optimizer iteratively
-from typing import Dict, Any, Sequence, Union
-import os
+from typing import Dict, Any
 from time import time
-import random
 
 import numpy as np
 import torch
@@ -11,6 +9,7 @@ from .base import BaseOptimizer
 from ..models import Model
 from .lm import LM
 from .. import config
+from ..backend_obj import backend
 
 __all__ = [
     "Iter",
@@ -60,7 +59,7 @@ class Iter(BaseOptimizer):
         )
         if self.model.target.has_mask:
             # subtract masked pixels from degrees of freedom
-            self.ndf -= torch.sum(self.model.target[self.model.window].flatten("mask")).item()
+            self.ndf -= backend.sum(self.model.target[self.model.window].flatten("mask")).item()
 
     def sub_step(self, model: Model, update_uncertainty=False):
         """
@@ -103,15 +102,12 @@ class Iter(BaseOptimizer):
             )
             if self.model.target.has_mask:
                 M = self.model.target[self.model.window].flatten("mask")
-                loss = (
-                    torch.sum((((D - self.Y.flatten("data")) ** 2) / V)[torch.logical_not(M)])
-                    / self.ndf
-                )
+                loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
             else:
-                loss = torch.sum(((D - self.Y.flatten("data")) ** 2 / V)) / self.ndf
+                loss = backend.sum(((D - self.Y.flatten("data")) ** 2 / V)) / self.ndf
         if self.verbose > 0:
             config.logger.info(f"Loss: {loss.item()}")
-        self.lambda_history.append(np.copy((self.current_state).detach().cpu().numpy()))
+        self.lambda_history.append(np.copy(backend.to_numpy(self.current_state)))
         self.loss_history.append(loss.item())
 
         # Test for convergence
@@ -147,7 +143,7 @@ class Iter(BaseOptimizer):
             self.message = self.message + "fail interrupted"
 
         self.model.fill_dynamic_values(
-            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
+            backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if self.verbose > 1:
             config.logger.info(

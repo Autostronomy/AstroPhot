@@ -1,9 +1,10 @@
 import torch
+from ...backend_obj import backend, ArrayLike
 
 
 def ferrer(
-    R: torch.Tensor, rout: torch.Tensor, alpha: torch.Tensor, beta: torch.Tensor, I0: torch.Tensor
-) -> torch.Tensor:
+    R: ArrayLike, rout: ArrayLike, alpha: ArrayLike, beta: ArrayLike, I0: ArrayLike
+) -> ArrayLike:
     """
     Modified Ferrer profile.
 
@@ -14,8 +15,8 @@ def ferrer(
     -  `beta`: Exponent for the modified Ferrer function
     -  `I0`: Central intensity
     """
-    return torch.where(
+    return backend.where(
         R < rout,
-        I0 * ((1 - (torch.clamp(R, 0, rout) / rout) ** (2 - beta)) ** alpha),
-        torch.zeros_like(R),
+        I0 * ((1 - (backend.clamp(R, 0, rout) / rout) ** (2 - beta)) ** alpha),
+        backend.zeros_like(R),
     )

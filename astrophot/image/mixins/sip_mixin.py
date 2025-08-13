@@ -3,7 +3,7 @@ from typing import Union, Optional, Tuple
 from ..image_object import Image
 from ..window import Window
 from .. import func
-from ...backend import backend, ArrayLike
+from ...backend_obj import backend, ArrayLike
 from ...utils.interpolate import interp2d
 from ...param import forward
 

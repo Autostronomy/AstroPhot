@@ -2,7 +2,7 @@ from typing import List, Union
 
 from .image_object import Image, ImageList
 from ..errors import SpecificationConflict, InvalidImage
-from ..backend import backend
+from ..backend_obj import backend
 
 __all__ = ("JacobianImage", "JacobianImageList")
 

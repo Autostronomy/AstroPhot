@@ -1,7 +1,7 @@
-import torch
 import numpy as np
 
 from ...errors import OptimizeStopFail, OptimizeStopSuccess
+from ...backend_obj import backend
 
 
 def nll(D, M, W):
@@ -11,7 +11,7 @@ def nll(D, M, W):
     M: model prediction
     W: weights
     """
-    return 0.5 * torch.sum(W * (D - M) ** 2)
+    return 0.5 * backend.sum(W * (D - M) ** 2)
 
 
 def nll_poisson(D, M):
@@ -20,7 +20,7 @@ def nll_poisson(D, M):
     D: data
     M: model prediction
     """
-    return torch.sum(M - D * torch.log(M + 1e-10))  # Adding small value to avoid log(0)
+    return backend.sum(M - D * backend.log(M + 1e-10))  # Adding small value to avoid log(0)
 
 
 def gradient(J, W, D, M):
@@ -40,19 +40,19 @@ def hessian_poisson(J, D, M):
 
 
 def damp_hessian(hess, L):
-    I = torch.eye(len(hess), dtype=hess.dtype, device=hess.device)
-    D = torch.ones_like(hess) - I
-    return hess * (I + D / (1 + L)) + L * I * torch.diag(hess)
+    I = backend.eye(len(hess), dtype=hess.dtype, device=hess.device)
+    D = backend.ones_like(hess) - I
+    return hess * (I + D / (1 + L)) + L * I * backend.diag(hess)
 
 
 def solve(hess, grad, L):
     hessD = damp_hessian(hess, L)  # (N, N)
     while True:
         try:
-            h = torch.linalg.solve(hessD, grad)
+            h = backend.linalg.solve(hessD, grad)
             break
-        except torch._C._LinAlgError:
-            hessD = hessD + L * torch.eye(len(hessD), dtype=hessD.dtype, device=hessD.device)
+        except backend.LinAlgErr:
+            hessD = hessD + L * backend.eye(len(hessD), dtype=hessD.dtype, device=hessD.device)
             L = L * 2
     return hessD, h
 
@@ -84,10 +84,10 @@ def lm_step(
     else:
         raise ValueError(f"Unsupported likelihood: {likelihood}")
 
-    if torch.allclose(grad, torch.zeros_like(grad)):
+    if backend.allclose(grad, backend.zeros_like(grad)):
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
 
-    best = {"x": torch.zeros_like(x), "nll": nll0, "L": L}
+    best = {"x": backend.zeros_like(x), "nll": nll0, "L": L}
     scary = {"x": None, "nll": np.inf, "L": None, "rho": np.inf}
     nostep = True
     improving = None
@@ -107,11 +107,11 @@ def lm_step(
             improving = False
             continue
 
-        if torch.allclose(h, torch.zeros_like(h)) and L < 0.1:
+        if backend.allclose(h, backend.zeros_like(h)) and L < 0.1:
             raise OptimizeStopSuccess("Step with zero length means optimization complete.")
 
         # actual nll improvement vs expected from linearization
-        rho = (nll0 - nll1) / torch.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
+        rho = (nll0 - nll1) / backend.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
 
         if (nll1 < (nll0 + tolerance) and abs(rho - 1) < abs(scary["rho"] - 1)) or (
             nll1 < scary["nll"] and rho > -10

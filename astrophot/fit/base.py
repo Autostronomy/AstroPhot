@@ -1,11 +1,11 @@
 from typing import Sequence, Optional
 
 import numpy as np
-import torch
 from scipy.optimize import minimize
 from scipy.special import gammainc
 
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from ..models import Model
 from ..image import Window
 
@@ -47,7 +47,7 @@ class BaseOptimizer:
         if initial_state is None:
             self.current_state = model.build_params_array()
         else:
-            self.current_state = torch.as_tensor(
+            self.current_state = backend.as_array(
                 initial_state, dtype=model.dtype, device=model.device
             )
 
@@ -69,7 +69,7 @@ class BaseOptimizer:
     def fit(self) -> "BaseOptimizer":
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
-    def step(self, current_state: torch.Tensor = None) -> None:
+    def step(self, current_state: ArrayLike = None) -> None:
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")
 
     def chi2min(self) -> float:

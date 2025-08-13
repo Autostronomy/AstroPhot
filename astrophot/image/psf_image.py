@@ -5,7 +5,7 @@ import numpy as np
 from .image_object import Image
 from .jacobian_image import JacobianImage
 from .. import config
-from ..backend import backend, ArrayLike
+from ..backend_obj import backend, ArrayLike
 from .mixins import DataMixin
 
 __all__ = ["PSFImage"]

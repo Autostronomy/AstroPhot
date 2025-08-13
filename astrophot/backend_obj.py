@@ -33,16 +33,16 @@ class Backend:
     def backend(self, backend):
         if backend is None:
             backend = os.getenv("CASKADE_BACKEND", "torch")
-        self.module = self._load_backend(backend)
+        self._load_backend(backend)
         self._backend = backend
 
     def _load_backend(self, backend):
         if backend == "torch":
+            self.module = importlib.import_module("torch")
             self.setup_torch()
-            return importlib.import_module("torch")
         elif backend == "jax":
+            self.module = importlib.import_module("jax.numpy")
             self.setup_jax()
-            return importlib.import_module("jax.numpy")
         else:
             raise ValueError(f"Unsupported backend: {backend}")
 
@@ -65,6 +65,15 @@ class Backend:
         self.repeat = self._repeat_torch
         self.stack = self._stack_torch
         self.transpose = self._transpose_torch
+        self.upsample2d = self._upsample2d_torch
+        self.pad = self._pad_torch
+        self.LinAlgErr = self.module._C._LinAlgError
+        self.roll = self._roll_torch
+        self.clamp = self._clamp_torch
+        self.conv2d = self._conv2d_torch
+        self.mean = self._mean_torch
+        self.sum = self._sum_torch
+        self.topk = self._topk_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
@@ -87,6 +96,15 @@ class Backend:
         self.repeat = self._repeat_jax
         self.stack = self._stack_jax
         self.transpose = self._transpose_jax
+        self.upsample2d = self._upsample2d_jax
+        self.pad = self._pad_jax
+        self.LinAlgErr = self.module.linalg.LinAlgError
+        self.roll = self._roll_jax
+        self.clamp = self._clamp_jax
+        self.conv2d = self._conv2d_jax
+        self.mean = self._mean_jax
+        self.sum = self._sum_jax
+        self.topk = self._topk_jax
 
     @property
     def array_type(self):
@@ -188,11 +206,78 @@ class Backend:
     def _logit_jax(self, array):
         return self.jax.scipy.special.logit(array)
 
-    def _clone_torch(self, array):
-        return array.clone()
+    def _upsample2d_torch(self, array, scale_factor, method):
+        U = self.module.nn.Upsample(scale_factor=scale_factor, mode=method)
+        array = U(array) / scale_factor**2
+        return array
 
-    def _clone_jax(self, array):
-        return self.module.copy(array)
+    def _upsample2d_jax(self, array, scale_factor, method):
+        if method == "nearest":
+            method = "bilinear"  # no nearest neighbor interpolation in jax
+        new_shape = list(array.shape)
+        new_shape[-2] = array.shape[-2] * scale_factor
+        new_shape[-1] = array.shape[-1] * scale_factor
+        return self.jax.image.resize(array, new_shape, method=method)
+
+    def _pad_torch(self, array, padding, mode):
+        return self.module.nn.functional.pad(array, padding, mode=mode)
+
+    def _pad_jax(self, array, padding, mode):
+        if mode == "replicate":
+            mode = "edge"
+        return self.module.pad(array, padding, mode=mode)
+
+    def _roll_torch(self, array, shifts, dims):
+        return self.module.roll(array, shifts, dims=dims)
+
+    def _roll_jax(self, array, shifts, dims):
+        return self.jax.roll(array, shifts, axis=dims)
+
+    def _clamp_torch(self, array, min, max):
+        return self.module.clamp(array, min, max)
+
+    def _clamp_jax(self, array, min, max):
+        return self.jax.clip(array, min, max)
+
+    def _conv2d_torch(self, input, kernel, padding, stride=1):
+        return self.module.nn.functional.conv2d(
+            input,
+            kernel,
+            padding=padding,
+            stride=stride,
+        )
+
+    def _conv2d_jax(self, input, kernel, padding, stride=(1, 1)):
+        return self.jax.lax.conv_general_dilated(
+            input, kernel, window_strides=stride, padding=padding
+        )
+
+    def _mean_torch(self, array, dim=None):
+        return self.module.mean(array, dim=dim)
+
+    def _mean_jax(self, array, dim=None):
+        return self.module.mean(array, axis=dim)
+
+    def _sum_torch(self, array, dim=None):
+        return self.module.sum(array, dim=dim)
+
+    def _sum_jax(self, array, dim=None):
+        return self.jax.numpy.sum(array, axis=dim)
+
+    def _topk_torch(self, array, k, dim=None):
+        return self.module.topk(array, k=k, dim=dim)
+
+    def _topk_jax(self, array, k, dim=None):
+        return self.jax.lax.top_k(array, k=k, axis=dim)
+
+    def linspace(self, start, end, steps, dtype=None, device=None):
+        return self.module.linspace(start, end, steps, dtype=dtype, device=device)
+
+    def arange(self, start, end=None, step=1, dtype=None, device=None):
+        return self.module.arange(start, end, step=step, dtype=dtype, device=device)
+
+    def searchsorted(self, array, value):
+        return self.module.searchsorted(array, value)
 
     def any(self, array):
         return self.module.any(array)
@@ -215,6 +300,9 @@ class Backend:
     def sqrt(self, array):
         return self.module.sqrt(array)
 
+    def abs(self, array):
+        return self.module.abs(array)
+
     def arctan(self, array):
         return self.module.arctan(array)
 
@@ -224,23 +312,26 @@ class Backend:
     def arcsin(self, array):
         return self.module.arcsin(array)
 
-    def sum(self, array, axis=None):
-        return self.module.sum(array, axis=axis)
-
     def zeros(self, shape, dtype=None, device=None):
         return self.module.zeros(shape, dtype=dtype, device=device)
 
-    def zeros_like(self, array):
-        return self.module.zeros_like(array)
+    def zeros_like(self, array, dtype=None):
+        return self.module.zeros_like(array, dtype=dtype)
 
     def ones(self, shape, dtype=None, device=None):
         return self.module.ones(shape, dtype=dtype, device=device)
 
-    def ones_like(self, array):
-        return self.module.ones_like(array)
+    def ones_like(self, array, dtype=None):
+        return self.module.ones_like(array, dtype=dtype)
 
     def empty(self, shape, dtype=None, device=None):
         return self.module.empty(shape, dtype=dtype, device=device)
+
+    def eye(self, n, dtype=None, device=None):
+        return self.module.eye(n, dtype=dtype, device=device)
+
+    def diag(self, array):
+        return self.module.diag(array)
 
     def minimum(self, a, b):
         return self.module.minimum(a, b)
@@ -251,12 +342,22 @@ class Backend:
     def isnan(self, array):
         return self.module.isnan(array)
 
+    def isfinite(self, array):
+        return self.module.isfinite(array)
+
     def where(self, condition, x, y):
         return self.module.where(condition, x, y)
+
+    def allclose(self, a, b, rtol=1e-5, atol=1e-8):
+        return self.module.allclose(a, b, rtol=rtol, atol=atol)
 
     @property
     def linalg(self):
         return self.module.linalg
+
+    @property
+    def fft(self):
+        return self.module.fft
 
     @property
     def inf(self):

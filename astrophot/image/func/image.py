@@ -1,5 +1,5 @@
 from ...utils.integration import quad_table
-from ...backend import backend, ArrayLike
+from ...backend_obj import backend, ArrayLike
 
 
 def pixel_center_meshgrid(shape: tuple[int, int], dtype, device) -> tuple:

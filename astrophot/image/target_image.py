@@ -1,15 +1,14 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
-import torch
 from astropy.io import fits
 
 from .image_object import Image, ImageList
-from .window import Window
 from .jacobian_image import JacobianImage, JacobianImageList
 from .model_image import ModelImage, ModelImageList
 from .psf_image import PSFImage
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from ..errors import InvalidImage
 from .mixins import DataMixin
 from ..utils.decorators import combine_docstrings
@@ -151,7 +150,7 @@ class TargetImage(DataMixin, Image):
             if isinstance(self.psf, PSFImage):
                 images.append(
                     fits.ImageHDU(
-                        torch.transpose(self.psf.data, 0, 1).detach().cpu().numpy(),
+                        backend.transpose(self.psf.data, 0, 1).detach().cpu().numpy(),
                         name="PSF",
                         header=fits.Header(self.psf.fits_info()),
                     )
@@ -179,14 +178,14 @@ class TargetImage(DataMixin, Image):
     def jacobian_image(
         self,
         parameters: List[str],
-        data: Optional[torch.Tensor] = None,
+        data: Optional[ArrayLike] = None,
         **kwargs,
     ) -> JacobianImage:
         """
         Construct a blank `JacobianImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         if data is None:
-            data = torch.zeros(
+            data = backend.zeros(
                 (*self.data.shape, len(parameters)),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
@@ -208,7 +207,7 @@ class TargetImage(DataMixin, Image):
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         kwargs = {
-            "_data": torch.zeros(
+            "_data": backend.zeros(
                 (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
                 dtype=self.data.dtype,
                 device=self.data.device,
@@ -224,7 +223,7 @@ class TargetImage(DataMixin, Image):
         }
         return ModelImage(**kwargs)
 
-    def psf_image(self, data: torch.Tensor, upscale: int = 1, **kwargs) -> PSFImage:
+    def psf_image(self, data: ArrayLike, upscale: int = 1, **kwargs) -> PSFImage:
         kwargs = {
             "data": data,
             "CD": self.CD.value / upscale,
@@ -288,7 +287,7 @@ class TargetImageList(ImageList):
         return any(image.has_weight for image in self.images)
 
     def jacobian_image(
-        self, parameters: List[str], data: Optional[List[torch.Tensor]] = None
+        self, parameters: List[str], data: Optional[List[ArrayLike]] = None
     ) -> JacobianImageList:
         if data is None:
             data = tuple(None for _ in range(len(self.images)))

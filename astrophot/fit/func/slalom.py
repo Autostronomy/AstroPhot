@@ -1,18 +1,18 @@
 import numpy as np
-import torch
 
 from ...errors import OptimizeStopFail, OptimizeStopSuccess
+from ...backend_obj import backend
 
 
 def slalom_step(f, g, x0, m, S, N=10, up=1.3, down=0.5):
     l = [f(x0).item()]
     d = [0.0]
     grad = g(x0)
-    if torch.allclose(grad, torch.zeros_like(grad)):
+    if backend.allclose(grad, backend.zeros_like(grad)):
         raise OptimizeStopSuccess("success: Gradient is zero, optimization converged.")
 
     D = grad + m
-    D = D / torch.linalg.norm(D)
+    D = D / backend.linalg.norm(D)
     seeking = False
     for _ in range(N):
         l.append(f(x0 - S * D).item())

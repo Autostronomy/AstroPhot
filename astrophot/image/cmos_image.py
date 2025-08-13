@@ -1,7 +1,7 @@
 from .target_image import TargetImage
 from .mixins import CMOSMixin
 from .model_image import ModelImage
-from ..backend import backend
+from ..backend_obj import backend
 
 
 class CMOSModelImage(CMOSMixin, ModelImage):

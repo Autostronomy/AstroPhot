@@ -1,4 +1,4 @@
-from ...backend import backend
+from ...backend_obj import backend
 
 
 def window_or(other_origin, self_end, other_end):

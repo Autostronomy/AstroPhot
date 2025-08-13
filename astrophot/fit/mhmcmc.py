@@ -1,7 +1,6 @@
 # Metropolis-Hasting Markov-Chain Monte-Carlo
 from typing import Optional, Sequence
 
-import torch
 import numpy as np
 
 try:
@@ -12,6 +11,7 @@ except ImportError:
 from .base import BaseOptimizer
 from ..models import Model
 from .. import config
+from ..backend_obj import backend
 
 __all__ = ["MHMCMC"]
 
@@ -53,7 +53,7 @@ class MHMCMC(BaseOptimizer):
         Returns the density of the model at the given state vector.
         This is used to calculate the likelihood of the model at the given state.
         """
-        state = torch.tensor(state, dtype=config.DTYPE, device=config.DEVICE)
+        state = backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
         if self.likelihood == "gaussian":
             return np.array(list(self.model.gaussian_log_likelihood(s).item() for s in state))
         elif self.likelihood == "poisson":
@@ -92,6 +92,6 @@ class MHMCMC(BaseOptimizer):
         else:
             self.chain = np.append(self.chain, sampler.get_chain(flat=flat_chain), axis=0)
         self.model.fill_dynamic_values(
-            torch.tensor(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
+            backend.as_array(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
         )
         return self

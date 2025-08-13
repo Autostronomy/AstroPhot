@@ -1,5 +1,5 @@
 import numpy as np
-from ...backend import backend
+from ...backend_obj import backend
 
 deg_to_rad = np.pi / 180
 rad_to_deg = 180 / np.pi

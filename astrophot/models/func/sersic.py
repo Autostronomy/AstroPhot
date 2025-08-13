@@ -1,4 +1,5 @@
 import torch
+from ...backend_obj import backend, ArrayLike
 
 
 C1 = 4 / 405
@@ -18,7 +19,7 @@ def sersic_n_to_b(n: float) -> float:
     return 2 * n - 1 / 3 + x * (C1 + x * (C2 + x * (C3 + C4 * x)))
 
 
-def sersic(R: torch.Tensor, n: torch.Tensor, Re: torch.Tensor, Ie: torch.Tensor) -> torch.Tensor:
+def sersic(R: ArrayLike, n: ArrayLike, Re: ArrayLike, Ie: ArrayLike) -> ArrayLike:
     """Seric 1d profile function, specifically designed for pytorch
     operations
 
@@ -29,4 +30,4 @@ def sersic(R: torch.Tensor, n: torch.Tensor, Re: torch.Tensor, Ie: torch.Tensor)
     -  `Ie`: Effective surface density
     """
     bn = sersic_n_to_b(n)
-    return Ie * (-bn * ((R / Re) ** (1 / n) - 1)).exp()
+    return Ie * backend.exp(-bn * ((R / Re) ** (1 / n) - 1))

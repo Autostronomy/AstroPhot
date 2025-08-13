@@ -6,6 +6,7 @@ import numpy as np
 
 from .base import BaseOptimizer
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from . import func
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from ..param import ValidContext
@@ -150,10 +151,10 @@ class LM(BaseOptimizer):
         # mask
         fit_mask = self.model.fit_mask()
         if isinstance(fit_mask, tuple):
-            fit_mask = torch.cat(tuple(FM.flatten() for FM in fit_mask))
+            fit_mask = backend.concatenate(tuple(FM.flatten() for FM in fit_mask))
         else:
             fit_mask = fit_mask.flatten()
-        if torch.sum(fit_mask).item() == 0:
+        if backend.sum(fit_mask).item() == 0:
             fit_mask = None
 
         if model.target.has_mask:
@@ -164,10 +165,10 @@ class LM(BaseOptimizer):
         elif fit_mask is not None:
             self.mask = ~fit_mask
         else:
-            self.mask = torch.ones_like(
-                self.model.target[self.fit_window].flatten("data"), dtype=torch.bool
+            self.mask = backend.ones_like(
+                self.model.target[self.fit_window].flatten("data"), dtype=backend.bool
             )
-        if self.mask is not None and torch.sum(self.mask).item() == 0:
+        if self.mask is not None and backend.sum(self.mask).item() == 0:
             raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
@@ -176,13 +177,13 @@ class LM(BaseOptimizer):
         # 1 / (sigma^2)
         kW = kwargs.get("W", None)
         if kW is not None:
-            self.W = torch.as_tensor(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
+            self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
         elif model.target.has_weight:
             self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
         else:
-            self.W = torch.ones_like(self.Y)
+            self.W = backend.ones_like(self.Y)
 
         # The forward model which computes the output image given input parameters
         self.forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[self.mask]
@@ -201,11 +202,11 @@ class LM(BaseOptimizer):
             self.ndf = ndf
 
     def chi2_ndf(self):
-        return torch.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
+        return backend.sum(self.W * (self.Y - self.forward(self.current_state)) ** 2) / self.ndf
 
     def poisson_2nll_ndf(self):
         M = self.forward(self.current_state)
-        return 2 * torch.sum(M - self.Y * torch.log(M + 1e-10)) / self.ndf
+        return 2 * backend.sum(M - self.Y * backend.log(M + 1e-10)) / self.ndf
 
     @torch.no_grad()
     def fit(self, update_uncertainty=True) -> BaseOptimizer:
@@ -232,7 +233,7 @@ class LM(BaseOptimizer):
             self.loss_history = [self.poisson_2nll_ndf().item()]
         self._covariance_matrix = None
         self.L_history = [self.L]
-        self.lambda_history = [self.current_state.detach().clone().cpu().numpy()]
+        self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
         if self.verbose > 0:
             config.logger.info(
                 f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
@@ -255,7 +256,7 @@ class LM(BaseOptimizer):
                             Ldn=self.Ldn,
                             likelihood=self.likelihood,
                         )
-                    self.current_state = self.model.from_valid(res["x"]).detach()
+                    self.current_state = self.model.from_valid(backend.copy(res["x"]))
                 else:
                     res = func.lm_step(
                         x=self.current_state,
@@ -268,7 +269,7 @@ class LM(BaseOptimizer):
                         Ldn=self.Ldn,
                         likelihood=self.likelihood,
                     )
-                    self.current_state = res["x"].detach()
+                    self.current_state = backend.copy(res["x"])
             except OptimizeStopFail:
                 if self.verbose > 0:
                     config.logger.warning("Could not find step to improve Chi^2, stopping")
@@ -286,7 +287,7 @@ class LM(BaseOptimizer):
             self.L = np.clip(res["L"], 1e-9, 1e9)
             self.L_history.append(res["L"])
             self.loss_history.append(2 * res["nll"] / self.ndf)
-            self.lambda_history.append(self.current_state.detach().clone().cpu().numpy())
+            self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
 
             if self.check_convergence():
                 break
@@ -300,7 +301,7 @@ class LM(BaseOptimizer):
             )
 
         self.model.fill_dynamic_values(
-            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
+            backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if update_uncertainty:
             self.update_uncertainty()
@@ -336,7 +337,7 @@ class LM(BaseOptimizer):
 
     @property
     @torch.no_grad()
-    def covariance_matrix(self) -> torch.Tensor:
+    def covariance_matrix(self) -> ArrayLike:
         """The covariance matrix for the model at the current
         parameters. This can be used to construct a full Gaussian PDF for the
         parameters using: $\\mathcal{N}(\\mu,\\Sigma)$ where $\\mu$ is the
@@ -352,12 +353,12 @@ class LM(BaseOptimizer):
         elif self.likelihood == "poisson":
             hess = func.hessian_poisson(J, self.Y, self.forward(self.current_state))
         try:
-            self._covariance_matrix = torch.linalg.inv(hess)
+            self._covariance_matrix = backend.linalg.inv(hess)
         except:
             config.logger.warning(
                 "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
             )
-            self._covariance_matrix = torch.linalg.pinv(hess)
+            self._covariance_matrix = backend.linalg.pinv(hess)
         return self._covariance_matrix
 
     @torch.no_grad()
@@ -370,9 +371,11 @@ class LM(BaseOptimizer):
         """
         # set the uncertainty for each parameter
         cov = self.covariance_matrix
-        if torch.all(torch.isfinite(cov)):
+        if backend.all(backend.isfinite(cov)):
             try:
-                self.model.fill_dynamic_value_uncertainties(torch.sqrt(torch.abs(torch.diag(cov))))
+                self.model.fill_dynamic_value_uncertainties(
+                    backend.sqrt(backend.abs(backend.diag(cov)))
+                )
             except RuntimeError as e:
                 config.logger.warning(f"Unable to update uncertainty due to: {e}")
         else:

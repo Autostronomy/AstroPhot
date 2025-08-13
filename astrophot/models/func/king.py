@@ -1,9 +1,7 @@
-import torch
+from ...backend_obj import backend, ArrayLike
 
 
-def king(
-    R: torch.Tensor, Rc: torch.Tensor, Rt: torch.Tensor, alpha: torch.Tensor, I0: torch.Tensor
-) -> torch.Tensor:
+def king(R: ArrayLike, Rc: ArrayLike, Rt: ArrayLike, alpha: ArrayLike, I0: ArrayLike) -> ArrayLike:
     """
     Empirical King profile.
 
@@ -16,6 +14,8 @@ def king(
     """
     beta = 1 / (1 + (Rt / Rc) ** 2) ** (1 / alpha)
     gamma = 1 / (1 + (R / Rc) ** 2) ** (1 / alpha)
-    return torch.where(
-        R < Rt, I0 * ((torch.clamp(gamma, 0, 1) - beta) / (1 - beta)) ** alpha, torch.zeros_like(R)
+    return backend.where(
+        R < Rt,
+        I0 * ((backend.clamp(gamma, 0, 1) - beta) / (1 - beta)) ** alpha,
+        backend.zeros_like(R),
     )

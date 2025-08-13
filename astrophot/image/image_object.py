@@ -7,7 +7,7 @@ from astropy.io import fits
 
 from ..param import Module, Param, forward
 from .. import config
-from ..backend import backend, ArrayLike
+from ..backend_obj import backend, ArrayLike
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
 from .window import Window, WindowList
 from ..errors import InvalidImage, SpecificationConflict
