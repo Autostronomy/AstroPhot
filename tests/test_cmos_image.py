@@ -11,13 +11,13 @@ import pytest
 
 @pytest.fixture()
 def cmos_target():
-    arr = torch.zeros((10, 15))
+    arr = ap.backend.zeros((10, 15))
     return ap.CMOSTargetImage(
         data=arr,
         pixelscale=0.7,
         zeropoint=1.0,
-        variance=torch.ones_like(arr),
-        mask=torch.zeros_like(arr),
+        variance=ap.backend.ones_like(arr),
+        mask=ap.backend.zeros_like(arr),
         subpixel_loc=(-0.25, -0.25),
         subpixel_scale=0.5,
     )
@@ -32,6 +32,7 @@ def test_cmos_image_creation(cmos_target):
     assert cmos_copy.subpixel_loc == (-0.25, -0.25), "image should track subpixel location"
     assert cmos_copy.subpixel_scale == 0.5, "image should track subpixel scale"
 
+    print(cmos_target.data.shape)
     i, j = cmos_target.pixel_center_meshgrid()
     assert i.shape == (15, 10), "meshgrid should have correct shape"
     assert j.shape == (15, 10), "meshgrid should have correct shape"
@@ -74,13 +75,13 @@ def test_cmos_image_save_load(cmos_target):
     loaded_image = ap.CMOSTargetImage(filename="cmos_image.fits")
 
     # Check if the loaded image matches the original
-    assert torch.allclose(
+    assert ap.backend.allclose(
         cmos_target.data, loaded_image.data
     ), "Loaded image data should match original"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         cmos_target.pixelscale, loaded_image.pixelscale
     ), "Loaded image pixelscale should match original"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         cmos_target.zeropoint, loaded_image.zeropoint
     ), "Loaded image zeropoint should match original"
     assert np.allclose(

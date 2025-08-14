@@ -37,7 +37,7 @@ def pixel_quad_integrator(Z: ArrayLike, w: ArrayLike = None, order: int = 3) -> 
     if w is None:
         _, _, w = quad_table(order, Z.dtype, Z.device)
     Z = Z * w
-    return Z.sum(dim=(-1))
+    return backend.sum(Z, dim=-1)
 
 
 def upsample(i: ArrayLike, j: ArrayLike, order: int, scale: float) -> Tuple[ArrayLike, ArrayLike]:
@@ -46,8 +46,8 @@ def upsample(i: ArrayLike, j: ArrayLike, order: int, scale: float) -> Tuple[Arra
     )
     di, dj = backend.meshgrid(dp, dp, indexing="xy")
 
-    si = backend.repeat(i.unsqueeze(-1), order**2, -1) + scale * di.flatten()
-    sj = backend.repeat(j.unsqueeze(-1), order**2, -1) + scale * dj.flatten()
+    si = backend.repeat(i[..., None], order**2, -1) + scale * di.flatten()
+    sj = backend.repeat(j[..., None], order**2, -1) + scale * dj.flatten()
     return si, sj
 
 
@@ -55,8 +55,8 @@ def single_quad_integrate(
     i: ArrayLike, j: ArrayLike, brightness_ij, scale: float, quad_order: int = 3
 ) -> Tuple[ArrayLike, ArrayLike]:
     di, dj, w = quad_table(quad_order, i.dtype, i.device)
-    qi = backend.repeat(i.unsqueeze(-1), quad_order**2, -1) + scale * di.flatten()
-    qj = backend.repeat(j.unsqueeze(-1), quad_order**2, -1) + scale * dj.flatten()
+    qi = backend.repeat(i[..., None], quad_order**2, -1) + scale * di.flatten()
+    qj = backend.repeat(j[..., None], quad_order**2, -1) + scale * dj.flatten()
     z = brightness_ij(qi, qj)
     z0 = backend.mean(z, dim=-1)
     z = backend.sum(z * w.flatten(), dim=-1)
@@ -80,25 +80,29 @@ def recursive_quad_integrate(
         return z
 
     N = max(1, int(np.prod(z.shape) * curve_frac))
-    select = backend.topk(backend.abs(z - z0).flatten(), N, dim=-1).indices
+    select = backend.topk(backend.abs(z - z0).flatten(), N)[1]
 
     integral_flat = z.flatten()
 
     si, sj = upsample(i.flatten()[select], j.flatten()[select], quad_order, scale)
 
-    integral_flat[select] = backend.mean(
-        recursive_quad_integrate(
-            si,
-            sj,
-            brightness_ij,
-            curve_frac=curve_frac,
-            scale=scale / gridding,
-            quad_order=quad_order,
-            gridding=gridding,
-            _current_depth=_current_depth + 1,
-            max_depth=max_depth,
+    integral_flat = backend.fill_at_indices(
+        integral_flat,
+        select,
+        backend.mean(
+            recursive_quad_integrate(
+                si,
+                sj,
+                brightness_ij,
+                curve_frac=curve_frac,
+                scale=scale / gridding,
+                quad_order=quad_order,
+                gridding=gridding,
+                _current_depth=_current_depth + 1,
+                max_depth=max_depth,
+            ),
+            dim=-1,
         ),
-        dim=-1,
     )
 
     return integral_flat.reshape(z.shape)
@@ -123,23 +127,27 @@ def recursive_bright_integrate(
     N = max(1, int(np.prod(z.shape) * bright_frac))
     z_flat = z.flatten()
 
-    select = backend.topk(z_flat, N, dim=-1).indices
+    select = backend.topk(z_flat, N)[1]
 
     si, sj = upsample(i.flatten()[select], j.flatten()[select], quad_order, scale)
 
-    z_flat[select] = backend.mean(
-        recursive_bright_integrate(
-            si,
-            sj,
-            brightness_ij,
-            bright_frac,
-            scale=scale / gridding,
-            quad_order=quad_order,
-            gridding=gridding,
-            _current_depth=_current_depth + 1,
-            max_depth=max_depth,
+    z_flat = backend.fill_at_indices(
+        z_flat,
+        select,
+        backend.mean(
+            recursive_bright_integrate(
+                si,
+                sj,
+                brightness_ij,
+                bright_frac,
+                scale=scale / gridding,
+                quad_order=quad_order,
+                gridding=gridding,
+                _current_depth=_current_depth + 1,
+                max_depth=max_depth,
+            ),
+            dim=-1,
         ),
-        dim=-1,
     )
 
     return z_flat.reshape(z.shape)

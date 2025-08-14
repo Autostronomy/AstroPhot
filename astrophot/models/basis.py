@@ -61,7 +61,7 @@ class PixelBasisPSF(PSFModel):
         else:
             # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
             self._basis = backend.transpose(
-                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 1, 2
+                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 2, 1
             )
 
     @torch.no_grad()

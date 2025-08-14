@@ -177,7 +177,7 @@ class DataMixin:
         if isinstance(weight, str) and weight == "auto":
             weight = 1 / auto_variance(self.data, self.mask).T
         self._weight = backend.transpose(
-            backend.as_array(weight, dtype=config.DTYPE, device=config.DEVICE), 0, 1
+            backend.as_array(weight, dtype=config.DTYPE, device=config.DEVICE), 1, 0
         )
         if self._weight.shape != self.data.shape:
             self._weight = None
@@ -223,7 +223,7 @@ class DataMixin:
             self._mask = None
             return
         self._mask = backend.transpose(
-            backend.as_array(mask, dtype=backend.bool, device=config.DEVICE), 0, 1
+            backend.as_array(mask, dtype=backend.bool, device=config.DEVICE), 1, 0
         )
         if self._mask.shape != self.data.shape:
             self._mask = None
@@ -283,14 +283,12 @@ class DataMixin:
         images = super().fits_images()
         if self.has_weight:
             images.append(
-                fits.ImageHDU(
-                    backend.transpose(self.weight, 0, 1).detach().cpu().numpy(), name="WEIGHT"
-                )
+                fits.ImageHDU(backend.to_numpy(backend.transpose(self.weight, 1, 0)), name="WEIGHT")
             )
         if self.has_mask:
             images.append(
                 fits.ImageHDU(
-                    backend.transpose(self.mask, 0, 1).detach().cpu().numpy().astype(int),
+                    backend.to_numpy(backend.transpose(self.mask, 1, 0)).astype(int),
                     name="MASK",
                 )
             )

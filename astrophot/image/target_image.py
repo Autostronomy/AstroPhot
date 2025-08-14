@@ -150,7 +150,7 @@ class TargetImage(DataMixin, Image):
             if isinstance(self.psf, PSFImage):
                 images.append(
                     fits.ImageHDU(
-                        backend.transpose(self.psf.data, 0, 1).detach().cpu().numpy(),
+                        backend.to_numpy(backend.transpose(self.psf.data, 1, 0)),
                         name="PSF",
                         header=fits.Header(self.psf.fits_info()),
                     )

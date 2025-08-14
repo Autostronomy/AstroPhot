@@ -61,17 +61,21 @@ class SampleMixin:
     def _bright_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
         i, j = image.pixel_center_meshgrid()
         N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
-        sample_flat = sample.flatten(-2)
-        select = backend.topk(sample_flat, N, dim=-1).indices
-        sample_flat[select] = func.recursive_bright_integrate(
-            i.flatten(-2)[select],
-            j.flatten(-2)[select],
-            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-            scale=image.base_scale,
-            bright_frac=self.integrate_fraction,
-            quad_order=self.integrate_quad_order,
-            gridding=self.integrate_gridding,
-            max_depth=self.integrate_max_depth,
+        sample_flat = sample.flatten()
+        select = backend.topk(sample_flat, N)[1]
+        sample_flat = backend.fill_at_indices(
+            sample_flat,
+            select,
+            func.recursive_bright_integrate(
+                i.flatten()[select],
+                j.flatten()[select],
+                lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+                scale=image.base_scale,
+                bright_frac=self.integrate_fraction,
+                quad_order=self.integrate_quad_order,
+                gridding=self.integrate_gridding,
+                max_depth=self.integrate_max_depth,
+            ),
         )
         return sample_flat.reshape(sample.shape)
 
@@ -95,18 +99,22 @@ class SampleMixin:
             .squeeze(0)
         )
         N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
-        select = backend.topk(curvature.flatten(-2), N, dim=-1).indices
+        select = backend.topk(curvature.flatten(), N)[1]
 
-        sample_flat = sample.flatten(-2)
-        sample_flat[select] = func.recursive_quad_integrate(
-            i.flatten(-2)[select],
-            j.flatten(-2)[select],
-            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-            scale=image.base_scale,
-            curve_frac=self.integrate_fraction,
-            quad_order=self.integrate_quad_order,
-            gridding=self.integrate_gridding,
-            max_depth=self.integrate_max_depth,
+        sample_flat = sample.flatten()
+        sample_flat = backend.fill_at_indices(
+            sample_flat,
+            select,
+            func.recursive_quad_integrate(
+                i.flatten()[select],
+                j.flatten()[select],
+                lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+                scale=image.base_scale,
+                curve_frac=self.integrate_fraction,
+                quad_order=self.integrate_quad_order,
+                gridding=self.integrate_gridding,
+                max_depth=self.integrate_max_depth,
+            ),
         )
         return sample_flat.reshape(sample.shape)
 

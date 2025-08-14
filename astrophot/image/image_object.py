@@ -140,7 +140,7 @@ class Image(Module):
         else:
             # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
             self._data = backend.transpose(
-                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 0, 1
+                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 1, 0
             )
 
     @property
@@ -183,7 +183,7 @@ class Image(Module):
     @forward
     def pixel_area(self, CD):
         """The area inside a pixel in arcsec^2"""
-        return backend.linalg.det(CD).abs()
+        return backend.abs(backend.linalg.det(CD))
 
     @property
     @forward
@@ -196,7 +196,7 @@ class Image(Module):
         and instead sets a size scale within an image.
 
         """
-        return self.pixel_area.sqrt()
+        return backend.sqrt(self.pixel_area)
 
     @forward
     def pixel_to_plane(
@@ -429,7 +429,7 @@ class Image(Module):
     def fits_images(self):
         return [
             fits.PrimaryHDU(
-                backend.to_numpy(backend.transpose(self.data, 0, 1)),
+                backend.to_numpy(backend.transpose(self.data, 1, 0)),
                 header=fits.Header(self.fits_info()),
             )
         ]

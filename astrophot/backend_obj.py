@@ -60,8 +60,6 @@ class Backend:
         self.to_numpy = self._to_numpy_torch
         self.logit = self._logit_torch
         self.sigmoid = self._sigmoid_torch
-        self.arange = self._arange_torch
-        self.meshgrid = self._meshgrid_torch
         self.repeat = self._repeat_torch
         self.stack = self._stack_torch
         self.transpose = self._transpose_torch
@@ -79,6 +77,7 @@ class Backend:
         self.lgamma = self._lgamma_torch
         self.hessian = self._hessian_torch
         self.long = self._long_torch
+        self.fill_at_indices = self._fill_at_indices_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
@@ -96,14 +95,12 @@ class Backend:
         self.to_numpy = self._to_numpy_jax
         self.logit = self._logit_jax
         self.sigmoid = self._sigmoid_jax
-        self.arange = self._arange_jax
-        self.meshgrid = self._meshgrid_jax
         self.repeat = self._repeat_jax
         self.stack = self._stack_jax
         self.transpose = self._transpose_jax
         self.upsample2d = self._upsample2d_jax
         self.pad = self._pad_jax
-        self.LinAlgErr = self.module.linalg.LinAlgError
+        self.LinAlgErr = Exception
         self.roll = self._roll_jax
         self.clamp = self._clamp_jax
         self.conv2d = self._conv2d_jax
@@ -115,6 +112,7 @@ class Backend:
         self.lgamma = self._lgamma_jax
         self.hessian = self._hessian_jax
         self.long = self._long_jax
+        self.fill_at_indices = self._fill_at_indices_jax
 
     @property
     def array_type(self):
@@ -174,35 +172,23 @@ class Backend:
     def _to_numpy_jax(self, array):
         return np.array(array.block_until_ready())
 
-    def _arange_torch(self, *args, dtype=None, device=None):
-        return self.module.arange(*args, dtype=dtype, device=device)
-
-    def _arange_jax(self, *args, dtype=None, device=None):
-        return self.jax.arange(*args, dtype=dtype, device=device)
-
-    def _meshgrid_torch(self, *arrays, indexing="ij"):
-        return self.module.meshgrid(*arrays, indexing=indexing)
-
-    def _meshgrid_jax(self, *arrays, indexing="ij"):
-        return self.jax.meshgrid(*arrays, indexing=indexing)
-
     def _repeat_torch(self, a, repeats, axis=None):
         return self.module.repeat_interleave(a, repeats, dim=axis)
 
     def _repeat_jax(self, a, repeats, axis=None):
-        return self.jax.repeat(a, repeats, axis=axis)
+        return self.module.repeat(a, repeats, axis=axis)
 
     def _stack_torch(self, arrays, dim=0):
         return self.module.stack(arrays, dim=dim)
 
     def _stack_jax(self, arrays, dim=0):
-        return self.jax.stack(arrays, axis=dim)
+        return self.module.stack(arrays, axis=dim)
 
     def _transpose_torch(self, array, *args):
         return self.module.transpose(array, *args)
 
     def _transpose_jax(self, array, *args):
-        return self.jax.transpose(array, args)
+        return self.module.transpose(array, args)
 
     def _sigmoid_torch(self, array):
         return self.module.sigmoid(array)
@@ -280,11 +266,11 @@ class Backend:
     def _sum_jax(self, array, dim=None):
         return self.jax.numpy.sum(array, axis=dim)
 
-    def _topk_torch(self, array, k, dim=None):
-        return self.module.topk(array, k=k, dim=dim)
+    def _topk_torch(self, array, k):
+        return self.module.topk(array, k=k)
 
-    def _topk_jax(self, array, k, dim=None):
-        return self.jax.lax.top_k(array, k=k, axis=dim)
+    def _topk_jax(self, array, k):
+        return self.jax.lax.top_k(array, k=k)
 
     def _bessel_j1_torch(self, array):
         return self.module.special.bessel_j1(array)
@@ -310,11 +296,22 @@ class Backend:
     def _hessian_jax(self, func):
         return self.jax.hessian(func)
 
+    def _fill_at_indices_torch(self, array, indices, values):
+        array[indices] = values
+        return array
+
+    def _fill_at_indices_jax(self, array, indices, values):
+        array = array.at[indices].set(values)
+        return array
+
+    def arange(self, *args, dtype=None, device=None):
+        return self.module.arange(*args, dtype=dtype, device=device)
+
     def linspace(self, start, end, steps, dtype=None, device=None):
         return self.module.linspace(start, end, steps, dtype=dtype, device=device)
 
-    def arange(self, start, end=None, step=1, dtype=None, device=None):
-        return self.module.arange(start, end, step=step, dtype=dtype, device=device)
+    def meshgrid(self, *arrays, indexing="ij"):
+        return self.module.meshgrid(*arrays, indexing=indexing)
 
     def searchsorted(self, array, value):
         return self.module.searchsorted(array, value)
