@@ -24,19 +24,19 @@ def nll_poisson(D, M):
 
 
 def gradient(J, W, D, M):
-    return J.T @ (W * (D - M)).unsqueeze(1)
+    return J.T @ (W * (D - M))[:, None]
 
 
 def gradient_poisson(J, D, M):
-    return J.T @ (D / M - 1).unsqueeze(1)
+    return J.T @ (D / M - 1)[:, None]
 
 
 def hessian(J, W):
-    return J.T @ (W.unsqueeze(1) * J)
+    return J.T @ (W[:, None] * J)
 
 
 def hessian_poisson(J, D, M):
-    return J.T @ ((D / (M**2 + 1e-10)).unsqueeze(1) * J)
+    return J.T @ ((D / (M**2 + 1e-10))[:, None] * J)
 
 
 def damp_hessian(hess, L):

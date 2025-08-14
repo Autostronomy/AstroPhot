@@ -70,7 +70,7 @@ class PixelBasisPSF(PSFModel):
         super().initialize()
         target_area = self.target[self.window]
         if not self.PA.initialized:
-            R, _ = polar_decomposition(self.target.CD.value.detach().cpu().numpy())
+            R, _ = polar_decomposition(self.target.CD.npvalue)
             self.PA.value = np.arccos(np.abs(R[0, 0]))
         if not self.scale.initialized:
             self.scale.value = self.target.pixelscale.item()

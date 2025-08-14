@@ -85,7 +85,7 @@ class BaseOptimizer:
             config.logger.warning(
                 "Getting optimizer res with no real loss history, using current state"
             )
-            return self.current_state.detach().cpu().numpy()
+            return backend.to_numpy(self.current_state)
         return np.array(self.lambda_history)[N][np.argmin(np.array(self.loss_history)[N])]
 
     def res_loss(self):

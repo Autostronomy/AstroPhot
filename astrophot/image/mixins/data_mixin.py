@@ -326,16 +326,17 @@ class DataMixin:
             scale=scale,
             _weight=(
                 1
-                / self.variance[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .sum(axis=(1, 3))
+                / backend.sum(
+                    self.variance[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale),
+                    dim=(1, 3),
+                )
                 if self.has_variance
                 else None
             ),
             _mask=(
-                self.mask[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .amax(axis=(1, 3))
+                backend.max(
+                    self.mask[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale), dim=(1, 3)
+                )
                 if self.has_mask
                 else None
             ),

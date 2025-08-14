@@ -140,7 +140,7 @@ class ComponentModel(SampleMixin, Model):
         self.center.dynamic_value = COM_center
 
     def fit_mask(self):
-        return backend.zeros_like(self.target[self.window].mask, dtype=torch.bool)
+        return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
 
     @forward
     def transform_coordinates(self, x, y, center):

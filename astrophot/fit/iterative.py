@@ -54,7 +54,7 @@ class Iter(BaseOptimizer):
             self.lm_kwargs["relative_tolerance"] = 1e-3
             self.lm_kwargs["max_iter"] = 15
         #          # pixels      # parameters
-        self.ndf = self.model.target[self.model.window].flatten("data").size(0) - len(
+        self.ndf = self.model.target[self.model.window].flatten("data").shape[0] - len(
             self.current_state
         )
         if self.model.target.has_mask:

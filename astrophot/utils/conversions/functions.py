@@ -1,7 +1,6 @@
 from typing import Union
 import numpy as np
 from scipy.special import gamma
-from torch.special import gammaln
 from ...backend_obj import backend, ArrayLike
 
 __all__ = (
@@ -150,7 +149,7 @@ def sersic_I0_to_flux_torch(I0: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayL
 
 
     """
-    return 2 * np.pi * I0 * q * n * R**2 * backend.exp(gammaln(2 * n))
+    return 2 * np.pi * I0 * q * n * R**2 * backend.exp(backend.gammaln(2 * n))
 
 
 def sersic_flux_to_I0_torch(flux: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayLike) -> ArrayLike:
@@ -170,7 +169,7 @@ def sersic_flux_to_I0_torch(flux: ArrayLike, n: ArrayLike, R: ArrayLike, q: Arra
     -  `q`: axis ratio (b/a)
 
     """
-    return flux / (2 * np.pi * q * n * R**2 * backend.exp(gammaln(2 * n)))
+    return flux / (2 * np.pi * q * n * R**2 * backend.exp(backend.gammaln(2 * n)))
 
 
 def sersic_Ie_to_flux_torch(Ie: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayLike) -> ArrayLike:
@@ -199,7 +198,7 @@ def sersic_Ie_to_flux_torch(Ie: ArrayLike, n: ArrayLike, R: ArrayLike, q: ArrayL
         * q
         * n
         * (backend.exp(bn) * bn ** (-2 * n))
-        * backend.exp(gammaln(2 * n))
+        * backend.exp(backend.gammaln(2 * n))
     )
 
 
@@ -222,7 +221,13 @@ def sersic_flux_to_Ie_torch(flux: ArrayLike, n: ArrayLike, R: ArrayLike, q: Arra
     """
     bn = sersic_n_to_b(n)
     return flux / (
-        2 * np.pi * R**2 * q * n * (backend.exp(bn) * bn ** (-2 * n)) * backend.exp(gammaln(2 * n))
+        2
+        * np.pi
+        * R**2
+        * q
+        * n
+        * (backend.exp(bn) * bn ** (-2 * n))
+        * backend.exp(backend.gammaln(2 * n))
     )
 
 

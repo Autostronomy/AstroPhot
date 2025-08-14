@@ -58,6 +58,7 @@ class Backend:
         self.as_array = self._as_array_torch
         self.to = self._to_torch
         self.to_numpy = self._to_numpy_torch
+        self.gammaln = self._gammaln_torch
         self.logit = self._logit_torch
         self.sigmoid = self._sigmoid_torch
         self.repeat = self._repeat_torch
@@ -68,9 +69,11 @@ class Backend:
         self.LinAlgErr = self.module._C._LinAlgError
         self.roll = self._roll_torch
         self.clamp = self._clamp_torch
+        self.flatten = self._flatten_torch
         self.conv2d = self._conv2d_torch
         self.mean = self._mean_torch
         self.sum = self._sum_torch
+        self.max = self._max_torch
         self.topk = self._topk_torch
         self.bessel_j1 = self._bessel_j1_torch
         self.bessel_k1 = self._bessel_k1_torch
@@ -96,6 +99,7 @@ class Backend:
         self.as_array = self._as_array_jax
         self.to = self._to_jax
         self.to_numpy = self._to_numpy_jax
+        self.gammaln = self._gammaln_jax
         self.logit = self._logit_jax
         self.sigmoid = self._sigmoid_jax
         self.repeat = self._repeat_jax
@@ -106,9 +110,11 @@ class Backend:
         self.LinAlgErr = Exception
         self.roll = self._roll_jax
         self.clamp = self._clamp_jax
+        self.flatten = self._flatten_jax
         self.conv2d = self._conv2d_jax
         self.mean = self._mean_jax
         self.sum = self._sum_jax
+        self.max = self._max_jax
         self.topk = self._topk_jax
         self.bessel_j1 = self._bessel_j1_jax
         self.bessel_k1 = self._bessel_k1_jax
@@ -196,6 +202,12 @@ class Backend:
     def _transpose_jax(self, array, *args):
         return self.module.transpose(array, args)
 
+    def _gammaln_torch(self, array):
+        return self.module.special.gammaln(array)
+
+    def _gammaln_jax(self, array):
+        return self.jax.scipy.special.gammaln(array)
+
     def _sigmoid_torch(self, array):
         return self.module.sigmoid(array)
 
@@ -272,6 +284,12 @@ class Backend:
     def _sum_jax(self, array, dim=None):
         return self.jax.numpy.sum(array, axis=dim)
 
+    def _max_torch(self, array, dim=None):
+        return self.module.max(array, dim=dim).values
+
+    def _max_jax(self, array, dim=None):
+        return self.module.max(array, axis=dim)
+
     def _topk_torch(self, array, k):
         return self.module.topk(array, k=k)
 
@@ -333,6 +351,15 @@ class Backend:
     def _add_at_indices_jax(self, array, indices, values):
         array = array.at[indices].add(values)
         return array
+
+    def _flatten_torch(self, array, start_dim=0, end_dim=-1):
+        return array.flatten(start_dim, end_dim)
+
+    def _flatten_jax(self, array, start_dim=0, end_dim=-1):
+        shape = tuple(array.shape)
+        end_dim = (end_dim % len(shape)) + 1
+        new_shape = shape[:start_dim] + (-1,) + shape[end_dim:]
+        return self.module.reshape(array, new_shape)
 
     def arange(self, *args, dtype=None, device=None):
         return self.module.arange(*args, dtype=dtype, device=device)

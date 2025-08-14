@@ -65,7 +65,7 @@ class ScipyFit(BaseOptimizer):
                     bound[1] = backend.to_numpy(param.valid[1])
                 bounds.append(tuple(bound))
             else:
-                for i in range(param.value.numel()):
+                for i in range(np.prod(param.value.shape)):
                     bound = [None, None]
                     if param.valid[0] is not None:
                         bound[0] = backend.to_numpy(param.valid[0].flatten()[i])

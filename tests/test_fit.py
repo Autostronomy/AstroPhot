@@ -80,6 +80,8 @@ def sersic_model():
     ],
 )
 def test_fitters(fitter, sersic_model):
+    if ap.backend.backend == "jax" and fitter in [ap.fit.Grad, ap.fit.HMC]:
+        pytest.skip("Grad and HMC not implemented for JAX backend")
     model = sersic_model
     model.initialize()
     ll_init = model.gaussian_log_likelihood()

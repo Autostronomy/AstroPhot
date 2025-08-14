@@ -47,15 +47,12 @@ def radial_light_profile(
     """
     xx = backend.linspace(
         R0,
-        max(model.window.shape)
-        * model.target.pixelscale.detach().cpu().numpy()
-        * extend_profile
-        / 2,
+        max(model.window.shape) * backend.to_numpy(model.target.pixelscale) * extend_profile / 2,
         int(resolution),
         dtype=config.DTYPE,
         device=config.DEVICE,
     )
-    flux = model.radial_model(xx, params=()).detach().cpu().numpy()
+    flux = backend.to_numpy(model.radial_model(xx, params=()))
     if model.target.zeropoint is not None:
         yy = flux_to_sb(flux, 1.0, model.target.zeropoint.item())
     else:

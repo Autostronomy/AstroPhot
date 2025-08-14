@@ -406,7 +406,7 @@ class Image(Module):
         return self
 
     def flatten(self, attribute: str = "data") -> ArrayLike:
-        return getattr(self, attribute).flatten(end_dim=1)
+        return backend.flatten(getattr(self, attribute), end_dim=1)
 
     def fits_info(self) -> dict:
         return {
@@ -559,7 +559,7 @@ class Image(Module):
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            backend.add_at_indices(
+            self._data = backend.add_at_indices(
                 self._data,
                 self.get_indices(other.window),
                 other.data[other.get_indices(self.window)],
@@ -570,7 +570,7 @@ class Image(Module):
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            backend.add_at_indices(
+            self._data = backend.add_at_indices(
                 self._data,
                 self.get_indices(other.window),
                 -other.data[other.get_indices(self.window)],

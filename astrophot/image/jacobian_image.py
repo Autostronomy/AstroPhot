@@ -49,7 +49,7 @@ class JacobianImage(Image):
         self_indices = self.get_indices(other.window)
         other_indices = other.get_indices(self.window)
         for self_i, other_i in zip(*self.match_parameters(other)):
-            backend.add_at_indices(
+            self._data = backend.add_at_indices(
                 self._data,
                 self_indices + (self_i,),
                 other.data[other_indices[0], other_indices[1], other_i],

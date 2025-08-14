@@ -65,7 +65,7 @@ class Module(CModule):
             # Handle scalar parameters
             size = max(1, prod(param.shape))
             try:
-                val = uncertainty[..., pos : pos + size].view(param.shape)
+                val = uncertainty[..., pos : pos + size].reshape(param.shape)
                 param.uncertainty = val
             except (RuntimeError, IndexError, ValueError, TypeError):
                 raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)
