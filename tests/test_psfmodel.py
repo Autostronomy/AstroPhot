@@ -1,5 +1,4 @@
 import astrophot as ap
-import torch
 import numpy as np
 from utils import make_basic_gaussian_psf
 import pytest
@@ -37,16 +36,16 @@ def test_all_psfmodel_sample(model_type):
         )
     img = MODEL()
 
-    assert torch.all(
-        torch.isfinite(img.data)
+    assert ap.backend.all(
+        ap.backend.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
 
     if model_type == "pixelated psf model":
         psf = ap.utils.initialize.gaussian_psf(3 * 0.8, 25, 0.8)
         MODEL.pixels.dynamic_value = psf / np.sum(psf)
 
-    assert torch.all(
-        torch.isfinite(MODEL.jacobian().data)
+    assert ap.backend.all(
+        ap.backend.isfinite(MODEL.jacobian().data)
     ), "Model should evaluate a real number for the jacobian"
 
     res = ap.fit.LM(MODEL, max_iter=10).fit()

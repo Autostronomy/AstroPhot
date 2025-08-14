@@ -2,8 +2,6 @@ from typing import Optional, Literal
 
 import numpy as np
 from torch.autograd.functional import jacobian
-import torch
-from torch import Tensor
 
 from ...param import forward
 from ...backend_obj import backend, ArrayLike
@@ -166,14 +164,11 @@ class SampleMixin:
         #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
         #     ).data
         # )(params)
-        return jacobian(
+        return backend.jacobian(
             lambda x: self.sample(
                 window=window, params=backend.concatenate((params_pre, x, params_post), dim=-1)
             ).data,
             params,
-            strategy="forward-mode",
-            vectorize=True,
-            create_graph=False,
         )
 
     def jacobian(

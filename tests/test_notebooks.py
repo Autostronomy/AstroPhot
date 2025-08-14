@@ -10,6 +10,10 @@ pytestmark = pytest.mark.skipif(
     reason="Graphviz not installed on Windows runner",
 )
 
+pytestbackend = pytest.mark.skipif(
+    os.environ.get("CASKADE_BACKEND") != "torch", reason="Requires torch backend"
+)
+
 notebooks = glob.glob(
     os.path.join(
         os.path.split(os.path.dirname(__file__))[0], "docs", "source", "tutorials", "*.ipynb"

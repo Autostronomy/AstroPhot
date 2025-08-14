@@ -49,9 +49,11 @@ class JacobianImage(Image):
         self_indices = self.get_indices(other.window)
         other_indices = other.get_indices(self.window)
         for self_i, other_i in zip(*self.match_parameters(other)):
-            self._data[self_indices[0], self_indices[1], self_i] += other.data[
-                other_indices[0], other_indices[1], other_i
-            ]
+            backend.add_at_indices(
+                self._data,
+                self_indices + (self_i,),
+                other.data[other_indices[0], other_indices[1], other_i],
+            )
         return self
 
     def plane_to_world(self, x, y):

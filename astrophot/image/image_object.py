@@ -559,14 +559,22 @@ class Image(Module):
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self._data[self.get_indices(other.window)] += other.data[other.get_indices(self.window)]
+            backend.add_at_indices(
+                self._data,
+                self.get_indices(other.window),
+                other.data[other.get_indices(self.window)],
+            )
         else:
             self._data = self.data + other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self._data[self.get_indices(other.window)] -= other.data[other.get_indices(self.window)]
+            backend.add_at_indices(
+                self._data,
+                self.get_indices(other.window),
+                -other.data[other.get_indices(self.window)],
+            )
         else:
             self._data = self.data - other
         return self

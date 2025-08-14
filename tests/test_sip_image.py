@@ -1,5 +1,4 @@
 import astrophot as ap
-import torch
 import numpy as np
 
 import pytest
@@ -11,13 +10,13 @@ import pytest
 
 @pytest.fixture()
 def sip_target():
-    arr = torch.zeros((10, 15))
+    arr = np.zeros((10, 15))
     return ap.SIPTargetImage(
         data=arr,
         pixelscale=1.0,
         zeropoint=1.0,
-        variance=torch.ones_like(arr),
-        mask=torch.zeros_like(arr),
+        variance=np.ones_like(arr),
+        mask=np.zeros_like(arr),
         sipA={(1, 0): 1e-4, (0, 1): 1e-4, (2, 3): -1e-5},
         sipB={(1, 0): -1e-4, (0, 1): 5e-5, (2, 3): 2e-6},
         # sipAP={(1, 0): -1e-4, (0, 1): -1e-4, (2, 3): 1e-5},
@@ -85,7 +84,7 @@ def test_sip_image_creation(sip_target):
     assert sip_model_crop.shape == (29, 15), "cropped model image should have correct shape"
 
     sip_model_crop.fluxdensity_to_flux()
-    assert torch.all(
+    assert ap.backend.all(
         sip_model_crop.data >= 0
     ), "cropped model image data should be non-negative after flux density to flux conversion"
 
@@ -98,8 +97,8 @@ def test_sip_image_wcs_roundtrip(sip_target):
     x, y = sip_target.pixel_to_plane(i, j)
     i2, j2 = sip_target.plane_to_pixel(x, y)
 
-    assert torch.allclose(i, i2, atol=0.05), "i coordinates should match after WCS roundtrip"
-    assert torch.allclose(j, j2, atol=0.05), "j coordinates should match after WCS roundtrip"
+    assert ap.backend.allclose(i, i2, atol=0.05), "i coordinates should match after WCS roundtrip"
+    assert ap.backend.allclose(j, j2, atol=0.05), "j coordinates should match after WCS roundtrip"
 
 
 def test_sip_image_save_load(sip_target):
@@ -113,13 +112,13 @@ def test_sip_image_save_load(sip_target):
     loaded_image = ap.SIPTargetImage(filename="test_sip_image.fits")
 
     # Check that the loaded image matches the original
-    assert torch.allclose(
+    assert ap.backend.allclose(
         sip_target.data, loaded_image.data
     ), "Loaded image data should match original"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         sip_target.pixelscale, loaded_image.pixelscale
     ), "Loaded image pixelscale should match original"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         sip_target.zeropoint, loaded_image.zeropoint
     ), "Loaded image zeropoint should match original"
     print(loaded_image.sipA)

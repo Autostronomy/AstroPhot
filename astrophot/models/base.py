@@ -163,12 +163,12 @@ class Model(Module):
 
         if isinstance(data, tuple):
             nll = sum(
-                backend.sum((mo - da * (mo + 1e-10).log() + backend.lgamma(da + 1))[~ma])
+                backend.sum((mo - da * backend.log(mo + 1e-10) + backend.lgamma(da + 1))[~ma])
                 for mo, da, ma in zip(model, data, mask)
             )
         else:
             nll = backend.sum(
-                (model - data * (model + 1e-10).log() + backend.lgamma(data + 1))[~mask]
+                (model - data * backend.log(model + 1e-10) + backend.lgamma(data + 1))[~mask]
             )
 
         return -nll

@@ -76,8 +76,11 @@ class Backend:
         self.bessel_k1 = self._bessel_k1_torch
         self.lgamma = self._lgamma_torch
         self.hessian = self._hessian_torch
+        self.jacobian = self._jacobian_torch
+        self.grad = self._grad_torch
         self.long = self._long_torch
         self.fill_at_indices = self._fill_at_indices_torch
+        self.add_at_indices = self._add_at_indices_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
@@ -111,8 +114,11 @@ class Backend:
         self.bessel_k1 = self._bessel_k1_jax
         self.lgamma = self._lgamma_jax
         self.hessian = self._hessian_jax
+        self.jacobian = self._jacobian_jax
+        self.grad = self._grad_jax
         self.long = self._long_jax
         self.fill_at_indices = self._fill_at_indices_jax
+        self.add_at_indices = self._add_at_indices_jax
 
     @property
     def array_type(self):
@@ -249,9 +255,9 @@ class Backend:
             stride=stride,
         )
 
-    def _conv2d_jax(self, input, kernel, padding, stride=(1, 1)):
+    def _conv2d_jax(self, input, kernel, padding, stride=1):
         return self.jax.lax.conv_general_dilated(
-            input, kernel, window_strides=stride, padding=padding
+            input, kernel, window_strides=(stride, stride), padding=padding
         )
 
     def _mean_torch(self, array, dim=None):
@@ -290,6 +296,22 @@ class Backend:
     def _lgamma_jax(self, array):
         return self.jax.lax.lgamma(array)
 
+    def _grad_torch(self, func):
+        return self.module.func.grad(func)
+
+    def _grad_jax(self, func):
+        return self.jax.grad(func)
+
+    def _jacobian_torch(self, func, x, strategy="forward-mode", vectorize=True, create_graph=False):
+        return self.module.autograd.functional.jacobian(
+            func, x, strategy=strategy, vectorize=vectorize, create_graph=create_graph
+        )
+
+    def _jacobian_jax(self, func, x, strategy="forward-mode", vectorize=True, create_graph=False):
+        if "forward" in strategy:
+            return self.jax.jacfwd(func)(x)
+        return self.jax.jacrev(func)(x)
+
     def _hessian_torch(self, func):
         return self.module.func.hessian(func)
 
@@ -302,6 +324,14 @@ class Backend:
 
     def _fill_at_indices_jax(self, array, indices, values):
         array = array.at[indices].set(values)
+        return array
+
+    def _add_at_indices_torch(self, array, indices, values):
+        array[indices] += values
+        return array
+
+    def _add_at_indices_jax(self, array, indices, values):
+        array = array.at[indices].add(values)
         return array
 
     def arange(self, *args, dtype=None, device=None):
@@ -428,6 +458,14 @@ class Backend:
     @property
     def int32(self):
         return self.module.int32
+
+    @property
+    def float32(self):
+        return self.module.float32
+
+    @property
+    def float64(self):
+        return self.module.float64
 
 
 backend = Backend()

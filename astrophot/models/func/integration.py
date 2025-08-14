@@ -1,9 +1,9 @@
 from typing import Tuple
-import torch
 import numpy as np
 
 from ...utils.integration import quad_table
 from ...backend_obj import backend, ArrayLike
+from ... import config
 
 
 def pixel_center_integrator(Z: ArrayLike) -> ArrayLike:
@@ -11,17 +11,19 @@ def pixel_center_integrator(Z: ArrayLike) -> ArrayLike:
 
 
 def pixel_corner_integrator(Z: ArrayLike) -> ArrayLike:
-    kernel = backend.ones((1, 1, 2, 2), dtype=Z.dtype, device=Z.device) / 4.0
-    Z = backend.conv2d(Z.view(1, 1, *Z.shape), kernel, padding="valid")
+    kernel = backend.ones((1, 1, 2, 2), dtype=config.DTYPE, device=config.DEVICE) / 4.0
+    Z = backend.conv2d(Z.reshape(1, 1, *Z.shape), kernel, padding="valid")
     return Z.squeeze(0).squeeze(0)
 
 
 def pixel_simpsons_integrator(Z: ArrayLike) -> ArrayLike:
     kernel = (
-        backend.as_array([[[[1, 4, 1], [4, 16, 4], [1, 4, 1]]]], dtype=Z.dtype, device=Z.device)
+        backend.as_array(
+            [[[[1, 4, 1], [4, 16, 4], [1, 4, 1]]]], dtype=config.DTYPE, device=config.DEVICE
+        )
         / 36.0
     )
-    Z = backend.conv2d(Z.view(1, 1, *Z.shape), kernel, padding="valid", stride=2)
+    Z = backend.conv2d(Z.reshape(1, 1, *Z.shape), kernel, padding="valid", stride=2)
     return Z.squeeze(0).squeeze(0)
 
 
@@ -35,14 +37,16 @@ def pixel_quad_integrator(Z: ArrayLike, w: ArrayLike = None, order: int = 3) -> 
     -  `order`: The order of the quadrature.
     """
     if w is None:
-        _, _, w = quad_table(order, Z.dtype, Z.device)
+        _, _, w = quad_table(order, config.DTYPE, config.DEVICE)
     Z = Z * w
     return backend.sum(Z, dim=-1)
 
 
 def upsample(i: ArrayLike, j: ArrayLike, order: int, scale: float) -> Tuple[ArrayLike, ArrayLike]:
     dp = (
-        backend.linspace(-1, 1, order, dtype=i.dtype, device=i.device) * (order - 1) / (2.0 * order)
+        backend.linspace(-1, 1, order, dtype=config.DTYPE, device=config.DEVICE)
+        * (order - 1)
+        / (2.0 * order)
     )
     di, dj = backend.meshgrid(dp, dp, indexing="xy")
 
@@ -54,7 +58,7 @@ def upsample(i: ArrayLike, j: ArrayLike, order: int, scale: float) -> Tuple[Arra
 def single_quad_integrate(
     i: ArrayLike, j: ArrayLike, brightness_ij, scale: float, quad_order: int = 3
 ) -> Tuple[ArrayLike, ArrayLike]:
-    di, dj, w = quad_table(quad_order, i.dtype, i.device)
+    di, dj, w = quad_table(quad_order, config.DTYPE, config.DEVICE)
     qi = backend.repeat(i[..., None], quad_order**2, -1) + scale * di.flatten()
     qj = backend.repeat(j[..., None], quad_order**2, -1) + scale * dj.flatten()
     z = brightness_ij(qi, qj)

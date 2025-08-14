@@ -35,7 +35,7 @@ def test_chunk_jacobian(center, PA, q, n, Re):
     model.jacobian_maxparams = 3
 
     Jchunked = model.jacobian()
-    assert torch.allclose(
+    assert ap.backend.allclose(
         Jtrue.data, Jchunked.data
     ), "Param chunked Jacobian should match full Jacobian"
 
@@ -44,7 +44,7 @@ def test_chunk_jacobian(center, PA, q, n, Re):
 
     Jchunked = model.jacobian()
 
-    assert torch.allclose(
+    assert ap.backend.allclose(
         Jtrue.data, Jchunked.data
     ), "Pixel chunked Jacobian should match full Jacobian"
 
@@ -132,18 +132,26 @@ def test_fitters_iter():
 
     # test hessian
     Hgauss = model.hessian(likelihood="gaussian")
-    assert torch.all(torch.isfinite(Hgauss)), "Hessian should be finite for Gaussian likelihood"
+    assert ap.backend.all(
+        ap.backend.isfinite(Hgauss)
+    ), "Hessian should be finite for Gaussian likelihood"
     Hpoisson = model.hessian(likelihood="poisson")
-    assert torch.all(torch.isfinite(Hpoisson)), "Hessian should be finite for Poisson likelihood"
+    assert ap.backend.all(
+        ap.backend.isfinite(Hpoisson)
+    ), "Hessian should be finite for Poisson likelihood"
 
 
 def test_hessian(sersic_model):
     model = sersic_model
     model.initialize()
     Hgauss = model.hessian(likelihood="gaussian")
-    assert torch.all(torch.isfinite(Hgauss)), "Hessian should be finite for Gaussian likelihood"
+    assert ap.backend.all(
+        ap.backend.isfinite(Hgauss)
+    ), "Hessian should be finite for Gaussian likelihood"
     Hpoisson = model.hessian(likelihood="poisson")
-    assert torch.all(torch.isfinite(Hpoisson)), "Hessian should be finite for Poisson likelihood"
+    assert ap.backend.all(
+        ap.backend.isfinite(Hpoisson)
+    ), "Hessian should be finite for Poisson likelihood"
     assert Hgauss is not None, "Hessian should be computed for Gaussian likelihood"
     assert Hpoisson is not None, "Hessian should be computed for Poisson likelihood"
     with pytest.raises(ValueError):
@@ -157,16 +165,18 @@ def test_gradient(sersic_model):
     model.initialize()
     x = model.build_params_array()
     grad = model.gradient()
-    assert torch.all(torch.isfinite(grad)), "Gradient should be finite"
+    assert ap.backend.all(ap.backend.isfinite(grad)), "Gradient should be finite"
     assert grad.shape == x.shape, "Gradient shape should match parameters shape"
     x.requires_grad = True
     ll = model.gaussian_log_likelihood(x)
     ll.backward()
     autograd = x.grad
-    assert torch.allclose(grad, autograd, rtol=1e-4), "Gradient should match autograd gradient"
+    assert ap.backend.allclose(grad, autograd, rtol=1e-4), "Gradient should match autograd gradient"
 
-    funcgrad = torch.func.grad(model.gaussian_log_likelihood)(x)
-    assert torch.allclose(grad, funcgrad, rtol=1e-4), "Gradient should match functional gradient"
+    funcgrad = ap.backend.grad(model.gaussian_log_likelihood)(x)
+    assert ap.backend.allclose(
+        grad, funcgrad, rtol=1e-4
+    ), "Gradient should match functional gradient"
 
 
 # class TestHMC(unittest.TestCase):

@@ -1,6 +1,4 @@
-import unittest
 import astrophot as ap
-import torch
 import numpy as np
 from utils import make_basic_sersic, make_basic_gaussian_psf
 import pytest
@@ -28,14 +26,14 @@ def test_model_sampling_modes():
 
     # With subpixel integration
     model.integrate_mode = "bright"
-    auto = model().data.detach().cpu().numpy()
+    auto = ap.backend.to_numpy(model().data)
     model.sampling_mode = "midpoint"
-    midpoint = model().data.detach().cpu().numpy()
+    midpoint = ap.backend.to_numpy(model().data)
     midpoint_bright = midpoint.copy()
     model.sampling_mode = "simpsons"
-    simpsons = model().data.detach().cpu().numpy()
+    simpsons = ap.backend.to_numpy(model().data)
     model.sampling_mode = "quad:5"
-    quad5 = model().data.detach().cpu().numpy()
+    quad5 = ap.backend.to_numpy(model().data)
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
@@ -43,13 +41,13 @@ def test_model_sampling_modes():
 
     # Without subpixel integration
     model.integrate_mode = "none"
-    auto = model().data.detach().cpu().numpy()
+    auto = ap.backend.to_numpy(model().data)
     model.sampling_mode = "midpoint"
-    midpoint = model().data.detach().cpu().numpy()
+    midpoint = ap.backend.to_numpy(model().data)
     model.sampling_mode = "simpsons"
-    simpsons = model().data.detach().cpu().numpy()
+    simpsons = ap.backend.to_numpy(model().data)
     model.sampling_mode = "quad:5"
-    quad5 = model().data.detach().cpu().numpy()
+    quad5 = ap.backend.to_numpy(model().data)
     assert np.allclose(
         midpoint, midpoint_bright, rtol=1e-2
     ), "no integrate sampling should match bright sampling"
@@ -60,13 +58,13 @@ def test_model_sampling_modes():
 
     # curvature based subpixel integration
     model.integrate_mode = "curvature"
-    auto = model().data.detach().cpu().numpy()
+    auto = ap.backend.to_numpy(model().data)
     model.sampling_mode = "midpoint"
-    midpoint = model().data.detach().cpu().numpy()
+    midpoint = ap.backend.to_numpy(model().data)
     model.sampling_mode = "simpsons"
-    simpsons = model().data.detach().cpu().numpy()
+    simpsons = ap.backend.to_numpy(model().data)
     model.sampling_mode = "quad:5"
-    quad5 = model().data.detach().cpu().numpy()
+    quad5 = ap.backend.to_numpy(model().data)
     assert np.allclose(
         midpoint, midpoint_bright, rtol=1e-2
     ), "curvature integrate sampling should match bright sampling"
@@ -94,7 +92,7 @@ def test_model_sampling_modes():
 def test_model_errors():
 
     # Target that is not a target image
-    arr = torch.zeros((10, 15))
+    arr = np.zeros((10, 15))
     target = ap.image.Image(data=arr, pixelscale=1.0, zeropoint=1.0)
 
     with pytest.raises(ap.errors.InvalidTarget):
@@ -133,8 +131,8 @@ def test_all_model_sample(model_type):
             P.value is not None
         ), f"Model type {model_type} parameter {P.name} should not be None after initialization"
     img = MODEL()
-    assert torch.all(
-        torch.isfinite(img.data)
+    assert ap.backend.all(
+        ap.backend.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
 
     res = ap.fit.LM(MODEL, max_iter=10, verbose=1).fit()
@@ -167,15 +165,17 @@ def test_all_model_sample(model_type):
         )
 
     F = MODEL.total_flux()
-    assert torch.isfinite(F), "Model total flux should be finite after fitting"
+    assert ap.backend.isfinite(F), "Model total flux should be finite after fitting"
     assert F > 0, "Model total flux should be positive after fitting"
     U = MODEL.total_flux_uncertainty()
-    assert torch.isfinite(U), "Model total flux uncertainty should be finite after fitting"
+    assert ap.backend.isfinite(U), "Model total flux uncertainty should be finite after fitting"
     assert U >= 0, "Model total flux uncertainty should be non-negative after fitting"
     M = MODEL.total_magnitude()
-    assert torch.isfinite(M), "Model total magnitude should be finite after fitting"
+    assert ap.backend.isfinite(M), "Model total magnitude should be finite after fitting"
     U_M = MODEL.total_magnitude_uncertainty()
-    assert torch.isfinite(U_M), "Model total magnitude uncertainty should be finite after fitting"
+    assert ap.backend.isfinite(
+        U_M
+    ), "Model total magnitude uncertainty should be finite after fitting"
     assert U_M >= 0, "Model total magnitude uncertainty should be non-negative after fitting"
 
     allnames = set()
@@ -250,6 +250,6 @@ def test_chunk_sample(center, PA, q, n, Re):
         sample = model.sample(window=chunk)
         chunk_img += sample
 
-    assert torch.allclose(
+    assert ap.backend.allclose(
         full_img.data, chunk_img.data
     ), "Chunked sample should match full sample within tolerance"
