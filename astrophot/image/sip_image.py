@@ -66,19 +66,26 @@ class SIPModelImage(SIPMixin, ModelImage):
 
         kwargs = {
             "pixel_area_map": (
-                self.pixel_area_map[: MS * scale, : NS * scale]
-                .reshape(MS, scale, NS, scale)
-                .sum(axis=(1, 3))
+                backend.sum(
+                    self.pixel_area_map[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale),
+                    dim=(1, 3),
+                )
             ),
             "distortion_ij": (
-                self.distortion_ij[:, : MS * scale, : NS * scale]
-                .reshape(2, MS, scale, NS, scale)
-                .mean(axis=(2, 4))
+                backend.mean(
+                    self.distortion_ij[:, : MS * scale, : NS * scale].reshape(
+                        2, MS, scale, NS, scale
+                    ),
+                    dim=(2, 4),
+                )
             ),
             "distortion_IJ": (
-                self.distortion_IJ[:, : MS * scale, : NS * scale]
-                .reshape(2, MS, scale, NS, scale)
-                .mean(axis=(2, 4))
+                backend.mean(
+                    self.distortion_IJ[:, : MS * scale, : NS * scale].reshape(
+                        2, MS, scale, NS, scale
+                    ),
+                    dim=(2, 4),
+                )
             ),
             **kwargs,
         }
@@ -104,20 +111,20 @@ class SIPTargetImage(SIPMixin, TargetImage):
         new_distortion_IJ = self.distortion_IJ
         if upsample > 1:
             new_area_map = (
-                backend.upsample2d(new_area_map.unsqueeze(0).unsqueeze(0), upsample, "nearest")
+                backend.upsample2d(new_area_map[None, None], upsample, "nearest")
                 .squeeze(0)
                 .squeeze(0)
             )
             new_distortion_ij = backend.upsample2d(
-                new_distortion_ij.unsqueeze(1), upsample, "bilinear"
+                new_distortion_ij[:, None], upsample, "bilinear"
             ).squeeze(1)
             new_distortion_IJ = backend.upsample2d(
-                new_distortion_IJ.unsqueeze(1), upsample, "bilinear"
+                new_distortion_IJ[:, None], upsample, "bilinear"
             ).squeeze(1)
         if pad > 0:
             new_area_map = (
                 backend.pad(
-                    new_area_map.unsqueeze(0).unsqueeze(0),
+                    new_area_map[None, None],
                     (pad, pad, pad, pad),
                     mode="replicate",
                 )
@@ -125,10 +132,10 @@ class SIPTargetImage(SIPMixin, TargetImage):
                 .squeeze(0)
             )
             new_distortion_ij = backend.pad(
-                new_distortion_ij.unsqueeze(1), (pad, pad, pad, pad), mode="replicate"
+                new_distortion_ij[:, None], (pad, pad, pad, pad), mode="replicate"
             ).squeeze(1)
             new_distortion_IJ = backend.pad(
-                new_distortion_IJ.unsqueeze(1), (pad, pad, pad, pad), mode="replicate"
+                new_distortion_IJ[:, None], (pad, pad, pad, pad), mode="replicate"
             ).squeeze(1)
         kwargs = {
             "pixel_area_map": new_area_map,

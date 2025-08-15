@@ -161,6 +161,8 @@ def test_hessian(sersic_model):
 
 
 def test_gradient(sersic_model):
+    if ap.backend.backend == "jax":
+        pytest.skip("JAX backend does not support backward function")
     model = sersic_model
     target = model.target
     target.weight = 1 / (10 + target.variance.T)

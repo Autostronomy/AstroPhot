@@ -85,8 +85,8 @@ class SampleMixin:
             backend.abs(
                 backend.pad(
                     backend.conv2d(
-                        sample.view(1, 1, *sample.shape),
-                        kernel.view(1, 1, *kernel.shape),
+                        sample.reshape(1, 1, *sample.shape),
+                        kernel.reshape(1, 1, *kernel.shape),
                         padding="valid",
                     ),
                     (1, 1, 1, 1),
@@ -239,11 +239,11 @@ class SampleMixin:
         if likelihood == "gaussian":
             weight = self.target[window].weight
             gradient = backend.sum(
-                jacobian_image.data * ((data - model) * weight).unsqueeze(-1), dim=(0, 1)
+                jacobian_image.data * ((data - model) * weight)[..., None], dim=(0, 1)
             )
         elif likelihood == "poisson":
             gradient = backend.sum(
-                jacobian_image.data * (1 - data / model).unsqueeze(-1),
+                jacobian_image.data * (1 - data / model)[..., None],
                 dim=(0, 1),
             )
 

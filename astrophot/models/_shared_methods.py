@@ -17,7 +17,7 @@ def _sample_image(
     angle_range=None,
     cycle=2 * np.pi,
 ):
-    dat = backend.copy(image.data)
+    dat = backend.to_numpy(image.data).copy()
     # Fill masked pixels
     if image.has_mask:
         mask = backend.to_numpy(image.mask)

@@ -84,11 +84,12 @@ class Backend:
         self.long = self._long_torch
         self.fill_at_indices = self._fill_at_indices_torch
         self.add_at_indices = self._add_at_indices_torch
+        self.and_at_indices = self._and_at_indices_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
         self.jax.config.update("jax_enable_x64", True)
-        config.DTYPE = self.jax.numpy.float64
+        config.DTYPE = None
         config.DEVICE = None
         self.make_array = self._make_array_jax
         self._array_type = self._array_type_jax
@@ -125,6 +126,7 @@ class Backend:
         self.long = self._long_jax
         self.fill_at_indices = self._fill_at_indices_jax
         self.add_at_indices = self._add_at_indices_jax
+        self.and_at_indices = self._and_at_indices_jax
 
     @property
     def array_type(self):
@@ -200,7 +202,9 @@ class Backend:
         return self.module.transpose(array, *args)
 
     def _transpose_jax(self, array, *args):
-        return self.module.transpose(array, args)
+        permutation = np.arange(array.ndim)
+        permutation[np.sort(args)] = args
+        return self.module.transpose(array, permutation)
 
     def _gammaln_torch(self, array):
         return self.module.special.gammaln(array)
@@ -245,13 +249,13 @@ class Backend:
         return self.module.roll(array, shifts, dims=dims)
 
     def _roll_jax(self, array, shifts, dims):
-        return self.jax.roll(array, shifts, axis=dims)
+        return self.module.roll(array, shifts, axis=dims)
 
     def _clamp_torch(self, array, min, max):
         return self.module.clamp(array, min, max)
 
     def _clamp_jax(self, array, min, max):
-        return self.jax.clip(array, min, max)
+        return self.module.clip(array, min, max)
 
     def _long_torch(self, array):
         return array.long()
@@ -350,6 +354,14 @@ class Backend:
 
     def _add_at_indices_jax(self, array, indices, values):
         array = array.at[indices].add(values)
+        return array
+
+    def _and_at_indices_torch(self, array, indices, values):
+        array[indices] &= values
+        return array
+
+    def _and_at_indices_jax(self, array, indices, values):
+        array = array.at[indices].set(array[indices] & values)
         return array
 
     def _flatten_torch(self, array, start_dim=0, end_dim=-1):

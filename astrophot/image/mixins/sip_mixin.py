@@ -3,6 +3,7 @@ from typing import Union, Optional, Tuple
 from ..image_object import Image
 from ..window import Window
 from .. import func
+from ... import config
 from ...backend_obj import backend, ArrayLike
 from ...utils.interpolate import interp2d
 from ...param import forward
@@ -153,6 +154,16 @@ class SIPMixin:
             )
         )
         self._pixel_area_map = A.abs()
+
+    def to(self, dtype=None, device=None):
+        if dtype is None:
+            dtype = config.DTYPE
+        if device is None:
+            device = config.DEVICE
+        super().to(dtype=dtype, device=device)
+        self._pixel_area_map = backend.to(self._pixel_area_map, dtype=dtype, device=device)
+        self.distortion_ij = backend.to(self.distortion_ij, dtype=dtype, device=device)
+        self.distortion_IJ = backend.to(self.distortion_IJ, dtype=dtype, device=device)
 
     def copy_kwargs(self, **kwargs):
         kwargs = {

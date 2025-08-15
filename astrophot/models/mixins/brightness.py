@@ -62,7 +62,7 @@ class WedgeMixin:
         v = w * np.arange(self.segments)
         for s in range(self.segments):
             indices = (angles >= v[s]) & (angles < (v[s] + w))
-            model[indices] += self.iradial_model(s, R[indices])
+            model = backend.add_at_indices(model, indices, self.iradial_model(s, R[indices]))
         return model
 
     def brightness(self, x: Tensor, y: Tensor) -> Tensor:
@@ -110,8 +110,10 @@ class RayMixin:
             angles = (T + cycle / 2 - v[s]) % cycle - cycle / 2
             indices = (angles >= -w) & (angles < w)
             weights = (backend.cos(angles[indices] * self.segments) + 1) / 2
-            model[indices] += weights * self.iradial_model(s, R[indices])
-            weight[indices] += weights
+            model = backend.add_at_indices(
+                model, indices, weights * self.iradial_model(s, R[indices])
+            )
+            weight = backend.add_at_indices(weight, indices, weights)
         return model / weight
 
     def brightness(self, x: ArrayLike, y: ArrayLike) -> ArrayLike:

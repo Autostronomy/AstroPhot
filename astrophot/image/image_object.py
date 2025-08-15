@@ -400,9 +400,9 @@ class Image(Module):
         if device is None:
             device = config.DEVICE
         super().to(dtype=dtype, device=device)
-        self._data = self._data.to(dtype=dtype, device=device)
+        self._data = backend.to(self._data, dtype=dtype, device=device)
         if self.zeropoint is not None:
-            self.zeropoint = self.zeropoint.to(dtype=dtype, device=device)
+            self.zeropoint = backend.to(self.zeropoint, dtype=dtype, device=device)
         return self
 
     def flatten(self, attribute: str = "data") -> ArrayLike:

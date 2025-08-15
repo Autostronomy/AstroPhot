@@ -253,9 +253,9 @@ class DataMixin:
         super().to(dtype=dtype, device=device)
 
         if self.has_weight:
-            self._weight = self._weight.to(dtype=dtype, device=device)
+            self._weight = backend.to(self._weight, dtype=dtype, device=device)
         if self.has_mask:
-            self._mask = self._mask.to(dtype=backend.bool, device=device)
+            self._mask = backend.to(self._mask, dtype=backend.bool, device=device)
         return self
 
     def copy_kwargs(self, **kwargs):

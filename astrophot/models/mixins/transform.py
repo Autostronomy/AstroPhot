@@ -1,7 +1,6 @@
 from typing import Tuple
 import numpy as np
 import torch
-from torch import Tensor
 
 from ...utils.decorators import ignore_numpy_warnings
 from ...utils.interpolate import default_prof
@@ -119,7 +118,7 @@ class SuperEllipseMixin:
 
     @forward
     def radius_metric(self, x: ArrayLike, y: ArrayLike, C: ArrayLike) -> ArrayLike:
-        return (x.abs().pow(C) + y.abs().pow(C) + self.softening**C) ** (1.0 / C)
+        return (backend.abs(x) ** C + backend.abs(y) ** C + self.softening**C) ** (1.0 / C)
 
 
 class FourierEllipseMixin:
@@ -181,8 +180,8 @@ class FourierEllipseMixin:
         theta = self.angular_metric(x, y)
         return R * backend.exp(
             backend.sum(
-                am.unsqueeze(-1)
-                * backend.cos(self.modes.unsqueeze(-1) * theta.flatten() + phim.unsqueeze(-1)),
+                am[..., None]
+                * backend.cos(self.modes[..., None] * theta.flatten() + phim[..., None]),
                 0,
             ).reshape(x.shape)
         )
