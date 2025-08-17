@@ -58,24 +58,36 @@ class SampleMixin:
     @forward
     def _bright_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
         i, j = image.pixel_center_meshgrid()
-        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
-        sample_flat = sample.flatten()
-        select = backend.topk(sample_flat, N)[1]
-        sample_flat = backend.fill_at_indices(
-            sample_flat,
-            select,
-            func.recursive_bright_integrate(
-                i.flatten()[select],
-                j.flatten()[select],
-                lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-                scale=image.base_scale,
-                bright_frac=self.integrate_fraction,
-                quad_order=self.integrate_quad_order,
-                gridding=self.integrate_gridding,
-                max_depth=self.integrate_max_depth,
-            ),
+        sample = func.bright_integrate(
+            sample,
+            i,
+            j,
+            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+            scale=image.base_scale,
+            bright_frac=self.integrate_fraction,
+            quad_order=self.integrate_quad_order,
+            gridding=self.integrate_gridding,
+            max_depth=self.integrate_max_depth,
         )
-        return sample_flat.reshape(sample.shape)
+        return sample
+        # N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
+        # sample_flat = sample.flatten()
+        # select = backend.topk(sample_flat, N)[1]
+        # sample_flat = backend.fill_at_indices(
+        #     sample_flat,
+        #     select,
+        #     func.recursive_bright_integrate(
+        #         i.flatten()[select],
+        #         j.flatten()[select],
+        #         lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+        #         scale=image.base_scale,
+        #         bright_frac=self.integrate_fraction,
+        #         quad_order=self.integrate_quad_order,
+        #         gridding=self.integrate_gridding,
+        #         max_depth=self.integrate_max_depth,
+        #     ),
+        # )
+        # return sample_flat.reshape(sample.shape)
 
     @forward
     def _curvature_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
@@ -89,7 +101,7 @@ class SampleMixin:
                         kernel.reshape(1, 1, *kernel.shape),
                         padding="valid",
                     ),
-                    (1, 1, 1, 1),
+                    (0, 0, 0, 0, 1, 1, 1, 1),
                     mode="replicate",
                 )
             )

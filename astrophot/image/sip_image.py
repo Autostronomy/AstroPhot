@@ -125,17 +125,17 @@ class SIPTargetImage(SIPMixin, TargetImage):
             new_area_map = (
                 backend.pad(
                     new_area_map[None, None],
-                    (pad, pad, pad, pad),
+                    (0, 0, 0, 0, pad, pad, pad, pad),
                     mode="replicate",
                 )
                 .squeeze(0)
                 .squeeze(0)
             )
             new_distortion_ij = backend.pad(
-                new_distortion_ij[:, None], (pad, pad, pad, pad), mode="replicate"
+                new_distortion_ij[:, None], (0, 0, 0, 0, pad, pad, pad, pad), mode="replicate"
             ).squeeze(1)
             new_distortion_IJ = backend.pad(
-                new_distortion_IJ[:, None], (pad, pad, pad, pad), mode="replicate"
+                new_distortion_IJ[:, None], (0, 0, 0, 0, pad, pad, pad, pad), mode="replicate"
             ).squeeze(1)
         kwargs = {
             "pixel_area_map": new_area_map,

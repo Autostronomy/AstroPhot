@@ -5,6 +5,7 @@ import numpy as np
 from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
+from .. import config
 from ..backend_obj import backend, ArrayLike
 from ..param import forward
 
@@ -103,10 +104,14 @@ class MultiGaussianExpansion(ComponentModel):
         self, x: ArrayLike, y: ArrayLike, q: ArrayLike, PA: ArrayLike
     ) -> Tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
-        if PA.numel() == 1:
+        if np.prod(PA.shape) == 1:
             x, y = func.rotate(-(PA + np.pi / 2), x, y)
-            x = x.repeat(q.shape[0], *[1] * x.ndim)
-            y = y.repeat(q.shape[0], *[1] * y.ndim)
+            x = x * backend.ones(
+                q.shape[0], *[1] * x.ndim, dtype=config.DTYPE, device=config.DEVICE
+            )
+            y = y * backend.ones(
+                q.shape[0], *[1] * y.ndim, dtype=config.DTYPE, device=config.DEVICE
+            )
         else:
             x, y = backend.vmap(lambda pa: func.rotate(-(pa + np.pi / 2), x, y))(PA)
         y = backend.vmap(lambda q, y: y / q)(q, y)

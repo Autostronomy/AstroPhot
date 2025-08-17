@@ -366,9 +366,9 @@ def residual_image(
     elif isinstance(normalize_residuals, backend.array_type):
         residuals = residuals / backend.sqrt(normalize_residuals)
         normalize_residuals = True
-    if target.has_mask:
-        residuals[target.mask] = np.nan
     residuals = backend.to_numpy(residuals)
+    if target.has_mask:
+        residuals[backend.to_numpy(target.mask)] = np.nan
 
     if scaling == "clip":
         if normalize_residuals is not True:

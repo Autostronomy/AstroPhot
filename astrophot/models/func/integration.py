@@ -88,7 +88,7 @@ def recursive_quad_integrate(
 
     integral_flat = z.flatten()
 
-    si, sj = upsample(i.flatten()[select], j.flatten()[select], quad_order, scale)
+    si, sj = upsample(i.flatten()[select], j.flatten()[select], gridding, scale)
 
     integral_flat = backend.fill_at_indices(
         integral_flat,
@@ -112,6 +112,41 @@ def recursive_quad_integrate(
     return integral_flat.reshape(z.shape)
 
 
+def bright_integrate(
+    z: ArrayLike,
+    i: ArrayLike,
+    j: ArrayLike,
+    brightness_ij: callable,
+    bright_frac: float,
+    scale: float = 1.0,
+    quad_order: int = 3,
+    gridding: int = 5,
+    max_depth: int = 2,
+):
+    # Work in progress, somehow this is slower
+    trace = []
+    for d in range(max_depth):
+        N = max(1, int(np.prod(z.shape) * bright_frac))
+        z_flat = z.flatten()
+        select = backend.topk(z_flat, N)[1]
+        trace.append([z_flat, select, z.shape])
+        if d > 0:
+            i, j = upsample(i.flatten()[select], j.flatten()[select], gridding, scale)
+            scale = scale / gridding
+        else:
+            i, j = i.flatten()[select].reshape(-1, 1), j.flatten()[select].reshape(-1, 1)
+        z, _ = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
+    trace.append([z, None, z.shape])
+
+    for _ in reversed(range(1, max_depth + 1)):
+        T = trace.pop(-1)
+        trace[-1][0] = backend.fill_at_indices(
+            trace[-1][0], trace[-1][1], backend.mean(T[0].reshape(T[2]), dim=-1)
+        )
+
+    return trace[0][0].reshape(trace[0][2])
+
+
 def recursive_bright_integrate(
     i: ArrayLike,
     j: ArrayLike,
@@ -124,7 +159,7 @@ def recursive_bright_integrate(
     max_depth: int = 1,
 ) -> ArrayLike:
     z, _ = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
-
+    print(z.shape)
     if _current_depth >= max_depth:
         return z
 
@@ -133,7 +168,7 @@ def recursive_bright_integrate(
 
     select = backend.topk(z_flat, N)[1]
 
-    si, sj = upsample(i.flatten()[select], j.flatten()[select], quad_order, scale)
+    si, sj = upsample(i.flatten()[select], j.flatten()[select], gridding, scale)
 
     z_flat = backend.fill_at_indices(
         z_flat,

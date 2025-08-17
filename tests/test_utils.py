@@ -120,50 +120,35 @@ def test_conversion_functions():
     # sersic I0 to flux - torch
     tv = ap.backend.as_array([[1.0]], dtype=ap.backend.float64)
     assert ap.backend.allclose(
-        ap.backend.round(
-            ap.utils.conversions.functions.sersic_I0_to_flux_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        ap.backend.round(ap.backend.as_array([[2 * np.pi * gamma(2)]]), decimals=7),
+        ap.utils.conversions.functions.sersic_I0_to_flux_np(tv, tv, tv, tv),
+        ap.backend.as_array([[2 * np.pi * gamma(2)]]),
+        rtol=1e-7,
     ), "Error converting sersic central intensity to flux (torch)"
 
     # sersic flux to I0 - torch
     assert ap.backend.allclose(
-        ap.backend.round(
-            ap.utils.conversions.functions.sersic_flux_to_I0_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        ap.backend.round(ap.backend.as_array([[1.0 / (2 * np.pi * gamma(2))]]), decimals=7),
+        ap.utils.conversions.functions.sersic_flux_to_I0_np(tv, tv, tv, tv),
+        ap.backend.as_array([[1.0 / (2 * np.pi * gamma(2))]]),
+        rtol=1e-7,
     ), "Error converting sersic flux to central intensity (torch)"
 
     # sersic Ie to flux - torch
     assert ap.backend.allclose(
-        ap.backend.round(
-            ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        ap.backend.round(
-            ap.backend.as_array([[2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2)]]),
-            decimals=7,
-        ),
+        ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv, tv, tv, tv),
+        ap.backend.as_array([[2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2)]]),
+        rtol=1e-7,
     ), "Error converting sersic effective intensity to flux (torch)"
 
     # sersic flux to Ie - torch
     assert ap.backend.allclose(
-        ap.backend.round(
-            ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        ap.backend.round(
-            ap.backend.as_array(
-                [[1 / (2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2))]]
-            ),
-            decimals=7,
-        ),
+        ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv, tv, tv, tv),
+        ap.backend.as_array([[1 / (2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2))]]),
+        rtol=1e-7,
     ), "Error converting sersic flux to effective intensity (torch)"
 
     # inverse sersic - torch
     assert ap.backend.allclose(
-        ap.backend.round(ap.utils.conversions.functions.sersic_inv_np(tv, tv, tv, tv), decimals=7),
-        ap.backend.round(ap.backend.as_array([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]), decimals=7),
+        ap.utils.conversions.functions.sersic_inv_np(tv, tv, tv, tv),
+        ap.backend.as_array([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]),
+        rtol=1e-7,
     ), "Error computing inverse sersic function (torch)"

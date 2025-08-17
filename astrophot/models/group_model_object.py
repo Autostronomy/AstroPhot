@@ -120,7 +120,7 @@ class GroupModel(Model):
         """
         subtarget = self.target[self.window]
         if isinstance(subtarget, ImageList):
-            mask = tuple(backend.ones_like(submask) for submask in subtarget.mask)
+            mask = list(backend.ones_like(submask) for submask in subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 model_fit_mask = model.fit_mask()
@@ -139,6 +139,7 @@ class GroupModel(Model):
                     mask[index] = backend.and_at_indices(
                         mask[index], group_indices, model_fit_mask[model_indices]
                     )
+            mask = tuple(mask)
         else:
             mask = backend.ones_like(subtarget.mask)
             for model in self.models:

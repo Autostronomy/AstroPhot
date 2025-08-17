@@ -109,7 +109,7 @@ def sip_coefs(order):
 def sip_matrix(u, v, order):
     M = backend.zeros((len(u), (order + 1) * (order + 2) // 2), dtype=u.dtype, device=u.device)
     for i, (p, q) in enumerate(sip_coefs(order)):
-        M[:, i] = u**p * v**q
+        M = backend.fill_at_indices(M, (slice(None), i), u**p * v**q)
     return M
 
 

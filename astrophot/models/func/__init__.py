@@ -8,6 +8,7 @@ from .integration import (
     single_quad_integrate,
     recursive_quad_integrate,
     upsample,
+    bright_integrate,
     recursive_bright_integrate,
 )
 from .convolution import (

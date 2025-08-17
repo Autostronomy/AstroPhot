@@ -1,4 +1,5 @@
 from ...backend_obj import backend, ArrayLike
+from ... import config
 
 
 def _h_poly(t: ArrayLike) -> ArrayLike:
@@ -13,11 +14,16 @@ def _h_poly(t: ArrayLike) -> ArrayLike:
 
     """
 
-    tt = t[None, :] ** (backend.arange(4, device=t.device)[:, None])
+    tt = t[None, :] ** (backend.arange(4, device=config.DEVICE)[:, None])
     A = backend.as_array(
-        [[1, 0, -3, 2], [0, 1, -2, 1], [0, 0, 3, -2], [0, 0, -1, 1]],
-        dtype=t.dtype,
-        device=t.device,
+        [
+            [1.0, 0.0, -3.0, 2.0],
+            [0.0, 1.0, -2.0, 1.0],
+            [0.0, 0.0, 3.0, -2.0],
+            [0.0, 0.0, -1.0, 1.0],
+        ],
+        dtype=config.DTYPE,
+        device=config.DEVICE,
     )
     return A @ tt
 
@@ -33,7 +39,7 @@ def cubic_spline_torch(x: ArrayLike, y: ArrayLike, xs: ArrayLike) -> ArrayLike:
                 the cubic spline function should be evaluated.
     """
     m = (y[1:] - y[:-1]) / (x[1:] - x[:-1])
-    m = backend.concatenate([m[[0]], (m[1:] + m[:-1]) / 2, m[[-1]]])
+    m = backend.concatenate([m[0].flatten(), (m[1:] + m[:-1]) / 2, m[-1].flatten()])
     idxs = backend.searchsorted(x[:-1], xs) - 1
     dx = x[idxs + 1] - x[idxs]
     hh = _h_poly((xs - x[idxs]) / dx)
@@ -53,9 +59,9 @@ def spline(R: ArrayLike, profR: ArrayLike, profI: ArrayLike, extend: str = "zero
     """
     I = cubic_spline_torch(profR, profI, R.flatten()).reshape(*R.shape)
     if extend == "zeros":
-        I[R > profR[-1]] = 0
+        backend.fill_at_indices(I, R > profR[-1], 0)
     elif extend == "const":
-        I[R > profR[-1]] = profI[-1]
+        backend.fill_at_indices(I, R > profR[-1], profI[-1])
     else:
         raise ValueError(f"Unknown extend option: {extend}. Use 'zeros' or 'const'.")
     return I

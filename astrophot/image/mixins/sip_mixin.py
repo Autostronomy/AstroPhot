@@ -153,7 +153,7 @@ class SIPMixin:
                 + x[:-1, :-1] * y[1:, :-1]
             )
         )
-        self._pixel_area_map = A.abs()
+        self._pixel_area_map = backend.abs(A)
 
     def to(self, dtype=None, device=None):
         if dtype is None:

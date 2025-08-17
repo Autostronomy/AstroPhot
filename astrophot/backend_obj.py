@@ -80,6 +80,7 @@ class Backend:
         self.lgamma = self._lgamma_torch
         self.hessian = self._hessian_torch
         self.jacobian = self._jacobian_torch
+        self.jacfwd = self._jacfwd_torch
         self.grad = self._grad_torch
         self.long = self._long_torch
         self.fill_at_indices = self._fill_at_indices_torch
@@ -122,6 +123,7 @@ class Backend:
         self.lgamma = self._lgamma_jax
         self.hessian = self._hessian_jax
         self.jacobian = self._jacobian_jax
+        self.jacfwd = self._jacfwd_jax
         self.grad = self._grad_jax
         self.long = self._long_jax
         self.fill_at_indices = self._fill_at_indices_jax
@@ -243,6 +245,7 @@ class Backend:
     def _pad_jax(self, array, padding, mode):
         if mode == "replicate":
             mode = "edge"
+        padding = np.array(padding).reshape(-1, 2)
         return self.module.pad(array, padding, mode=mode)
 
     def _roll_torch(self, array, shifts, dims):
@@ -304,7 +307,7 @@ class Backend:
         return self.module.special.bessel_j1(array)
 
     def _bessel_j1_jax(self, array):
-        return self.jax.scipy.special.bessel_jn(array, 1)
+        return self.jax.scipy.special.bessel_jn(array, v=1)
 
     def _bessel_k1_torch(self, array):
         return self.module.special.modified_bessel_k1(array)
@@ -331,14 +334,30 @@ class Backend:
 
     def _jacobian_jax(self, func, x, strategy="forward-mode", vectorize=True, create_graph=False):
         if "forward" in strategy:
+            # n = x.size
+            # eye = self.module.eye(n)
+            # Jt = self.jax.vmap(lambda s: self.jax.jvp(func, (x,), (s,))[1])(eye)
+            # return self.module.moveaxis(Jt, 0, -1)
             return self.jax.jacfwd(func)(x)
         return self.jax.jacrev(func)(x)
+
+    def _jacfwd_torch(self, func):
+        return self.module.func.jacfwd(func)
+
+    def _jacfwd_jax(self, func):
+        return self.jax.jacfwd(func)
 
     def _hessian_torch(self, func):
         return self.module.func.hessian(func)
 
     def _hessian_jax(self, func):
         return self.jax.hessian(func)
+
+    def _vmap_torch(self, *args, **kwargs):
+        return self.module.vmap(*args, **kwargs)
+
+    def _vmap_jax(self, *args, **kwargs):
+        return self.jax.vmap(*args, **kwargs)
 
     def _fill_at_indices_torch(self, array, indices, values):
         array[indices] = values
@@ -474,9 +493,6 @@ class Backend:
 
     def allclose(self, a, b, rtol=1e-5, atol=1e-8):
         return self.module.allclose(a, b, rtol=rtol, atol=atol)
-
-    def vmap(self, *args, **kwargs):
-        return self.module.vmap(*args, **kwargs)
 
     @property
     def linalg(self):

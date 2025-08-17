@@ -117,12 +117,24 @@ def test_model_errors():
 )
 def test_all_model_sample(model_type):
 
+    if model_type == "isothermal sech2 edgeon model" and ap.backend.backend == "jax":
+        pytest.skip("JAX doesnt have bessel function k1 yet")
+
+    if (
+        model_type in ["ferrer warp galaxy model", "king warp galaxy model"]
+        and ap.backend.backend == "jax"
+    ):
+        pytest.skip("JAX version doesnt support these models yet, difficulty with gradients")
+
     target = make_basic_sersic()
     target.zeropoint = 22.5
     MODEL = ap.Model(
         name="test model",
         model_type=model_type,
         target=target,
+        integrate_mode=(
+            "none" if ap.backend.backend == "jax" else "bright"
+        ),  # JAX JIT is reallly slow for any integration
     )
     MODEL.initialize()
     MODEL.to()

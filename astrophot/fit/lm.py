@@ -11,7 +11,7 @@ from . import func
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from ..param import ValidContext
 
-__all__ = ("LM",)
+__all__ = ("LM", "LMfast")
 
 
 class LM(BaseOptimizer):
@@ -382,3 +382,11 @@ class LM(BaseOptimizer):
             config.logger.warning(
                 "Unable to update uncertainty due to non finite covariance matrix"
             )
+
+
+class LMfast(LM):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.jacobian = backend.jacfwd(
+            lambda x: self.model(window=self.fit_window, params=x).flatten("data")[self.mask]
+        )
