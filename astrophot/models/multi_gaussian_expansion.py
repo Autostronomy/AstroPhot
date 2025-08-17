@@ -107,10 +107,10 @@ class MultiGaussianExpansion(ComponentModel):
         if np.prod(PA.shape) == 1:
             x, y = func.rotate(-(PA + np.pi / 2), x, y)
             x = x * backend.ones(
-                q.shape[0], *[1] * x.ndim, dtype=config.DTYPE, device=config.DEVICE
+                (q.shape[0], *[1] * x.ndim), dtype=config.DTYPE, device=config.DEVICE
             )
             y = y * backend.ones(
-                q.shape[0], *[1] * y.ndim, dtype=config.DTYPE, device=config.DEVICE
+                (q.shape[0], *[1] * y.ndim), dtype=config.DTYPE, device=config.DEVICE
             )
         else:
             x, y = backend.vmap(lambda pa: func.rotate(-(pa + np.pi / 2), x, y))(PA)

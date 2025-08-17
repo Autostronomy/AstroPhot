@@ -82,6 +82,7 @@ class Backend:
         self.jacobian = self._jacobian_torch
         self.jacfwd = self._jacfwd_torch
         self.grad = self._grad_torch
+        self.vmap = self._vmap_torch
         self.long = self._long_torch
         self.fill_at_indices = self._fill_at_indices_torch
         self.add_at_indices = self._add_at_indices_torch
@@ -125,6 +126,7 @@ class Backend:
         self.jacobian = self._jacobian_jax
         self.jacfwd = self._jacfwd_jax
         self.grad = self._grad_jax
+        self.vmap = self._vmap_jax
         self.long = self._long_jax
         self.fill_at_indices = self._fill_at_indices_jax
         self.add_at_indices = self._add_at_indices_jax
@@ -240,7 +242,7 @@ class Backend:
         return self.jax.image.resize(array, new_shape, method=method)
 
     def _pad_torch(self, array, padding, mode):
-        return self.module.nn.functional.pad(array, padding, mode=mode)
+        return self.module.nn.functional.pad(array, padding[-4:], mode=mode)
 
     def _pad_jax(self, array, padding, mode):
         if mode == "replicate":
@@ -289,10 +291,10 @@ class Backend:
         return self.module.sum(array, dim=dim)
 
     def _sum_jax(self, array, dim=None):
-        return self.jax.numpy.sum(array, axis=dim)
+        return self.module.sum(array, axis=dim)
 
     def _max_torch(self, array, dim=None):
-        return self.module.max(array, dim=dim).values
+        return array.amax(dim=dim)
 
     def _max_jax(self, array, dim=None):
         return self.module.max(array, axis=dim)
