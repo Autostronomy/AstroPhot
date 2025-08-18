@@ -1,7 +1,5 @@
-import unittest
 import astrophot as ap
 import numpy as np
-import torch
 
 
 ######################################################################

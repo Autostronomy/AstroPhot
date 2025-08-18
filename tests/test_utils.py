@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from scipy.special import gamma
 import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian
@@ -15,7 +14,7 @@ def test_make_psf():
     target += make_basic_gaussian(x=40, y=40, rand=54321)
 
     assert np.all(
-        np.isfinite(target.data.detach().cpu().numpy())
+        np.isfinite(ap.backend.to_numpy(target.data))
     ), "Target image should be finite after creation"
 
 
@@ -119,50 +118,37 @@ def test_conversion_functions():
     ), "Error computing inverse sersic function (np)"
 
     # sersic I0 to flux - torch
-    tv = torch.tensor([[1.0]], dtype=torch.float64)
-    assert torch.allclose(
-        torch.round(
-            ap.utils.conversions.functions.sersic_I0_to_flux_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        torch.round(torch.tensor([[2 * np.pi * gamma(2)]]), decimals=7),
+    tv = ap.backend.as_array([[1.0]], dtype=ap.backend.float64)
+    assert ap.backend.allclose(
+        ap.utils.conversions.functions.sersic_I0_to_flux_np(tv, tv, tv, tv),
+        ap.backend.as_array([[2 * np.pi * gamma(2)]]),
+        rtol=1e-7,
     ), "Error converting sersic central intensity to flux (torch)"
 
     # sersic flux to I0 - torch
-    assert torch.allclose(
-        torch.round(
-            ap.utils.conversions.functions.sersic_flux_to_I0_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        torch.round(torch.tensor([[1.0 / (2 * np.pi * gamma(2))]]), decimals=7),
+    assert ap.backend.allclose(
+        ap.utils.conversions.functions.sersic_flux_to_I0_np(tv, tv, tv, tv),
+        ap.backend.as_array([[1.0 / (2 * np.pi * gamma(2))]]),
+        rtol=1e-7,
     ), "Error converting sersic flux to central intensity (torch)"
 
     # sersic Ie to flux - torch
-    assert torch.allclose(
-        torch.round(
-            ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        torch.round(
-            torch.tensor([[2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2)]]),
-            decimals=7,
-        ),
+    assert ap.backend.allclose(
+        ap.utils.conversions.functions.sersic_Ie_to_flux_np(tv, tv, tv, tv),
+        ap.backend.as_array([[2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2)]]),
+        rtol=1e-7,
     ), "Error converting sersic effective intensity to flux (torch)"
 
     # sersic flux to Ie - torch
-    assert torch.allclose(
-        torch.round(
-            ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv, tv, tv, tv),
-            decimals=7,
-        ),
-        torch.round(
-            torch.tensor([[1 / (2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2))]]),
-            decimals=7,
-        ),
+    assert ap.backend.allclose(
+        ap.utils.conversions.functions.sersic_flux_to_Ie_np(tv, tv, tv, tv),
+        ap.backend.as_array([[1 / (2 * np.pi * gamma(2) * np.exp(sersic_n) * sersic_n ** (-2))]]),
+        rtol=1e-7,
     ), "Error converting sersic flux to effective intensity (torch)"
 
     # inverse sersic - torch
-    assert torch.allclose(
-        torch.round(ap.utils.conversions.functions.sersic_inv_np(tv, tv, tv, tv), decimals=7),
-        torch.round(torch.tensor([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]), decimals=7),
+    assert ap.backend.allclose(
+        ap.utils.conversions.functions.sersic_inv_np(tv, tv, tv, tv),
+        ap.backend.as_array([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]),
+        rtol=1e-7,
     ), "Error computing inverse sersic function (torch)"

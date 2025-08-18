@@ -2,13 +2,12 @@ from .base import all_subclasses
 from .integration import (
     quad_table,
     pixel_center_integrator,
-    pixel_corner_integrator,
     pixel_simpsons_integrator,
     pixel_quad_integrator,
     single_quad_integrate,
     recursive_quad_integrate,
     upsample,
-    recursive_bright_integrate,
+    bright_integrate,
 )
 from .convolution import (
     convolve,
@@ -30,7 +29,6 @@ __all__ = (
     "all_subclasses",
     "quad_table",
     "pixel_center_integrator",
-    "pixel_corner_integrator",
     "pixel_simpsons_integrator",
     "pixel_quad_integrator",
     "convolve",
@@ -48,7 +46,7 @@ __all__ = (
     "single_quad_integrate",
     "recursive_quad_integrate",
     "upsample",
-    "recursive_bright_integrate",
+    "bright_integrate",
     "rotate",
     "zernike_n_m_list",
     "zernike_n_m_modes",

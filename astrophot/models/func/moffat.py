@@ -1,7 +1,7 @@
-import torch
+from ...backend_obj import ArrayLike
 
 
-def moffat(R: torch.Tensor, n: torch.Tensor, Rd: torch.Tensor, I0: torch.Tensor) -> torch.Tensor:
+def moffat(R: ArrayLike, n: ArrayLike, Rd: ArrayLike, I0: ArrayLike) -> ArrayLike:
     """Moffat 1d profile function
 
     **Args:**

@@ -2,6 +2,7 @@ from functools import lru_cache
 
 from scipy.special import roots_legendre
 import torch
+from ..backend_obj import backend
 
 __all__ = ("quad_table",)
 
@@ -27,9 +28,9 @@ def quad_table(order, dtype, device):
     """
     abscissa, weights = roots_legendre(order)
 
-    w = torch.tensor(weights, dtype=dtype, device=device)
-    a = torch.tensor(abscissa, dtype=dtype, device=device) / 2.0
-    di, dj = torch.meshgrid(a, a, indexing="ij")
+    w = backend.as_array(weights, dtype=dtype, device=device)
+    a = backend.as_array(abscissa, dtype=dtype, device=device) / 2.0
+    di, dj = backend.meshgrid(a, a, indexing="ij")
 
-    w = torch.outer(w, w) / 4.0
+    w = backend.outer(w, w) / 4.0
     return di, dj, w

@@ -2,8 +2,9 @@ from copy import deepcopy
 from typing import Optional, Union
 
 import numpy as np
-import torch
 from astropy.io import fits
+from ...backend_obj import backend
+from ... import config
 
 __all__ = (
     "centroids_from_segmentation_map",
@@ -53,9 +54,9 @@ def centroids_from_segmentation_map(
 
     seg_map = seg_map.T
     if sky_level is None:
-        sky_level = np.nanmedian(image.data)
+        sky_level = np.nanmedian(backend.to_numpy(image.data))
 
-    data = image.data.detach().cpu().numpy() - sky_level
+    data = backend.to_numpy(image.data) - sky_level
     centroids = {}
 
     II, JJ = np.meshgrid(np.arange(seg_map.shape[0]), np.arange(seg_map.shape[1]), indexing="ij")
@@ -67,8 +68,8 @@ def centroids_from_segmentation_map(
         icentroid = np.sum(II[N] * data[N]) / np.sum(data[N])
         jcentroid = np.sum(JJ[N] * data[N]) / np.sum(data[N])
         xcentroid, ycentroid = image.pixel_to_plane(
-            torch.tensor(icentroid, dtype=image.data.dtype, device=image.data.device),
-            torch.tensor(jcentroid, dtype=image.data.dtype, device=image.data.device),
+            backend.as_array(icentroid, dtype=config.DTYPE, device=config.DEVICE),
+            backend.as_array(jcentroid, dtype=config.DTYPE, device=config.DEVICE),
             params=(),
         )
         centroids[index] = [xcentroid.item(), ycentroid.item()]
@@ -91,9 +92,9 @@ def PA_from_segmentation_map(
     # reverse to match numpy indexing
     seg_map = seg_map.T
     if sky_level is None:
-        sky_level = np.nanmedian(image.data)
+        sky_level = np.nanmedian(backend.to_numpy(image.data))
 
-    data = image.data.detach().cpu().numpy() - sky_level
+    data = backend.to_numpy(image.data) - sky_level
 
     if centroids is None:
         centroids = centroids_from_segmentation_map(
@@ -101,8 +102,8 @@ def PA_from_segmentation_map(
         )
 
     x, y = image.coordinate_center_meshgrid()
-    x = x.detach().cpu().numpy()
-    y = y.detach().cpu().numpy()
+    x = backend.to_numpy(x)
+    y = backend.to_numpy(y)
     PAs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
@@ -138,9 +139,9 @@ def q_from_segmentation_map(
     seg_map = seg_map.T
 
     if sky_level is None:
-        sky_level = np.nanmedian(image.data)
+        sky_level = np.nanmedian(backend.to_numpy(image.data))
 
-    data = image.data.detach().cpu().numpy() - sky_level
+    data = backend.to_numpy(image.data) - sky_level
 
     if centroids is None:
         centroids = centroids_from_segmentation_map(
@@ -148,8 +149,8 @@ def q_from_segmentation_map(
         )
 
     x, y = image.coordinate_center_meshgrid()
-    x = x.detach().cpu().numpy()
-    y = y.detach().cpu().numpy()
+    x = backend.to_numpy(x)
+    y = backend.to_numpy(y)
     qs = {}
     for index in np.unique(seg_map):
         if index is None or index in skip_index:
@@ -295,7 +296,7 @@ def filter_windows(
         if min_flux is not None:
             if (
                 np.sum(
-                    image.data[
+                    backend.to_numpy(image.data)[
                         windows[w][0][0] : windows[w][1][0],
                         windows[w][0][1] : windows[w][1][1],
                     ]
@@ -306,7 +307,7 @@ def filter_windows(
         if max_flux is not None:
             if (
                 np.sum(
-                    image.data[
+                    backend.to_numpy(image.data)[
                         windows[w][0][0] : windows[w][1][0],
                         windows[w][0][1] : windows[w][1][1],
                     ]
@@ -331,7 +332,7 @@ def transfer_windows(windows, base_image, new_image):
     """
     new_windows = {}
     for w in list(windows.keys()):
-        four_corners_base = torch.tensor(
+        four_corners_base = backend.as_array(
             [
                 windows[w][0],
                 windows[w][1],
@@ -341,13 +342,10 @@ def transfer_windows(windows, base_image, new_image):
             dtype=base_image.data.dtype,
             device=base_image.data.device,
         )  # (4,2)
-        four_corners_new = (
-            torch.stack(
+        four_corners_new = backend.to_numpy(
+            backend.stack(
                 new_image.plane_to_pixel(*base_image.pixel_to_plane(*four_corners_base.T)), dim=-1
             )
-            .detach()
-            .cpu()
-            .numpy()
         )  # (4,2)
 
         bottom_corner = np.floor(np.min(four_corners_new, axis=0)).astype(int)

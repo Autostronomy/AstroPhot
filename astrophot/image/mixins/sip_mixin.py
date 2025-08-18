@@ -1,10 +1,10 @@
 from typing import Union, Optional, Tuple
 
-import torch
-
 from ..image_object import Image
 from ..window import Window
 from .. import func
+from ... import config
+from ...backend_obj import backend, ArrayLike
 from ...utils.interpolate import interp2d
 from ...param import forward
 
@@ -21,9 +21,9 @@ class SIPMixin:
         sipB: dict[Tuple[int, int], float] = {},
         sipAP: dict[Tuple[int, int], float] = {},
         sipBP: dict[Tuple[int, int], float] = {},
-        pixel_area_map: Optional[torch.Tensor] = None,
-        distortion_ij: Optional[torch.Tensor] = None,
-        distortion_IJ: Optional[torch.Tensor] = None,
+        pixel_area_map: Optional[ArrayLike] = None,
+        distortion_ij: Optional[ArrayLike] = None,
+        distortion_IJ: Optional[ArrayLike] = None,
         filename: Optional[str] = None,
         **kwargs,
     ):
@@ -44,16 +44,24 @@ class SIPMixin:
 
     @forward
     def pixel_to_plane(
-        self, i: torch.Tensor, j: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self,
+        i: ArrayLike,
+        j: ArrayLike,
+        crtan: ArrayLike,
+        CD: ArrayLike,
+    ) -> Tuple[ArrayLike, ArrayLike]:
         di = interp2d(self.distortion_ij[0], i, j, padding_mode="border")
         dj = interp2d(self.distortion_ij[1], i, j, padding_mode="border")
         return func.pixel_to_plane_linear(i + di, j + dj, *self.crpix, CD, *crtan)
 
     @forward
     def plane_to_pixel(
-        self, x: torch.Tensor, y: torch.Tensor, crtan: torch.Tensor, CD: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        crtan: ArrayLike,
+        CD: ArrayLike,
+    ) -> Tuple[ArrayLike, ArrayLike]:
         I, J = func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
         dI = interp2d(self.distortion_IJ[0], I, J, padding_mode="border")
         dJ = interp2d(self.distortion_IJ[1], I, J, padding_mode="border")
@@ -99,9 +107,9 @@ class SIPMixin:
 
     def update_distortion_model(
         self,
-        distortion_ij: Optional[torch.Tensor] = None,
-        distortion_IJ: Optional[torch.Tensor] = None,
-        pixel_area_map: Optional[torch.Tensor] = None,
+        distortion_ij: Optional[ArrayLike] = None,
+        distortion_IJ: Optional[ArrayLike] = None,
+        pixel_area_map: Optional[ArrayLike] = None,
     ):
         """
         Update the pixel area map based on the current SIP coefficients.
@@ -113,10 +121,10 @@ class SIPMixin:
             i, j = self.pixel_center_meshgrid()
             u, v = i - self.crpix[0], j - self.crpix[1]
             if distortion_ij is None:
-                distortion_ij = torch.stack(func.sip_delta(u, v, self.sipA, self.sipB), dim=0)
+                distortion_ij = backend.stack(func.sip_delta(u, v, self.sipA, self.sipB), dim=0)
             if distortion_IJ is None:
                 # fixme maybe
-                distortion_IJ = torch.stack(func.sip_delta(u, v, self.sipAP, self.sipBP), dim=0)
+                distortion_IJ = backend.stack(func.sip_delta(u, v, self.sipAP, self.sipBP), dim=0)
         self.distortion_ij = distortion_ij
         self.distortion_IJ = distortion_IJ
 
@@ -145,7 +153,17 @@ class SIPMixin:
                 + x[:-1, :-1] * y[1:, :-1]
             )
         )
-        self._pixel_area_map = A.abs()
+        self._pixel_area_map = backend.abs(A)
+
+    def to(self, dtype=None, device=None):
+        if dtype is None:
+            dtype = config.DTYPE
+        if device is None:
+            device = config.DEVICE
+        super().to(dtype=dtype, device=device)
+        self._pixel_area_map = backend.to(self._pixel_area_map, dtype=dtype, device=device)
+        self.distortion_ij = backend.to(self.distortion_ij, dtype=dtype, device=device)
+        self.distortion_IJ = backend.to(self.distortion_IJ, dtype=dtype, device=device)
 
     def copy_kwargs(self, **kwargs):
         kwargs = {

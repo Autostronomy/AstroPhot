@@ -6,6 +6,7 @@ from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
 from ..param import forward
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ["GaussianEllipsoid"]
 
@@ -75,9 +76,9 @@ class GaussianEllipsoid(ComponentModel):
         self.alpha = 0.0
 
         target_area = self.target[self.window]
-        dat = target_area.data.detach().cpu().numpy().copy()
+        dat = backend.to_numpy(target_area.data).copy()
         if target_area.has_mask:
-            mask = target_area.mask.detach().cpu().numpy()
+            mask = backend.to_numpy(target_area.mask).copy()
             dat[mask] = np.median(dat[~mask])
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)
@@ -86,11 +87,11 @@ class GaussianEllipsoid(ComponentModel):
         center = self.center.value
         x = x - center[0]
         y = y - center[1]
-        r = self.radius_metric(x, y, params=()).detach().cpu().numpy()
+        r = backend.to_numpy(self.radius_metric(x, y, params=()))
         self.sigma_a.dynamic_value = np.sqrt(np.sum((r * dat) ** 2) / np.sum(r**2))
 
-        x = x.detach().cpu().numpy()
-        y = y.detach().cpu().numpy()
+        x = backend.to_numpy(x)
+        y = backend.to_numpy(y)
 
         mu20 = np.median(dat * np.abs(x))
         mu02 = np.median(dat * np.abs(y))
@@ -110,25 +111,25 @@ class GaussianEllipsoid(ComponentModel):
     @forward
     def brightness(
         self,
-        x: Tensor,
-        y: Tensor,
-        sigma_a: Tensor,
-        sigma_b: Tensor,
-        sigma_c: Tensor,
-        alpha: Tensor,
-        beta: Tensor,
-        gamma: Tensor,
-        flux: Tensor,
-    ) -> Tensor:
+        x: ArrayLike,
+        y: ArrayLike,
+        sigma_a: ArrayLike,
+        sigma_b: ArrayLike,
+        sigma_c: ArrayLike,
+        alpha: ArrayLike,
+        beta: ArrayLike,
+        gamma: ArrayLike,
+        flux: ArrayLike,
+    ) -> ArrayLike:
         """Brightness of the Gaussian ellipsoid."""
-        D = torch.diag(torch.stack((sigma_a, sigma_b, sigma_c)) ** 2)
+        D = backend.diag(backend.stack((sigma_a, sigma_b, sigma_c)) ** 2)
         R = func.euler_rotation_matrix(alpha, beta, gamma)
         Sigma = R @ D @ R.T
         Sigma2D = Sigma[:2, :2]
-        inv_Sigma = torch.linalg.inv(Sigma2D)
-        v = torch.stack(self.transform_coordinates(x, y), dim=0).reshape(2, -1)
+        inv_Sigma = backend.linalg.inv(Sigma2D)
+        v = backend.stack(self.transform_coordinates(x, y), dim=0).reshape(2, -1)
         return (
             flux
-            * torch.exp(-0.5 * (v * (inv_Sigma @ v)).sum(dim=0))
-            / (2 * np.pi * torch.linalg.det(Sigma2D).sqrt())
+            * backend.sum(backend.exp(-0.5 * (v * (inv_Sigma @ v))), dim=0)
+            / (2 * np.pi * backend.sqrt(backend.linalg.det(Sigma2D)))
         ).reshape(x.shape)

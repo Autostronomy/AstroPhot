@@ -14,6 +14,7 @@ from ..image import (
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
@@ -76,12 +77,10 @@ class ComponentModel(SampleMixin, Model):
         if self.psf is None:
             self.psf_upscale = 1
         elif isinstance(self.psf, PSFImage):
-            self.psf_upscale = (
-                torch.round(self.target.pixelscale / self.psf.pixelscale).int().item()
-            )
+            self.psf_upscale = int(np.round((self.target.pixelscale / self.psf.pixelscale).item()))
         elif isinstance(self.psf, Model):
-            self.psf_upscale = (
-                torch.round(self.target.pixelscale / self.psf.target.pixelscale).int().item()
+            self.psf_upscale = int(
+                np.round((self.target.pixelscale / self.psf.target.pixelscale).item())
             )
         else:
             raise TypeError(
@@ -127,21 +126,21 @@ class ComponentModel(SampleMixin, Model):
             return
 
         target_area = self.target[self.window]
-        dat = np.copy(target_area.data.detach().cpu().numpy())
+        dat = np.copy(backend.to_numpy(target_area.data))
         if target_area.has_mask:
-            mask = target_area.mask.detach().cpu().numpy()
+            mask = backend.to_numpy(target_area.mask)
             dat[mask] = np.nanmedian(dat[~mask])
 
         COM = recursive_center_of_mass(dat)
         if not np.all(np.isfinite(COM)):
             return
         COM_center = target_area.pixel_to_plane(
-            *torch.tensor(COM, dtype=config.DTYPE, device=config.DEVICE)
+            *backend.as_array(COM, dtype=config.DTYPE, device=config.DEVICE)
         )
         self.center.dynamic_value = COM_center
 
     def fit_mask(self):
-        return torch.zeros_like(self.target[self.window].mask, dtype=torch.bool)
+        return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
 
     @forward
     def transform_coordinates(self, x, y, center):

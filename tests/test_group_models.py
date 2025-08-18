@@ -1,7 +1,5 @@
 import astrophot as ap
-import torch
 import numpy as np
-import torch
 
 import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian_psf
@@ -43,11 +41,13 @@ def test_jointmodel_creation():
     )
 
     smod.initialize()
-    assert torch.all(torch.isfinite(smod().flatten("data"))).item(), "model_image should be real"
+    assert ap.backend.all(
+        ap.backend.isfinite(smod().flatten("data"))
+    ).item(), "model_image should be real"
 
     fm = smod.fit_mask()
     for fmi in fm:
-        assert torch.sum(fmi).item() == 0, "this fit_mask should not mask any pixels"
+        assert ap.backend.sum(fmi).item() == 0, "this fit_mask should not mask any pixels"
 
 
 def test_psfgroupmodel_creation():
@@ -74,7 +74,9 @@ def test_psfgroupmodel_creation():
 
     smod.initialize()
 
-    assert torch.all(smod().data >= 0), "PSF group sample should be greater than or equal to zero"
+    assert ap.backend.all(
+        smod().data >= 0
+    ), "PSF group sample should be greater than or equal to zero"
 
 
 def test_joint_multi_band_multi_object():
@@ -109,17 +111,19 @@ def test_joint_multi_band_multi_object():
     mask = model.fit_mask()
     assert len(mask) == 4, "There should be 4 fit masks for the 4 targets"
     for m in mask:
-        assert torch.all(torch.isfinite(m)), "this fit_mask should be finite"
+        assert ap.backend.all(ap.backend.isfinite(m)), "this fit_mask should be finite"
     sample = model.sample(window=ap.WindowList([target1.window, target2.window, target3.window]))
     assert isinstance(sample, ap.ImageList), "Sample should be an ImageList"
     for image in sample:
-        assert torch.all(torch.isfinite(image.data)), "Sample image data should be finite"
-        assert torch.all(image.data >= 0), "Sample image data should be non-negative"
+        assert ap.backend.all(ap.backend.isfinite(image.data)), "Sample image data should be finite"
+        assert ap.backend.all(image.data >= 0), "Sample image data should be non-negative"
 
     jacobian = model.jacobian()
     assert isinstance(jacobian, ap.ImageList), "Jacobian should be an ImageList"
     for image in jacobian:
-        assert torch.all(torch.isfinite(image.data)), "Jacobian image data should be finite"
+        assert ap.backend.all(
+            ap.backend.isfinite(image.data)
+        ), "Jacobian image data should be finite"
 
     window = model.window
     assert isinstance(window, ap.WindowList), "Window should be a WindowList"

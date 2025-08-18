@@ -17,6 +17,7 @@ from ..image import (
     JacobianImageList,
 )
 from .. import config
+from ..backend_obj import backend
 from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget, InvalidWindow
 
@@ -119,7 +120,7 @@ class GroupModel(Model):
         """
         subtarget = self.target[self.window]
         if isinstance(subtarget, ImageList):
-            mask = tuple(torch.ones_like(submask) for submask in subtarget.mask)
+            mask = list(backend.ones_like(submask) for submask in subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 model_fit_mask = model.fit_mask()
@@ -128,19 +129,24 @@ class GroupModel(Model):
                         index = subtarget.index(target)
                         group_indices = subtarget.images[index].get_indices(target.window)
                         model_indices = target.get_indices(subtarget.images[index].window)
-                        mask[index][group_indices] &= submask[model_indices]
+                        mask[index] = backend.and_at_indices(
+                            mask[index], group_indices, submask[model_indices]
+                        )
                 else:
                     index = subtarget.index(model_subtarget)
                     group_indices = subtarget.images[index].get_indices(model_subtarget.window)
                     model_indices = model_subtarget.get_indices(subtarget.images[index].window)
-                    mask[index][group_indices] &= model_fit_mask[model_indices]
+                    mask[index] = backend.and_at_indices(
+                        mask[index], group_indices, model_fit_mask[model_indices]
+                    )
+            mask = tuple(mask)
         else:
-            mask = torch.ones_like(subtarget.mask)
+            mask = backend.ones_like(subtarget.mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 group_indices = subtarget.get_indices(model.window)
                 model_indices = model_subtarget.get_indices(subtarget.window)
-                mask[group_indices] &= model.fit_mask()[model_indices]
+                mask = backend.and_at_indices(mask, group_indices, model.fit_mask()[model_indices])
         return mask
 
     def match_window(self, image: Union[Image, ImageList], window: Window, model: Model) -> Window:
@@ -183,7 +189,7 @@ class GroupModel(Model):
                 self._ensure_vmap_compatible(image, img)
             return
         if image.identity == other.identity:
-            image += torch.zeros_like(other.data[0, 0])
+            image += backend.zeros_like(other.data[0, 0])
 
     @forward
     def sample(

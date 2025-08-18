@@ -1,5 +1,6 @@
 import torch
 from torch import Tensor
+from ...backend_obj import backend, ArrayLike
 import numpy as np
 
 from ...param import forward
@@ -23,7 +24,7 @@ class RadialMixin:
     """
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor) -> Tensor:
+    def brightness(self, x: ArrayLike, y: ArrayLike) -> ArrayLike:
         """
         Calculate the brightness at a given point (x, y) based on radial distance from the center.
         """
@@ -53,15 +54,15 @@ class WedgeMixin:
         self.symmetric = symmetric
         self.segments = segments
 
-    def polar_model(self, R: Tensor, T: Tensor) -> Tensor:
-        model = torch.zeros_like(R)
+    def polar_model(self, R: ArrayLike, T: ArrayLike) -> ArrayLike:
+        model = backend.zeros_like(R)
         cycle = np.pi if self.symmetric else 2 * np.pi
         w = cycle / self.segments
         angles = (T + w / 2) % cycle
         v = w * np.arange(self.segments)
         for s in range(self.segments):
             indices = (angles >= v[s]) & (angles < (v[s] + w))
-            model[indices] += self.iradial_model(s, R[indices])
+            model = backend.add_at_indices(model, indices, self.iradial_model(s, R[indices]))
         return model
 
     def brightness(self, x: Tensor, y: Tensor) -> Tensor:
@@ -99,20 +100,22 @@ class RayMixin:
         self.symmetric = symmetric
         self.segments = segments
 
-    def polar_model(self, R: Tensor, T: Tensor) -> Tensor:
-        model = torch.zeros_like(R)
-        weight = torch.zeros_like(R)
+    def polar_model(self, R: ArrayLike, T: ArrayLike) -> ArrayLike:
+        model = backend.zeros_like(R)
+        weight = backend.zeros_like(R)
         cycle = np.pi if self.symmetric else 2 * np.pi
         w = cycle / self.segments
         v = w * np.arange(self.segments)
         for s in range(self.segments):
             angles = (T + cycle / 2 - v[s]) % cycle - cycle / 2
             indices = (angles >= -w) & (angles < w)
-            weights = (torch.cos(angles[indices] * self.segments) + 1) / 2
-            model[indices] += weights * self.iradial_model(s, R[indices])
-            weight[indices] += weights
+            weights = (backend.cos(angles[indices] * self.segments) + 1) / 2
+            model = backend.add_at_indices(
+                model, indices, weights * self.iradial_model(s, R[indices])
+            )
+            weight = backend.add_at_indices(weight, indices, weights)
         return model / weight
 
-    def brightness(self, x: Tensor, y: Tensor) -> Tensor:
+    def brightness(self, x: ArrayLike, y: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
         return self.polar_model(self.radius_metric(x, y), self.angular_metric(x, y))

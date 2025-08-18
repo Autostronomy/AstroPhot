@@ -1,11 +1,12 @@
 from typing import Optional, Tuple
 import torch
-from torch import Tensor
 import numpy as np
 
 from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from . import func
+from .. import config
+from ..backend_obj import backend, ArrayLike
 from ..param import forward
 
 __all__ = ["MultiGaussianExpansion"]
@@ -54,9 +55,9 @@ class MultiGaussianExpansion(ComponentModel):
         super().initialize()
 
         target_area = self.target[self.window]
-        dat = target_area.data.detach().cpu().numpy().copy()
+        dat = backend.to_numpy(target_area.data).copy()
         if target_area.has_mask:
-            mask = target_area.mask.detach().cpu().numpy()
+            mask = backend.to_numpy(target_area.mask)
             dat[mask] = np.median(dat[~mask])
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)
@@ -75,8 +76,8 @@ class MultiGaussianExpansion(ComponentModel):
             return
 
         x, y = target_area.coordinate_center_meshgrid()
-        x = (x - self.center.value[0]).detach().cpu().numpy()
-        y = (y - self.center.value[1]).detach().cpu().numpy()
+        x = backend.to_numpy(x - self.center.value[0])
+        y = backend.to_numpy(y - self.center.value[1])
         mu20 = np.median(dat * np.abs(x))
         mu02 = np.median(dat * np.abs(y))
         mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
@@ -100,26 +101,32 @@ class MultiGaussianExpansion(ComponentModel):
 
     @forward
     def transform_coordinates(
-        self, x: Tensor, y: Tensor, q: Tensor, PA: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, x: ArrayLike, y: ArrayLike, q: ArrayLike, PA: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
-        if PA.numel() == 1:
+        if np.prod(PA.shape) == 1:
             x, y = func.rotate(-(PA + np.pi / 2), x, y)
-            x = x.repeat(q.shape[0], *[1] * x.ndim)
-            y = y.repeat(q.shape[0], *[1] * y.ndim)
+            x = x * backend.ones(
+                (q.shape[0], *[1] * x.ndim), dtype=config.DTYPE, device=config.DEVICE
+            )
+            y = y * backend.ones(
+                (q.shape[0], *[1] * y.ndim), dtype=config.DTYPE, device=config.DEVICE
+            )
         else:
-            x, y = torch.vmap(lambda pa: func.rotate(-(pa + np.pi / 2), x, y))(PA)
-        y = torch.vmap(lambda q, y: y / q)(q, y)
+            x, y = backend.vmap(lambda pa: func.rotate(-(pa + np.pi / 2), x, y))(PA)
+        y = backend.vmap(lambda q, y: y / q)(q, y)
         return x, y
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor, flux: Tensor, sigma: Tensor, q: Tensor) -> Tensor:
+    def brightness(
+        self, x: ArrayLike, y: ArrayLike, flux: ArrayLike, sigma: ArrayLike, q: ArrayLike
+    ) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
         R = self.radius_metric(x, y)
-        return torch.sum(
-            torch.vmap(
-                lambda A, r, sig, _q: (A / torch.sqrt(2 * np.pi * _q * sig**2))
-                * torch.exp(-0.5 * (r / sig) ** 2)
+        return backend.sum(
+            backend.vmap(
+                lambda A, r, sig, _q: (A / backend.sqrt(2 * np.pi * _q * sig**2))
+                * backend.exp(-0.5 * (r / sig) ** 2)
             )(flux, R, sigma, q),
             dim=0,
         )

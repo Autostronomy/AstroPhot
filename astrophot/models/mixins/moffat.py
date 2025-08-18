@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 
 from ...param import forward
+from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from ...utils.parametric_profiles import moffat_np
@@ -50,7 +51,7 @@ class MoffatMixin:
         )
 
     @forward
-    def radial_model(self, R: Tensor, n: Tensor, Rd: Tensor, I0: Tensor) -> Tensor:
+    def radial_model(self, R: ArrayLike, n: ArrayLike, Rd: ArrayLike, I0: ArrayLike) -> ArrayLike:
         return func.moffat(R, n, Rd, I0)
 
 
@@ -96,5 +97,7 @@ class iMoffatMixin:
         )
 
     @forward
-    def iradial_model(self, i: int, R: Tensor, n: Tensor, Rd: Tensor, I0: Tensor) -> Tensor:
+    def iradial_model(
+        self, i: int, R: ArrayLike, n: ArrayLike, Rd: ArrayLike, I0: ArrayLike
+    ) -> ArrayLike:
         return func.moffat(R, n[i], Rd[i], I0[i])

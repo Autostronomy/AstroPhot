@@ -1,10 +1,11 @@
 from typing import Sequence, Literal
 
-import torch
 from scipy.optimize import minimize
+import numpy as np
 
 from .base import BaseOptimizer
 from .. import config
+from ..backend_obj import backend
 
 __all__ = ("ScipyFit",)
 
@@ -44,7 +45,10 @@ class ScipyFit(BaseOptimizer):
         # Degrees of freedom
         if ndf is None:
             sub_target = self.model.target[self.model.window]
-            ndf = sub_target.flatten("data").numel() - torch.sum(sub_target.flatten("mask")).item()
+            ndf = (
+                np.prod(sub_target.flatten("data").shape)
+                - backend.sum(sub_target.flatten("mask")).item()
+            )
             self.ndf = max(1.0, ndf - len(self.current_state))
         else:
             self.ndf = ndf
@@ -56,28 +60,28 @@ class ScipyFit(BaseOptimizer):
             if param.shape == ():
                 bound = [None, None]
                 if param.valid[0] is not None:
-                    bound[0] = param.valid[0].detach().cpu().numpy()
+                    bound[0] = backend.to_numpy(param.valid[0])
                 if param.valid[1] is not None:
-                    bound[1] = param.valid[1].detach().cpu().numpy()
+                    bound[1] = backend.to_numpy(param.valid[1])
                 bounds.append(tuple(bound))
             else:
-                for i in range(param.value.numel()):
+                for i in range(np.prod(param.value.shape)):
                     bound = [None, None]
                     if param.valid[0] is not None:
-                        bound[0] = param.valid[0].flatten()[i].detach().cpu().numpy()
+                        bound[0] = backend.to_numpy(param.valid[0].flatten()[i])
                     if param.valid[1] is not None:
-                        bound[1] = param.valid[1].flatten()[i].detach().cpu().numpy()
+                        bound[1] = backend.to_numpy(param.valid[1].flatten()[i])
                     bounds.append(tuple(bound))
         return bounds
 
     def density(self, state: Sequence) -> float:
         if self.likelihood == "gaussian":
             return -self.model.gaussian_log_likelihood(
-                torch.tensor(state, dtype=config.DTYPE, device=config.DEVICE)
+                backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
             ).item()
         elif self.likelihood == "poisson":
             return -self.model.poisson_log_likelihood(
-                torch.tensor(state, dtype=config.DTYPE, device=config.DEVICE)
+                backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
             ).item()
         else:
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
@@ -95,7 +99,7 @@ class ScipyFit(BaseOptimizer):
         )
         self.scipy_res = res
         self.message = self.message + f"success: {res.success}, message: {res.message}"
-        self.current_state = torch.tensor(res.x, dtype=config.DTYPE, device=config.DEVICE)
+        self.current_state = backend.as_array(res.x, dtype=config.DTYPE, device=config.DEVICE)
         if self.verbose > 0:
             config.logger.info(
                 f"Final 2NLL/DoF: {2*self.density(res.x)/self.ndf:.6g}. Converged: {self.message}"

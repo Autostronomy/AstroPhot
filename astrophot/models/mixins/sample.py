@@ -2,10 +2,9 @@ from typing import Optional, Literal
 
 import numpy as np
 from torch.autograd.functional import jacobian
-import torch
-from torch import Tensor
 
 from ...param import forward
+from ...backend_obj import backend, ArrayLike
 from ... import config
 from ...image import Image, Window, JacobianImage
 from .. import func
@@ -57,14 +56,12 @@ class SampleMixin:
     )
 
     @forward
-    def _bright_integrate(self, sample: Tensor, image: Image) -> Tensor:
+    def _bright_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
         i, j = image.pixel_center_meshgrid()
-        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
-        sample_flat = sample.flatten(-2)
-        select = torch.topk(sample_flat, N, dim=-1).indices
-        sample_flat[select] = func.recursive_bright_integrate(
-            i.flatten(-2)[select],
-            j.flatten(-2)[select],
+        sample = func.bright_integrate(
+            sample,
+            i,
+            j,
             lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
             scale=image.base_scale,
             bright_frac=self.integrate_fraction,
@@ -72,44 +69,49 @@ class SampleMixin:
             gridding=self.integrate_gridding,
             max_depth=self.integrate_max_depth,
         )
-        return sample_flat.reshape(sample.shape)
+        return sample
 
     @forward
-    def _curvature_integrate(self, sample: Tensor, image: Image) -> Tensor:
+    def _curvature_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
         i, j = image.pixel_center_meshgrid()
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
-            torch.nn.functional.pad(
-                torch.nn.functional.conv2d(
-                    sample.view(1, 1, *sample.shape),
-                    kernel.view(1, 1, *kernel.shape),
-                    padding="valid",
-                ),
-                (1, 1, 1, 1),
-                mode="replicate",
+            backend.abs(
+                backend.pad(
+                    backend.conv2d(
+                        sample.reshape(1, 1, *sample.shape),
+                        kernel.reshape(1, 1, *kernel.shape),
+                        padding="valid",
+                    ),
+                    (0, 0, 0, 0, 1, 1, 1, 1),
+                    mode="replicate",
+                )
             )
             .squeeze(0)
             .squeeze(0)
-            .abs()
         )
         N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
-        select = torch.topk(curvature.flatten(-2), N, dim=-1).indices
+        select = backend.topk(curvature.flatten(), N)[1]
 
-        sample_flat = sample.flatten(-2)
-        sample_flat[select] = func.recursive_quad_integrate(
-            i.flatten(-2)[select],
-            j.flatten(-2)[select],
-            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-            scale=image.base_scale,
-            curve_frac=self.integrate_fraction,
-            quad_order=self.integrate_quad_order,
-            gridding=self.integrate_gridding,
-            max_depth=self.integrate_max_depth,
+        sample_flat = sample.flatten()
+        sample_flat = backend.fill_at_indices(
+            sample_flat,
+            select,
+            func.recursive_quad_integrate(
+                i.flatten()[select],
+                j.flatten()[select],
+                lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
+                scale=image.base_scale,
+                curve_frac=self.integrate_fraction,
+                quad_order=self.integrate_quad_order,
+                gridding=self.integrate_gridding,
+                max_depth=self.integrate_max_depth,
+            ),
         )
         return sample_flat.reshape(sample.shape)
 
     @forward
-    def sample_image(self, image: Image) -> Tensor:
+    def sample_image(self, image: Image) -> ArrayLike:
         if self.sampling_mode == "auto":
             N = np.prod(image.data.shape)
             if N <= 100:
@@ -149,28 +151,25 @@ class SampleMixin:
         return sample
 
     def _jacobian(
-        self, window: Window, params_pre: Tensor, params: Tensor, params_post: Tensor
-    ) -> Tensor:
+        self, window: Window, params_pre: ArrayLike, params: ArrayLike, params_post: ArrayLike
+    ) -> ArrayLike:
         # return jacfwd( # this should be more efficient, but the trace overhead is too high
         #     lambda x: self.sample(
         #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
         #     ).data
         # )(params)
-        return jacobian(
+        return backend.jacobian(
             lambda x: self.sample(
-                window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
+                window=window, params=backend.concatenate((params_pre, x, params_post), dim=-1)
             ).data,
             params,
-            strategy="forward-mode",
-            vectorize=True,
-            create_graph=False,
         )
 
     def jacobian(
         self,
         window: Optional[Window] = None,
         pass_jacobian: Optional[JacobianImage] = None,
-        params: Optional[Tensor] = None,
+        params: Optional[ArrayLike] = None,
     ) -> JacobianImage:
         if window is None:
             window = self.window
@@ -220,9 +219,9 @@ class SampleMixin:
     def gradient(
         self,
         window: Optional[Window] = None,
-        params: Optional[Tensor] = None,
+        params: Optional[ArrayLike] = None,
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
-    ) -> Tensor:
+    ) -> ArrayLike:
         """Compute the gradient of the model with respect to its parameters."""
         if window is None:
             window = self.window
@@ -233,12 +232,12 @@ class SampleMixin:
         model = self.sample(window=window).data
         if likelihood == "gaussian":
             weight = self.target[window].weight
-            gradient = torch.sum(
-                jacobian_image.data * ((data - model) * weight).unsqueeze(-1), dim=(0, 1)
+            gradient = backend.sum(
+                jacobian_image.data * ((data - model) * weight)[..., None], dim=(0, 1)
             )
         elif likelihood == "poisson":
-            gradient = torch.sum(
-                jacobian_image.data * (1 - data / model).unsqueeze(-1),
+            gradient = backend.sum(
+                jacobian_image.data * (1 - data / model)[..., None],
                 dim=(0, 1),
             )
 

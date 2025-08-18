@@ -1,10 +1,10 @@
 from typing import Tuple
 import numpy as np
 import torch
-from torch import Tensor
 
 from ...utils.decorators import ignore_numpy_warnings
 from ...utils.interpolate import default_prof
+from ...backend_obj import backend, ArrayLike
 from ...param import forward
 from .. import func
 from ... import config
@@ -50,16 +50,16 @@ class InclinedMixin:
         if self.PA.initialized and self.q.initialized:
             return
         target_area = self.target[self.window]
-        dat = target_area.data.detach().cpu().numpy().copy()
+        dat = backend.to_numpy(backend.copy(target_area.data))
         if target_area.has_mask:
-            mask = target_area.mask.detach().cpu().numpy()
+            mask = backend.to_numpy(backend.copy(target_area.mask))
             dat[mask] = np.median(dat[~mask])
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)
         dat -= edge_average
         x, y = target_area.coordinate_center_meshgrid()
-        x = (x - self.center.value[0]).detach().cpu().numpy()
-        y = (y - self.center.value[1]).detach().cpu().numpy()
+        x = backend.to_numpy(x - self.center.value[0])
+        y = backend.to_numpy(y - self.center.value[1])
         mu20 = np.mean(dat * np.abs(x))
         mu02 = np.mean(dat * np.abs(y))
         mu11 = np.mean(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
@@ -80,8 +80,8 @@ class InclinedMixin:
 
     @forward
     def transform_coordinates(
-        self, x: Tensor, y: Tensor, PA: Tensor, q: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, q: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
         x, y = func.rotate(-PA + np.pi / 2, x, y)
         return x, y / q
@@ -117,8 +117,8 @@ class SuperEllipseMixin:
     }
 
     @forward
-    def radius_metric(self, x: Tensor, y: Tensor, C: Tensor) -> Tensor:
-        return torch.pow(x.abs().pow(C) + y.abs().pow(C) + self.softening**C, 1.0 / C)
+    def radius_metric(self, x: ArrayLike, y: ArrayLike, C: ArrayLike) -> ArrayLike:
+        return (backend.abs(x) ** C + backend.abs(y) ** C + self.softening**C) ** (1.0 / C)
 
 
 class FourierEllipseMixin:
@@ -170,16 +170,18 @@ class FourierEllipseMixin:
 
     def __init__(self, *args, modes: Tuple[int] = (3, 4), **kwargs):
         super().__init__(*args, **kwargs)
-        self.modes = torch.tensor(modes, dtype=config.DTYPE, device=config.DEVICE)
+        self.modes = backend.as_array(modes, dtype=config.DTYPE, device=config.DEVICE)
 
     @forward
-    def radius_metric(self, x: Tensor, y: Tensor, am: Tensor, phim: Tensor) -> Tensor:
+    def radius_metric(
+        self, x: ArrayLike, y: ArrayLike, am: ArrayLike, phim: ArrayLike
+    ) -> ArrayLike:
         R = super().radius_metric(x, y)
         theta = self.angular_metric(x, y)
-        return R * torch.exp(
-            torch.sum(
-                am.unsqueeze(-1)
-                * torch.cos(self.modes.unsqueeze(-1) * theta.flatten() + phim.unsqueeze(-1)),
+        return R * backend.exp(
+            backend.sum(
+                am[..., None]
+                * backend.cos(self.modes[..., None] * theta.flatten() + phim[..., None]),
                 0,
             ).reshape(x.shape)
         )
@@ -241,8 +243,8 @@ class WarpMixin:
 
     @forward
     def transform_coordinates(
-        self, x: Tensor, y: Tensor, q_R: Tensor, PA_R: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, x: ArrayLike, y: ArrayLike, q_R: ArrayLike, PA_R: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
         R = self.radius_metric(x, y)
         PA = func.spline(R, self.PA_R.prof, PA_R, extend="const")
@@ -296,8 +298,8 @@ class TruncationMixin:
             self.Rt.dynamic_value = prof[len(prof) // 2]
 
     @forward
-    def radial_model(self, R: Tensor, Rt: Tensor, St: Tensor) -> Tensor:
+    def radial_model(self, R: ArrayLike, Rt: ArrayLike, St: ArrayLike) -> ArrayLike:
         I = super().radial_model(R)
         if self.outer_truncation:
-            return I * (1 - torch.tanh(St * (R - Rt))) / 2
-        return I * (torch.tanh(St * (R - Rt)) + 1) / 2
+            return I * (1 - backend.tanh(St * (R - Rt))) / 2
+        return I * (backend.tanh(St * (R - Rt)) + 1) / 2

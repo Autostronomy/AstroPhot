@@ -7,6 +7,7 @@ import numpy as np
 
 from .base import BaseOptimizer
 from .. import config
+from ..backend_obj import backend, ArrayLike
 from ..models import Model
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from . import func
@@ -94,8 +95,8 @@ class Grad(BaseOptimizer):
 
         loss.backward()
 
-        self.loss_history.append(loss.detach().cpu().item())
-        self.lambda_history.append(np.copy(self.current_state.detach().cpu().numpy()))
+        self.loss_history.append(backend.to_numpy(loss))
+        self.lambda_history.append(np.copy(backend.to_numpy(self.current_state)))
         if (
             self.iteration % int(self.max_iter / self.report_freq) == 0
         ) or self.iteration == self.max_iter:
@@ -195,7 +196,7 @@ class Slalom(BaseOptimizer):
         self.report_freq = report_freq
         self.momentum = momentum
 
-    def density(self, state: torch.Tensor) -> torch.Tensor:
+    def density(self, state: ArrayLike) -> ArrayLike:
         """Calculate the density of the model at the given state. Based on
         ``self.likelihood``, will be either the Gaussian or Poisson negative log
         likelihood."""
@@ -209,11 +210,11 @@ class Slalom(BaseOptimizer):
     def fit(self) -> BaseOptimizer:
         """Perform the Slalom optimization."""
 
-        grad_func = torch.func.grad(self.density)
-        momentum = torch.zeros_like(self.current_state)
+        grad_func = backend.grad(self.density)
+        momentum = backend.zeros_like(self.current_state)
         self.S_history = [self.S]
         self.loss_history = [self.density(self.current_state).item()]
-        self.lambda_history = [self.current_state.detach().cpu().numpy()]
+        self.lambda_history = [backend.to_numpy(self.current_state)]
         self.start_fit = time()
 
         for i in range(self.max_iter):
@@ -226,22 +227,22 @@ class Slalom(BaseOptimizer):
                         self.density, grad_func, vstate, m=momentum, S=self.S
                     )
                 self.current_state = self.model.from_valid(
-                    vstate - self.S * (grad + momentum) / torch.linalg.norm(grad + momentum)
+                    vstate - self.S * (grad + momentum) / backend.linalg.norm(grad + momentum)
                 )
                 momentum = self.momentum * (momentum + grad)
             except OptimizeStopSuccess as e:
                 self.message = self.message + str(e)
                 break
             except OptimizeStopFail as e:
-                if torch.allclose(momentum, torch.zeros_like(momentum)):
+                if backend.allclose(momentum, backend.zeros_like(momentum)):
                     self.message = self.message + str(e)
                     break
-                momentum = torch.zeros_like(self.current_state)
+                momentum = backend.zeros_like(self.current_state)
                 continue
             # Log the loss
             self.S_history.append(self.S)
             self.loss_history.append(loss)
-            self.lambda_history.append(self.current_state.detach().cpu().numpy())
+            self.lambda_history.append(backend.to_numpy(self.current_state))
 
             if self.verbose > 0 and (i % int(self.report_freq) == 0 or i == self.max_iter - 1):
                 config.logger.info(
@@ -260,7 +261,7 @@ class Slalom(BaseOptimizer):
 
         # Set the model parameters to the best values from the fit
         self.model.fill_dynamic_values(
-            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
+            backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if self.verbose > 0:
             config.logger.info(

@@ -10,6 +10,7 @@ version of each tutorial is available here.
     :maxdepth: 1
 
     GettingStarted
+    GettingStartedJAX
     GroupModels
     FittingMethods
     ModelZoo

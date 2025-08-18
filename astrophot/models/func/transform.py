@@ -1,11 +1,11 @@
 from typing import Tuple
-from torch import Tensor
+from ...backend_obj import backend, ArrayLike
 
 
-def rotate(theta: Tensor, x: Tensor, y: Tensor) -> Tuple[Tensor, Tensor]:
+def rotate(theta: ArrayLike, x: ArrayLike, y: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
     """
     Applies a rotation matrix to the X,Y coordinates
     """
-    s = theta.sin()
-    c = theta.cos()
+    s = backend.sin(theta)
+    c = backend.cos(theta)
     return c * x - s * y, s * x + c * y

@@ -1,10 +1,11 @@
 import torch
-from torch import Tensor
+import numpy as np
 
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .psf_model_object import PSFModel
 from .mixins import RadialMixin
 from ..param import forward
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ("AiryPSF",)
 
@@ -63,11 +64,11 @@ class AiryPSF(RadialMixin, PSFModel):
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
-            self.I0.dynamic_value = torch.mean(mid_chunk) / self.target.pixel_area
+            self.I0.dynamic_value = backend.mean(mid_chunk) / self.target.pixel_area
         if not self.aRL.initialized:
             self.aRL.dynamic_value = (5.0 / 8.0) * 2 * self.target.pixelscale
 
     @forward
-    def radial_model(self, R: Tensor, I0: Tensor, aRL: Tensor) -> Tensor:
-        x = 2 * torch.pi * aRL * R
-        return I0 * (2 * torch.special.bessel_j1(x) / x) ** 2
+    def radial_model(self, R: ArrayLike, I0: ArrayLike, aRL: ArrayLike) -> ArrayLike:
+        x = 2 * np.pi * aRL * R
+        return I0 * (2 * backend.bessel_j1(x) / x) ** 2

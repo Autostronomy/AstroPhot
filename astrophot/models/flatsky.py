@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from torch import Tensor
 
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .sky_model_object import SkyModel
+from ..backend_obj import backend, ArrayLike
 from ..param import forward
 
 __all__ = ["FlatSky"]
@@ -33,9 +33,9 @@ class FlatSky(SkyModel):
         if self.I.initialized:
             return
 
-        dat = self.target[self.window].data.detach().cpu().numpy().copy()
+        dat = backend.to_numpy(self.target[self.window].data).copy()
         self.I.dynamic_value = np.median(dat) / self.target.pixel_area.item()
 
     @forward
-    def brightness(self, x: Tensor, y: Tensor, I: Tensor) -> Tensor:
-        return torch.ones_like(x) * I
+    def brightness(self, x: ArrayLike, y: ArrayLike, I: ArrayLike) -> ArrayLike:
+        return backend.ones_like(x) * I

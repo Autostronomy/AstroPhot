@@ -22,6 +22,7 @@ from .image import (
     WindowList,
 )
 from .models import Model
+from .backend_obj import backend, ArrayLike
 
 try:
     from ._version import version as VERSION  # noqa
@@ -168,6 +169,7 @@ __all__ = (
     "errors",
     "Module",
     "config",
+    "backend",
     "run_from_terminal",
     "__version__",
     "__author__",

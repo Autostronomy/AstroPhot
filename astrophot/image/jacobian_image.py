@@ -1,9 +1,8 @@
 from typing import List, Union
 
-import torch
-
 from .image_object import Image, ImageList
 from ..errors import SpecificationConflict, InvalidImage
+from ..backend_obj import backend
 
 __all__ = ("JacobianImage", "JacobianImageList")
 
@@ -50,9 +49,11 @@ class JacobianImage(Image):
         self_indices = self.get_indices(other.window)
         other_indices = other.get_indices(self.window)
         for self_i, other_i in zip(*self.match_parameters(other)):
-            self._data[self_indices[0], self_indices[1], self_i] += other.data[
-                other_indices[0], other_indices[1], other_i
-            ]
+            self._data = backend.add_at_indices(
+                self._data,
+                self_indices + (self_i,),
+                other.data[other_indices[0], other_indices[1], other_i],
+            )
         return self
 
     def plane_to_world(self, x, y):
@@ -101,7 +102,7 @@ class JacobianImageList(ImageList):
                     raise SpecificationConflict(
                         "Jacobian image list sub-images track different parameters. Please initialize with all parameters that will be used."
                     )
-        return torch.cat(tuple(image.flatten(attribute) for image in self.images), dim=0)
+        return backend.concatenate(tuple(image.flatten(attribute) for image in self.images), dim=0)
 
     def match_parameters(self, other: Union[JacobianImage, "JacobianImageList", List[str]]):
         self_i = []

@@ -1,6 +1,5 @@
 import astrophot as ap
 import numpy as np
-import torch
 import pytest
 
 ######################################################################
@@ -9,9 +8,9 @@ import pytest
 
 
 def test_image_creation():
-    arr1 = torch.zeros((10, 15))
+    arr1 = ap.backend.zeros((10, 15))
     base_image1 = ap.Image(data=arr1, pixelscale=1.0, zeropoint=1.0, name="image1")
-    arr2 = torch.ones((15, 10))
+    arr2 = ap.backend.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0, name="image2")
 
     test_image = ap.ImageList((base_image1, base_image2))
@@ -28,9 +27,9 @@ def test_image_creation():
 
 
 def test_copy():
-    arr1 = torch.zeros((10, 15)) + 2
+    arr1 = np.zeros((10, 15)) + 2
     base_image1 = ap.Image(data=arr1, pixelscale=1.0, zeropoint=1.0, name="image1")
-    arr2 = torch.ones((15, 10))
+    arr2 = np.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0, name="image2")
 
     test_image = ap.ImageList((base_image1, base_image2))
@@ -42,7 +41,7 @@ def test_copy():
     for ti, ci in zip(test_image, copy_image):
         assert ti.pixelscale == ci.pixelscale, "copied image should have same pixelscale"
         assert ti.zeropoint == ci.zeropoint, "copied image should have same zeropoint"
-        assert torch.all(ti.data != ci.data), "copied image should not modify original data"
+        assert ap.backend.all(ti.data != ci.data), "copied image should not modify original data"
 
     blank_copy_image = test_image.blank_copy()
     for ti, ci in zip(test_image, blank_copy_image):
@@ -51,9 +50,9 @@ def test_copy():
 
 
 def test_image_arithmetic():
-    arr1 = torch.zeros((10, 15))
+    arr1 = np.zeros((10, 15))
     base_image1 = ap.Image(data=arr1, pixelscale=1.0, zeropoint=1.0, name="image1")
-    arr2 = torch.ones((15, 10))
+    arr2 = np.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0, name="image2")
     test_image = ap.ImageList((base_image1, base_image2))
 
@@ -66,38 +65,38 @@ def test_image_arithmetic():
     # Test iadd
     test_image += second_image
 
-    assert torch.allclose(
-        test_image[0].data, torch.ones_like(base_image1.data)
+    assert ap.backend.allclose(
+        test_image[0].data, ap.backend.ones_like(base_image1.data)
     ), "image addition should update its region"
-    assert torch.allclose(
-        base_image1.data, torch.ones_like(base_image1.data)
+    assert ap.backend.allclose(
+        base_image1.data, ap.backend.ones_like(base_image1.data)
     ), "image addition should update its region"
-    assert torch.allclose(
-        test_image[1].data, torch.zeros_like(base_image2.data)
+    assert ap.backend.allclose(
+        test_image[1].data, ap.backend.zeros_like(base_image2.data)
     ), "image addition should update its region"
-    assert torch.allclose(
-        base_image2.data, torch.zeros_like(base_image2.data)
+    assert ap.backend.allclose(
+        base_image2.data, ap.backend.zeros_like(base_image2.data)
     ), "image addition should update its region"
 
     # Test isub
     test_image -= second_image
 
-    assert torch.allclose(
-        test_image[0].data, torch.zeros_like(base_image1.data)
+    assert ap.backend.allclose(
+        test_image[0].data, ap.backend.zeros_like(base_image1.data)
     ), "image addition should update its region"
-    assert torch.allclose(
-        base_image1.data, torch.zeros_like(base_image1.data)
+    assert ap.backend.allclose(
+        base_image1.data, ap.backend.zeros_like(base_image1.data)
     ), "image addition should update its region"
-    assert torch.allclose(
-        test_image[1].data, torch.ones_like(base_image2.data)
+    assert ap.backend.allclose(
+        test_image[1].data, ap.backend.ones_like(base_image2.data)
     ), "image addition should update its region"
-    assert torch.allclose(
-        base_image2.data, torch.ones_like(base_image2.data)
+    assert ap.backend.allclose(
+        base_image2.data, ap.backend.ones_like(base_image2.data)
     ), "image addition should update its region"
 
     new_image = test_image + second_image
     new_image = test_image - second_image
-    new_image = new_image.to(dtype=torch.float32, device="cpu")
+    new_image = new_image.to(dtype=ap.backend.float32, device="cpu")
     assert isinstance(new_image, ap.ImageList), "new image should be an ImageList"
 
     new_image += base_image1
@@ -105,9 +104,9 @@ def test_image_arithmetic():
 
 
 def test_model_image_list_error():
-    arr1 = torch.zeros((10, 15))
+    arr1 = np.zeros((10, 15))
     base_image1 = ap.ModelImage(data=arr1, pixelscale=1.0, zeropoint=1.0)
-    arr2 = torch.ones((15, 10))
+    arr2 = np.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0)
 
     with pytest.raises(ap.errors.InvalidImage):
@@ -115,22 +114,22 @@ def test_model_image_list_error():
 
 
 def test_target_image_list_creation():
-    arr1 = torch.zeros((10, 15))
+    arr1 = np.zeros((10, 15))
     base_image1 = ap.TargetImage(
         data=arr1,
         pixelscale=1.0,
         zeropoint=1.0,
-        variance=torch.ones_like(arr1),
-        mask=torch.zeros_like(arr1),
+        variance=np.ones_like(arr1),
+        mask=np.zeros_like(arr1),
         name="image1",
     )
-    arr2 = torch.ones((15, 10))
+    arr2 = np.ones((15, 10))
     base_image2 = ap.TargetImage(
         data=arr2,
         pixelscale=0.5,
         zeropoint=2.0,
-        variance=torch.ones_like(arr2),
-        mask=torch.zeros_like(arr2),
+        variance=np.ones_like(arr2),
+        mask=np.zeros_like(arr2),
         name="image2",
     )
 
@@ -145,24 +144,24 @@ def test_target_image_list_creation():
     test_image += second_image
     test_image -= second_image
 
-    assert torch.all(
+    assert ap.backend.all(
         test_image[0].data == save_image[0].data
     ), "adding then subtracting should give the same image"
-    assert torch.all(
+    assert ap.backend.all(
         test_image[1].data == save_image[1].data
     ), "adding then subtracting should give the same image"
 
 
 def test_targetlist_errors():
-    arr1 = torch.zeros((10, 15))
+    arr1 = np.zeros((10, 15))
     base_image1 = ap.TargetImage(
         data=arr1,
         pixelscale=1.0,
         zeropoint=1.0,
-        variance=torch.ones_like(arr1),
-        mask=torch.zeros_like(arr1),
+        variance=np.ones_like(arr1),
+        mask=np.zeros_like(arr1),
     )
-    arr2 = torch.ones((15, 10))
+    arr2 = np.ones((15, 10))
     base_image2 = ap.Image(
         data=arr2,
         pixelscale=0.5,
@@ -173,11 +172,11 @@ def test_targetlist_errors():
 
 
 def test_jacobian_image_list_error():
-    arr1 = torch.zeros((10, 15, 3))
+    arr1 = np.zeros((10, 15, 3))
     base_image1 = ap.JacobianImage(
         parameters=["a", "1", "zz"], data=arr1, pixelscale=1.0, zeropoint=1.0
     )
-    arr2 = torch.ones((15, 10))
+    arr2 = np.ones((15, 10))
     base_image2 = ap.Image(data=arr2, pixelscale=0.5, zeropoint=2.0)
 
     with pytest.raises(ap.errors.InvalidImage):

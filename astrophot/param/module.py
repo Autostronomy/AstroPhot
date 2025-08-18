@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from math import prod
 from caskade import (
     Module as CModule,
@@ -7,6 +6,7 @@ from caskade import (
     ParamConfigurationError,
     FillDynamicParamsArrayError,
 )
+from ..backend_obj import backend
 
 
 class Module(CModule):
@@ -23,10 +23,10 @@ class Module(CModule):
         uncertainties = []
         for param in self.dynamic_params:
             if param.uncertainty is None:
-                uncertainties.append(torch.zeros_like(param.value.flatten()))
+                uncertainties.append(backend.zeros_like(param.value.flatten()))
             else:
                 uncertainties.append(param.uncertainty.flatten())
-        return torch.cat(tuple(uncertainties), dim=-1)
+        return backend.concatenate(tuple(uncertainties), dim=-1)
 
     def build_params_array_names(self):
         names = []
@@ -65,7 +65,7 @@ class Module(CModule):
             # Handle scalar parameters
             size = max(1, prod(param.shape))
             try:
-                val = uncertainty[..., pos : pos + size].view(param.shape)
+                val = uncertainty[..., pos : pos + size].reshape(param.shape)
                 param.uncertainty = val
             except (RuntimeError, IndexError, ValueError, TypeError):
                 raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)

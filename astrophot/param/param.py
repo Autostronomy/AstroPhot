@@ -1,5 +1,5 @@
 from caskade import Param as CParam
-import torch
+from ..backend_obj import backend
 
 
 class Param(CParam):
@@ -24,7 +24,7 @@ class Param(CParam):
         if uncertainty is None:
             self._uncertainty = None
         else:
-            self._uncertainty = torch.as_tensor(uncertainty)
+            self._uncertainty = backend.as_array(uncertainty)
 
     @property
     def prof(self):
@@ -35,7 +35,7 @@ class Param(CParam):
         if prof is None:
             self._prof = None
         else:
-            self._prof = torch.as_tensor(prof)
+            self._prof = backend.as_array(prof)
 
     @property
     def initialized(self):
@@ -47,9 +47,9 @@ class Param(CParam):
         return False
 
     def is_valid(self, value):
-        if self.valid[0] is not None and torch.any(value <= self.valid[0]):
+        if self.valid[0] is not None and backend.any(value <= self.valid[0]):
             return False
-        if self.valid[1] is not None and torch.any(value >= self.valid[1]):
+        if self.valid[1] is not None and backend.any(value >= self.valid[1]):
             return False
         return True
 
@@ -66,4 +66,4 @@ class Param(CParam):
         elif self.valid[1] is not None:
             smin = None
             smax = self.valid[1] - 0.1
-        return torch.clamp(value, min=smin, max=smax)
+        return backend.clamp(value, min=smin, max=smax)

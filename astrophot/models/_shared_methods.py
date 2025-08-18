@@ -5,6 +5,7 @@ from scipy.optimize import minimize
 
 from ..utils.decorators import ignore_numpy_warnings
 from .. import config
+from ..backend_obj import backend
 
 
 def _sample_image(
@@ -16,20 +17,20 @@ def _sample_image(
     angle_range=None,
     cycle=2 * np.pi,
 ):
-    dat = image.data.detach().cpu().numpy().copy()
+    dat = backend.to_numpy(image.data).copy()
     # Fill masked pixels
     if image.has_mask:
-        mask = image.mask.detach().cpu().numpy()
+        mask = backend.to_numpy(image.mask)
         dat[mask] = np.median(dat[~mask])
     # Subtract median of edge pixels to avoid effect of nearby sources
     edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
     dat -= np.median(edge)
     # Get the radius of each pixel relative to object center
     x, y = transform(*image.coordinate_center_meshgrid(), params=())
-    R = radius(x, y, params=()).detach().cpu().numpy().flatten()
+    R = backend.to_numpy(radius(x, y, params=())).flatten()
 
     if angle_range is not None:
-        T = angle(x, y, params=()).detach().cpu().numpy().flatten()
+        T = backend.to_numpy(angle(x, y, params=())).flatten()
         T = (T - angle_range[0]) % cycle
         CHOOSE = T < (angle_range[1] - angle_range[0])
         R = R[CHOOSE]
@@ -106,7 +107,7 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         if not model[param].initialized:
             if not model[param].is_valid(x0x):
                 x0x = model[param].soft_valid(
-                    torch.tensor(x0x, dtype=config.DTYPE, device=config.DEVICE)
+                    backend.as_array(x0x, dtype=config.DTYPE, device=config.DEVICE)
                 )
             model[param].dynamic_value = x0x
 

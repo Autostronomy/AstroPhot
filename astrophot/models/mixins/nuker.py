@@ -1,7 +1,7 @@
 import torch
-from torch import Tensor
 
 from ...param import forward
+from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
 from .._shared_methods import parametric_initialize, parametric_segment_initialize
 from ...utils.parametric_profiles import nuker_np
@@ -56,8 +56,14 @@ class NukerMixin:
 
     @forward
     def radial_model(
-        self, R: Tensor, Rb: Tensor, Ib: Tensor, alpha: Tensor, beta: Tensor, gamma: Tensor
-    ) -> Tensor:
+        self,
+        R: ArrayLike,
+        Rb: ArrayLike,
+        Ib: ArrayLike,
+        alpha: ArrayLike,
+        beta: ArrayLike,
+        gamma: ArrayLike,
+    ) -> ArrayLike:
         return func.nuker(R, Rb, Ib, alpha, beta, gamma)
 
 
@@ -109,6 +115,13 @@ class iNukerMixin:
 
     @forward
     def iradial_model(
-        self, i: int, R: Tensor, Rb: Tensor, Ib: Tensor, alpha: Tensor, beta: Tensor, gamma: Tensor
-    ) -> Tensor:
+        self,
+        i: int,
+        R: ArrayLike,
+        Rb: ArrayLike,
+        Ib: ArrayLike,
+        alpha: ArrayLike,
+        beta: ArrayLike,
+        gamma: ArrayLike,
+    ) -> ArrayLike:
         return func.nuker(R, Rb[i], Ib[i], alpha[i], beta[i], gamma[i])

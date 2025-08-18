@@ -1,5 +1,4 @@
 import astrophot as ap
-import torch
 import numpy as np
 
 from utils import make_basic_sersic, get_astropy_wcs
@@ -12,7 +11,7 @@ import pytest
 
 @pytest.fixture()
 def base_image():
-    arr = torch.zeros((10, 15))
+    arr = np.zeros((10, 15))
     return ap.Image(
         data=arr,
         pixelscale=1.0,
@@ -27,7 +26,7 @@ def test_image_creation(base_image):
     assert base_image.crpix[0] == 0, "image should track crpix"
     assert base_image.crpix[1] == 0, "image should track crpix"
 
-    base_image.to(dtype=torch.float64)
+    base_image.to(dtype=ap.backend.float64)
     slicer = ap.Window((7, 13, 4, 7), base_image)
     sliced_image = base_image[slicer]
     assert sliced_image.crpix[0] == -7, "crpix of subimage should give relative position"
@@ -70,7 +69,7 @@ def test_image_arithmetic(base_image):
     assert base_image.data[5][5] == 0, "slice should not update base image"
 
     second_image = ap.Image(
-        data=torch.ones((5, 5)),
+        data=np.ones((5, 5)),
         pixelscale=1.0,
         zeropoint=1.0,
         crpix=(-1, 1),
@@ -85,14 +84,14 @@ def test_image_arithmetic(base_image):
 
     # Test isubtract
     base_image -= second_image
-    assert torch.all(
-        torch.isclose(base_image.data, torch.zeros_like(base_image.data))
+    assert ap.backend.allclose(
+        base_image.data, ap.backend.zeros_like(base_image.data)
     ), "image subtraction should only update its region"
 
 
 def test_image_manipulation():
     new_image = ap.Image(
-        data=torch.ones((16, 32)),
+        data=np.ones((16, 32)),
         pixelscale=1.0,
         zeropoint=1.0,
     )
@@ -119,7 +118,7 @@ def test_image_manipulation():
 
 def test_image_save_load():
     new_image = ap.Image(
-        data=torch.ones((16, 32)),
+        data=np.ones((16, 32)),
         pixelscale=0.76,
         zeropoint=21.4,
         crtan=(8.0, 1.2),
@@ -131,22 +130,22 @@ def test_image_save_load():
 
     loaded_image = ap.Image(filename="Test_AstroPhot.fits")
 
-    assert torch.all(
-        new_image.data == loaded_image.data
+    assert ap.backend.allclose(
+        new_image.data, loaded_image.data
     ), "Loaded image should have same pixel values"
-    assert torch.all(
-        new_image.crtan.value == loaded_image.crtan.value
+    assert ap.backend.allclose(
+        new_image.crtan.value, loaded_image.crtan.value
     ), "Loaded image should have same tangent plane origin"
     assert np.all(
         new_image.crpix == loaded_image.crpix
     ), "Loaded image should have same reference pixel"
-    assert torch.all(
-        new_image.crval.value == loaded_image.crval.value
+    assert ap.backend.allclose(
+        new_image.crval.value, loaded_image.crval.value
     ), "Loaded image should have same reference world coordinates"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         new_image.pixelscale, loaded_image.pixelscale
     ), "Loaded image should have same pixel scale"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         new_image.CD.value, loaded_image.CD.value
     ), "Loaded image should have same pixel scale"
     assert new_image.zeropoint == loaded_image.zeropoint, "Loaded image should have same zeropoint"
@@ -155,7 +154,7 @@ def test_image_save_load():
 def test_image_wcs_roundtrip():
     # Minimal input
     I = ap.Image(
-        data=torch.zeros((21, 21)),
+        data=np.zeros((21, 21)),
         zeropoint=22.5,
         crpix=(10, 10),
         crtan=(1.0, -10.0),
@@ -166,25 +165,25 @@ def test_image_wcs_roundtrip():
         ),
     )
 
-    assert torch.allclose(
-        torch.stack(I.world_to_plane(*I.plane_to_world(*I.center))),
+    assert ap.backend.allclose(
+        ap.backend.stack(I.world_to_plane(*I.plane_to_world(*I.center))),
         I.center,
     ), "WCS world/plane roundtrip should return input value"
-    assert torch.allclose(
-        torch.stack(I.pixel_to_plane(*I.plane_to_pixel(*I.center))),
+    assert ap.backend.allclose(
+        ap.backend.stack(I.pixel_to_plane(*I.plane_to_pixel(*I.center))),
         I.center,
     ), "WCS pixel/plane roundtrip should return input value"
-    assert torch.allclose(
-        torch.stack(I.world_to_pixel(*I.pixel_to_world(*torch.zeros_like(I.center)))),
-        torch.zeros_like(I.center),
+    assert ap.backend.allclose(
+        ap.backend.stack(I.world_to_pixel(*I.pixel_to_world(*ap.backend.zeros_like(I.center)))),
+        ap.backend.zeros_like(I.center),
         atol=1e-6,
     ), "WCS world/pixel roundtrip should return input value"
 
 
 def test_target_image_variance():
     new_image = ap.TargetImage(
-        data=torch.ones((16, 32)),
-        variance=torch.ones((16, 32)),
+        data=np.ones((16, 32)),
+        variance=np.ones((16, 32)),
         pixelscale=1.0,
         zeropoint=1.0,
     )
@@ -200,8 +199,8 @@ def test_target_image_variance():
 
 def test_target_image_mask():
     new_image = ap.TargetImage(
-        data=torch.ones((16, 32)),
-        mask=torch.arange(16 * 32).reshape((16, 32)) % 4 == 0,
+        data=np.ones((16, 32)),
+        mask=np.arange(16 * 32).reshape((16, 32)) % 4 == 0,
         pixelscale=1.0,
         zeropoint=1.0,
     )
@@ -214,9 +213,9 @@ def test_target_image_mask():
     new_image.mask = None
     assert not new_image.has_mask, "target image update to no mask"
 
-    data = torch.ones((16, 32))
-    data[1, 1] = torch.nan
-    data[5, 5] = torch.nan
+    data = np.ones((16, 32))
+    data[1, 1] = np.nan
+    data[5, 5] = np.nan
 
     new_image = ap.TargetImage(
         data=data,
@@ -230,8 +229,8 @@ def test_target_image_mask():
 
 def test_target_image_psf():
     new_image = ap.TargetImage(
-        data=torch.ones((15, 33)),
-        psf=torch.ones((9, 9)),
+        data=np.ones((15, 33)),
+        psf=np.ones((9, 9)),
         pixelscale=1.0,
         zeropoint=1.0,
     )
@@ -247,8 +246,8 @@ def test_target_image_psf():
 
 def test_target_image_reduce():
     new_image = ap.TargetImage(
-        data=torch.ones((30, 36)),
-        psf=torch.ones((9, 9)),
+        data=np.ones((30, 36)),
+        psf=np.ones((9, 9)),
         variance="auto",
         pixelscale=1.0,
         zeropoint=1.0,
@@ -260,10 +259,10 @@ def test_target_image_reduce():
 
 def test_target_image_save_load():
     new_image = ap.TargetImage(
-        data=torch.ones((16, 32)),
-        variance=torch.ones((16, 32)),
-        mask=torch.zeros((16, 32)),
-        psf=torch.ones((9, 9)),
+        data=np.ones((16, 32)),
+        variance=np.ones((16, 32)),
+        mask=np.zeros((16, 32)),
+        psf=np.ones((9, 9)),
         CD=[[1.0, 0.0], [0.0, 1.5]],
         zeropoint=1.0,
     )
@@ -272,17 +271,19 @@ def test_target_image_save_load():
 
     loaded_image = ap.TargetImage(filename="Test_target_AstroPhot.fits")
 
-    assert torch.all(
-        new_image.data == loaded_image.data
+    assert ap.backend.allclose(
+        new_image.data, loaded_image.data
     ), "Loaded image should have same pixel values"
-    assert torch.all(new_image.mask == loaded_image.mask), "Loaded image should have same mask"
-    assert torch.all(
-        new_image.variance == loaded_image.variance
+    assert ap.backend.allclose(
+        new_image.mask, loaded_image.mask
+    ), "Loaded image should have same mask"
+    assert ap.backend.allclose(
+        new_image.variance, loaded_image.variance
     ), "Loaded image should have same variance"
-    assert torch.all(
-        new_image.psf.data == loaded_image.psf.data
+    assert ap.backend.allclose(
+        new_image.psf.data, loaded_image.psf.data
     ), "Loaded image should have same psf"
-    assert torch.allclose(
+    assert ap.backend.allclose(
         new_image.CD.value, loaded_image.CD.value
     ), "Loaded image should have same pixel scale"
 
@@ -294,7 +295,7 @@ def test_target_image_auto_var():
 
 def test_target_image_errors():
     new_image = ap.TargetImage(
-        data=torch.ones((16, 32)),
+        data=np.ones((16, 32)),
         pixelscale=1.0,
         zeropoint=1.0,
     )
@@ -310,24 +311,24 @@ def test_target_image_errors():
 
 def test_psf_image_copying():
     psf_image = ap.PSFImage(
-        data=torch.ones((15, 15)),
+        data=np.ones((15, 15)),
     )
 
     assert psf_image.psf_pad == 7, "psf image should have correct psf_pad"
     psf_image.normalize()
     assert np.allclose(
-        psf_image.data.detach().cpu().numpy(), 1 / 15**2
+        ap.backend.to_numpy(psf_image.data), 1 / 15**2
     ), "psf image should normalize to sum to 1"
 
 
 def test_jacobian_add():
     new_image = ap.JacobianImage(
         parameters=["a", "b", "c"],
-        data=torch.ones((16, 32, 3)),
+        data=np.ones((16, 32, 3)),
     )
     other_image = ap.JacobianImage(
         parameters=["b", "d"],
-        data=5 * torch.ones((4, 4, 2)),
+        data=5 * np.ones((4, 4, 2)),
     )
 
     new_image += other_image
@@ -360,5 +361,5 @@ def test_image_with_wcs():
         image.crpix, WCS.wcs.crpix[::-1] - 1
     ), "Image should have correct CRPIX from WCS"
     assert np.allclose(
-        image.crval.value.detach().cpu().numpy(), WCS.wcs.crval
+        image.crval.npvalue, WCS.wcs.crval
     ), "Image should have correct CRVAL from WCS"

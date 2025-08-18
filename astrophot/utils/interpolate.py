@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from ..backend_obj import backend, ArrayLike
+
 __all__ = ("default_prof", "interp2d")
 
 
@@ -15,11 +17,11 @@ def default_prof(
 
 
 def interp2d(
-    im: torch.Tensor,
-    i: torch.Tensor,
-    j: torch.Tensor,
+    im: ArrayLike,
+    i: ArrayLike,
+    j: ArrayLike,
     padding_mode: str = "zeros",
-) -> torch.Tensor:
+) -> ArrayLike:
     """
     Interpolates a 2D image at specified coordinates.
     Similar to `torch.nn.functional.grid_sample` with `align_corners=False`.
@@ -44,11 +46,11 @@ def interp2d(
     # valid
     valid = (i >= -0.5) & (i <= (h - 0.5)) & (j >= -0.5) & (j <= (w - 0.5))
 
-    i0 = i.floor().long()
-    j0 = j.floor().long()
-    i0 = i0.clamp(0, h - 2)
+    i0 = backend.long(backend.floor(i))
+    j0 = backend.long(backend.floor(j))
+    i0 = backend.clamp(i0, 0, h - 2)
     i1 = i0 + 1
-    j0 = j0.clamp(0, w - 2)
+    j0 = backend.clamp(j0, 0, w - 2)
     j1 = j0 + 1
 
     fa = im[i0, j0]
