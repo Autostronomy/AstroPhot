@@ -10,12 +10,6 @@ def pixel_center_integrator(Z: ArrayLike) -> ArrayLike:
     return Z
 
 
-def pixel_corner_integrator(Z: ArrayLike) -> ArrayLike:
-    kernel = backend.ones((1, 1, 2, 2), dtype=config.DTYPE, device=config.DEVICE) / 4.0
-    Z = backend.conv2d(Z.reshape(1, 1, *Z.shape), kernel, padding="valid")
-    return Z.squeeze(0).squeeze(0)
-
-
 def pixel_simpsons_integrator(Z: ArrayLike) -> ArrayLike:
     kernel = (
         backend.as_array(
@@ -123,7 +117,6 @@ def bright_integrate(
     gridding: int = 5,
     max_depth: int = 2,
 ):
-    # Work in progress, somehow this is slower
     trace = []
     for d in range(max_depth):
         N = max(1, int(np.prod(z.shape) * bright_frac))
@@ -145,48 +138,3 @@ def bright_integrate(
         )
 
     return trace[0][0].reshape(trace[0][2])
-
-
-def recursive_bright_integrate(
-    i: ArrayLike,
-    j: ArrayLike,
-    brightness_ij: callable,
-    bright_frac: float,
-    scale: float = 1.0,
-    quad_order: int = 3,
-    gridding: int = 5,
-    _current_depth: int = 0,
-    max_depth: int = 1,
-) -> ArrayLike:
-    z, _ = single_quad_integrate(i, j, brightness_ij, scale, quad_order)
-    print(z.shape)
-    if _current_depth >= max_depth:
-        return z
-
-    N = max(1, int(np.prod(z.shape) * bright_frac))
-    z_flat = z.flatten()
-
-    select = backend.topk(z_flat, N)[1]
-
-    si, sj = upsample(i.flatten()[select], j.flatten()[select], gridding, scale)
-
-    z_flat = backend.fill_at_indices(
-        z_flat,
-        select,
-        backend.mean(
-            recursive_bright_integrate(
-                si,
-                sj,
-                brightness_ij,
-                bright_frac,
-                scale=scale / gridding,
-                quad_order=quad_order,
-                gridding=gridding,
-                _current_depth=_current_depth + 1,
-                max_depth=max_depth,
-            ),
-            dim=-1,
-        ),
-    )
-
-    return z_flat.reshape(z.shape)

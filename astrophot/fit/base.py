@@ -92,24 +92,3 @@ class BaseOptimizer:
         """returns the minimum value from the loss history."""
         N = np.isfinite(self.loss_history)
         return np.min(np.array(self.loss_history)[N])
-
-    @staticmethod
-    def chi2contour(n_params: int, confidence: float = 0.682689492137) -> float:
-        """
-        Calculates the chi^2 contour for the given number of parameters.
-
-        **Args:**
-        - `n_params` (int): The number of parameters.
-        - `confidence` (float, optional): The confidence interval (default is 0.682689492137).
-        """
-
-        def _f(x: float, nu: int) -> float:
-            """Helper function for calculating chi^2 contour."""
-            return (gammainc(nu / 2, x / 2) - confidence) ** 2
-
-        for method in ["L-BFGS-B", "Powell", "Nelder-Mead"]:
-            res = minimize(_f, x0=n_params, args=(n_params,), method=method, tol=1e-8)
-
-            if res.success:
-                return res.x[0]
-        raise RuntimeError(f"Unable to compute Chi^2 contour for n params: {n_params}")

@@ -71,6 +71,7 @@ def sersic_model():
     "fitter",
     [
         ap.fit.LM,
+        ap.fit.LMfast,
         ap.fit.Grad,
         ap.fit.ScipyFit,
         ap.fit.MHMCMC,
