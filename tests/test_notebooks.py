@@ -46,7 +46,7 @@ def cleanup_py_scripts(nbpath):
 
 @pytest.mark.parametrize("nb_path", notebooks)
 def test_notebook(nb_path):
-    if os.environ.get("CASKADE_BACKEND") != "torch":
+    if ap.backend.backend == "jax":
         pytest.skip("Requires torch backend")
     convert_notebook_to_py(nb_path)
     runpy.run_path(nb_path.replace(".ipynb", ".py"), run_name="__main__")

@@ -47,10 +47,12 @@ jobs:
           pip install -e ".[dev]"
           pip show ${{ env.PROJECT_NAME }}
         shell: bash
-      - name: Test with pytest
+      - name: Test with pytest [torch]
         run: |
           coverage run --source=${{ env.PROJECT_NAME }} -m pytest tests/
         shell: bash
+        env:
+          CASKADE_BACKEND: torch
       - name: Extra coverage report for jax checks
         run: |
           echo "Running extra coverage report for jax checks"
