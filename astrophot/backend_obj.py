@@ -309,7 +309,7 @@ class Backend:
         return self.module.special.bessel_j1(array)
 
     def _bessel_j1_jax(self, array):
-        return self.jax.scipy.special.bessel_jn(array, v=1)
+        return self.jax.scipy.special.bessel_jn(array, v=1)[-1]
 
     def _bessel_k1_torch(self, array):
         return self.module.special.modified_bessel_k1(array)

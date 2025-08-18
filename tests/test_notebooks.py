@@ -4,6 +4,8 @@ import pytest
 import runpy
 import subprocess
 import os
+import caskade as ck
+import astrophot as ap
 
 pytestmark = pytest.mark.skipif(
     platform.system() in ["Windows", "Darwin"],
@@ -49,4 +51,6 @@ def cleanup_py_scripts(nbpath):
 def test_notebook(nb_path):
     convert_notebook_to_py(nb_path)
     runpy.run_path(nb_path.replace(".ipynb", ".py"), run_name="__main__")
+    ck.backend.backend = "torch"
+    ap.backend.backend = "torch"
     cleanup_py_scripts(nb_path)
