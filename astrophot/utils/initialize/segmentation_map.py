@@ -4,6 +4,7 @@ from typing import Optional, Union
 import numpy as np
 from astropy.io import fits
 from ...backend_obj import backend
+from ... import config
 
 __all__ = (
     "centroids_from_segmentation_map",
@@ -67,8 +68,8 @@ def centroids_from_segmentation_map(
         icentroid = np.sum(II[N] * data[N]) / np.sum(data[N])
         jcentroid = np.sum(JJ[N] * data[N]) / np.sum(data[N])
         xcentroid, ycentroid = image.pixel_to_plane(
-            backend.as_array(icentroid, dtype=image.data.dtype, device=image.data.device),
-            backend.as_array(jcentroid, dtype=image.data.dtype, device=image.data.device),
+            backend.as_array(icentroid, dtype=config.DTYPE, device=config.DEVICE),
+            backend.as_array(jcentroid, dtype=config.DTYPE, device=config.DEVICE),
             params=(),
         )
         centroids[index] = [xcentroid.item(), ycentroid.item()]

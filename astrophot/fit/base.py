@@ -48,7 +48,7 @@ class BaseOptimizer:
             self.current_state = model.build_params_array()
         else:
             self.current_state = backend.as_array(
-                initial_state, dtype=model.dtype, device=model.device
+                initial_state, dtype=config.DTYPE, device=config.DEVICE
             )
 
         if fit_window is None:

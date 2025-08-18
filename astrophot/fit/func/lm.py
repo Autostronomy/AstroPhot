@@ -2,6 +2,7 @@ import numpy as np
 
 from ...errors import OptimizeStopFail, OptimizeStopSuccess
 from ...backend_obj import backend
+from ... import config
 
 
 def nll(D, M, W):
@@ -40,7 +41,7 @@ def hessian_poisson(J, D, M):
 
 
 def damp_hessian(hess, L):
-    I = backend.eye(len(hess), dtype=hess.dtype, device=hess.device)
+    I = backend.eye(len(hess), dtype=config.DTYPE, device=config.DEVICE)
     D = backend.ones_like(hess) - I
     return hess * (I + D / (1 + L)) + L * I * backend.diag(hess)
 
@@ -52,7 +53,7 @@ def solve(hess, grad, L):
             h = backend.linalg.solve(hessD, grad)
             break
         except backend.LinAlgErr:
-            hessD = hessD + L * backend.eye(len(hessD), dtype=hessD.dtype, device=hessD.device)
+            hessD = hessD + L * backend.eye(len(hessD), dtype=config.DTYPE, device=config.DEVICE)
             L = L * 2
     return hessD, h
 

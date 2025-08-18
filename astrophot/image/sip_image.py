@@ -4,6 +4,7 @@ from .target_image import TargetImage
 from .model_image import ModelImage
 from .mixins import SIPMixin
 from ..backend_obj import backend, ArrayLike
+from .. import config
 
 
 class SIPModelImage(SIPMixin, ModelImage):
@@ -147,8 +148,8 @@ class SIPTargetImage(SIPMixin, TargetImage):
             "distortion_IJ": new_distortion_IJ,
             "_data": backend.zeros(
                 (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
-                dtype=self.data.dtype,
-                device=self.data.device,
+                dtype=config.DTYPE,
+                device=config.DEVICE,
             ),
             "CD": self.CD.value / upsample,
             "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,

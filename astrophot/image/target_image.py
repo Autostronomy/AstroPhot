@@ -209,8 +209,8 @@ class TargetImage(DataMixin, Image):
         kwargs = {
             "_data": backend.zeros(
                 (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
-                dtype=self.data.dtype,
-                device=self.data.device,
+                dtype=config.DTYPE,
+                device=config.DEVICE,
             ),
             "CD": self.CD.value / upsample,
             "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,

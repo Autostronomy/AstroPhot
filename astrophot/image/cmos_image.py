@@ -2,6 +2,7 @@ from .target_image import TargetImage
 from .mixins import CMOSMixin
 from .model_image import ModelImage
 from ..backend_obj import backend
+from .. import config
 
 
 class CMOSModelImage(CMOSMixin, ModelImage):
@@ -27,9 +28,7 @@ class CMOSTargetImage(CMOSMixin, TargetImage):
         kwargs = {
             "subpixel_loc": self.subpixel_loc,
             "subpixel_scale": self.subpixel_scale,
-            "_data": backend.zeros(
-                self.data.shape[:2], dtype=self.data.dtype, device=self.data.device
-            ),
+            "_data": backend.zeros(self.data.shape[:2], dtype=config.DTYPE, device=config.DEVICE),
             "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,

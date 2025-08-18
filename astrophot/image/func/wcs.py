@@ -1,5 +1,6 @@
 import numpy as np
 from ...backend_obj import backend
+from ... import config
 
 deg_to_rad = np.pi / 180
 rad_to_deg = 180 / np.pi
@@ -107,7 +108,9 @@ def sip_coefs(order):
 
 
 def sip_matrix(u, v, order):
-    M = backend.zeros((len(u), (order + 1) * (order + 2) // 2), dtype=u.dtype, device=u.device)
+    M = backend.zeros(
+        (len(u), (order + 1) * (order + 2) // 2), dtype=config.DTYPE, device=config.DEVICE
+    )
     for i, (p, q) in enumerate(sip_coefs(order)):
         M = backend.fill_at_indices(M, (slice(None), i), u**p * v**q)
     return M
