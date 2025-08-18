@@ -2,6 +2,7 @@ caustics
 emcee
 graphviz
 ipywidgets
+jax
 jupyter-book
 matplotlib
 nbformat

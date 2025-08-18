@@ -54,7 +54,6 @@ jobs:
       - name: Extra coverage report for jax checks
         run: |
           echo "Running extra coverage report for jax checks"
-          pip install jax jaxlib
           coverage run --append --source=${{ env.PROJECT_NAME }} -m pytest tests/
         shell: bash
         env:
