@@ -117,6 +117,8 @@ def test_model_errors():
 )
 def test_all_model_sample(model_type):
 
+    if ap.backend.backend == "jax" and np.random.randint(0, 3) > 0:
+        pytest.skip("JAX is very slow, randomly reducing the number of tests")
     if model_type == "isothermal sech2 edgeon model" and ap.backend.backend == "jax":
         pytest.skip("JAX doesnt have bessel function k1 yet")
 

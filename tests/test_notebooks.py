@@ -12,9 +12,6 @@ pytestmark = pytest.mark.skipif(
     reason="Graphviz not installed on Windows runner",
 )
 
-pytestbackend = pytest.mark.skipif(
-    os.environ.get("CASKADE_BACKEND") != "torch", reason="Requires torch backend"
-)
 
 notebooks = glob.glob(
     os.path.join(
@@ -49,6 +46,8 @@ def cleanup_py_scripts(nbpath):
 
 @pytest.mark.parametrize("nb_path", notebooks)
 def test_notebook(nb_path):
+    if os.environ.get("CASKADE_BACKEND") != "torch":
+        pytest.skip("Requires torch backend")
     convert_notebook_to_py(nb_path)
     runpy.run_path(nb_path.replace(".ipynb", ".py"), run_name="__main__")
     ck.backend.backend = "torch"
