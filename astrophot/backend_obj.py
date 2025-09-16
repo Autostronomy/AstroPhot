@@ -343,11 +343,11 @@ class Backend:
             return self.jax.jacfwd(func)(x)
         return self.jax.jacrev(func)(x)
 
-    def _jacfwd_torch(self, func):
-        return self.module.func.jacfwd(func)
+    def _jacfwd_torch(self, func, argnums=0):
+        return self.module.func.jacfwd(func, argnums=argnums)
 
-    def _jacfwd_jax(self, func):
-        return self.jax.jacfwd(func)
+    def _jacfwd_jax(self, func, argnums=0):
+        return self.jax.jacfwd(func, argnums=argnums)
 
     def _hessian_torch(self, func):
         return self.module.func.hessian(func)

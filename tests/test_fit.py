@@ -68,26 +68,27 @@ def sersic_model():
 
 
 @pytest.mark.parametrize(
-    "fitter",
+    "fitter,extra",
     [
-        ap.fit.LM,
-        ap.fit.LMfast,
-        ap.fit.Grad,
-        ap.fit.ScipyFit,
-        ap.fit.MHMCMC,
-        ap.fit.HMC,
-        ap.fit.MiniFit,
-        ap.fit.Slalom,
+        (ap.fit.LM, {}),
+        (ap.fit.LMfast, {}),
+        (ap.fit.IterParam, {"chunks": 3, "method": "sequential", "verbose": 2}),
+        (ap.fit.Grad, {}),
+        (ap.fit.ScipyFit, {}),
+        (ap.fit.MHMCMC, {}),
+        (ap.fit.HMC, {}),
+        (ap.fit.MiniFit, {}),
+        (ap.fit.Slalom, {}),
     ],
 )
-def test_fitters(fitter, sersic_model):
+def test_fitters(fitter, extra, sersic_model):
     if ap.backend.backend == "jax" and fitter in [ap.fit.Grad, ap.fit.HMC]:
         pytest.skip("Grad and HMC not implemented for JAX backend")
     model = sersic_model
     model.initialize()
     ll_init = model.gaussian_log_likelihood()
     pll_init = model.poisson_log_likelihood()
-    result = fitter(model, max_iter=100).fit()
+    result = fitter(model, max_iter=100, **extra).fit()
     ll_final = model.gaussian_log_likelihood()
     pll_final = model.poisson_log_likelihood()
     assert ll_final > ll_init, f"{fitter.__name__} should improve the log likelihood"

@@ -92,7 +92,7 @@ def lm_step(
     scary = {"x": None, "nll": np.inf, "L": None, "rho": np.inf}
     nostep = True
     improving = None
-    for _ in range(10):
+    for i in range(10):
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
         if likelihood == "gaussian":
@@ -109,7 +109,9 @@ def lm_step(
             continue
 
         if backend.allclose(h, backend.zeros_like(h)) and L < 0.1:
-            raise OptimizeStopSuccess("Step with zero length means optimization complete.")
+            if i == 0:
+                raise OptimizeStopSuccess("Step with zero length means optimization complete.")
+            break
 
         # actual nll improvement vs expected from linearization
         rho = (nll0 - nll1) / backend.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
