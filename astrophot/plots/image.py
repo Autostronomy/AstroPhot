@@ -350,6 +350,7 @@ def residual_image(
                 showcbar=showcbar,
                 clb_label=clb_label,
                 normalize_residuals=normalize_residuals,
+                scaling=scaling,
                 **kwargs,
             )
         return fig, ax
