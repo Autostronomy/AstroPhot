@@ -71,8 +71,8 @@ def lm_step(
     likelihood="gaussian",
 ):
     L0 = L
-    M0 = model(x)  # (M,)
-    J = jacobian(x)  # (M, N)
+    M0 = model(x).detach()  # (M,) # fixme detach to backend
+    J = jacobian(x).detach()  # (M, N)
 
     if likelihood == "gaussian":
         nll0 = nll(data, M0, weight).item()  # torch.sum(weight * R**2).item() / ndf
@@ -84,6 +84,8 @@ def lm_step(
         hess = hessian_poisson(J, data, M0)  # (N, N)
     else:
         raise ValueError(f"Unsupported likelihood: {likelihood}")
+
+    del J
 
     if backend.allclose(grad, backend.zeros_like(grad)):
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
