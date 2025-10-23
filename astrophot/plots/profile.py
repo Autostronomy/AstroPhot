@@ -9,7 +9,6 @@ from .. import config
 from ..backend_obj import backend
 from ..models import Model
 
-# from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
