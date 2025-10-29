@@ -53,7 +53,7 @@ class MiniFit(BaseOptimizer):
         target_area = self.model.target[self.model.window]
         while True:
             small_target = target_area.reduce(self.downsample_factor)
-            if np.prod(small_target.shape) < self.max_pixels:
+            if np.prod(small_target._data.shape) < self.max_pixels:
                 break
             self.downsample_factor += 1
 

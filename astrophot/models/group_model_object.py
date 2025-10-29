@@ -110,7 +110,7 @@ class GroupModel(Model):
             config.logger.info(f"Initializing model {model.name}")
             model.initialize()
 
-    def fit_mask(self) -> torch.Tensor:
+    def _fit_mask(self) -> torch.Tensor:
         """Returns a mask for the target image which is the combination of all
         the fit masks of the sub models. This mask is used when the multiple
         models in the group model do not completely overlap with each other, thus
@@ -120,10 +120,10 @@ class GroupModel(Model):
         """
         subtarget = self.target[self.window]
         if isinstance(subtarget, ImageList):
-            mask = list(backend.ones_like(submask) for submask in subtarget.mask)
+            mask = list(backend.ones_like(submask) for submask in subtarget._mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
-                model_fit_mask = model.fit_mask()
+                model_fit_mask = model._fit_mask()
                 if isinstance(model_subtarget, ImageList):
                     for target, submask in zip(model_subtarget, model_fit_mask):
                         index = subtarget.index(target)
@@ -141,13 +141,19 @@ class GroupModel(Model):
                     )
             mask = tuple(mask)
         else:
-            mask = backend.ones_like(subtarget.mask)
+            mask = backend.ones_like(subtarget._mask)
             for model in self.models:
                 model_subtarget = model.target[model.window]
                 group_indices = subtarget.get_indices(model.window)
                 model_indices = model_subtarget.get_indices(subtarget.window)
-                mask = backend.and_at_indices(mask, group_indices, model.fit_mask()[model_indices])
+                mask = backend.and_at_indices(mask, group_indices, model._fit_mask()[model_indices])
         return mask
+
+    def fit_mask(self) -> torch.Tensor:
+        mask = self._fit_mask()
+        if isinstance(mask, tuple):
+            return tuple(backend.transpose(m, 1, 0) for m in mask)
+        return backend.transpose(mask, 1, 0)
 
     def match_window(self, image: Union[Image, ImageList], window: Window, model: Model) -> Window:
         if isinstance(image, ImageList) and isinstance(model.target, ImageList):
@@ -189,7 +195,7 @@ class GroupModel(Model):
                 self._ensure_vmap_compatible(image, img)
             return
         if image.identity == other.identity:
-            image += backend.zeros_like(other.data[0, 0])
+            image += backend.zeros_like(other._data[0, 0])
 
     @forward
     def sample(

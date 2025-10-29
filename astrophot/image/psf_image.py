@@ -23,18 +23,18 @@ class PSFImage(DataMixin, Image):
     def __init__(self, *args, **kwargs):
         kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
         super().__init__(*args, **kwargs)
-        self.crpix = (np.array(self.data.shape, dtype=np.float64) - 1.0) / 2
+        self.crpix = (np.array(self._data.shape[:2], dtype=np.float64) - 1.0) / 2
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
-        norm = backend.sum(self.data)
-        self._data = self.data / norm
+        norm = backend.sum(self._data)
+        self._data = self._data / norm
         if self.has_weight:
             self._weight = self.weight * norm**2
 
     @property
     def psf_pad(self) -> int:
-        return max(self.data.shape) // 2
+        return max(self._data.shape[:2]) // 2
 
     def jacobian_image(
         self,
@@ -50,7 +50,7 @@ class PSFImage(DataMixin, Image):
             parameters = []
         elif data is None:
             data = backend.zeros(
-                (*self.data.shape, len(parameters)),
+                (*self._data.shape, len(parameters)),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
             )
@@ -63,14 +63,14 @@ class PSFImage(DataMixin, Image):
             "identity": self.identity,
             **kwargs,
         }
-        return JacobianImage(parameters=parameters, data=data, **kwargs)
+        return JacobianImage(parameters=parameters, _data=data, **kwargs)
 
     def model_image(self, **kwargs) -> "PSFImage":
         """
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
         kwargs = {
-            "data": backend.zeros_like(self.data),
+            "_data": backend.zeros_like(self._data),
             "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,

@@ -72,7 +72,7 @@ def sersic_model():
     [
         (ap.fit.LM, {}),
         (ap.fit.LMfast, {}),
-        (ap.fit.IterParam, {"chunks": 3, "method": "sequential", "verbose": 2}),
+        (ap.fit.IterParam, {"chunks": 3, "chunk_order": "sequential", "verbose": 2}),
         (ap.fit.Grad, {}),
         (ap.fit.ScipyFit, {}),
         (ap.fit.MHMCMC, {}),
@@ -167,7 +167,7 @@ def test_gradient(sersic_model):
         pytest.skip("JAX backend does not support backward function")
     model = sersic_model
     target = model.target
-    target.weight = 1 / (10 + target.variance.T)
+    target.weight = 1 / (10 + target.variance)
     model.initialize()
     x = model.build_params_array()
     grad = model.gradient()

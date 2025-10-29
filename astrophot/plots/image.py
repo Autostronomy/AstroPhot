@@ -48,9 +48,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
     if window is None:
         window = target.window
     target_area = target[window]
-    dat = np.copy(backend.to_numpy(target_area.data))
+    dat = np.copy(backend.to_numpy(target_area._data))
     if target_area.has_mask:
-        dat[backend.to_numpy(target_area.mask)] = np.nan
+        dat[backend.to_numpy(target_area._mask)] = np.nan
     X, Y = target_area.coordinate_corner_meshgrid()
     X = backend.to_numpy(X)
     Y = backend.to_numpy(Y)
@@ -134,7 +134,7 @@ def psf_image(
     x, y = psf.coordinate_corner_meshgrid()
     x = backend.to_numpy(x)
     y = backend.to_numpy(y)
-    psf = backend.to_numpy(psf.data)
+    psf = backend.to_numpy(psf._data)
 
     # Default kwargs for image
     kwargs = {
@@ -240,7 +240,7 @@ def model_image(
     X, Y = sample_image.coordinate_corner_meshgrid()
     X = backend.to_numpy(X)
     Y = backend.to_numpy(Y)
-    sample_image = backend.to_numpy(sample_image.data)
+    sample_image = backend.to_numpy(sample_image._data)
 
     # Default kwargs for image
     kwargs = {
@@ -270,7 +270,7 @@ def model_image(
 
     # Apply the mask if available
     if target_mask and target.has_mask:
-        sample_image[backend.to_numpy(target.mask)] = np.nan
+        sample_image[backend.to_numpy(target._mask)] = np.nan
 
     # Plot the image
     im = ax.pcolormesh(X, Y, sample_image, **kwargs)
@@ -360,7 +360,7 @@ def residual_image(
     X, Y = sample_image.coordinate_corner_meshgrid()
     X = backend.to_numpy(X)
     Y = backend.to_numpy(Y)
-    residuals = (target - sample_image).data
+    residuals = (target - sample_image)._data
 
     if normalize_residuals is True:
         residuals = residuals / backend.sqrt(target.variance)
@@ -369,7 +369,7 @@ def residual_image(
         normalize_residuals = True
     residuals = backend.to_numpy(residuals)
     if target.has_mask:
-        residuals[backend.to_numpy(target.mask)] = np.nan
+        residuals[backend.to_numpy(target._mask)] = np.nan
 
     if scaling == "clip":
         if normalize_residuals is not True:

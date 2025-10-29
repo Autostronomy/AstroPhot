@@ -64,7 +64,7 @@ def make_basic_sersic(
         sampling_mode="quad:5",
     )
 
-    img = ap.backend.to_numpy(MODEL().data.T)
+    img = ap.backend.to_numpy(MODEL().data)
     target.data = (
         img
         + np.random.normal(scale=0.5, size=img.shape)
@@ -104,7 +104,7 @@ def make_basic_gaussian(
         q=0.99,
     )
 
-    img = ap.backend.to_numpy(MODEL().data.T)
+    img = ap.backend.to_numpy(MODEL().data)
     target.data = (
         img
         + np.random.normal(scale=0.1, size=img.shape)

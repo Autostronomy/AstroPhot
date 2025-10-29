@@ -62,8 +62,8 @@ class SIPModelImage(SIPMixin, ModelImage):
         if scale == 1:
             return self
 
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
+        MS = self._data.shape[0] // scale
+        NS = self._data.shape[1] // scale
 
         kwargs = {
             "pixel_area_map": (
@@ -96,7 +96,7 @@ class SIPModelImage(SIPMixin, ModelImage):
         )
 
     def fluxdensity_to_flux(self):
-        self._data = self.data * self.pixel_area_map
+        self._data = self._data * self.pixel_area_map
 
 
 class SIPTargetImage(SIPMixin, TargetImage):
@@ -147,7 +147,10 @@ class SIPTargetImage(SIPMixin, TargetImage):
             "distortion_ij": new_distortion_ij,
             "distortion_IJ": new_distortion_IJ,
             "_data": backend.zeros(
-                (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
+                (
+                    self._data.shape[0] * upsample + 2 * pad,
+                    self._data.shape[1] * upsample + 2 * pad,
+                ),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
             ),

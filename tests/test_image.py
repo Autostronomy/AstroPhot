@@ -31,7 +31,7 @@ def test_image_creation(base_image):
     sliced_image = base_image[slicer]
     assert sliced_image.crpix[0] == -7, "crpix of subimage should give relative position"
     assert sliced_image.crpix[1] == -4, "crpix of subimage should give relative position"
-    assert sliced_image.shape == (6, 3), "sliced image should have correct shape"
+    assert sliced_image._data.shape == (6, 3), "sliced image should have correct shape"
 
 
 def test_copy(base_image):
@@ -44,7 +44,7 @@ def test_copy(base_image):
         base_image.window.extent == copy_image.window.extent
     ), "copied image should have same window"
     copy_image += 1
-    assert base_image.data[0][0] == 0.0, "copied image should not share data with original"
+    assert base_image._data[0][0] == 0.0, "copied image should not share data with original"
 
     blank_copy_image = base_image.blank_copy()
     assert (
@@ -57,7 +57,7 @@ def test_copy(base_image):
         base_image.window.extent == blank_copy_image.window.extent
     ), "copied image should have same window"
     blank_copy_image += 1
-    assert base_image.data[0][0] == 0.0, "copied image should not share data with original"
+    assert base_image._data[0][0] == 0.0, "copied image should not share data with original"
 
 
 def test_image_arithmetic(base_image):
@@ -65,8 +65,8 @@ def test_image_arithmetic(base_image):
     sliced_image = base_image[slicer]
     sliced_image += 1
 
-    assert base_image.data[1][8] == 0, "slice should not update base image"
-    assert base_image.data[5][5] == 0, "slice should not update base image"
+    assert base_image._data[1][8] == 0, "slice should not update base image"
+    assert base_image._data[5][5] == 0, "slice should not update base image"
 
     second_image = ap.Image(
         data=np.ones((5, 5)),
@@ -77,10 +77,10 @@ def test_image_arithmetic(base_image):
 
     # Test iadd
     base_image += second_image
-    assert base_image.data[0][0] == 0, "image addition should only update its region"
-    assert base_image.data[3][3] == 1, "image addition should update its region"
-    assert base_image.data[3][4] == 0, "image addition should only update its region"
-    assert base_image.data[5][3] == 1, "image addition should update its region"
+    assert base_image._data[0][0] == 0, "image addition should only update its region"
+    assert base_image._data[3][3] == 1, "image addition should update its region"
+    assert base_image._data[3][4] == 0, "image addition should only update its region"
+    assert base_image._data[5][3] == 1, "image addition should update its region"
 
     # Test isubtract
     base_image -= second_image
@@ -100,19 +100,19 @@ def test_image_manipulation():
     for scale in [2, 4, 8, 16]:
         reduced_image = new_image.reduce(scale)
 
-        assert reduced_image.data[0][0] == scale**2, "reduced image should sum sub pixels"
+        assert reduced_image._data[0][0] == scale**2, "reduced image should sum sub pixels"
         assert reduced_image.pixelscale == scale, "pixelscale should increase with reduced image"
 
     # image cropping
     crop_image = new_image.crop([1])
-    assert crop_image.shape[1] == 14, "crop should cut 1 pixel from both sides here"
+    assert crop_image._data.shape[1] == 14, "crop should cut 1 pixel from both sides here"
     crop_image = new_image.crop([3, 2])
     assert (
-        crop_image.data.shape[0] == 26
+        crop_image._data.shape[0] == 26
     ), "crop should have cut 3 pixels from both sides of this axis"
     crop_image = new_image.crop([3, 2, 1, 0])
     assert (
-        crop_image.data.shape[0] == 27
+        crop_image._data.shape[0] == 27
     ), "crop should have cut 3 pixels from left, 2 from right, 1 from top, and 0 from bottom"
 
 
@@ -207,8 +207,8 @@ def test_target_image_mask():
     assert new_image.has_mask, "target image should store mask"
 
     reduced_image = new_image.reduce(2)
-    assert reduced_image.mask[0][0] == 1, "reduced image should mask appropriately"
-    assert reduced_image.mask[1][0] == 0, "reduced image should mask appropriately"
+    assert reduced_image._mask[0][0] == 1, "reduced image should mask appropriately"
+    assert reduced_image._mask[1][0] == 0, "reduced image should mask appropriately"
 
     new_image.mask = None
     assert not new_image.has_mask, "target image update to no mask"
@@ -223,8 +223,8 @@ def test_target_image_mask():
         zeropoint=1.0,
     )
     assert new_image.has_mask, "target image with nans should create mask"
-    assert new_image.mask[1][1].item() == True, "nan should be masked"
-    assert new_image.mask[5][5].item() == True, "nan should be masked"
+    assert new_image._mask[1][1].item() == True, "nan should be masked"
+    assert new_image._mask[5][5].item() == True, "nan should be masked"
 
 
 def test_target_image_psf():
@@ -238,7 +238,7 @@ def test_target_image_psf():
     assert new_image.psf.psf_pad == 4, "psf border should be half psf size"
 
     reduced_image = new_image.reduce(3)
-    assert reduced_image.psf.data[0][0] == 9, "reduced image should sum sub pixels in psf"
+    assert reduced_image.psf._data[0][0] == 9, "reduced image should sum sub pixels in psf"
 
     new_image.psf = None
     assert not new_image.has_psf, "target image update to no variance"
@@ -253,8 +253,8 @@ def test_target_image_reduce():
         zeropoint=1.0,
     )
     smaller_image = new_image.reduce(3)
-    assert smaller_image.data[0][0] == 9, "reduction should sum flux"
-    assert tuple(smaller_image.data.shape) == (12, 10), "reduction should decrease image size"
+    assert smaller_image._data[0][0] == 9, "reduction should sum flux"
+    assert tuple(smaller_image._data.shape) == (12, 10), "reduction should decrease image size"
 
 
 def test_target_image_save_load():
@@ -317,7 +317,7 @@ def test_psf_image_copying():
     assert psf_image.psf_pad == 7, "psf image should have correct psf_pad"
     psf_image.normalize()
     assert np.allclose(
-        ap.backend.to_numpy(psf_image.data), 1 / 15**2
+        ap.backend.to_numpy(psf_image._data), 1 / 15**2
     ), "psf image should normalize to sum to 1"
 
 
@@ -333,7 +333,7 @@ def test_jacobian_add():
 
     new_image += other_image
 
-    assert tuple(new_image.data.shape) == (
+    assert tuple(new_image._data.shape) == (
         32,
         16,
         3,
@@ -342,8 +342,8 @@ def test_jacobian_add():
         512,
         3,
     ), "Jacobian should flatten to Npix*Nparams tensor"
-    assert new_image.data[0, 0, 0].item() == 1, "Jacobian addition should not change original data"
-    assert new_image.data[0, 0, 1].item() == 6, " Jacobian addition should add correctly"
+    assert new_image._data[0, 0, 0].item() == 1, "Jacobian addition should not change original data"
+    assert new_image._data[0, 0, 1].item() == 6, " Jacobian addition should add correctly"
 
 
 def test_image_with_wcs():
@@ -352,8 +352,8 @@ def test_image_with_wcs():
         data=np.ones((170, 180)),
         wcs=WCS,
     )
-    assert image.shape[0] == WCS.pixel_shape[0], "Image should have correct shape from WCS"
-    assert image.shape[1] == WCS.pixel_shape[1], "Image should have correct shape from WCS"
+    assert image._data.shape[0] == WCS.pixel_shape[0], "Image should have correct shape from WCS"
+    assert image._data.shape[1] == WCS.pixel_shape[1], "Image should have correct shape from WCS"
     assert np.allclose(
         image.CD.value * ap.utils.conversions.units.arcsec_to_deg, WCS.pixel_scale_matrix
     ), "Image should have correct CD from WCS"

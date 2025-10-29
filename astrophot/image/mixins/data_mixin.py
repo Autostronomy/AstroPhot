@@ -59,8 +59,8 @@ class DataMixin:
             self.weight = weight
 
         # Set nan pixels to be masked automatically
-        if backend.any(backend.isnan(self.data)).item():
-            self._mask = self.mask | backend.isnan(self.data)
+        if backend.any(backend.isnan(self._data)).item():
+            self._mask = self.mask | backend.isnan(self._data)
 
     @property
     def std(self):
@@ -114,8 +114,14 @@ class DataMixin:
 
         """
         if self.has_variance:
-            return backend.where(self._weight == 0, backend.inf, 1 / self._weight)
+            return backend.where(self.weight == 0, backend.inf, 1 / self.weight)
         return backend.ones_like(self.data)
+
+    @property
+    def _variance(self):
+        if self.has_variance:
+            return backend.where(self._weight == 0, backend.inf, 1 / self._weight)
+        return backend.ones_like(self._data)
 
     @variance.setter
     def variance(self, variance):
@@ -166,7 +172,7 @@ class DataMixin:
 
         """
         if self.has_weight:
-            return self._weight
+            return backend.transpose(self._weight, 1, 0)
         return backend.ones_like(self.data)
 
     @weight.setter
@@ -175,11 +181,11 @@ class DataMixin:
             self._weight = None
             return
         if isinstance(weight, str) and weight == "auto":
-            weight = 1 / auto_variance(self.data, self.mask).T
+            weight = 1 / auto_variance(self.data, self.mask)
         self._weight = backend.transpose(
             backend.as_array(weight, dtype=config.DTYPE, device=config.DEVICE), 1, 0
         )
-        if self._weight.shape != self.data.shape:
+        if self._weight.shape != self._data.shape:
             self._weight = None
             raise SpecificationConflict(
                 f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
@@ -214,7 +220,7 @@ class DataMixin:
 
         """
         if self.has_mask:
-            return self._mask
+            return backend.transpose(self._mask, 1, 0)
         return backend.zeros_like(self.data, dtype=backend.bool)
 
     @mask.setter
@@ -225,7 +231,7 @@ class DataMixin:
         self._mask = backend.transpose(
             backend.as_array(mask, dtype=backend.bool, device=config.DEVICE), 1, 0
         )
-        if self._mask.shape != self.data.shape:
+        if self._mask.shape != self._data.shape:
             self._mask = None
             raise SpecificationConflict(
                 f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
@@ -282,13 +288,11 @@ class DataMixin:
     def fits_images(self):
         images = super().fits_images()
         if self.has_weight:
-            images.append(
-                fits.ImageHDU(backend.to_numpy(backend.transpose(self.weight, 1, 0)), name="WEIGHT")
-            )
+            images.append(fits.ImageHDU(backend.to_numpy(self.weight), name="WEIGHT"))
         if self.has_mask:
             images.append(
                 fits.ImageHDU(
-                    backend.to_numpy(backend.transpose(self.mask, 1, 0)).astype(int),
+                    backend.to_numpy(self.mask).astype(int),
                     name="MASK",
                 )
             )
@@ -319,15 +323,15 @@ class DataMixin:
         across and the pixelscale will be 3.
 
         """
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
+        MS = self._data.shape[0] // scale
+        NS = self._data.shape[1] // scale
 
         return super().reduce(
             scale=scale,
             _weight=(
                 1
                 / backend.sum(
-                    self.variance[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale),
+                    self._variance[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale),
                     dim=(1, 3),
                 )
                 if self.has_variance
@@ -335,7 +339,7 @@ class DataMixin:
             ),
             _mask=(
                 backend.max(
-                    self.mask[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale), dim=(1, 3)
+                    self._mask[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale), dim=(1, 3)
                 )
                 if self.has_mask
                 else None

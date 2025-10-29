@@ -50,9 +50,9 @@ class InclinedMixin:
         if self.PA.initialized and self.q.initialized:
             return
         target_area = self.target[self.window]
-        dat = backend.to_numpy(backend.copy(target_area.data))
+        dat = backend.to_numpy(backend.copy(target_area._data))
         if target_area.has_mask:
-            mask = backend.to_numpy(backend.copy(target_area.mask))
+            mask = backend.to_numpy(backend.copy(target_area._mask))
             dat[mask] = np.median(dat[~mask])
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)

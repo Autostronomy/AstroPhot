@@ -14,7 +14,7 @@ from ..image import (
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
-from ..backend_obj import backend, ArrayLike
+from ..backend_obj import backend
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
@@ -126,9 +126,9 @@ class ComponentModel(SampleMixin, Model):
             return
 
         target_area = self.target[self.window]
-        dat = np.copy(backend.to_numpy(target_area.data))
+        dat = np.copy(backend.to_numpy(target_area._data))
         if target_area.has_mask:
-            mask = backend.to_numpy(target_area.mask)
+            mask = backend.to_numpy(target_area._mask)
             dat[mask] = np.nanmedian(dat[~mask])
 
         COM = recursive_center_of_mass(dat)
@@ -141,6 +141,9 @@ class ComponentModel(SampleMixin, Model):
 
     def fit_mask(self):
         return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
+
+    def _fit_mask(self):
+        return backend.zeros_like(self.target[self.window]._mask, dtype=backend.bool)
 
     @forward
     def transform_coordinates(self, x, y, center):
@@ -182,7 +185,7 @@ class ComponentModel(SampleMixin, Model):
                 upsample=self.psf_upscale, pad=psf.psf_pad
             )
             sample = self.sample_image(working_image)
-            working_image._data = func.convolve(sample, psf.data)
+            working_image._data = func.convolve(sample, psf._data)
             working_image = working_image.crop(psf.psf_pad).reduce(self.psf_upscale)
 
         else:
