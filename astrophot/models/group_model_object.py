@@ -1,6 +1,7 @@
 from typing import Optional, Sequence, Union
 
 import torch
+import numpy as np
 from caskade import forward
 
 from .base import Model
@@ -17,7 +18,7 @@ from ..image import (
     JacobianImageList,
 )
 from .. import config
-from ..backend_obj import backend
+from ..backend_obj import backend, ArrayLike
 from ..utils.decorators import ignore_numpy_warnings
 from ..errors import InvalidTarget, InvalidWindow
 
@@ -321,3 +322,68 @@ class GroupModel(Model):
             self._window = Window(window, image=self.target)
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
+
+    def segmentation_map(self) -> ArrayLike:
+        """Generate a segmentation map for this group model. Each pixel in the
+        segmentation map is assigned an integer value corresponding to the index
+        of the sub-model that corresponds to that pixel. The pixels are assigned
+        based on "relative importance", meaning that for each pixel, the
+        sub-model which contributes the largest fraction of its own total flux to that
+        pixel is assigned to it.
+
+        Returns:
+            ArrayLike: Segmentation map with the same shape as the target image as windowed by the group model window.
+
+        """
+        subtarget = self.target[self.window]
+        if isinstance(subtarget, ImageList):
+            raise NotImplementedError(
+                "Segmentation maps are not currently supported for ImageList targets. Please apply one target at a time."
+            )
+        else:
+            seg_map = backend.zeros_like(subtarget.data, dtype=backend.int32) - 1
+            max_flux_frac = 0.0 * backend.ones_like(subtarget.data) / np.prod(subtarget.data.shape)
+            for idx, model in enumerate(self.models):
+                model_image = model()
+                model_flux_frac = backend.abs(model_image.data) / backend.sum(
+                    backend.abs(model_image.data)
+                )
+                indices = subtarget.get_indices(model.window)
+                model_flux_frac_full = backend.zeros_like(subtarget.data)
+                model_flux_frac_full = backend.fill_at_indices(
+                    model_flux_frac_full, indices, model_flux_frac
+                )
+                update_mask = model_flux_frac_full >= max_flux_frac
+                seg_map = backend.where(update_mask, idx, seg_map)
+                max_flux_frac = backend.where(update_mask, model_flux_frac_full, max_flux_frac)
+            return seg_map
+
+    def deblend(self) -> Sequence[TargetImage]:
+        """Generate deblended images for each sub-model in this group model.
+        Each deblended image contains for each pixel, the fraction of the total
+        flux at that pixel which is contributed by that sub-model.
+
+        Returns:
+            Sequence[TargetImage]: List of deblended TargetImage objects for each sub-model.
+
+        """
+        deblended_images = []
+        subtarget = self.target[self.window]
+        full_model = self()
+        if isinstance(subtarget, ImageList):
+            raise NotImplementedError(
+                "Deblending is not currently supported for ImageList targets. Please apply one target at a time."
+            )
+        else:
+            for model in self.models:
+                model_image = model()
+                subfull_model = full_model[model.window]
+                subsubtarget = subtarget[model.window].copy(
+                    name=f"deblend_{model.name}_{subtarget.name}"
+                )
+                deblend_data = subsubtarget.data * model_image.data / subfull_model.data
+                deblend_variance = subsubtarget.variance * model_image.data / subfull_model.data
+                subsubtarget.data = deblend_data.T
+                subsubtarget.variance = deblend_variance.T
+                deblended_images.append(subsubtarget)
+        return deblended_images
