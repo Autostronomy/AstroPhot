@@ -381,9 +381,9 @@ class GroupModel(Model):
                 subsubtarget = subtarget[model.window].copy(
                     name=f"deblend_{model.name}_{subtarget.name}"
                 )
-                deblend_data = subsubtarget._data * model_image._data / subfull_model._data
-                deblend_variance = subsubtarget.variance * model_image._data / subfull_model._data
-                subsubtarget._data = deblend_data
+                deblend_data = subsubtarget.data * model_image.data / subfull_model.data
+                deblend_variance = subsubtarget.variance * model_image.data / subfull_model.data
+                subsubtarget.data = deblend_data.T
                 subsubtarget.variance = deblend_variance.T
                 deblended_images.append(subsubtarget)
         return deblended_images
