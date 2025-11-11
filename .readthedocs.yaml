@@ -25,6 +25,7 @@ build:
     - pandoc # Specify pandoc to be installed via apt-get
     - graphviz
     - nodejs
+    - npm
   jobs:
     pre_build:
       # Build docstring jupyter notebooks
