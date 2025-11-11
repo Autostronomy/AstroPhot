@@ -21,7 +21,6 @@ build:
   os: "ubuntu-20.04"
   tools:
     python: "3.12"
-    nodejs: "20"
   apt_packages:
     - pandoc # Specify pandoc to be installed via apt-get
     - graphviz
