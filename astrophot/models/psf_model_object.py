@@ -1,6 +1,4 @@
 from typing import Optional, Tuple
-import torch
-from torch import Tensor
 from caskade import forward
 
 from .base import Model
