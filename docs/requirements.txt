@@ -3,7 +3,7 @@ emcee
 graphviz
 ipywidgets
 jax
-jupyter-book
+jupyter-book<2.0
 matplotlib
 nbformat
 nbsphinx

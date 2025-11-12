@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from torch import Tensor
 
 from .model_object import ComponentModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
