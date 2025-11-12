@@ -125,10 +125,10 @@ def radial_median_profile(
         R = backend.to_numpy(R)
 
     dat = backend.to_numpy(image._data)
-    if image.has_mask:  # remove masked pixels
-        mask = backend.to_numpy(image._mask)
-        dat = dat[~mask]
-        R = R[~mask]
+    # remove masked pixels
+    mask = backend.to_numpy(image._mask)
+    dat = dat[~mask]
+    R = R[~mask]
 
     count, bins, binnum = binned_statistic(
         R.ravel(),

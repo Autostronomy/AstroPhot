@@ -61,9 +61,8 @@ class Iter(BaseOptimizer):
         self.ndf = self.model.target[self.model.window].flatten("data").shape[0] - len(
             self.current_state
         )
-        if self.model.target.has_mask:
-            # subtract masked pixels from degrees of freedom
-            self.ndf -= backend.sum(self.model.target[self.model.window].flatten("mask")).item()
+        # subtract masked pixels from degrees of freedom
+        self.ndf -= backend.sum(self.model.target[self.model.window].flatten("mask")).item()
 
     def sub_step(self, model: Model, update_uncertainty=False):
         """
@@ -99,16 +98,9 @@ class Iter(BaseOptimizer):
                 config.logger.info("Update Chi^2 with new parameters")
             self.Y = self.model(params=self.current_state)
             D = self.model.target[self.model.window].flatten("data")
-            V = (
-                self.model.target[self.model.window].flatten("variance")
-                if self.model.target.has_variance
-                else 1.0
-            )
-            if self.model.target.has_mask:
-                M = self.model.target[self.model.window].flatten("mask")
-                loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
-            else:
-                loss = backend.sum(((D - self.Y.flatten("data")) ** 2 / V)) / self.ndf
+            V = self.model.target[self.model.window].flatten("variance")
+            M = self.model.target[self.model.window].flatten("mask")
+            loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
         if self.verbose > 0:
             config.logger.info(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy(backend.to_numpy(self.current_state)))
@@ -229,18 +221,12 @@ class IterParam(BaseOptimizer):
         if backend.sum(fit_mask).item() == 0:
             fit_mask = None
 
-        if model.target.has_mask:
-            mask = self.model.target[self.fit_window].flatten("mask")
-            if fit_mask is not None:
-                mask = mask | fit_mask
-            self.mask = ~mask
-        elif fit_mask is not None:
-            self.mask = ~fit_mask
-        else:
-            self.mask = backend.ones_like(
-                self.model.target[self.fit_window].flatten("data"), dtype=backend.bool
-            )
-        if self.mask is not None and backend.sum(self.mask).item() == 0:
+        mask = self.model.target[self.fit_window].flatten("mask")
+        if fit_mask is not None:
+            mask = mask | fit_mask
+        self.mask = ~mask
+
+        if backend.sum(self.mask).item() == 0:
             raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
@@ -252,10 +238,7 @@ class IterParam(BaseOptimizer):
             self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
-        elif model.target.has_weight:
-            self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
-        else:
-            self.W = backend.ones_like(self.Y)
+        self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
 
         # The forward model which computes the output image given input parameters
         self.full_forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[

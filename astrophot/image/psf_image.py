@@ -29,8 +29,7 @@ class PSFImage(DataMixin, Image):
         """Normalizes the PSF image to have a sum of 1."""
         norm = backend.sum(self._data)
         self._data = self._data / norm
-        if self.has_weight:
-            self._weight = self.weight * norm**2
+        self._weight = self.weight * norm**2
 
     @property
     def psf_pad(self) -> int:

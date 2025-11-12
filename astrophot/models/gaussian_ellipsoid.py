@@ -76,12 +76,13 @@ class GaussianEllipsoid(ComponentModel):
 
         target_area = self.target[self.window]
         dat = backend.to_numpy(target_area._data).copy()
-        if target_area.has_mask:
-            mask = backend.to_numpy(target_area._mask).copy()
-            dat[mask] = np.median(dat[~mask])
+        mask = backend.to_numpy(target_area._mask).copy()
+        dat[mask] = np.median(dat[~mask])
+
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)
         dat -= edge_average
+
         x, y = target_area.coordinate_center_meshgrid()
         center = self.center.value
         x = x - center[0]

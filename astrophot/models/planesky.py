@@ -39,9 +39,8 @@ class PlaneSky(SkyModel):
 
         if not self.I0.initialized:
             dat = backend.to_numpy(self.target[self.window]._data).copy()
-            if self.target[self.window].has_mask:
-                mask = backend.to_numpy(self.target[self.window]._mask)
-                dat[mask] = np.median(dat[~mask])
+            mask = backend.to_numpy(self.target[self.window]._mask)
+            dat[mask] = np.median(dat[~mask])
             self.I0.dynamic_value = np.median(dat) / self.target.pixel_area.item()
         if not self.delta.initialized:
             self.delta.dynamic_value = [0.0, 0.0]

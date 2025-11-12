@@ -49,8 +49,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
         window = target.window
     target_area = target[window]
     dat = np.copy(backend.to_numpy(target_area._data))
-    if target_area.has_mask:
-        dat[backend.to_numpy(target_area._mask)] = np.nan
+    dat[backend.to_numpy(target_area._mask)] = np.nan
     X, Y = target_area.coordinate_corner_meshgrid()
     X = backend.to_numpy(X)
     Y = backend.to_numpy(Y)
@@ -269,8 +268,7 @@ def model_image(
         }
 
     # Apply the mask if available
-    if target_mask and target.has_mask:
-        sample_image[backend.to_numpy(target._mask)] = np.nan
+    sample_image[backend.to_numpy(target._mask)] = np.nan
 
     # Plot the image
     im = ax.pcolormesh(X, Y, sample_image, **kwargs)
@@ -368,8 +366,7 @@ def residual_image(
         residuals = residuals / backend.sqrt(normalize_residuals)
         normalize_residuals = True
     residuals = backend.to_numpy(residuals)
-    if target.has_mask:
-        residuals[backend.to_numpy(target._mask)] = np.nan
+    residuals[backend.to_numpy(target._mask)] = np.nan
 
     if scaling == "clip":
         if normalize_residuals is not True:

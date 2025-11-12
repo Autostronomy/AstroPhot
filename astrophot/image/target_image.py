@@ -277,10 +277,6 @@ class TargetImageList(ImageList):
             image.variance = var
 
     @property
-    def has_variance(self):
-        return any(image.has_variance for image in self.images)
-
-    @property
     def weight(self):
         return tuple(image.weight for image in self.images)
 
@@ -292,10 +288,6 @@ class TargetImageList(ImageList):
     def weight(self, weight):
         for image, wgt in zip(self.images, weight):
             image.weight = wgt
-
-    @property
-    def has_weight(self):
-        return any(image.has_weight for image in self.images)
 
     def jacobian_image(
         self, parameters: List[str], data: Optional[List[ArrayLike]] = None
@@ -321,10 +313,6 @@ class TargetImageList(ImageList):
     def mask(self, mask):
         for image, M in zip(self.images, mask):
             image.mask = M
-
-    @property
-    def has_mask(self) -> bool:
-        return any(image.has_mask for image in self.images)
 
     @property
     def psf(self):

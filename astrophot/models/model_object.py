@@ -127,9 +127,8 @@ class ComponentModel(SampleMixin, Model):
 
         target_area = self.target[self.window]
         dat = np.copy(backend.to_numpy(target_area._data))
-        if target_area.has_mask:
-            mask = backend.to_numpy(target_area._mask)
-            dat[mask] = np.nanmedian(dat[~mask])
+        mask = backend.to_numpy(target_area._mask)
+        dat[mask] = np.nanmedian(dat[~mask])
 
         COM = recursive_center_of_mass(dat)
         if not np.all(np.isfinite(COM)):
