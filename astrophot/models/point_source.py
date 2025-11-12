@@ -12,6 +12,7 @@ from ..image import Window, PSFImage
 from ..errors import SpecificationConflict
 from ..param import forward
 from ..backend_obj import backend, ArrayLike
+from . import func
 
 __all__ = ("PointSource",)
 
@@ -120,13 +121,11 @@ class PointSource(ComponentModel):
         # Make the image object to which the samples will be tracked
         working_image = self.target[window].model_image(upsample=self.psf_upscale)
 
-        i, j = working_image.pixel_center_meshgrid()
+        i, j, w = working_image.pixel_quad_meshgrid()
         i0, j0 = working_image.plane_to_pixel(*center)
-        working_image.data = interp2d(
-            psf, i - i0 + (psf.shape[0] // 2), j - j0 + (psf.shape[1] // 2)
-        )
+        z = interp2d(psf, i - i0 + (psf.shape[0] // 2), j - j0 + (psf.shape[1] // 2))
 
-        working_image.data = flux * working_image.data
+        working_image._data = flux * func.pixel_quad_integrator(z, w)
 
         working_image = working_image.reduce(self.psf_upscale)
 

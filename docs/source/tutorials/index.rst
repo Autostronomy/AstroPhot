@@ -19,6 +19,7 @@ version of each tutorial is available here.
     ImageAlignment
     PoissonLikelihood
     CustomModels
+    FunctionalInterface
     GravitationalLensing
     AdvancedPSFModels
     ImageTypes
