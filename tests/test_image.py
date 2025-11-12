@@ -183,18 +183,18 @@ def test_image_wcs_roundtrip():
 def test_target_image_variance():
     new_image = ap.TargetImage(
         data=np.ones((16, 32)),
-        variance=np.ones((16, 32)),
+        variance=2 * np.ones((16, 32)),
         pixelscale=1.0,
         zeropoint=1.0,
     )
 
-    assert new_image.has_variance, "target image should store variance"
+    assert new_image.variance[0][0] == 2, "target image should store variance"
 
     reduced_image = new_image.reduce(2)
-    assert reduced_image.variance[0][0] == 4, "reduced image should sum sub pixels"
+    assert reduced_image.variance[0][0] == 8, "reduced image should sum sub pixels"
 
     new_image.variance = None
-    assert not new_image.has_variance, "target image update to no variance"
+    assert new_image.variance[0][0] == 1, "target image update to neutral variance"
 
 
 def test_target_image_mask():
@@ -204,14 +204,14 @@ def test_target_image_mask():
         pixelscale=1.0,
         zeropoint=1.0,
     )
-    assert new_image.has_mask, "target image should store mask"
+    assert ap.backend.sum(new_image.mask) > 0, "target image should store mask"
 
     reduced_image = new_image.reduce(2)
     assert reduced_image._mask[0][0] == 1, "reduced image should mask appropriately"
     assert reduced_image._mask[1][0] == 0, "reduced image should mask appropriately"
 
     new_image.mask = None
-    assert not new_image.has_mask, "target image update to no mask"
+    assert ap.backend.sum(new_image.mask) == 0, "target image update to no mask"
 
     data = np.ones((16, 32))
     data[1, 1] = np.nan
@@ -222,7 +222,7 @@ def test_target_image_mask():
         pixelscale=1.0,
         zeropoint=1.0,
     )
-    assert new_image.has_mask, "target image with nans should create mask"
+    assert ap.backend.sum(new_image.mask) > 0, "target image with nans should create mask"
     assert new_image._mask[1][1].item() == True, "nan should be masked"
     assert new_image._mask[5][5].item() == True, "nan should be masked"
 
@@ -241,7 +241,7 @@ def test_target_image_psf():
     assert reduced_image.psf._data[0][0] == 9, "reduced image should sum sub pixels in psf"
 
     new_image.psf = None
-    assert not new_image.has_psf, "target image update to no variance"
+    assert not new_image.has_psf, "target image update to no psf"
 
 
 def test_target_image_reduce():

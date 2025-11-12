@@ -60,7 +60,7 @@ class DataMixin:
 
         # Set nan pixels to be masked automatically
         if backend.any(backend.isnan(self._data)).item():
-            self._mask = self.mask | backend.isnan(self._data)
+            self._mask = self._mask | backend.isnan(self._data)
 
     @property
     def std(self):
@@ -159,6 +159,16 @@ class DataMixin:
             )
 
     @property
+    def _weight(self):
+        return self.__weight
+
+    @_weight.setter
+    def _weight(self, value):
+        if value is None:
+            value = backend.ones_like(self._data)
+        self.__weight = value
+
+    @property
     def mask(self):
         """The mask stores a tensor of boolean values which indicate any
         pixels to be ignored. These pixels will be skipped in
@@ -187,6 +197,16 @@ class DataMixin:
             raise SpecificationConflict(
                 f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
             )
+
+    @property
+    def _mask(self):
+        return self.__mask
+
+    @_mask.setter
+    def _mask(self, value):
+        if value is None:
+            value = backend.zeros_like(self._data, dtype=backend.bool)
+        self.__mask = value
 
     def to(self, dtype=None, device=None):
         """Converts the stored `Target_Image` data, variance, psf, etc to a

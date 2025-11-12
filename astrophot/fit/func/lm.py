@@ -71,11 +71,11 @@ def lm_step(
     likelihood="gaussian",
 ):
     L0 = L
-    M0 = model(x).detach()  # (M,) # fixme detach to backend
-    J = jacobian(x).detach()  # (M, N)
+    M0 = backend.detach(model(x))  # (M,)
+    J = backend.detach(jacobian(x))  # (M, N)
 
     if likelihood == "gaussian":
-        nll0 = nll(data, M0, weight).item()  # torch.sum(weight * R**2).item() / ndf
+        nll0 = nll(data, M0, weight).item()
         grad = gradient(J, weight, data, M0)  # (N, 1)
         hess = hessian(J, weight)  # (N, N)
     elif likelihood == "poisson":
@@ -98,7 +98,7 @@ def lm_step(
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
         if likelihood == "gaussian":
-            nll1 = nll(data, M1, weight).item()  # torch.sum(weight * (data - M1) ** 2).item() / ndf
+            nll1 = nll(data, M1, weight).item()
         elif likelihood == "poisson":
             nll1 = nll_poisson(data, M1).item()
 

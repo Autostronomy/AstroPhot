@@ -347,22 +347,24 @@ class GroupModel(Model):
                 "Segmentation maps are not currently supported for ImageList targets. Please apply one target at a time."
             )
         else:
-            seg_map = backend.zeros_like(subtarget.data, dtype=backend.int32) - 1
-            max_flux_frac = 0.0 * backend.ones_like(subtarget.data) / np.prod(subtarget.data.shape)
+            seg_map = backend.zeros_like(subtarget._data, dtype=backend.int32) - 1
+            max_flux_frac = (
+                0.0 * backend.ones_like(subtarget._data) / np.prod(subtarget._data.shape)
+            )
             for idx, model in enumerate(self.models):
                 model_image = model()
-                model_flux_frac = backend.abs(model_image.data) / backend.sum(
-                    backend.abs(model_image.data)
+                model_flux_frac = backend.abs(model_image._data) / backend.sum(
+                    backend.abs(model_image._data)
                 )
                 indices = subtarget.get_indices(model.window)
-                model_flux_frac_full = backend.zeros_like(subtarget.data)
+                model_flux_frac_full = backend.zeros_like(subtarget._data)
                 model_flux_frac_full = backend.fill_at_indices(
                     model_flux_frac_full, indices, model_flux_frac
                 )
                 update_mask = model_flux_frac_full >= max_flux_frac
                 seg_map = backend.where(update_mask, idx, seg_map)
                 max_flux_frac = backend.where(update_mask, model_flux_frac_full, max_flux_frac)
-            return seg_map
+            return seg_map.T
 
     def deblend(self) -> Sequence[TargetImage]:
         """Generate deblended images for each sub-model in this group model.
@@ -389,7 +391,7 @@ class GroupModel(Model):
                 )
                 deblend_data = subsubtarget.data * model_image.data / subfull_model.data
                 deblend_variance = subsubtarget.variance * model_image.data / subfull_model.data
-                subsubtarget.data = deblend_data.T
-                subsubtarget.variance = deblend_variance.T
+                subsubtarget.data = deblend_data
+                subsubtarget.variance = deblend_variance
                 deblended_images.append(subsubtarget)
         return deblended_images

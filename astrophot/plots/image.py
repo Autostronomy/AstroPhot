@@ -48,6 +48,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
     if window is None:
         window = target.window
     target_area = target[window]
+
     dat = np.copy(backend.to_numpy(target_area._data))
     dat[backend.to_numpy(target_area._mask)] = np.nan
     X, Y = target_area.coordinate_corner_meshgrid()
@@ -268,7 +269,7 @@ def model_image(
         }
 
     # Apply the mask if available
-    sample_image[backend.to_numpy(target._mask)] = np.nan
+    sample_image[backend.to_numpy(target[window]._mask)] = np.nan
 
     # Plot the image
     im = ax.pcolormesh(X, Y, sample_image, **kwargs)
@@ -361,7 +362,7 @@ def residual_image(
     residuals = (target - sample_image)._data
 
     if normalize_residuals is True:
-        residuals = residuals / backend.sqrt(target.variance)
+        residuals = residuals / backend.sqrt(target._variance)
     elif isinstance(normalize_residuals, backend.array_type):
         residuals = residuals / backend.sqrt(normalize_residuals)
         normalize_residuals = True

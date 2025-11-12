@@ -49,7 +49,9 @@ def test_notebook(nb_path):
     if ap.backend.backend == "jax":
         pytest.skip("Requires torch backend")
     convert_notebook_to_py(nb_path)
-    runpy.run_path(nb_path.replace(".ipynb", ".py"), run_name="__main__")
-    ck.backend.backend = "torch"
-    ap.backend.backend = "torch"
-    cleanup_py_scripts(nb_path)
+    try:
+        runpy.run_path(nb_path.replace(".ipynb", ".py"), run_name="__main__")
+    finally:
+        ck.backend.backend = "torch"
+        ap.backend.backend = "torch"
+        cleanup_py_scripts(nb_path)

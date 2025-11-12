@@ -59,9 +59,8 @@ class BilinearSky(SkyModel):
 
         target_dat = self.target[self.window]
         dat = backend.to_numpy(target_dat._data).copy()
-        if self.target.has_mask:
-            mask = backend.to_numpy(target_dat._mask).copy()
-            dat[mask] = np.nanmedian(dat)
+        mask = backend.to_numpy(target_dat._mask).copy()
+        dat[mask] = np.nanmedian(dat)
         iS = dat.shape[0] // self.nodes[0]
         jS = dat.shape[1] // self.nodes[1]
 
