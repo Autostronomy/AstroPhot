@@ -15,7 +15,7 @@ class ModelImage(Image):
     """
 
     def fluxdensity_to_flux(self):
-        self._data = self.data * self.pixel_area
+        self._data = self._data * self.pixel_area
 
 
 ######################################################################

@@ -9,7 +9,6 @@ from .. import config
 from ..backend_obj import backend
 from ..models import Model
 
-# from ..models import Warp_Galaxy
 from ..utils.conversions.units import flux_to_sb
 from .visuals import *
 
@@ -125,7 +124,12 @@ def radial_median_profile(
         R = backend.sqrt(x**2 + y**2)
         R = backend.to_numpy(R)
 
-    dat = backend.to_numpy(image.data)
+    dat = backend.to_numpy(image._data)
+    # remove masked pixels
+    mask = backend.to_numpy(image._mask)
+    dat = dat[~mask]
+    R = R[~mask]
+
     count, bins, binnum = binned_statistic(
         R.ravel(),
         dat.ravel(),

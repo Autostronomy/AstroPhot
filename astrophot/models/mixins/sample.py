@@ -113,7 +113,7 @@ class SampleMixin:
     @forward
     def sample_image(self, image: Image) -> ArrayLike:
         if self.sampling_mode == "auto":
-            N = np.prod(image.data.shape)
+            N = np.prod(image._data.shape[:2])
             if N <= 100:
                 sampling_mode = "quad:5"
             elif N <= 10000:
@@ -161,7 +161,7 @@ class SampleMixin:
         return backend.jacobian(
             lambda x: self.sample(
                 window=window, params=backend.concatenate((params_pre, x, params_post), dim=-1)
-            ).data,
+            )._data,
             params,
         )
 
@@ -228,16 +228,16 @@ class SampleMixin:
 
         jacobian_image = self.jacobian(window=window, params=params)
 
-        data = self.target[window].data
-        model = self.sample(window=window).data
+        data = self.target[window]._data
+        model = self.sample(window=window)._data
         if likelihood == "gaussian":
-            weight = self.target[window].weight
+            weight = self.target[window]._weight
             gradient = backend.sum(
-                jacobian_image.data * ((data - model) * weight)[..., None], dim=(0, 1)
+                jacobian_image._data * ((data - model) * weight)[..., None], dim=(0, 1)
             )
         elif likelihood == "poisson":
             gradient = backend.sum(
-                jacobian_image.data * (1 - data / model)[..., None],
+                jacobian_image._data * (1 - data / model)[..., None],
                 dim=(0, 1),
             )
 

@@ -73,3 +73,16 @@ class Module(CModule):
             pos += size
         if pos != uncertainty.shape[-1]:
             raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)
+
+    def dynamic_params_array_index(self, param):
+        i = 0
+        for p in self.dynamic_params:
+            if p is param:
+                return list(range(i, i + max(1, prod(p.shape))))
+            i += max(1, prod(p.shape))
+        try:
+            raise ValueError(
+                f"Param {param.name} not found in dynamic_params of Module {self.name}"
+            )
+        except:
+            raise ValueError(f"Param {param} not found in dynamic_params of Module {self.name}")

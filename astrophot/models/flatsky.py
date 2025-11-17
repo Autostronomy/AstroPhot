@@ -20,9 +20,7 @@ class FlatSky(SkyModel):
     """
 
     _model_type = "flat"
-    _parameter_specs = {
-        "I": {"units": "flux/arcsec^2"},
-    }
+    _parameter_specs = {"I": {"units": "flux/arcsec^2"}}
     usable = True
 
     @torch.no_grad()
@@ -33,7 +31,11 @@ class FlatSky(SkyModel):
         if self.I.initialized:
             return
 
-        dat = backend.to_numpy(self.target[self.window].data).copy()
+        target_area = self.target[self.window]
+        dat = backend.to_numpy(target_area._data).copy()
+        mask = backend.to_numpy(target_area._mask)
+        dat[mask] = np.median(dat[~mask])
+
         self.I.dynamic_value = np.median(dat) / self.target.pixel_area.item()
 
     @forward

@@ -34,7 +34,7 @@ def test_sip_image_creation(sip_target):
     sliced_image = sip_target[slicer]
     assert sliced_image.crpix[0] == -7, "crpix of subimage should give relative position"
     assert sliced_image.crpix[1] == -4, "crpix of subimage should give relative position"
-    assert sliced_image.shape == (6, 3), "sliced image should have correct shape"
+    assert sliced_image._data.shape == (6, 3), "sliced image should have correct shape"
     assert sliced_image.pixel_area_map.shape == (
         6,
         3,
@@ -51,7 +51,7 @@ def test_sip_image_creation(sip_target):
     ), "sliced image should have correct distortion shape"
 
     sip_model_image = sip_target.model_image(upsample=2, pad=1)
-    assert sip_model_image.shape == (32, 22), "model image should have correct shape"
+    assert sip_model_image._data.shape == (32, 22), "model image should have correct shape"
     assert sip_model_image.pixel_area_map.shape == (
         32,
         22,
@@ -71,17 +71,17 @@ def test_sip_image_creation(sip_target):
     sip_model_reduce = sip_model_image.reduce(scale=1)
     assert sip_model_reduce is sip_model_image, "reduce should return the same image if scale is 1"
     sip_model_reduce = sip_model_image.reduce(scale=2)
-    assert sip_model_reduce.shape == (16, 11), "reduced model image should have correct shape"
+    assert sip_model_reduce._data.shape == (16, 11), "reduced model image should have correct shape"
 
     # crop
     sip_model_crop = sip_model_image.crop(1)
-    assert sip_model_crop.shape == (30, 20), "cropped model image should have correct shape"
+    assert sip_model_crop._data.shape == (30, 20), "cropped model image should have correct shape"
     sip_model_crop = sip_model_image.crop([1])
-    assert sip_model_crop.shape == (30, 20), "cropped model image should have correct shape"
+    assert sip_model_crop._data.shape == (30, 20), "cropped model image should have correct shape"
     sip_model_crop = sip_model_image.crop([1, 2])
-    assert sip_model_crop.shape == (30, 18), "cropped model image should have correct shape"
+    assert sip_model_crop._data.shape == (30, 18), "cropped model image should have correct shape"
     sip_model_crop = sip_model_image.crop([1, 2, 3, 4])
-    assert sip_model_crop.shape == (29, 15), "cropped model image should have correct shape"
+    assert sip_model_crop._data.shape == (29, 15), "cropped model image should have correct shape"
 
     sip_model_crop.fluxdensity_to_flux()
     assert ap.backend.all(

@@ -17,11 +17,10 @@ def _sample_image(
     angle_range=None,
     cycle=2 * np.pi,
 ):
-    dat = backend.to_numpy(image.data).copy()
+    dat = backend.to_numpy(image._data).copy()
     # Fill masked pixels
-    if image.has_mask:
-        mask = backend.to_numpy(image.mask)
-        dat[mask] = np.median(dat[~mask])
+    mask = backend.to_numpy(image._mask)
+    dat[mask] = np.median(dat[~mask])
     # Subtract median of edge pixels to avoid effect of nearby sources
     edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
     dat -= np.median(edge)

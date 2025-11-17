@@ -52,7 +52,7 @@ class JacobianImage(Image):
             self._data = backend.add_at_indices(
                 self._data,
                 self_indices + (self_i,),
-                other.data[other_indices[0], other_indices[1], other_i],
+                other._data[other_indices[0], other_indices[1], other_i],
             )
         return self
 

@@ -60,7 +60,7 @@ class AiryPSF(RadialMixin, PSFModel):
         icenter = self.target.plane_to_pixel(*self.center.value)
 
         if not self.I0.initialized:
-            mid_chunk = self.target.data[
+            mid_chunk = self.target._data[
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]

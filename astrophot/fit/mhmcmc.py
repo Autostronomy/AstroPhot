@@ -48,18 +48,23 @@ class MHMCMC(BaseOptimizer):
 
         self.chain = []
 
-    def density(self, state: np.ndarray) -> np.ndarray:
+    def density(self):
         """
         Returns the density of the model at the given state vector.
         This is used to calculate the likelihood of the model at the given state.
         """
-        state = backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
         if self.likelihood == "gaussian":
-            return np.array(list(self.model.gaussian_log_likelihood(s).item() for s in state))
+            vll = backend.vmap(self.model.gaussian_log_likelihood)
         elif self.likelihood == "poisson":
-            return np.array(list(self.model.poisson_log_likelihood(s).item() for s in state))
+            vll = backend.vmap(self.model.poisson_log_likelihood)
         else:
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
+
+        def dens(state: np.ndarray) -> np.ndarray:
+            state = backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
+            return backend.to_numpy(vll(state))
+
+        return dens
 
     def fit(
         self,
@@ -85,7 +90,7 @@ class MHMCMC(BaseOptimizer):
         else:
             nwalkers = state.shape[0]
         ndim = state.shape[1]
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, self.density, vectorize=True)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, self.density(), vectorize=True)
         state = sampler.run_mcmc(state, nsamples, skip_initial_state_check=skip_initial_state_check)
         if restart_chain:
             self.chain = sampler.get_chain(flat=flat_chain)

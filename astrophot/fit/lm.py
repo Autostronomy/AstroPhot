@@ -157,18 +157,11 @@ class LM(BaseOptimizer):
         if backend.sum(fit_mask).item() == 0:
             fit_mask = None
 
-        if model.target.has_mask:
-            mask = self.model.target[self.fit_window].flatten("mask")
-            if fit_mask is not None:
-                mask = mask | fit_mask
-            self.mask = ~mask
-        elif fit_mask is not None:
-            self.mask = ~fit_mask
-        else:
-            self.mask = backend.ones_like(
-                self.model.target[self.fit_window].flatten("data"), dtype=backend.bool
-            )
-        if self.mask is not None and backend.sum(self.mask).item() == 0:
+        mask = self.model.target[self.fit_window].flatten("mask")
+        if fit_mask is not None:
+            mask = mask | fit_mask
+        self.mask = ~mask
+        if backend.sum(self.mask).item() == 0:
             raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
@@ -180,10 +173,7 @@ class LM(BaseOptimizer):
             self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
-        elif model.target.has_weight:
-            self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
-        else:
-            self.W = backend.ones_like(self.Y)
+        self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
 
         # The forward model which computes the output image given input parameters
         self.forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[self.mask]

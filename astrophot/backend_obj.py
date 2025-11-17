@@ -84,6 +84,7 @@ class Backend:
         self.grad = self._grad_torch
         self.vmap = self._vmap_torch
         self.long = self._long_torch
+        self.detach = lambda x: x.detach()
         self.fill_at_indices = self._fill_at_indices_torch
         self.add_at_indices = self._add_at_indices_torch
         self.and_at_indices = self._and_at_indices_torch
@@ -128,6 +129,7 @@ class Backend:
         self.grad = self._grad_jax
         self.vmap = self._vmap_jax
         self.long = self._long_jax
+        self.detach = lambda x: x
         self.fill_at_indices = self._fill_at_indices_jax
         self.add_at_indices = self._add_at_indices_jax
         self.and_at_indices = self._and_at_indices_jax
@@ -343,11 +345,11 @@ class Backend:
             return self.jax.jacfwd(func)(x)
         return self.jax.jacrev(func)(x)
 
-    def _jacfwd_torch(self, func):
-        return self.module.func.jacfwd(func)
+    def _jacfwd_torch(self, func, argnums=0):
+        return self.module.func.jacfwd(func, argnums=argnums)
 
-    def _jacfwd_jax(self, func):
-        return self.jax.jacfwd(func)
+    def _jacfwd_jax(self, func, argnums=0):
+        return self.jax.jacfwd(func, argnums=argnums)
 
     def _hessian_torch(self, func):
         return self.module.func.hessian(func)

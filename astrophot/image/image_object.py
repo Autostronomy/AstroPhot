@@ -130,7 +130,7 @@ class Image(Module):
     @property
     def data(self):
         """The image data, which is a tensor of pixel values."""
-        return self._data
+        return backend.transpose(self._data, 1, 0)
 
     @data.setter
     def data(self, value: Optional[ArrayLike]):
@@ -167,17 +167,17 @@ class Image(Module):
 
     @property
     def window(self) -> Window:
-        return Window(window=((0, 0), self.data.shape[:2]), image=self)
+        return Window(window=((0, 0), self._data.shape[:2]), image=self)
 
     @property
     def center(self):
-        shape = backend.as_array(self.data.shape[:2], dtype=config.DTYPE, device=config.DEVICE)
+        shape = backend.as_array(self._data.shape[:2], dtype=config.DTYPE, device=config.DEVICE)
         return backend.stack(self.pixel_to_plane(*((shape - 1) / 2)))
 
-    @property
-    def shape(self):
-        """The shape of the image data."""
-        return self.data.shape
+    # @property
+    # def shape(self):
+    #     """The shape of the image data."""
+    #     return self.data.shape
 
     @property
     @forward
@@ -250,19 +250,19 @@ class Image(Module):
 
     def pixel_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
-        return func.pixel_center_meshgrid(self.shape, config.DTYPE, config.DEVICE)
+        return func.pixel_center_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
 
     def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
-        return func.pixel_corner_meshgrid(self.shape, config.DTYPE, config.DEVICE)
+        return func.pixel_corner_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
 
     def pixel_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
-        return func.pixel_simpsons_meshgrid(self.shape, config.DTYPE, config.DEVICE)
+        return func.pixel_simpsons_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
 
     def pixel_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
-        return func.pixel_quad_meshgrid(self.shape, config.DTYPE, config.DEVICE, order=order)
+        return func.pixel_quad_meshgrid(self._data.shape, config.DTYPE, config.DEVICE, order=order)
 
     @forward
     def coordinate_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
@@ -290,7 +290,7 @@ class Image(Module):
 
     def copy_kwargs(self, **kwargs) -> dict:
         kwargs = {
-            "_data": backend.copy(self.data),
+            "_data": backend.copy(self._data),
             "CD": self.CD.value,
             "crpix": self.crpix,
             "crval": self.crval.value,
@@ -316,7 +316,7 @@ class Image(Module):
 
         """
         kwargs = {
-            "_data": backend.zeros_like(self.data),
+            "_data": backend.zeros_like(self._data),
             **kwargs,
         }
         return self.copy(**kwargs)
@@ -332,28 +332,28 @@ class Image(Module):
         crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
         """
         if isinstance(pixels, int):
-            data = self.data[
-                pixels : self.data.shape[0] - pixels,
-                pixels : self.data.shape[1] - pixels,
+            data = self._data[
+                pixels : self._data.shape[0] - pixels,
+                pixels : self._data.shape[1] - pixels,
             ]
             crpix = self.crpix - pixels
         elif len(pixels) == 1:  # same crop in all dimension
             crop = pixels if isinstance(pixels, int) else pixels[0]
-            data = self.data[
-                crop : self.data.shape[0] - crop,
-                crop : self.data.shape[1] - crop,
+            data = self._data[
+                crop : self._data.shape[0] - crop,
+                crop : self._data.shape[1] - crop,
             ]
             crpix = self.crpix - crop
         elif len(pixels) == 2:  # different crop in each dimension
-            data = self.data[
-                pixels[0] : self.data.shape[0] - pixels[0],
-                pixels[1] : self.data.shape[1] - pixels[1],
+            data = self._data[
+                pixels[0] : self._data.shape[0] - pixels[0],
+                pixels[1] : self._data.shape[1] - pixels[1],
             ]
             crpix = self.crpix - pixels
         elif len(pixels) == 4:  # different crop on all sides
-            data = self.data[
-                pixels[0] : self.data.shape[0] - pixels[1],
-                pixels[2] : self.data.shape[1] - pixels[3],
+            data = self._data[
+                pixels[0] : self._data.shape[0] - pixels[1],
+                pixels[2] : self._data.shape[1] - pixels[3],
             ]
             crpix = self.crpix - pixels[0::2]
         else:
@@ -381,10 +381,10 @@ class Image(Module):
         if scale == 1:
             return self
 
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
+        MS = self._data.shape[0] // scale
+        NS = self._data.shape[1] // scale
 
-        data = self.data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
+        data = self._data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
         CD = self.CD.value * scale
         crpix = (self.crpix + 0.5) / scale - 0.5
         return self.copy(
@@ -429,7 +429,7 @@ class Image(Module):
     def fits_images(self):
         return [
             fits.PrimaryHDU(
-                backend.to_numpy(backend.transpose(self.data, 1, 0)),
+                backend.to_numpy(backend.transpose(self._data, 1, 0)),
                 header=fits.Header(self.fits_info()),
             )
         ]
@@ -481,13 +481,13 @@ class Image(Module):
     ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
         pixel_lowleft = backend.make_array((-0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE)
         pixel_lowright = backend.make_array(
-            (self.data.shape[0] - 0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE
+            (self._data.shape[0] - 0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE
         )
         pixel_upleft = backend.make_array(
-            (-0.5, self.data.shape[1] - 0.5), dtype=config.DTYPE, device=config.DEVICE
+            (-0.5, self._data.shape[1] - 0.5), dtype=config.DTYPE, device=config.DEVICE
         )
         pixel_upright = backend.make_array(
-            (self.data.shape[0] - 0.5, self.data.shape[1] - 0.5),
+            (self._data.shape[0] - 0.5, self._data.shape[1] - 0.5),
             dtype=config.DTYPE,
             device=config.DEVICE,
         )
@@ -500,25 +500,25 @@ class Image(Module):
     @torch.no_grad()
     def get_indices(self, other: Window):
         if other.image is self:
-            return slice(max(0, other.i_low), min(self.shape[0], other.i_high)), slice(
-                max(0, other.j_low), min(self.shape[1], other.j_high)
+            return slice(max(0, other.i_low), min(self._data.shape[0], other.i_high)), slice(
+                max(0, other.j_low), min(self._data.shape[1], other.j_high)
             )
         shift = np.round(self.crpix - other.crpix).astype(int)
         return slice(
-            min(max(0, other.i_low + shift[0]), self.shape[0]),
-            max(0, min(other.i_high + shift[0], self.shape[0])),
+            min(max(0, other.i_low + shift[0]), self._data.shape[0]),
+            max(0, min(other.i_high + shift[0], self._data.shape[0])),
         ), slice(
-            min(max(0, other.j_low + shift[1]), self.shape[1]),
-            max(0, min(other.j_high + shift[1], self.shape[1])),
+            min(max(0, other.j_low + shift[1]), self._data.shape[1]),
+            max(0, min(other.j_high + shift[1], self._data.shape[1])),
         )
 
     @torch.no_grad()
     def get_other_indices(self, other: Window):
         if other.image == self:
             shape = other.shape
-            return slice(max(0, -other.i_low), min(self.shape[0] - other.i_low, shape[0])), slice(
-                max(0, -other.j_low), min(self.shape[1] - other.j_low, shape[1])
-            )
+            return slice(
+                max(0, -other.i_low), min(self._data.shape[0] - other.i_low, shape[0])
+            ), slice(max(0, -other.j_low), min(self._data.shape[1] - other.j_low, shape[1]))
         raise ValueError()
 
     def get_window(self, other: Union[Window, "Image"], indices=None, **kwargs):
@@ -531,7 +531,7 @@ class Image(Module):
         if indices is None:
             indices = self.get_indices(other if isinstance(other, Window) else other.window)
         new_img = self.copy(
-            _data=self.data[indices],
+            _data=self._data[indices],
             crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
             **kwargs,
         )
@@ -540,21 +540,21 @@ class Image(Module):
     def __sub__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img._data = new_img.data - other[self].data
+            new_img._data = new_img._data - other[self]._data
             return new_img
         else:
             new_img = self.copy()
-            new_img._data = new_img.data - other
+            new_img._data = new_img._data - other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
             new_img = self[other]
-            new_img._data = new_img.data + other[self].data
+            new_img._data = new_img._data + other[self]._data
             return new_img
         else:
             new_img = self.copy()
-            new_img._data = new_img.data + other
+            new_img._data = new_img._data + other
             return new_img
 
     def __iadd__(self, other):
@@ -562,10 +562,10 @@ class Image(Module):
             self._data = backend.add_at_indices(
                 self._data,
                 self.get_indices(other.window),
-                other.data[other.get_indices(self.window)],
+                other._data[other.get_indices(self.window)],
             )
         else:
-            self._data = self.data + other
+            self._data = self._data + other
         return self
 
     def __isub__(self, other):
@@ -573,10 +573,10 @@ class Image(Module):
             self._data = backend.add_at_indices(
                 self._data,
                 self.get_indices(other.window),
-                -other.data[other.get_indices(self.window)],
+                -other._data[other.get_indices(self.window)],
             )
         else:
-            self._data = self.data - other
+            self._data = self._data - other
         return self
 
     def __getitem__(self, *args):
@@ -597,6 +597,10 @@ class ImageList(Module):
     @property
     def data(self):
         return tuple(image.data for image in self.images)
+
+    @property
+    def _data(self):
+        return tuple(image._data for image in self.images)
 
     def copy(self):
         return self.__class__(

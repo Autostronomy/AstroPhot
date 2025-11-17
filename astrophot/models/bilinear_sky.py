@@ -51,17 +51,16 @@ class BilinearSky(SkyModel):
             self.PA.value = np.arccos(np.abs(R[0, 0]))
         if not self.scale.initialized:
             self.scale.value = (
-                self.target.pixelscale.item() * self.target.data.shape[0] / self.nodes[0]
+                self.target.pixelscale.item() * self.target._data.shape[0] / self.nodes[0]
             )
 
         if self.I.initialized:
             return
 
         target_dat = self.target[self.window]
-        dat = backend.to_numpy(target_dat.data).copy()
-        if self.target.has_mask:
-            mask = backend.to_numpy(target_dat.mask).copy()
-            dat[mask] = np.nanmedian(dat)
+        dat = backend.to_numpy(target_dat._data).copy()
+        mask = backend.to_numpy(target_dat._mask).copy()
+        dat[mask] = np.nanmedian(dat)
         iS = dat.shape[0] // self.nodes[0]
         jS = dat.shape[1] // self.nodes[1]
 

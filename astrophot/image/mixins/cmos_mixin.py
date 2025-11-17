@@ -32,7 +32,7 @@ class CMOSMixin:
     def pixel_center_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
         return func.cmos_pixel_center_meshgrid(
-            self.shape, self.subpixel_loc, config.DTYPE, config.DEVICE
+            self._data.shape, self.subpixel_loc, config.DTYPE, config.DEVICE
         )
 
     def copy(self, **kwargs):

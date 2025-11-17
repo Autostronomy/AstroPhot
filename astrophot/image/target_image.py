@@ -150,7 +150,7 @@ class TargetImage(DataMixin, Image):
             if isinstance(self.psf, PSFImage):
                 images.append(
                     fits.ImageHDU(
-                        backend.to_numpy(backend.transpose(self.psf.data, 1, 0)),
+                        backend.to_numpy(self.psf.data),
                         name="PSF",
                         header=fits.Header(self.psf.fits_info()),
                     )
@@ -186,7 +186,7 @@ class TargetImage(DataMixin, Image):
         """
         if data is None:
             data = backend.zeros(
-                (*self.data.shape, len(parameters)),
+                (*self._data.shape, len(parameters)),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
             )
@@ -208,7 +208,10 @@ class TargetImage(DataMixin, Image):
         """
         kwargs = {
             "_data": backend.zeros(
-                (self.data.shape[0] * upsample + 2 * pad, self.data.shape[1] * upsample + 2 * pad),
+                (
+                    self._data.shape[0] * upsample + 2 * pad,
+                    self._data.shape[1] * upsample + 2 * pad,
+                ),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
             ),
@@ -264,27 +267,27 @@ class TargetImageList(ImageList):
     def variance(self):
         return tuple(image.variance for image in self.images)
 
+    @property
+    def _variance(self):
+        return tuple(image._variance for image in self.images)
+
     @variance.setter
     def variance(self, variance):
         for image, var in zip(self.images, variance):
             image.variance = var
 
     @property
-    def has_variance(self):
-        return any(image.has_variance for image in self.images)
-
-    @property
     def weight(self):
         return tuple(image.weight for image in self.images)
+
+    @property
+    def _weight(self):
+        return tuple(image._weight for image in self.images)
 
     @weight.setter
     def weight(self, weight):
         for image, wgt in zip(self.images, weight):
             image.weight = wgt
-
-    @property
-    def has_weight(self):
-        return any(image.has_weight for image in self.images)
 
     def jacobian_image(
         self, parameters: List[str], data: Optional[List[ArrayLike]] = None
@@ -302,14 +305,14 @@ class TargetImageList(ImageList):
     def mask(self):
         return tuple(image.mask for image in self.images)
 
+    @property
+    def _mask(self):
+        return tuple(image._mask for image in self.images)
+
     @mask.setter
     def mask(self, mask):
         for image, M in zip(self.images, mask):
             image.mask = M
-
-    @property
-    def has_mask(self) -> bool:
-        return any(image.has_mask for image in self.images)
 
     @property
     def psf(self):

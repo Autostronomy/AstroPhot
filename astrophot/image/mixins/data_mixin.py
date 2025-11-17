@@ -59,8 +59,8 @@ class DataMixin:
             self.weight = weight
 
         # Set nan pixels to be masked automatically
-        if backend.any(backend.isnan(self.data)).item():
-            self._mask = self.mask | backend.isnan(self.data)
+        if backend.any(backend.isnan(self._data)).item():
+            self._mask = self._mask | backend.isnan(self._data)
 
     @property
     def std(self):
@@ -74,9 +74,7 @@ class DataMixin:
         computed as $\\sqrt{1/W}$ where $W$ is the weights.
 
         """
-        if self.has_variance:
-            return backend.sqrt(self.variance)
-        return backend.ones_like(self.data)
+        return backend.sqrt(self.variance)
 
     @std.setter
     def std(self, std):
@@ -87,18 +85,6 @@ class DataMixin:
             self.weight = "auto"
             return
         self.weight = 1 / std**2
-
-    @property
-    def has_std(self) -> bool:
-        """Returns True when the image object has stored standard deviation values. If
-        this is False and the std property is called then a
-        tensor of ones will be returned.
-
-        """
-        try:
-            return self._weight is not None
-        except AttributeError:
-            return False
 
     @property
     def variance(self):
@@ -113,9 +99,11 @@ class DataMixin:
         weights.
 
         """
-        if self.has_variance:
-            return backend.where(self._weight == 0, backend.inf, 1 / self._weight)
-        return backend.ones_like(self.data)
+        return backend.where(self.weight == 0, backend.inf, 1 / self.weight)
+
+    @property
+    def _variance(self):
+        return backend.where(self._weight == 0, backend.inf, 1 / self._weight)
 
     @variance.setter
     def variance(self, variance):
@@ -126,18 +114,6 @@ class DataMixin:
             self.weight = "auto"
             return
         self.weight = 1 / variance
-
-    @property
-    def has_variance(self) -> bool:
-        """Returns True when the image object has stored variance values. If
-        this is False and the variance property is called then a
-        tensor of ones will be returned.
-
-        """
-        try:
-            return self._weight is not None
-        except AttributeError:
-            return False
 
     @property
     def weight(self):
@@ -165,38 +141,32 @@ class DataMixin:
         $$H \\approx J^TWJ$$
 
         """
-        if self.has_weight:
-            return self._weight
-        return backend.ones_like(self.data)
+        return backend.transpose(self._weight, 1, 0)
 
     @weight.setter
     def weight(self, weight):
         if weight is None:
-            self._weight = None
+            self._weight = backend.ones_like(self._data)
             return
         if isinstance(weight, str) and weight == "auto":
-            weight = 1 / auto_variance(self.data, self.mask).T
+            weight = 1 / auto_variance(self.data, self.mask)
         self._weight = backend.transpose(
             backend.as_array(weight, dtype=config.DTYPE, device=config.DEVICE), 1, 0
         )
-        if self._weight.shape != self.data.shape:
-            self._weight = None
+        if self._weight.shape != self._data.shape:
             raise SpecificationConflict(
                 f"weight/variance must have same shape as data ({weight.shape} vs {self.data.shape})"
             )
 
     @property
-    def has_weight(self) -> bool:
-        """Returns True when the image object has stored weight values. If
-        this is False and the weight property is called then a
-        tensor of ones will be returned.
+    def _weight(self):
+        return self.__weight
 
-        """
-        try:
-            return self._weight is not None
-        except AttributeError:
-            self._weight = None
-            return False
+    @_weight.setter
+    def _weight(self, value):
+        if value is None:
+            value = backend.ones_like(self._data)
+        self.__weight = value
 
     @property
     def mask(self):
@@ -213,33 +183,30 @@ class DataMixin:
         If no mask is provided, all pixels are assumed valid.
 
         """
-        if self.has_mask:
-            return self._mask
-        return backend.zeros_like(self.data, dtype=backend.bool)
+        return backend.transpose(self._mask, 1, 0)
 
     @mask.setter
     def mask(self, mask):
         if mask is None:
-            self._mask = None
+            self._mask = backend.zeros_like(self._data, dtype=backend.bool)
             return
         self._mask = backend.transpose(
             backend.as_array(mask, dtype=backend.bool, device=config.DEVICE), 1, 0
         )
-        if self._mask.shape != self.data.shape:
-            self._mask = None
+        if self._mask.shape != self._data.shape:
             raise SpecificationConflict(
                 f"mask must have same shape as data ({mask.shape} vs {self.data.shape})"
             )
 
     @property
-    def has_mask(self) -> bool:
-        """
-        Single boolean to indicate if a mask has been provided by the user.
-        """
-        try:
-            return self._mask is not None
-        except AttributeError:
-            return False
+    def _mask(self):
+        return self.__mask
+
+    @_mask.setter
+    def _mask(self, value):
+        if value is None:
+            value = backend.zeros_like(self._data, dtype=backend.bool)
+        self.__mask = value
 
     def to(self, dtype=None, device=None):
         """Converts the stored `Target_Image` data, variance, psf, etc to a
@@ -252,10 +219,8 @@ class DataMixin:
             device = config.DEVICE
         super().to(dtype=dtype, device=device)
 
-        if self.has_weight:
-            self._weight = backend.to(self._weight, dtype=dtype, device=device)
-        if self.has_mask:
-            self._mask = backend.to(self._mask, dtype=backend.bool, device=device)
+        self._weight = backend.to(self._weight, dtype=dtype, device=device)
+        self._mask = backend.to(self._mask, dtype=backend.bool, device=device)
         return self
 
     def copy_kwargs(self, **kwargs):
@@ -273,25 +238,21 @@ class DataMixin:
             indices = self.get_indices(other if isinstance(other, Window) else other.window)
         return super().get_window(
             other,
-            _weight=self._weight[indices] if self.has_weight else None,
-            _mask=self._mask[indices] if self.has_mask else None,
+            _weight=self._weight[indices],
+            _mask=self._mask[indices],
             indices=indices,
             **kwargs,
         )
 
     def fits_images(self):
         images = super().fits_images()
-        if self.has_weight:
-            images.append(
-                fits.ImageHDU(backend.to_numpy(backend.transpose(self.weight, 1, 0)), name="WEIGHT")
+        images.append(fits.ImageHDU(backend.to_numpy(self.weight), name="WEIGHT"))
+        images.append(
+            fits.ImageHDU(
+                backend.to_numpy(self.mask).astype(int),
+                name="MASK",
             )
-        if self.has_mask:
-            images.append(
-                fits.ImageHDU(
-                    backend.to_numpy(backend.transpose(self.mask, 1, 0)).astype(int),
-                    name="MASK",
-                )
-            )
+        )
         return images
 
     def load(self, filename: str, hduext: int = 0):
@@ -319,26 +280,22 @@ class DataMixin:
         across and the pixelscale will be 3.
 
         """
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
+        MS = self._data.shape[0] // scale
+        NS = self._data.shape[1] // scale
 
         return super().reduce(
             scale=scale,
             _weight=(
                 1
                 / backend.sum(
-                    self.variance[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale),
+                    self._variance[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale),
                     dim=(1, 3),
                 )
-                if self.has_variance
-                else None
             ),
             _mask=(
                 backend.max(
-                    self.mask[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale), dim=(1, 3)
+                    self._mask[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale), dim=(1, 3)
                 )
-                if self.has_mask
-                else None
             ),
             **kwargs,
         )
