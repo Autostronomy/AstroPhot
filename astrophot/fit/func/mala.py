@@ -29,7 +29,7 @@ def mala(
     grad_cur = log_prob_grad(x)  # (C, D)
 
     # Random number generator
-    rng = np.random.default_rng(np.random.randint(1e10))
+    rng = np.random.default_rng(np.random.randint(1e9))
 
     it = range(num_samples)
     if progress:
