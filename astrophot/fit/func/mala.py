@@ -22,6 +22,7 @@ def mala(
 
     samples = np.zeros((num_samples, C, D), dtype=x.dtype)  # (N, C, D)
     acceptance_rate = np.zeros([0])  # (0,)
+    logp = np.zeros((num_samples, C), dtype=x.dtype)  # (N, C)
 
     # Cache current state
     logp_cur = log_prob(x)  # (C,)
@@ -63,9 +64,10 @@ def mala(
         logp_cur[accept] = logp_prop[accept]  # (C,)
         grad_cur[accept] = grad_prop[accept]  # (C, D)
 
-        samples[t] = x
+        samples[t] = x.copy()
+        logp[t] = logp_cur.copy()
 
         if progress:
             it.set_postfix(acc_rate=f"{acceptance_rate.mean():0.2f}")
 
-    return samples
+    return samples, logp

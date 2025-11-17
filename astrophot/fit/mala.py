@@ -13,6 +13,24 @@ __all__ = ("MALA",)
 
 
 class MALA(BaseOptimizer):
+    """Metropolis-Adjusted Langevin Algorithm (MALA) sampler, based on:
+    https://en.wikipedia.org/wiki/Metropolis-adjusted_Langevin_algorithm . This
+    is a gradient-based MCMC sampler that uses the gradient of the
+    log-likelihood to propose new samples. These gradient based proposals can
+    lead to more efficient sampling of the parameter space. This is especially
+    true when the mass_matrix is set well. A good guess for the mass matrix is
+    the covariance matrix of the likelihood at the maximum likelihood point.
+    Which can be found fairly easily with the LM optimizer (see the fitting
+    methods tutorial).
+
+    **Args:**
+    -  `chains`: The number of MCMC chains to run in parallel. Default is 4.
+    -  `epsilon`: The step size for the MALA sampler. Default is 1e-2.
+    -  `mass_matrix`: The mass matrix for the MALA sampler. If None, the identity matrix is used.
+    -  `progress_bar`: Whether to show a progress bar during sampling. Default is True.
+    -  `likelihood`: The likelihood function to use for the MCMC sampling. Can be "gaussian" or "poisson". Default is "gaussian".
+    """
+
     def __init__(
         self,
         model: Model,
@@ -85,7 +103,7 @@ class MALA(BaseOptimizer):
             D = initial_state.shape[1]
             self.mass_matrix = np.eye(D, dtype=initial_state.dtype)
 
-        self.chain = func.mala(
+        self.chain, self.logp = func.mala(
             initial_state,
             Px,
             dPdx,
@@ -94,6 +112,12 @@ class MALA(BaseOptimizer):
             self.mass_matrix,
             progress=self.progress_bar,
             desc="MALA",
+        )
+        # Fill model with max logp sample
+        max_logp_index = np.argmax(self.logp)
+        max_logp_index = np.unravel_index(max_logp_index, self.logp.shape)
+        self.model.fill_dynamic_values(
+            backend.as_array(self.chain[max_logp_index], dtype=config.DTYPE, device=config.DEVICE)
         )
 
         return self
