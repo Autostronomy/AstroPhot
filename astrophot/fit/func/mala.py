@@ -21,6 +21,7 @@ def mala(
     L = np.linalg.cholesky(mass)  # (D, D)
 
     samples = np.zeros((num_samples, C, D), dtype=x.dtype)  # (N, C, D)
+    acceptance_rate = np.zeros([0])  # (0,)
 
     # Cache current state
     logp_cur = log_prob(x)  # (C,)
@@ -55,6 +56,7 @@ def mala(
         log_alpha = (logp_prop - logp_cur) + (logq1 - logq2)  # (C,)
 
         accept = np.log(rng.random(C)) < log_alpha  # (C,)
+        acceptance_rate = np.concatenate([acceptance_rate, accept])
 
         # Update all three pieces in-place where accepted
         x[accept] = x_prop[accept]  # (C, D)
@@ -64,6 +66,6 @@ def mala(
         samples[t] = x
 
         if progress:
-            it.set_postfix(acc_rate=f"{accept.mean():0.2f}")
+            it.set_postfix(acc_rate=f"{acceptance_rate.mean():0.2f}")
 
     return samples

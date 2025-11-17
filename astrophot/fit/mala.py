@@ -96,4 +96,4 @@ class MALA(BaseOptimizer):
             desc="MALA",
         )
 
-        return self.chain
+        return self
