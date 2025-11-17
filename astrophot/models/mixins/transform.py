@@ -19,7 +19,7 @@ class InclinedMixin:
     $$x', y' = {\\rm rotate}(-PA + \\pi/2, x, y)$$
     $$y'' = y' / q$$
 
-    where x' and y'' are the final transformed coordinates. The $\pi/2$ is included
+    where x' and y'' are the final transformed coordinates. The $\\pi/2$ is included
     such that the position angle is defined with 0 at north. The -PA is such
     that the position angle increases to the East. Thus, the position angle is a
     standard East of North definition assuming the WCS of the image is correct.

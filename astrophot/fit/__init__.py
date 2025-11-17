@@ -4,6 +4,7 @@ from .iterative import Iter, IterParam
 from .scipy_fit import ScipyFit
 from .minifit import MiniFit
 from .hmc import HMC
+from .mala import MALA
 from .mhmcmc import MHMCMC
 from . import func
 
@@ -12,6 +13,7 @@ __all__ = [
     "LMfast",
     "Grad",
     "Iter",
+    "MALA",
     "IterParam",
     "ScipyFit",
     "MiniFit",

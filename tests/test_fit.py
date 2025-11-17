@@ -82,6 +82,15 @@ def sersic_model():
         (ap.fit.ScipyFit, {}),
         (ap.fit.MHMCMC, {}),
         (ap.fit.HMC, {}),
+        (ap.fit.MALA, {"epsilon": 1e-3}),
+        (
+            ap.fit.MALA,
+            {
+                "epsilon": 1e-3,
+                "likelihood": "poisson",
+                "initial_state": [[20, 20, 0.7, np.pi, 2, 15, 10]],
+            },
+        ),
         (ap.fit.MiniFit, {}),
         (ap.fit.Slalom, {}),
     ],

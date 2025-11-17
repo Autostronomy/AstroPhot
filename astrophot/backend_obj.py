@@ -3,8 +3,10 @@ import importlib
 from typing import Annotated
 
 from torch import Tensor, dtype, device
-import numpy as np
 import torch
+import numpy as np
+import caskade as ck
+
 from . import config
 
 ArrayLike = Annotated[
@@ -33,6 +35,7 @@ class Backend:
     def backend(self, backend):
         if backend is None:
             backend = os.getenv("CASKADE_BACKEND", "torch")
+        ck.backend.backend = backend
         self._load_backend(backend)
         self._backend = backend
 

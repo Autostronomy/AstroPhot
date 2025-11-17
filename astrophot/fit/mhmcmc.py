@@ -13,7 +13,7 @@ from ..models import Model
 from .. import config
 from ..backend_obj import backend
 
-__all__ = ["MHMCMC"]
+__all__ = ("MHMCMC",)
 
 
 class MHMCMC(BaseOptimizer):
