@@ -1,3 +1,5 @@
+import pytest
+
 import astrophot as ap
 from astrophot.param import Param
 
@@ -53,3 +55,9 @@ def test_module():
 
     paramsun = model.build_params_array_units()
     assert all(isinstance(unit, str) for unit in paramsun), "All parameter units should be strings"
+
+    index = model.dynamic_params_array_index(model2.q)
+    assert index == 7, "Parameter index should be correct"
+
+    with pytest.raises(ValueError):
+        model.dynamic_params_array_index(5.0)  # Not a Param instance
