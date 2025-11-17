@@ -55,10 +55,10 @@ class MultiGaussianExpansion(ComponentModel):
         super().initialize()
 
         target_area = self.target[self.window]
-        dat = backend.to_numpy(target_area.data).copy()
-        if target_area.has_mask:
-            mask = backend.to_numpy(target_area.mask)
-            dat[mask] = np.median(dat[~mask])
+        dat = backend.to_numpy(target_area._data).copy()
+        mask = backend.to_numpy(target_area._mask)
+        dat[mask] = np.median(dat[~mask])
+
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.nanmedian(edge)
         dat -= edge_average
@@ -66,7 +66,7 @@ class MultiGaussianExpansion(ComponentModel):
         if not self.sigma.initialized:
             self.sigma.dynamic_value = np.logspace(
                 np.log10(target_area.pixelscale.item() * 3),
-                max(target_area.shape) * target_area.pixelscale.item() * 0.7,
+                max(target_area.data.shape) * target_area.pixelscale.item() * 0.7,
                 self.n_components,
             )
         if not self.flux.initialized:

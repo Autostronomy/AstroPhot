@@ -10,7 +10,7 @@ class CMOSModelImage(CMOSMixin, ModelImage):
 
     def fluxdensity_to_flux(self):
         # CMOS pixels only sensitive in sub area, so scale the flux density
-        self._data = self.data * self.pixel_area * self.subpixel_scale**2
+        self._data = self._data * self.pixel_area * self.subpixel_scale**2
 
 
 class CMOSTargetImage(CMOSMixin, TargetImage):
@@ -28,7 +28,7 @@ class CMOSTargetImage(CMOSMixin, TargetImage):
         kwargs = {
             "subpixel_loc": self.subpixel_loc,
             "subpixel_scale": self.subpixel_scale,
-            "_data": backend.zeros(self.data.shape[:2], dtype=config.DTYPE, device=config.DEVICE),
+            "_data": backend.zeros(self._data.shape[:2], dtype=config.DTYPE, device=config.DEVICE),
             "CD": self.CD.value,
             "crpix": self.crpix,
             "crtan": self.crtan.value,

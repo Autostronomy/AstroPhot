@@ -19,9 +19,9 @@ def test_image_creation():
         (ap.Window((3, 12, 5, 8), base_image1), ap.Window((4, 8, 3, 13), base_image2))
     )
     sliced_image = test_image[slicer]
-    print(sliced_image[0].shape, sliced_image[1].shape)
-    assert sliced_image[0].shape == (9, 3), "image slice incorrect shape"
-    assert sliced_image[1].shape == (4, 10), "image slice incorrect shape"
+    print(sliced_image[0]._data.shape, sliced_image[1]._data.shape)
+    assert sliced_image[0]._data.shape == (9, 3), "image slice incorrect shape"
+    assert sliced_image[1]._data.shape == (4, 10), "image slice incorrect shape"
     assert np.all(sliced_image[0].crpix == np.array([-3, -5])), "image should track origin"
     assert np.all(sliced_image[1].crpix == np.array([-4, -3])), "image should track origin"
 

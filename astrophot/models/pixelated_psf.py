@@ -52,7 +52,7 @@ class PixelatedPSF(PSFModel):
         if self.pixels.initialized:
             return
         target_area = self.target[self.window]
-        self.pixels.dynamic_value = backend.copy(target_area.data) / target_area.pixel_area
+        self.pixels.dynamic_value = backend.copy(target_area._data) / target_area.pixel_area
 
     @forward
     def brightness(

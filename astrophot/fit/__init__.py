@@ -1,6 +1,6 @@
 from .lm import LM, LMfast
 from .gradient import Grad, Slalom
-from .iterative import Iter
+from .iterative import Iter, IterParam
 from .scipy_fit import ScipyFit
 from .minifit import MiniFit
 from .hmc import HMC
@@ -12,10 +12,12 @@ __all__ = [
     "LMfast",
     "Grad",
     "Iter",
+    "MALA",
+    "IterParam",
     "ScipyFit",
     "MiniFit",
     "HMC",
-    "MALA",
     "MHMCMC",
     "Slalom",
+    "func",
 ]

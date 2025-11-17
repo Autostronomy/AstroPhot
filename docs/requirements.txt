@@ -1,4 +1,5 @@
 caustics
+corner
 emcee
 graphviz
 ipywidgets

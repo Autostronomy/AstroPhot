@@ -78,7 +78,7 @@ class PixelBasisPSF(PSFModel):
             order = int(self.basis.split(":")[1])
             nm = func.zernike_n_m_list(order)
             N = int(
-                target_area.data.shape[0] * self.target.pixelscale.item() / self.scale.value.item()
+                target_area._data.shape[0] * self.target.pixelscale.item() / self.scale.value.item()
             )
             X, Y = np.meshgrid(
                 np.linspace(-1, 1, N) * (N - 1) / N,

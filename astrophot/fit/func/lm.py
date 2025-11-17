@@ -71,11 +71,11 @@ def lm_step(
     likelihood="gaussian",
 ):
     L0 = L
-    M0 = model(x)  # (M,)
-    J = jacobian(x)  # (M, N)
+    M0 = backend.detach(model(x))  # (M,)
+    J = backend.detach(jacobian(x))  # (M, N)
 
     if likelihood == "gaussian":
-        nll0 = nll(data, M0, weight).item()  # torch.sum(weight * R**2).item() / ndf
+        nll0 = nll(data, M0, weight).item()
         grad = gradient(J, weight, data, M0)  # (N, 1)
         hess = hessian(J, weight)  # (N, N)
     elif likelihood == "poisson":
@@ -85,6 +85,8 @@ def lm_step(
     else:
         raise ValueError(f"Unsupported likelihood: {likelihood}")
 
+    del J
+
     if backend.allclose(grad, backend.zeros_like(grad)):
         raise OptimizeStopSuccess("Gradient is zero, optimization converged.")
 
@@ -92,11 +94,11 @@ def lm_step(
     scary = {"x": None, "nll": np.inf, "L": None, "rho": np.inf}
     nostep = True
     improving = None
-    for _ in range(10):
+    for i in range(10):
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
         if likelihood == "gaussian":
-            nll1 = nll(data, M1, weight).item()  # torch.sum(weight * (data - M1) ** 2).item() / ndf
+            nll1 = nll(data, M1, weight).item()
         elif likelihood == "poisson":
             nll1 = nll_poisson(data, M1).item()
 
@@ -109,7 +111,9 @@ def lm_step(
             continue
 
         if backend.allclose(h, backend.zeros_like(h)) and L < 0.1:
-            raise OptimizeStopSuccess("Step with zero length means optimization complete.")
+            if i == 0:
+                raise OptimizeStopSuccess("Step with zero length means optimization complete.")
+            break
 
         # actual nll improvement vs expected from linearization
         rho = (nll0 - nll1) / backend.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()

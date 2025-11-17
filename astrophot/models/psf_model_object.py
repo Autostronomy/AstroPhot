@@ -1,6 +1,4 @@
 from typing import Optional, Tuple
-import torch
-from torch import Tensor
 from caskade import forward
 
 from .base import Model
@@ -73,7 +71,7 @@ class PSFModel(SampleMixin, Model):
         """
         # Create an image to store pixel samples
         working_image = self.target[self.window].model_image()
-        working_image.data = self.sample_image(working_image)
+        working_image._data = self.sample_image(working_image)
 
         # normalize to total flux 1
         if self.normalize_psf:

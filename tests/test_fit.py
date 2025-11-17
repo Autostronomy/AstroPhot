@@ -68,26 +68,33 @@ def sersic_model():
 
 
 @pytest.mark.parametrize(
-    "fitter",
+    "fitter,extra",
     [
-        ap.fit.LM,
-        ap.fit.LMfast,
-        ap.fit.Grad,
-        ap.fit.ScipyFit,
-        ap.fit.MHMCMC,
-        ap.fit.HMC,
-        ap.fit.MiniFit,
-        ap.fit.Slalom,
+        (ap.fit.LM, {}),
+        (ap.fit.LM, {"likelihood": "poisson"}),
+        (ap.fit.LMfast, {}),
+        (ap.fit.IterParam, {"chunks": 3, "chunk_order": "sequential", "verbose": 2}),
+        (
+            ap.fit.IterParam,
+            {"chunks": 3, "chunk_order": "random", "verbose": 2, "likelihood": "poisson"},
+        ),
+        (ap.fit.Grad, {}),
+        (ap.fit.ScipyFit, {}),
+        (ap.fit.MHMCMC, {}),
+        (ap.fit.HMC, {}),
+        (ap.fit.MiniFit, {}),
+        (ap.fit.Slalom, {}),
     ],
 )
-def test_fitters(fitter, sersic_model):
+@pytest.mark.parametrize("fit_valid", [True, False])
+def test_fitters(fitter, extra, sersic_model, fit_valid):
     if ap.backend.backend == "jax" and fitter in [ap.fit.Grad, ap.fit.HMC]:
         pytest.skip("Grad and HMC not implemented for JAX backend")
     model = sersic_model
     model.initialize()
     ll_init = model.gaussian_log_likelihood()
     pll_init = model.poisson_log_likelihood()
-    result = fitter(model, max_iter=100).fit()
+    result = fitter(model, max_iter=100, fit_valid=fit_valid, **extra).fit()
     ll_final = model.gaussian_log_likelihood()
     pll_final = model.poisson_log_likelihood()
     assert ll_final > ll_init, f"{fitter.__name__} should improve the log likelihood"
@@ -166,7 +173,7 @@ def test_gradient(sersic_model):
         pytest.skip("JAX backend does not support backward function")
     model = sersic_model
     target = model.target
-    target.weight = 1 / (10 + target.variance.T)
+    target.weight = 1 / (10 + target.variance)
     model.initialize()
     x = model.build_params_array()
     grad = model.gradient()
@@ -182,6 +189,33 @@ def test_gradient(sersic_model):
     assert ap.backend.allclose(
         grad, funcgrad, rtol=1e-4
     ), "Gradient should match functional gradient"
+
+
+def test_options(sersic_model):
+    model = sersic_model
+    model.initialize()
+
+    with pytest.raises(ValueError):
+        ap.fit.LM(model, likelihood="unknown")
+    with pytest.raises(ValueError):
+        ap.fit.IterParam(model, likelihood="unknown")
+    with pytest.raises(ap.errors.OptimizeStopSuccess):
+        model.target.mask = ap.backend.ones_like(model.target.mask, dtype=bool)
+        ap.fit.IterParam(model)
+    model.target.mask = ap.backend.zeros_like(model.target.mask, dtype=bool)
+
+    fitter = ap.fit.IterParam(
+        model=model,
+        W=model.target.weight,
+        ndf=np.prod(model.target.data.shape),
+        chunk_order="invalid",
+    )
+    with pytest.raises(ValueError):
+        fitter.fit()
+
+    model.to_static(False)
+    res = ap.fit.IterParam(model).fit()
+    assert "No parameters to optimize" in res.message, "Should exit if no dynamic parameters"
 
 
 # class TestHMC(unittest.TestCase):

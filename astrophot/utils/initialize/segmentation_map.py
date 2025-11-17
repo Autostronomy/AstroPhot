@@ -349,9 +349,9 @@ def transfer_windows(windows, base_image, new_image):
         )  # (4,2)
 
         bottom_corner = np.floor(np.min(four_corners_new, axis=0)).astype(int)
-        bottom_corner = np.clip(bottom_corner, 0, np.array(new_image.shape))
+        bottom_corner = np.clip(bottom_corner, 0, np.array(new_image._data.shape))
         top_corner = np.ceil(np.max(four_corners_new, axis=0)).astype(int)
-        top_corner = np.clip(top_corner, 0, np.array(new_image.shape))
+        top_corner = np.clip(top_corner, 0, np.array(new_image._data.shape))
         new_windows[w] = [
             [int(bottom_corner[0]), int(bottom_corner[1])],
             [int(top_corner[0]), int(top_corner[1])],

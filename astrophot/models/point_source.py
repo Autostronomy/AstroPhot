@@ -51,7 +51,10 @@ class PointSource(ComponentModel):
         if self.flux.initialized:
             return
         target_area = self.target[self.window]
-        dat = backend.to_numpy(target_area.data).copy()
+        dat = backend.to_numpy(target_area._data).copy()
+        mask = backend.to_numpy(target_area._mask)
+        dat[mask] = np.median(dat[~mask])
+
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         self.flux.dynamic_value = np.abs(np.sum(dat - edge_average))
@@ -110,9 +113,9 @@ class PointSource(ComponentModel):
             window = self.window
 
         if isinstance(self.psf, PSFImage):
-            psf = self.psf.data
+            psf = self.psf._data
         elif isinstance(self.psf, Model):
-            psf = self.psf().data
+            psf = self.psf()._data
         else:
             raise TypeError(
                 f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
