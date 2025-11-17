@@ -191,6 +191,33 @@ def test_gradient(sersic_model):
     ), "Gradient should match functional gradient"
 
 
+def test_options(sersic_model):
+    model = sersic_model
+    model.initialize()
+
+    with pytest.raises(ValueError):
+        ap.fit.LM(model, likelihood="unknown")
+    with pytest.raises(ValueError):
+        ap.fit.IterParam(model, likelihood="unknown")
+    with pytest.raises(ap.errors.OptimizeStopSuccess):
+        model.target.mask = ap.backend.ones_like(model.target.mask, dtype=bool)
+        ap.fit.IterParam(model)
+    model.target.mask = ap.backend.zeros_like(model.target.mask, dtype=bool)
+
+    fitter = ap.fit.IterParam(
+        model=model,
+        W=model.target.weight,
+        ndf=np.prod(model.target.data.shape),
+        chunk_order="invalid",
+    )
+    with pytest.raises(ValueError):
+        fitter.fit()
+
+    model.to_static(False)
+    res = ap.fit.IterParam(model).fit()
+    assert "No parameters to optimize" in res.message, "Should exit if no dynamic parameters"
+
+
 # class TestHMC(unittest.TestCase):
 #     def test_hmc_sample(self):
 #         np.random.seed(12345)

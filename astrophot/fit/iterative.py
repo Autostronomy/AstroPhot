@@ -188,6 +188,7 @@ class IterParam(BaseOptimizer):
         L0=1.0,
         max_step_iter: int = 10,
         ndf=None,
+        W=None,
         likelihood="gaussian",
         **kwargs,
     ):
@@ -218,12 +219,9 @@ class IterParam(BaseOptimizer):
             fit_mask = backend.concatenate(tuple(FM.flatten() for FM in fit_mask))
         else:
             fit_mask = fit_mask.flatten()
-        if backend.sum(fit_mask).item() == 0:
-            fit_mask = None
 
         mask = self.model.target[self.fit_window].flatten("mask")
-        if fit_mask is not None:
-            mask = mask | fit_mask
+        mask = mask | fit_mask
         self.mask = ~mask
 
         if backend.sum(self.mask).item() == 0:
@@ -233,12 +231,12 @@ class IterParam(BaseOptimizer):
         self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]
 
         # 1 / (sigma^2)
-        kW = kwargs.get("W", None)
-        if kW is not None:
-            self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
+        if W is not None:
+            self.W = backend.as_array(W, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
-        self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
+        else:
+            self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
 
         # The forward model which computes the output image given input parameters
         self.full_forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[
