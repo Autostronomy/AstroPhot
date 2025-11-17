@@ -80,4 +80,9 @@ class Module(CModule):
             if p is param:
                 return list(range(i, i + max(1, prod(p.shape))))
             i += max(1, prod(p.shape))
-        raise ValueError(f"Param {param.name} not found in dynamic_params of Module {self.name}")
+        try:
+            raise ValueError(
+                f"Param {param.name} not found in dynamic_params of Module {self.name}"
+            )
+        except:
+            raise ValueError(f"Param {param} not found in dynamic_params of Module {self.name}")
