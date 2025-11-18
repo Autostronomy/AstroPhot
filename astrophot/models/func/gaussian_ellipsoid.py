@@ -17,7 +17,7 @@ def euler_rotation_matrix(alpha: ArrayLike, beta: ArrayLike, gamma: ArrayLike) -
         (
             backend.stack((ca * cg - cb * sa * sg, -ca * sg - cb * cg * sa, sb * sa)),
             backend.stack((cg * sa + ca * cb * sg, ca * cb * cg - sa * sg, -ca * sb)),
-            backend.stack((sb * cg, sb * cg, cb)),
+            backend.stack((sb * sg, sb * cg, cb)),
         ),
         dim=-1,
     )
