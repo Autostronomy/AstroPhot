@@ -6,6 +6,7 @@ from . import (
     interpolate,
     parametric_profiles,
 )
+from .fitsopen import ls_open
 
 __all__ = [
     "decorators",
@@ -14,4 +15,5 @@ __all__ = [
     "parametric_profiles",
     "initialize",
     "conversions",
+    "ls_open",
 ]
