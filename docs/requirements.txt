@@ -3,7 +3,7 @@ corner
 emcee
 graphviz
 ipywidgets
-jax==0.7.0
+jax<=0.7.0
 jupyter-book<2.0
 matplotlib
 nbformat
