@@ -9,6 +9,7 @@ matplotlib
 nbformat
 nbsphinx
 photutils
+pyvo
 scikit-image
 sphinx
 sphinx-rtd-theme
