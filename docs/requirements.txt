@@ -3,12 +3,13 @@ corner
 emcee
 graphviz
 ipywidgets
-jax
+jax<=0.7.0
 jupyter-book<2.0
 matplotlib
 nbformat
 nbsphinx
 photutils
+pyvo
 scikit-image
 sphinx
 sphinx-rtd-theme

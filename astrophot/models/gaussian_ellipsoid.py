@@ -130,6 +130,6 @@ class GaussianEllipsoid(ComponentModel):
         v = backend.stack(self.transform_coordinates(x, y), dim=0).reshape(2, -1)
         return (
             flux
-            * backend.sum(backend.exp(-0.5 * (v * (inv_Sigma @ v))), dim=0)
+            * backend.exp(-0.5 * backend.sum(v * (inv_Sigma @ v), dim=0))
             / (2 * np.pi * backend.sqrt(backend.linalg.det(Sigma2D)))
         ).reshape(x.shape)

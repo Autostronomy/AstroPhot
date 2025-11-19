@@ -56,7 +56,7 @@ def centroids_from_segmentation_map(
     if sky_level is None:
         sky_level = np.nanmedian(backend.to_numpy(image.data))
 
-    data = backend.to_numpy(image.data) - sky_level
+    data = backend.to_numpy(image._data) - sky_level
     centroids = {}
 
     II, JJ = np.meshgrid(np.arange(seg_map.shape[0]), np.arange(seg_map.shape[1]), indexing="ij")
@@ -94,7 +94,7 @@ def PA_from_segmentation_map(
     if sky_level is None:
         sky_level = np.nanmedian(backend.to_numpy(image.data))
 
-    data = backend.to_numpy(image.data) - sky_level
+    data = backend.to_numpy(image._data) - sky_level
 
     if centroids is None:
         centroids = centroids_from_segmentation_map(
@@ -141,7 +141,7 @@ def q_from_segmentation_map(
     if sky_level is None:
         sky_level = np.nanmedian(backend.to_numpy(image.data))
 
-    data = backend.to_numpy(image.data) - sky_level
+    data = backend.to_numpy(image._data) - sky_level
 
     if centroids is None:
         centroids = centroids_from_segmentation_map(
@@ -232,8 +232,8 @@ def scale_windows(windows, image: "Image" = None, expand_scale=1.0, expand_borde
             new_window = [
                 [max(0, new_window[0][0]), max(0, new_window[0][1])],
                 [
-                    min(image.data.shape[0], new_window[1][0]),
-                    min(image.data.shape[1], new_window[1][1]),
+                    min(image._data.shape[0], new_window[1][0]),
+                    min(image._data.shape[1], new_window[1][1]),
                 ],
             ]
         new_windows[index] = new_window
@@ -296,7 +296,7 @@ def filter_windows(
         if min_flux is not None:
             if (
                 np.sum(
-                    backend.to_numpy(image.data)[
+                    backend.to_numpy(image._data)[
                         windows[w][0][0] : windows[w][1][0],
                         windows[w][0][1] : windows[w][1][1],
                     ]
@@ -307,7 +307,7 @@ def filter_windows(
         if max_flux is not None:
             if (
                 np.sum(
-                    backend.to_numpy(image.data)[
+                    backend.to_numpy(image._data)[
                         windows[w][0][0] : windows[w][1][0],
                         windows[w][0][1] : windows[w][1][1],
                     ]

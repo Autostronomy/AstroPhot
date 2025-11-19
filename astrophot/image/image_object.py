@@ -448,13 +448,16 @@ class Image(Module):
         hdulist = fits.HDUList(self.fits_images())
         hdulist.writeto(filename, overwrite=True)
 
-    def load(self, filename: str, hduext: int = 0):
+    def load(self, filename: Union[str, fits.HDUList], hduext: int = 0):
         """Load an image from a FITS file. This will load the primary HDU
         and set the data, CD, crpix, crval, and crtan attributes
         accordingly. If the WCS is not tangent plane, it will warn the user.
 
         """
-        hdulist = fits.open(filename)
+        if isinstance(filename, str):
+            hdulist = fits.open(filename)
+        else:
+            hdulist = filename
         self.data = np.array(hdulist[hduext].data, dtype=np.float64)
 
         self.CD = (
