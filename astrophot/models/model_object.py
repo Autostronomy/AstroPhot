@@ -36,7 +36,7 @@ class ComponentModel(SampleMixin, Model):
 
     """
 
-    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,)}}
+    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": True}}
 
     _options = ("psf_convolve",)
 
@@ -136,7 +136,7 @@ class ComponentModel(SampleMixin, Model):
         COM_center = target_area.pixel_to_plane(
             *backend.as_array(COM, dtype=config.DTYPE, device=config.DEVICE)
         )
-        self.center.dynamic_value = COM_center
+        self.center.value = COM_center
 
     def fit_mask(self):
         return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)

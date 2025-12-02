@@ -30,7 +30,7 @@ class ExponentialGalaxy(ExponentialMixin, RadialMixin, GalaxyModel):
 
 @combine_docstrings
 class ExponentialPSF(ExponentialMixin, RadialMixin, PSFModel):
-    _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0}}
+    _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0, "dynamic": False}}
     usable = True
 
 

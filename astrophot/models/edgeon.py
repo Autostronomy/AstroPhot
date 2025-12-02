@@ -24,7 +24,13 @@ class EdgeonModel(ComponentModel):
 
     _model_type = "edgeon"
     _parameter_specs = {
-        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "shape": ()},
+        "PA": {
+            "units": "radians",
+            "valid": (0, np.pi),
+            "cyclic": True,
+            "shape": (),
+            "dynamic": True,
+        },
     }
     usable = False
 
@@ -51,9 +57,9 @@ class EdgeonModel(ComponentModel):
         mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y)))
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
-            self.PA.dynamic_value = np.pi / 2
+            self.PA.value = np.pi / 2
         else:
-            self.PA.dynamic_value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
+            self.PA.value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02)) % np.pi
 
     @forward
     def transform_coordinates(
@@ -74,8 +80,8 @@ class EdgeonSech(EdgeonModel):
 
     _model_type = "sech2"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2", "shape": ()},
-        "hs": {"units": "arcsec", "valid": (0, None), "shape": ()},
+        "I0": {"units": "flux/arcsec^2", "shape": (), "dynamic": True},
+        "hs": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
     }
     usable = False
 
@@ -93,7 +99,7 @@ class EdgeonSech(EdgeonModel):
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
-            self.I0.dynamic_value = backend.mean(chunk) / self.target.pixel_area
+            self.I0.value = backend.mean(chunk) / self.target.pixel_area
         if not self.hs.initialized:
             self.hs.value = max(self.window.shape) * target_area.pixelscale * 0.1
 
@@ -113,7 +119,7 @@ class EdgeonIsothermal(EdgeonSech):
     """
 
     _model_type = "isothermal"
-    _parameter_specs = {"rs": {"units": "arcsec", "valid": (0, None), "shape": ()}}
+    _parameter_specs = {"rs": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True}}
     usable = True
 
     @torch.no_grad()

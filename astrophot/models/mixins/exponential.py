@@ -30,8 +30,8 @@ class ExponentialMixin:
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
+        "Re": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -73,8 +73,8 @@ class iExponentialMixin:
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "arcsec", "valid": (0, None)},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None)},
+        "Re": {"units": "arcsec", "valid": (0, None), "dynamic": True},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
     }
 
     @torch.no_grad()

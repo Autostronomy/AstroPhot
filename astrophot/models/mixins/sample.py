@@ -1,7 +1,6 @@
 from typing import Optional, Literal
 
 import numpy as np
-from torch.autograd.functional import jacobian
 
 from ...param import forward
 from ...backend_obj import backend, ArrayLike

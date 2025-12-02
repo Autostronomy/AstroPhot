@@ -31,7 +31,7 @@ class KingGalaxy(KingMixin, RadialMixin, GalaxyModel):
 
 @combine_docstrings
 class KingPSF(KingMixin, RadialMixin, PSFModel):
-    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0}}
+    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "value": 1.0, "dynamic": False}}
     usable = True
 
 

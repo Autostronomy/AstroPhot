@@ -35,10 +35,16 @@ class KingMixin:
 
     _model_type = "king"
     _parameter_specs = {
-        "Rc": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "Rt": {"units": "arcsec", "valid": (0.0, None), "shape": ()},
-        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (), "value": 2.0},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
+        "Rc": {"units": "arcsec", "valid": (0.0, None), "shape": (), "dynamic": True},
+        "Rt": {"units": "arcsec", "valid": (0.0, None), "shape": (), "dynamic": True},
+        "alpha": {
+            "units": "unitless",
+            "valid": (0, 10),
+            "shape": (),
+            "value": 2.0,
+            "dynamic": False,
+        },
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -47,7 +53,7 @@ class KingMixin:
         super().initialize()
 
         if not self.alpha.initialized:
-            self.alpha.dynamic_value = 2.0
+            self.alpha.value = 2.0
 
         parametric_initialize(
             self,
@@ -89,10 +95,10 @@ class iKingMixin:
 
     _model_type = "king"
     _parameter_specs = {
-        "Rc": {"units": "arcsec", "valid": (0.0, None)},
-        "Rt": {"units": "arcsec", "valid": (0.0, None)},
-        "alpha": {"units": "unitless", "valid": (0, 10)},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None)},
+        "Rc": {"units": "arcsec", "valid": (0.0, None), "dynamic": True},
+        "Rt": {"units": "arcsec", "valid": (0.0, None), "dynamic": True},
+        "alpha": {"units": "unitless", "valid": (0, 10), "dynamic": False},
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -101,7 +107,8 @@ class iKingMixin:
         super().initialize()
 
         if not self.alpha.initialized:
-            self.alpha.value = 2.0 * np.ones(self.segments)
+            self.alpha.static_value(2.0 * np.ones(self.segments))
+
         parametric_segment_initialize(
             model=self,
             target=self.target[self.window],

@@ -46,13 +46,6 @@ class Param(CParam):
             return True
         return False
 
-    def is_valid(self, value):
-        if self.valid[0] is not None and backend.any(value <= self.valid[0]):
-            return False
-        if self.valid[1] is not None and backend.any(value >= self.valid[1]):
-            return False
-        return True
-
     def soft_valid(self, value):
         if self.valid[0] is None and self.valid[1] is None:
             return value

@@ -33,9 +33,9 @@ class PixelBasisPSF(PSFModel):
 
     _model_type = "basis"
     _parameter_specs = {
-        "weights": {"units": "flux"},
-        "PA": {"units": "radians", "shape": ()},
-        "scale": {"units": "arcsec/grid-unit", "shape": ()},
+        "weights": {"units": "flux", "dynamic": True},
+        "PA": {"units": "radians", "shape": (), "dynamic": True},
+        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": True},
     }
     usable = True
 
@@ -95,7 +95,7 @@ class PixelBasisPSF(PSFModel):
         if not self.weights.initialized:
             w = np.zeros(self.basis.shape[0])
             w[0] = 1.0
-            self.weights.dynamic_value = w
+            self.weights.value = w
 
     @forward
     def transform_coordinates(

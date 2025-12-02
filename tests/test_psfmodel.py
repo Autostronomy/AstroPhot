@@ -46,7 +46,7 @@ def test_all_psfmodel_sample(model_type):
 
     if model_type == "pixelated psf model":
         psf = ap.utils.initialize.gaussian_psf(3 * 0.8, 25, 0.8)
-        MODEL.pixels.dynamic_value = psf / np.sum(psf)
+        MODEL.pixels.value = psf / np.sum(psf)
 
     assert ap.backend.all(
         ap.backend.isfinite(MODEL.jacobian().data)
