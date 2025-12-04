@@ -17,11 +17,11 @@ def test_all_psfmodel_sample(model_type):
         )
 
     if "nuker" in model_type:
-        kwargs = {"Ib": None}
+        kwargs = {"Ib": {"value": None, "dynamic": True}}
     elif "gaussian" in model_type:
-        kwargs = {"flux": None}
+        kwargs = {"flux": {"value": None, "dynamic": True}}
     elif "exponential" in model_type:
-        kwargs = {"Ie": None}
+        kwargs = {"Ie": {"value": None, "dynamic": True}}
     else:
         kwargs = {}
     target = make_basic_gaussian_psf(pixelscale=0.8)
