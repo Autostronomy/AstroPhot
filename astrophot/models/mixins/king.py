@@ -52,9 +52,6 @@ class KingMixin:
     def initialize(self):
         super().initialize()
 
-        if not self.alpha.initialized:
-            self.alpha.value = 2.0
-
         parametric_initialize(
             self,
             self.target[self.window],
@@ -107,7 +104,7 @@ class iKingMixin:
         super().initialize()
 
         if not self.alpha.initialized:
-            self.alpha.static_value(2.0 * np.ones(self.segments))
+            self.alpha.value = 2.0 * np.ones(self.segments)
 
         parametric_segment_initialize(
             model=self,
