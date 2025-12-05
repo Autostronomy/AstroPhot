@@ -136,9 +136,7 @@ class Grad(BaseOptimizer):
             self.message = self.message + " fail interrupted"
 
         # Set the model parameters to the best values from the fit and clear any previous model sampling
-        self.model.fill_dynamic_values(
-            torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE)
-        )
+        self.model.set_values(torch.tensor(self.res(), dtype=config.DTYPE, device=config.DEVICE))
         if self.verbose > 1:
             config.logger.info(
                 f"Grad Fitting complete in {time() - start_fit} sec with message: {self.message}"
@@ -260,7 +258,7 @@ class Slalom(BaseOptimizer):
             self.message = self.message + " fail. max iteration reached"
 
         # Set the model parameters to the best values from the fit
-        self.model.fill_dynamic_values(
+        self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if self.verbose > 0:

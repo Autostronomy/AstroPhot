@@ -96,7 +96,7 @@ class MHMCMC(BaseOptimizer):
             self.chain = sampler.get_chain(flat=flat_chain)
         else:
             self.chain = np.append(self.chain, sampler.get_chain(flat=flat_chain), axis=0)
-        self.model.fill_dynamic_values(
+        self.model.set_values(
             backend.as_array(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
         )
         return self

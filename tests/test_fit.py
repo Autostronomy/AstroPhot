@@ -184,7 +184,7 @@ def test_gradient(sersic_model):
     target = model.target
     target.weight = 1 / (10 + target.variance)
     model.initialize()
-    x = model.build_params_array()
+    x = model.get_values()
     grad = model.gradient()
     assert ap.backend.all(ap.backend.isfinite(grad)), "Gradient should be finite"
     assert grad.shape == x.shape, "Gradient shape should match parameters shape"

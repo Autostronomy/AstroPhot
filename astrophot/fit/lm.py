@@ -290,7 +290,7 @@ class LM(BaseOptimizer):
                 f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
             )
 
-        self.model.fill_dynamic_values(
+        self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if update_uncertainty:
@@ -363,8 +363,8 @@ class LM(BaseOptimizer):
         cov = self.covariance_matrix
         if backend.all(backend.isfinite(cov)):
             try:
-                self.model.fill_dynamic_value_uncertainties(
-                    backend.sqrt(backend.abs(backend.diag(cov)))
+                self.model.set_values(
+                    backend.sqrt(backend.abs(backend.diag(cov))), attribute="uncertainty"
                 )
             except RuntimeError as e:
                 config.logger.warning(f"Unable to update uncertainty due to: {e}")

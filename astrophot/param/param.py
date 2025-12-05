@@ -1,3 +1,6 @@
+from math import prod
+import numpy as np
+
 from caskade import Param as CParam
 from ..backend_obj import backend
 
@@ -36,6 +39,14 @@ class Param(CParam):
             self._prof = None
         else:
             self._prof = backend.as_array(prof)
+
+    @property
+    def name_array(self):
+        numel = max(1, prod(self.shape))
+        if numel == 1:
+            return np.array(self.name)
+        names = [f"{self.name}_{i}" for i in range(numel)]
+        return np.array(names).reshape(self.shape)
 
     @property
     def initialized(self):

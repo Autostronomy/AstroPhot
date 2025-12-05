@@ -45,7 +45,7 @@ class BaseOptimizer:
         self.verbose = verbose
 
         if initial_state is None:
-            self.current_state = model.build_params_array()
+            self.current_state = model.get_values()
         else:
             self.current_state = backend.as_array(
                 initial_state, dtype=config.DTYPE, device=config.DEVICE

@@ -173,9 +173,9 @@ class Model(Module):
 
     def hessian(self, likelihood="gaussian"):
         if likelihood == "gaussian":
-            return backend.hessian(self.gaussian_log_likelihood)(self.build_params_array())
+            return backend.hessian(self.gaussian_log_likelihood)(self.get_values())
         elif likelihood == "poisson":
-            return backend.hessian(self.poisson_log_likelihood)(self.build_params_array())
+            return backend.hessian(self.poisson_log_likelihood)(self.get_values())
         else:
             raise ValueError(f"Unknown likelihood type: {likelihood}")
 

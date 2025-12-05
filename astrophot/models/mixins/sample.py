@@ -182,7 +182,7 @@ class SampleMixin:
 
         # No dynamic params
         if params is None:
-            params = self.build_params_array()
+            params = self.get_values()
         if params.shape[-1] == 0:
             return jac_img
 

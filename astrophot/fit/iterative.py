@@ -51,7 +51,7 @@ class Iter(BaseOptimizer):
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.current_state = model.build_params_array()
+        self.current_state = model.get_values()
         self.lm_kwargs = lm_kwargs
         if "relative_tolerance" not in lm_kwargs:
             # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
@@ -90,7 +90,7 @@ class Iter(BaseOptimizer):
                 config.logger.info(model.name)
             self.sub_step(model)
         # Update the current state
-        self.current_state = self.model.build_params_array()
+        self.current_state = self.model.get_values()
 
         # Update the loss value
         with torch.no_grad():
@@ -138,7 +138,7 @@ class Iter(BaseOptimizer):
         except KeyboardInterrupt:
             self.message = self.message + "fail interrupted"
 
-        self.model.fill_dynamic_values(
+        self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if self.verbose > 1:
@@ -401,7 +401,7 @@ class IterParam(BaseOptimizer):
                 f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
             )
 
-        self.model.fill_dynamic_values(
+        self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
         if update_uncertainty:
@@ -487,8 +487,8 @@ class IterParam(BaseOptimizer):
         cov = self.covariance_matrix
         if backend.all(backend.isfinite(cov)):
             try:
-                self.model.fill_dynamic_value_uncertainties(
-                    backend.sqrt(backend.abs(backend.diag(cov)))
+                self.model.set_values(
+                    backend.sqrt(backend.abs(backend.diag(cov))), attribute="uncertainty"
                 )
             except RuntimeError as e:
                 config.logger.warning(f"Unable to update uncertainty due to: {e}")

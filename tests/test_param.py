@@ -40,10 +40,10 @@ def test_module():
     model = ap.Model(name="test", model_type="group model", target=target, models=[model1, model2])
     model.initialize()
 
-    U = ap.backend.ones_like(model.build_params_array()) * 0.1
+    U = ap.backend.ones_like(model.get_values()) * 0.1
     model.fill_dynamic_value_uncertainties(U)
 
-    paramsu = model.build_params_array_uncertainty()
+    paramsu = model.get_values(attribute="uncertainty")
     assert ap.backend.all(ap.backend.isfinite(paramsu)), "All parameters should be finite"
 
     paramsn = model.build_params_array_names()
