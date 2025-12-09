@@ -1,5 +1,4 @@
 import torch
-from torch import Tensor
 
 from ...param import forward
 from ...backend_obj import ArrayLike
@@ -32,9 +31,9 @@ class MoffatMixin:
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10), "shape": ()},
-        "Rd": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
+        "n": {"units": "none", "valid": (0.1, 10), "shape": (), "dynamic": True},
+        "Rd": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -77,9 +76,9 @@ class iMoffatMixin:
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10)},
-        "Rd": {"units": "arcsec", "valid": (0, None)},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None)},
+        "n": {"units": "none", "valid": (0.1, 10), "dynamic": True},
+        "Rd": {"units": "arcsec", "valid": (0, None), "dynamic": True},
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
     }
 
     @torch.no_grad()

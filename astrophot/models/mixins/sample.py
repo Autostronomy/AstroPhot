@@ -1,7 +1,6 @@
 from typing import Optional, Literal
 
 import numpy as np
-from torch.autograd.functional import jacobian
 
 from ...param import forward
 from ...backend_obj import backend, ArrayLike
@@ -183,7 +182,7 @@ class SampleMixin:
 
         # No dynamic params
         if params is None:
-            params = self.build_params_array()
+            params = self.get_values()
         if params.shape[-1] == 0:
             return jac_img
 

@@ -110,13 +110,11 @@ class Model(Module):
             if isinstance(kwargs[p], dict):
                 parameter_specs[p].update(kwargs.pop(p))
             else:
-                parameter_specs[p]["dynamic_value"] = kwargs.pop(p)
-                parameter_specs[p].pop("value", None)
-            if isinstance(parameter_specs[p].get("dynamic_value", None), CParam) or callable(
-                parameter_specs[p].get("dynamic_value", None)
+                parameter_specs[p]["value"] = kwargs.pop(p)
+            if isinstance(parameter_specs[p].get("value", None), CParam) or callable(
+                parameter_specs[p].get("value", None)
             ):
-                parameter_specs[p]["value"] = parameter_specs[p]["dynamic_value"]
-                parameter_specs[p].pop("dynamic_value", None)
+                parameter_specs[p]["dynamic"] = False
 
         return parameter_specs
 
@@ -175,9 +173,9 @@ class Model(Module):
 
     def hessian(self, likelihood="gaussian"):
         if likelihood == "gaussian":
-            return backend.hessian(self.gaussian_log_likelihood)(self.build_params_array())
+            return backend.hessian(self.gaussian_log_likelihood)(self.get_values())
         elif likelihood == "poisson":
-            return backend.hessian(self.poisson_log_likelihood)(self.build_params_array())
+            return backend.hessian(self.poisson_log_likelihood)(self.get_values())
         else:
             raise ValueError(f"Unknown likelihood type: {likelihood}")
 

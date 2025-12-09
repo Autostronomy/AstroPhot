@@ -104,6 +104,6 @@ class ScipyFit(BaseOptimizer):
             config.logger.info(
                 f"Final 2NLL/DoF: {2*self.density(res.x)/self.ndf:.6g}. Converged: {self.message}"
             )
-        self.model.fill_dynamic_values(self.current_state)
+        self.model.set_values(self.current_state)
 
         return self

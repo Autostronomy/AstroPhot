@@ -38,8 +38,14 @@ class InclinedMixin:
     """
 
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0.01, 1), "shape": ()},
-        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "shape": ()},
+        "q": {"units": "b/a", "valid": (0.01, 1), "shape": (), "dynamic": True},
+        "PA": {
+            "units": "radians",
+            "valid": (0, np.pi),
+            "cyclic": True,
+            "shape": (),
+            "dynamic": True,
+        },
     }
 
     @torch.no_grad()
@@ -67,17 +73,15 @@ class InclinedMixin:
         M = np.array([[mu20, mu11], [mu11, mu02]])
         if not self.PA.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
-                self.PA.dynamic_value = np.pi / 2
+                self.PA.value = np.pi / 2
             else:
-                self.PA.dynamic_value = (
-                    0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2
-                ) % np.pi
+                self.PA.value = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
         if not self.q.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
                 l = (0.7, 1.0)
             else:
                 l = np.sort(np.linalg.eigvals(M))
-            self.q.dynamic_value = np.clip(np.sqrt(np.abs(l[0] / l[1])), 0.1, 0.9)
+            self.q.value = np.clip(np.sqrt(np.abs(l[0] / l[1])), 0.1, 0.9)
 
     @forward
     def transform_coordinates(
@@ -114,7 +118,7 @@ class SuperEllipseMixin:
 
     _model_type = "superellipse"
     _parameter_specs = {
-        "C": {"units": "none", "dynamic_value": 2.0, "valid": (0, 10)},
+        "C": {"units": "none", "value": 2.0, "valid": (0, 10), "dynamic": True},
     }
 
     @forward
@@ -164,8 +168,8 @@ class FourierEllipseMixin:
 
     _model_type = "fourier"
     _parameter_specs = {
-        "am": {"units": "none"},
-        "phim": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True},
+        "am": {"units": "none", "dynamic": True},
+        "phim": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "dynamic": False},
     }
     _options = ("modes",)
 
@@ -193,7 +197,7 @@ class FourierEllipseMixin:
         super().initialize()
 
         if not self.am.initialized:
-            self.am.dynamic_value = np.zeros(len(self.modes))
+            self.am.value = np.zeros(len(self.modes))
         if not self.phim.initialized:
             self.phim.value = np.zeros(len(self.modes))
 
@@ -224,8 +228,8 @@ class WarpMixin:
 
     _model_type = "warp"
     _parameter_specs = {
-        "q_R": {"units": "b/a", "valid": (0, 1)},
-        "PA_R": {"units": "radians", "valid": (0, np.pi), "cyclic": True},
+        "q_R": {"units": "b/a", "valid": (0, 1), "dynamic": True},
+        "PA_R": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "dynamic": True},
     }
 
     @torch.no_grad()
@@ -236,11 +240,11 @@ class WarpMixin:
         if not self.PA_R.initialized:
             if self.PA_R.prof is None:
                 self.PA_R.prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
-            self.PA_R.dynamic_value = np.zeros(len(self.PA_R.prof)) + np.pi / 2
+            self.PA_R.value = np.zeros(len(self.PA_R.prof)) + np.pi / 2
         if not self.q_R.initialized:
             if self.q_R.prof is None:
                 self.q_R.prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
-            self.q_R.dynamic_value = np.ones(len(self.q_R.prof)) * 0.8
+            self.q_R.value = np.ones(len(self.q_R.prof)) * 0.8
 
     @forward
     def transform_coordinates(
@@ -281,8 +285,8 @@ class TruncationMixin:
 
     _model_type = "truncated"
     _parameter_specs = {
-        "Rt": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "St": {"units": "none", "valid": (0, None), "shape": (), "value": 1.0},
+        "Rt": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "St": {"units": "none", "valid": (0, None), "shape": (), "value": 1.0, "dynamic": False},
     }
     _options = ("outer_truncation",)
 
@@ -296,7 +300,7 @@ class TruncationMixin:
         super().initialize()
         if not self.Rt.initialized:
             prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
-            self.Rt.dynamic_value = prof[len(prof) // 2]
+            self.Rt.value = prof[len(prof) // 2]
 
     @forward
     def radial_model(self, R: ArrayLike, Rt: ArrayLike, St: ArrayLike) -> ArrayLike:

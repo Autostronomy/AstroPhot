@@ -24,7 +24,7 @@ class SkyModel(ComponentModel):
         """
         if not self.center.initialized:
             target_area = self.target[self.window]
-            self.center.value = target_area.center
+            self.center.to_static(target_area.center)
         super().initialize()
         self.center.to_static()
 

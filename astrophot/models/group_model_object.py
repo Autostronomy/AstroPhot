@@ -253,7 +253,7 @@ class GroupModel(Model):
             window = self.window
 
         if params is not None:
-            self.fill_dynamic_values(params)
+            self.set_values(params)
 
         if pass_jacobian is None:
             jac_img = self.target[window].jacobian_image(

@@ -27,8 +27,8 @@ class PlaneSky(SkyModel):
 
     _model_type = "plane"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2"},
-        "delta": {"units": "flux/arcsec"},
+        "I0": {"units": "flux/arcsec^2", "dynamic": True},
+        "delta": {"units": "flux/arcsec", "dynamic": True},
     }
     usable = True
 
@@ -41,9 +41,9 @@ class PlaneSky(SkyModel):
             dat = backend.to_numpy(self.target[self.window]._data).copy()
             mask = backend.to_numpy(self.target[self.window]._mask)
             dat[mask] = np.median(dat[~mask])
-            self.I0.dynamic_value = np.median(dat) / self.target.pixel_area.item()
+            self.I0.value = np.median(dat) / self.target.pixel_area.item()
         if not self.delta.initialized:
-            self.delta.dynamic_value = [0.0, 0.0]
+            self.delta.value = [0.0, 0.0]
 
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, I0: ArrayLike, delta: ArrayLike) -> ArrayLike:

@@ -40,7 +40,7 @@ class PixelatedPSF(PSFModel):
     """
 
     _model_type = "pixelated"
-    _parameter_specs = {"pixels": {"units": "flux/arcsec^2"}}
+    _parameter_specs = {"pixels": {"units": "flux/arcsec^2", "dynamic": True}}
     usable = True
     sampling_mode = "midpoint"
     integrate_mode = "none"
@@ -52,7 +52,7 @@ class PixelatedPSF(PSFModel):
         if self.pixels.initialized:
             return
         target_area = self.target[self.window]
-        self.pixels.dynamic_value = backend.copy(target_area._data) / target_area.pixel_area
+        self.pixels.value = backend.copy(target_area._data) / target_area.pixel_area
 
     @forward
     def brightness(

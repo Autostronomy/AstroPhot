@@ -30,10 +30,10 @@ class MultiGaussianExpansion(ComponentModel):
 
     _model_type = "mge"
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0, 1)},
-        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True},
-        "sigma": {"units": "arcsec", "valid": (0, None)},
-        "flux": {"units": "flux"},
+        "q": {"units": "b/a", "valid": (0, 1), "dynamic": True},
+        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "dynamic": True},
+        "sigma": {"units": "arcsec", "valid": (0, None), "dynamic": True},
+        "flux": {"units": "flux", "dynamic": True},
     }
     usable = True
 
@@ -64,13 +64,13 @@ class MultiGaussianExpansion(ComponentModel):
         dat -= edge_average
 
         if not self.sigma.initialized:
-            self.sigma.dynamic_value = np.logspace(
+            self.sigma.value = np.logspace(
                 np.log10(target_area.pixelscale.item() * 3),
                 max(target_area.data.shape) * target_area.pixelscale.item() * 0.7,
                 self.n_components,
             )
         if not self.flux.initialized:
-            self.flux.dynamic_value = (np.sum(dat) / self.n_components) * np.ones(self.n_components)
+            self.flux.value = (np.sum(dat) / self.n_components) * np.ones(self.n_components)
 
         if self.PA.initialized or self.q.initialized:
             return
@@ -88,16 +88,14 @@ class MultiGaussianExpansion(ComponentModel):
         ones = np.ones(self.n_components)
         if not self.PA.initialized:
             if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
-                self.PA.dynamic_value = ones * np.pi / 2
+                self.PA.value = ones * np.pi / 2
             else:
-                self.PA.dynamic_value = (
-                    ones * (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
-                )
+                self.PA.value = ones * (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
         if not self.q.initialized:
             l = np.sort(np.linalg.eigvals(M))
             if np.any(np.iscomplex(l)) or np.any(~np.isfinite(l)):
                 l = (0.7, 1.0)
-            self.q.dynamic_value = ones * np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
+            self.q.value = ones * np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
 
     @forward
     def transform_coordinates(

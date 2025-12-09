@@ -34,11 +34,11 @@ class NukerMixin:
 
     _model_type = "nuker"
     _parameter_specs = {
-        "Rb": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "Ib": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
-        "alpha": {"units": "none", "valid": (0, None), "shape": ()},
-        "beta": {"units": "none", "valid": (0, None), "shape": ()},
-        "gamma": {"units": "none", "shape": ()},
+        "Rb": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "Ib": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
+        "alpha": {"units": "none", "valid": (0, None), "shape": (), "dynamic": True},
+        "beta": {"units": "none", "valid": (0, None), "shape": (), "dynamic": True},
+        "gamma": {"units": "none", "shape": (), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -92,11 +92,11 @@ class iNukerMixin:
 
     _model_type = "nuker"
     _parameter_specs = {
-        "Rb": {"units": "arcsec", "valid": (0, None)},
-        "Ib": {"units": "flux/arcsec^2", "valid": (0, None)},
-        "alpha": {"units": "none", "valid": (0, None)},
-        "beta": {"units": "none", "valid": (0, None)},
-        "gamma": {"units": "none"},
+        "Rb": {"units": "arcsec", "valid": (0, None), "dynamic": True},
+        "Ib": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
+        "alpha": {"units": "none", "valid": (0, None), "dynamic": True},
+        "beta": {"units": "none", "valid": (0, None), "dynamic": True},
+        "gamma": {"units": "none", "dynamic": True},
     }
 
     @torch.no_grad()

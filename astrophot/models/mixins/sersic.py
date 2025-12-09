@@ -34,9 +34,9 @@ class SersicMixin:
 
     _model_type = "sersic"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.36, 8), "shape": ()},
-        "Re": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": ()},
+        "n": {"units": "none", "valid": (0.36, 8), "shape": (), "dynamic": True},
+        "Re": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -78,9 +78,9 @@ class iSersicMixin:
 
     _model_type = "sersic"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.36, 8)},
-        "Re": {"units": "arcsec", "valid": (0, None)},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None)},
+        "n": {"units": "none", "valid": (0.36, 8), "dynamic": True},
+        "Re": {"units": "arcsec", "valid": (0, None), "dynamic": True},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
     }
 
     @torch.no_grad()

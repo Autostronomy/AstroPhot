@@ -1,3 +1,6 @@
+from math import prod
+import numpy as np
+
 from caskade import Param as CParam
 from ..backend_obj import backend
 
@@ -38,6 +41,14 @@ class Param(CParam):
             self._prof = backend.as_array(prof)
 
     @property
+    def name_array(self):
+        numel = max(1, prod(self.shape))
+        if numel == 1:
+            return np.array(self.name)
+        names = [f"{self.name}_{i}" for i in range(numel)]
+        return np.array(names).reshape(self.shape)
+
+    @property
     def initialized(self):
         """Check if the parameter is initialized."""
         if self.pointer:
@@ -45,13 +56,6 @@ class Param(CParam):
         if self.value is not None:
             return True
         return False
-
-    def is_valid(self, value):
-        if self.valid[0] is not None and backend.any(value <= self.valid[0]):
-            return False
-        if self.valid[1] is not None and backend.any(value >= self.valid[1]):
-            return False
-        return True
 
     def soft_valid(self, value):
         if self.valid[0] is None and self.valid[1] is None:

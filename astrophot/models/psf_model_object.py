@@ -24,7 +24,7 @@ class PSFModel(SampleMixin, Model):
     """
 
     _parameter_specs = {
-        "center": {"units": "arcsec", "value": (0.0, 0.0), "shape": (2,)},
+        "center": {"units": "arcsec", "value": (0.0, 0.0), "shape": (2,), "dynamic": False},
     }
     _model_type = "psf"
     usable = False

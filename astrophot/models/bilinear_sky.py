@@ -26,9 +26,9 @@ class BilinearSky(SkyModel):
 
     _model_type = "bilinear"
     _parameter_specs = {
-        "I": {"units": "flux/arcsec^2"},
-        "PA": {"units": "radians", "shape": ()},
-        "scale": {"units": "arcsec/grid-unit", "shape": ()},
+        "I": {"units": "flux/arcsec^2", "dynamic": True},
+        "PA": {"units": "radians", "shape": (), "dynamic": True},
+        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": True},
     }
     sampling_mode = "midpoint"
     usable = True
@@ -64,7 +64,7 @@ class BilinearSky(SkyModel):
         iS = dat.shape[0] // self.nodes[0]
         jS = dat.shape[1] // self.nodes[1]
 
-        self.I.dynamic_value = (
+        self.I.value = (
             np.median(
                 dat[: iS * self.nodes[0], : jS * self.nodes[1]].reshape(
                     iS, self.nodes[0], jS, self.nodes[1]

@@ -32,7 +32,7 @@ class PointSource(ComponentModel):
 
     _model_type = "point"
     _parameter_specs = {
-        "flux": {"units": "flux", "valid": (0, None), "shape": ()},
+        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": True},
     }
     usable = True
 
@@ -57,7 +57,7 @@ class PointSource(ComponentModel):
 
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
-        self.flux.dynamic_value = np.abs(np.sum(dat - edge_average))
+        self.flux.value = np.abs(np.sum(dat - edge_average))
 
     # Psf convolution should be on by default since this is a delta function
     @property

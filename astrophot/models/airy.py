@@ -45,8 +45,8 @@ class AiryPSF(RadialMixin, PSFModel):
 
     _model_type = "airy"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2", "value": 1.0, "shape": ()},
-        "aRL": {"units": "a/(R lambda)", "shape": ()},
+        "I0": {"units": "flux/arcsec^2", "value": 1.0, "shape": (), "dynamic": False},
+        "aRL": {"units": "a/(R lambda)", "shape": (), "dynamic": True},
     }
     usable = True
 
@@ -64,9 +64,9 @@ class AiryPSF(RadialMixin, PSFModel):
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
-            self.I0.dynamic_value = backend.mean(mid_chunk) / self.target.pixel_area
+            self.I0.value = backend.mean(mid_chunk) / self.target.pixel_area
         if not self.aRL.initialized:
-            self.aRL.dynamic_value = (5.0 / 8.0) * 2 * self.target.pixelscale
+            self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixelscale
 
     @forward
     def radial_model(self, R: ArrayLike, I0: ArrayLike, aRL: ArrayLike) -> ArrayLike:

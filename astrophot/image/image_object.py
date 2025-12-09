@@ -69,9 +69,6 @@ class Image(Module):
             self.data = data  # units: flux
         else:
             self._data = _data
-        self.crval = Param(
-            "crval", shape=(2,), units="deg", dtype=config.DTYPE, device=config.DEVICE
-        )
         self.crtan = Param(
             "crtan",
             crtan,
@@ -80,18 +77,7 @@ class Image(Module):
             dtype=config.DTYPE,
             device=config.DEVICE,
         )
-        self.CD = Param(
-            "CD",
-            shape=(2, 2),
-            units="arcsec/pixel",
-            dtype=config.DTYPE,
-            device=config.DEVICE,
-        )
         self.zeropoint = zeropoint
-
-        if filename is not None:
-            self.load(filename, hduext=hduext)
-            return
 
         if identity is None:
             self.identity = id(self)
@@ -116,7 +102,9 @@ class Image(Module):
             CD = deg_to_arcsec * wcs.pixel_scale_matrix
 
         # set the data
-        self.crval = crval
+        self.crval = Param(
+            "crval", crval, shape=(2,), units="deg", dtype=config.DTYPE, device=config.DEVICE
+        )
         self.crpix = crpix
 
         if isinstance(CD, (float, int)):
@@ -125,7 +113,19 @@ class Image(Module):
             CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
         elif CD is None:
             CD = self.default_CD
-        self.CD = CD
+
+        self.CD = Param(
+            "CD",
+            CD,
+            shape=(2, 2),
+            units="arcsec/pixel",
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )
+
+        if filename is not None:
+            self.load(filename, hduext=hduext)
+            return
 
     @property
     def data(self):

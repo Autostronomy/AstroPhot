@@ -43,7 +43,7 @@ class TSersicGalaxy(TruncationMixin, SersicMixin, RadialMixin, GalaxyModel):
 
 @combine_docstrings
 class SersicPSF(SersicMixin, RadialMixin, PSFModel):
-    _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0}}
+    _parameter_specs = {"Ie": {"units": "flux/arcsec^2", "value": 1.0, "dynamic": False}}
     usable = True
 
     @forward

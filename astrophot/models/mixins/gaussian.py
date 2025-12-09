@@ -30,8 +30,8 @@ class GaussianMixin:
 
     _model_type = "gaussian"
     _parameter_specs = {
-        "sigma": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "flux": {"units": "flux", "valid": (0, None), "shape": ()},
+        "sigma": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -74,8 +74,8 @@ class iGaussianMixin:
 
     _model_type = "gaussian"
     _parameter_specs = {
-        "sigma": {"units": "arcsec", "valid": (0, None)},
-        "flux": {"units": "flux", "valid": (0, None)},
+        "sigma": {"units": "arcsec", "valid": (0, None), "dynamic": True},
+        "flux": {"units": "flux", "valid": (0, None), "dynamic": True},
     }
 
     @torch.no_grad()

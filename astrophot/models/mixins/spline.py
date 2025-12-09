@@ -22,7 +22,7 @@ class SplineMixin:
     """
 
     _model_type = "spline"
-    _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None)}}
+    _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True}}
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -47,7 +47,7 @@ class SplineMixin:
             self.radius_metric,
             rad_bins=[0] + list((prof[:-1] + prof[1:]) / 2) + [prof[-1] * 100],
         )
-        self.I_R.dynamic_value = 10**I
+        self.I_R.value = 10**I
 
     @forward
     def radial_model(self, R: ArrayLike, I_R: ArrayLike) -> ArrayLike:
@@ -72,7 +72,7 @@ class iSplineMixin:
     """
 
     _model_type = "spline"
-    _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None)}}
+    _parameter_specs = {"I_R": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True}}
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -109,7 +109,7 @@ class iSplineMixin:
             )
             value[s] = I
 
-        self.I_R.dynamic_value = 10**value
+        self.I_R.value = 10**value
 
     @forward
     def iradial_model(self, i: int, R: ArrayLike, I_R: ArrayLike) -> ArrayLike:

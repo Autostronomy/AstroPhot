@@ -51,13 +51,31 @@ class GaussianEllipsoid(ComponentModel):
 
     _model_type = "gaussianellipsoid"
     _parameter_specs = {
-        "sigma_a": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "sigma_b": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "sigma_c": {"units": "arcsec", "valid": (0, None), "shape": ()},
-        "alpha": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "shape": ()},
-        "beta": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "shape": ()},
-        "gamma": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "shape": ()},
-        "flux": {"units": "flux", "shape": ()},
+        "sigma_a": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "sigma_b": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "sigma_c": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "alpha": {
+            "units": "radians",
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
+            "shape": (),
+            "dynamic": True,
+        },
+        "beta": {
+            "units": "radians",
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
+            "shape": (),
+            "dynamic": True,
+        },
+        "gamma": {
+            "units": "radians",
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
+            "shape": (),
+            "dynamic": True,
+        },
+        "flux": {"units": "flux", "shape": (), "dynamic": True},
     }
     usable = True
 
@@ -88,7 +106,7 @@ class GaussianEllipsoid(ComponentModel):
         x = x - center[0]
         y = y - center[1]
         r = backend.to_numpy(self.radius_metric(x, y, params=()))
-        self.sigma_a.dynamic_value = np.sqrt(np.sum((r * dat) ** 2) / np.sum(r**2))
+        self.sigma_a.value = np.sqrt(np.sum((r * dat) ** 2) / np.sum(r**2))
 
         x = backend.to_numpy(x)
         y = backend.to_numpy(y)
@@ -104,9 +122,9 @@ class GaussianEllipsoid(ComponentModel):
             PA = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
             l = np.sort(np.linalg.eigvals(M))
         q = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
-        self.beta.dynamic_value = np.arccos(q)
-        self.gamma.dynamic_value = PA
-        self.flux.dynamic_value = np.sum(dat)
+        self.beta.value = np.arccos(q)
+        self.gamma.value = PA
+        self.flux.value = np.sum(dat)
 
     @forward
     def brightness(

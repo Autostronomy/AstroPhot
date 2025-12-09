@@ -4,7 +4,7 @@ from caskade import (
     Module as CModule,
     ActiveStateError,
     ParamConfigurationError,
-    FillDynamicParamsArrayError,
+    FillParamsArrayError,
 )
 from ..backend_obj import backend
 
@@ -68,11 +68,11 @@ class Module(CModule):
                 val = uncertainty[..., pos : pos + size].reshape(param.shape)
                 param.uncertainty = val
             except (RuntimeError, IndexError, ValueError, TypeError):
-                raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)
+                raise FillParamsArrayError(self.name, uncertainty, dynamic_params)
 
             pos += size
         if pos != uncertainty.shape[-1]:
-            raise FillDynamicParamsArrayError(self.name, uncertainty, dynamic_params)
+            raise FillParamsArrayError(self.name, uncertainty, dynamic_params)
 
     def dynamic_params_array_index(self, param):
         i = 0

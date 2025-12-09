@@ -104,11 +104,10 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
 
     for param, x0x in zip(params, x0):
         if not model[param].initialized:
+            x0x = backend.as_array(x0x, dtype=config.DTYPE, device=config.DEVICE)
             if not model[param].is_valid(x0x):
-                x0x = model[param].soft_valid(
-                    backend.as_array(x0x, dtype=config.DTYPE, device=config.DEVICE)
-                )
-            model[param].dynamic_value = x0x
+                x0x = model[param].soft_valid(x0x)
+            model[param].value = x0x
 
 
 @torch.no_grad()
@@ -155,4 +154,4 @@ def parametric_segment_initialize(
     values = np.stack(values).T
     for param, v in zip(params, values):
         if not model[param].initialized:
-            model[param].dynamic_value = v
+            model[param].value = v

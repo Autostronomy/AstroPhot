@@ -116,7 +116,7 @@ class MALA(BaseOptimizer):
         # Fill model with max logp sample
         max_logp_index = np.argmax(self.logp)
         max_logp_index = np.unravel_index(max_logp_index, self.logp.shape)
-        self.model.fill_dynamic_values(
+        self.model.set_values(
             backend.as_array(self.chain[max_logp_index], dtype=config.DTYPE, device=config.DEVICE)
         )
 

@@ -31,7 +31,7 @@ class NukerGalaxy(NukerMixin, RadialMixin, GalaxyModel):
 
 @combine_docstrings
 class NukerPSF(NukerMixin, RadialMixin, PSFModel):
-    _parameter_specs = {"Ib": {"units": "flux/arcsec^2", "value": 1.0}}
+    _parameter_specs = {"Ib": {"units": "flux/arcsec^2", "value": 1.0, "dynamic": False}}
     usable = True
 
 
