@@ -169,7 +169,7 @@ class FourierEllipseMixin:
     _model_type = "fourier"
     _parameter_specs = {
         "am": {"units": "none", "dynamic": True},
-        "phim": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "dynamic": True},
+        "phim": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "dynamic": False},
     }
     _options = ("modes",)
 
