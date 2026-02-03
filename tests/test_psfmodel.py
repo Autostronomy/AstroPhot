@@ -26,7 +26,7 @@ def test_all_psfmodel_sample(model_type):
         kwargs = {}
     target = make_basic_gaussian_psf(pixelscale=0.8)
     MODEL = ap.Model(
-        name="test model",
+        name="test_model",
         model_type=model_type,
         target=target,
         normalize_psf=False,

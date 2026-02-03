@@ -46,6 +46,7 @@ class ComponentModel(SampleMixin, Model):
         super().__init__(*args, **kwargs)
         self.psf = psf
         self.psf_convolve = psf_convolve
+        self.saveattrs.add("window.extent")
 
     @property
     def psf(self):

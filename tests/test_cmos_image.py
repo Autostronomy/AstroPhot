@@ -44,7 +44,7 @@ def test_cmos_image_creation(cmos_target):
 
 def test_cmos_model_sample(cmos_target):
     model = ap.Model(
-        name="test cmos",
+        name="test_cmos",
         model_type="sersic galaxy model",
         target=cmos_target,
         center=(3, 5),

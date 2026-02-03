@@ -46,7 +46,7 @@ def test_target_image_list():
 def test_model_image():
     target = make_basic_sersic()
     new_model = ap.Model(
-        name="constrained sersic",
+        name="constrained_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=60 * np.pi / 180,
@@ -68,7 +68,7 @@ def test_model_image():
 def test_residual_image():
     target = make_basic_sersic()
     new_model = ap.Model(
-        name="constrained sersic",
+        name="constrained_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=60 * np.pi / 180,
@@ -90,7 +90,7 @@ def test_residual_image():
 def test_model_windows():
     target = make_basic_sersic()
     new_model = ap.Model(
-        name="constrained sersic",
+        name="constrained_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=60 * np.pi / 180,
@@ -124,7 +124,7 @@ def test_covariance_matrix():
 def test_radial_profile():
     target = make_basic_sersic()
     new_model = ap.Model(
-        name="constrained sersic",
+        name="constrained_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=60 * np.pi / 180,
@@ -146,7 +146,7 @@ def test_radial_profile():
 def test_radial_median_profile():
     target = make_basic_sersic()
     new_model = ap.Model(
-        name="constrained sersic",
+        name="constrained_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=60 * np.pi / 180,

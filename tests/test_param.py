@@ -35,8 +35,8 @@ def test_param():
 def test_module():
 
     target = make_basic_sersic()
-    model1 = ap.Model(name="test model 1", model_type="sersic galaxy model", target=target)
-    model2 = ap.Model(name="test model 2", model_type="sersic galaxy model", target=target)
+    model1 = ap.Model(name="test_model_1", model_type="sersic galaxy model", target=target)
+    model2 = ap.Model(name="test_model_2", model_type="sersic galaxy model", target=target)
     model = ap.Model(name="test", model_type="group model", target=target, models=[model1, model2])
     model.initialize()
 

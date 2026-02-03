@@ -25,16 +25,16 @@ def test_jointmodel_creation():
     tar = ap.TargetImageList([tar1, tar2])
 
     mod1 = ap.models.FlatSky(
-        name="base model 1",
+        name="base_model_1",
         target=tar1,
     )
     mod2 = ap.models.FlatSky(
-        name="base model 2",
+        name="base_model_2",
         target=tar2,
     )
 
     smod = ap.Model(
-        name="group model",
+        name="group_model",
         model_type="group model",
         models=[mod1, mod2],
         target=tar,
@@ -54,19 +54,19 @@ def test_psfgroupmodel_creation():
     tar = make_basic_gaussian_psf()
 
     mod1 = ap.Model(
-        name="base model 1",
+        name="base_model_1",
         model_type="moffat psf model",
         target=tar,
     )
 
     mod2 = ap.Model(
-        name="base model 2",
+        name="base_model_2",
         model_type="moffat psf model",
         target=tar,
     )
 
     smod = ap.Model(
-        name="group model",
+        name="group_model",
         model_type="psf group model",
         models=[mod1, mod2],
         target=tar,
@@ -104,7 +104,7 @@ def test_joint_multi_band_multi_object():
     model52 = ap.Model(name="model52", model_type="sersic galaxy model", window=(0, 49, 0, 60), target=target3)
     model5 = ap.Model(name="model5", model_type="group model", models=[model51, model52], target=ap.TargetImageList([target2, target3]))
 
-    model = ap.Model(name="joint model", model_type="group model", models=[model1, model2, model3, model4, model5], target=ap.TargetImageList([target1, target2, target3, target4]))
+    model = ap.Model(name="joint_model", model_type="group model", models=[model1, model2, model3, model4, model5], target=ap.TargetImageList([target1, target2, target3, target4]))
     # fmt: on
 
     model.initialize()

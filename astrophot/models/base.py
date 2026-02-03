@@ -63,7 +63,6 @@ class Model(Module):
             setattr(self, key, param)
 
         self.saveattrs.update(self.options)
-        self.saveattrs.add("window.extent")
 
         kwargs.pop("model_type", None)  # model_type is set by __new__
         if len(kwargs) > 0:

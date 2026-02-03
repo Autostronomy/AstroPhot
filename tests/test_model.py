@@ -13,7 +13,7 @@ def test_model_sampling_modes():
 
     target = make_basic_sersic(90, 100)
     model = ap.Model(
-        name="test sersic",
+        name="test_sersic",
         model_type="sersic galaxy model",
         center=[40, 41.9],
         PA=60 * np.pi / 180,
@@ -97,7 +97,7 @@ def test_model_errors():
 
     with pytest.raises(ap.errors.InvalidTarget):
         ap.Model(
-            name="test model",
+            name="test_model",
             model_type="sersic galaxy model",
             target=target,
         )
@@ -106,7 +106,7 @@ def test_model_errors():
     target = make_basic_sersic()
     with pytest.raises(ap.errors.UnrecognizedModel):
         ap.Model(
-            name="test model",
+            name="test_model",
             model_type="sersic gaaxy model",
             target=target,
         )
@@ -131,7 +131,7 @@ def test_all_model_sample(model_type):
     target = make_basic_sersic()
     target.zeropoint = 22.5
     MODEL = ap.Model(
-        name="test model",
+        name="test_model",
         model_type=model_type,
         target=target,
         integrate_mode=(
@@ -202,7 +202,7 @@ def test_sersic_save_load():
 
     target = make_basic_sersic()
     model = ap.Model(
-        name="test sersic",
+        name="test_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=60 * np.pi / 180,
@@ -244,7 +244,7 @@ def test_sersic_save_load():
 def test_chunk_sample(center, PA, q, n, Re):
     target = make_basic_sersic()
     model = ap.Model(
-        name="test sersic",
+        name="test_sersic",
         model_type="sersic galaxy model",
         center=center,
         PA=PA,
