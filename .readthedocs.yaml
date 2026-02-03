@@ -37,7 +37,6 @@ build:
 
 python:
   install:
-    - requirements: requirements.txt # Path to your requirements.txt file
     - requirements: docs/requirements.txt # Path to your requirements.txt file
     - method: pip
-      path: . # Install the package itself
+      path: .[dev] # Install the package itself
