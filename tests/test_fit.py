@@ -18,7 +18,7 @@ import pytest
 def test_chunk_jacobian(center, PA, q, n, Re):
     target = make_basic_sersic()
     model = ap.Model(
-        name="test sersic",
+        name="test_sersic",
         model_type="sersic galaxy model",
         center=center,
         PA=PA,
@@ -53,7 +53,7 @@ def test_chunk_jacobian(center, PA, q, n, Re):
 def sersic_model():
     target = make_basic_sersic()
     model = ap.Model(
-        name="test sersic",
+        name="test_sersic",
         model_type="sersic galaxy model",
         center=[20, 20],
         PA=np.pi,
@@ -135,7 +135,7 @@ def test_fitters_iter():
         target=target,
     )
     model = ap.Model(
-        name="test group",
+        name="test_group",
         model_type="group model",
         models=[model1, model2],
         target=target,

@@ -85,10 +85,10 @@ class iFerrerMixin:
 
     _model_type = "ferrer"
     _parameter_specs = {
-        "rout": {"units": "arcsec", "valid": (0.0, None), "shape": (), "dynamic": True},
-        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (), "dynamic": True},
-        "beta": {"units": "unitless", "valid": (0, 2), "shape": (), "dynamic": True},
-        "I0": {"units": "flux/arcsec^2", "valid": (0.0, None), "shape": (), "dynamic": True},
+        "rout": {"units": "arcsec", "valid": (0.0, None), "dynamic": True},
+        "alpha": {"units": "unitless", "valid": (0, 10), "dynamic": True},
+        "beta": {"units": "unitless", "valid": (0, 2), "dynamic": True},
+        "I0": {"units": "flux/arcsec^2", "valid": (0.0, None), "dynamic": True},
     }
 
     @torch.no_grad()

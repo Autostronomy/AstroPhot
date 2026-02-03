@@ -53,7 +53,7 @@ def make_basic_sersic(
     )
 
     MODEL = ap.models.SersicGalaxy(
-        name="basic sersic model",
+        name="basic_sersic_model",
         target=target,
         center=[x, y],
         PA=PA,
@@ -95,7 +95,7 @@ def make_basic_gaussian(
     )
 
     MODEL = ap.models.GaussianGalaxy(
-        name="basic gaussian source",
+        name="basic_gaussian_source",
         target=target,
         center=[x, y],
         sigma=sigma,

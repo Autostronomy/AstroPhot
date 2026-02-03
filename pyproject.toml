@@ -13,7 +13,7 @@ authors = [
 ]
 description = "A fast, flexible, automated, and differentiable astronomical image 2D forward modelling tool for precise parallel multi-wavelength photometry."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {file = "LICENSE"}
 keywords = [
         "astrophot",
@@ -25,11 +25,21 @@ keywords = [
         "pytorch"
 ]
 classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3"
+]
+dependencies=[
+        "astropy>=5.3",
+        "caskade~=0.15.0",
+        "h5py>=3.8.0",
+        "matplotlib>=3.7",
+        "numpy>=1.24.0,<2.0.0",
+        "scipy>=1.10.0",
+        "torch>=2.0.0",
+        "tqdm>=4.65.0",
 ]
 
 [project.urls]
@@ -39,13 +49,22 @@ Repository = "https://github.com/Autostronomy/AstroPhot"
 Issues = "https://github.com/Autostronomy/AstroPhot/issues"
 
 [project.optional-dependencies]
-dev = ["pre-commit", "nbval", "nbconvert", "graphviz", "ipywidgets", "jupyter-book", "matplotlib", "photutils", "scikit-image", "caustics", "emcee", "corner", "jax<=0.7.0", "pyvo"]
-
-[project.scripts]
-astrophot = "astrophot:run_from_terminal"
-
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
+dev = [
+        "pre-commit",
+        "nbval",
+        "nbconvert",
+        "graphviz",
+        "ipywidgets",
+        "jupyter-book<2.0",
+        "matplotlib",
+        "photutils",
+        "scikit-image",
+        "caustics",
+        "emcee",
+        "corner",
+        "jax<=0.7.0",
+        "pyvo"
+]
 
 [tool.hatch.version]
 source = "vcs"
