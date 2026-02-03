@@ -59,6 +59,7 @@ dev = [
         "photutils",
         "scikit-image",
         "caustics",
+        "pyro-ppl>=1.8.0",
         "emcee",
         "corner",
         "jax<=0.7.0",

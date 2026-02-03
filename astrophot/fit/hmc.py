@@ -52,7 +52,8 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
         self.inverse_mass_matrix = inverse_mass_matrix
 
 
-BlockMassMatrix.configure = new_configure
+if pyro is not None:
+    BlockMassMatrix.configure = new_configure
 ############################################
 
 
