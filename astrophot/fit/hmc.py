@@ -6,12 +6,14 @@ import torch
 try:
     import pyro
     import pyro.distributions as dist
+    from pyro.distributions import Distribution
     from pyro.infer import MCMC as pyro_MCMC
     from pyro.infer import HMC as pyro_HMC
     from pyro.infer.mcmc.adaptation import BlockMassMatrix
     from pyro.ops.welford import WelfordCovariance
 except ImportError:
     pyro = None
+    Distribution = None
 
 from .base import BaseOptimizer
 from ..models import Model
@@ -90,7 +92,7 @@ class HMC(BaseOptimizer):
         epsilon: float = 1e-4,
         leapfrog_steps: int = 10,
         progress_bar: bool = True,
-        prior: Optional[dist.Distribution] = None,
+        prior: Optional["Distribution"] = None,
         warmup: int = 100,
         hmc_kwargs: dict = {},
         mcmc_kwargs: dict = {},
