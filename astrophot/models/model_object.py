@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import torch
 
-from ..param import forward
+from astrophot.image.model_image import ModelImage, ModelImageList
+
+from ..param import forward, PSFParam
 from .base import Model
 from . import func
 from ..image import (
@@ -14,7 +16,7 @@ from ..image import (
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
-from ..backend_obj import backend
+from ..backend_obj import backend, ArrayLike
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 
@@ -38,55 +40,36 @@ class ComponentModel(SampleMixin, Model):
 
     _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": True}}
 
-    _options = ("psf_convolve",)
-
     usable = False
 
-    def __init__(self, *args, psf=None, psf_convolve: bool = False, **kwargs):
+    def __init__(self, *args, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.psf = psf
-        self.psf_convolve = psf_convolve
+        self.psf = PSFParam(
+            "psf",
+            psf,
+            shape=(None, None),
+            description="Point Spread Function to convolve with this model",
+        )
         self.saveattrs.add("window.extent")
 
     @property
     def psf(self):
         if self._psf is None:
             return self.target.psf
-        return self._psf
-
-    @psf.setter
-    def psf(self, val):
-        try:
-            del self._psf  # Remove old PSF if it exists
-        except AttributeError:
-            pass
-        if val is None:
-            self._psf = None
-        elif isinstance(val, PSFImage):
-            self._psf = val
-            self.psf_convolve = True
-        elif isinstance(val, Model):
-            self._psf = val
-            self.psf_convolve = True
+        elif isinstance(self._psf, Model):
+            return self._psf()
         else:
-            self._psf = self.target.psf_image(data=val)
-            self.psf_convolve = True
-        self._update_psf_upscale()
+            return self._psf
 
-    def _update_psf_upscale(self):
-        """Update the PSF upscale factor based on the current target pixel length."""
-        if self.psf is None:
-            self.psf_upscale = 1
-        elif isinstance(self.psf, PSFImage):
-            self.psf_upscale = int(np.round((self.target.pixelscale / self.psf.pixelscale).item()))
-        elif isinstance(self.psf, Model):
-            self.psf_upscale = int(
-                np.round((self.target.pixelscale / self.psf.target.pixelscale).item())
-            )
+    def set_psf(self, psf):
+        if psf is None:
+            self.psf = None
+        elif isinstance(psf, PSFImage):
+            self.psf = psf
+        elif isinstance(psf, Model):
+            self._psf = psf
         else:
-            raise TypeError(
-                f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
-            )
+            self._psf = PSFImage(psf)
 
     @property
     def target(self):
@@ -98,16 +81,14 @@ class ComponentModel(SampleMixin, Model):
             self._target = None
             return
         elif not isinstance(tar, TargetImage):
-            raise InvalidTarget("AstroPhot Model target must be a TargetImage instance.")
+            raise InvalidTarget(
+                f"AstroPhot {self.__class__.__name__} target must be a TargetImage instance."
+            )
         try:
             del self._target  # Remove old target if it exists
         except AttributeError:
             pass
         self._target = tar
-        try:
-            self._update_psf_upscale()
-        except AttributeError:
-            pass
 
     # Initialization functions
     ######################################################################
@@ -152,7 +133,8 @@ class ComponentModel(SampleMixin, Model):
     @forward
     def sample(
         self,
-        window: Optional[Window] = None,
+        working_image: ModelImage,
+        psf=None,
     ):
         """Evaluate the model on the pixels defined in an image. This
         function properly calls integration methods and PSF
@@ -174,25 +156,65 @@ class ComponentModel(SampleMixin, Model):
         -  `Image` (ModelImage): The image with the computed model values.
 
         """
+        assert (
+            working_image.identity == self.target.identity
+        ), "Model and target image must be matched (try `model.target.model_image()` to get a compatible model image)."
+        sample = self.sample_image(working_image)
+        if psf.shape != (1, 1):
+            sample = func.convolve(sample, psf)
+
+        return sample
+
+    @forward
+    def pixel_brightness(self, i, j):
+        """Evaluate the model at the pixel coordinates defined by i and j (of the target image)."""
+        x, y = self.target.pixel_to_plane(i, j)
+        return self.brightness(x, y)
+
+    @forward
+    def sample(
+        self,
+        I: ArrayLike,
+        J: ArrayLike,
+        pixel_collecting_area: ArrayLike,
+        crop: int = 0,
+        downsample: int = 1,
+        psf=None,
+    ):
+        Z = self.pixel_brightness(I, J)
+        Z = self._pixel_integrator(Z)
+        I, J = self._pixel_center_finder(I, J)
+        Z = self._adaptive_integrator(Z, I, J)
+        if psf.shape != (1, 1):
+            Z = func.convolve(Z, psf)
+            Z = Z[crop : Z.shape[0] - crop, crop : Z.shape[1] - crop]
+            Z = func.downsample(Z, downsample)
+        Z = Z * pixel_collecting_area
+        return Z
+
+    @forward
+    def __call__(
+        self,
+        window: Optional[Window] = None,
+        **kwargs,
+    ) -> Union[ModelImage, ModelImageList]:
+
         # Window within which to evaluate model
         if window is None:
             window = self.window
-
-        if self.psf_convolve:
-            psf = self.psf() if isinstance(self.psf, Model) else self.psf
-
-            working_image = self.target[window].model_image(
-                upsample=self.psf_upscale, pad=psf.psf_pad
-            )
-            sample = self.sample_image(working_image)
-            working_image._data = func.convolve(sample, psf._data)
-            working_image = working_image.crop(psf.psf_pad).reduce(self.psf_upscale)
-
         else:
-            working_image = self.target[window].model_image()
-            working_image._data = self.sample_image(working_image)
+            window = window & self.window
 
-        # Units from flux/arcsec^2 to flux, multiply by pixel area
-        working_image.fluxdensity_to_flux()
-
+        working_image = self.target.model_image(window)
+        I, J = self._pixel_meshgridder(
+            working_image, pad=self.psf.psf_pad, upsample=self.psf.upsample
+        )
+        # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
+        working_image._data = self.sample(
+            I,
+            J,
+            working_image.pixel_collecting_area,
+            crop=self.psf.psf_pad,
+            downsample=self.psf.upsample,
+        )
         return working_image

@@ -3,6 +3,7 @@ import numpy as np
 
 from caskade import Param as CParam
 from ..backend_obj import backend
+from .. import config
 
 
 class Param(CParam):
@@ -71,3 +72,42 @@ class Param(CParam):
             smin = None
             smax = self.valid[1] - 0.1
         return backend.clamp(value, min=smin, max=smax)
+
+
+class PSFParam(Param):
+    """
+    A class that extends the Param class to include additional functionality specific to PSF parameters.
+    This class is used to define PSF parameters for models in the AstroPhot package.
+    """
+
+    def __init__(self, *args, upscale=1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.upscale = upscale
+        self.saveattrs.add("upscale")
+
+    @Param.value.getter
+    def value(self):
+        value = super().value
+        if value is None:
+            value = backend.ones((1, 1), dtype=config.DTYPE, device=config.DEVICE)
+        return value
+
+    @property
+    def upscale(self) -> int:
+        if len(self.children) > 0:
+            return next(iter(self.children.values)).upscale
+        return self._upscale
+
+    @upscale.setter
+    def upscale(self, value: int):
+        if value < 1:
+            raise ValueError("upscale factor must be a positive integer.")
+        self._upscale = int(value)
+
+    @property
+    def pixelscale(self) -> float:
+        return 1.0 / self.upscale
+
+    @property
+    def psf_pad(self) -> int:
+        return max(self.value.shape[-2:]) // 2

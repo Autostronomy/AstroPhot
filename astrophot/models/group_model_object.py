@@ -47,11 +47,10 @@ class GroupModel(Model):
     def __init__(
         self,
         *,
-        name: Optional[str] = None,
         models: Optional[Sequence[Model]] = None,
         **kwargs,
     ):
-        super().__init__(name=name, **kwargs)
+        super().__init__(**kwargs)
         for model in models:
             if not isinstance(model, Model):
                 raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")

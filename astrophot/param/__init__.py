@@ -1,5 +1,5 @@
 from caskade import forward, ValidContext, OverrideParam
 from .module import Module
-from .param import Param
+from .param import Param, PSFParam
 
-__all__ = ["Module", "Param", "forward", "ValidContext", "OverrideParam"]
+__all__ = ("Module", "Param", "PSFParam", "forward", "ValidContext", "OverrideParam")

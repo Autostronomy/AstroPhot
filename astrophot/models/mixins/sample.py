@@ -8,6 +8,7 @@ from ... import config
 from ...image import Image, Window, JacobianImage
 from .. import func
 from ...errors import SpecificationConflict
+from ...utils.integration import quad_table
 
 
 class SampleMixin:
@@ -31,13 +32,9 @@ class SampleMixin:
     -    `integrate_quad_order`: The order of the quadrature used for the integration method on the super sampled pixels.
     """
 
-    # Method for initial sampling of model
-    sampling_mode = "auto"  # auto (choose based on image size), midpoint, simpsons, quad:x (where x is a positive integer)
-
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
     jacobian_maxparams = 10
     jacobian_maxpixels = 1000**2
-    integrate_mode = "bright"  # none, bright, curvature
     integrate_fraction = 0.05  # fraction of the pixels to super sample
     integrate_max_depth = 2
     integrate_gridding = 5
@@ -54,15 +51,19 @@ class SampleMixin:
         "integrate_quad_order",
     )
 
+    def __init__(self, *args, sampling_mode="auto", integrate_mode="bright", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sampling_mode = sampling_mode
+        self.integrate_mode = integrate_mode
+
     @forward
-    def _bright_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
-        i, j = image.pixel_center_meshgrid()
+    def _bright_integrate(self, sample: ArrayLike, i: ArrayLike, j: ArrayLike) -> ArrayLike:
         sample = func.bright_integrate(
             sample,
             i,
             j,
-            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-            scale=image.base_scale,
+            self.pixel_brightness,
+            scale=self.target.base_scale / self.psf.upscale,
             bright_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
@@ -71,8 +72,7 @@ class SampleMixin:
         return sample
 
     @forward
-    def _curvature_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
-        i, j = image.pixel_center_meshgrid()
+    def _curvature_integrate(self, sample: ArrayLike, i: ArrayLike, j: ArrayLike) -> ArrayLike:
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
             backend.abs(
@@ -89,7 +89,7 @@ class SampleMixin:
             .squeeze(0)
             .squeeze(0)
         )
-        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
+        N = max(1, int(np.prod(i.shape) * self.integrate_fraction))
         select = backend.topk(curvature.flatten(), N)[1]
 
         sample_flat = sample.flatten()
@@ -99,8 +99,8 @@ class SampleMixin:
             func.recursive_quad_integrate(
                 i.flatten()[select],
                 j.flatten()[select],
-                lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-                scale=image.base_scale,
+                self.pixel_brightness,
+                scale=self.target.base_scale / self.psf.upscale,
                 curve_frac=self.integrate_fraction,
                 quad_order=self.integrate_quad_order,
                 gridding=self.integrate_gridding,
@@ -109,45 +109,59 @@ class SampleMixin:
         )
         return sample_flat.reshape(sample.shape)
 
-    @forward
-    def sample_image(self, image: Image) -> ArrayLike:
-        if self.sampling_mode == "auto":
-            N = np.prod(image._data.shape[:2])
-            if N <= 100:
-                sampling_mode = "quad:5"
-            elif N <= 10000:
-                sampling_mode = "simpsons"
-            else:
-                sampling_mode = "midpoint"
-        else:
-            sampling_mode = self.sampling_mode
+    @property
+    def sampling_mode(self):
+        return self._sampling_mode
+
+    @sampling_mode.setter
+    def sampling_mode(self, sampling_mode):
+        if sampling_mode == "auto":
+            sampling_mode = "midpoint"
+            try:
+                N = np.prod(self.window.shape)
+                if N <= 100:
+                    sampling_mode = "quad:5"
+                elif N <= 10000:
+                    sampling_mode = "simpsons"
+            except:
+                pass
         if sampling_mode == "midpoint":
-            x, y = image.coordinate_center_meshgrid()
-            res = self.brightness(x, y)
-            sample = func.pixel_center_integrator(res)
+            self._pixel_meshgridder = lambda im: im.pixel_center_meshgrid()
+            self._pixel_integrator = func.pixel_center_integrator
+            self._pixel_center_finder = lambda i, j: (i, j)
         elif sampling_mode == "simpsons":
-            x, y = image.coordinate_simpsons_meshgrid()
-            res = self.brightness(x, y)
-            sample = func.pixel_simpsons_integrator(res)
+            self._pixel_meshgridder = lambda im: im.pixel_simpsons_meshgrid()
+            self._pixel_integrator = func.pixel_simpsons_integrator
+            self._pixel_center_finder = lambda i, j: (i[1::2, 1::2], j[1::2, 1::2])
         elif sampling_mode.startswith("quad:"):
             order = int(self.sampling_mode.split(":")[1])
-            i, j, w = image.pixel_quad_meshgrid(order=order)
-            x, y = image.pixel_to_plane(i, j)
-            res = self.brightness(x, y)
-            sample = func.pixel_quad_integrator(res, w)
+            self._pixel_meshgridder = lambda im: im.pixel_quad_meshgrid(order=order)[:2]
+            _, _, w = quad_table(order, config.DTYPE, config.DEVICE)
+            self._pixel_integrator = lambda z: func.pixel_quad_integrator(z, w)
+            self._pixel_center_finder = lambda i, j: (i[..., order**2 // 2], j[..., order**2 // 2])
         else:
             raise SpecificationConflict(
-                f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
+                f"Unknown sampling mode {sampling_mode} for model {self.name}"
             )
-        if self.integrate_mode == "curvature":
-            sample = self._curvature_integrate(sample, image)
-        elif self.integrate_mode == "bright":
-            sample = self._bright_integrate(sample, image)
-        elif self.integrate_mode != "none":
+        self._sampling_mode = sampling_mode
+
+    @property
+    def integrate_mode(self):
+        return self._integrate_mode
+
+    @integrate_mode.setter
+    def integrate_mode(self, integrate_mode):
+        if integrate_mode == "bright":
+            self._adaptive_integrator = self._bright_integrate
+        elif integrate_mode == "curvature":
+            self._adaptive_integrator = self._curvature_integrate
+        elif integrate_mode == "none":
+            self._adaptive_integrator = lambda z, i, j: z
+        else:
             raise SpecificationConflict(
-                f"Unknown integrate mode {self.integrate_mode} for model {self.name}"
+                f"Unknown integrate mode {integrate_mode} for model {self.name}"
             )
-        return sample
+        self._integrate_mode = integrate_mode
 
     def _jacobian(
         self, window: Window, params_pre: ArrayLike, params: ArrayLike, params_post: ArrayLike

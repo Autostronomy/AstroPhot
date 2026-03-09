@@ -3,6 +3,9 @@ from typing import List, Optional
 import numpy as np
 from astropy.io import fits
 
+
+from ..image.window import Window
+from ..param import Param
 from .image_object import Image, ImageList
 from .jacobian_image import JacobianImage, JacobianImageList
 from .model_image import ModelImage, ModelImageList
@@ -13,7 +16,7 @@ from ..errors import InvalidImage
 from .mixins import DataMixin
 from ..utils.decorators import combine_docstrings
 
-__all__ = ["TargetImage", "TargetImageList"]
+__all__ = ("TargetImage", "TargetImageList", "TargetImageBatch")
 
 
 @combine_docstrings
@@ -84,36 +87,22 @@ class TargetImage(DataMixin, Image):
 
     def __init__(self, *args, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if not self.has_psf:
-            self.psf = psf
+        self.psf = Param(
+            "psf",
+            psf,
+            shape=(None, None),
+            description="Point spread function for the target image.",
+        )
 
     @property
     def has_psf(self) -> bool:
         """Returns True when the target image object has a PSF model."""
         try:
-            return self._psf is not None
+            return self.psf.value is not None
         except AttributeError:
             return False
 
-    @property
-    def psf(self):
-        """The PSF for the `TargetImage`. This is used to convolve the
-        model with the PSF before evaluating the likelihood. The PSF
-        should be a `PSFImage` object or an `AstroPhot` PSFModel.
-
-        If no PSF is provided, then the image will not be convolved
-        with a PSF and the model will be evaluated directly on the
-        image pixels.
-
-        """
-        try:
-            return self._psf
-        except AttributeError:
-            return None
-
-    @psf.setter
-    def psf(self, psf):
+    def set_psf(self, psf):
         """Provide a psf for the `TargetImage`. This is stored and passed to
         models which need to be convolved.
 
@@ -123,20 +112,17 @@ class TargetImage(DataMixin, Image):
         the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """
-        if hasattr(self, "_psf"):
-            del self._psf  # remove old psf if it exists
         from ..models import Model
 
         if psf is None:
-            self._psf = None
+            self.psf = None
         elif isinstance(psf, PSFImage):
-            self._psf = psf
+            self.psf = psf
         elif isinstance(psf, Model):
-            self._psf = psf
+            self.psf = psf
         else:
-            self._psf = PSFImage(
+            self.psf = PSFImage(
                 data=psf,
-                CD=self.CD,
                 name=self.name + "_psf",
             )
 
@@ -217,6 +203,24 @@ class TargetImage(DataMixin, Image):
             ),
             "CD": self.CD.value / upsample,
             "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,
+            "crtan": self.crtan.value,
+            "crval": self.crval.value,
+            "zeropoint": self.zeropoint,
+            "identity": self.identity,
+            "name": self.name + "_model",
+            **kwargs,
+        }
+        return ModelImage(**kwargs)
+
+    def model_image(self, window: Window, **kwargs) -> ModelImage:
+        """
+        Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
+        """
+        si, sj = self.get_indices(window)
+        kwargs = {
+            "_data": backend.zeros_like(self._data[si, sj]),
+            "CD": self.CD.value,
+            "crpix": self.crpix - np.array((si.start, sj.start)),
             "crtan": self.crtan.value,
             "crval": self.crval.value,
             "zeropoint": self.zeropoint,
@@ -326,3 +330,10 @@ class TargetImageList(ImageList):
     @property
     def has_psf(self) -> bool:
         return any(image.has_psf for image in self.images)
+
+
+class TargetImageBatch(TargetImageList):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.images) > 1:
+            assert all(image.shape == self.images[0].shape for image in self.images[1:])

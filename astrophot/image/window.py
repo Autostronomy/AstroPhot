@@ -4,7 +4,7 @@ import numpy as np
 
 from ..errors import InvalidWindow
 
-__all__ = ("Window",)
+__all__ = ("Window", "WindowList", "WindowBatch")
 
 
 class Window:
@@ -164,3 +164,10 @@ class WindowList:
 
     def __iter__(self):
         return iter(self.windows)
+
+
+class WindowBatch(WindowList):
+    def __init__(self, windows: tuple[Window]):
+        super().__init__(tuple(windows))
+        if len(self) > 1:
+            assert all(self.windows[0].shape == w.shape for w in self.windows[1:])

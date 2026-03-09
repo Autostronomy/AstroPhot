@@ -1,4 +1,4 @@
-from .base import all_subclasses
+from .base import all_subclasses, downsample
 from .integration import (
     quad_table,
     pixel_center_integrator,
@@ -27,6 +27,7 @@ from .zernike import zernike_n_m_list, zernike_n_m_modes
 
 __all__ = (
     "all_subclasses",
+    "downsample",
     "quad_table",
     "pixel_center_integrator",
     "pixel_simpsons_integrator",

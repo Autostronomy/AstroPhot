@@ -144,13 +144,13 @@ class Image(Module):
             )
 
     @property
-    def crpix(self) -> np.ndarray:
+    def crpix(self) -> ArrayLike:
         """The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates."""
         return self._crpix
 
     @crpix.setter
     def crpix(self, value: Union[ArrayLike, tuple]):
-        self._crpix = np.asarray(value, dtype=np.float64)
+        self._crpix = backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE)
 
     @property
     def zeropoint(self) -> ArrayLike:
@@ -331,6 +331,8 @@ class Image(Module):
         crop - (int, int): crop each dimension by the number of pixels given. new shape (N - 2*crop[1], M - 2*crop[0])
         crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
         """
+        if np.all(np.array(pixels) == 0):
+            return self
         if isinstance(pixels, int):
             data = self._data[
                 pixels : self._data.shape[0] - pixels,
@@ -589,7 +591,7 @@ class Image(Module):
 
 
 class ImageList(Module):
-    def __init__(self, images, name=None):
+    def __init__(self, images: list[Image], name=None):
         super().__init__(name=name)
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
@@ -732,3 +734,7 @@ class ImageList(Module):
 
     def __iter__(self):
         return (img for img in self.images)
+
+
+class ImageBatch(Image):
+    pass

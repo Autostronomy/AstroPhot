@@ -7,7 +7,7 @@ from ..errors import InvalidTarget
 from .mixins import SampleMixin
 from ..backend_obj import backend, ArrayLike
 
-__all__ = ["PSFModel"]
+__all__ = ("PSFModel",)
 
 
 class PSFModel(SampleMixin, Model):
@@ -24,7 +24,7 @@ class PSFModel(SampleMixin, Model):
     """
 
     _parameter_specs = {
-        "center": {"units": "arcsec", "value": (0.0, 0.0), "shape": (2,), "dynamic": False},
+        "center": {"units": "pixels", "value": (0.0, 0.0), "shape": (2,), "dynamic": False},
     }
     _model_type = "psf"
     usable = False

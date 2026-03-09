@@ -2,16 +2,16 @@ from typing import List, Optional
 
 import numpy as np
 
-from .image_object import Image
+from ..param import Param
 from .jacobian_image import JacobianImage
 from .. import config
 from ..backend_obj import backend, ArrayLike
 from .mixins import DataMixin
 
-__all__ = ["PSFImage"]
+__all__ = ("PSFImage",)
 
 
-class PSFImage(DataMixin, Image):
+class PSFImage(DataMixin):
     """Image object which represents a model of PSF (Point Spread Function).
 
     PSFImage inherits from the base Image class and represents the model of a point spread function.
@@ -20,20 +20,62 @@ class PSFImage(DataMixin, Image):
     The shape of the PSF data should be odd (for your sanity) but this is not enforced.
     """
 
-    def __init__(self, *args, **kwargs):
-        kwargs.update({"crval": (0, 0), "crpix": (0, 0), "crtan": (0, 0)})
+    def __init__(
+        self,
+        *args,
+        upsample: int = 1,
+        crpix: tuple[float, float] = (0.0, 0.0),
+        filename: Optional[str] = None,
+        hduext: int = 0,
+        identity: str = None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
-        self.crpix = (np.array(self._data.shape[:2], dtype=np.float64) - 1.0) / 2
+
+        self.upsample = upsample
+        self.crpix = crpix
+
+        if identity is None:
+            self.identity = id(self)
+        else:
+            self.identity = identity
+
+        if filename is not None:
+            self.load(filename, hduext=hduext)
+            return
 
     def normalize(self):
         """Normalizes the PSF image to have a sum of 1."""
-        norm = backend.sum(self._data)
-        self._data = self._data / norm
+        norm = backend.sum(self.value, dim=(-2, -1), keepdim=True)
+        self.value = self.value / norm
         self._weight = self._weight * norm**2
+
+    @Param.value.getter
+    def value(self):
+        value = super().value
+        if value is None:
+            value = backend.ones((1, 1), dtype=config.DTYPE, device=config.DEVICE)
+        return value
+
+    @property
+    def upsample(self) -> int:
+        if len(self.children) > 0:
+            return next(iter(self.children.values)).upsample
+        return self._upsample
+
+    @upsample.setter
+    def upsample(self, value: int):
+        if value < 1:
+            raise ValueError("upsample factor must be a positive integer.")
+        self._upsample = int(value)
+
+    @property
+    def pixelscale(self) -> float:
+        return 1.0 / self.upsample
 
     @property
     def psf_pad(self) -> int:
-        return max(self._data.shape[:2]) // 2
+        return max(self.value.shape[-2:]) // 2
 
     def jacobian_image(
         self,
