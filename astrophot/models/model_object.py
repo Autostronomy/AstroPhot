@@ -189,6 +189,7 @@ class ComponentModel(SampleMixin, Model):
             Z = func.convolve(Z, psf)
             Z = Z[crop : Z.shape[0] - crop, crop : Z.shape[1] - crop]
             Z = func.downsample(Z, downsample)
+        # fixme for sip this should technically be applied before PSF convolution (though effect is very very small)
         Z = Z * pixel_collecting_area
         return Z
 
@@ -206,9 +207,7 @@ class ComponentModel(SampleMixin, Model):
             window = window & self.window
 
         working_image = self.target.model_image(window)
-        I, J = self._pixel_meshgridder(
-            working_image, pad=self.psf.psf_pad, upsample=self.psf.upsample
-        )
+        I, J = self._pixel_meshgridder(self.target, window, self.psf.psf_pad, self.psf.upsample)
         # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
         working_image._data = self.sample(
             I,

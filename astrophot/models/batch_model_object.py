@@ -3,6 +3,7 @@ from typing import Optional, Union
 import numpy as np
 
 from ..backend_obj import backend
+from .. import config
 from ..param import forward
 from ..errors import InvalidTarget, InvalidWindow
 from .base import Model
@@ -112,8 +113,20 @@ class BatchModel(Model):
         batch_img = None if isinstance(self.target, TargetImage) else 0
         working_image = self.target.model_image(window)
         I, J = self.model._pixel_meshgridder(
-            working_image, pad=self.model.psf.psf_pad, upsample=self.model.psf.upsample
+            self.target, window, self.model.psf.psf_pad, self.model.psf.upsample
         )
+        # correct for crpix mismatch between target images
+        if isinstance(self.target, TargetImageBatch):
+            I = I + backend.as_array(
+                self.model.target.crpix[0] - self.target.crpix[:, 0],
+                dtype=config.DTYPE,
+                device=config.DEVICE,
+            ).reshape(-1, *[1] * (I.ndim - 1))
+            J = J + backend.as_array(
+                self.model.target.crpix[1] - self.target.crpix[:, 1],
+                dtype=config.DTYPE,
+                device=config.DEVICE,
+            ).reshape(-1, *[1] * (J.ndim - 1))
         # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
         sample = backend.vmap(
             self.model.sample, in_dims=(batch_img, batch_img, batch_img, None, None, model_dims)

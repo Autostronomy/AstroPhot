@@ -1,5 +1,6 @@
 from typing import Optional, Tuple, Union
 
+from caskade import NodeTuple
 import torch
 import numpy as np
 from astropy.wcs import WCS as AstropyWCS
@@ -248,9 +249,9 @@ class Image(Module):
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    def pixel_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_center_meshgrid(self, window, pad, upsample) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
-        return func.pixel_center_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+        return func.pixel_center_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
 
     def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
@@ -508,18 +509,22 @@ class Image(Module):
             return slice(max(0, other.i_low), min(self._data.shape[0], other.i_high)), slice(
                 max(0, other.j_low), min(self._data.shape[1], other.j_high)
             )
-        shift = np.round(self.crpix - other.crpix).astype(int)
-        return slice(
-            min(max(0, other.i_low + shift[0]), self._data.shape[0]),
-            max(0, min(other.i_high + shift[0], self._data.shape[0])),
-        ), slice(
-            min(max(0, other.j_low + shift[1]), self._data.shape[1]),
-            max(0, min(other.j_high + shift[1], self._data.shape[1])),
+        if other.image.identity == self.identity:
+            shift = np.round(self.crpix - other.crpix).astype(int)
+            return slice(
+                min(max(0, other.i_low + shift[0]), self._data.shape[0]),
+                max(0, min(other.i_high + shift[0], self._data.shape[0])),
+            ), slice(
+                min(max(0, other.j_low + shift[1]), self._data.shape[1]),
+                max(0, min(other.j_high + shift[1], self._data.shape[1])),
+            )
+        raise RuntimeError(
+            f"Cannot get indices for window with different image! Window image: {other.image.name}, self image: {self.name}"
         )
 
     @torch.no_grad()
     def get_other_indices(self, other: Window):
-        if other.image == self:
+        if other.image == self:  # fixme check identity, or check "is"?
             shape = other.shape
             return slice(
                 max(0, -other.i_low), min(self._data.shape[0] - other.i_low, shape[0])
@@ -736,5 +741,64 @@ class ImageList(Module):
         return (img for img in self.images)
 
 
-class ImageBatch(Image):
-    pass
+class ImageBatch(ImageList):
+    def __init__(self, images: tuple[Image], name=None):
+        Module.__init__(self, name=name)
+        self.meta.images = tuple(images)
+        if not all(isinstance(image, Image) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(image.shape == self.images[0].shape for image in self.images):
+            raise InvalidImage(
+                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.shape for image in self.images)}"
+            )
+        self._data = backend.stack(tuple(image.data for image in self.images), dim=0)
+        images = NodeTuple("images", self.images)
+        self.crtan = Param(
+            "crtan",
+            lambda p: backend.stack(tuple(I.crtan.value) for I in p.images),
+            shape=(None, 2),
+            units="arcsec",
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+            link=images,
+        )
+        self.crval = Param(
+            "crval",
+            lambda p: backend.stack(tuple(I.crval.value) for I in p.images),
+            shape=(None, 2),
+            units="deg",
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+            link=images,
+        )
+        self.CD = Param(
+            "CD",
+            lambda p: backend.stack(tuple(I.CD.value) for I in p.images),
+            shape=(None, 2, 2),
+            units="arcsec/pixel",
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+            link=images,
+        )
+
+    @property
+    def images(self):
+        return self.meta.images
+
+    def pixel_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
+        return func.pixel_center_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+
+    def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
+        return func.pixel_corner_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+
+    def pixel_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
+        return func.pixel_simpsons_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+
+    def pixel_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
+        return func.pixel_quad_meshgrid(self._data.shape, config.DTYPE, config.DEVICE, order=order)

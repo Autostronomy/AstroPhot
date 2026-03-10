@@ -2,9 +2,23 @@ from ...utils.integration import quad_table
 from ...backend_obj import backend, ArrayLike
 
 
-def pixel_center_meshgrid(shape: tuple[int, int], dtype, device) -> tuple:
-    i = backend.arange(shape[0], dtype=dtype, device=device)
-    j = backend.arange(shape[1], dtype=dtype, device=device)
+def pixel_center_meshgrid(
+    extent: tuple[int, int, int, int], pad: int, upsample: int, dtype: type, device: str
+) -> tuple:
+    i = backend.linspace(
+        extent[0] - 0.5 + 0.5 / upsample - pad / upsample,
+        extent[1] - 0.5 - 0.5 / upsample + pad / upsample,
+        (extent[1] - extent[0]) * upsample + 2 * pad,
+        dtype=dtype,
+        device=device,
+    )
+    j = backend.linspace(
+        extent[2] - 0.5 + 0.5 / upsample - pad / upsample,
+        extent[3] - 0.5 - 0.5 / upsample + pad / upsample,
+        (extent[3] - extent[2]) * upsample + 2 * pad,
+        dtype=dtype,
+        device=device,
+    )
     return backend.meshgrid(i, j, indexing="ij")
 
 

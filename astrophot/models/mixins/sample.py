@@ -126,16 +126,18 @@ class SampleMixin:
             except:
                 pass
         if sampling_mode == "midpoint":
-            self._pixel_meshgridder = lambda im: im.pixel_center_meshgrid()
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_center_meshgrid(w, p, u)
             self._pixel_integrator = func.pixel_center_integrator
             self._pixel_center_finder = lambda i, j: (i, j)
         elif sampling_mode == "simpsons":
-            self._pixel_meshgridder = lambda im: im.pixel_simpsons_meshgrid()
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_simpsons_meshgrid(w, p, u)
             self._pixel_integrator = func.pixel_simpsons_integrator
             self._pixel_center_finder = lambda i, j: (i[1::2, 1::2], j[1::2, 1::2])
         elif sampling_mode.startswith("quad:"):
             order = int(self.sampling_mode.split(":")[1])
-            self._pixel_meshgridder = lambda im: im.pixel_quad_meshgrid(order=order)[:2]
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_quad_meshgrid(
+                w, p, u, order=order
+            )[:2]
             _, _, w = quad_table(order, config.DTYPE, config.DEVICE)
             self._pixel_integrator = lambda z: func.pixel_quad_integrator(z, w)
             self._pixel_center_finder = lambda i, j: (i[..., order**2 // 2], j[..., order**2 // 2])
