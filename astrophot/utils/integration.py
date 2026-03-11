@@ -1,7 +1,6 @@
 from functools import lru_cache
 
 from scipy.special import roots_legendre
-import torch
 from ..backend_obj import backend
 
 __all__ = ("quad_table",)

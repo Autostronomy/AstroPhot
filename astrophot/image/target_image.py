@@ -188,30 +188,6 @@ class TargetImage(DataMixin, Image):
         }
         return JacobianImage(parameters=parameters, _data=data, **kwargs)
 
-    def model_image(self, upsample: int = 1, pad: int = 0, **kwargs) -> ModelImage:
-        """
-        Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
-        """
-        kwargs = {
-            "_data": backend.zeros(
-                (
-                    self._data.shape[0] * upsample + 2 * pad,
-                    self._data.shape[1] * upsample + 2 * pad,
-                ),
-                dtype=config.DTYPE,
-                device=config.DEVICE,
-            ),
-            "CD": self.CD.value / upsample,
-            "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,
-            "crtan": self.crtan.value,
-            "crval": self.crval.value,
-            "zeropoint": self.zeropoint,
-            "identity": self.identity,
-            "name": self.name + "_model",
-            **kwargs,
-        }
-        return ModelImage(**kwargs)
-
     def model_image(self, window: Window, **kwargs) -> ModelImage:
         """
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.

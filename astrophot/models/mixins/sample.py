@@ -173,9 +173,16 @@ class SampleMixin:
         #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
         #     ).data
         # )(params)
+        I, J = self._pixel_meshgridder(self.target, window, self.psf.psf_pad, self.psf.upsample)
+        A = self.target.pixel_collecting_area(window)
         return backend.jacobian(
             lambda x: self.sample(
-                window=window, params=backend.concatenate((params_pre, x, params_post), dim=-1)
+                I,
+                J,
+                A,
+                crop=self.psf.psf_pad,
+                downsample=self.psf.upsample,
+                params=backend.concatenate((params_pre, x, params_post), dim=-1),
             )._data,
             params,
         )

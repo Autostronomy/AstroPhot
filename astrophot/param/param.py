@@ -74,16 +74,16 @@ class Param(CParam):
         return backend.clamp(value, min=smin, max=smax)
 
 
-class PSFParam(Param):
+class PSFParam(CParam):
     """
     A class that extends the Param class to include additional functionality specific to PSF parameters.
     This class is used to define PSF parameters for models in the AstroPhot package.
     """
 
-    def __init__(self, *args, upscale=1, **kwargs):
+    def __init__(self, *args, upsample=1, **kwargs):
         super().__init__(*args, **kwargs)
-        self.upscale = upscale
-        self.saveattrs.add("upscale")
+        self.upsample = upsample
+        self.saveattrs.add("upsample")
 
     @Param.value.getter
     def value(self):
@@ -92,21 +92,44 @@ class PSFParam(Param):
             value = backend.ones((1, 1), dtype=config.DTYPE, device=config.DEVICE)
         return value
 
-    @property
-    def upscale(self) -> int:
-        if len(self.children) > 0:
-            return next(iter(self.children.values)).upscale
-        return self._upscale
+    @value.setter
+    def value(self, value):
+        from ..image import PSFImage
+        from ..models import Model
 
-    @upscale.setter
-    def upscale(self, value: int):
+        if isinstance(value, PSFImage):
+
+            def getimage(p):
+                return p.image._data
+
+            self.unlink(tuple(self.children))
+            self.link("image", value)
+            value = getimage
+        elif isinstance(value, Model):
+
+            def getmodel(p):
+                return p.model()._data
+
+            self.unlink(tuple(self.children))
+            self.link("model", value)
+            value = getmodel
+        Param.value.fset(self, value)
+
+    @property
+    def upsample(self) -> int:
+        if len(self.children) > 0:
+            return next(iter(self.children.values)).upsample
+        return self._upsample
+
+    @upsample.setter
+    def upsample(self, value: int):
         if value < 1:
-            raise ValueError("upscale factor must be a positive integer.")
-        self._upscale = int(value)
+            raise ValueError("upsample factor must be a positive integer.")
+        self._upsample = int(value)
 
     @property
     def pixelscale(self) -> float:
-        return 1.0 / self.upscale
+        return 1.0 / self.upsample
 
     @property
     def psf_pad(self) -> int:

@@ -8,11 +8,7 @@ from astrophot.image.model_image import ModelImage, ModelImageList
 from ..param import forward, PSFParam
 from .base import Model
 from . import func
-from ..image import (
-    TargetImage,
-    Window,
-    PSFImage,
-)
+from ..image import TargetImage, Window
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
@@ -42,34 +38,17 @@ class ComponentModel(SampleMixin, Model):
 
     usable = False
 
-    def __init__(self, *args, psf=None, **kwargs):
+    def __init__(self, *args, psf=None, upsample: int = 1, **kwargs):
         super().__init__(*args, **kwargs)
         self.psf = PSFParam(
             "psf",
             psf,
             shape=(None, None),
             description="Point Spread Function to convolve with this model",
+            upsample=upsample,
+            dynamic=False,
         )
         self.saveattrs.add("window.extent")
-
-    @property
-    def psf(self):
-        if self._psf is None:
-            return self.target.psf
-        elif isinstance(self._psf, Model):
-            return self._psf()
-        else:
-            return self._psf
-
-    def set_psf(self, psf):
-        if psf is None:
-            self.psf = None
-        elif isinstance(psf, PSFImage):
-            self.psf = psf
-        elif isinstance(psf, Model):
-            self._psf = psf
-        else:
-            self._psf = PSFImage(psf)
 
     @property
     def target(self):
@@ -131,41 +110,6 @@ class ComponentModel(SampleMixin, Model):
         return x - center[0], y - center[1]
 
     @forward
-    def sample(
-        self,
-        working_image: ModelImage,
-        psf=None,
-    ):
-        """Evaluate the model on the pixels defined in an image. This
-        function properly calls integration methods and PSF
-        convolution. This should not be overloaded except in special
-        cases.
-
-        This function is designed to compute the model on a given
-        image or within a specified window. It takes care of sub-pixel
-        sampling, recursive integration for high curvature regions,
-        PSF convolution, and proper alignment of the computed model
-        with the original pixel grid. The final model is then added to
-        the requested image.
-
-        **Args:**
-        -  `window` (Optional[Window]): A window within which to evaluate the model.
-                    By default this is the model's window.
-
-        **Returns:**
-        -  `Image` (ModelImage): The image with the computed model values.
-
-        """
-        assert (
-            working_image.identity == self.target.identity
-        ), "Model and target image must be matched (try `model.target.model_image()` to get a compatible model image)."
-        sample = self.sample_image(working_image)
-        if psf.shape != (1, 1):
-            sample = func.convolve(sample, psf)
-
-        return sample
-
-    @forward
     def pixel_brightness(self, i, j):
         """Evaluate the model at the pixel coordinates defined by i and j (of the target image)."""
         x, y = self.target.pixel_to_plane(i, j)
@@ -197,7 +141,6 @@ class ComponentModel(SampleMixin, Model):
     def __call__(
         self,
         window: Optional[Window] = None,
-        **kwargs,
     ) -> Union[ModelImage, ModelImageList]:
 
         # Window within which to evaluate model
@@ -212,7 +155,7 @@ class ComponentModel(SampleMixin, Model):
         working_image._data = self.sample(
             I,
             J,
-            working_image.pixel_collecting_area,
+            self.target.pixel_collecting_area(window),
             crop=self.psf.psf_pad,
             downsample=self.psf.upsample,
         )

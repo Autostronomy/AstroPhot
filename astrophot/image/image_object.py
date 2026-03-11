@@ -200,6 +200,14 @@ class Image(Module):
         return backend.sqrt(self.pixel_area)
 
     @forward
+    def pixel_collecting_area(self, window=None):
+        """The area of the sky that each pixel collects light from, in arcsec^2.
+        This is just the pixel area, but can be overridden for certain types of
+        images (e.g. SIP images) where the pixel collecting area is not the same
+        as the pixel area."""
+        return self.pixel_area
+
+    @forward
     def pixel_to_plane(
         self,
         i: ArrayLike,
@@ -249,21 +257,37 @@ class Image(Module):
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    def pixel_center_meshgrid(self, window, pad, upsample) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_center_meshgrid(self, window=None, pad=0, upsample=1) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
+        if window is None:
+            window = self.window
         return func.pixel_center_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
 
-    def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_corner_meshgrid(self, window=None, pad=0, upsample=1) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
-        return func.pixel_corner_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+        if window is None:
+            window = self.window
+        return func.pixel_corner_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
 
-    def pixel_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_simpsons_meshgrid(
+        self, window=None, pad=0, upsample=1
+    ) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
-        return func.pixel_simpsons_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+        if window is None:
+            window = self.window
+        return func.pixel_simpsons_meshgrid(
+            window.extent, pad, upsample, config.DTYPE, config.DEVICE
+        )
 
-    def pixel_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_quad_meshgrid(
+        self, window=None, pad=0, upsample=1, order=3
+    ) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
-        return func.pixel_quad_meshgrid(self._data.shape, config.DTYPE, config.DEVICE, order=order)
+        if window is None:
+            window = self.window
+        return func.pixel_quad_meshgrid(
+            window.extent, pad, upsample, config.DTYPE, config.DEVICE, order=order
+        )
 
     @forward
     def coordinate_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
