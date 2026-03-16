@@ -7,7 +7,6 @@ from scipy.special import gammainc
 
 from .. import AP_config
 
-
 __all__ = ["BaseOptimizer"]
 
 

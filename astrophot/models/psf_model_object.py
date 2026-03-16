@@ -15,7 +15,6 @@ from ..utils.decorators import default_internal, ignore_numpy_warnings
 from ..param import Parameter_Node
 from ..errors import SpecificationConflict
 
-
 __all__ = ["PSF_Model"]
 
 

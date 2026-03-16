@@ -14,7 +14,6 @@ from ..param import Param_Unlock, Param_SoftLimits, Parameter_Node
 from .model_object import Component_Model
 from ._shared_methods import select_target
 
-
 __all__ = ["Galaxy_Model"]
 
 
