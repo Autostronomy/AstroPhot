@@ -87,22 +87,22 @@ class TargetImage(DataMixin, Image):
 
     def __init__(self, *args, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.psf = Param(
-            "psf",
-            psf,
-            shape=(None, None),
-            description="Point spread function for the target image.",
-        )
+        self.psf = psf
 
     @property
     def has_psf(self) -> bool:
         """Returns True when the target image object has a PSF model."""
         try:
-            return self.psf.value is not None
+            return self.psf is not None
         except AttributeError:
             return False
 
-    def set_psf(self, psf):
+    @property
+    def psf(self):
+        return self._psf
+
+    @psf.setter
+    def psf(self, psf):
         """Provide a psf for the `TargetImage`. This is stored and passed to
         models which need to be convolved.
 
@@ -115,13 +115,13 @@ class TargetImage(DataMixin, Image):
         from ..models import Model
 
         if psf is None:
-            self.psf = None
+            self._psf = None
         elif isinstance(psf, PSFImage):
-            self.psf = psf
+            self._psf = psf
         elif isinstance(psf, Model):
-            self.psf = psf
+            self._psf = psf
         else:
-            self.psf = PSFImage(
+            self._psf = PSFImage(
                 data=psf,
                 name=self.name + "_psf",
             )
@@ -181,12 +181,12 @@ class TargetImage(DataMixin, Image):
             "crpix": self.crpix,
             "crtan": self.crtan.value,
             "crval": self.crval.value,
-            "zeropoint": self.zeropoint,
             "identity": self.identity,
             "name": self.name + "_jacobian",
+            "_data": data,
             **kwargs,
         }
-        return JacobianImage(parameters=parameters, _data=data, **kwargs)
+        return JacobianImage(parameters=parameters, **kwargs)
 
     def model_image(self, window: Window, **kwargs) -> ModelImage:
         """

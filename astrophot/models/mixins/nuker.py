@@ -92,11 +92,126 @@ class iNukerMixin:
 
     _model_type = "nuker"
     _parameter_specs = {
-        "Rb": {"units": "arcsec", "valid": (0, None), "dynamic": True},
-        "Ib": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
-        "alpha": {"units": "none", "valid": (0, None), "dynamic": True},
-        "beta": {"units": "none", "valid": (0, None), "dynamic": True},
-        "gamma": {"units": "none", "dynamic": True},
+        "Rb": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "Ib": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "alpha": {"units": "none", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "beta": {"units": "none", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "gamma": {"units": "none", "shape": (None,), "dynamic": True},
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_segment_initialize(
+            model=self,
+            target=self.target[self.window],
+            prof_func=nuker_np,
+            params=("Rb", "Ib", "alpha", "beta", "gamma"),
+            x0_func=_x0_func,
+            segments=self.segments,
+        )
+
+    @forward
+    def iradial_model(
+        self,
+        i: int,
+        R: ArrayLike,
+        Rb: ArrayLike,
+        Ib: ArrayLike,
+        alpha: ArrayLike,
+        beta: ArrayLike,
+        gamma: ArrayLike,
+    ) -> ArrayLike:
+        return func.nuker(R, Rb[i], Ib[i], alpha[i], beta[i], gamma[i])
+
+
+class NukerPSFMixin:
+    """Nuker radial light profile (Lauer et al. 1995).
+
+    This is a classic profile used widely in galaxy modelling. The functional
+    form of the Nuker profile is defined as:
+
+    $$I(R) = I_b2^{\\frac{\\beta - \\gamma}{\\alpha}}\\left(\\frac{R}{R_b}\\right)^{-\\gamma}\\left[1 + \\left(\\frac{R}{R_b}\\right)^{\\alpha}\\right]^{\\frac{\\gamma-\\beta}{\\alpha}}$$
+
+    It is effectively a double power law profile. $\\gamma$ gives the inner
+    slope, $\\beta$ gives the outer slope, $\\alpha$ is somewhat degenerate with
+    the other slopes.
+
+    **Parameters:**
+    -    `Rb`: scale length radius [pix]
+    -    `Ib`: intensity at the scale length [flux/pix^2]
+    -    `alpha`: sharpness of transition between power law slopes
+    -    `beta`: outer power law slope
+    -    `gamma`: inner power law slope
+    """
+
+    _model_type = "nuker"
+    _parameter_specs = {
+        "Rb": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
+        "Ib": {"units": "flux/pix^2", "valid": (0, None), "shape": (), "dynamic": False},
+        "alpha": {"units": "none", "valid": (0, None), "shape": (), "dynamic": True},
+        "beta": {"units": "none", "valid": (0, None), "shape": (), "dynamic": True},
+        "gamma": {"units": "none", "shape": (), "dynamic": True},
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_initialize(
+            self,
+            self.target[self.window],
+            nuker_np,
+            ("Rb", "Ib", "alpha", "beta", "gamma"),
+            _x0_func,
+        )
+
+    @forward
+    def radial_model(
+        self,
+        R: ArrayLike,
+        Rb: ArrayLike,
+        Ib: ArrayLike,
+        alpha: ArrayLike,
+        beta: ArrayLike,
+        gamma: ArrayLike,
+    ) -> ArrayLike:
+        return func.nuker(R, Rb, Ib, alpha, beta, gamma)
+
+
+class iNukerPSFMixin:
+    """Nuker radial light profile (Lauer et al. 1995).
+
+    This is a classic profile used widely in galaxy modelling. The functional
+    form of the Nuker profile is defined as:
+
+    $$I(R) = I_b2^{\\frac{\\beta - \\gamma}{\\alpha}}\\left(\\frac{R}{R_b}\\right)^{-\\gamma}\\left[1 + \\left(\\frac{R}{R_b}\\right)^{\\alpha}\\right]^{\\frac{\\gamma-\\beta}{\\alpha}}$$
+
+    It is effectively a double power law profile. $\\gamma$ gives the inner
+    slope, $\\beta$ gives the outer slope, $\\alpha$ is somewhat degenerate with
+    the other slopes.
+
+    `Rb`, `Ib`, `alpha`, `beta`, and `gamma` are batched by their first
+    dimension, allowing for multiple Nuker profiles to be defined at once.
+
+    **Parameters:**
+    -    `Rb`: scale length radius [pix]
+    -    `Ib`: intensity at the scale length [flux/pix^2]
+    -    `alpha`: sharpness of transition between power law slopes
+    -    `beta`: outer power law slope
+    -    `gamma`: inner power law slope
+    """
+
+    _model_type = "nuker"
+    _parameter_specs = {
+        "Rb": {"units": "pix", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "Ib": {"units": "flux/pix^2", "valid": (0, None), "shape": (None,), "dynamic": False},
+        "alpha": {"units": "none", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "beta": {"units": "none", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "gamma": {"units": "none", "shape": (None,), "dynamic": True},
     }
 
     @torch.no_grad()

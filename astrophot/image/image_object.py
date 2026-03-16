@@ -81,9 +81,9 @@ class Image(Module):
         self.zeropoint = zeropoint
 
         if identity is None:
-            self.identity = id(self)
+            self._identity = id(self)
         else:
-            self.identity = identity
+            self._identity = identity
 
         if wcs is not None:
             if wcs.wcs.ctype[0] not in self.expect_ctype[0]:
@@ -129,6 +129,10 @@ class Image(Module):
             return
 
     @property
+    def identity(self):
+        return self._identity
+
+    @property
     def data(self):
         """The image data, which is a tensor of pixel values."""
         return backend.transpose(self._data, 1, 0)
@@ -151,7 +155,7 @@ class Image(Module):
 
     @crpix.setter
     def crpix(self, value: Union[ArrayLike, tuple]):
-        self._crpix = backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE)
+        self._crpix = np.array(value, dtype=np.float64)
 
     @property
     def zeropoint(self) -> ArrayLike:
@@ -503,7 +507,7 @@ class Image(Module):
             self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
         if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:
             self.zeropoint = hdulist[hduext].header["MAGZP"]
-        self.identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
+        self._identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
         return hdulist
 
     def corners(
@@ -527,7 +531,6 @@ class Image(Module):
         upright = self.pixel_to_plane(*pixel_upright)
         return (lowleft, lowright, upright, upleft)
 
-    @torch.no_grad()
     def get_indices(self, other: Window):
         if other.image is self:
             return slice(max(0, other.i_low), min(self._data.shape[0], other.i_high)), slice(
@@ -546,7 +549,6 @@ class Image(Module):
             f"Cannot get indices for window with different image! Window image: {other.image.name}, self image: {self.name}"
         )
 
-    @torch.no_grad()
     def get_other_indices(self, other: Window):
         if other.image == self:  # fixme check identity, or check "is"?
             shape = other.shape

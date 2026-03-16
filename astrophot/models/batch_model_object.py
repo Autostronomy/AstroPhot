@@ -2,6 +2,8 @@ from typing import Optional, Union
 
 import numpy as np
 
+from astrophot.image.psf_image import PSFImage
+
 from ..backend_obj import backend
 from .. import config
 from ..param import forward
@@ -20,12 +22,13 @@ class BatchModel(Model):
 
     usable = True
 
-    def __init__(self, *, model: ComponentModel = None, **kwargs):
+    def __init__(self, *, model: ComponentModel = None, psf=None, **kwargs):
         super().__init__(**kwargs)
         assert isinstance(
             model, ComponentModel
         ), "BatchModel must be initialized with a ComponentModel instance."
         self.hierarchical_link("model", model)
+        self.psf = psf
 
     @property
     def target(self) -> Optional[Union[TargetImageBatch, TargetImage]]:
@@ -101,6 +104,21 @@ class BatchModel(Model):
         else:
             raise InvalidWindow(f"Unrecognized window format: {str(window)}")
 
+    def _prep_psf(self):
+        if self.psf is None:
+            if self.target.psf is None:
+                psf = self.model.psf
+            else:
+                psf = self.target.psf
+        else:
+            psf = self.psf
+
+        if isinstance(psf, PSFImage):
+            return psf._data, psf.upsample, psf.pad
+        if isinstance(psf, Model):
+            return psf, psf.upsample, psf.pad
+        return None, 1, 0
+
     @forward
     def __call__(self, window=None, model_params=None, model_dims=None, **kwargs):
 
@@ -110,11 +128,11 @@ class BatchModel(Model):
         else:
             window = window & self.window
 
+        psf, upsample, pad = self._prep_psf()
         batch_img = None if isinstance(self.target, TargetImage) else 0
+        batch_psf = 0 if isinstance(psf, backend.array_type) and psf.ndim == 3 else None
         working_image = self.target.model_image(window)
-        I, J = self.model._pixel_meshgridder(
-            self.target, window, self.model.psf.psf_pad, self.model.psf.upsample
-        )
+        I, J = self.model._pixel_meshgridder(self.target, window, pad, upsample)
         # correct for crpix mismatch between target images
         if isinstance(self.target, TargetImageBatch):
             I = I + backend.as_array(
@@ -129,13 +147,15 @@ class BatchModel(Model):
             ).reshape(-1, *[1] * (J.ndim - 1))
         # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
         sample = backend.vmap(
-            self.model.sample, in_dims=(batch_img, batch_img, batch_img, None, None, model_dims)
+            self.model.sample,
+            in_dims=(batch_img, batch_img, batch_img, batch_psf, None, None, model_dims),
         )(
             I,
             J,
             working_image.pixel_collecting_area,
-            self.model.psf.psf_pad,
-            self.model.psf.upsample,
+            psf,
+            pad,
+            upsample,
             model_params,
         )
         if isinstance(self.target, TargetImage) and isinstance(self.window, Window):

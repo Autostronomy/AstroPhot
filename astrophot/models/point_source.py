@@ -36,9 +36,9 @@ class PointSource(ComponentModel):
     }
     usable = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, integrate_mode="none", **kwargs):
 
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, integrate_mode=integrate_mode, **kwargs)
 
         if self.psf is None:
             raise SpecificationConflict("Point_Source needs a psf!")
@@ -68,68 +68,38 @@ class PointSource(ComponentModel):
     def psf_convolve(self, value):
         pass
 
-    @property
-    def integrate_mode(self):
-        return "none"
+    def _prep_psf(self):
+        psf = self.psf
 
-    @integrate_mode.setter
-    def integrate_mode(self, value):
-        pass
+        if isinstance(psf, PSFImage):
+            return psf._data, psf.upsample, 0
+        if isinstance(psf, Model):
+            return psf, psf.upsample, 0
+        return None, 1, 0
 
     @forward
     def sample(
         self,
-        window: Optional[Window] = None,
-        center: ArrayLike = None,
-        flux: ArrayLike = None,
-    ) -> ModelImage:
-        """Evaluate the model on the space covered by an image object. This
-        function properly calls integration methods and PSF
-        convolution. This should not be overloaded except in special
-        cases.
-
-        This function is designed to compute the model on a given
-        image or within a specified window. It takes care of sub-pixel
-        sampling, recursive integration for high curvature regions,
-        PSF convolution, and proper alignment of the computed model
-        with the original pixel grid. The final model is then added to
-        the requested image.
-
-        Args:
-          image (Optional[Image]): An AstroPhot Image object (likely a Model_Image)
-                                     on which to evaluate the model values. If not
-                                     provided, a new Model_Image object will be created.
-          window (Optional[Window]): A window within which to evaluate the model.
-                                   Should only be used if a subset of the full image
-                                   is needed. If not provided, the entire image will
-                                   be used.
-
-        Returns:
-          Image: The image with the computed model values.
-
-        """
-        # Window within which to evaluate model
-        if window is None:
-            window = self.window
-
-        if isinstance(self.psf, PSFImage):
-            psf = self.psf._data
-        elif isinstance(self.psf, Model):
-            psf = self.psf()._data
-        else:
-            raise TypeError(
-                f"PSF must be a PSFImage or Model instance, got {type(self.psf)} instead."
-            )
-
-        # Make the image object to which the samples will be tracked
-        working_image = self.target[window].model_image(upsample=self.psf_upscale)
-
-        i, j, w = working_image.pixel_quad_meshgrid()
-        i0, j0 = working_image.plane_to_pixel(*center)
-        z = interp2d(psf, i - i0 + (psf.shape[0] // 2), j - j0 + (psf.shape[1] // 2))
-
-        working_image._data = flux * func.pixel_quad_integrator(z, w)
-
-        working_image = working_image.reduce(self.psf_upscale)
-
-        return working_image
+        I: ArrayLike,
+        J: ArrayLike,
+        pixel_collecting_area: ArrayLike,
+        psf: ArrayLike = None,
+        crop: int = 0,
+        downsample: int = 1,
+        center=None,
+        flux=None,
+    ):
+        if isinstance(psf, Model):
+            psf = psf()._data
+        i0, j0 = self.target.plane_to_pixel(*center)
+        Z = interp2d(
+            psf,
+            (I - i0) * downsample + (psf.shape[0] // 2),
+            (J - j0) * downsample + (psf.shape[1] // 2),
+        )
+        Z = self._pixel_integrator(Z)
+        I, J = self._pixel_center_finder(I, J)
+        Z = self._adaptive_integrator(Z, I, J, downsample)
+        Z = func.downsample(Z, downsample)
+        Z = Z * (flux * pixel_collecting_area)
+        return Z

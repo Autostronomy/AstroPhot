@@ -57,13 +57,15 @@ class SampleMixin:
         self.integrate_mode = integrate_mode
 
     @forward
-    def _bright_integrate(self, sample: ArrayLike, i: ArrayLike, j: ArrayLike) -> ArrayLike:
+    def _bright_integrate(
+        self, sample: ArrayLike, i: ArrayLike, j: ArrayLike, upsample: int
+    ) -> ArrayLike:
         sample = func.bright_integrate(
             sample,
             i,
             j,
             self.pixel_brightness,
-            scale=self.target.base_scale / self.psf.upscale,
+            scale=self.target.base_scale / upsample,
             bright_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
@@ -72,7 +74,9 @@ class SampleMixin:
         return sample
 
     @forward
-    def _curvature_integrate(self, sample: ArrayLike, i: ArrayLike, j: ArrayLike) -> ArrayLike:
+    def _curvature_integrate(
+        self, sample: ArrayLike, i: ArrayLike, j: ArrayLike, upsample: int
+    ) -> ArrayLike:
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
             backend.abs(
@@ -100,7 +104,7 @@ class SampleMixin:
                 i.flatten()[select],
                 j.flatten()[select],
                 self.pixel_brightness,
-                scale=self.target.base_scale / self.psf.upscale,
+                scale=self.target.base_scale / upsample,
                 curve_frac=self.integrate_fraction,
                 quad_order=self.integrate_quad_order,
                 gridding=self.integrate_gridding,
@@ -132,13 +136,14 @@ class SampleMixin:
         elif sampling_mode == "simpsons":
             self._pixel_meshgridder = lambda im, w, p, u: im.pixel_simpsons_meshgrid(w, p, u)
             self._pixel_integrator = func.pixel_simpsons_integrator
-            self._pixel_center_finder = lambda i, j: (i[1::2, 1::2], j[1::2, 1::2])
+            self._pixel_center_finder = lambda i, j: (i[1:-1:2, 1:-1:2], j[1:-1:2, 1:-1:2])
         elif sampling_mode.startswith("quad:"):
-            order = int(self.sampling_mode.split(":")[1])
+            order = int(sampling_mode.split(":")[1])
             self._pixel_meshgridder = lambda im, w, p, u: im.pixel_quad_meshgrid(
                 w, p, u, order=order
             )[:2]
             _, _, w = quad_table(order, config.DTYPE, config.DEVICE)
+            w = w.flatten()
             self._pixel_integrator = lambda z: func.pixel_quad_integrator(z, w)
             self._pixel_center_finder = lambda i, j: (i[..., order**2 // 2], j[..., order**2 // 2])
         else:
@@ -158,7 +163,7 @@ class SampleMixin:
         elif integrate_mode == "curvature":
             self._adaptive_integrator = self._curvature_integrate
         elif integrate_mode == "none":
-            self._adaptive_integrator = lambda z, i, j: z
+            self._adaptive_integrator = lambda z, i, j, u: z
         else:
             raise SpecificationConflict(
                 f"Unknown integrate mode {integrate_mode} for model {self.name}"
@@ -166,24 +171,30 @@ class SampleMixin:
         self._integrate_mode = integrate_mode
 
     def _jacobian(
-        self, window: Window, params_pre: ArrayLike, params: ArrayLike, params_post: ArrayLike
+        self,
+        window: Window,
+        params_pre: ArrayLike,
+        params: ArrayLike,
+        params_post: ArrayLike,
+        pad: int,
+        upsample: int,
     ) -> ArrayLike:
         # return jacfwd( # this should be more efficient, but the trace overhead is too high
         #     lambda x: self.sample(
         #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
         #     ).data
         # )(params)
-        I, J = self._pixel_meshgridder(self.target, window, self.psf.psf_pad, self.psf.upsample)
+        I, J = self._pixel_meshgridder(self.target, window, pad, upsample)
         A = self.target.pixel_collecting_area(window)
         return backend.jacobian(
             lambda x: self.sample(
                 I,
                 J,
                 A,
-                crop=self.psf.psf_pad,
-                downsample=self.psf.upsample,
+                crop=pad,
+                downsample=upsample,
                 params=backend.concatenate((params_pre, x, params_post), dim=-1),
-            )._data,
+            ),
             params,
         )
 
@@ -220,6 +231,7 @@ class SampleMixin:
         if len(jac_img.match_parameters(identities)[0]) == 0:
             return jac_img
 
+        psf, upsample, pad = self._prep_psf()
         target = self.target[window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
             chunksize = len(params) // self.jacobian_maxparams + 1
@@ -227,13 +239,15 @@ class SampleMixin:
                 params_pre = params[:i]
                 params_chunk = params[i : i + chunksize]
                 params_post = params[i + chunksize :]
-                jac_chunk = self._jacobian(window, params_pre, params_chunk, params_post)
+                jac_chunk = self._jacobian(
+                    window, params_pre, params_chunk, params_post, pad, upsample
+                )
                 jac_img += target.jacobian_image(
                     parameters=identities[i : i + chunksize],
                     data=jac_chunk,
                 )
         else:
-            jac = self._jacobian(window, params[:0], params, params[0:0])
+            jac = self._jacobian(window, params[:0], params, params[0:0], pad, upsample)
             jac_img += target.jacobian_image(parameters=identities, data=jac)
 
         return jac_img

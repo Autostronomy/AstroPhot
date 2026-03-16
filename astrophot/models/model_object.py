@@ -4,8 +4,9 @@ import numpy as np
 import torch
 
 from astrophot.image.model_image import ModelImage, ModelImageList
+from astrophot.image.psf_image import PSFImage
 
-from ..param import forward, PSFParam
+from ..param import forward
 from .base import Model
 from . import func
 from ..image import TargetImage, Window
@@ -37,17 +38,13 @@ class ComponentModel(SampleMixin, Model):
     _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": True}}
 
     usable = False
+    psf_convolve = True
 
-    def __init__(self, *args, psf=None, upsample: int = 1, **kwargs):
+    _options = ("psf_convolve",)
+
+    def __init__(self, *args, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.psf = PSFParam(
-            "psf",
-            psf,
-            shape=(None, None),
-            description="Point Spread Function to convolve with this model",
-            upsample=upsample,
-            dynamic=False,
-        )
+        self.psf = psf
         self.saveattrs.add("window.extent")
 
     @property
@@ -68,6 +65,41 @@ class ComponentModel(SampleMixin, Model):
         except AttributeError:
             pass
         self._target = tar
+
+    @property
+    def psf(self):
+        if self._psf is None:
+            return self.target.psf
+        return self._psf
+
+    @psf.setter
+    def psf(self, psf):
+        try:
+            del self._psf  # Remove old psf if it exists
+        except AttributeError:
+            pass
+        if psf is None:
+            self._psf = None
+        elif isinstance(psf, PSFImage):
+            self._psf = psf
+        elif isinstance(psf, Model):
+            self._psf = psf
+        else:
+            self._psf = PSFImage(
+                data=psf,
+                name=self.name + "_psf",
+            )
+
+    def _prep_psf(self):
+        if not self.psf_convolve:
+            return None, 1, 0
+        psf = self.psf
+
+        if isinstance(psf, PSFImage):
+            return psf._data, psf.upsample, psf.pad
+        if isinstance(psf, Model):
+            return psf, psf.upsample, psf.pad
+        return None, 1, 0
 
     # Initialization functions
     ######################################################################
@@ -95,7 +127,7 @@ class ComponentModel(SampleMixin, Model):
         if not np.all(np.isfinite(COM)):
             return
         COM_center = target_area.pixel_to_plane(
-            *backend.as_array(COM, dtype=config.DTYPE, device=config.DEVICE)
+            *backend.as_array(COM, dtype=config.DTYPE, device=config.DEVICE), ()
         )
         self.center.value = COM_center
 
@@ -121,18 +153,21 @@ class ComponentModel(SampleMixin, Model):
         I: ArrayLike,
         J: ArrayLike,
         pixel_collecting_area: ArrayLike,
+        psf: ArrayLike = None,
         crop: int = 0,
         downsample: int = 1,
-        psf=None,
     ):
         Z = self.pixel_brightness(I, J)
         Z = self._pixel_integrator(Z)
         I, J = self._pixel_center_finder(I, J)
-        Z = self._adaptive_integrator(Z, I, J)
-        if psf.shape != (1, 1):
-            Z = func.convolve(Z, psf)
-            Z = Z[crop : Z.shape[0] - crop, crop : Z.shape[1] - crop]
-            Z = func.downsample(Z, downsample)
+        Z = self._adaptive_integrator(Z, I, J, downsample)
+        if psf is not None:
+            if isinstance(psf, Model):
+                psf = psf()._data
+            if psf.shape != (1, 1):  # skip if identity PSF
+                Z = func.convolve(Z, psf)
+                Z = Z[crop : Z.shape[0] - crop, crop : Z.shape[1] - crop]
+                Z = func.downsample(Z, downsample)
         # fixme for sip this should technically be applied before PSF convolution (though effect is very very small)
         Z = Z * pixel_collecting_area
         return Z
@@ -141,7 +176,7 @@ class ComponentModel(SampleMixin, Model):
     def __call__(
         self,
         window: Optional[Window] = None,
-    ) -> Union[ModelImage, ModelImageList]:
+    ) -> ModelImage:
 
         # Window within which to evaluate model
         if window is None:
@@ -149,14 +184,16 @@ class ComponentModel(SampleMixin, Model):
         else:
             window = window & self.window
 
+        psf, upsample, pad = self._prep_psf()
         working_image = self.target.model_image(window)
-        I, J = self._pixel_meshgridder(self.target, window, self.psf.psf_pad, self.psf.upsample)
+        I, J = self._pixel_meshgridder(self.target, window, pad, upsample)
         # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
         working_image._data = self.sample(
             I,
             J,
             self.target.pixel_collecting_area(window),
-            crop=self.psf.psf_pad,
-            downsample=self.psf.upsample,
+            psf=psf,
+            crop=pad,
+            downsample=upsample,
         )
         return working_image

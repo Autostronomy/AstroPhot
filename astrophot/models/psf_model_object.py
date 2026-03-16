@@ -6,6 +6,7 @@ from ..image import ModelImage, PSFImage, Window
 from ..errors import InvalidTarget
 from .mixins import SampleMixin
 from ..backend_obj import backend, ArrayLike
+from . import func
 
 __all__ = ("PSFModel",)
 
@@ -44,40 +45,49 @@ class PSFModel(SampleMixin, Model):
     ) -> Tuple[ArrayLike, ArrayLike]:
         return x - center[0], y - center[1]
 
+    @forward
+    def pixel_brightness(self, i, j):
+        """Evaluate the model at the pixel coordinates defined by i and j (of
+        the target image). For a PSF model, this is the same as the brightness
+        since it is defined in pixel units."""
+        return self.brightness(i, j)
+
+    def _prep_psf(self):
+        return None, 1, 0
+
     # Fit loop functions
     ######################################################################
     @forward
-    def sample(self, window: Optional[Window] = None) -> PSFImage:
-        """Evaluate the model on the space covered by an image object. This
-        function properly calls integration methods. This should not
-        be overloaded except in special cases.
+    def sample(
+        self,
+        I: ArrayLike,
+        J: ArrayLike,
+        *args,
+        **kwargs,
+    ) -> PSFImage:
+        """
+        Sample the PSF model on the pixel grid defined by I and J.
 
-        This function is designed to compute the model on a given
-        image or within a specified window. It takes care of sub-pixel
-        sampling, recursive integration for high curvature regions,
-        and proper alignment of the computed model with the original
-        pixel grid. The final model is then added to the requested
-        image.
+        Depending on the model specification, this may involve supersampling for
+        higher precision, or it may just be a direct evaluation of the model at
+        the pixel centers. The output is the flux evaluated over the pixel grid
+        at native resolution (for the PSFImage associated with this model.)
 
-        **Args:**
-        -  `window` (Optional[Window]): A window within which to evaluate the model.
-                                   Should only be used if a subset of the full image
-                                   is needed. If not provided, the entire image will
-                                   be used.
+        **Parameters:**
+        - `I`: 2D array of x-coordinates of pixel centers (or pre-upsampled
+          according to the `sampling_mode`) in pixel units.
+        - `J`: 2D array of y-coordinates of pixel centers (or pre-upsampled
+          according to the `sampling_mode`) in pixel units.
 
         **Returns:**
-        -  `PSFImage`: The image with the computed model values.
-
+        - ``Z``: 2D array of flux values at each pixel center, representing the
+          PSF model evaluated at those coordinates.
         """
-        # Create an image to store pixel samples
-        working_image = self.target[self.window].model_image()
-        working_image._data = self.sample_image(working_image)
-
-        # normalize to total flux 1
-        if self.normalize_psf:
-            working_image.normalize()
-
-        return working_image
+        Z = self.brightness(I, J)
+        Z = self._pixel_integrator(Z)
+        I, J = self._pixel_center_finder(I, J)
+        Z = self._adaptive_integrator(Z, I, J, 1)
+        return Z
 
     def fit_mask(self) -> ArrayLike:
         return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
@@ -94,7 +104,7 @@ class PSFModel(SampleMixin, Model):
         if target is None:
             self._target = None
         elif not isinstance(target, PSFImage):
-            raise InvalidTarget(f"Target for PSF_Model must be a PSF_Image, not {type(target)}")
+            raise InvalidTarget(f"Target for PSFModel must be a PSFImage, not {type(target)}")
         try:
             del self._target  # Remove old target if it exists
         except AttributeError:
@@ -103,5 +113,16 @@ class PSFModel(SampleMixin, Model):
         self._target = target
 
     @forward
-    def __call__(self, window: Optional[Window] = None) -> ModelImage:
-        return self.sample(window=window)
+    def __call__(self, window: Optional[Window] = None) -> PSFImage:
+        # Window within which to evaluate model
+        if window is None:
+            window = self.window
+        else:
+            window = window & self.window
+
+        working_image = self.target.model_image(window)
+        I, J = self._pixel_meshgridder(self.target, window, 0, 1)
+        working_image._data = self.sample(I, J)
+        if self.normalize_psf:
+            working_image._data = working_image._data / backend.sum(working_image._data)
+        return working_image

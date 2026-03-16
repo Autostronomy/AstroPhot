@@ -131,9 +131,9 @@ def psf_image(
         return fig, ax
 
     # Evaluate the model image
-    x, y = psf.coordinate_corner_meshgrid()
-    x = backend.to_numpy(x)
-    y = backend.to_numpy(y)
+    i, j = psf.pixel_corner_meshgrid()
+    i = backend.to_numpy(i)
+    j = backend.to_numpy(j)
     psf = backend.to_numpy(psf._data)
 
     # Default kwargs for image
@@ -152,12 +152,12 @@ def psf_image(
         )
 
     # Plot the image
-    ax.pcolormesh(x, y, psf, **kwargs)
+    ax.pcolormesh(i, j, psf, **kwargs)
 
     # Enforce equal spacing on x y
     ax.axis("equal")
-    ax.set_xlabel("PSF X [arcsec]")
-    ax.set_ylabel("PSF Y [arcsec]")
+    ax.set_xlabel("PSF I [pix]")
+    ax.set_ylabel("PSF J [pix]")
 
     return fig, ax
 
