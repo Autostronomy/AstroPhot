@@ -121,10 +121,7 @@ class TargetImage(DataMixin, Image):
         elif isinstance(psf, Model):
             self._psf = psf
         else:
-            self._psf = PSFImage(
-                data=psf,
-                name=self.name + "_psf",
-            )
+            self._psf = PSFImage(data=psf)
 
     def copy_kwargs(self, **kwargs):
         kwargs = {"psf": self.psf, **kwargs}
@@ -206,12 +203,11 @@ class TargetImage(DataMixin, Image):
         }
         return ModelImage(**kwargs)
 
-    def psf_image(self, data: ArrayLike, upscale: int = 1, **kwargs) -> PSFImage:
+    def psf_image(self, data: ArrayLike, upsample: int = 1, **kwargs) -> PSFImage:
         kwargs = {
             "data": data,
-            "CD": self.CD.value / upscale,
             "identity": self.identity,
-            "name": self.name + "_psf",
+            "upsample": upsample,
             **kwargs,
         }
         return PSFImage(**kwargs)
@@ -278,8 +274,14 @@ class TargetImageList(ImageList):
             list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
         )
 
-    def model_image(self) -> ModelImageList:
-        return ModelImageList(list(image.model_image() for image in self.images))
+    def model_image(self, window=None) -> ModelImageList:
+        if window is None:
+            window = self.window
+        new_list = []
+        for other_window in window:
+            i = self.index(other_window.image)
+            new_list.append(self.images[i].model_image(other_window))
+        return ModelImageList(new_list)
 
     @property
     def mask(self):

@@ -17,6 +17,9 @@ class SkyModel(ComponentModel):
     _model_type = "sky"
     usable = False
 
+    def __init__(self, *args, integrate_mode="none", **kwargs):
+        super().__init__(*args, integrate_mode=integrate_mode, **kwargs)
+
     def initialize(self):
         """Initialize the sky model, this is called after the model is
         created and before it is used. This is where we can set the
@@ -34,12 +37,4 @@ class SkyModel(ComponentModel):
 
     @psf_convolve.setter
     def psf_convolve(self, val: bool):
-        pass
-
-    @property
-    def integrate_mode(self) -> str:
-        return "none"
-
-    @integrate_mode.setter
-    def integrate_mode(self, val: str):
         pass

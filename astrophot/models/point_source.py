@@ -80,9 +80,8 @@ class PointSource(ComponentModel):
     @forward
     def sample(
         self,
-        I: ArrayLike,
-        J: ArrayLike,
-        pixel_collecting_area: ArrayLike,
+        I_: ArrayLike,
+        J_: ArrayLike,
         psf: ArrayLike = None,
         crop: int = 0,
         downsample: int = 1,
@@ -94,12 +93,12 @@ class PointSource(ComponentModel):
         i0, j0 = self.target.plane_to_pixel(*center)
         Z = interp2d(
             psf,
-            (I - i0) * downsample + (psf.shape[0] // 2),
-            (J - j0) * downsample + (psf.shape[1] // 2),
+            (I_ - i0) * downsample + (psf.shape[0] // 2),
+            (J_ - j0) * downsample + (psf.shape[1] // 2),
         )
         Z = self._pixel_integrator(Z)
-        I, J = self._pixel_center_finder(I, J)
-        Z = self._adaptive_integrator(Z, I, J, downsample)
+        I_, J_ = self._pixel_center_finder(I_, J_)
+        Z = self._adaptive_integrator(Z, I_, J_, downsample)
+        Z = Z * (flux * self.target.pixel_collecting_area(I_, J_, downsample))
         Z = func.downsample(Z, downsample)
-        Z = Z * (flux * pixel_collecting_area)
         return Z

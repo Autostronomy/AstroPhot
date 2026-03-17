@@ -116,7 +116,7 @@ class GaussianPSFMixin:
     _model_type = "gaussian"
     _parameter_specs = {
         "sigma": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
-        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": False},
+        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": False, "value": 1.0},
     }
 
     @torch.no_grad()

@@ -123,7 +123,13 @@ class MoffatPSFMixin:
     _parameter_specs = {
         "n": {"units": "none", "valid": (0.1, 10), "shape": (), "dynamic": True},
         "Rd": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
-        "I0": {"units": "flux/pix^2", "valid": (0, None), "shape": (), "dynamic": False},
+        "I0": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
     }
 
     @torch.no_grad()
@@ -131,12 +137,9 @@ class MoffatPSFMixin:
     def initialize(self):
         super().initialize()
 
-        targ = self.target[self.window]
-        targ.coordinate_center_meshgrid = targ.pixel_center_meshgrid
-
         parametric_initialize(
             self,
-            targ,
+            self.target[self.window],
             moffat_np,
             ("n", "Rd", "I0"),
             _x0_func,
@@ -179,12 +182,9 @@ class iMoffatPSFMixin:
     def initialize(self):
         super().initialize()
 
-        targ = self.target[self.window]
-        targ.coordinate_center_meshgrid = targ.pixel_center_meshgrid
-
         parametric_segment_initialize(
             model=self,
-            target=targ,
+            target=self.target[self.window],
             prof_func=moffat_np,
             params=("n", "Rd", "I0"),
             x0_func=_x0_func,

@@ -115,7 +115,13 @@ class ExponentialPSFMixin:
     _model_type = "exponential"
     _parameter_specs = {
         "Re": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
-        "Ie": {"units": "flux/pix^2", "valid": (0, None), "shape": (), "dynamic": False},
+        "Ie": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
     }
 
     @torch.no_grad()

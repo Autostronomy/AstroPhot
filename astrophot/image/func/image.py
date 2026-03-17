@@ -48,7 +48,7 @@ def pixel_corner_meshgrid(
 def pixel_simpsons_meshgrid(
     extent: tuple[int, int, int, int], pad: int, upsample: int, dtype, device
 ) -> tuple:
-    return pixel_corner_meshgrid(extent, pad, 2 * upsample, dtype, device)
+    return pixel_corner_meshgrid(extent, 2 * pad, 2 * upsample, dtype, device)
 
 
 def pixel_quad_meshgrid(

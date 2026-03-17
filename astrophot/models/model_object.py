@@ -150,17 +150,19 @@ class ComponentModel(SampleMixin, Model):
     @forward
     def sample(
         self,
-        I: ArrayLike,
-        J: ArrayLike,
-        pixel_collecting_area: ArrayLike,
+        I_: ArrayLike,
+        J_: ArrayLike,
         psf: ArrayLike = None,
         crop: int = 0,
         downsample: int = 1,
     ):
-        Z = self.pixel_brightness(I, J)
+        Z = self.pixel_brightness(I_, J_)
         Z = self._pixel_integrator(Z)
-        I, J = self._pixel_center_finder(I, J)
-        Z = self._adaptive_integrator(Z, I, J, downsample)
+        I_, J_ = self._pixel_center_finder(I_, J_)
+        Z = self._adaptive_integrator(Z, I_, J_, downsample)
+        Z = Z * self.target.pixel_collecting_area(
+            I_, J_, downsample
+        )  # fixme, might not need downsample for pixel collecting area
         if psf is not None:
             if isinstance(psf, Model):
                 psf = psf()._data
@@ -168,8 +170,6 @@ class ComponentModel(SampleMixin, Model):
                 Z = func.convolve(Z, psf)
                 Z = Z[crop : Z.shape[0] - crop, crop : Z.shape[1] - crop]
                 Z = func.downsample(Z, downsample)
-        # fixme for sip this should technically be applied before PSF convolution (though effect is very very small)
-        Z = Z * pixel_collecting_area
         return Z
 
     @forward
@@ -187,11 +187,11 @@ class ComponentModel(SampleMixin, Model):
         psf, upsample, pad = self._prep_psf()
         working_image = self.target.model_image(window)
         I, J = self._pixel_meshgridder(self.target, window, pad, upsample)
+
         # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
         working_image._data = self.sample(
             I,
             J,
-            self.target.pixel_collecting_area(window),
             psf=psf,
             crop=pad,
             downsample=upsample,

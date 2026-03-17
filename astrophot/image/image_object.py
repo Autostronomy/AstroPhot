@@ -204,12 +204,16 @@ class Image(Module):
         return backend.sqrt(self.pixel_area)
 
     @forward
-    def pixel_collecting_area(self, window=None):
+    def pixel_collecting_area(self, I_, J_, upsample):
         """The area of the sky that each pixel collects light from, in arcsec^2.
         This is just the pixel area, but can be overridden for certain types of
         images (e.g. SIP images) where the pixel collecting area is not the same
         as the pixel area."""
-        return self.pixel_area
+        return self.pixel_area / upsample**2
+
+    @property
+    def flip_ra_axis(self):
+        return np.linalg.det(self.CD.npvalue) < 0
 
     @forward
     def pixel_to_plane(
@@ -621,6 +625,7 @@ class Image(Module):
         return super().__getitem__(*args)
 
 
+# fixme, make image lists infinitely nestable, need to merge "index" and "match_indices" in some consistent way
 class ImageList(Module):
     def __init__(self, images: list[Image], name=None):
         super().__init__(name=name)

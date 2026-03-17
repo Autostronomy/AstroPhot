@@ -150,7 +150,13 @@ class NukerPSFMixin:
     _model_type = "nuker"
     _parameter_specs = {
         "Rb": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
-        "Ib": {"units": "flux/pix^2", "valid": (0, None), "shape": (), "dynamic": False},
+        "Ib": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
         "alpha": {"units": "none", "valid": (0, None), "shape": (), "dynamic": True},
         "beta": {"units": "none", "valid": (0, None), "shape": (), "dynamic": True},
         "gamma": {"units": "none", "shape": (), "dynamic": True},

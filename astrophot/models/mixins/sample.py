@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 
 import numpy as np
 
@@ -176,6 +176,7 @@ class SampleMixin:
         params_pre: ArrayLike,
         params: ArrayLike,
         params_post: ArrayLike,
+        psf: Union[ArrayLike, "Model"],
         pad: int,
         upsample: int,
     ) -> ArrayLike:
@@ -185,12 +186,11 @@ class SampleMixin:
         #     ).data
         # )(params)
         I, J = self._pixel_meshgridder(self.target, window, pad, upsample)
-        A = self.target.pixel_collecting_area(window)
         return backend.jacobian(
             lambda x: self.sample(
                 I,
                 J,
-                A,
+                psf=psf,
                 crop=pad,
                 downsample=upsample,
                 params=backend.concatenate((params_pre, x, params_post), dim=-1),
@@ -240,14 +240,14 @@ class SampleMixin:
                 params_chunk = params[i : i + chunksize]
                 params_post = params[i + chunksize :]
                 jac_chunk = self._jacobian(
-                    window, params_pre, params_chunk, params_post, pad, upsample
+                    window, params_pre, params_chunk, params_post, psf, pad, upsample
                 )
                 jac_img += target.jacobian_image(
                     parameters=identities[i : i + chunksize],
                     data=jac_chunk,
                 )
         else:
-            jac = self._jacobian(window, params[:0], params, params[0:0], pad, upsample)
+            jac = self._jacobian(window, params[:0], params, params[0:0], psf, pad, upsample)
             jac_img += target.jacobian_image(parameters=identities, data=jac)
 
         return jac_img

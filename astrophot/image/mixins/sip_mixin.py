@@ -67,6 +67,15 @@ class SIPMixin:
         dJ = interp2d(self.distortion_IJ[1], I, J, padding_mode="border")
         return I + dI, J + dJ
 
+    @forward
+    def pixel_collecting_area(self, I_, J_, upsample):
+        # CMOS pixels only sensitive in sub area, so scale the pixel collecting area
+        return (
+            interp2d(self.pixel_area_map, I_, J_, padding_mode="border")
+            * self.pixel_area
+            / upsample**2
+        )
+
     @property
     def pixel_area_map(self):
         return self._pixel_area_map
@@ -153,7 +162,7 @@ class SIPMixin:
                 + x[:-1, :-1] * y[1:, :-1]
             )
         )
-        self._pixel_area_map = backend.abs(A)
+        self._pixel_area_map = backend.abs(A) / self.pixel_area
 
     def to(self, dtype=None, device=None):
         if dtype is None:

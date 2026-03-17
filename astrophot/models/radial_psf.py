@@ -37,6 +37,7 @@ radial_models = (
     SplinePSFMixin,
 )
 
+EllipseMixin = type("EllipseMixin", (InclinedMixin,), {"usable": False, "_model_type": "ellipse"})
 __all__ = []
 for mixin in radial_models:
     # PSF Model
@@ -47,8 +48,8 @@ for mixin in radial_models:
     # Ellipse PSF Model
     g_mixin = type(
         mixin.__name__[:-5] + "Ellipse",
-        (mixin, InclinedMixin, RadialMixin, PSFModel),
-        {"usable": True, "_model_type": "ellipse"},
+        (mixin, EllipseMixin, RadialMixin, PSFModel),
+        {"usable": True},
     )
     globals()[g_mixin.__name__] = g_mixin
     __all__.append(g_mixin.__name__)

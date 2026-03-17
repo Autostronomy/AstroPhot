@@ -212,9 +212,9 @@ class GroupModel(Model):
 
         """
         if window is None:
-            image = self.target[self.window].model_image()
+            image = self.target.model_image(self.window)
         else:
-            image = self.target[window].model_image()
+            image = self.target.model_image(window)
 
         for model in self.models:
             if window is None:

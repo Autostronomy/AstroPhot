@@ -153,7 +153,13 @@ class KingPSFMixin:
             "value": 2.0,
             "dynamic": False,
         },
-        "I0": {"units": "flux/pix^2", "valid": (0, None), "shape": (), "dynamic": False},
+        "I0": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
     }
 
     @torch.no_grad()

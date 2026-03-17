@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 from .. import func
 from ... import config
+from ...param import forward
 
 
 class CMOSMixin:
@@ -28,6 +29,11 @@ class CMOSMixin:
     def base_scale(self):
         """Get the base scale of the image, which is the subpixel scale."""
         return self.subpixel_scale
+
+    @forward
+    def pixel_collecting_area(self, I_, J_, upsample):
+        # CMOS pixels only sensitive in sub area, so scale the pixel collecting area
+        return self.pixel_area * self.subpixel_scale**2 / upsample**2
 
     def pixel_center_meshgrid(self):
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""

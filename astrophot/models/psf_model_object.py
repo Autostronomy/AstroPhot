@@ -39,6 +39,14 @@ class PSFModel(SampleMixin, Model):
     def initialize(self):
         pass
 
+    @property
+    def upsample(self):
+        return self.target.upsample
+
+    @property
+    def pad(self):
+        return self.target.pad
+
     @forward
     def transform_coordinates(
         self, x: ArrayLike, y: ArrayLike, center: ArrayLike
@@ -50,7 +58,10 @@ class PSFModel(SampleMixin, Model):
         """Evaluate the model at the pixel coordinates defined by i and j (of
         the target image). For a PSF model, this is the same as the brightness
         since it is defined in pixel units."""
-        return self.brightness(i, j)
+        return self.brightness(
+            (i - self.target.crpix[0]) / self.target.upsample,
+            (j - self.target.crpix[1]) / self.target.upsample,
+        )
 
     def _prep_psf(self):
         return None, 1, 0
@@ -60,8 +71,8 @@ class PSFModel(SampleMixin, Model):
     @forward
     def sample(
         self,
-        I: ArrayLike,
-        J: ArrayLike,
+        I_: ArrayLike,
+        J_: ArrayLike,
         *args,
         **kwargs,
     ) -> PSFImage:
@@ -83,10 +94,10 @@ class PSFModel(SampleMixin, Model):
         - ``Z``: 2D array of flux values at each pixel center, representing the
           PSF model evaluated at those coordinates.
         """
-        Z = self.brightness(I, J)
+        Z = self.pixel_brightness(I_, J_)
         Z = self._pixel_integrator(Z)
-        I, J = self._pixel_center_finder(I, J)
-        Z = self._adaptive_integrator(Z, I, J, 1)
+        I_, J_ = self._pixel_center_finder(I_, J_)
+        Z = self._adaptive_integrator(Z, I_, J_, 1)
         return Z
 
     def fit_mask(self) -> ArrayLike:

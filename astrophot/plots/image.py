@@ -269,6 +269,7 @@ def model_image(
         }
 
     # Apply the mask if available
+    print(sample_image.shape, target[window]._mask.shape)
     sample_image[backend.to_numpy(target[window]._mask)] = np.nan
 
     # Plot the image
@@ -406,7 +407,7 @@ def residual_image(
     }
     imshow_kwargs.update(kwargs)
     im = ax.pcolormesh(X, Y, residuals, **imshow_kwargs)
-    if np.linalg.det(target.CD.npvalue) < 0:
+    if target.flip_ra_axis:
         ax.invert_xaxis()
     ax.axis("equal")
     ax.set_xlabel("Tangent Plane X [arcsec]")

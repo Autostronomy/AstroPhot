@@ -1,9 +1,8 @@
 from typing import List, Optional, Union
 import numpy as np
 
-from ..errors import SpecificationConflict
+from ..errors import SpecificationConflict, InvalidImage
 
-from ..param import Param
 from .jacobian_image import JacobianImage
 from .. import config
 from ..backend_obj import backend, ArrayLike
@@ -109,7 +108,7 @@ class PSFImage(DataMixin):
     @property
     def crpix(self):
         if self._crpix is None:
-            return self._data.shape[-2] // 2, self._data.shape[-1] // 2
+            return np.array([self._data.shape[-2] // 2, self._data.shape[-1] // 2])
         return self._crpix
 
     @crpix.setter
@@ -117,7 +116,7 @@ class PSFImage(DataMixin):
         if value is None:
             self._crpix = None
         else:
-            self._crpix = tuple(value)
+            self._crpix = np.array(value)
 
     @property
     def pixel_area(self):
@@ -126,6 +125,10 @@ class PSFImage(DataMixin):
     @property
     def pixel_length(self):
         return backend.as_array(1.0 / self.upsample, dtype=config.DTYPE, device=config.DEVICE)
+
+    @property
+    def flip_ra_axis(self):
+        return False
 
     def flatten(self, attribute: str = "data") -> ArrayLike:
         return backend.flatten(getattr(self, attribute), end_dim=1)
@@ -164,6 +167,22 @@ class PSFImage(DataMixin):
         return func.pixel_quad_meshgrid(
             window.extent, pad, upsample, config.DTYPE, config.DEVICE, order=order
         )
+
+    def coordinate_center_meshgrid(self) -> tuple[ArrayLike, ArrayLike]:
+        i, j = self.pixel_center_meshgrid()
+        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+
+    def coordinate_corner_meshgrid(self) -> tuple[ArrayLike, ArrayLike]:
+        i, j = self.pixel_corner_meshgrid()
+        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+
+    def coordinate_simpsons_meshgrid(self) -> tuple[ArrayLike, ArrayLike]:
+        i, j = self.pixel_simpsons_meshgrid()
+        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+
+    def coordinate_quad_meshgrid(self, order=3) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
+        i, j, _ = self.pixel_quad_meshgrid(order=order)
+        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
 
     def get_indices(self, other: Window):
         if other.image is self:
@@ -228,9 +247,12 @@ class PSFImage(DataMixin):
         }
         return PSFImage(**kwargs)
 
-    def __iadd__(self, other: "PSFImage"):
+    def __iadd__(self, other: Union["PSFImage", ArrayLike]):
+        if isinstance(other, (int, float, backend.array_type)):
+            self._data = self._data + other
+            return self
         if not isinstance(other, PSFImage):
-            raise InvalidImage("PSF images can only add with each other, not: type(other)")
+            raise InvalidImage(f"PSF images can only add with each other, not: {type(other)}")
 
         if self.upsample != other.upsample:
             raise SpecificationConflict("Cannot add PSF images with different upsample factors.")
@@ -246,6 +268,9 @@ class PSFImage(DataMixin):
         self._data = backend.add_at_indices(self._data, (islice, jslice), other._data)
         return self
 
+    def __sub__(self, other: "PSFImage"):
+        return self.copy(_data=self._data - other._data)
+
     def copy_kwargs(self, **kwargs) -> dict:
         kwargs = {
             "_data": backend.copy(self._data),
@@ -253,7 +278,7 @@ class PSFImage(DataMixin):
             "identity": self.identity,
             **kwargs,
         }
-        return kwargs
+        return super().copy_kwargs(**kwargs)
 
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
