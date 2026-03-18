@@ -12,6 +12,7 @@ from ..image import Window, PSFImage
 from ..errors import SpecificationConflict
 from ..param import forward
 from ..backend_obj import backend, ArrayLike
+from .. import config
 from . import func
 
 __all__ = ("PointSource",)
@@ -37,16 +38,14 @@ class PointSource(ComponentModel):
     usable = True
 
     def __init__(self, *args, integrate_mode="none", **kwargs):
-
         super().__init__(*args, integrate_mode=integrate_mode, **kwargs)
-
-        if self.psf is None:
-            raise SpecificationConflict("Point_Source needs a psf!")
 
     @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
+        if self.psf is None:
+            raise SpecificationConflict("PointSource needs a psf!")
 
         if self.flux.initialized:
             return
@@ -58,6 +57,17 @@ class PointSource(ComponentModel):
         edge = np.concatenate((dat[:, 0], dat[:, -1], dat[0, :], dat[-1, :]))
         edge_average = np.median(edge)
         self.flux.value = np.abs(np.sum(dat - edge_average))
+
+    @property
+    def integrate_mode(self):
+        return "none"
+
+    @integrate_mode.setter
+    def integrate_mode(self, value):
+        if value != "none":
+            config.logger.warning(
+                "PointSource models are restricted to integrate mode of 'none', ignoring integrate_mode setting."
+            )
 
     # Psf convolution should be on by default since this is a delta function
     @property
@@ -97,8 +107,6 @@ class PointSource(ComponentModel):
             (J_ - j0) * downsample + (psf.shape[1] // 2),
         )
         Z = self._pixel_integrator(Z)
-        I_, J_ = self._pixel_center_finder(I_, J_)
-        Z = self._adaptive_integrator(Z, I_, J_, downsample)
         Z = Z * (flux * self.target.pixel_collecting_area(I_, J_, downsample))
         Z = func.downsample(Z, downsample)
         return Z

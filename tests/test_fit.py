@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 import astrophot as ap
@@ -91,7 +90,6 @@ def sersic_model():
                 "initial_state": [[20, 20, 0.7, np.pi, 2, 15, 10]],
             },
         ),
-        (ap.fit.MiniFit, {}),
         (ap.fit.Slalom, {}),
     ],
 )

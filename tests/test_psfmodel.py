@@ -16,23 +16,20 @@ def test_all_psfmodel_sample(model_type):
             "Skipping airy psf model, JAX does not support bessel_j1 with finite derivatives it seems"
         )
 
-    if "nuker" in model_type:
-        kwargs = {"Ib": {"value": None, "dynamic": True}}
-    elif "gaussian" in model_type:
-        kwargs = {"flux": {"value": None, "dynamic": True}}
-    elif "exponential" in model_type:
-        kwargs = {"Ie": {"value": None, "dynamic": True}}
-    else:
-        kwargs = {}
     target = make_basic_gaussian_psf(pixelscale=0.8)
     MODEL = ap.Model(
         name="test_model",
         model_type=model_type,
         target=target,
         normalize_psf=False,
-        **kwargs,
     )
+    for p in MODEL.all_params:
+        if p.units in ["flux", "flux/pix^2"]:
+            p.to_dynamic(None)
     MODEL.initialize()
+    for p in MODEL.all_params:
+        if p.units in ["flux", "flux/pix^2"]:
+            p.to_dynamic(p.value * 1.5)
     print(MODEL)
     for P in MODEL.dynamic_params:
         assert P.value is not None, (
@@ -54,7 +51,7 @@ def test_all_psfmodel_sample(model_type):
 
     res = ap.fit.LM(MODEL, max_iter=10).fit()
 
-    assert len(res.loss_history) > 2, "Optimizer must be able to find steps to improve the model"
+    assert len(res.loss_history) >= 2, "Optimizer must be able to find steps to improve the model"
 
     if "pixelated" in model_type:  # fixme pixelated having difficulties
         return

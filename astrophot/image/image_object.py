@@ -537,17 +537,17 @@ class Image(Module):
             return slice(max(0, other.i_low), min(self._data.shape[0], other.i_high)), slice(
                 max(0, other.j_low), min(self._data.shape[1], other.j_high)
             )
-        if other.image.identity == self.identity:
-            shift = np.round(self.crpix - other.crpix).astype(int)
-            return slice(
-                min(max(0, other.i_low + shift[0]), self._data.shape[0]),
-                max(0, min(other.i_high + shift[0], self._data.shape[0])),
-            ), slice(
-                min(max(0, other.j_low + shift[1]), self._data.shape[1]),
-                max(0, min(other.j_high + shift[1], self._data.shape[1])),
+        if other.image.identity != self.identity:
+            config.logger.warning(
+                f"Attempting to match windows with different images! Window image: {other.image.name}, {other.image.identity}, self image: {self.name}, {self.identity}. This may fail unless you are sure the two images are on the same pixel grid."
             )
-        raise RuntimeError(
-            f"Cannot get indices for window with different image! Window image: {other.image.name}, self image: {self.name}"
+        shift = np.round(self.crpix - other.crpix).astype(int)
+        return slice(
+            min(max(0, other.i_low + shift[0]), self._data.shape[0]),
+            max(0, min(other.i_high + shift[0], self._data.shape[0])),
+        ), slice(
+            min(max(0, other.j_low + shift[1]), self._data.shape[1]),
+            max(0, min(other.j_high + shift[1], self._data.shape[1])),
         )
 
     def get_other_indices(self, other: Window):

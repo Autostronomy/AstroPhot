@@ -27,22 +27,17 @@ class PixelBasisPSF(PSFModel):
 
     **Parameters:**
     -    `weights`: The weights of the basis set of images in units of flux.
-    -    `PA`: The position angle of the PSF in radians.
-    -    `scale`: The scale of the PSF in arcseconds per grid unit.
     """
 
     _model_type = "basis"
-    _parameter_specs = {
-        "weights": {"units": "flux", "dynamic": True},
-        "PA": {"units": "radians", "shape": (), "dynamic": True},
-        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": True},
-    }
+    _parameter_specs = {"weights": {"units": "unitless", "shape": (None,), "dynamic": True}}
     usable = True
 
     def __init__(self, *args, basis: Union[str, ArrayLike] = "zernike:3", **kwargs):
         """Initialize the PixelBasisPSF model with a basis set of images."""
         super().__init__(*args, **kwargs)
         self.basis = basis
+        self.vinterp2d = backend.vmap(interp2d, in_dims=(0, None, None))
 
     @property
     def basis(self):
@@ -68,29 +63,11 @@ class PixelBasisPSF(PSFModel):
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
-        target_area = self.target[self.window]
-        if not self.PA.initialized:
-            R, _ = polar_decomposition(self.target.CD.npvalue)
-            self.PA.value = np.arccos(np.abs(R[0, 0]))
-        if not self.scale.initialized:
-            self.scale.value = self.target.pixelscale.item()
         if isinstance(self.basis, str) and self.basis.startswith("zernike:"):
             order = int(self.basis.split(":")[1])
-            nm = func.zernike_n_m_list(order)
-            N = int(
-                target_area._data.shape[0] * self.target.pixelscale.item() / self.scale.value.item()
-            )
-            X, Y = np.meshgrid(
-                np.linspace(-1, 1, N) * (N - 1) / N,
-                np.linspace(-1, 1, N) * (N - 1) / N,
-                indexing="ij",
-            )
-            R = np.sqrt(X**2 + Y**2)
-            Phi = np.arctan2(Y, X)
-            basis = []
-            for n, m in nm:
-                basis.append(func.zernike_n_m_modes(R, Phi, n, m))
-            self.basis = np.stack(basis, axis=0)
+            N = int(max(self.window.shape))
+            N = N + 1 - N % 2
+            self.basis = func.zernike_basis(order, N) / self.target.pixel_area
 
         if not self.weights.initialized:
             w = np.zeros(self.basis.shape[0])
@@ -98,17 +75,7 @@ class PixelBasisPSF(PSFModel):
             self.weights.value = w
 
     @forward
-    def transform_coordinates(
-        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
-    ) -> Tuple[ArrayLike, ArrayLike]:
-        x, y = super().transform_coordinates(x, y)
-        i, j = func.rotate(-PA, x, y)
-        pixel_center = (self.basis.shape[1] - 1) / 2, (self.basis.shape[2] - 1) / 2
-        return i / scale + pixel_center[0], j / scale + pixel_center[1]
-
-    @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        return backend.sum(
-            backend.vmap(lambda w, b: w * interp2d(b, x, y))(weights, self.basis), dim=0
-        )
+        wB = weights[:, None, None] * self.basis
+        return backend.sum(self.vinterp2d(wB, x, y), dim=0)

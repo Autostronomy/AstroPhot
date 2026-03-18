@@ -25,7 +25,7 @@ class PSFModel(SampleMixin, Model):
     """
 
     _parameter_specs = {
-        "center": {"units": "pixels", "value": (0.0, 0.0), "shape": (2,), "dynamic": False},
+        "center": {"units": "pix", "value": (0.0, 0.0), "shape": (2,), "dynamic": False},
     }
     _model_type = "psf"
     usable = False
@@ -58,10 +58,7 @@ class PSFModel(SampleMixin, Model):
         """Evaluate the model at the pixel coordinates defined by i and j (of
         the target image). For a PSF model, this is the same as the brightness
         since it is defined in pixel units."""
-        return self.brightness(
-            (i - self.target.crpix[0]) / self.target.upsample,
-            (j - self.target.crpix[1]) / self.target.upsample,
-        )
+        return self.brightness(*self.target.mypixel_to_targpixel(i, j))
 
     def _prep_psf(self):
         return None, 1, 0
@@ -71,13 +68,13 @@ class PSFModel(SampleMixin, Model):
     @forward
     def sample(
         self,
-        I_: ArrayLike,
-        J_: ArrayLike,
+        i: ArrayLike,
+        j: ArrayLike,
         *args,
         **kwargs,
     ) -> PSFImage:
         """
-        Sample the PSF model on the pixel grid defined by I and J.
+        Sample the PSF model on the pixel grid defined by i and j.
 
         Depending on the model specification, this may involve supersampling for
         higher precision, or it may just be a direct evaluation of the model at
@@ -85,20 +82,20 @@ class PSFModel(SampleMixin, Model):
         at native resolution (for the PSFImage associated with this model.)
 
         **Parameters:**
-        - `I`: 2D array of x-coordinates of pixel centers (or pre-upsampled
+        - `i`: 2D array of x-coordinates of pixel centers (or pre-upsampled
           according to the `sampling_mode`) in pixel units.
-        - `J`: 2D array of y-coordinates of pixel centers (or pre-upsampled
+        - `j`: 2D array of y-coordinates of pixel centers (or pre-upsampled
           according to the `sampling_mode`) in pixel units.
 
         **Returns:**
         - ``Z``: 2D array of flux values at each pixel center, representing the
           PSF model evaluated at those coordinates.
         """
-        Z = self.pixel_brightness(I_, J_)
+        Z = self.pixel_brightness(i, j)
         Z = self._pixel_integrator(Z)
-        I_, J_ = self._pixel_center_finder(I_, J_)
-        Z = self._adaptive_integrator(Z, I_, J_, 1)
-        return Z
+        i, j = self._pixel_center_finder(i, j)
+        Z = self._adaptive_integrator(Z, i, j, 1)
+        return Z * self.target.pixel_area
 
     def fit_mask(self) -> ArrayLike:
         return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
@@ -132,8 +129,8 @@ class PSFModel(SampleMixin, Model):
             window = window & self.window
 
         working_image = self.target.model_image(window)
-        I, J = self._pixel_meshgridder(self.target, window, 0, 1)
-        working_image._data = self.sample(I, J)
+        i, j = self._pixel_meshgridder(self.target, window, 0, 1)
+        working_image._data = self.sample(i, j)
         if self.normalize_psf:
             working_image._data = working_image._data / backend.sum(working_image._data)
         return working_image

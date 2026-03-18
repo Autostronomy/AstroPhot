@@ -3,7 +3,6 @@ import torch
 from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
-from caskade import OverrideParam
 from ..param import forward
 from ..backend_obj import backend, ArrayLike
 
@@ -40,10 +39,8 @@ class PixelatedPSF(PSFModel):
     """
 
     _model_type = "pixelated"
-    _parameter_specs = {"pixels": {"units": "flux/arcsec^2", "dynamic": True}}
+    _parameter_specs = {"pixels": {"units": "flux/pix^2", "dynamic": True}}
     usable = True
-    sampling_mode = "midpoint"
-    integrate_mode = "none"
 
     @torch.no_grad()
     @ignore_numpy_warnings
@@ -55,10 +52,6 @@ class PixelatedPSF(PSFModel):
         self.pixels.value = backend.copy(target_area._data) / target_area.pixel_area
 
     @forward
-    def brightness(
-        self, x: ArrayLike, y: ArrayLike, pixels: ArrayLike, center: ArrayLike
-    ) -> ArrayLike:
-        with OverrideParam(self.target.crtan, center):
-            i, j = self.target.plane_to_pixel(x, y)
-        result = interp2d(pixels, i, j)
-        return result
+    def brightness(self, x: ArrayLike, y: ArrayLike, pixels: ArrayLike) -> ArrayLike:
+        x, y = self.transform_coordinates(x, y)
+        return interp2d(pixels, x, y)

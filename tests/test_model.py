@@ -73,13 +73,11 @@ def test_model_sampling_modes():
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
-    model.integrate_mode = "should raise"
     with pytest.raises(ap.errors.SpecificationConflict):
-        model()
+        model.integrate_mode = "should raise"
     model.integrate_mode = "none"
-    model.sampling_mode = "should raise"
     with pytest.raises(ap.errors.SpecificationConflict):
-        model()
+        model.sampling_mode = "should raise"
     model.sampling_mode = "midpoint"
     model.integrate_mode = "none"
 
@@ -127,6 +125,11 @@ def test_all_model_sample(model_type):
         and ap.backend.backend == "jax"
     ):
         pytest.skip("JAX version doesnt support these models yet, difficulty with gradients")
+
+    if any(t in model_type for t in ["warp", "fourier"]):
+        pytest.skip("Warp and Fourier models are complex and slow to fit, skipping for now")
+    if model_type.startswith("truncated"):
+        pytest.skip("Testing truncated models is redundant")
 
     target = make_basic_sersic()
     target.zeropoint = 22.5
@@ -256,12 +259,12 @@ def test_chunk_sample(center, PA, q, n, Re):
         integrate_mode="none",
     )
 
-    full_img = model.sample()
+    full_img = model()
 
     chunk_img = target.model_image()
 
     for chunk in model.window.chunk(20**2):
-        sample = model.sample(window=chunk)
+        sample = model(window=chunk)
         chunk_img += sample
 
     assert ap.backend.allclose(

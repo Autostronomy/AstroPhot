@@ -98,10 +98,6 @@ class PSFImage(DataMixin):
         self._upsample = int(value)
 
     @property
-    def pixelscale(self) -> float:
-        return 1.0 / self.upsample
-
-    @property
     def pad(self) -> int:
         return max(self._data.shape[-2:]) // 2
 
@@ -123,7 +119,7 @@ class PSFImage(DataMixin):
         return backend.as_array(1.0 / self.upsample**2, dtype=config.DTYPE, device=config.DEVICE)
 
     @property
-    def pixel_length(self):
+    def pixelscale(self):
         return backend.as_array(1.0 / self.upsample, dtype=config.DTYPE, device=config.DEVICE)
 
     @property
@@ -135,6 +131,30 @@ class PSFImage(DataMixin):
 
     def pixel_collecting_area(self, *args, **kwargs):
         return 1.0
+
+    def targpixel_to_mypixel(self, I_, J_):
+        """
+        Convert between coordinate spaces. "targpixel" refers to the pixel
+        coordinates of the target of this PSF, which have the origin at the
+        center of the PSF and a step of 1 corresponds to one target pixel
+        length. "mypixel" refers to the pixel coordinates of this PSF image,
+        which have an origin at the center of the [0,0] pixel and a step of 1
+        corresponds to one PSF pixel length (which is 1/upsample of a target
+        pixel length).
+        """
+        return I_ * self.upsample + self.crpix[0], J_ * self.upsample + self.crpix[1]
+
+    def mypixel_to_targpixel(self, i, j):
+        """
+        Convert between coordinate spaces. "targpixel" refers to the pixel
+        coordinates of the target of this PSF, which have the origin at the
+        center of the PSF and a step of 1 corresponds to one target pixel
+        length. "mypixel" refers to the pixel coordinates of this PSF image,
+        which have an origin at the center of the [0,0] pixel and a step of 1
+        corresponds to one PSF pixel length (which is 1/upsample of a target
+        pixel length).
+        """
+        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
 
     def pixel_center_meshgrid(self, window=None, pad=0, upsample=1) -> tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
@@ -170,19 +190,19 @@ class PSFImage(DataMixin):
 
     def coordinate_center_meshgrid(self) -> tuple[ArrayLike, ArrayLike]:
         i, j = self.pixel_center_meshgrid()
-        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+        return self.mypixel_to_targpixel(i, j)
 
     def coordinate_corner_meshgrid(self) -> tuple[ArrayLike, ArrayLike]:
         i, j = self.pixel_corner_meshgrid()
-        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+        return self.mypixel_to_targpixel(i, j)
 
     def coordinate_simpsons_meshgrid(self) -> tuple[ArrayLike, ArrayLike]:
         i, j = self.pixel_simpsons_meshgrid()
-        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+        return self.mypixel_to_targpixel(i, j)
 
     def coordinate_quad_meshgrid(self, order=3) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
         i, j, _ = self.pixel_quad_meshgrid(order=order)
-        return (i - self.crpix[0]) / self.upsample, (j - self.crpix[1]) / self.upsample
+        return self.mypixel_to_targpixel(i, j)
 
     def get_indices(self, other: Window):
         if other.image is self:
@@ -247,6 +267,14 @@ class PSFImage(DataMixin):
         }
         return PSFImage(**kwargs)
 
+    def fits_info(self) -> dict:
+        return {
+            "UPSMPL": self.upsample,
+            "CRPIX1": self.crpix[0],
+            "CRPIX2": self.crpix[1],
+            "IDNTY": self.identity,
+        }
+
     def __iadd__(self, other: Union["PSFImage", ArrayLike]):
         if isinstance(other, (int, float, backend.array_type)):
             self._data = self._data + other
@@ -275,6 +303,7 @@ class PSFImage(DataMixin):
         kwargs = {
             "_data": backend.copy(self._data),
             "crpix": self.crpix,
+            "upsample": self.upsample,
             "identity": self.identity,
             **kwargs,
         }
@@ -287,6 +316,9 @@ class PSFImage(DataMixin):
 
         """
         return self.__class__(**self.copy_kwargs(**kwargs))
+
+    def reduce(self, scale: int):
+        return self.copy(upsample=self.upsample * scale)
 
     def get_window(self, other: Union[Window, "Image"], indices=None, **kwargs):
         """Get a new image object which is a window of this image

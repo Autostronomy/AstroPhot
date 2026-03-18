@@ -265,7 +265,7 @@ class SampleMixin:
         jacobian_image = self.jacobian(window=window, params=params)
 
         data = self.target[window]._data
-        model = self.sample(window=window)._data
+        model = self(window=window)._data
         if likelihood == "gaussian":
             weight = self.target[window]._weight
             gradient = backend.sum(

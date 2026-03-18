@@ -87,7 +87,8 @@ class TargetImage(DataMixin, Image):
 
     def __init__(self, *args, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.psf = psf
+        if not hasattr(self, "_psf"):
+            self.psf = psf
 
     @property
     def has_psf(self) -> bool:
@@ -139,7 +140,7 @@ class TargetImage(DataMixin, Image):
                     )
                 )
             else:
-                config.logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
+                config.logger.warning("Unable to save PSF to FITS, not a PSFImage.")
         return images
 
     def load(self, filename: str, hduext: int = 0):
@@ -149,13 +150,18 @@ class TargetImage(DataMixin, Image):
         """
         hdulist = super().load(filename, hduext=hduext)
         if "PSF" in hdulist:
+            print("Loading PSF from FITS file...")
+            crpix = (
+                hdulist["PSF"].header.get("CRPIX1", None),
+                hdulist["PSF"].header.get("CRPIX2", None),
+            )
             self.psf = PSFImage(
                 data=np.array(hdulist["PSF"].data, dtype=np.float64),
-                CD=(
-                    (hdulist["PSF"].header["CD1_1"], hdulist["PSF"].header["CD1_2"]),
-                    (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
-                ),
+                upsample=hdulist["PSF"].header.get("UPSMPL", 1),
+                crpix=None if None in crpix else crpix,
+                identity=hdulist["PSF"].header.get("IDNTY", None),
             )
+            print("PSF loaded from FITS file.", self.psf)
         return hdulist
 
     def jacobian_image(
@@ -185,10 +191,12 @@ class TargetImage(DataMixin, Image):
         }
         return JacobianImage(parameters=parameters, **kwargs)
 
-    def model_image(self, window: Window, **kwargs) -> ModelImage:
+    def model_image(self, window: Window = None, **kwargs) -> ModelImage:
         """
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
+        if window is None:
+            window = self.window
         si, sj = self.get_indices(window)
         kwargs = {
             "_data": backend.zeros_like(self._data[si, sj]),

@@ -251,7 +251,7 @@ class Model(Module):
 
     @forward
     def angular_metric(self, x, y):
-        return backend.arctan2(y, x)
+        return backend.arctan2(y, backend.where(x < 0, x - self.softening, x + self.softening))
 
     def to(self, dtype=None, device=None):
         if dtype is None:

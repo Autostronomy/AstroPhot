@@ -36,3 +36,18 @@ def zernike_n_m_modes(rho: np.ndarray, phi: np.ndarray, n: int, m: int) -> np.nd
 
         Z = Z + c * R * T
     return Z * (rho <= 1).astype(np.float64)
+
+
+def zernike_basis(order: int, N: int) -> np.ndarray:
+    nm = zernike_n_m_list(order)
+    X, Y = np.meshgrid(
+        np.linspace(-1, 1, N) * (N - 1) / N,
+        np.linspace(-1, 1, N) * (N - 1) / N,
+        indexing="ij",
+    )
+    R = np.sqrt(X**2 + Y**2)
+    Phi = np.arctan2(Y, X)
+    basis = []
+    for n, m in nm:
+        basis.append(zernike_n_m_modes(R, Phi, n, m))
+    return np.stack(basis, axis=0)

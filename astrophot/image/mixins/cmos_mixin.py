@@ -35,10 +35,12 @@ class CMOSMixin:
         # CMOS pixels only sensitive in sub area, so scale the pixel collecting area
         return self.pixel_area * self.subpixel_scale**2 / upsample**2
 
-    def pixel_center_meshgrid(self):
+    def pixel_center_meshgrid(self, window=None, pad=0, upsample=1):
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
+        if window is None:
+            window = self.window
         return func.cmos_pixel_center_meshgrid(
-            self._data.shape, self.subpixel_loc, config.DTYPE, config.DEVICE
+            window.extent, pad, upsample, self.subpixel_loc, config.DTYPE, config.DEVICE
         )
 
     def copy(self, **kwargs):

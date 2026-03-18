@@ -57,16 +57,16 @@ class AiryPSF(RadialMixin, PSFModel):
 
         if self.I0.initialized and self.aRL.initialized:
             return
-        icenter = self.target.plane_to_pixel(*self.center.value)
+        icenter = self.target.targpixel_to_mypixel(*self.center.value)
 
         if not self.I0.initialized:
             mid_chunk = self.target._data[
                 int(icenter[0]) - 2 : int(icenter[0]) + 2,
                 int(icenter[1]) - 2 : int(icenter[1]) + 2,
             ]
-            self.I0.value = backend.mean(mid_chunk) / self.target.pixel_area
+            self.I0.value = backend.mean(mid_chunk) / self.target.upsample**2
         if not self.aRL.initialized:
-            self.aRL.value = (5.0 / 8.0) * 2 * self.target.pixelscale
+            self.aRL.value = (5.0 / 8.0) * 2
 
     @forward
     def radial_model(self, R: ArrayLike, I0: ArrayLike, aRL: ArrayLike) -> ArrayLike:

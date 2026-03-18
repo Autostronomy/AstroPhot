@@ -30,7 +30,6 @@ class BilinearSky(SkyModel):
         "PA": {"units": "radians", "shape": (), "dynamic": True},
         "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": True},
     }
-    sampling_mode = "midpoint"
     usable = True
 
     def __init__(self, *args, nodes: Tuple[int, int] = (3, 3), **kwargs):

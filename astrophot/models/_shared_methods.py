@@ -27,7 +27,7 @@ def _sample_image(
     # Get the radius of each pixel relative to object center
     x, y = transform(*image.coordinate_center_meshgrid(), params=())
     R = backend.to_numpy(radius(x, y, params=())).flatten()
-
+    print(type(R))
     if angle_range is not None:
         T = backend.to_numpy(angle(x, y, params=())).flatten()
         T = (T - angle_range[0]) % cycle
@@ -35,11 +35,12 @@ def _sample_image(
         R = R[CHOOSE]
         dat = dat.flatten()[CHOOSE]
     raveldat = dat.ravel()
+    print(type(R))
 
     # Bin fluxes by radius
     if rad_bins is None:
         rad_bins = np.logspace(
-            np.log10(R.min() * 0.9 + image.pixelscale / 2), np.log10(R.max() * 1.1), 11
+            np.log10(R.min() * 0.9 + image.pixelscale.item() / 2), np.log10(R.max() * 1.1), 11
         )
     else:
         rad_bins = np.array(rad_bins)
@@ -49,6 +50,7 @@ def _sample_image(
     sigma = lambda d: iqr(d, rng=[16, 84]) / 2
     S = binned_statistic(R, raveldat, statistic=sigma, bins=rad_bins)[0] / image.pixel_area.item()
     R = (rad_bins[:-1] + rad_bins[1:]) / 2
+    print(type(R))
 
     # Ensure enough values are positive
     N = np.isfinite(I)
@@ -74,6 +76,7 @@ def _sample_image(
         S[~N] = np.abs(np.interp(R[~N], R[N], S[N]))
     Sm = np.median(S)
     S[S < Sm] = Sm  # remove very small uncertainties
+    print(type(R))
 
     return R, I, S
 

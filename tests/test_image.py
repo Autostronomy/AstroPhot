@@ -235,10 +235,10 @@ def test_target_image_psf():
         zeropoint=1.0,
     )
     assert new_image.has_psf, "target image should store variance"
-    assert new_image.psf.psf_pad == 4, "psf border should be half psf size"
+    assert new_image.psf.pad == 4, "psf border should be half psf size"
 
     reduced_image = new_image.reduce(3)
-    assert reduced_image.psf._data[0][0] == 9, "reduced image should sum sub pixels in psf"
+    assert reduced_image.psf.upsample == 3, "reduced image should now have upsampled PSF"
 
     new_image.psf = None
     assert not new_image.has_psf, "target image update to no psf"
@@ -314,7 +314,7 @@ def test_psf_image_copying():
         data=np.ones((15, 15)),
     )
 
-    assert psf_image.psf_pad == 7, "psf image should have correct psf_pad"
+    assert psf_image.pad == 7, "psf image should have correct psf_pad"
     psf_image.normalize()
     assert np.allclose(
         ap.backend.to_numpy(psf_image._data), 1 / 15**2

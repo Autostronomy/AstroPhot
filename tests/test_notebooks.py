@@ -28,6 +28,9 @@ def convert_notebook_to_py(nbpath):
     pypath = nbpath.replace(".ipynb", ".py")
     with open(pypath, "r") as f:
         content = f.readlines()
+
+    content.insert(0, "import socket\n")
+    content.insert(1, "socket.setdefaulttimeout(120)\n")
     with open(pypath, "w") as f:
         for line in content:
             if line.startswith("get_ipython()"):

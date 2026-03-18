@@ -197,9 +197,9 @@ class FourierEllipseMixin:
         super().initialize()
 
         if not self.am.initialized:
-            self.am.value = np.zeros(len(self.modes))
+            self.am.value = np.zeros(len(self.modes)) + 0.0001
         if not self.phim.initialized:
-            self.phim.value = np.zeros(len(self.modes))
+            self.phim.value = np.zeros(len(self.modes)) + 0.0001
 
 
 class WarpMixin:
