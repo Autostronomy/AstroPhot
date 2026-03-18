@@ -44,7 +44,6 @@ class Image(Module):
     -  `CD`: The coordinate transformation matrix in arcseconds/pixel.
     """
 
-    default_CD = ((1.0, 0.0), (0.0, 1.0))
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
     base_scale = 1.0
 
@@ -57,7 +56,7 @@ class Image(Module):
         crpix: Union[ArrayLike, tuple] = (0.0, 0.0),
         crtan: Union[ArrayLike, tuple] = (0.0, 0.0),
         crval: Union[ArrayLike, tuple] = (0.0, 0.0),
-        pixelscale: Optional[Union[ArrayLike, float]] = None,
+        pixelscale: Optional[Union[ArrayLike, float]] = 1.0,
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
         hduext: int = 0,
@@ -110,10 +109,8 @@ class Image(Module):
 
         if isinstance(CD, (float, int)):
             CD = np.array([[CD, 0.0], [0.0, CD]], dtype=np.float64)
-        elif CD is None and pixelscale is not None:
-            CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
         elif CD is None:
-            CD = self.default_CD
+            CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
 
         self.CD = Param(
             "CD",

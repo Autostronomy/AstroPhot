@@ -269,7 +269,6 @@ def model_image(
         }
 
     # Apply the mask if available
-    print(sample_image.shape, target[window]._mask.shape)
     sample_image[backend.to_numpy(target[window]._mask)] = np.nan
 
     # Plot the image

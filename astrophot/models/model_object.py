@@ -3,13 +3,10 @@ from typing import Optional, Union
 import numpy as np
 import torch
 
-from astrophot.image.model_image import ModelImage, ModelImageList
-from astrophot.image.psf_image import PSFImage
-
 from ..param import forward
 from .base import Model
 from . import func
-from ..image import TargetImage, Window
+from ..image import TargetImage, Window, ModelImage, PSFImage
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
@@ -85,9 +82,9 @@ class ComponentModel(SampleMixin, Model):
         elif isinstance(psf, Model):
             self._psf = psf
         else:
-            self._psf = PSFImage(
-                data=psf,
-                name=self.name + "_psf",
+            self._psf = PSFImage(data=psf)
+            config.logger.warning(
+                f"PSF provided to {self.__class__.__name__} was not a PSFImage or Model instance, so it was converted to a PSFImage assuming no upsampling."
             )
 
     def _prep_psf(self):
