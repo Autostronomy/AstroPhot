@@ -11,7 +11,7 @@ from utils import make_basic_sersic, make_basic_gaussian
 def test_make_psf():
 
     target = make_basic_gaussian(x=10, y=10)
-    target += make_basic_gaussian(x=40, y=40, rand=54321)
+    target += make_basic_gaussian(x=30, y=30, rand=54321)
 
     assert np.all(
         np.isfinite(ap.backend.to_numpy(target.data))

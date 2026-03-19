@@ -126,6 +126,10 @@ class PSFImage(DataMixin):
     def flip_ra_axis(self):
         return False
 
+    @property
+    def zeropoint(self):
+        return None
+
     def flatten(self, attribute: str = "data") -> ArrayLike:
         return backend.flatten(getattr(self, attribute), end_dim=1)
 

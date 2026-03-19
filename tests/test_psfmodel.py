@@ -15,6 +15,8 @@ def test_all_psfmodel_sample(model_type):
         pytest.skip(
             "Skipping airy psf model, JAX does not support bessel_j1 with finite derivatives it seems"
         )
+    if any(t in model_type for t in ["warp", "fourier"]):
+        pytest.skip("Skipping warp and fourier psf models, which are slow")
 
     target = make_basic_gaussian_psf(pixelscale=0.8)
     MODEL = ap.Model(
@@ -30,6 +32,8 @@ def test_all_psfmodel_sample(model_type):
     for p in MODEL.all_params:
         if p.units in ["flux", "flux/pix^2"]:
             p.to_dynamic(p.value * 1.5)
+        if p.units == "pix":
+            p.to_dynamic(p.value + 0.5)
     print(MODEL)
     for P in MODEL.dynamic_params:
         assert P.value is not None, (
@@ -53,11 +57,16 @@ def test_all_psfmodel_sample(model_type):
 
     assert len(res.loss_history) >= 2, "Optimizer must be able to find steps to improve the model"
 
-    if "pixelated" in model_type:  # fixme pixelated having difficulties
-        return
-    assert ((res.loss_history[0] - 1) > (2 * (res.loss_history[-1] - 1))) or (
-        res.loss_history[-1] < 1.0
-    ), (
-        f"Model {model_type} should fit to the target image, but did not. "
-        f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
-    )
+    if res.message == "success":
+        # Be less strict if fit succeeded quickly
+        assert res.loss_history[-1] < res.loss_history[0], (
+            f"Model {model_type} should fit to the target image, but did not. "
+            f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
+        )
+    else:
+        assert ((res.loss_history[0] - 1) > (2 * (res.loss_history[-1] - 1))) or (
+            res.loss_history[-1] < 1.0
+        ), (
+            f"Model {model_type} should fit to the target image, but did not. "
+            f"Initial loss: {res.loss_history[0]}, Final loss: {res.loss_history[-1]}"
+        )

@@ -107,6 +107,6 @@ class PointSource(ComponentModel):
             (J_ - j0) * downsample + (psf.shape[1] // 2),
         )
         Z = self._pixel_integrator(Z)
-        Z = Z * (flux * self.target.pixel_collecting_area(I_, J_, downsample))
+        Z = Z * flux
         Z = func.downsample(Z, downsample)
         return Z

@@ -81,8 +81,7 @@ def make_basic_gaussian(
     pixelscale=0.8,
     x=24.5,
     y=25.4,
-    PA=45 * np.pi / 180,
-    sigma=3,
+    sigma=10,
     flux=1,
     rand=12345,
 ):

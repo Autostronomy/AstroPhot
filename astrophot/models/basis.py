@@ -37,7 +37,6 @@ class PixelBasisPSF(PSFModel):
         """Initialize the PixelBasisPSF model with a basis set of images."""
         super().__init__(*args, **kwargs)
         self.basis = basis
-        self.vinterp2d = backend.vmap(interp2d, in_dims=(0, None, None))
 
     @property
     def basis(self):
@@ -77,5 +76,5 @@ class PixelBasisPSF(PSFModel):
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        wB = weights[:, None, None] * self.basis
-        return backend.sum(self.vinterp2d(wB, x, y), dim=0)
+        wB = backend.sum(weights[:, None, None] * self.basis, dim=0)
+        return interp2d(wB, x + wB.shape[0] // 2, y + wB.shape[1] // 2)
