@@ -32,7 +32,7 @@ def test_all_psfmodel_sample(model_type):
     for p in MODEL.all_params:
         if p.units in ["flux", "flux/pix^2"]:
             p.to_dynamic(p.value * 1.5)
-        if p.units == "pix":
+        if p.units == "pix" and not p.name == "center":
             p.to_dynamic(p.value + 0.5)
     print(MODEL)
     for P in MODEL.dynamic_params:
