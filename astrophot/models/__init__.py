@@ -198,7 +198,6 @@ __all__ = (
     "GaussianRay",
     "GaussianWedge",
     "MoffatGalaxy",
-    "Moffat2DPSF",
     "MoffatFourierEllipse",
     "MoffatRay",
     "MoffatWedge",
