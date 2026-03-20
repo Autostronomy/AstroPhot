@@ -83,6 +83,9 @@ class BasisModel(ComponentModel):
             R, _ = polar_decomposition(self.target.CD.npvalue)
             self.PA.value = np.arccos(np.abs(R[0, 0]))
 
+        if not self.scale.initialized:
+            self.scale = self.target.pixelscale.item()
+
     @forward
     def transform_coordinates(
         self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
