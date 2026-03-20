@@ -1,123 +1,69 @@
-from typing import Optional, Union
-
-import numpy as np
-
-from astrophot.image.psf_image import PSFImage
-
+from typing import Optional
 from ..backend_obj import backend
-from .. import config
 from ..param import forward
-from ..errors import InvalidTarget, InvalidWindow
 from .base import Model
+from .mixins import SampleMixin
 from .model_object import ComponentModel
-from ..image import TargetImageBatch, TargetImage, Window, WindowBatch
+from ..image import TargetImage, Window
+from . import func
 
 
-class BatchModel(Model):
-    """A batch of models for an object in an image.
+class BatchModel(SampleMixin, Model):
+    """A batch of models that all share the same window/target.
 
-    This is a batch of models for an object in an image. It has a position on the sky
-    determined by `center` and may or may not be convolved with a PSF to represent some data.
+    This can for example be used to model a crowded area of the sky with many
+    overlapping sources, or to model a single object that is represented by many
+    components (consider this a generalization of the Multi-gaussian expansion
+    model).
     """
 
     usable = True
+    _model_type = "batch"
 
-    def __init__(self, *, model: ComponentModel = None, psf=None, **kwargs):
+    def __init__(self, *, model: ComponentModel = None, **kwargs):
         super().__init__(**kwargs)
         assert isinstance(
             model, ComponentModel
         ), "BatchModel must be initialized with a ComponentModel instance."
         self.hierarchical_link("model", model)
-        self.psf = psf
 
     @property
-    def target(self) -> Optional[Union[TargetImageBatch, TargetImage]]:
-        try:
-            if self._target is not None:
-                return self._target
-        except AttributeError:
-            pass
+    def target(self) -> Optional[TargetImage]:
         return self.model.target
 
     @target.setter
-    def target(self, target: Optional[Union[TargetImageBatch, TargetImage]]):
-        if not (target is None or isinstance(target, (TargetImageBatch, TargetImage))):
-            raise InvalidTarget(
-                "BatchModel target must be a TargetImageBatch or TargetImage instance."
-            )
-        try:
-            del self._target  # Remove old target if it exists
-        except AttributeError:
-            pass
-
-        self._target = target
+    def target(self, target: Optional[TargetImage]):
+        pass
 
     @property
     def window(self) -> Optional[Window]:
         """The window defines a region on the sky in which this model will be
-        optimized and typically evaluated. Two models with
-        non-overlapping windows are in effect independent of each
-        other. If there is another model with a window that spans both
-        of them, then they are tenuously connected.
+        optimized and evaluated. Two models with non-overlapping windows are in
+        effect independent of each other. If there is another model with a
+        window that spans both of them, then they are tenuously connected.
 
-        If not provided, the model will assume a window equal to the
-        target it is fitting. Note that in this case the window is not
-        explicitly set to the target window, so if the model is moved
-        to another target then the fitting window will also change.
+        If not provided, the model will assume a window equal to the target it
+        is fitting. Note that in this case the window is not explicitly set to
+        the target window, so if the model is moved to another target then the
+        fitting window will also change.
 
         """
-        if self._window is None:
-            if self.model is None:
-                raise ValueError(
-                    "This batch model has no model or window, these must be provided by the user"
-                )
-            return self.model.window
-        return self._window
+        return self.model.window
 
     @window.setter
     def window(self, window):
-        if window is None:
-            self._window = None
-            return
-        if isinstance(window, (Window, WindowBatch)):
-            self._window = window
-            return
-        try:
-            window = np.array(window)
-        except Exception:
-            raise InvalidWindow(f"Unrecognized window format: {str(window)}")
-        if window.shape == (4,) or window.shape == (2, 2):
-            assert isinstance(
-                self.target, TargetImage
-            ), "Window format (4,) or (2, 2) requires a TargetImage target."
-            self._window = Window(window, image=self.target)
-        elif (
-            window.ndim == 2
-            and window.shape[1] == 4
-            or window.ndim == 3
-            and window.shape[1:] == (2, 2)
-        ):
-            assert isinstance(
-                self.target, TargetImageBatch
-            ), "Window batch format requires a TargetImageBatch target."
-            self._window = WindowBatch(window, image=self.target)
-        else:
-            raise InvalidWindow(f"Unrecognized window format: {str(window)}")
+        pass
 
-    def _prep_psf(self):
-        if self.psf is None:
-            if self.target.psf is None:
-                psf = self.model.psf
-            else:
-                psf = self.target.psf
-        else:
-            psf = self.psf
+    @property
+    def mask(self):
+        return self.model.mask
 
-        if isinstance(psf, PSFImage):
-            return psf._data, psf.upsample, psf.pad
-        if isinstance(psf, Model):
-            return psf, psf.upsample, psf.pad
-        return None, 1, 0
+    @mask.setter
+    def mask(self, mask):
+        pass
+
+    def fit_mask(self):
+        return self.model.fit_mask()
 
     @forward
     def __call__(self, window=None, model_params=None, model_dims=None, **kwargs):
@@ -128,37 +74,27 @@ class BatchModel(Model):
         else:
             window = window & self.window
 
-        psf, upsample, pad = self._prep_psf()
-        batch_img = None if isinstance(self.target, TargetImage) else 0
-        batch_psf = 0 if isinstance(psf, backend.array_type) and psf.ndim == 3 else None
+        psf, upsample, pad = self.model._prep_psf()
         working_image = self.target.model_image(window)
         I, J = self.model._pixel_meshgridder(self.target, window, pad, upsample)
-        # correct for crpix mismatch between target images
-        if isinstance(self.target, TargetImageBatch):
-            I = I + backend.as_array(
-                self.model.target.crpix[0] - self.target.crpix[:, 0],
-                dtype=config.DTYPE,
-                device=config.DEVICE,
-            ).reshape(-1, *[1] * (I.ndim - 1))
-            J = J + backend.as_array(
-                self.model.target.crpix[1] - self.target.crpix[:, 1],
-                dtype=config.DTYPE,
-                device=config.DEVICE,
-            ).reshape(-1, *[1] * (J.ndim - 1))
-        # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
-        sample = backend.vmap(
+        Z = backend.vmap(
             self.model.sample,
-            in_dims=(batch_img, batch_img, batch_img, batch_psf, None, None, model_dims),
+            in_dims=(None, None, None, None, None, model_dims),
         )(
             I,
             J,
-            working_image.pixel_collecting_area,
-            psf,
+            None,
             pad,
             upsample,
             model_params,
         )
-        if isinstance(self.target, TargetImage) and isinstance(self.window, Window):
-            sample = backend.sum(sample, dim=0)
-        working_image._data = sample
+        Z = backend.sum(Z, dim=0)
+        if psf is not None and not self.model.internal_psf:
+            if isinstance(psf, Model):
+                psf = psf()._data
+            if psf.shape != (1, 1):  # skip if identity PSF
+                Z = func.convolve(Z, psf)
+                Z = Z[pad : Z.shape[0] - pad, pad : Z.shape[1] - pad]
+                Z = func.downsample(Z, upsample)
+        working_image._data = Z
         return working_image

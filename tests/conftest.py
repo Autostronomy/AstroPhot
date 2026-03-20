@@ -20,6 +20,8 @@ def no_block_show(monkeypatch):
 @pytest.fixture()
 def sersic(request):
 
+    if not hasattr(request, "param"):
+        request.param = {}
     np.random.seed(request.param.get("seed", 12345))
     shape = request.param.get("shape", (52, 50))
     mask = request.param.get("mask", None)

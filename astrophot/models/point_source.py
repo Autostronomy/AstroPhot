@@ -35,6 +35,7 @@ class PointSource(ComponentModel):
     _parameter_specs = {
         "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": True},
     }
+    internal_psf = True
     usable = True
 
     def __init__(self, *args, integrate_mode="none", **kwargs):

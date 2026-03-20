@@ -146,6 +146,20 @@ class SampleMixin:
             w = w.flatten()
             self._pixel_integrator = lambda z: func.pixel_quad_integrator(z, w)
             self._pixel_center_finder = lambda i, j: (i[..., order**2 // 2], j[..., order**2 // 2])
+        elif sampling_mode.startswith("upsample:"):
+            upsample = int(sampling_mode.split(":")[1])
+            if upsample % 2 != 1:
+                raise SpecificationConflict(
+                    f"Upsample factor for 'sample_mode' must be an odd integer, got {upsample} for model {self.name}"
+                )
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_center_meshgrid(
+                w, upsample * p, upsample * u
+            )
+            self._pixel_integrator = lambda z: func.downsample_mean(z, upsample)
+            self._pixel_center_finder = lambda i, j: (
+                i[upsample // 2 :: upsample, upsample // 2 :: upsample],
+                j[upsample // 2 :: upsample, upsample // 2 :: upsample],
+            )
         else:
             raise SpecificationConflict(
                 f"Unknown sampling mode {sampling_mode} for model {self.name}"
@@ -176,25 +190,17 @@ class SampleMixin:
         params_pre: ArrayLike,
         params: ArrayLike,
         params_post: ArrayLike,
-        psf: Union[ArrayLike, "Model"],
-        pad: int,
-        upsample: int,
     ) -> ArrayLike:
         # return jacfwd( # this should be more efficient, but the trace overhead is too high
         #     lambda x: self.sample(
         #         window=window, params=torch.cat((params_pre, x, params_post), dim=-1)
         #     ).data
         # )(params)
-        I, J = self._pixel_meshgridder(self.target, window, pad, upsample)
         return backend.jacobian(
-            lambda x: self.sample(
-                I,
-                J,
-                psf=psf,
-                crop=pad,
-                downsample=upsample,
+            lambda x: self(
+                window,
                 params=backend.concatenate((params_pre, x, params_post), dim=-1),
-            ),
+            )._data,
             params,
         )
 
@@ -231,7 +237,6 @@ class SampleMixin:
         if len(jac_img.match_parameters(identities)[0]) == 0:
             return jac_img
 
-        psf, upsample, pad = self._prep_psf()
         target = self.target[window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
             chunksize = len(params) // self.jacobian_maxparams + 1
@@ -239,15 +244,13 @@ class SampleMixin:
                 params_pre = params[:i]
                 params_chunk = params[i : i + chunksize]
                 params_post = params[i + chunksize :]
-                jac_chunk = self._jacobian(
-                    window, params_pre, params_chunk, params_post, psf, pad, upsample
-                )
+                jac_chunk = self._jacobian(window, params_pre, params_chunk, params_post)
                 jac_img += target.jacobian_image(
                     parameters=identities[i : i + chunksize],
                     data=jac_chunk,
                 )
         else:
-            jac = self._jacobian(window, params[:0], params, params[0:0], psf, pad, upsample)
+            jac = self._jacobian(window, params[:0], params, params[0:0])
             jac_img += target.jacobian_image(parameters=identities, data=jac)
 
         return jac_img
@@ -258,7 +261,7 @@ class SampleMixin:
         params: Optional[ArrayLike] = None,
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
     ) -> ArrayLike:
-        """Compute the gradient of the model with respect to its parameters."""
+        """Compute the gradient of the model likelihood with respect to its parameters."""
         if window is None:
             window = self.window
 

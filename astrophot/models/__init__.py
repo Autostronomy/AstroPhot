@@ -26,6 +26,10 @@ from .bilinear_sky import BilinearSky
 from .edgeon import EdgeonModel, EdgeonSech, EdgeonIsothermal
 from .multi_gaussian_expansion import MultiGaussianExpansion
 from .gaussian_ellipsoid import GaussianEllipsoid
+from .pixelated_model import Pixelated
+
+# Batch model
+from .batch_model_object import BatchModel
 
 # Standard models based on a core radial profile
 from .radial import (
@@ -171,6 +175,8 @@ __all__ = (
     "EdgeonIsothermal",
     "MultiGaussianExpansion",
     "GaussianEllipsoid",
+    "Pixelated",
+    "BatchModel",
     "SersicGalaxy",
     "SersicFourierEllipse",
     "SersicSuperEllipse",

@@ -773,28 +773,31 @@ class ImageBatch(ImageList):
     def __init__(self, images: tuple[Image], name=None):
         Module.__init__(self, name=name)
         self.meta.images = tuple(images)
-        if not all(isinstance(image, Image) for image in self.images):
+        if not all(isinstance(image, Image) for image in images):
             raise InvalidImage(
-                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in images)}"
             )
-        if not all(image.shape == self.images[0].shape for image in self.images):
+        if not all(isinstance(image, images[0].__class__) for image in images):
             raise InvalidImage(
-                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.shape for image in self.images)}"
+                f"ImageBatch images must all be of the same type, not {tuple(type(image) for image in images)}"
             )
-        self._data = backend.stack(tuple(image.data for image in self.images), dim=0)
-        images = NodeTuple("images", self.images)
+        if not all(image.shape == images[0].shape for image in images):
+            raise InvalidImage(
+                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.shape for image in images)}"
+            )
+        self._data = backend.stack(tuple(image._data for image in images), dim=0)
+        images = NodeTuple("images", images)
         self.crtan = Param(
             "crtan",
-            lambda p: backend.stack(tuple(I.crtan.value) for I in p.images),
+            backend.stack(tuple(I.crtan.value) for I in images),
             shape=(None, 2),
             units="arcsec",
             dtype=config.DTYPE,
             device=config.DEVICE,
-            link=images,
         )
         self.crval = Param(
             "crval",
-            lambda p: backend.stack(tuple(I.crval.value) for I in p.images),
+            backend.stack(tuple(I.crval.value) for I in images),
             shape=(None, 2),
             units="deg",
             dtype=config.DTYPE,
@@ -803,30 +806,28 @@ class ImageBatch(ImageList):
         )
         self.CD = Param(
             "CD",
-            lambda p: backend.stack(tuple(I.CD.value) for I in p.images),
+            backend.stack(tuple(I.CD.value) for I in images),
             shape=(None, 2, 2),
             units="arcsec/pixel",
             dtype=config.DTYPE,
             device=config.DEVICE,
             link=images,
         )
+        self.crpix = np.stack(tuple(I.crpix for I in images), axis=0)
+        if images[0].zeropoint is None:
+            self.zeropoint = None
+        else:
+            self.zeropoint = np.array(tuple(I.zeropoint for I in images), dim=0)
+        self._identity = np.array(tuple(I.identity for I in images), dtype=int)
+
+    @property
+    def identity(self):
+        return self._identity
 
     @property
     def images(self):
         return self.meta.images
 
-    def pixel_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
-        """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
-        return func.pixel_center_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
-
-    def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
-        """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
-        return func.pixel_corner_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
-
-    def pixel_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
-        """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
-        return func.pixel_simpsons_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
-
-    def pixel_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
-        """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
-        return func.pixel_quad_meshgrid(self._data.shape, config.DTYPE, config.DEVICE, order=order)
+    @property
+    def data(self):
+        return backend.transpose(self._data, 2, 1)

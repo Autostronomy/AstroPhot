@@ -14,3 +14,12 @@ def downsample(img: ArrayLike, scale: int = 1):
     NS = img.shape[1] // scale
 
     return img[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
+
+
+def downsample_mean(img: ArrayLike, scale: int = 1):
+    if scale == 1:
+        return img
+    MS = img.shape[0] // scale
+    NS = img.shape[1] // scale
+
+    return img[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).mean(axis=(1, 3))

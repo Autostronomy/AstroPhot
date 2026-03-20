@@ -1,5 +1,5 @@
 # Levenberg-Marquardt algorithm
-from typing import Sequence
+from typing import Sequence, Optional
 
 import torch
 import numpy as np
@@ -9,9 +9,28 @@ from .. import config
 from ..backend_obj import backend, ArrayLike
 from . import func
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
-from ..param import ValidContext
+from ..param import ValidContext, Module, forward
 
-__all__ = ("LM", "LMfast")
+__all__ = ("LM", "LMfast", "LMConstraint")
+
+
+class LMConstraint(Module):
+    def __init__(self, model, constraint, sigma, name=None):
+        super().__init__(name=name)
+        self.model = model
+        self.constraint = constraint
+        self.weight = 1 / sigma**2
+
+    def jacobian(self, model, params):
+        return backend.jacobian(lambda p: self(model, params=p), params)
+
+    @forward
+    def __call__(self, model):
+        return self.constraint(model)
+
+
+class DummyConstraint:
+    valid_context = False
 
 
 class LM(BaseOptimizer):
@@ -127,6 +146,9 @@ class LM(BaseOptimizer):
         max_step_iter: int = 10,
         ndf=None,
         likelihood="gaussian",
+        constraint: Optional[LMConstraint] = None,
+        forward=None,
+        jacobian=None,
         **kwargs,
     ):
 
@@ -147,6 +169,7 @@ class LM(BaseOptimizer):
         self.likelihood = likelihood
         if self.likelihood not in ["gaussian", "poisson"]:
             raise ValueError(f"Unsupported likelihood: {self.likelihood}")
+        self.constraint = constraint
 
         # mask
         fit_mask = self.model.fit_mask()
@@ -174,13 +197,41 @@ class LM(BaseOptimizer):
                 self.mask
             ]
         self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
-
-        # The forward model which computes the output image given input parameters
-        self.forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[self.mask]
-        # Compute the jacobian
-        self.jacobian = lambda x: model.jacobian(window=self.fit_window, params=x).flatten("data")[
-            self.mask
-        ]
+        if forward is None:
+            forward = lambda x: self.model(window=self.fit_window, params=x).flatten("data")
+        if jacobian is None:
+            jacobian = lambda x: self.model.jacobian(window=self.fit_window, params=x).flatten(
+                "data"
+            )
+        if self.constraint is None:
+            # The forward model which computes the output image given input parameters
+            self.forward = lambda x: forward(x)[self.mask]
+            # Compute the jacobian
+            self.jacobian = lambda x: jacobian(x)[self.mask]
+            self.constraint = DummyConstraint()
+        else:
+            self.Y = backend.concatenate(
+                (
+                    self.Y,
+                    backend.zeros(
+                        self.constraint.weight.shape, dtype=config.DTYPE, device=config.DEVICE
+                    ),
+                )
+            )
+            self.W = backend.concatenate(
+                (
+                    self.W,
+                    backend.as_array(
+                        self.constraint.weight, dtype=config.DTYPE, device=config.DEVICE
+                    ),
+                )
+            )
+            self.forward = lambda x: backend.concatenate(
+                (forward(x)[self.mask], self.constraint(model, params=x))
+            )
+            self.jacobian = lambda x: backend.concatenate(
+                (jacobian(x)[self.mask], self.constraint.jacobian(model, params=x))
+            )
 
         # variable to store covariance matrix if it is ever computed
         self._covariance_matrix = None
@@ -234,7 +285,7 @@ class LM(BaseOptimizer):
                 config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
-                    with ValidContext(self.model):
+                    with ValidContext(self.model), ValidContext(self.constraint):
                         res = func.lm_step(
                             x=self.model.to_valid(self.current_state),
                             data=self.Y,

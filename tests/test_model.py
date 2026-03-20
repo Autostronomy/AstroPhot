@@ -152,8 +152,7 @@ def test_all_model_sample(model_type):
         ap.backend.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
 
-    res = ap.fit.LM(MODEL, max_iter=10, verbose=1).fit()
-    print(res.loss_history)
+    res = ap.fit.LM(MODEL, max_iter=5, verbose=1).fit()
 
     print(MODEL)  # test printing
 

@@ -36,6 +36,7 @@ class ComponentModel(SampleMixin, Model):
 
     usable = False
     psf_convolve = True
+    internal_psf = False
 
     _options = ("psf_convolve",)
 

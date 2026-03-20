@@ -58,6 +58,10 @@ class Param(CParam):
             return True
         return False
 
+    @property
+    def full_shape(self):
+        return self.batch_shape + self.shape
+
     def soft_valid(self, value):
         if self.valid[0] is None and self.valid[1] is None:
             return value
