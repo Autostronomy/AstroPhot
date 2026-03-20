@@ -1,61 +1,55 @@
-from typing import Union
+from typing import Union, Tuple
 import torch
 import numpy as np
 
+from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
 from .. import config
-from .model_object import ComponentModel
 from ..backend_obj import backend, ArrayLike
 from ..errors import SpecificationConflict
 from ..param import forward
 from . import func
 from ..utils.initialize import polar_decomposition
 
-__all__ = ["BasisModel"]
+__all__ = ["BasisPSF"]
 
 
 @combine_docstrings
-class BasisModel(ComponentModel):
-    """Model described by a set of basis images.
-
-    This model is composed of a set of basis images (think eigen decomposition
-    or zernike polynomials) that are linearly combined with some weights to form
-    the model image. The basis images are defined on a grid of coordinates,
-    and the brightness at any point is determined by bilinear interpolation of
-    the basis images. This is a very flexible model that can represent a wide
-    range of sources, but depending on the number of basis elements it can become
-    computationally expensive to optimize.
+class PixelBasisPSF(PSFModel):
+    """point source model which uses multiple images as a basis for the
+    PSF as its representation for point sources. Using bilinear interpolation it
+    will shift the PSF within a pixel to accurately represent the center
+    location of a point source. There is no functional form for this object type
+    as any image can be supplied. Bilinear interpolation is very fast and
+    accurate for smooth models, so it is possible to do the expensive
+    interpolation before optimization and save time.
 
     **Parameters:**
-        - `weights`: The weights of the basis set of images in units of flux.
-        - `PA`: the position angle of the model, in radians.
-        - `scale`: the scale of the model, in arcsec per grid unit.
+    -    `weights`: The weights of the basis set of images in units of flux.
     """
 
     _model_type = "basis"
-    _parameter_specs = {
-        "weights": {"units": "unitless", "shape": (None,), "dynamic": True},
-        "PA": {"units": "radians", "shape": (), "dynamic": False},
-        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": False},
-    }
+    _parameter_specs = {"weights": {"units": "unitless", "shape": (None,), "dynamic": True}}
     usable = True
 
     def __init__(self, *args, basis: Union[str, ArrayLike] = "zernike:3", **kwargs):
-        """Initialize the BasisModel with a basis set of images."""
+        """Initialize the PixelBasisPSF model with a basis set of images."""
         super().__init__(*args, **kwargs)
         self.basis = basis
 
     @property
     def basis(self):
-        """The basis set of images used to form the model."""
+        """The basis set of images used to form the eigen point source."""
         return self._basis
 
     @basis.setter
     def basis(self, value: Union[str, ArrayLike]):
-        """Set the basis set of images."""
+        """Set the basis set of images. If value is None, the basis is initialized to an empty tensor."""
         if value is None:
-            raise SpecificationConflict("BasisModel requires a basis set of images to be provided.")
+            raise SpecificationConflict(
+                "PixelBasisPSF requires a basis set of images to be provided."
+            )
         elif isinstance(value, str) and value.startswith("zernike:"):
             self._basis = value
         else:
@@ -78,18 +72,6 @@ class BasisModel(ComponentModel):
             w = np.zeros(self.basis.shape[0])
             w[0] = 1.0
             self.weights.value = w
-
-        if not self.PA.initialized:
-            R, _ = polar_decomposition(self.target.CD.npvalue)
-            self.PA.value = np.arccos(np.abs(R[0, 0]))
-
-    @forward
-    def transform_coordinates(
-        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
-    ) -> tuple[ArrayLike, ArrayLike]:
-        x, y = super().transform_coordinates(x, y)
-        x, y = func.rotate(-PA + np.pi / 2, x, y)
-        return x / scale, y / scale
 
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:

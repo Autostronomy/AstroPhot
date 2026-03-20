@@ -13,7 +13,7 @@ from .sky_model_object import SkyModel
 from .point_source import PointSource
 
 # subtypes of PSFModel
-from .basis import PixelBasisPSF
+from .basis_psf import PixelBasisPSF
 from .airy import AiryPSF
 from .pixelated_psf import PixelatedPSF
 
@@ -27,6 +27,7 @@ from .edgeon import EdgeonModel, EdgeonSech, EdgeonIsothermal
 from .multi_gaussian_expansion import MultiGaussianExpansion
 from .gaussian_ellipsoid import GaussianEllipsoid
 from .pixelated_model import Pixelated
+from .basis import BasisModel
 
 # Batch model
 from .batch_model_object import BatchModel
@@ -176,6 +177,7 @@ __all__ = (
     "MultiGaussianExpansion",
     "GaussianEllipsoid",
     "Pixelated",
+    "BasisModel",
     "BatchModel",
     "SersicGalaxy",
     "SersicFourierEllipse",
