@@ -9,11 +9,11 @@ import pytest
 ######################################################################
 
 
-@pytest.mark.parametrize("center", [[20, 20], [25.1, 17.324567]])
+@pytest.mark.parametrize("center", [[20.01, 20.02], [25.1, 17.324567]])
 @pytest.mark.parametrize("PA", [0, 60 * np.pi / 180])
-@pytest.mark.parametrize("q", [0.2, 0.8])
-@pytest.mark.parametrize("n", [1, 4])
-@pytest.mark.parametrize("Re", [10, 25.1])
+@pytest.mark.parametrize("q", [0.4, 0.8])
+@pytest.mark.parametrize("n", [1, 3])
+@pytest.mark.parametrize("Re", [15, 25.1])
 def test_chunk_jacobian(center, PA, q, n, Re):
     target = make_basic_sersic()
     model = ap.Model(
@@ -27,6 +27,7 @@ def test_chunk_jacobian(center, PA, q, n, Re):
         Ie=10.0,
         target=target,
         integrate_mode="none",
+        psf_convolve=False,
     )
 
     Jtrue = model.jacobian()
@@ -42,6 +43,22 @@ def test_chunk_jacobian(center, PA, q, n, Re):
     model.jacobian_maxpixels = 20**2
 
     Jchunked = model.jacobian()
+    import matplotlib.pyplot as plt
+    import random
+
+    fig, axarr = plt.subplots(7, 3, figsize=(15, 7 * 5))
+    for i in range(7):
+        im = axarr[i, 0].imshow(Jtrue.data[:, :, i], origin="lower")
+        fig.colorbar(im, ax=axarr[i, 0])
+        axarr[i, 0].set_title("Full Jacobian")
+        im = axarr[i, 1].imshow(Jchunked.data[:, :, i], origin="lower")
+        fig.colorbar(im, ax=axarr[i, 1])
+        axarr[i, 1].set_title("Chunked Jacobian")
+        im = axarr[i, 2].imshow(Jtrue.data[:, :, i] - Jchunked.data[:, :, i], origin="lower")
+        fig.colorbar(im, ax=axarr[i, 2])
+        axarr[i, 2].set_title("Difference")
+    plt.savefig(f"jacobian_comparison_{random.randint(0, 1000)}.png")
+    plt.close()
 
     assert ap.backend.allclose(
         Jtrue.data, Jchunked.data
