@@ -128,11 +128,11 @@ class Model(Module):
 
         if window is None:
             window = self.window
-        model = self(window=window).data
+        model = self(window=window).flatten("data")
         data = self.target[window]
-        weight = data.weight
-        mask = data.mask
-        data = data.data
+        weight = data.flatten("weight")
+        mask = data.flatten("mask")
+        data = data.flatten("data")
         if isinstance(data, tuple):
             nll = 0.5 * sum(
                 backend.sum(((da - mo) ** 2 * wgt)[~ma])
@@ -153,10 +153,10 @@ class Model(Module):
         """
         if window is None:
             window = self.window
-        model = self(window=window).data
+        model = self(window=window).flatten("data")
         data = self.target[window]
-        mask = data.mask
-        data = data.data
+        mask = data.flatten("mask")
+        data = data.flatten("data")
 
         if isinstance(data, tuple):
             nll = sum(
@@ -180,7 +180,7 @@ class Model(Module):
 
     def total_flux(self, window=None) -> ArrayLike:
         F = self(window=window)
-        return backend.sum(F.data)
+        return backend.sum(F.flatten("data"))
 
     def total_flux_uncertainty(self, window=None) -> ArrayLike:
         jac = self.jacobian(window=window).flatten("data")
