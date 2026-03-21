@@ -83,7 +83,10 @@ def test_sip_image_creation(sip_target):
     sip_model_crop = sip_model_image.crop([1, 2, 3, 4])
     assert sip_model_crop._data.shape == (29, 15), "cropped model image should have correct shape"
 
-    sip_model_crop.fluxdensity_to_flux()
+    assert ap.backend.allclose(
+        sip_model_crop.pixel_area_map,
+        sip_model_crop.pixel_collecting_area(*sip_model_crop.pixel_center_meshgrid()),
+    ), "SIP image pixel area map should match collecting area at pixel centers"
     assert ap.backend.all(
         sip_model_crop.data >= 0
     ), "cropped model image data should be non-negative after flux density to flux conversion"

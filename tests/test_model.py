@@ -1,6 +1,7 @@
+import os
 import astrophot as ap
 import numpy as np
-from utils import make_basic_sersic, make_basic_gaussian_psf
+from utils import make_basic_sersic
 import pytest
 
 # torch.autograd.set_detect_anomaly(True)
@@ -236,6 +237,8 @@ def test_sersic_save_load():
     assert model.Ie.value.item() == 1, "Model Ie should be loaded correctly"
     assert model.target.crtan.value[0] == 0.0, "Model target crtan should be loaded correctly"
     assert model.target.crtan.value[1] == 0.0, "Model target crtan should be loaded correctly"
+
+    os.remove("test_AstroPhot_sersic.hdf5")
 
 
 @pytest.mark.parametrize("center", [[20, 20], [25.1, 17.324567]])

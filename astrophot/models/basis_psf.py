@@ -77,4 +77,5 @@ class PixelBasisPSF(PSFModel):
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
         wB = backend.sum(weights[:, None, None] * self.basis, dim=0)
-        return interp2d(wB, x + wB.shape[0] // 2, y + wB.shape[1] // 2)
+        u = self.target.upsample
+        return interp2d(wB, x * u + wB.shape[0] // 2, y * u + wB.shape[1] // 2)

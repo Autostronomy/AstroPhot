@@ -68,17 +68,14 @@ class SIPMixin:
         return I + dI, J + dJ
 
     @forward
-    def pixel_collecting_area(self, I_, J_, upsample):
+    def pixel_collecting_area(self, I_, J_, upsample=1):
         # CMOS pixels only sensitive in sub area, so scale the pixel collecting area
-        return (
-            interp2d(self.pixel_area_map, I_, J_, padding_mode="border")
-            * self.pixel_area
-            / upsample**2
-        )
+        return interp2d(self.pixel_area_map, I_, J_, padding_mode="border") / upsample**2
 
     @property
+    @forward
     def pixel_area_map(self):
-        return self._pixel_area_map
+        return self._pixel_area_map * self.pixel_area
 
     @property
     def A_ORDER(self) -> int:
@@ -140,7 +137,7 @@ class SIPMixin:
         # Pixel area map
         #############################################################
         if pixel_area_map is not None:
-            self._pixel_area_map = pixel_area_map
+            self._pixel_area_map = pixel_area_map / self.pixel_area
             return
         i, j = self.pixel_corner_meshgrid()
         x, y = self.pixel_to_plane(i, j)

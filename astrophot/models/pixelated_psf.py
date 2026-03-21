@@ -54,4 +54,8 @@ class PixelatedPSF(PSFModel):
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, pixels: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        return interp2d(pixels, x + pixels.shape[0] // 2, y + pixels.shape[1] // 2)
+        return interp2d(
+            pixels,
+            x * self.target.upsample + pixels.shape[0] // 2,
+            y * self.target.upsample + pixels.shape[1] // 2,
+        )

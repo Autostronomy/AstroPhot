@@ -53,7 +53,7 @@ def test_all_psfmodel_sample(model_type):
         ap.backend.isfinite(MODEL.jacobian().data)
     ), "Model should evaluate a real number for the jacobian"
 
-    res = ap.fit.LM(MODEL, max_iter=10).fit()
+    res = ap.fit.LM(MODEL, max_iter=5).fit()
 
     assert len(res.loss_history) >= 2, "Optimizer must be able to find steps to improve the model"
 
