@@ -4,6 +4,7 @@ import pytest
 import runpy
 import subprocess
 import os
+import shutil
 import caskade as ck
 import astrophot as ap
 
@@ -53,6 +54,8 @@ def test_notebook(nb_path):
         pytest.skip("Requires torch backend")
     convert_notebook_to_py(nb_path)
     try:
+        for targ in glob.glob(os.path.join(os.path.dirname(nb_path), "*target_image*.fits")):
+            shutil.copy(targ, os.getcwd())
         runpy.run_path(nb_path.replace(".ipynb", ".py"), run_name="__main__")
     finally:
         ck.backend.backend = "torch"
