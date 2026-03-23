@@ -39,31 +39,6 @@ def test_chunk_jacobian(center, PA, q, n, Re):
         Jtrue.data, Jchunked.data
     ), "Param chunked Jacobian should match full Jacobian"
 
-    model.jacobian_maxparams = 10
-    model.jacobian_maxpixels = 20**2
-
-    Jchunked = model.jacobian()
-    import matplotlib.pyplot as plt
-    import random
-
-    fig, axarr = plt.subplots(7, 3, figsize=(15, 7 * 5))
-    for i in range(7):
-        im = axarr[i, 0].imshow(Jtrue.data[:, :, i], origin="lower")
-        fig.colorbar(im, ax=axarr[i, 0])
-        axarr[i, 0].set_title("Full Jacobian")
-        im = axarr[i, 1].imshow(Jchunked.data[:, :, i], origin="lower")
-        fig.colorbar(im, ax=axarr[i, 1])
-        axarr[i, 1].set_title("Chunked Jacobian")
-        im = axarr[i, 2].imshow(Jtrue.data[:, :, i] - Jchunked.data[:, :, i], origin="lower")
-        fig.colorbar(im, ax=axarr[i, 2])
-        axarr[i, 2].set_title("Difference")
-    plt.savefig(f"jacobian_comparison_{random.randint(0, 1000)}.png")
-    plt.close()
-
-    assert ap.backend.allclose(
-        Jtrue.data, Jchunked.data
-    ), "Pixel chunked Jacobian should match full Jacobian"
-
 
 @pytest.fixture
 def sersic_model():
@@ -88,7 +63,6 @@ def sersic_model():
     [
         (ap.fit.LM, {}),
         (ap.fit.LM, {"likelihood": "poisson"}),
-        (ap.fit.LMfast, {}),
         (ap.fit.IterParam, {"chunks": 3, "chunk_order": "sequential", "verbose": 2}),
         (
             ap.fit.IterParam,

@@ -214,21 +214,14 @@ class IterParam(BaseOptimizer):
         self.chunk_order = chunk_order
 
         # mask
-        fit_mask = self.model.fit_mask()
-        if isinstance(fit_mask, tuple):
-            fit_mask = backend.concatenate(tuple(FM.flatten() for FM in fit_mask))
-        else:
-            fit_mask = fit_mask.flatten()
-
-        mask = self.model.target[self.fit_window].flatten("mask")
-        mask = mask | fit_mask
+        mask = self.model.target[self.model.window].flatten("mask")
         self.mask = ~mask
 
         if backend.sum(self.mask).item() == 0:
             raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
-        self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]
+        self.Y = self.model.target[self.model.window].flatten("data")[self.mask]
 
         # 1 / (sigma^2)
         if W is not None:
@@ -236,23 +229,19 @@ class IterParam(BaseOptimizer):
                 self.mask
             ]
         else:
-            self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
+            self.W = self.model.target[self.model.window].flatten("weight")[self.mask]
 
         # The forward model which computes the output image given input parameters
-        self.full_forward = lambda x: model(window=self.fit_window, params=x).flatten("data")[
-            self.mask
-        ]
+        self.full_forward = lambda x: model(params=x).flatten("data")[self.mask]
         self.forward = []
         # Compute the jacobian
         self.jacobian = []
 
         f = lambda c, state, x: model(
-            window=self.fit_window,
             params=backend.fill_at_indices(backend.copy(state), self.chunks[c], x),
         ).flatten("data")[self.mask]
         j = backend.jacfwd(
             lambda c, state, x: self.model(
-                window=self.fit_window,
                 params=backend.fill_at_indices(backend.copy(state), self.chunks[c], x),
             ).flatten("data")[self.mask],
             argnums=2,

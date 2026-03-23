@@ -118,55 +118,33 @@ class Model(Module):
         return parameter_specs
 
     @forward
-    def gaussian_log_likelihood(
-        self,
-        window: Optional[Window] = None,
-    ) -> ArrayLike:
+    def gaussian_log_likelihood(self) -> ArrayLike:
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
 
-        if window is None:
-            window = self.window
-        model = self(window=window).flatten("data")
-        data = self.target[window]
+        model = self().flatten("data")
+        data = self.target[self.window]
         weight = data.flatten("weight")
         mask = data.flatten("mask")
         data = data.flatten("data")
-        if isinstance(data, tuple):
-            nll = 0.5 * sum(
-                backend.sum(((da - mo) ** 2 * wgt)[~ma])
-                for mo, da, wgt, ma in zip(model, data, weight, mask)
-            )
-        else:
-            nll = 0.5 * backend.sum(((data - model) ** 2 * weight)[~mask])
+        nll = 0.5 * backend.sum((data - model) ** 2 * weight * (~mask))
 
         return -nll
 
     @forward
-    def poisson_log_likelihood(
-        self,
-        window: Optional[Window] = None,
-    ) -> ArrayLike:
+    def poisson_log_likelihood(self) -> ArrayLike:
         """
         Compute the negative log likelihood of the model wrt the target image in the appropriate window.
         """
-        if window is None:
-            window = self.window
-        model = self(window=window).flatten("data")
-        data = self.target[window]
+        model = self().flatten("data")
+        data = self.target[self.window]
         mask = data.flatten("mask")
         data = data.flatten("data")
 
-        if isinstance(data, tuple):
-            nll = sum(
-                backend.sum((mo - da * backend.log(mo + 1e-10) + backend.lgamma(da + 1))[~ma])
-                for mo, da, ma in zip(model, data, mask)
-            )
-        else:
-            nll = backend.sum(
-                (model - data * backend.log(model + 1e-10) + backend.lgamma(data + 1))[~mask]
-            )
+        nll = backend.sum(
+            (model - data * backend.log(model + 1e-10) + backend.lgamma(data + 1)) * (~mask)
+        )
 
         return -nll
 
@@ -178,25 +156,25 @@ class Model(Module):
         else:
             raise ValueError(f"Unknown likelihood type: {likelihood}")
 
-    def total_flux(self, window=None) -> ArrayLike:
-        F = self(window=window)
+    def total_flux(self) -> ArrayLike:
+        F = self()
         return backend.sum(F.flatten("data"))
 
-    def total_flux_uncertainty(self, window=None) -> ArrayLike:
-        jac = self.jacobian(window=window).flatten("data")
+    def total_flux_uncertainty(self) -> ArrayLike:
+        jac = self.jacobian().flatten("data")
         dF = backend.sum(jac, dim=0)  # VJP for sum(total_flux)
         current_uncertainty = self.build_params_array_uncertainty()
         return backend.sqrt(backend.sum((dF * current_uncertainty) ** 2))
 
-    def total_magnitude(self, window=None) -> ArrayLike:
+    def total_magnitude(self) -> ArrayLike:
         """Compute the total magnitude of the model in the given window."""
-        F = self.total_flux(window=window)
+        F = self.total_flux()
         return -2.5 * backend.log10(F) + self.target.zeropoint
 
-    def total_magnitude_uncertainty(self, window=None) -> ArrayLike:
+    def total_magnitude_uncertainty(self) -> ArrayLike:
         """Compute the uncertainty in the total magnitude of the model in the given window."""
-        F = self.total_flux(window=window)
-        dF = self.total_flux_uncertainty(window=window)
+        F = self.total_flux()
+        dF = self.total_flux_uncertainty()
         return 2.5 * (dF / F) / np.log(10)
 
     @property
@@ -263,8 +241,8 @@ class Model(Module):
     @forward
     def __call__(
         self,
-        window: Optional[Window] = None,
+        *args,
         **kwargs,
     ) -> Union[ModelImage, ModelImageList]:
 
-        return self.sample(window=window, **kwargs)
+        return self.sample(*args, **kwargs)

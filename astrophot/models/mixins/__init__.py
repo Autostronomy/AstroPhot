@@ -14,7 +14,7 @@ from .king import KingMixin, iKingMixin, KingPSFMixin
 from .gaussian import GaussianMixin, iGaussianMixin, GaussianPSFMixin
 from .nuker import NukerMixin, iNukerMixin, NukerPSFMixin
 from .spline import SplineMixin, iSplineMixin, SplinePSFMixin
-from .sample import SampleMixin
+from .sample import SampleMixin, GradMixin
 
 __all__ = (
     "RadialMixin",
@@ -50,4 +50,5 @@ __all__ = (
     "iSplineMixin",
     "SplinePSFMixin",
     "SampleMixin",
+    "GradMixin",
 )

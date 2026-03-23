@@ -172,23 +172,13 @@ class LM(BaseOptimizer):
         self.constraint = constraint
 
         # mask
-        fit_mask = self.model.fit_mask()
-        if isinstance(fit_mask, tuple):
-            fit_mask = backend.concatenate(tuple(FM.flatten() for FM in fit_mask))
-        else:
-            fit_mask = fit_mask.flatten()
-        if backend.sum(fit_mask).item() == 0:
-            fit_mask = None
-
-        mask = self.model.target[self.fit_window].flatten("mask")
-        if fit_mask is not None:
-            mask = mask | fit_mask
+        mask = self.model.target[self.model.window].flatten("mask")
         self.mask = ~mask
         if backend.sum(self.mask).item() == 0:
             raise OptimizeStopSuccess("No data to fit. All pixels are masked")
 
         # Initialize optimizer attributes
-        self.Y = self.model.target[self.fit_window].flatten("data")[self.mask]
+        self.Y = self.model.target[self.model.window].flatten("data")[self.mask]
 
         # 1 / (sigma^2)
         kW = kwargs.get("W", None)
@@ -196,13 +186,11 @@ class LM(BaseOptimizer):
             self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
-        self.W = self.model.target[self.fit_window].flatten("weight")[self.mask]
+        self.W = self.model.target[self.model.window].flatten("weight")[self.mask]
         if forward is None:
-            forward = lambda x: self.model(window=self.fit_window, params=x).flatten("data")
+            forward = lambda x: self.model(params=x).flatten("data")
         if jacobian is None:
-            jacobian = lambda x: self.model.jacobian(window=self.fit_window, params=x).flatten(
-                "data"
-            )
+            jacobian = lambda x: self.model.jacobian(params=x).flatten("data")
         if self.constraint is None:
             # The forward model which computes the output image given input parameters
             self.forward = lambda x: forward(x)[self.mask]
@@ -423,11 +411,3 @@ class LM(BaseOptimizer):
             config.logger.warning(
                 "Unable to update uncertainty due to non finite covariance matrix"
             )
-
-
-class LMfast(LM):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.jacobian = backend.jacfwd(
-            lambda x: self.model(window=self.fit_window, params=x).flatten("data")[self.mask]
-        )

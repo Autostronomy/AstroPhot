@@ -1,4 +1,4 @@
-from .image_object import Image, ImageList
+from .image_object import Image, ImageList, ImageBatchMixin
 from ..errors import InvalidImage
 
 __all__ = ["ModelImage", "ModelImageList"]
@@ -25,3 +25,7 @@ class ModelImageList(ImageList):
             raise InvalidImage(
                 f"Model_Image_List can only hold Model_Image objects, not {tuple(type(image) for image in self.images)}"
             )
+
+
+class ModelImageBatch(ImageBatchMixin, ModelImageList):
+    pass

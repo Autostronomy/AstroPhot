@@ -1,7 +1,5 @@
 from typing import Optional, Tuple, Union
 
-from caskade import NodeTuple
-import torch
 import numpy as np
 from astropy.wcs import WCS as AstropyWCS
 from astropy.io import fits
@@ -10,7 +8,7 @@ from ..param import Module, Param, forward
 from .. import config
 from ..backend_obj import backend, ArrayLike
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
-from .window import Window, WindowList
+from .window import Window, WindowList, WindowBatch
 from ..errors import InvalidImage, SpecificationConflict
 
 # from .base import BaseImage
@@ -201,12 +199,12 @@ class Image(Module):
         return backend.sqrt(self.pixel_area)
 
     @forward
-    def pixel_collecting_area(self, I_, J_, upsample):
+    def pixel_collecting_area(self, I_, J_, upsample, CD):
         """The area of the sky that each pixel collects light from, in arcsec^2.
         This is just the pixel area, but can be overridden for certain types of
         images (e.g. SIP images) where the pixel collecting area is not the same
         as the pixel area."""
-        return self.pixel_area / upsample**2
+        return backend.abs(backend.linalg.det(CD)) / upsample**2
 
     @property
     def flip_ra_axis(self):
@@ -219,8 +217,10 @@ class Image(Module):
         j: ArrayLike,
         crtan: ArrayLike,
         CD: ArrayLike,
+        _crpix: Optional[ArrayLike] = None,
     ) -> Tuple[ArrayLike, ArrayLike]:
-        return func.pixel_to_plane_linear(i, j, *self.crpix, CD, *crtan)
+        crpix = self.crpix if _crpix is None else _crpix
+        return func.pixel_to_plane_linear(i, j, *crpix, CD, *crtan)
 
     @forward
     def plane_to_pixel(
@@ -229,8 +229,10 @@ class Image(Module):
         y: ArrayLike,
         crtan: ArrayLike,
         CD: ArrayLike,
+        _crpix: Optional[ArrayLike] = None,
     ) -> Tuple[ArrayLike, ArrayLike]:
-        return func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
+        crpix = self.crpix if _crpix is None else _crpix
+        return func.plane_to_pixel_linear(x, y, *crpix, CD, *crtan)
 
     @forward
     def plane_to_world(
@@ -624,8 +626,8 @@ class Image(Module):
 
 # fixme, make image lists infinitely nestable, need to merge "index" and "match_indices" in some consistent way
 class ImageList(Module):
-    def __init__(self, images: list[Image], name=None):
-        super().__init__(name=name)
+    def __init__(self, images: list[Image], **kwargs):
+        super().__init__(**kwargs)
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
             raise InvalidImage(
@@ -639,6 +641,19 @@ class ImageList(Module):
     @property
     def _data(self):
         return tuple(image._data for image in self.images)
+
+    @_data.setter
+    def _data(self, value):
+        if len(value) != len(self.images):
+            raise ValueError(
+                f"Expected an object of length {len(self.images)} for _data, but got {type(value)} of length {len(value)}"
+            )
+        for image, data in zip(self.images, value):
+            image._data = data
+
+    @property
+    def window(self):
+        return WindowList(tuple(image.window for image in self.images))
 
     def copy(self):
         return self.__class__(
@@ -769,65 +784,63 @@ class ImageList(Module):
         return (img for img in self.images)
 
 
-class ImageBatch(ImageList):
-    def __init__(self, images: tuple[Image], name=None):
-        Module.__init__(self, name=name)
-        self.meta.images = tuple(images)
-        if not all(isinstance(image, Image) for image in images):
-            raise InvalidImage(
-                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in images)}"
-            )
-        if not all(isinstance(image, images[0].__class__) for image in images):
-            raise InvalidImage(
-                f"ImageBatch images must all be of the same type, not {tuple(type(image) for image in images)}"
-            )
-        if not all(image.shape == images[0].shape for image in images):
-            raise InvalidImage(
-                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.shape for image in images)}"
-            )
-        self._data = backend.stack(tuple(image._data for image in images), dim=0)
-        images = NodeTuple("images", images)
-        self.crtan = Param(
-            "crtan",
-            backend.stack(tuple(I.crtan.value) for I in images),
-            shape=(None, 2),
-            units="arcsec",
-            dtype=config.DTYPE,
-            device=config.DEVICE,
-        )
-        self.crval = Param(
-            "crval",
-            backend.stack(tuple(I.crval.value) for I in images),
-            shape=(None, 2),
-            units="deg",
-            dtype=config.DTYPE,
-            device=config.DEVICE,
-            link=images,
-        )
-        self.CD = Param(
-            "CD",
-            backend.stack(tuple(I.CD.value) for I in images),
-            shape=(None, 2, 2),
-            units="arcsec/pixel",
-            dtype=config.DTYPE,
-            device=config.DEVICE,
-            link=images,
-        )
-        self.crpix = np.stack(tuple(I.crpix for I in images), axis=0)
-        if images[0].zeropoint is None:
-            self.zeropoint = None
-        else:
-            self.zeropoint = np.array(tuple(I.zeropoint for I in images), dim=0)
-        self._identity = np.array(tuple(I.identity for I in images), dtype=int)
+class ImageBatchMixin:
+    """Specialized ImageList type where the images are all the same size.
 
-    @property
-    def identity(self):
-        return self._identity
+    An ImageBatch has restrictions on the shape of the images it can hold, but
+    in exchange it allows vectorized operations over a batch of images.
 
-    @property
-    def images(self):
-        return self.meta.images
+    Some notes to keep in mind:
+    - All the images must be the regular image type (i.e. not SIP or CMOS images yet).
+    - All the images must have the same shape, otherwise the batch operations will not work.
+    - The ImageBatch does not itself accelerate any operations, it facilitates the BatchSceneModel.
+    - Otherwise the ImageBatch behaves like a regular ImageList.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not all(isinstance(image, Image) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(isinstance(image, self.images[0].__class__) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch images must all be of the same type, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(image.data.shape == self.images[0].data.shape for image in self.images):
+            raise InvalidImage(
+                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.data.shape for image in self.images)}"
+            )
 
     @property
     def data(self):
-        return backend.transpose(self._data, 2, 1)
+        return backend.stack(tuple(image.data for image in self.images), dim=0)
+
+    @ImageList._data.getter
+    def _data(self):
+        return backend.stack(tuple(image._data for image in self.images), dim=0)
+
+    @property
+    def window(self):
+        return WindowBatch(tuple(image.window for image in self.images))
+
+    @property
+    def crval(self):
+        return backend.stack(tuple(image.crval.value for image in self.images), dim=0)
+
+    @property
+    def crtan(self):
+        return backend.stack(tuple(image.crtan.value for image in self.images), dim=0)
+
+    @property
+    def CD(self):
+        return backend.stack(tuple(image.CD.value for image in self.images), dim=0)
+
+    @property
+    def crpix(self):
+        return backend.as_array(
+            np.stack(tuple(image.crpix for image in self.images), axis=0),
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )

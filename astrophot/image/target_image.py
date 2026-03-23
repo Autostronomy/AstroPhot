@@ -5,10 +5,10 @@ from astropy.io import fits
 
 
 from ..image.window import Window
-from ..param import Param
-from .image_object import Image, ImageList
-from .jacobian_image import JacobianImage, JacobianImageList
-from .model_image import ModelImage, ModelImageList
+from ..param import forward
+from .image_object import Image, ImageList, ImageBatchMixin
+from .jacobian_image import JacobianImage, JacobianImageList, JacobianImageBatch
+from .model_image import ModelImage, ModelImageList, ModelImageBatch
 from .psf_image import PSFImage
 from .. import config
 from ..backend_obj import backend, ArrayLike
@@ -191,7 +191,11 @@ class TargetImage(DataMixin, Image):
         }
         return JacobianImage(parameters=parameters, **kwargs)
 
-    def model_image(self, window: Window = None, **kwargs) -> ModelImage:
+    def model_image(
+        self,
+        window: Window = None,
+        **kwargs,
+    ) -> ModelImage:
         """
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
@@ -318,8 +322,48 @@ class TargetImageList(ImageList):
         return any(image.has_psf for image in self.images)
 
 
-class TargetImageBatch(TargetImageList):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if len(self.images) > 1:
-            assert all(image.shape == self.images[0].shape for image in self.images[1:])
+class TargetImageBatch(ImageBatchMixin, TargetImageList):
+    @property
+    def variance(self):
+        return backend.stack(tuple(image.variance for image in self.images), dim=0)
+
+    @property
+    def weight(self):
+        return backend.stack(tuple(image.weight for image in self.images), dim=0)
+
+    @property
+    def mask(self):
+        return backend.stack(tuple(image.mask for image in self.images), dim=0)
+
+    @property
+    @forward
+    def psf_stack(self):
+        res = []
+        for image in self.images:
+            if image.has_psf:
+                if isinstance(image.psf, PSFImage):
+                    res.append(image.psf.data)
+                else:
+                    res.append(image.psf()._data)
+            else:
+                return None
+
+        return backend.stack(res, dim=0)
+
+    def model_image(self, window=None) -> ModelImageBatch:
+        if window is None:
+            window = self.window
+        new_list = []
+        for other_window in window:
+            i = self.index(other_window.image)
+            new_list.append(self.images[i].model_image(other_window))
+        return ModelImageBatch(new_list)
+
+    def jacobian_image(
+        self, parameters: List[str], data: Optional[List[ArrayLike]] = None
+    ) -> JacobianImageBatch:
+        if data is None:
+            data = tuple(None for _ in range(len(self.images)))
+        return JacobianImageBatch(
+            list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
+        )

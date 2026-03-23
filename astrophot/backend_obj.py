@@ -495,6 +495,9 @@ class Backend:
     def isfinite(self, array):
         return self.module.isfinite(array)
 
+    def nan_to_num(self, array, nan=0.0, posinf=None, neginf=None):
+        return self.module.nan_to_num(array, nan=nan, posinf=posinf, neginf=neginf)
+
     def where(self, condition, x, y):
         return self.module.where(condition, x, y)
 

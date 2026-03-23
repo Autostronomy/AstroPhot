@@ -19,8 +19,6 @@ class SampleMixin:
             - `midpoint`: Use midpoint sampling, evaluate the brightness at the center of each pixel.
             - `simpsons`: Use Simpson's rule for sampling integrating each pixel.
             - `quad:x`: Use quadrature sampling with order x, where x is a positive integer to integrate each pixel.
-    -    `jacobian_maxparams`: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to build a model.
-    -    `jacobian_maxpixels`: The maximum number of pixels before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to build a model.
     -    `integrate_mode`: The method used to select pixels to integrate further where the model varies significantly. Options are:
             - `none`: No extra integration is performed (beyond the sampling_mode).
             - `bright`: Select the brightest pixels for further integration.
@@ -32,9 +30,6 @@ class SampleMixin:
     -    `integrate_quad_order`: The order of the quadrature used for the integration method on the super sampled pixels.
     """
 
-    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
-    jacobian_maxparams = 10
-    jacobian_maxpixels = 1000**2
     integrate_fraction = 0.05  # fraction of the pixels to super sample
     integrate_max_depth = 2
     integrate_gridding = 5
@@ -42,8 +37,6 @@ class SampleMixin:
 
     _options = (
         "sampling_mode",
-        "jacobian_maxparams",
-        "jacobian_maxpixels",
         "integrate_mode",
         "integrate_fraction",
         "integrate_max_depth",
@@ -58,13 +51,18 @@ class SampleMixin:
 
     @forward
     def _bright_integrate(
-        self, sample: ArrayLike, i: ArrayLike, j: ArrayLike, upsample: int
+        self,
+        sample: ArrayLike,
+        i: ArrayLike,
+        j: ArrayLike,
+        upsample: int,
+        pixel_brightness: callable,
     ) -> ArrayLike:
         sample = func.bright_integrate(
             sample,
             i,
             j,
-            self.pixel_brightness,
+            pixel_brightness,
             scale=self.target.base_scale / upsample,
             bright_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
@@ -75,7 +73,12 @@ class SampleMixin:
 
     @forward
     def _curvature_integrate(
-        self, sample: ArrayLike, i: ArrayLike, j: ArrayLike, upsample: int
+        self,
+        sample: ArrayLike,
+        i: ArrayLike,
+        j: ArrayLike,
+        upsample: int,
+        pixel_brightness: callable,
     ) -> ArrayLike:
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
@@ -103,7 +106,7 @@ class SampleMixin:
             func.recursive_quad_integrate(
                 i.flatten()[select],
                 j.flatten()[select],
-                self.pixel_brightness,
+                pixel_brightness,
                 scale=self.target.base_scale / upsample,
                 curve_frac=self.integrate_fraction,
                 quad_order=self.integrate_quad_order,
@@ -177,16 +180,27 @@ class SampleMixin:
         elif integrate_mode == "curvature":
             self._adaptive_integrator = self._curvature_integrate
         elif integrate_mode == "none":
-            self._adaptive_integrator = lambda z, i, j, u: z
+            self._adaptive_integrator = lambda z, *a, **kw: z
         else:
             raise SpecificationConflict(
                 f"Unknown integrate mode {integrate_mode} for model {self.name}"
             )
         self._integrate_mode = integrate_mode
 
+
+class GradMixin:
+    """
+    **Options:**
+    -    `jacobian_maxparams`: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to fit a model.
+    """
+
+    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
+    jacobian_maxparams = 10
+
+    _options = ("jacobian_maxparams",)
+
     def _jacobian(
         self,
-        window: Window,
         params_pre: ArrayLike,
         params: ArrayLike,
         params_post: ArrayLike,
@@ -197,24 +211,18 @@ class SampleMixin:
         #     ).data
         # )(params)
         return backend.jacobian(
-            lambda x: self(
-                window,
-                params=backend.concatenate((params_pre, x, params_post), dim=-1),
-            )._data,
+            lambda x: self(params=backend.concatenate((params_pre, x, params_post), dim=-1))._data,
             params,
         )
 
     def jacobian(
         self,
-        window: Optional[Window] = None,
         pass_jacobian: Optional[JacobianImage] = None,
         params: Optional[ArrayLike] = None,
     ) -> JacobianImage:
-        if window is None:
-            window = self.window
 
         if pass_jacobian is None:
-            jac_img = self.target[window].jacobian_image(
+            jac_img = self.target[self.window].jacobian_image(
                 parameters=self.build_params_array_identities()
             )
         else:
@@ -223,61 +231,52 @@ class SampleMixin:
         # No dynamic params
         if params is None:
             params = self.get_values()
-        if params.shape[-1] == 0:
-            return jac_img
-
-        # handle large images
-        n_pixels = np.prod(window.shape)
-        if n_pixels > self.jacobian_maxpixels:
-            for chunk in window.chunk(self.jacobian_maxpixels):
-                jac_img = self.jacobian(window=chunk, pass_jacobian=jac_img, params=params)
+        if len(params.shape) == 0 or params.shape[-1] == 0:
             return jac_img
 
         identities = self.build_params_array_identities()
         if len(jac_img.match_parameters(identities)[0]) == 0:
             return jac_img
 
-        target = self.target[window]
+        target = self.target[self.window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
             chunksize = len(params) // self.jacobian_maxparams + 1
             for i in range(0, len(params), chunksize):
                 params_pre = params[:i]
                 params_chunk = params[i : i + chunksize]
                 params_post = params[i + chunksize :]
-                jac_chunk = self._jacobian(window, params_pre, params_chunk, params_post)
+                jac_chunk = self._jacobian(params_pre, params_chunk, params_post)
                 jac_img += target.jacobian_image(
                     parameters=identities[i : i + chunksize],
                     data=jac_chunk,
                 )
         else:
-            jac = self._jacobian(window, params[:0], params, params[0:0])
+            jac = self._jacobian(params[:0], params, params[0:0])
             jac_img += target.jacobian_image(parameters=identities, data=jac)
 
         return jac_img
 
     def gradient(
         self,
-        window: Optional[Window] = None,
         params: Optional[ArrayLike] = None,
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
     ) -> ArrayLike:
         """Compute the gradient of the model likelihood with respect to its parameters."""
-        if window is None:
-            window = self.window
 
-        jacobian_image = self.jacobian(window=window, params=params)
+        jacobian_image = self.jacobian(params=params).flatten("data")
 
-        data = self.target[window]._data
-        model = self(window=window)._data
+        data = self.target[self.window].flatten("data")
+        mask = self.target[self.window].flatten("mask")
+        model = self().flatten("data")
         if likelihood == "gaussian":
-            weight = self.target[window]._weight
+            weight = self.target[self.window].flatten("weight")
             gradient = backend.sum(
-                jacobian_image._data * ((data - model) * weight)[..., None], dim=(0, 1)
+                jacobian_image * ((data - model) * weight * (~mask))[..., None], dim=0
             )
         elif likelihood == "poisson":
             gradient = backend.sum(
-                jacobian_image._data * (1 - data / model)[..., None],
-                dim=(0, 1),
+                jacobian_image * ((1 - data / model) * (~mask))[..., None],
+                dim=0,
             )
 
         return gradient

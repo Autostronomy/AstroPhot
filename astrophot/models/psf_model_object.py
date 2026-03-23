@@ -4,14 +4,14 @@ from caskade import forward
 from .base import Model
 from ..image import ModelImage, PSFImage, Window
 from ..errors import InvalidTarget
-from .mixins import SampleMixin
+from .mixins import SampleMixin, GradMixin
 from ..backend_obj import backend, ArrayLike
 from . import func
 
 __all__ = ("PSFModel",)
 
 
-class PSFModel(SampleMixin, Model):
+class PSFModel(GradMixin, SampleMixin, Model):
     """Prototype point source (typically a star) model, to be subclassed
     by other point source models which define specific behavior.
 
@@ -94,11 +94,8 @@ class PSFModel(SampleMixin, Model):
         Z = self.pixel_brightness(i, j)
         Z = self._pixel_integrator(Z)
         i, j = self._pixel_center_finder(i, j)
-        Z = self._adaptive_integrator(Z, i, j, 1)
+        Z = self._adaptive_integrator(Z, i, j, 1, self.pixel_brightness)
         return Z * self.target.pixel_area
-
-    def fit_mask(self) -> ArrayLike:
-        return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
 
     @property
     def target(self):
@@ -121,15 +118,9 @@ class PSFModel(SampleMixin, Model):
         self._target = target
 
     @forward
-    def __call__(self, window: Optional[Window] = None) -> PSFImage:
-        # Window within which to evaluate model
-        if window is None:
-            window = self.window
-        else:
-            window = window & self.window
-
-        working_image = self.target.model_image(window)
-        i, j = self._pixel_meshgridder(self.target, window, 0, 1)
+    def __call__(self) -> PSFImage:
+        working_image = self.target.model_image(self.window)
+        i, j = self._pixel_meshgridder(self.target, self.window, 0, 1)
         working_image._data = self.sample(i, j)
         if self.normalize_psf:
             working_image._data = working_image._data / backend.sum(working_image._data)

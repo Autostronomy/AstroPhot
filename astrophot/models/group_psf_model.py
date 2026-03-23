@@ -38,7 +38,13 @@ class PSFGroupModel(GroupModel):
     @forward
     def sample(self, *args, **kwargs):
         """Sample the PSF group model on the target image."""
-        psf_img = super().sample(*args, **kwargs)
+        image = self.target.model_image(self.window)
+
+        for model in self.models:
+            model_image = model()
+            self._ensure_vmap_compatible(image, model_image)
+            image += model_image
+
         if self.normalize_psf:
-            psf_img.normalize()
-        return psf_img
+            image.normalize()
+        return image

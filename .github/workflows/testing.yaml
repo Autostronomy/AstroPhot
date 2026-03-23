@@ -48,5 +48,5 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/tests/
           pwd
-          pytest
+          pytest -v
         shell: bash

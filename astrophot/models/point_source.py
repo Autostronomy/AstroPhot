@@ -98,10 +98,16 @@ class PointSource(ComponentModel):
         downsample: int = 1,
         center=None,
         flux=None,
+        _CD=None,
+        _crtan=None,
+        _crpix=None,
     ):
         if isinstance(psf, Model):
             psf = psf()._data
-        i0, j0 = self.target.plane_to_pixel(*center)
+        if _CD is None:
+            i0, j0 = self.target.plane_to_pixel(*center)
+        else:
+            i0, j0 = self.target.plane_to_pixel(*center, CD=_CD, crtan=_crtan, _crpix=_crpix)
         Z = interp2d(
             psf,
             (I_ - i0) * downsample + (psf.shape[0] // 2),

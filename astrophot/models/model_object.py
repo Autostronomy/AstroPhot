@@ -12,13 +12,13 @@ from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
 from ..backend_obj import backend, ArrayLike
 from ..errors import InvalidTarget
-from .mixins import SampleMixin
+from .mixins import SampleMixin, GradMixin
 
 __all__ = ("ComponentModel",)
 
 
 @combine_docstrings
-class ComponentModel(SampleMixin, Model):
+class ComponentModel(GradMixin, SampleMixin, Model):
     """Component of a model for an object in an image.
 
     This is a single component of an image model. It has a position on the sky
@@ -129,20 +129,17 @@ class ComponentModel(SampleMixin, Model):
         )
         self.center.value = COM_center
 
-    def fit_mask(self):
-        return backend.zeros_like(self.target[self.window].mask, dtype=backend.bool)
-
-    def _fit_mask(self):
-        return backend.zeros_like(self.target[self.window]._mask, dtype=backend.bool)
-
     @forward
     def transform_coordinates(self, x, y, center):
         return x - center[0], y - center[1]
 
     @forward
-    def pixel_brightness(self, i, j):
+    def pixel_brightness(self, i, j, _CD=None, _crtan=None, _crpix=None):
         """Evaluate the model at the pixel coordinates defined by i and j (of the target image)."""
-        x, y = self.target.pixel_to_plane(i, j)
+        if _CD is None:
+            x, y = self.target.pixel_to_plane(i, j)
+        else:
+            x, y = self.target.pixel_to_plane(i, j, CD=_CD, crtan=_crtan, _crpix=_crpix)
         return self.brightness(x, y)
 
     @forward
@@ -153,14 +150,24 @@ class ComponentModel(SampleMixin, Model):
         psf: ArrayLike = None,
         crop: int = 0,
         downsample: int = 1,
+        _CD: Optional[ArrayLike] = None,
+        _crtan: Optional[ArrayLike] = None,
+        _crpix: Optional[ArrayLike] = None,
     ):
-        Z = self.pixel_brightness(I_, J_)
+        Z = self.pixel_brightness(I_, J_, _CD=_CD, _crtan=_crtan, _crpix=_crpix)
         Z = self._pixel_integrator(Z)
         I_, J_ = self._pixel_center_finder(I_, J_)
-        Z = self._adaptive_integrator(Z, I_, J_, downsample)
-        Z = Z * self.target.pixel_collecting_area(
-            I_, J_, downsample
-        )  # fixme, might not need downsample for pixel collecting area
+        Z = self._adaptive_integrator(
+            Z,
+            I_,
+            J_,
+            downsample,
+            lambda i, j: self.pixel_brightness(i, j, _CD=_CD, _crtan=_crtan, _crpix=_crpix),
+        )
+        if _CD is None:
+            Z = Z * self.target.pixel_collecting_area(I_, J_, downsample)
+        else:
+            Z = Z * self.target.pixel_collecting_area(I_, J_, downsample, CD=_CD)
         if psf is not None:
             if isinstance(psf, Model):
                 psf = psf()._data
@@ -173,18 +180,17 @@ class ComponentModel(SampleMixin, Model):
     @forward
     def __call__(
         self,
-        window: Optional[Window] = None,
+        _CD: Optional[ArrayLike] = None,
+        _crtan: Optional[ArrayLike] = None,
+        _crpix: Optional[ArrayLike] = None,
+        _psf: Optional[ArrayLike] = None,
     ) -> ModelImage:
 
-        # Window within which to evaluate model
-        if window is None:
-            window = self.window
-        else:
-            window = window & self.window
-
         psf, upsample, pad = self._prep_psf()
-        working_image = self.target.model_image(window)
-        I, J = self._pixel_meshgridder(self.target, window, pad, upsample)
+        if _psf is not None and not isinstance(psf, Model) and self.psf_convolve:
+            psf = _psf
+        working_image = self.target.model_image(self.window)
+        I, J = self._pixel_meshgridder(self.target, self.window, pad, upsample)
 
         # pixel_collecting_area: Units from flux/arcsec^2 to flux, multiply by pixel area
         working_image._data = self.sample(
@@ -193,5 +199,8 @@ class ComponentModel(SampleMixin, Model):
             psf=psf,
             crop=pad,
             downsample=upsample,
+            _CD=_CD,
+            _crtan=_crtan,
+            _crpix=_crpix,
         )
         return working_image
