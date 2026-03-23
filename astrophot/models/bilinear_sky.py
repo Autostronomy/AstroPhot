@@ -26,7 +26,7 @@ class BilinearSky(SkyModel):
 
     _model_type = "bilinear"
     _parameter_specs = {
-        "I": {"units": "flux/arcsec^2", "dynamic": True},
+        "I": {"units": "flux/arcsec^2", "shape": (None, None), "dynamic": True},
         "PA": {"units": "radians", "shape": (), "dynamic": True},
         "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": True},
     }

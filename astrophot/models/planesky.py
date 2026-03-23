@@ -27,8 +27,8 @@ class PlaneSky(SkyModel):
 
     _model_type = "plane"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2", "dynamic": True},
-        "delta": {"units": "flux/arcsec", "dynamic": True},
+        "I0": {"units": "flux/arcsec^2", "shape": (), "dynamic": True},
+        "delta": {"units": "flux/arcsec", "shape": (2,), "dynamic": True},
     }
     usable = True
 

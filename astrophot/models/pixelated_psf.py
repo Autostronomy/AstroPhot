@@ -39,7 +39,7 @@ class PixelatedPSF(PSFModel):
     """
 
     _model_type = "pixelated"
-    _parameter_specs = {"pixels": {"units": "flux/pix^2", "dynamic": True}}
+    _parameter_specs = {"pixels": {"units": "flux/pix^2", "shape": (None, None), "dynamic": True}}
     usable = True
 
     @torch.no_grad()

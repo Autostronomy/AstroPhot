@@ -20,7 +20,7 @@ class FlatSky(SkyModel):
     """
 
     _model_type = "flat"
-    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "dynamic": True}}
+    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "shape": (), "dynamic": True}}
     usable = True
 
     @torch.no_grad()

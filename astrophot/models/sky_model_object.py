@@ -14,6 +14,7 @@ class SkyModel(ComponentModel):
 
     """
 
+    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": False}}
     _model_type = "sky"
     usable = False
 
@@ -27,9 +28,8 @@ class SkyModel(ComponentModel):
         """
         if not self.center.initialized:
             target_area = self.target[self.window]
-            self.center.to_static(target_area.center)
+            self.center = target_area.center
         super().initialize()
-        self.center.to_static()
 
     @property
     def psf_convolve(self) -> bool:

@@ -1,11 +1,11 @@
-from typing import Optional, Literal, Union
+from typing import Optional, Literal
 
 import numpy as np
 
 from ...param import forward
 from ...backend_obj import backend, ArrayLike
 from ... import config
-from ...image import Image, Window, JacobianImage
+from ...image import JacobianImage
 from .. import func
 from ...errors import SpecificationConflict
 from ...utils.integration import quad_table
