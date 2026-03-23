@@ -35,9 +35,8 @@ class MultiGaussianExpansion(ComponentModel):
             "units": "radians",
             "valid": (0, np.pi),
             "cyclic": True,
-            "shape": (None,),
             "dynamic": True,
-        },
+        },  # No shape for PA since there are two options, use with caution
         "sigma": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
         "flux": {"units": "flux", "shape": (None,), "dynamic": True},
     }
