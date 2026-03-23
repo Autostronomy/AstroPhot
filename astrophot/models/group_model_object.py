@@ -100,7 +100,6 @@ class GroupModel(Model):
                     new_window |= model.window
         self.window = new_window
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         """
@@ -178,7 +177,6 @@ class GroupModel(Model):
 
         return image
 
-    @torch.no_grad()
     def jacobian(
         self,
         pass_jacobian: Optional[Union[JacobianImage, JacobianImageList]] = None,

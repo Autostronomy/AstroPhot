@@ -1,12 +1,11 @@
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
-import torch
 
 from ..param import forward
 from .base import Model
 from . import func
-from ..image import TargetImage, Window, ModelImage, PSFImage
+from ..image import TargetImage, ModelImage, PSFImage
 from ..utils.initialize import recursive_center_of_mass
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .. import config
@@ -101,7 +100,6 @@ class ComponentModel(GradMixin, SampleMixin, Model):
 
     # Initialization functions
     ######################################################################
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         """Determine initial values for the center coordinates. This is done

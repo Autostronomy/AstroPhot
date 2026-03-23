@@ -11,7 +11,7 @@ from . import func
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from ..param import ValidContext, Module, forward
 
-__all__ = ("LM", "LMfast", "LMConstraint")
+__all__ = ("LM", "LMConstraint")
 
 
 class LMConstraint(Module):
@@ -186,7 +186,8 @@ class LM(BaseOptimizer):
             self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
-        self.W = self.model.target[self.model.window].flatten("weight")[self.mask]
+        else:
+            self.W = self.model.target[self.model.window].flatten("weight")[self.mask]
         if forward is None:
             forward = lambda x: self.model(params=x).flatten("data")
         if jacobian is None:

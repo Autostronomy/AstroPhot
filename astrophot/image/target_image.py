@@ -150,7 +150,6 @@ class TargetImage(DataMixin, Image):
         """
         hdulist = super().load(filename, hduext=hduext)
         if "PSF" in hdulist:
-            print("Loading PSF from FITS file...")
             crpix = (
                 hdulist["PSF"].header.get("CRPIX1", None),
                 hdulist["PSF"].header.get("CRPIX2", None),
@@ -161,7 +160,6 @@ class TargetImage(DataMixin, Image):
                 crpix=None if None in crpix else crpix,
                 identity=hdulist["PSF"].header.get("IDNTY", None),
             )
-            print("PSF loaded from FITS file.", self.psf)
         return hdulist
 
     def jacobian_image(

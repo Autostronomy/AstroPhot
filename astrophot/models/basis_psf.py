@@ -12,7 +12,7 @@ from ..param import forward
 from . import func
 from ..utils.initialize import polar_decomposition
 
-__all__ = ["BasisPSF"]
+__all__ = ["PixelBasisPSF"]
 
 
 @combine_docstrings

@@ -6,7 +6,7 @@ import numpy as np
 from caskade import Param as CParam
 from ..param import Module, forward, Param
 from ..utils.decorators import classproperty
-from ..image import Window, ImageList, ModelImage, ModelImageList
+from ..image import Window, ModelImage, ModelImageList
 from ..errors import UnrecognizedModel, InvalidWindow
 from .. import config
 from ..backend_obj import backend, ArrayLike
