@@ -16,7 +16,6 @@ from ..utils.decorators import ignore_numpy_warnings, default_internal
 from ..utils.parametric_profiles import sersic_np
 from ..utils.conversions.functions import sersic_Ie_to_flux_torch
 
-
 __all__ = [
     "Sersic_Galaxy",
     "Sersic_PSF",
