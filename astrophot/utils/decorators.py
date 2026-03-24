@@ -67,14 +67,14 @@ def _parse_docstring(doc):
         re.MULTILINE,
     ):
         for item in re.finditer(
-            r'[ \t]*-+\s+`(\w+)`\s*:\s*(.+?)(?=\n[ \t]*-|\Z)',
+            r'^[ \t]*-\s+`(\w+)`\s*:\s*(.+?)(?=\n[ \t]*-|\Z)',
             section_match.group(1),
-            re.DOTALL,
+            re.DOTALL | re.MULTILINE,
         ):
             params[item.group(1)] = item.group(2).strip()
 
     # Strip :param/:type entries from body
-    body = re.sub(r'\n:(?:param|type)\s+\S+:.*?(?=\n:(?:param|type)\s|\n\n|\Z)', '', doc, flags=re.DOTALL)
+    body = re.sub(r'\n:(?:param|type)\s+\w+:.*?(?=\n:(?:param|type)\s|\n\n|\Z)', '', doc, flags=re.DOTALL)
     # Strip markdown Parameters/Options sections from body
     body = re.sub(r'\*\*(?:Parameters|Options):\*\*\n(?:[ \t]*-[^\n]*\n?)+', '', body)
     body = body.strip()
