@@ -32,6 +32,9 @@ class JacobianImage(Image):
     def copy(self, **kwargs):
         return super().copy(parameters=self.parameters, **kwargs)
 
+    def flatten(self, attribute: str = "data"):
+        return getattr(self, attribute).reshape(-1, len(self.parameters))
+
     def match_parameters(self, other: Union["JacobianImage", "JacobianImageList", List]):
         self_i = []
         other_i = []

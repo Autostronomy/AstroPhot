@@ -16,7 +16,6 @@ from .wcs import (
     sip_backward_transform,
     sip_matrix,
 )
-from .window import window_or, window_and
 
 __all__ = (
     "pixel_center_meshgrid",
@@ -33,6 +32,4 @@ __all__ = (
     "sip_coefs",
     "sip_backward_transform",
     "sip_matrix",
-    "window_or",
-    "window_and",
 )

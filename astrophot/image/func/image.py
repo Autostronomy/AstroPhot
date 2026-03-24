@@ -65,6 +65,6 @@ def rotate(theta: ArrayLike, x: ArrayLike, y: ArrayLike) -> tuple:
     """
     Applies a rotation matrix to the X,Y coordinates
     """
-    s = theta.sin()
-    c = theta.cos()
+    s = backend.sin(theta)
+    c = backend.cos(theta)
     return c * x - s * y, s * x + c * y

@@ -27,7 +27,7 @@ class PSFGroupModel(GroupModel):
     @target.setter
     def target(self, target):
         if not (target is None or isinstance(target, PSFImage)):
-            raise InvalidTarget("Group_Model target must be a PSF_Image instance.")
+            raise InvalidTarget("GroupModel target must be a PSFImage instance.")
         try:
             del self._target  # Remove old target if it exists
         except AttributeError:

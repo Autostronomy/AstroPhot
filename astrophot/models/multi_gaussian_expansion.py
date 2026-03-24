@@ -77,7 +77,7 @@ class MultiGaussianExpansion(ComponentModel):
         if not self.flux.initialized:
             self.flux.value = (np.sum(dat) / self.n_components) * np.ones(self.n_components)
 
-        if self.PA.initialized or self.q.initialized:
+        if self.PA.initialized and self.q.initialized:
             return
 
         x, y = target_area.coordinate_center_meshgrid()
@@ -128,7 +128,7 @@ class MultiGaussianExpansion(ComponentModel):
         R = self.radius_metric(x, y)
         return backend.sum(
             backend.vmap(
-                lambda A, r, sig, _q: (A / backend.sqrt(2 * np.pi * _q * sig**2))
+                lambda A, r, sig, _q: (A / (2 * np.pi * _q * sig**2))
                 * backend.exp(-0.5 * (r / sig) ** 2)
             )(flux, R, sigma, q),
             dim=0,

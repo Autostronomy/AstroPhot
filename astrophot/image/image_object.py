@@ -440,7 +440,7 @@ class Image(Module):
         return self
 
     def flatten(self, attribute: str = "data") -> ArrayLike:
-        return backend.flatten(getattr(self, attribute), end_dim=1)
+        return backend.flatten(getattr(self, attribute))
 
     def fits_info(self) -> dict:
         return {
