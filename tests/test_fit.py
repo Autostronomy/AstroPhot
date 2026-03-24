@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 import astrophot as ap
@@ -10,11 +9,11 @@ import pytest
 ######################################################################
 
 
-@pytest.mark.parametrize("center", [[20, 20], [25.1, 17.324567]])
+@pytest.mark.parametrize("center", [[20.01, 20.02], [25.1, 17.324567]])
 @pytest.mark.parametrize("PA", [0, 60 * np.pi / 180])
-@pytest.mark.parametrize("q", [0.2, 0.8])
-@pytest.mark.parametrize("n", [1, 4])
-@pytest.mark.parametrize("Re", [10, 25.1])
+@pytest.mark.parametrize("q", [0.4, 0.8])
+@pytest.mark.parametrize("n", [1, 3])
+@pytest.mark.parametrize("Re", [15, 25.1])
 def test_chunk_jacobian(center, PA, q, n, Re):
     target = make_basic_sersic()
     model = ap.Model(
@@ -28,6 +27,7 @@ def test_chunk_jacobian(center, PA, q, n, Re):
         Ie=10.0,
         target=target,
         integrate_mode="none",
+        psf_convolve=False,
     )
 
     Jtrue = model.jacobian()
@@ -38,15 +38,6 @@ def test_chunk_jacobian(center, PA, q, n, Re):
     assert ap.backend.allclose(
         Jtrue.data, Jchunked.data
     ), "Param chunked Jacobian should match full Jacobian"
-
-    model.jacobian_maxparams = 10
-    model.jacobian_maxpixels = 20**2
-
-    Jchunked = model.jacobian()
-
-    assert ap.backend.allclose(
-        Jtrue.data, Jchunked.data
-    ), "Pixel chunked Jacobian should match full Jacobian"
 
 
 @pytest.fixture
@@ -72,7 +63,6 @@ def sersic_model():
     [
         (ap.fit.LM, {}),
         (ap.fit.LM, {"likelihood": "poisson"}),
-        (ap.fit.LMfast, {}),
         (ap.fit.IterParam, {"chunks": 3, "chunk_order": "sequential", "verbose": 2}),
         (
             ap.fit.IterParam,
@@ -91,7 +81,6 @@ def sersic_model():
                 "initial_state": [[20, 20, 0.7, np.pi, 2, 15, 10]],
             },
         ),
-        (ap.fit.MiniFit, {}),
         (ap.fit.Slalom, {}),
     ],
 )

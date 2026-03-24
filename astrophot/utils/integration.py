@@ -1,13 +1,9 @@
-from functools import lru_cache
-
 from scipy.special import roots_legendre
-import torch
 from ..backend_obj import backend
 
 __all__ = ("quad_table",)
 
 
-@lru_cache(maxsize=32)
 def quad_table(order, dtype, device):
     """
     Generate a meshgrid for quadrature points using Legendre-Gauss quadrature.

@@ -3,6 +3,7 @@ import numpy as np
 
 from caskade import Param as CParam
 from ..backend_obj import backend
+from .. import config
 
 
 class Param(CParam):
@@ -56,6 +57,10 @@ class Param(CParam):
         if self.value is not None:
             return True
         return False
+
+    @property
+    def full_shape(self):
+        return self.batch_shape + self.shape
 
     def soft_valid(self, value):
         if self.valid[0] is None and self.valid[1] is None:

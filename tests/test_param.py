@@ -41,7 +41,7 @@ def test_module():
     model.initialize()
 
     U = ap.backend.ones_like(model.get_values()) * 0.1
-    model.fill_dynamic_value_uncertainties(U)
+    model.set_values(U, attribute="uncertainty")
 
     paramsu = model.get_values(attribute="uncertainty")
     assert ap.backend.all(ap.backend.isfinite(paramsu)), "All parameters should be finite"
@@ -51,9 +51,3 @@ def test_module():
 
     paramsun = model.build_params_array_units()
     assert all(isinstance(unit, str) for unit in paramsun), "All parameter units should be strings"
-
-    index = model.dynamic_params_array_index(model2.q)
-    assert index == [9], "Parameter index should be correct"
-
-    with pytest.raises(ValueError):
-        model.dynamic_params_array_index(5.0)  # Not a Param instance

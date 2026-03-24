@@ -3,9 +3,12 @@ from typing import List, Optional
 import numpy as np
 from astropy.io import fits
 
-from .image_object import Image, ImageList
-from .jacobian_image import JacobianImage, JacobianImageList
-from .model_image import ModelImage, ModelImageList
+
+from ..image.window import Window
+from ..param import forward
+from .image_object import Image, ImageList, ImageBatchMixin
+from .jacobian_image import JacobianImage, JacobianImageList, JacobianImageBatch
+from .model_image import ModelImage, ModelImageList, ModelImageBatch
 from .psf_image import PSFImage
 from .. import config
 from ..backend_obj import backend, ArrayLike
@@ -13,7 +16,7 @@ from ..errors import InvalidImage
 from .mixins import DataMixin
 from ..utils.decorators import combine_docstrings
 
-__all__ = ["TargetImage", "TargetImageList"]
+__all__ = ("TargetImage", "TargetImageList", "TargetImageBatch")
 
 
 @combine_docstrings
@@ -84,33 +87,20 @@ class TargetImage(DataMixin, Image):
 
     def __init__(self, *args, psf=None, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if not self.has_psf:
+        if not hasattr(self, "_psf"):
             self.psf = psf
 
     @property
     def has_psf(self) -> bool:
         """Returns True when the target image object has a PSF model."""
         try:
-            return self._psf is not None
+            return self.psf is not None
         except AttributeError:
             return False
 
     @property
     def psf(self):
-        """The PSF for the `TargetImage`. This is used to convolve the
-        model with the PSF before evaluating the likelihood. The PSF
-        should be a `PSFImage` object or an `AstroPhot` PSFModel.
-
-        If no PSF is provided, then the image will not be convolved
-        with a PSF and the model will be evaluated directly on the
-        image pixels.
-
-        """
-        try:
-            return self._psf
-        except AttributeError:
-            return None
+        return self._psf
 
     @psf.setter
     def psf(self, psf):
@@ -123,8 +113,6 @@ class TargetImage(DataMixin, Image):
         the psf may have a pixelscale of 1, 1/2, 1/3, 1/4 and so on.
 
         """
-        if hasattr(self, "_psf"):
-            del self._psf  # remove old psf if it exists
         from ..models import Model
 
         if psf is None:
@@ -134,11 +122,7 @@ class TargetImage(DataMixin, Image):
         elif isinstance(psf, Model):
             self._psf = psf
         else:
-            self._psf = PSFImage(
-                data=psf,
-                CD=self.CD,
-                name=self.name + "_psf",
-            )
+            self._psf = PSFImage(data=psf)
 
     def copy_kwargs(self, **kwargs):
         kwargs = {"psf": self.psf, **kwargs}
@@ -156,7 +140,7 @@ class TargetImage(DataMixin, Image):
                     )
                 )
             else:
-                config.logger.warning("Unable to save PSF to FITS, not a PSF_Image.")
+                config.logger.warning("Unable to save PSF to FITS, not a PSFImage.")
         return images
 
     def load(self, filename: str, hduext: int = 0):
@@ -166,12 +150,15 @@ class TargetImage(DataMixin, Image):
         """
         hdulist = super().load(filename, hduext=hduext)
         if "PSF" in hdulist:
+            crpix = (
+                hdulist["PSF"].header.get("CRPIX1", None),
+                hdulist["PSF"].header.get("CRPIX2", None),
+            )
             self.psf = PSFImage(
                 data=np.array(hdulist["PSF"].data, dtype=np.float64),
-                CD=(
-                    (hdulist["PSF"].header["CD1_1"], hdulist["PSF"].header["CD1_2"]),
-                    (hdulist["PSF"].header["CD2_1"], hdulist["PSF"].header["CD2_2"]),
-                ),
+                upsample=hdulist["PSF"].header.get("UPSMPL", 1),
+                crpix=None if None in crpix else crpix,
+                identity=hdulist["PSF"].header.get("IDNTY", None),
             )
         return hdulist
 
@@ -195,28 +182,28 @@ class TargetImage(DataMixin, Image):
             "crpix": self.crpix,
             "crtan": self.crtan.value,
             "crval": self.crval.value,
-            "zeropoint": self.zeropoint,
             "identity": self.identity,
             "name": self.name + "_jacobian",
+            "_data": data,
             **kwargs,
         }
-        return JacobianImage(parameters=parameters, _data=data, **kwargs)
+        return JacobianImage(parameters=parameters, **kwargs)
 
-    def model_image(self, upsample: int = 1, pad: int = 0, **kwargs) -> ModelImage:
+    def model_image(
+        self,
+        window: Window = None,
+        **kwargs,
+    ) -> ModelImage:
         """
         Construct a blank `ModelImage` object formatted like this current `TargetImage` object. Mostly used internally.
         """
+        if window is None:
+            window = self.window
+        si, sj = self.get_indices(window)
         kwargs = {
-            "_data": backend.zeros(
-                (
-                    self._data.shape[0] * upsample + 2 * pad,
-                    self._data.shape[1] * upsample + 2 * pad,
-                ),
-                dtype=config.DTYPE,
-                device=config.DEVICE,
-            ),
-            "CD": self.CD.value / upsample,
-            "crpix": (self.crpix + 0.5) * upsample + pad - 0.5,
+            "_data": backend.zeros_like(self._data[si, sj]),
+            "CD": self.CD.value,
+            "crpix": self.crpix - np.array((si.start, sj.start)),
             "crtan": self.crtan.value,
             "crval": self.crval.value,
             "zeropoint": self.zeropoint,
@@ -226,12 +213,11 @@ class TargetImage(DataMixin, Image):
         }
         return ModelImage(**kwargs)
 
-    def psf_image(self, data: ArrayLike, upscale: int = 1, **kwargs) -> PSFImage:
+    def psf_image(self, data: ArrayLike, upsample: int = 1, **kwargs) -> PSFImage:
         kwargs = {
             "data": data,
-            "CD": self.CD.value / upscale,
             "identity": self.identity,
-            "name": self.name + "_psf",
+            "upsample": upsample,
             **kwargs,
         }
         return PSFImage(**kwargs)
@@ -298,8 +284,14 @@ class TargetImageList(ImageList):
             list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
         )
 
-    def model_image(self) -> ModelImageList:
-        return ModelImageList(list(image.model_image() for image in self.images))
+    def model_image(self, window=None) -> ModelImageList:
+        if window is None:
+            window = self.window
+        new_list = []
+        for other_window in window:
+            i = self.index(other_window.image)
+            new_list.append(self.images[i].model_image(other_window))
+        return ModelImageList(new_list)
 
     @property
     def mask(self):
@@ -326,3 +318,50 @@ class TargetImageList(ImageList):
     @property
     def has_psf(self) -> bool:
         return any(image.has_psf for image in self.images)
+
+
+class TargetImageBatch(ImageBatchMixin, TargetImageList):
+    @property
+    def variance(self):
+        return backend.stack(tuple(image.variance for image in self.images), dim=0)
+
+    @property
+    def weight(self):
+        return backend.stack(tuple(image.weight for image in self.images), dim=0)
+
+    @property
+    def mask(self):
+        return backend.stack(tuple(image.mask for image in self.images), dim=0)
+
+    @property
+    @forward
+    def psf_stack(self):
+        res = []
+        for image in self.images:
+            if image.has_psf:
+                if isinstance(image.psf, PSFImage):
+                    res.append(image.psf.data)
+                else:
+                    res.append(image.psf()._data)
+            else:
+                return None
+
+        return backend.stack(res, dim=0)
+
+    def model_image(self, window=None) -> ModelImageBatch:
+        if window is None:
+            window = self.window
+        new_list = []
+        for other_window in window:
+            i = self.index(other_window.image)
+            new_list.append(self.images[i].model_image(other_window))
+        return ModelImageBatch(new_list)
+
+    def jacobian_image(
+        self, parameters: List[str], data: Optional[List[ArrayLike]] = None
+    ) -> JacobianImageBatch:
+        if data is None:
+            data = tuple(None for _ in range(len(self.images)))
+        return JacobianImageBatch(
+            list(image.jacobian_image(parameters, dat) for image, dat in zip(self.images, data))
+        )

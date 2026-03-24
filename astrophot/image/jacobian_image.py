@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from .image_object import Image, ImageList
+from .image_object import Image, ImageList, ImageBatchMixin
 from ..errors import SpecificationConflict, InvalidImage
 from ..backend_obj import backend
 
@@ -113,3 +113,7 @@ class JacobianImageList(ImageList):
                 self_i.append(self.parameters.index(other_param))
                 other_i.append(i)
         return self_i, other_i
+
+
+class JacobianImageBatch(ImageBatchMixin, JacobianImageList):
+    pass

@@ -78,9 +78,9 @@ class iSersicMixin:
 
     _model_type = "sersic"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.36, 8), "dynamic": True},
-        "Re": {"units": "arcsec", "valid": (0, None), "dynamic": True},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
+        "n": {"units": "none", "valid": (0.36, 8), "shape": (None,), "dynamic": True},
+        "Re": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (None,), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -102,3 +102,51 @@ class iSersicMixin:
         self, i: int, R: ArrayLike, n: ArrayLike, Re: ArrayLike, Ie: ArrayLike
     ) -> ArrayLike:
         return func.sersic(R, n[i], Re[i], Ie[i])
+
+
+class SersicPSFMixin:
+    """Sersic radial light profile (Sersic 1963).
+
+    This is a classic profile used widely in galaxy modelling, though it
+    is simply a generalization of a Gaussian. It can be a good starting
+    point for many objects. The functional form of the Sersic profile is
+    defined as:
+
+    $$I(R) = I_e * \\exp(- b_n((R/R_e)^{1/n} - 1))$$
+
+    It includes the gaussian, exponential, and de-Vaucouleurs
+    profiles. The Sersic index `n` controls the shape of the profile, with `n=1`
+    being an exponential profile, `n=4` being a de-Vaucouleurs profile, and
+    `n=0.5` being a Gaussian profile.
+
+    **Parameters:**
+    -    `n`: Sersic index which controls the shape of the brightness profile
+    -    `Re`: half light radius [pix]
+    -    `Ie`: intensity at the half light radius [flux/pix^2]
+    """
+
+    _model_type = "sersic"
+    _parameter_specs = {
+        "n": {"units": "none", "valid": (0.36, 8), "shape": (), "dynamic": True},
+        "Re": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
+        "Ie": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_initialize(
+            self, self.target[self.window], sersic_np, ("n", "Re", "Ie"), _x0_func
+        )
+
+    @forward
+    def radial_model(self, R: ArrayLike, n: ArrayLike, Re: ArrayLike, Ie: ArrayLike) -> ArrayLike:
+        return func.sersic(R, n, Re, Ie)

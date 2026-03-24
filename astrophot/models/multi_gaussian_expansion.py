@@ -30,10 +30,15 @@ class MultiGaussianExpansion(ComponentModel):
 
     _model_type = "mge"
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0, 1), "dynamic": True},
-        "PA": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "dynamic": True},
-        "sigma": {"units": "arcsec", "valid": (0, None), "dynamic": True},
-        "flux": {"units": "flux", "dynamic": True},
+        "q": {"units": "b/a", "valid": (0, 1), "shape": (None,), "dynamic": True},
+        "PA": {
+            "units": "radians",
+            "valid": (0, np.pi),
+            "cyclic": True,
+            "dynamic": True,
+        },  # No shape for PA since there are two options, use with caution
+        "sigma": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "flux": {"units": "flux", "shape": (None,), "dynamic": True},
     }
     usable = True
 

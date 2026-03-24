@@ -5,9 +5,10 @@ import numpy as np
 from ...param import forward
 from ...backend_obj import backend, ArrayLike
 from ... import config
-from ...image import Image, Window, JacobianImage
+from ...image import JacobianImage
 from .. import func
 from ...errors import SpecificationConflict
+from ...utils.integration import quad_table
 
 
 class SampleMixin:
@@ -18,8 +19,6 @@ class SampleMixin:
             - `midpoint`: Use midpoint sampling, evaluate the brightness at the center of each pixel.
             - `simpsons`: Use Simpson's rule for sampling integrating each pixel.
             - `quad:x`: Use quadrature sampling with order x, where x is a positive integer to integrate each pixel.
-    -    `jacobian_maxparams`: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to build a model.
-    -    `jacobian_maxpixels`: The maximum number of pixels before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to build a model.
     -    `integrate_mode`: The method used to select pixels to integrate further where the model varies significantly. Options are:
             - `none`: No extra integration is performed (beyond the sampling_mode).
             - `bright`: Select the brightest pixels for further integration.
@@ -31,13 +30,6 @@ class SampleMixin:
     -    `integrate_quad_order`: The order of the quadrature used for the integration method on the super sampled pixels.
     """
 
-    # Method for initial sampling of model
-    sampling_mode = "auto"  # auto (choose based on image size), midpoint, simpsons, quad:x (where x is a positive integer)
-
-    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
-    jacobian_maxparams = 10
-    jacobian_maxpixels = 1000**2
-    integrate_mode = "bright"  # none, bright, curvature
     integrate_fraction = 0.05  # fraction of the pixels to super sample
     integrate_max_depth = 2
     integrate_gridding = 5
@@ -45,8 +37,6 @@ class SampleMixin:
 
     _options = (
         "sampling_mode",
-        "jacobian_maxparams",
-        "jacobian_maxpixels",
         "integrate_mode",
         "integrate_fraction",
         "integrate_max_depth",
@@ -54,15 +44,26 @@ class SampleMixin:
         "integrate_quad_order",
     )
 
+    def __init__(self, *args, sampling_mode="auto", integrate_mode="bright", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sampling_mode = sampling_mode
+        self.integrate_mode = integrate_mode
+
     @forward
-    def _bright_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
-        i, j = image.pixel_center_meshgrid()
+    def _bright_integrate(
+        self,
+        sample: ArrayLike,
+        i: ArrayLike,
+        j: ArrayLike,
+        upsample: int,
+        pixel_brightness: callable,
+    ) -> ArrayLike:
         sample = func.bright_integrate(
             sample,
             i,
             j,
-            lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-            scale=image.base_scale,
+            pixel_brightness,
+            scale=self.target.base_scale / upsample,
             bright_frac=self.integrate_fraction,
             quad_order=self.integrate_quad_order,
             gridding=self.integrate_gridding,
@@ -71,8 +72,14 @@ class SampleMixin:
         return sample
 
     @forward
-    def _curvature_integrate(self, sample: ArrayLike, image: Image) -> ArrayLike:
-        i, j = image.pixel_center_meshgrid()
+    def _curvature_integrate(
+        self,
+        sample: ArrayLike,
+        i: ArrayLike,
+        j: ArrayLike,
+        upsample: int,
+        pixel_brightness: callable,
+    ) -> ArrayLike:
         kernel = func.curvature_kernel(config.DTYPE, config.DEVICE)
         curvature = (
             backend.abs(
@@ -89,7 +96,7 @@ class SampleMixin:
             .squeeze(0)
             .squeeze(0)
         )
-        N = max(1, int(np.prod(image.data.shape) * self.integrate_fraction))
+        N = max(1, int(np.prod(i.shape) * self.integrate_fraction))
         select = backend.topk(curvature.flatten(), N)[1]
 
         sample_flat = sample.flatten()
@@ -99,8 +106,8 @@ class SampleMixin:
             func.recursive_quad_integrate(
                 i.flatten()[select],
                 j.flatten()[select],
-                lambda i, j: self.brightness(*image.pixel_to_plane(i, j)),
-                scale=image.base_scale,
+                pixel_brightness,
+                scale=self.target.base_scale / upsample,
                 curve_frac=self.integrate_fraction,
                 quad_order=self.integrate_quad_order,
                 gridding=self.integrate_gridding,
@@ -109,48 +116,94 @@ class SampleMixin:
         )
         return sample_flat.reshape(sample.shape)
 
-    @forward
-    def sample_image(self, image: Image) -> ArrayLike:
-        if self.sampling_mode == "auto":
-            N = np.prod(image._data.shape[:2])
-            if N <= 100:
-                sampling_mode = "quad:5"
-            elif N <= 10000:
-                sampling_mode = "simpsons"
-            else:
-                sampling_mode = "midpoint"
-        else:
-            sampling_mode = self.sampling_mode
+    @property
+    def sampling_mode(self):
+        return self._sampling_mode
+
+    @sampling_mode.setter
+    def sampling_mode(self, sampling_mode):
+        if sampling_mode == "auto":
+            sampling_mode = "midpoint"
+            try:
+                N = np.prod(self.window.shape)
+                if N <= 100:
+                    sampling_mode = "quad:5"
+                elif N <= 10000:
+                    sampling_mode = "simpsons"
+            except:
+                pass
         if sampling_mode == "midpoint":
-            x, y = image.coordinate_center_meshgrid()
-            res = self.brightness(x, y)
-            sample = func.pixel_center_integrator(res)
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_center_meshgrid(w, p, u)
+            self._pixel_integrator = func.pixel_center_integrator
+            self._pixel_center_finder = lambda i, j: (i, j)
         elif sampling_mode == "simpsons":
-            x, y = image.coordinate_simpsons_meshgrid()
-            res = self.brightness(x, y)
-            sample = func.pixel_simpsons_integrator(res)
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_simpsons_meshgrid(w, p, u)
+            self._pixel_integrator = func.pixel_simpsons_integrator
+            self._pixel_center_finder = lambda i, j: (i[1:-1:2, 1:-1:2], j[1:-1:2, 1:-1:2])
         elif sampling_mode.startswith("quad:"):
-            order = int(self.sampling_mode.split(":")[1])
-            i, j, w = image.pixel_quad_meshgrid(order=order)
-            x, y = image.pixel_to_plane(i, j)
-            res = self.brightness(x, y)
-            sample = func.pixel_quad_integrator(res, w)
+            order = int(sampling_mode.split(":")[1])
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_quad_meshgrid(
+                w, p, u, order=order
+            )[:2]
+            _, _, w = quad_table(order, config.DTYPE, config.DEVICE)
+            w = w.flatten()
+            self._pixel_integrator = lambda z: func.pixel_quad_integrator(z, w)
+            self._pixel_center_finder = lambda i, j: (i[..., order**2 // 2], j[..., order**2 // 2])
+        elif sampling_mode.startswith("upsample:"):
+            upsample = int(sampling_mode.split(":")[1])
+            if upsample % 2 != 1:
+                raise SpecificationConflict(
+                    f"Upsample factor for 'sample_mode' must be an odd integer, got {upsample} for model {self.name}"
+                )
+            self._pixel_meshgridder = lambda im, w, p, u: im.pixel_center_meshgrid(
+                w, upsample * p, upsample * u
+            )
+            self._pixel_integrator = lambda z: func.downsample_mean(z, upsample)
+            self._pixel_center_finder = lambda i, j: (
+                i[upsample // 2 :: upsample, upsample // 2 :: upsample],
+                j[upsample // 2 :: upsample, upsample // 2 :: upsample],
+            )
         else:
             raise SpecificationConflict(
-                f"Unknown sampling mode {self.sampling_mode} for model {self.name}"
+                f"Unknown sampling mode {sampling_mode} for model {self.name}"
             )
-        if self.integrate_mode == "curvature":
-            sample = self._curvature_integrate(sample, image)
-        elif self.integrate_mode == "bright":
-            sample = self._bright_integrate(sample, image)
-        elif self.integrate_mode != "none":
+        self._sampling_mode = sampling_mode
+
+    @property
+    def integrate_mode(self):
+        return self._integrate_mode
+
+    @integrate_mode.setter
+    def integrate_mode(self, integrate_mode):
+        if integrate_mode == "bright":
+            self._adaptive_integrator = self._bright_integrate
+        elif integrate_mode == "curvature":
+            self._adaptive_integrator = self._curvature_integrate
+        elif integrate_mode == "none":
+            self._adaptive_integrator = lambda z, *a, **kw: z
+        else:
             raise SpecificationConflict(
-                f"Unknown integrate mode {self.integrate_mode} for model {self.name}"
+                f"Unknown integrate mode {integrate_mode} for model {self.name}"
             )
-        return sample
+        self._integrate_mode = integrate_mode
+
+
+class GradMixin:
+    """
+    **Options:**
+    -    `jacobian_maxparams`: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to fit a model.
+    """
+
+    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
+    jacobian_maxparams = 10
+
+    _options = ("jacobian_maxparams",)
 
     def _jacobian(
-        self, window: Window, params_pre: ArrayLike, params: ArrayLike, params_post: ArrayLike
+        self,
+        params_pre: ArrayLike,
+        params: ArrayLike,
+        params_post: ArrayLike,
     ) -> ArrayLike:
         # return jacfwd( # this should be more efficient, but the trace overhead is too high
         #     lambda x: self.sample(
@@ -158,23 +211,18 @@ class SampleMixin:
         #     ).data
         # )(params)
         return backend.jacobian(
-            lambda x: self.sample(
-                window=window, params=backend.concatenate((params_pre, x, params_post), dim=-1)
-            )._data,
+            lambda x: self(params=backend.concatenate((params_pre, x, params_post), dim=-1))._data,
             params,
         )
 
     def jacobian(
         self,
-        window: Optional[Window] = None,
         pass_jacobian: Optional[JacobianImage] = None,
         params: Optional[ArrayLike] = None,
     ) -> JacobianImage:
-        if window is None:
-            window = self.window
 
         if pass_jacobian is None:
-            jac_img = self.target[window].jacobian_image(
+            jac_img = self.target[self.window].jacobian_image(
                 parameters=self.build_params_array_identities()
             )
         else:
@@ -183,61 +231,52 @@ class SampleMixin:
         # No dynamic params
         if params is None:
             params = self.get_values()
-        if params.shape[-1] == 0:
-            return jac_img
-
-        # handle large images
-        n_pixels = np.prod(window.shape)
-        if n_pixels > self.jacobian_maxpixels:
-            for chunk in window.chunk(self.jacobian_maxpixels):
-                jac_img = self.jacobian(window=chunk, pass_jacobian=jac_img, params=params)
+        if len(params.shape) == 0 or params.shape[-1] == 0:
             return jac_img
 
         identities = self.build_params_array_identities()
         if len(jac_img.match_parameters(identities)[0]) == 0:
             return jac_img
 
-        target = self.target[window]
+        target = self.target[self.window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
             chunksize = len(params) // self.jacobian_maxparams + 1
             for i in range(0, len(params), chunksize):
                 params_pre = params[:i]
                 params_chunk = params[i : i + chunksize]
                 params_post = params[i + chunksize :]
-                jac_chunk = self._jacobian(window, params_pre, params_chunk, params_post)
+                jac_chunk = self._jacobian(params_pre, params_chunk, params_post)
                 jac_img += target.jacobian_image(
                     parameters=identities[i : i + chunksize],
                     data=jac_chunk,
                 )
         else:
-            jac = self._jacobian(window, params[:0], params, params[0:0])
+            jac = self._jacobian(params[:0], params, params[0:0])
             jac_img += target.jacobian_image(parameters=identities, data=jac)
 
         return jac_img
 
     def gradient(
         self,
-        window: Optional[Window] = None,
         params: Optional[ArrayLike] = None,
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
     ) -> ArrayLike:
-        """Compute the gradient of the model with respect to its parameters."""
-        if window is None:
-            window = self.window
+        """Compute the gradient of the model likelihood with respect to its parameters."""
 
-        jacobian_image = self.jacobian(window=window, params=params)
+        jacobian_image = self.jacobian(params=params).flatten("data")
 
-        data = self.target[window]._data
-        model = self.sample(window=window)._data
+        data = self.target[self.window].flatten("data")
+        mask = self.target[self.window].flatten("mask")
+        model = self().flatten("data")
         if likelihood == "gaussian":
-            weight = self.target[window]._weight
+            weight = self.target[self.window].flatten("weight")
             gradient = backend.sum(
-                jacobian_image._data * ((data - model) * weight)[..., None], dim=(0, 1)
+                jacobian_image * ((data - model) * weight * (~mask))[..., None], dim=0
             )
         elif likelihood == "poisson":
             gradient = backend.sum(
-                jacobian_image._data * (1 - data / model)[..., None],
-                dim=(0, 1),
+                jacobian_image * ((1 - data / model) * (~mask))[..., None],
+                dim=0,
             )
 
         return gradient

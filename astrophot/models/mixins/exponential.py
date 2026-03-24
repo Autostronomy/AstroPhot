@@ -73,8 +73,8 @@ class iExponentialMixin:
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "arcsec", "valid": (0, None), "dynamic": True},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
+        "Re": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (None,), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -94,3 +94,49 @@ class iExponentialMixin:
     @forward
     def iradial_model(self, i: int, R: ArrayLike, Re: ArrayLike, Ie: ArrayLike) -> ArrayLike:
         return func.exponential(R, Re[i], Ie[i])
+
+
+class ExponentialPSFMixin:
+    """Exponential radial light profile.
+
+    An exponential is a classical radial model used in many contexts. The
+    functional form of the exponential profile is defined as:
+
+    $$I(R) = I_e * \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)$$
+
+    Ie is the brightness at the effective radius, and Re is the effective
+    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
+
+    **Parameters:**
+    -    `Re`: effective radius in pixels
+    -    `Ie`: effective surface density in flux/pix^2
+    """
+
+    _model_type = "exponential"
+    _parameter_specs = {
+        "Re": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
+        "Ie": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_initialize(
+            self,
+            self.target[self.window],
+            exponential_np,
+            ("Re", "Ie"),
+            _x0_func,
+        )
+
+    @forward
+    def radial_model(self, R: ArrayLike, Re: ArrayLike, Ie: ArrayLike) -> ArrayLike:
+        return func.exponential(R, Re, Ie)

@@ -92,10 +92,10 @@ class iKingMixin:
 
     _model_type = "king"
     _parameter_specs = {
-        "Rc": {"units": "arcsec", "valid": (0.0, None), "dynamic": True},
-        "Rt": {"units": "arcsec", "valid": (0.0, None), "dynamic": True},
-        "alpha": {"units": "unitless", "valid": (0, 10), "dynamic": False},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "dynamic": True},
+        "Rc": {"units": "arcsec", "valid": (0.0, None), "shape": (None,), "dynamic": True},
+        "Rt": {"units": "arcsec", "valid": (0.0, None), "shape": (None,), "dynamic": True},
+        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (None,), "dynamic": False},
+        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (None,), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -120,3 +120,63 @@ class iKingMixin:
         self, i: int, R: ArrayLike, Rc: ArrayLike, Rt: ArrayLike, alpha: ArrayLike, I0: ArrayLike
     ) -> ArrayLike:
         return func.king(R, Rc[i], Rt[i], alpha[i], I0[i])
+
+
+class KingPSFMixin:
+    """Empirical King radial light profile (Elson 1999).
+
+    Often used for star clusters. By default the profile has `alpha = 2` but we
+    allow the parameter to vary freely for fitting. The functional form of the
+    Empirical King profile is defined as:
+
+    $$I(R) = I_0\\left[\\frac{1}{(1 + (R/R_c)^2)^{1/\\alpha}} - \\frac{1}{(1 + (R_t/R_c)^2)^{1/\\alpha}}\\right]^{\\alpha}\\left[1 - \\frac{1}{(1 + (R_t/R_c)^2)^{1/\\alpha}}\\right]^{-\\alpha}$$
+
+    where `R_c` is the core radius, `R_t` is the truncation radius, and `I_0` is
+    the intensity at the center of the profile. `alpha` is the concentration
+    index which controls the shape of the profile.
+
+    **Parameters:**
+    -    `Rc`: core radius [pix]
+    -    `Rt`: truncation radius [pix]
+    -    `alpha`: concentration index which controls the shape of the brightness profile
+    -    `I0`: intensity at the center of the profile [flux/pix^2]
+    """
+
+    _model_type = "king"
+    _parameter_specs = {
+        "Rc": {"units": "pix", "valid": (0.0, None), "shape": (), "dynamic": True},
+        "Rt": {"units": "pix", "valid": (0.0, None), "shape": (), "dynamic": True},
+        "alpha": {
+            "units": "unitless",
+            "valid": (0, 10),
+            "shape": (),
+            "value": 2.0,
+            "dynamic": False,
+        },
+        "I0": {
+            "units": "flux/pix^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+        },
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_initialize(
+            self,
+            self.target[self.window],
+            lambda r, *x: king_np(r, x[0], x[1], 2.0, x[2]),
+            ("Rc", "Rt", "I0"),
+            x0_func,
+        )
+
+    @forward
+    def radial_model(
+        self, R: ArrayLike, Rc: ArrayLike, Rt: ArrayLike, alpha: ArrayLike, I0: ArrayLike
+    ) -> ArrayLike:
+        return func.king(R, Rc, Rt, alpha, I0)

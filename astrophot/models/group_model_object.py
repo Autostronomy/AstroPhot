@@ -47,11 +47,10 @@ class GroupModel(Model):
     def __init__(
         self,
         *,
-        name: Optional[str] = None,
         models: Optional[Sequence[Model]] = None,
         **kwargs,
     ):
-        super().__init__(name=name, **kwargs)
+        super().__init__(**kwargs)
         for model in models:
             if not isinstance(model, Model):
                 raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
@@ -101,7 +100,6 @@ class GroupModel(Model):
                     new_window |= model.window
         self.window = new_window
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         """
@@ -110,51 +108,6 @@ class GroupModel(Model):
         for model in self.models:
             config.logger.info(f"Initializing model {model.name}")
             model.initialize()
-
-    def _fit_mask(self) -> torch.Tensor:
-        """Returns a mask for the target image which is the combination of all
-        the fit masks of the sub models. This mask is used when the multiple
-        models in the group model do not completely overlap with each other, thus
-        there are some pixels which are not covered by any model and have no
-        reason to be fit.
-
-        """
-        subtarget = self.target[self.window]
-        if isinstance(subtarget, ImageList):
-            mask = list(backend.ones_like(submask) for submask in subtarget._mask)
-            for model in self.models:
-                model_subtarget = model.target[model.window]
-                model_fit_mask = model._fit_mask()
-                if isinstance(model_subtarget, ImageList):
-                    for target, submask in zip(model_subtarget, model_fit_mask):
-                        index = subtarget.index(target)
-                        group_indices = subtarget.images[index].get_indices(target.window)
-                        model_indices = target.get_indices(subtarget.images[index].window)
-                        mask[index] = backend.and_at_indices(
-                            mask[index], group_indices, submask[model_indices]
-                        )
-                else:
-                    index = subtarget.index(model_subtarget)
-                    group_indices = subtarget.images[index].get_indices(model_subtarget.window)
-                    model_indices = model_subtarget.get_indices(subtarget.images[index].window)
-                    mask[index] = backend.and_at_indices(
-                        mask[index], group_indices, model_fit_mask[model_indices]
-                    )
-            mask = tuple(mask)
-        else:
-            mask = backend.ones_like(subtarget._mask)
-            for model in self.models:
-                model_subtarget = model.target[model.window]
-                group_indices = subtarget.get_indices(model.window)
-                model_indices = model_subtarget.get_indices(subtarget.window)
-                mask = backend.and_at_indices(mask, group_indices, model._fit_mask()[model_indices])
-        return mask
-
-    def fit_mask(self) -> torch.Tensor:
-        mask = self._fit_mask()
-        if isinstance(mask, tuple):
-            return tuple(backend.transpose(m, 1, 0) for m in mask)
-        return backend.transpose(mask, 1, 0)
 
     def match_window(self, image: Union[Image, ImageList], window: Window, model: Model) -> Window:
         if isinstance(image, ImageList) and isinstance(model.target, ImageList):
@@ -201,7 +154,10 @@ class GroupModel(Model):
     @forward
     def sample(
         self,
-        window: Optional[Window] = None,
+        _CD: Optional[ArrayLike] = None,
+        _crtan: Optional[ArrayLike] = None,
+        _crpix: Optional[ArrayLike] = None,
+        _psf: Optional[ArrayLike] = None,
     ) -> Union[ModelImage, ModelImageList]:
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
@@ -212,31 +168,18 @@ class GroupModel(Model):
         -  `image` (Optional[ModelImage]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
 
         """
-        if window is None:
-            image = self.target[self.window].model_image()
-        else:
-            image = self.target[window].model_image()
+        image = self.target.model_image(self.window)
 
         for model in self.models:
-            if window is None:
-                use_window = model.window
-            else:
-                try:
-                    use_window = self.match_window(image, window, model)
-                except IndexError:
-                    # If the model target is not in the image, skip it
-                    continue
-            model_image = model(window=model.window & use_window)
+            model_image = model(_CD=_CD, _crtan=_crtan, _crpix=_crpix, _psf=_psf)
             self._ensure_vmap_compatible(image, model_image)
             image += model_image
 
         return image
 
-    @torch.no_grad()
     def jacobian(
         self,
         pass_jacobian: Optional[Union[JacobianImage, JacobianImageList]] = None,
-        window: Optional[Union[Window, WindowList]] = None,
         params=None,
     ) -> JacobianImage:
         """Compute the jacobian for this model. Done by first constructing a
@@ -249,29 +192,19 @@ class GroupModel(Model):
         -  `params` (Optional[Sequence[Param]]): Parameters to use for the jacobian. If not provided, the model's parameters will be used.
 
         """
-        if window is None:
-            window = self.window
 
         if params is not None:
             self.set_values(params)
 
         if pass_jacobian is None:
-            jac_img = self.target[window].jacobian_image(
+            jac_img = self.target[self.window].jacobian_image(
                 parameters=self.build_params_array_identities()
             )
         else:
             jac_img = pass_jacobian
 
-        for model in reversed(self.models):
-            try:
-                use_window = self.match_window(jac_img, window, model)
-            except IndexError:
-                # If the model target is not in the image, skip it
-                continue
-            jac_img = model.jacobian(
-                pass_jacobian=jac_img,
-                window=use_window & model.window,
-            )
+        for model in self.models:
+            jac_img = model.jacobian(pass_jacobian=jac_img)
 
         return jac_img
 

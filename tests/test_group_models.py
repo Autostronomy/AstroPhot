@@ -45,10 +45,6 @@ def test_jointmodel_creation():
         ap.backend.isfinite(smod().flatten("data"))
     ).item(), "model_image should be real"
 
-    fm = smod.fit_mask()
-    for fmi in fm:
-        assert ap.backend.sum(fmi).item() == 0, "this fit_mask should not mask any pixels"
-
 
 def test_psfgroupmodel_creation():
     tar = make_basic_gaussian_psf()
@@ -108,11 +104,7 @@ def test_joint_multi_band_multi_object():
     # fmt: on
 
     model.initialize()
-    mask = model.fit_mask()
-    assert len(mask) == 4, "There should be 4 fit masks for the 4 targets"
-    for m in mask:
-        assert ap.backend.all(ap.backend.isfinite(m)), "this fit_mask should be finite"
-    sample = model.sample(window=ap.WindowList([target1.window, target2.window, target3.window]))
+    sample = model()
     assert isinstance(sample, ap.ImageList), "Sample should be an ImageList"
     for image in sample:
         assert ap.backend.all(ap.backend.isfinite(image.data)), "Sample image data should be finite"

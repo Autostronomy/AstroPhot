@@ -6,15 +6,15 @@ from .transform import (
     WarpMixin,
     TruncationMixin,
 )
-from .sersic import SersicMixin, iSersicMixin
-from .exponential import ExponentialMixin, iExponentialMixin
-from .moffat import MoffatMixin, iMoffatMixin
-from .ferrer import FerrerMixin, iFerrerMixin
-from .king import KingMixin, iKingMixin
-from .gaussian import GaussianMixin, iGaussianMixin
-from .nuker import NukerMixin, iNukerMixin
-from .spline import SplineMixin, iSplineMixin
-from .sample import SampleMixin
+from .sersic import SersicMixin, iSersicMixin, SersicPSFMixin
+from .exponential import ExponentialMixin, iExponentialMixin, ExponentialPSFMixin
+from .moffat import MoffatMixin, iMoffatMixin, MoffatPSFMixin
+from .ferrer import FerrerMixin, iFerrerMixin, FerrerPSFMixin
+from .king import KingMixin, iKingMixin, KingPSFMixin
+from .gaussian import GaussianMixin, iGaussianMixin, GaussianPSFMixin
+from .nuker import NukerMixin, iNukerMixin, NukerPSFMixin
+from .spline import SplineMixin, iSplineMixin, SplinePSFMixin
+from .sample import SampleMixin, GradMixin
 
 __all__ = (
     "RadialMixin",
@@ -27,19 +27,28 @@ __all__ = (
     "InclinedMixin",
     "SersicMixin",
     "iSersicMixin",
+    "SersicPSFMixin",
     "ExponentialMixin",
     "iExponentialMixin",
+    "ExponentialPSFMixin",
     "MoffatMixin",
     "iMoffatMixin",
+    "MoffatPSFMixin",
     "FerrerMixin",
     "iFerrerMixin",
+    "FerrerPSFMixin",
     "KingMixin",
     "iKingMixin",
+    "KingPSFMixin",
     "GaussianMixin",
     "iGaussianMixin",
+    "GaussianPSFMixin",
     "NukerMixin",
     "iNukerMixin",
+    "NukerPSFMixin",
     "SplineMixin",
     "iSplineMixin",
+    "SplinePSFMixin",
     "SampleMixin",
+    "GradMixin",
 )

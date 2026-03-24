@@ -11,3 +11,8 @@ def polar_decomposition(A):
     P_inv = np.linalg.inv(P)
     R = A @ P_inv
     return R, P
+
+
+def R(theta):
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c, -s], [s, c]])

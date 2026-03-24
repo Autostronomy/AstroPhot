@@ -1,6 +1,7 @@
 from functools import wraps
 import warnings
 from inspect import cleandoc
+import caskade as ck
 
 import numpy as np
 
@@ -29,9 +30,13 @@ def ignore_numpy_warnings(func):
     def wrapped(*args, **kwargs):
         old_settings = np.seterr(all="ignore")
         warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=ck.InvalidValueWarning)
         result = func(*args, **kwargs)
         np.seterr(**old_settings)
         warnings.filterwarnings("default", category=np.exceptions.VisibleDeprecationWarning)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        warnings.filterwarnings("default", category=ck.InvalidValueWarning)
         return result
 
     return wrapped

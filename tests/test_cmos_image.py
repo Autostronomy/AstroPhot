@@ -57,7 +57,7 @@ def test_cmos_model_sample(cmos_target):
         integrate_mode="bright",
     )
     model.initialize()
-    img = model.sample()
+    img = model()
 
     assert isinstance(img, ap.CMOSModelImage), "sampled image should be a CMOSModelImage"
     assert img.pixelscale == cmos_target.pixelscale, "sampled image should have the same pixelscale"

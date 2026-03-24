@@ -14,8 +14,12 @@ class SkyModel(ComponentModel):
 
     """
 
+    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": False}}
     _model_type = "sky"
     usable = False
+
+    def __init__(self, *args, integrate_mode="none", **kwargs):
+        super().__init__(*args, integrate_mode=integrate_mode, **kwargs)
 
     def initialize(self):
         """Initialize the sky model, this is called after the model is
@@ -24,9 +28,8 @@ class SkyModel(ComponentModel):
         """
         if not self.center.initialized:
             target_area = self.target[self.window]
-            self.center.to_static(target_area.center)
+            self.center = target_area.center
         super().initialize()
-        self.center.to_static()
 
     @property
     def psf_convolve(self) -> bool:
@@ -34,12 +37,4 @@ class SkyModel(ComponentModel):
 
     @psf_convolve.setter
     def psf_convolve(self, val: bool):
-        pass
-
-    @property
-    def integrate_mode(self) -> str:
-        return "none"
-
-    @integrate_mode.setter
-    def integrate_mode(self, val: str):
         pass

@@ -21,7 +21,6 @@ class BaseOptimizer:
     -  `model`: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
     -  `initial_state`: optional initialization for the parameters as a 1D tensor [tensor]
     -  `relative_tolerance`: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]
-    -  `fit_window`: optional window to fit the model on [Window]
     -  `verbose`: verbosity level for the optimizer [int]
     -  `max_iter`: maximum allowed number of iterations [int]
     -  `save_steps`: optional string for path to save the model at each step (fitter dependent), e.g. "model_step_{step}.hdf5" [str]
@@ -34,7 +33,6 @@ class BaseOptimizer:
         model: Model,
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
-        fit_window: Optional[Window] = None,
         verbose: int = 1,
         max_iter: int = None,
         save_steps: Optional[str] = None,
@@ -50,11 +48,6 @@ class BaseOptimizer:
             self.current_state = backend.as_array(
                 initial_state, dtype=config.DTYPE, device=config.DEVICE
             )
-
-        if fit_window is None:
-            self.fit_window = self.model.window
-        else:
-            self.fit_window = fit_window & self.model.window
 
         self.max_iter = max_iter if max_iter is not None else 100 * len(self.current_state)
         self.iteration = 0

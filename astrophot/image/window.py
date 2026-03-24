@@ -4,7 +4,7 @@ import numpy as np
 
 from ..errors import InvalidWindow
 
-__all__ = ("Window",)
+__all__ = ("Window", "WindowList", "WindowBatch")
 
 
 class Window:
@@ -164,3 +164,21 @@ class WindowList:
 
     def __iter__(self):
         return iter(self.windows)
+
+
+class WindowBatch(WindowList):
+    def __init__(self, windows: list[Window]):
+        super().__init__(windows)
+        if not all(window.shape == self.windows[0].shape for window in self.windows):
+            raise InvalidWindow("All windows in a WindowBatch must have the same shape.")
+
+    def origin_shifter(self, other: Window) -> np.ndarray:
+        """Returns the shift in origin between this window batch and another window."""
+        if not isinstance(other, Window):
+            raise TypeError(f"Can only compute origin shift with a Window, not {type(other)}")
+        shifts = []
+        for window in self.windows:
+            shift_i = other.i_low - window.i_low
+            shift_j = other.j_low - window.j_low
+            shifts.append((shift_i, shift_j))
+        return np.array(shifts)

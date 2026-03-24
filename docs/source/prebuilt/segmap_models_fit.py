@@ -36,7 +36,7 @@ segmap_override_init_params = {}  # Override some initial parameters for segmap 
 primary_key = None  # segmentation map id, use None to have no primary object
 primary_name = "primary object"  # name for primary object
 primary_model_type = "spline galaxy model"
-primary_initial_params = {}  # {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
+primary_initial_params = {}  # {"center": [3, 3], "q": 0.8}
 # Extra parameters
 ######################################################################
 save_model_image = True
@@ -115,7 +115,7 @@ models.append(
         name="sky",
         model_type=sky_model_type,
         target=target,
-        I=initial_sky if initial_sky is not None else {},
+        I0=initial_sky if initial_sky is not None else {},
     )
 )
 if sky_locked:
@@ -145,7 +145,7 @@ for window in windows:
     else:
         print(window)
         model = ap.Model(
-            name=f"{model_type} {window}",
+            name=f"{model_type}_{window}",
             model_type=model_type,
             target=target,
             window=windows[window],
@@ -153,7 +153,7 @@ for window in windows:
         )
     models.append(model)
 model = ap.Model(
-    name=f"{name} model",
+    name=f"{name}_model",
     model_type="group model",
     target=target,
     models=models,
@@ -194,7 +194,7 @@ if not primary_model is None:
     with open(f"{name}_primary_params.csv", "w") as f:
         f.write("Name,Total Magnitude," + ",".join(primary_model.build_params_array_names()) + "\n")
         f.write("string,mag," + ",".join(primary_model.build_params_array_units()) + "\n")
-        params = primary_model.build_params_array().detach().cpu().numpy()
+        params = primary_model.get_values().detach().cpu().numpy()
         f.write(",".join([str(x) for x in params]) + "\n")
 
 if print_all_models:
@@ -205,7 +205,7 @@ if print_all_models:
             continue
         totmag = segmodel.total_magnitude().detach().cpu().numpy()
         segmap_params.append(
-            [segmodel.name, totmag] + list(segmodel.build_params_array().detach().cpu().numpy())
+            [segmodel.name, totmag] + list(segmodel.get_values().detach().cpu().numpy())
         )
     with open(f"{name}_segmap_params.csv", "w") as f:
         f.write("Name,Total Magnitude," + ",".join(segmodel.build_params_array_names()) + "\n")

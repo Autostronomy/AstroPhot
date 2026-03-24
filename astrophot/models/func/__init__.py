@@ -1,4 +1,4 @@
-from .base import all_subclasses
+from .base import all_subclasses, downsample, downsample_mean
 from .integration import (
     quad_table,
     pixel_center_integrator,
@@ -23,10 +23,12 @@ from .exponential import exponential
 from .nuker import nuker
 from .spline import spline
 from .transform import rotate
-from .zernike import zernike_n_m_list, zernike_n_m_modes
+from .zernike import zernike_n_m_list, zernike_n_m_modes, zernike_basis
 
 __all__ = (
     "all_subclasses",
+    "downsample",
+    "downsample_mean",
     "quad_table",
     "pixel_center_integrator",
     "pixel_simpsons_integrator",
@@ -50,4 +52,5 @@ __all__ = (
     "rotate",
     "zernike_n_m_list",
     "zernike_n_m_modes",
+    "zernike_basis",
 )

@@ -74,8 +74,8 @@ class iGaussianMixin:
 
     _model_type = "gaussian"
     _parameter_specs = {
-        "sigma": {"units": "arcsec", "valid": (0, None), "dynamic": True},
-        "flux": {"units": "flux", "valid": (0, None), "dynamic": True},
+        "sigma": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "flux": {"units": "flux", "valid": (0, None), "shape": (None,), "dynamic": True},
     }
 
     @torch.no_grad()
@@ -95,3 +95,43 @@ class iGaussianMixin:
     @forward
     def iradial_model(self, i: int, R: ArrayLike, sigma: ArrayLike, flux: ArrayLike) -> ArrayLike:
         return func.gaussian(R, sigma[i], flux[i])
+
+
+class GaussianPSFMixin:
+    """Gaussian radial light profile.
+
+    The Gaussian profile is a simple and widely used model for extended objects.
+    The functional form of the Gaussian profile is defined as:
+
+    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
+
+    where `I_0` is the intensity at the center of the profile and `sigma` is the
+    standard deviation which controls the width of the profile.
+
+    **Parameters:**
+    -    `sigma`: Standard deviation of the Gaussian profile in pixels.
+    -    `flux`: Total flux of the Gaussian profile.
+    """
+
+    _model_type = "gaussian"
+    _parameter_specs = {
+        "sigma": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
+        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": False, "value": 1.0},
+    }
+
+    @torch.no_grad()
+    @ignore_numpy_warnings
+    def initialize(self):
+        super().initialize()
+
+        parametric_initialize(
+            self,
+            self.target[self.window],
+            gaussian_np,
+            ("sigma", "flux"),
+            _x0_func,
+        )
+
+    @forward
+    def radial_model(self, R: ArrayLike, sigma: ArrayLike, flux: ArrayLike) -> ArrayLike:
+        return func.gaussian(R, sigma, flux)

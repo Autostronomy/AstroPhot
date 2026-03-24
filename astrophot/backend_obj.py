@@ -292,11 +292,11 @@ class Backend:
     def _mean_jax(self, array, dim=None):
         return self.module.mean(array, axis=dim)
 
-    def _sum_torch(self, array, dim=None):
-        return self.module.sum(array, dim=dim)
+    def _sum_torch(self, array, dim=None, keepdim=False):
+        return self.module.sum(array, dim=dim, keepdim=keepdim)
 
-    def _sum_jax(self, array, dim=None):
-        return self.module.sum(array, axis=dim)
+    def _sum_jax(self, array, dim=None, keepdim=False):
+        return self.module.sum(array, axis=dim, keepdims=keepdim)
 
     def _max_torch(self, array, dim=None):
         return array.amax(dim=dim)
@@ -360,11 +360,11 @@ class Backend:
     def _hessian_jax(self, func):
         return self.jax.hessian(func)
 
-    def _vmap_torch(self, *args, **kwargs):
-        return self.module.vmap(*args, **kwargs)
+    def _vmap_torch(self, *args, in_dims=0, **kwargs):
+        return self.module.vmap(*args, in_dims=in_dims, **kwargs)
 
-    def _vmap_jax(self, *args, **kwargs):
-        return self.jax.vmap(*args, **kwargs)
+    def _vmap_jax(self, *args, in_dims=0, **kwargs):
+        return self.jax.vmap(*args, in_axes=in_dims, **kwargs)
 
     def _fill_at_indices_torch(self, array, indices, values):
         array[indices] = values
@@ -494,6 +494,9 @@ class Backend:
 
     def isfinite(self, array):
         return self.module.isfinite(array)
+
+    def nan_to_num(self, array, nan=0.0, posinf=None, neginf=None):
+        return self.module.nan_to_num(array, nan=nan, posinf=posinf, neginf=neginf)
 
     def where(self, condition, x, y):
         return self.module.where(condition, x, y)

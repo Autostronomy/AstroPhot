@@ -95,9 +95,6 @@ class SIPModelImage(SIPMixin, ModelImage):
             **kwargs,
         )
 
-    def fluxdensity_to_flux(self):
-        self._data = self._data * self.pixel_area_map
-
 
 class SIPTargetImage(SIPMixin, TargetImage):
     """

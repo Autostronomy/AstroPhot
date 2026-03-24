@@ -1,6 +1,5 @@
 from typing import Optional, Tuple, Union
 
-import torch
 import numpy as np
 from astropy.wcs import WCS as AstropyWCS
 from astropy.io import fits
@@ -9,7 +8,7 @@ from ..param import Module, Param, forward
 from .. import config
 from ..backend_obj import backend, ArrayLike
 from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
-from .window import Window, WindowList
+from .window import Window, WindowList, WindowBatch
 from ..errors import InvalidImage, SpecificationConflict
 
 # from .base import BaseImage
@@ -43,7 +42,6 @@ class Image(Module):
     -  `CD`: The coordinate transformation matrix in arcseconds/pixel.
     """
 
-    default_CD = ((1.0, 0.0), (0.0, 1.0))
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
     base_scale = 1.0
 
@@ -56,7 +54,7 @@ class Image(Module):
         crpix: Union[ArrayLike, tuple] = (0.0, 0.0),
         crtan: Union[ArrayLike, tuple] = (0.0, 0.0),
         crval: Union[ArrayLike, tuple] = (0.0, 0.0),
-        pixelscale: Optional[Union[ArrayLike, float]] = None,
+        pixelscale: Optional[Union[ArrayLike, float]] = 1.0,
         wcs: Optional[AstropyWCS] = None,
         filename: Optional[str] = None,
         hduext: int = 0,
@@ -80,9 +78,9 @@ class Image(Module):
         self.zeropoint = zeropoint
 
         if identity is None:
-            self.identity = id(self)
+            self._identity = id(self)
         else:
-            self.identity = identity
+            self._identity = identity
 
         if wcs is not None:
             if wcs.wcs.ctype[0] not in self.expect_ctype[0]:
@@ -109,10 +107,8 @@ class Image(Module):
 
         if isinstance(CD, (float, int)):
             CD = np.array([[CD, 0.0], [0.0, CD]], dtype=np.float64)
-        elif CD is None and pixelscale is not None:
-            CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
         elif CD is None:
-            CD = self.default_CD
+            CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
 
         self.CD = Param(
             "CD",
@@ -126,6 +122,10 @@ class Image(Module):
         if filename is not None:
             self.load(filename, hduext=hduext)
             return
+
+    @property
+    def identity(self):
+        return self._identity
 
     @property
     def data(self):
@@ -144,13 +144,13 @@ class Image(Module):
             )
 
     @property
-    def crpix(self) -> np.ndarray:
+    def crpix(self) -> ArrayLike:
         """The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates."""
         return self._crpix
 
     @crpix.setter
     def crpix(self, value: Union[ArrayLike, tuple]):
-        self._crpix = np.asarray(value, dtype=np.float64)
+        self._crpix = np.array(value, dtype=np.float64)
 
     @property
     def zeropoint(self) -> ArrayLike:
@@ -199,14 +199,28 @@ class Image(Module):
         return backend.sqrt(self.pixel_area)
 
     @forward
+    def pixel_collecting_area(self, I_, J_, upsample, CD):
+        """The area of the sky that each pixel collects light from, in arcsec^2.
+        This is just the pixel area, but can be overridden for certain types of
+        images (e.g. SIP images) where the pixel collecting area is not the same
+        as the pixel area."""
+        return backend.abs(backend.linalg.det(CD)) / upsample**2
+
+    @property
+    def flip_ra_axis(self):
+        return np.linalg.det(self.CD.npvalue) < 0
+
+    @forward
     def pixel_to_plane(
         self,
         i: ArrayLike,
         j: ArrayLike,
         crtan: ArrayLike,
         CD: ArrayLike,
+        _crpix: Optional[ArrayLike] = None,
     ) -> Tuple[ArrayLike, ArrayLike]:
-        return func.pixel_to_plane_linear(i, j, *self.crpix, CD, *crtan)
+        crpix = self.crpix if _crpix is None else _crpix
+        return func.pixel_to_plane_linear(i, j, *crpix, CD, *crtan)
 
     @forward
     def plane_to_pixel(
@@ -215,8 +229,10 @@ class Image(Module):
         y: ArrayLike,
         crtan: ArrayLike,
         CD: ArrayLike,
+        _crpix: Optional[ArrayLike] = None,
     ) -> Tuple[ArrayLike, ArrayLike]:
-        return func.plane_to_pixel_linear(x, y, *self.crpix, CD, *crtan)
+        crpix = self.crpix if _crpix is None else _crpix
+        return func.plane_to_pixel_linear(x, y, *crpix, CD, *crtan)
 
     @forward
     def plane_to_world(
@@ -248,21 +264,37 @@ class Image(Module):
         """
         return self.plane_to_world(*self.pixel_to_plane(i, j))
 
-    def pixel_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_center_meshgrid(self, window=None, pad=0, upsample=1) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
-        return func.pixel_center_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+        if window is None:
+            window = self.window
+        return func.pixel_center_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
 
-    def pixel_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_corner_meshgrid(self, window=None, pad=0, upsample=1) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
-        return func.pixel_corner_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+        if window is None:
+            window = self.window
+        return func.pixel_corner_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
 
-    def pixel_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_simpsons_meshgrid(
+        self, window=None, pad=0, upsample=1
+    ) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
-        return func.pixel_simpsons_meshgrid(self._data.shape, config.DTYPE, config.DEVICE)
+        if window is None:
+            window = self.window
+        return func.pixel_simpsons_meshgrid(
+            window.extent, pad, upsample, config.DTYPE, config.DEVICE
+        )
 
-    def pixel_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
+    def pixel_quad_meshgrid(
+        self, window=None, pad=0, upsample=1, order=3
+    ) -> Tuple[ArrayLike, ArrayLike]:
         """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
-        return func.pixel_quad_meshgrid(self._data.shape, config.DTYPE, config.DEVICE, order=order)
+        if window is None:
+            window = self.window
+        return func.pixel_quad_meshgrid(
+            window.extent, pad, upsample, config.DTYPE, config.DEVICE, order=order
+        )
 
     @forward
     def coordinate_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
@@ -331,6 +363,8 @@ class Image(Module):
         crop - (int, int): crop each dimension by the number of pixels given. new shape (N - 2*crop[1], M - 2*crop[0])
         crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
         """
+        if np.all(np.array(pixels) == 0):
+            return self
         if isinstance(pixels, int):
             data = self._data[
                 pixels : self._data.shape[0] - pixels,
@@ -476,7 +510,7 @@ class Image(Module):
             self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
         if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:
             self.zeropoint = hdulist[hduext].header["MAGZP"]
-        self.identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
+        self._identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
         return hdulist
 
     def corners(
@@ -500,11 +534,14 @@ class Image(Module):
         upright = self.pixel_to_plane(*pixel_upright)
         return (lowleft, lowright, upright, upleft)
 
-    @torch.no_grad()
     def get_indices(self, other: Window):
         if other.image is self:
             return slice(max(0, other.i_low), min(self._data.shape[0], other.i_high)), slice(
                 max(0, other.j_low), min(self._data.shape[1], other.j_high)
+            )
+        if other.image.identity != self.identity:
+            config.logger.warning(
+                f"Attempting to match windows with different images! Window image: {other.image.name}, {other.image.identity}, self image: {self.name}, {self.identity}. This may fail unless you are sure the two images are on the same pixel grid."
             )
         shift = np.round(self.crpix - other.crpix).astype(int)
         return slice(
@@ -515,9 +552,8 @@ class Image(Module):
             max(0, min(other.j_high + shift[1], self._data.shape[1])),
         )
 
-    @torch.no_grad()
     def get_other_indices(self, other: Window):
-        if other.image == self:
+        if other.image == self:  # fixme check identity, or check "is"?
             shape = other.shape
             return slice(
                 max(0, -other.i_low), min(self._data.shape[0] - other.i_low, shape[0])
@@ -588,9 +624,10 @@ class Image(Module):
         return super().__getitem__(*args)
 
 
+# fixme, make image lists infinitely nestable, need to merge "index" and "match_indices" in some consistent way
 class ImageList(Module):
-    def __init__(self, images, name=None):
-        super().__init__(name=name)
+    def __init__(self, images: list[Image], **kwargs):
+        super().__init__(**kwargs)
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
             raise InvalidImage(
@@ -604,6 +641,19 @@ class ImageList(Module):
     @property
     def _data(self):
         return tuple(image._data for image in self.images)
+
+    @_data.setter
+    def _data(self, value):
+        if len(value) != len(self.images):
+            raise ValueError(
+                f"Expected an object of length {len(self.images)} for _data, but got {type(value)} of length {len(value)}"
+            )
+        for image, data in zip(self.images, value):
+            image._data = data
+
+    @property
+    def window(self):
+        return WindowList(tuple(image.window for image in self.images))
 
     def copy(self):
         return self.__class__(
@@ -732,3 +782,65 @@ class ImageList(Module):
 
     def __iter__(self):
         return (img for img in self.images)
+
+
+class ImageBatchMixin:
+    """Specialized ImageList type where the images are all the same size.
+
+    An ImageBatch has restrictions on the shape of the images it can hold, but
+    in exchange it allows vectorized operations over a batch of images.
+
+    Some notes to keep in mind:
+    - All the images must be the regular image type (i.e. not SIP or CMOS images yet).
+    - All the images must have the same shape, otherwise the batch operations will not work.
+    - The ImageBatch does not itself accelerate any operations, it facilitates the BatchSceneModel.
+    - Otherwise the ImageBatch behaves like a regular ImageList.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not all(isinstance(image, Image) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(isinstance(image, self.images[0].__class__) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch images must all be of the same type, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(image.data.shape == self.images[0].data.shape for image in self.images):
+            raise InvalidImage(
+                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.data.shape for image in self.images)}"
+            )
+
+    @property
+    def data(self):
+        return backend.stack(tuple(image.data for image in self.images), dim=0)
+
+    @ImageList._data.getter
+    def _data(self):
+        return backend.stack(tuple(image._data for image in self.images), dim=0)
+
+    @property
+    def window(self):
+        return WindowBatch(tuple(image.window for image in self.images))
+
+    @property
+    def crval(self):
+        return backend.stack(tuple(image.crval.value for image in self.images), dim=0)
+
+    @property
+    def crtan(self):
+        return backend.stack(tuple(image.crtan.value for image in self.images), dim=0)
+
+    @property
+    def CD(self):
+        return backend.stack(tuple(image.CD.value for image in self.images), dim=0)
+
+    @property
+    def crpix(self):
+        return backend.as_array(
+            np.stack(tuple(image.crpix for image in self.images), axis=0),
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )

@@ -59,8 +59,8 @@ class DataMixin:
             self.weight = weight
 
         # Set nan pixels to be masked automatically
-        if backend.any(backend.isnan(self._data)).item():
-            self._mask = self._mask | backend.isnan(self._data)
+        self._mask = self._mask | backend.isnan(self._data)
+        self._data = backend.nan_to_num(self._data, nan=0.0)
 
     @property
     def std(self):
@@ -230,7 +230,7 @@ class DataMixin:
 
         """
         kwargs = {"_mask": self._mask, "_weight": self._weight, **kwargs}
-        return super().copy_kwargs(**kwargs)
+        return getattr(super(), "copy_kwargs", lambda **kw: kw)(**kwargs)
 
     def get_window(self, other: Union[Image, Window], indices=None, **kwargs):
         """Get a sub-region of the image as defined by an other image on the sky."""

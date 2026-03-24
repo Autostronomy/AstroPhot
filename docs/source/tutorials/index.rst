@@ -17,6 +17,7 @@ version of each tutorial is available here.
     BasicPSFModels
     JointModels
     ImageAlignment
+    FittingPriors
     PoissonLikelihood
     CustomModels
     FunctionalInterface

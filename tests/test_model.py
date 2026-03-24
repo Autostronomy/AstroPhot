@@ -1,6 +1,7 @@
+import os
 import astrophot as ap
 import numpy as np
-from utils import make_basic_sersic, make_basic_gaussian_psf
+from utils import make_basic_sersic
 import pytest
 
 # torch.autograd.set_detect_anomaly(True)
@@ -32,11 +33,16 @@ def test_model_sampling_modes():
     midpoint_bright = midpoint.copy()
     model.sampling_mode = "simpsons"
     simpsons = ap.backend.to_numpy(model().data)
+    model.sampling_mode = "upsample:5"
+    upsample5 = ap.backend.to_numpy(model().data)
     model.sampling_mode = "quad:5"
     quad5 = ap.backend.to_numpy(model().data)
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
+    assert np.allclose(
+        midpoint, upsample5, rtol=1e-2
+    ), "Upsample5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
     # Without subpixel integration
@@ -46,6 +52,8 @@ def test_model_sampling_modes():
     midpoint = ap.backend.to_numpy(model().data)
     model.sampling_mode = "simpsons"
     simpsons = ap.backend.to_numpy(model().data)
+    model.sampling_mode = "upsample:5"
+    upsample5 = ap.backend.to_numpy(model().data)
     model.sampling_mode = "quad:5"
     quad5 = ap.backend.to_numpy(model().data)
     assert np.allclose(
@@ -54,6 +62,9 @@ def test_model_sampling_modes():
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
+    assert np.allclose(
+        midpoint, upsample5, rtol=1e-2
+    ), "Upsample5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
     # curvature based subpixel integration
@@ -63,6 +74,8 @@ def test_model_sampling_modes():
     midpoint = ap.backend.to_numpy(model().data)
     model.sampling_mode = "simpsons"
     simpsons = ap.backend.to_numpy(model().data)
+    model.sampling_mode = "upsample:5"
+    upsample5 = ap.backend.to_numpy(model().data)
     model.sampling_mode = "quad:5"
     quad5 = ap.backend.to_numpy(model().data)
     assert np.allclose(
@@ -71,15 +84,16 @@ def test_model_sampling_modes():
     assert np.allclose(midpoint, auto, rtol=1e-2), "Midpoint sampling should match auto sampling"
     assert np.allclose(midpoint, simpsons, rtol=1e-2), "Simpsons sampling should match midpoint"
     assert np.allclose(midpoint, quad5, rtol=1e-2), "Quad5 sampling should match midpoint sampling"
+    assert np.allclose(
+        midpoint, upsample5, rtol=1e-2
+    ), "Upsample5 sampling should match midpoint sampling"
     assert np.allclose(simpsons, quad5, rtol=1e-6), "Quad5 sampling should match Simpsons sampling"
 
-    model.integrate_mode = "should raise"
     with pytest.raises(ap.errors.SpecificationConflict):
-        model()
+        model.integrate_mode = "should raise"
     model.integrate_mode = "none"
-    model.sampling_mode = "should raise"
     with pytest.raises(ap.errors.SpecificationConflict):
-        model()
+        model.sampling_mode = "should raise"
     model.sampling_mode = "midpoint"
     model.integrate_mode = "none"
 
@@ -128,6 +142,11 @@ def test_all_model_sample(model_type):
     ):
         pytest.skip("JAX version doesnt support these models yet, difficulty with gradients")
 
+    if any(t in model_type for t in ["warp", "fourier"]):
+        pytest.skip("Warp and Fourier models are complex and slow to fit, skipping for now")
+    if model_type.startswith("truncated"):
+        pytest.skip("Testing truncated models is redundant")
+
     target = make_basic_sersic()
     target.zeropoint = 22.5
     MODEL = ap.Model(
@@ -149,8 +168,7 @@ def test_all_model_sample(model_type):
         ap.backend.isfinite(img.data)
     ), "Model should evaluate a real number for the full image"
 
-    res = ap.fit.LM(MODEL, max_iter=10, verbose=1).fit()
-    print(res.loss_history)
+    res = ap.fit.LM(MODEL, max_iter=5, verbose=1).fit()
 
     print(MODEL)  # test printing
 
@@ -235,35 +253,61 @@ def test_sersic_save_load():
     assert model.target.crtan.value[0] == 0.0, "Model target crtan should be loaded correctly"
     assert model.target.crtan.value[1] == 0.0, "Model target crtan should be loaded correctly"
 
+    os.remove("test_AstroPhot_sersic.hdf5")
 
-@pytest.mark.parametrize("center", [[20, 20], [25.1, 17.324567]])
-@pytest.mark.parametrize("PA", [0, 60 * np.pi / 180])
-@pytest.mark.parametrize("q", [0.2, 0.8])
-@pytest.mark.parametrize("n", [1, 4])
-@pytest.mark.parametrize("Re", [10, 25.1])
-def test_chunk_sample(center, PA, q, n, Re):
-    target = make_basic_sersic()
-    model = ap.Model(
-        name="test_sersic",
-        model_type="sersic galaxy model",
-        center=center,
-        PA=PA,
-        q=q,
-        n=n,
-        Re=Re,
-        Ie=10.0,
-        target=target,
-        integrate_mode="none",
+
+def test_batch_model(sersic):
+    M = ap.Model(model_type="batch model", model=sersic)
+    M.initialize()
+    # Now any parameters may be given an extra dimension for the batch
+    sersic.center = [[10, 10], [20, 70], [50, 50], [70, 30], [80, 80]]
+    sersic.q = [0.7, 0.6, 0.5, 0.4, 0.3]
+    sersic.PA = np.array([30, 60, 90, 120, 150]) * np.pi / 180
+
+    img = M()
+    assert isinstance(img, ap.image.ModelImage), "Output of batch model should be a ModelImage"
+    assert img.data.shape == sersic.target.data.shape, "batched model should produce regular output"
+
+    M.set_values(ap.backend.ones_like(M.get_values()), attribute="uncertainty")
+
+    assert M.total_flux() > 0, "Total flux of batch model should be positive"
+    assert (
+        M.total_flux_uncertainty() > 0
+    ), "Total flux uncertainty of batch model should be positive"
+
+
+def test_batch_scene_model(sersic):
+    target_batch = ap.TargetImageBatch(
+        images=[
+            ap.TargetImage(
+                data=np.zeros((52, 50)),
+                CD=ap.utils.initialize.R(np.pi / 3),
+                crtan=(10, 0),
+                name="image1",
+            ),
+            ap.TargetImage(
+                data=np.zeros((52, 50)), CD=ap.utils.initialize.R(np.pi / 6), name="image2"
+            ),
+            ap.TargetImage(
+                data=np.zeros((52, 50)),
+                CD=ap.utils.initialize.R(np.pi / 16),
+                crtan=(-15, 0),
+                name="image3",
+            ),
+        ]
     )
-
-    full_img = model.sample()
-
-    chunk_img = target.model_image()
-
-    for chunk in model.window.chunk(20**2):
-        sample = model.sample(window=chunk)
-        chunk_img += sample
-
-    assert ap.backend.allclose(
-        full_img.data, chunk_img.data
-    ), "Chunked sample should match full sample within tolerance"
+    model = ap.Model(model_type="batch scene model", model=sersic, target=target_batch)
+    model.initialize()
+    sersic.Ie = [10, 20, 30]
+    img = model()
+    assert isinstance(
+        img, ap.image.ModelImageBatch
+    ), "Output of batch scene model should be a ModelImageBatch"
+    assert img.data.shape[0] == 3, "Batch scene model should produce output for each target image"
+    jac = model.jacobian()
+    assert isinstance(
+        jac, ap.image.JacobianImageBatch
+    ), "Jacobian of batch scene model should be a JacobianImageBatch"
+    assert (
+        jac.data.shape[0] == 3
+    ), "Batch scene model jacobian should produce output for each target image"

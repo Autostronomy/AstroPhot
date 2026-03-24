@@ -118,7 +118,7 @@ class SuperEllipseMixin:
 
     _model_type = "superellipse"
     _parameter_specs = {
-        "C": {"units": "none", "value": 2.0, "valid": (0, 10), "dynamic": True},
+        "C": {"units": "none", "value": 2.0, "valid": (0, 10), "shape": (), "dynamic": True},
     }
 
     @forward
@@ -168,8 +168,14 @@ class FourierEllipseMixin:
 
     _model_type = "fourier"
     _parameter_specs = {
-        "am": {"units": "none", "dynamic": True},
-        "phim": {"units": "radians", "valid": (0, 2 * np.pi), "cyclic": True, "dynamic": False},
+        "am": {"units": "none", "shape": (None,), "dynamic": True},
+        "phim": {
+            "units": "radians",
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
+            "shape": (None,),
+            "dynamic": False,
+        },
     }
     _options = ("modes",)
 
@@ -197,9 +203,9 @@ class FourierEllipseMixin:
         super().initialize()
 
         if not self.am.initialized:
-            self.am.value = np.zeros(len(self.modes))
+            self.am.value = np.zeros(len(self.modes)) + 0.0001
         if not self.phim.initialized:
-            self.phim.value = np.zeros(len(self.modes))
+            self.phim.value = np.zeros(len(self.modes)) + 0.0001
 
 
 class WarpMixin:
@@ -228,8 +234,14 @@ class WarpMixin:
 
     _model_type = "warp"
     _parameter_specs = {
-        "q_R": {"units": "b/a", "valid": (0, 1), "dynamic": True},
-        "PA_R": {"units": "radians", "valid": (0, np.pi), "cyclic": True, "dynamic": True},
+        "q_R": {"units": "b/a", "valid": (0, 1), "shape": (None,), "dynamic": True},
+        "PA_R": {
+            "units": "radians",
+            "valid": (0, np.pi),
+            "cyclic": True,
+            "shape": (None,),
+            "dynamic": True,
+        },
     }
 
     @torch.no_grad()
