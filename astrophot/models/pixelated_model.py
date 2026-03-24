@@ -9,7 +9,6 @@ from ..backend_obj import backend, ArrayLike
 from ..utils.initialize import polar_decomposition
 from . import func
 
-
 __all__ = ["Pixelated"]
 
 

@@ -5,7 +5,6 @@ import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian_psf
 import pytest
 
-
 """
 Can't test visuals, so this only tests that the code runs
 """

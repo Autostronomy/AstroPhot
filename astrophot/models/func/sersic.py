@@ -1,6 +1,5 @@
 from ...backend_obj import backend, ArrayLike
 
-
 C1 = 4 / 405
 C2 = 46 / 25515
 C3 = 131 / 1148175

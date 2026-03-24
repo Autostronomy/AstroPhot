@@ -155,7 +155,6 @@ from .mixins import (
 )
 from . import func
 
-
 __all__ = (
     "Model",
     "ComponentModel",
