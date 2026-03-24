@@ -1,4 +1,5 @@
 from functools import wraps
+import re
 import warnings
 from inspect import cleandoc
 import caskade as ck
@@ -42,13 +43,81 @@ def ignore_numpy_warnings(func):
     return wrapped
 
 
+def _parse_docstring(doc):
+    """Parse a docstring into (body, params_dict).
+
+    Handles both RST ``:param name: desc`` format and markdown
+    ``**Parameters:**`` / ``**Options:**`` format.
+    Returns body text (params/options removed) and an ordered dict of {name: desc}.
+    """
+    params = {}
+
+    # --- RST-style :param name: desc (possibly multi-line) ---
+    for m in re.finditer(
+        r':param\s+(\w+):\s*(.*?)(?=\n:param\s|\n:type\s|\n\n|\Z)',
+        doc,
+        re.DOTALL,
+    ):
+        params[m.group(1)] = m.group(2).strip()
+
+    # --- Markdown-style **Parameters:** and **Options:** sections ---
+    for section_match in re.finditer(
+        r'\*\*(?:Parameters|Options):\*\*\n((?:[ \t]*-[^\n]*\n?)+)',
+        doc,
+        re.MULTILINE,
+    ):
+        for item in re.finditer(
+            r'[ \t]*-+\s+`(\w+)`\s*:\s*(.+?)(?=\n[ \t]*-|\Z)',
+            section_match.group(1),
+            re.DOTALL,
+        ):
+            params[item.group(1)] = item.group(2).strip()
+
+    # Strip :param/:type entries from body
+    body = re.sub(r'\n:(?:param|type)\s+\S+:.*?(?=\n:(?:param|type)\s|\n\n|\Z)', '', doc, flags=re.DOTALL)
+    # Strip markdown Parameters/Options sections from body
+    body = re.sub(r'\*\*(?:Parameters|Options):\*\*\n(?:[ \t]*-[^\n]*\n?)+', '', body)
+    body = body.strip()
+
+    return body, params
+
+
 def combine_docstrings(cls):
+    """Combine docstrings from a class and all of its base classes.
+
+    Finds all ``:param`` entries and markdown ``**Parameters:**`` /
+    ``**Options:**`` sections from every class in the MRO and merges
+    them into a single consolidated ``:param`` list so that Sphinx
+    autodoc renders them correctly.
+    """
+    # Collect params from full MRO (base → derived so derived class wins)
+    all_params = {}
+    for klass in reversed(cls.__mro__):
+        if klass is object:
+            continue
+        if not klass.__doc__:
+            continue
+        _, klass_params = _parse_docstring(cleandoc(klass.__doc__))
+        all_params.update(klass_params)
+
+    # Build combined body: cls body + direct-base bodies
     try:
-        combined_docs = [cleandoc(cls.__doc__)]
-    except AttributeError:
-        combined_docs = []
+        main_body, _ = _parse_docstring(cleandoc(cls.__doc__))
+    except (AttributeError, TypeError):
+        main_body = ""
+
     for base in cls.__bases__:
-        if base.__doc__:
-            combined_docs.append(f"\n\n> SUBUNIT {base.__name__}\n\n{cleandoc(base.__doc__)}")
-    cls.__doc__ = "\n".join(combined_docs).strip()
+        if base is object or not base.__doc__:
+            continue
+        base_body, _ = _parse_docstring(cleandoc(base.__doc__))
+        if base_body:
+            main_body += f"\n\n.. rubric:: {base.__name__}\n\n{base_body}"
+
+    # Append merged parameter list
+    if all_params:
+        main_body += "\n\n" + "\n".join(
+            f":param {name}: {desc}" for name, desc in all_params.items()
+        )
+
+    cls.__doc__ = main_body.strip()
     return cls

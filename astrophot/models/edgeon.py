@@ -17,8 +17,7 @@ class EdgeonModel(ComponentModel):
     the galaxy on the sky. Defines an edgeon galaxy as an object with
     a position angle, no inclination information is included.
 
-    **Parameters:**
-    -    `PA`: Position angle of the edgeon disk in radians.
+    :param PA: Position angle of the edgeon disk in radians.
 
     """
 
@@ -30,6 +29,7 @@ class EdgeonModel(ComponentModel):
             "cyclic": True,
             "shape": (),
             "dynamic": True,
+            "description": "Position angle of the edgeon disk in radians.",
         },
     }
     usable = False
@@ -73,15 +73,25 @@ class EdgeonSech(EdgeonModel):
     """An edgeon profile where the vertical distribution is a sech^2
     profile, subclasses define the radial profile.
 
-    **Parameters:**
-    -    `I0`: The central intensity of the sech^2 profile in flux/arcsec^2.
-    -    `hs`: The scale height of the sech^2 profile in arcseconds.
+    :param I0: The central intensity of the sech^2 profile in flux/arcsec^2.
+    :param hs: The scale height of the sech^2 profile in arcseconds.
     """
 
     _model_type = "sech2"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2", "shape": (), "dynamic": True},
-        "hs": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "I0": {
+            "units": "flux/arcsec^2",
+            "shape": (),
+            "dynamic": True,
+            "description": "The central intensity of the sech^2 profile in flux/arcsec^2.",
+        },
+        "hs": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "The scale height of the sech^2 profile in arcseconds.",
+        },
     }
     usable = False
 
@@ -114,12 +124,19 @@ class EdgeonIsothermal(EdgeonSech):
     """A self-gravitating locally-isothermal edgeon disk. This comes from
     van der Kruit & Searle 1981.
 
-    **Parameters:**
-    -    `rs`: Scale radius of the isothermal disk in arcseconds.
+    :param rs: Scale radius of the isothermal disk in arcseconds.
     """
 
     _model_type = "isothermal"
-    _parameter_specs = {"rs": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True}}
+    _parameter_specs = {
+        "rs": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Scale radius of the isothermal disk in arcseconds.",
+        }
+    }
     usable = True
 
     @torch.no_grad()

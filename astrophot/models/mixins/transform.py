@@ -16,35 +16,46 @@ class InclinedMixin:
     PA and q operate on the coordinates to transform the model. Given some x,y
     the updated values are:
 
-    $$x', y' = {\\rm rotate}(-PA + \\pi/2, x, y)$$
-    $$y'' = y' / q$$
+    .. math::
 
-    where x' and y'' are the final transformed coordinates. The $\\pi/2$ is included
+       x', y' = {\\rm rotate}(-PA + \\pi/2, x, y)
+
+    .. math::
+
+       y'' = y' / q
+
+    where x' and y'' are the final transformed coordinates. The :math:`\\pi/2` is included
     such that the position angle is defined with 0 at north. The -PA is such
     that the position angle increases to the East. Thus, the position angle is a
     standard East of North definition assuming the WCS of the image is correct.
 
-    Note that this means radii are defined with $R = \\sqrt{x^2 +
-    \\left(\\frac{y}{q}\\right)^2}$ rather than the common alternative which is $R =
-    \\sqrt{qx^2 + \\frac{y^2}{q}}$
+    Note that this means radii are defined with :math:`R = \\sqrt{x^2 +
+    \\left(\\frac{y}{q}\\right)^2}` rather than the common alternative which is :math:`R =
+    \\sqrt{qx^2 + \\frac{y^2}{q}}`
 
-    **Parameters:**
-    -    `q`: Axis ratio of the model, defined as the ratio of the
+    :param q: Axis ratio of the model, defined as the ratio of the
         semi-minor axis to the semi-major axis. A value of 1.0 is
         circular.
-    -    `PA`: Position angle of the model, defined as the angle
+    :param PA: Position angle of the model, defined as the angle
         between the semi-major axis and North, measured East of North.
         A value of 0.0 is North, a value of pi/2 is East.
     """
 
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0.01, 1), "shape": (), "dynamic": True},
+        "q": {
+            "units": "b/a",
+            "valid": (0.01, 1),
+            "shape": (),
+            "dynamic": True,
+            "description": "Axis ratio of the model, defined as the ratio of the semi-minor axis to the semi-major axis. A value of 1.0 is circular.",
+        },
         "PA": {
             "units": "radians",
             "valid": (0, np.pi),
             "cyclic": True,
             "shape": (),
             "dynamic": True,
+            "description": "Position angle of the model, defined as the angle between the semi-major axis and North, measured East of North.",
         },
     }
 
@@ -100,16 +111,17 @@ class SuperEllipseMixin:
     extension of the standard elliptical representation, especially for
     early-type galaxies. The functional form for this is:
 
-    $$R = (|x|^C + |y|^C)^{1/C}$$
+    .. math::
 
-    where $R$ is the new distance metric, $X$ and $Y$ are the coordinates, and $C$ is the
-    coefficient for the superellipse. $C$ can take on any value greater than zero
-    where $C = 2$ is the standard distance metric, $0 < C < 2$ creates disky or
-    pointed perturbations to an ellipse, and $C > 2$ transforms an ellipse to be
+       R = (|x|^C + |y|^C)^{1/C}
+
+    where :math:`R` is the new distance metric, :math:`X` and :math:`Y` are the coordinates, and :math:`C` is the
+    coefficient for the superellipse. :math:`C` can take on any value greater than zero
+    where :math:`C = 2` is the standard distance metric, :math:`0 < C < 2` creates disky or
+    pointed perturbations to an ellipse, and :math:`C > 2` transforms an ellipse to be
     more boxy.
 
-    **Parameters:**
-    -   `C`: Superellipse distance metric parameter, controls the shape of the isophotes.
+    :param C: Superellipse distance metric parameter, controls the shape of the isophotes.
         A value of 2.0 is a standard elliptical distance metric, values
         less than 2.0 create disky or pointed perturbations to an ellipse,
         and values greater than 2.0 create boxy perturbations to an ellipse.
@@ -118,7 +130,14 @@ class SuperEllipseMixin:
 
     _model_type = "superellipse"
     _parameter_specs = {
-        "C": {"units": "none", "value": 2.0, "valid": (0, 10), "shape": (), "dynamic": True},
+        "C": {
+            "units": "none",
+            "value": 2.0,
+            "valid": (0, 10),
+            "shape": (),
+            "dynamic": True,
+            "description": "Superellipse distance metric parameter, controls the shape of the isophotes.",
+        },
     }
 
     @forward
@@ -133,12 +152,14 @@ class FourierEllipseMixin:
     pure ellipses. This is a common extension of the standard elliptical
     representation. The form of the Fourier perturbations is:
 
-    $$R' = R * \\exp\\left(\\sum_m(a_m * \\cos(m * \\theta + \\phi_m))\\right)$$
+    .. math::
+
+       R' = R * \\exp\\left(\\sum_m(a_m * \\cos(m * \\theta + \\phi_m))\\right)
 
     where R' is the new radius value, R is the original radius (typically
-    computed as $\\sqrt{x^2+y^2}$), m is the index of the Fourier mode, a_m is
+    computed as :math:`\\sqrt{x^2+y^2}`), m is the index of the Fourier mode, a_m is
     the amplitude of the m'th Fourier mode, theta is the angle around the
-    ellipse (typically $\\arctan(y/x)$), and phi_m is the phase of the m'th
+    ellipse (typically :math:`\\arctan(y/x)`), and phi_m is the phase of the m'th
     fourier mode.
 
     One can create extremely complex shapes using different Fourier modes,
@@ -155,26 +176,29 @@ class FourierEllipseMixin:
     should consider carefully why the Fourier modes are being used for the
     science case at hand.
 
-    **Parameters:**
-    -    `am`: Tensor of amplitudes for the Fourier modes, indicates the strength
+    :param am: Tensor of amplitudes for the Fourier modes, indicates the strength
             of each mode.
-    -    `phim`: Tensor of phases for the Fourier modes, adjusts the
+    :param phim: Tensor of phases for the Fourier modes, adjusts the
             orientation of the mode perturbation relative to the major axis. It
             is cyclically defined in the range [0,2pi)
-
-    **Options:**
-    -    `modes`: Tuple of integers indicating which Fourier modes to use.
+    :param modes: Tuple of integers indicating which Fourier modes to use.
     """
 
     _model_type = "fourier"
     _parameter_specs = {
-        "am": {"units": "none", "shape": (None,), "dynamic": True},
+        "am": {
+            "units": "none",
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.",
+        },
         "phim": {
             "units": "radians",
             "valid": (0, 2 * np.pi),
             "cyclic": True,
             "shape": (None,),
             "dynamic": False,
+            "description": "Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis.",
         },
     }
     _options = ("modes",)
@@ -218,29 +242,43 @@ class WarpMixin:
     appearance, variations of PA, q profiles can create complex galaxy models.
     The form of the coordinate transformation for each pixel looks like:
 
-    $$R = \\sqrt{x^2 + y^2}$$
-    $$x', y' = \\rm{rotate}(-PA(R) + \\pi/2, x, y)$$
-    $$y'' = y' / q(R)$$
+    .. math::
+
+       R = \\sqrt{x^2 + y^2}
+
+    .. math::
+
+       x', y' = \\rm{rotate}(-PA(R) + \\pi/2, x, y)
+
+    .. math::
+
+       y'' = y' / q(R)
 
     Note that now PA and q are functions of radius R, which is computed from the
     original coordinates X, Y. This is achieved by making PA and q a spline
     profile.
 
-    **Parameters:**
-    -  `q_R`: Tensor of axis ratio values for axis ratio spline
-    -  `PA_R`: Tensor of position angle values as input to the spline
+    :param q_R: Tensor of axis ratio values for axis ratio spline
+    :param PA_R: Tensor of position angle values as input to the spline
 
     """
 
     _model_type = "warp"
     _parameter_specs = {
-        "q_R": {"units": "b/a", "valid": (0, 1), "shape": (None,), "dynamic": True},
+        "q_R": {
+            "units": "b/a",
+            "valid": (0, 1),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Tensor of axis ratio values for axis ratio spline",
+        },
         "PA_R": {
             "units": "radians",
             "valid": (0, np.pi),
             "cyclic": True,
             "shape": (None,),
             "dynamic": True,
+            "description": "Tensor of position angle values as input to the spline",
         },
     }
 
@@ -284,21 +322,31 @@ class TruncationMixin:
     optimized in a model, though it is possible for this parameter to be
     unstable if there isn't a clear truncation signal in the data.
 
-    **Parameters:**
-    -  `Rt`: The truncation radius in arcseconds.
-    -  `St`: The steepness of the truncation profile, controlling how quickly
+    :param Rt: The truncation radius in arcseconds.
+    :param St: The steepness of the truncation profile, controlling how quickly
              the brightness drops to zero at the truncation radius.
-
-    **Options:**
-    -   `outer_truncation`: If True, the model will truncate the brightness beyond
+    :param outer_truncation: If True, the model will truncate the brightness beyond
          the truncation radius. If False, the model will truncate the
          brightness within the truncation radius.
     """
 
     _model_type = "truncated"
     _parameter_specs = {
-        "Rt": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
-        "St": {"units": "none", "valid": (0, None), "shape": (), "value": 1.0, "dynamic": False},
+        "Rt": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "The truncation radius in arcseconds.",
+        },
+        "St": {
+            "units": "none",
+            "valid": (0, None),
+            "shape": (),
+            "value": 1.0,
+            "dynamic": False,
+            "description": "The steepness of the truncation profile, controlling how quickly the brightness drops to zero at the truncation radius.",
+        },
     }
     _options = ("outer_truncation",)
 

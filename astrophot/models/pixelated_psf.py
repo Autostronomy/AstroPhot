@@ -33,13 +33,19 @@ class PixelatedPSF(PSFModel):
     (essentially just divide the pixelscale by the upsampling factor
     you used).
 
-    **Parameters:**
-    -    `pixels`: the total flux within each pixel, represented as the log of the flux.
+    :param pixels: the total flux within each pixel, represented as the log of the flux.
 
     """
 
     _model_type = "pixelated"
-    _parameter_specs = {"pixels": {"units": "flux/pix^2", "shape": (None, None), "dynamic": True}}
+    _parameter_specs = {
+        "pixels": {
+            "units": "flux/pix^2",
+            "shape": (None, None),
+            "dynamic": True,
+            "description": "the total flux within each pixel, represented as the log of the flux",
+        }
+    }
     usable = True
 
     @torch.no_grad()

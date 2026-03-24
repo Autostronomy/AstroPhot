@@ -17,28 +17,47 @@ class MultiGaussianExpansion(ComponentModel):
     """Model that represents a galaxy as a sum of multiple Gaussian
     profiles. The model is defined as:
 
-    $$I(R) = \\sum_i {\\rm flux}_i * \\exp(-0.5*(R_i / \\sigma_i)^2) / (2 * \\pi * q_i * \\sigma_i^2)$$
+    .. math::
 
-    where $R_i$ is a radius computed using $q_i$ and $PA_i$ for that component. All components share the same center.
+       I(R) = \\sum_i {\\rm flux}_i * \\exp(-0.5*(R_i / \\sigma_i)^2) / (2 * \\pi * q_i * \\sigma_i^2)
 
-    **Parameters:**
-    -    `q`: axis ratio to scale minor axis from the ratio of the minor/major axis b/a, this parameter is unitless, it is restricted to the range (0,1)
-    -    `PA`: position angle of the semi-major axis relative to the image positive x-axis in radians, it is a cyclic parameter in the range [0,pi)
-    -    `sigma`: standard deviation of each Gaussian
-    -    `flux`: amplitude of each Gaussian
+    where :math:`R_i` is a radius computed using :math:`q_i` and :math:`PA_i` for that component. All components share the same center.
+
+    :param q: axis ratio to scale minor axis from the ratio of the minor/major axis b/a, this parameter is unitless, it is restricted to the range (0,1)
+    :param PA: position angle of the semi-major axis relative to the image positive x-axis in radians, it is a cyclic parameter in the range [0,pi)
+    :param sigma: standard deviation of each Gaussian
+    :param flux: amplitude of each Gaussian
     """
 
     _model_type = "mge"
     _parameter_specs = {
-        "q": {"units": "b/a", "valid": (0, 1), "shape": (None,), "dynamic": True},
+        "q": {
+            "units": "b/a",
+            "valid": (0, 1),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "axis ratio to scale minor axis from the ratio of the minor/major axis b/a",
+        },
         "PA": {
             "units": "radians",
             "valid": (0, np.pi),
             "cyclic": True,
             "dynamic": True,
+            "description": "position angle of the semi-major axis relative to the image positive x-axis in radians",
         },  # No shape for PA since there are two options, use with caution
-        "sigma": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
-        "flux": {"units": "flux", "shape": (None,), "dynamic": True},
+        "sigma": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "standard deviation of each Gaussian",
+        },
+        "flux": {
+            "units": "flux",
+            "shape": (None,),
+            "dynamic": True,
+            "description": "amplitude of each Gaussian",
+        },
     }
     usable = True
 
