@@ -24,7 +24,7 @@ name = "object_name"  # used for saving files
 target_file = "<required>.fits"  # can be a numpy array instead
 psf_file = None  # "<path to psf>.fits" # can be a numpy array instead
 zeropoint = 22.5  # mag
-initial_params = None  # e.g. {"center": [3, 3], "q": {"value": 0.8, "locked": True}}
+initial_params = {}  # e.g. {"center": [3, 3], "q": 0.8}
 window = None  # None to fit whole image, otherwise (xmin,xmax,ymin,ymax) pixels
 initial_sky = None  # If None, sky will be estimated
 sky_locked = False
@@ -73,13 +73,13 @@ model_sky = ap.Model(
     name="sky",
     model_type=sky_model_type,
     target=target,
-    I=initial_sky if initial_sky is not None else {},
+    I0=initial_sky if initial_sky is not None else {},
     window=window,
 )
 if sky_locked:
     model_sky.to_static()
 model = ap.Model(
-    name="astrophot model",
+    name="astrophot_model",
     model_type="group model",
     target=target,
     models=[model_sky, model_object],
@@ -122,8 +122,8 @@ if save_covariance_matrix:
     np.save(f"{name}_covariance_matrix.npy", result.covariance_matrix.detach().cpu().numpy())
     fig, ax = ap.plots.covariance_matrix(
         result.covariance_matrix.detach().cpu().numpy(),
-        model.parameters.vector_values().detach().cpu().numpy(),
-        model.parameters.vector_names(),
+        model.get_values().detach().cpu().numpy(),
+        model.build_params_array_names(),
     )
     fig.suptitle("Parameter Covariance")
     plt.savefig(f"{name}_covariance_matrix.pdf")
