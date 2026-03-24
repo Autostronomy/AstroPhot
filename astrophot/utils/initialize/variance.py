@@ -2,16 +2,15 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.stats import binned_statistic
 import torch
-from ...errors import InvalidData
-import matplotlib.pyplot as plt
+from ...backend_obj import backend, ArrayLike
 
 
 def auto_variance(data, mask=None):
 
-    if isinstance(data, torch.Tensor):
-        data = data.detach().cpu().numpy()
-    if isinstance(mask, torch.Tensor):
-        mask = mask.detach().cpu().numpy()
+    if isinstance(data, backend.array_type):
+        data = backend.to_numpy(data)
+    if isinstance(mask, backend.array_type):
+        mask = backend.to_numpy(mask)
     if mask is None:
         mask = np.zeros(data.shape, dtype=int)
 
@@ -46,9 +45,7 @@ def auto_variance(data, mask=None):
 
     # Check if the variance is increasing with flux
     if p[0] < 0:
-        raise InvalidData(
-            "Variance appears to be decreasing with flux! Cannot accurately estimate variance."
-        )
+        return np.ones_like(data) * var
     # Compute the approximate variance map
     variance = np.clip(p[0] * data + p[1], np.min(std) ** 2, None)
     variance[np.logical_not(mask)] = np.inf

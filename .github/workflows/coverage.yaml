@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
       - name: Record State
@@ -44,12 +44,23 @@ jobs:
           python -m pip install pytest-github-actions-annotate-failures
       - name: Install AstroPhot
         run: |
-          pip install -e .
+          pip install -e ".[dev]"
           pip show ${{ env.PROJECT_NAME }}
         shell: bash
-      - name: Test with pytest
+      - name: Test with pytest [torch]
         run: |
-          pytest -vvv --cov=${{ env.PROJECT_NAME }} --cov-report=xml --cov-report=term tests/
+          coverage run --source=${{ env.PROJECT_NAME }} -m pytest tests/
+        shell: bash
+        env:
+          CASKADE_BACKEND: torch
+      - name: Extra coverage report for jax checks
+        run: |
+          echo "Running extra coverage report for jax checks"
+          coverage run --append --source=${{ env.PROJECT_NAME }} -m pytest tests/
+        shell: bash
+        env:
+          JAX_ENABLE_X64: True
+          CASKADE_BACKEND: jax
 
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v5

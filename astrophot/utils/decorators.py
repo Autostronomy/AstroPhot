@@ -1,8 +1,19 @@
 from functools import wraps
-import inspect
 import warnings
+from inspect import cleandoc
+import caskade as ck
 
 import numpy as np
+
+__all__ = ("classproperty", "ignore_numpy_warnings", "combine_docstrings")
+
+
+class classproperty:
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, instance, owner):
+        return self.fget(owner)
 
 
 def ignore_numpy_warnings(func):
@@ -19,34 +30,25 @@ def ignore_numpy_warnings(func):
     def wrapped(*args, **kwargs):
         old_settings = np.seterr(all="ignore")
         warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=ck.InvalidValueWarning)
         result = func(*args, **kwargs)
         np.seterr(**old_settings)
         warnings.filterwarnings("default", category=np.exceptions.VisibleDeprecationWarning)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        warnings.filterwarnings("default", category=ck.InvalidValueWarning)
         return result
 
     return wrapped
 
 
-def default_internal(func):
-    """This decorator inspects the input parameters for a function which
-    expects to receive `image` and `parameters` arguments. If either
-    of these are not given, then the model can use its default values
-    for the parameters assuming the `image` is the internal `target`
-    object and the `parameters` are the internally stored parameters.
-
-    """
-    sig = inspect.signature(func)
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        bound = sig.bind(self, *args, **kwargs)
-        bound.apply_defaults()
-
-        if bound.arguments.get("image") is None:
-            bound.arguments["image"] = self.target
-        if bound.arguments.get("parameters") is None:
-            bound.arguments["parameters"] = self.parameters
-
-        return func(*bound.args, **bound.kwargs)
-
-    return wrapper
+def combine_docstrings(cls):
+    try:
+        combined_docs = [cleandoc(cls.__doc__)]
+    except AttributeError:
+        combined_docs = []
+    for base in cls.__bases__:
+        if base.__doc__:
+            combined_docs.append(f"\n\n> SUBUNIT {base.__name__}\n\n{cleandoc(base.__doc__)}")
+    cls.__doc__ = "\n".join(combined_docs).strip()
+    return cls

@@ -1,9 +1,11 @@
-from .model_object import Component_Model
+from .model_object import ComponentModel
+from ..utils.decorators import combine_docstrings
 
-__all__ = ["Sky_Model"]
+__all__ = ["SkyModel"]
 
 
-class Sky_Model(Component_Model):
+@combine_docstrings
+class SkyModel(ComponentModel):
     """prototype class for any sky background model. This simply imposes
     that the center is a locked parameter, not involved in the
     fit. Also, a sky model object has no psf mode or integration mode
@@ -12,24 +14,27 @@ class Sky_Model(Component_Model):
 
     """
 
-    model_type = f"sky {Component_Model.model_type}"
-    parameter_specs = {
-        "center": {"units": "arcsec", "locked": True, "uncertainty": 0.0},
-    }
+    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": False}}
+    _model_type = "sky"
     usable = False
 
+    def __init__(self, *args, integrate_mode="none", **kwargs):
+        super().__init__(*args, integrate_mode=integrate_mode, **kwargs)
+
+    def initialize(self):
+        """Initialize the sky model, this is called after the model is
+        created and before it is used. This is where we can set the
+        center to be a locked parameter.
+        """
+        if not self.center.initialized:
+            target_area = self.target[self.window]
+            self.center = target_area.center
+        super().initialize()
+
     @property
-    def psf_mode(self):
-        return "none"
+    def psf_convolve(self) -> bool:
+        return False
 
-    @psf_mode.setter
-    def psf_mode(self, val):
-        pass
-
-    @property
-    def integrate_mode(self):
-        return "none"
-
-    @integrate_mode.setter
-    def integrate_mode(self, val):
+    @psf_convolve.setter
+    def psf_convolve(self, val: bool):
         pass

@@ -10,11 +10,18 @@ version of each tutorial is available here.
     :maxdepth: 1
 
     GettingStarted
+    GettingStartedJAX
     GroupModels
     FittingMethods
     ModelZoo
     BasicPSFModels
     JointModels
+    ImageAlignment
+    FittingPriors
+    PoissonLikelihood
     CustomModels
+    FunctionalInterface
+    GravitationalLensing
     AdvancedPSFModels
+    ImageTypes
     ConstrainedModels

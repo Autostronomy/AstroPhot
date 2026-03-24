@@ -14,7 +14,7 @@ tests/*.yaml
 docs/source/tutorials/*.fits
 docs/source/tutorials/*.yaml
 docs/source/tutorials/*.jpg
-docs/autophot.*rst
+docs/source/astrophotdocs/*.ipynb
 docs/modules.rst
 pip_cheatsheet.txt
 .gitpod.yml

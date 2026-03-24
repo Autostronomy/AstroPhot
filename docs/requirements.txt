@@ -1,8 +1,16 @@
+caustics
+corner
+emcee
+graphviz
 ipywidgets
-jupyter-book
+jax<=0.7.0
+jupyter-book<2.0
 matplotlib
+nbformat
 nbsphinx
 photutils
+pyvo
 scikit-image
 sphinx
 sphinx-rtd-theme
+tqdm

@@ -1,30 +1,31 @@
-from typing import Optional, Sequence
-from collections import OrderedDict
+from typing import Optional, Sequence, Union
 
 import torch
+import numpy as np
+from caskade import forward
 
-from .core_model import AstroPhot_Model
-from .. import AP_config
+from .base import Model
 from ..image import (
     Image,
-    Target_Image,
-    Target_Image_List,
-    Image_List,
+    TargetImage,
+    TargetImageList,
+    ModelImage,
+    ModelImageList,
+    ImageList,
     Window,
-    Window_List,
-    Model_Image,
-    Model_Image_List,
-    Jacobian_Image,
+    WindowList,
+    JacobianImage,
+    JacobianImageList,
 )
-from ..utils.decorators import ignore_numpy_warnings, default_internal
-from ._shared_methods import select_target
-from ..param import Parameter_Node
-from ..errors import InvalidTarget
+from .. import config
+from ..backend_obj import backend, ArrayLike
+from ..utils.decorators import ignore_numpy_warnings
+from ..errors import InvalidTarget, InvalidWindow
 
-__all__ = ["Group_Model"]
+__all__ = ["GroupModel"]
 
 
-class Group_Model(AstroPhot_Model):
+class GroupModel(Model):
     """Model object which represents a list of other models. For each
     general AstroPhot model method, this calls all the appropriate
     models from its list and combines their output into a single
@@ -40,326 +41,290 @@ class Group_Model(AstroPhot_Model):
 
     """
 
-    model_type = f"group {AstroPhot_Model.model_type}"
+    _model_type = "group"
     usable = True
 
     def __init__(
         self,
         *,
-        name: Optional[str] = None,
-        models: Optional[Sequence[AstroPhot_Model]] = None,
+        models: Optional[Sequence[Model]] = None,
         **kwargs,
     ):
-        if "model" in kwargs:
-            AP_config.ap_logger.warning(
-                "kwarg `model` is not used in Group_Model, did you mean `models` instead?"
-            )
-        self._psf_mode = "none"
-        self._param_tuple = None
-        self.models = OrderedDict()
-        super().__init__(name=name, **kwargs)
-        if models is not None:
-            self.add_model(models)
-        self.update_window()
-        if "filename" in kwargs:
-            self.load(kwargs["filename"], new_name=name)
+        super().__init__(**kwargs)
+        for model in models:
+            if not isinstance(model, Model):
+                raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
+        self.models = models
+        self._update_window()
 
-    def add_model(self, model):
-        """Adds a new model to the group model list. Ensures that the same
-        model isn't added a second time.
-
-        Parameters:
-            model: a model object to add to the model list.
-
-        """
-        if isinstance(model, (tuple, list)):
-            for mod in model:
-                self.add_model(mod)
-            return
-        if model.name in self.models:
-            if model is self.models[model.name]:
-                return
-            raise KeyError(
-                f"{self.name} already has model with name {model.name}, every model must have a unique name."
-            )
-
-        self.models[model.name] = model
-        self.parameters.link(model.parameters)
-        self.psf_mode = self.psf_mode
-        self.target = self.target
-        self.update_window()
-
-    def update_window(self, include_locked: bool = False):
+    def _update_window(self):
         """Makes a new window object which encloses all the windows of the
         sub models in this group model object.
 
         """
-        if isinstance(self.target, Image_List):  # Window_List if target is a Target_Image_List
-            new_window = [None] * len(self.target.image_list)
-            for model in self.models.values():
-                if model.locked and not include_locked:
-                    continue
-                if isinstance(model.target, Image_List):
+        if isinstance(self.target, ImageList):  # WindowList if target is a TargetImageList
+            new_window = list(target.window.copy() for target in self.target)
+            n_windows = [0] * len(self.target.images)
+            for model in self.models:
+                if isinstance(model.target, ImageList):
                     for target, window in zip(model.target, model.window):
                         index = self.target.index(target)
-                        if new_window[index] is None:
-                            new_window[index] = window.copy()
+                        if n_windows[index] == 0:
+                            new_window[index] &= window
                         else:
                             new_window[index] |= window
-                elif isinstance(model.target, Target_Image):
+                        n_windows[index] += 1
+                elif isinstance(model.target, TargetImage):
                     index = self.target.index(model.target)
-                    if new_window[index] is None:
-                        new_window[index] = model.window.copy()
+                    if n_windows[index] == 0:
+                        new_window[index] &= model.window
                     else:
                         new_window[index] |= model.window
+                    n_windows[index] += 1
                 else:
                     raise NotImplementedError(
                         f"Group_Model cannot construct a window for itself using {type(model.target)} object. Must be a Target_Image"
                     )
-            new_window = Window_List(new_window)
+            new_window = WindowList(new_window)
+            for i, n in enumerate(n_windows):
+                if n == 0:
+                    config.logger.warning(
+                        f"Model {self.name} has no sub models in target '{self.target.images[i].name}', this may cause issues with fitting."
+                    )
         else:
             new_window = None
-            for model in self.models.values():
-                if model.locked and not include_locked:
-                    continue
+            for model in self.models:
                 if new_window is None:
                     new_window = model.window.copy()
                 else:
                     new_window |= model.window
         self.window = new_window
 
-    @torch.no_grad()
     @ignore_numpy_warnings
-    @select_target
-    @default_internal
-    def initialize(self, target: Optional[Image] = None, parameters=None, **kwargs):
+    def initialize(self):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
-
-        Args:
-          target (Optional["Target_Image"]): A Target_Image instance to use as the source for initializing the model parameters on this image.
         """
-        self._param_tuple = None
-        super().initialize(target=target, parameters=parameters)
+        for model in self.models:
+            config.logger.info(f"Initializing model {model.name}")
+            model.initialize()
 
-        target_copy = target.copy()
-        for model in self.models.values():
-            if not model.is_initialized:
-                print("Initializing: ", model.name)
-            model.initialize(target=target_copy, parameters=parameters[model.name])
-            target_copy -= model(parameters=parameters[model.name])
-
-    def fit_mask(self) -> torch.Tensor:
-        """Returns a mask for the target image which is the combination of all
-        the fit masks of the sub models. This mask is used when the multiple
-        models in the group model do not completely overlap with each other, thus
-        there are some pixels which are not covered by any model and have no
-        reason to be fit.
-
-        """
-        if isinstance(self.target, Image_List):
-            mask = tuple(torch.ones_like(submask) for submask in self.target[self.window].mask)
-            for model in self.models.values():
-                model_flat_mask = model.fit_mask()
-                if isinstance(model.target, Image_List):
-                    for target, window, submask in zip(model.target, model.window, model_flat_mask):
-                        index = self.target.index(target)
-                        group_indices = self.window.window_list[index].get_self_indices(window)
-                        model_indices = window.get_self_indices(self.window.window_list[index])
-                        mask[index][group_indices] &= submask[model_indices]
-                else:
-                    index = self.target.index(model.target)
-                    group_indices = self.window.window_list[index].get_self_indices(model.window)
-                    model_indices = model.window.get_self_indices(self.window.window_list[index])
-                    mask[index][group_indices] &= model_flat_mask[model_indices]
+    def match_window(self, image: Union[Image, ImageList], window: Window, model: Model) -> Window:
+        if isinstance(image, ImageList) and isinstance(model.target, ImageList):
+            indices = image.match_indices(model.target)
+            if len(indices) == 0:
+                raise IndexError
+            use_window = WindowList(windows=list(image.images[i].window for i in indices))
+        elif isinstance(image, ImageList) and isinstance(model.target, Image):
+            try:
+                image.index(model.target)
+            except ValueError:
+                raise IndexError
+            use_window = model.window
+        elif isinstance(image, Image) and isinstance(model.target, ImageList):
+            try:
+                i = model.target.index(image)
+            except ValueError:
+                raise IndexError
+            use_window = model.window[i]
+        elif isinstance(image, Image) and isinstance(model.target, Image):
+            if image.identity != model.target.identity:
+                raise IndexError
+            use_window = window
         else:
-            mask = torch.ones_like(self.target[self.window].mask)
-            for model in self.models.values():
-                group_indices = self.window.get_self_indices(model.window)
-                model_indices = model.window.get_self_indices(self.window)
-                mask[group_indices] &= model.fit_mask()[model_indices]
-        return mask
+            raise NotImplementedError(
+                f"Group_Model cannot sample with {type(image)} and {type(model.target)}"
+            )
+        return use_window
 
+    def _ensure_vmap_compatible(
+        self, image: Union[Image, ImageList], other: Union[Image, ImageList]
+    ):
+        if isinstance(image, ImageList):
+            for img in image.images:
+                self._ensure_vmap_compatible(img, other)
+            return
+        if isinstance(other, ImageList):
+            for img in other.images:
+                self._ensure_vmap_compatible(image, img)
+            return
+        if image.identity == other.identity:
+            image += backend.zeros_like(other._data[0, 0])
+
+    @forward
     def sample(
         self,
-        image: Optional[Image] = None,
-        window: Optional[Window] = None,
-        parameters: Optional["Parameter_Node"] = None,
-    ):
+        _CD: Optional[ArrayLike] = None,
+        _crtan: Optional[ArrayLike] = None,
+        _crpix: Optional[ArrayLike] = None,
+        _psf: Optional[ArrayLike] = None,
+    ) -> Union[ModelImage, ModelImageList]:
         """Sample the group model on an image. Produces the flux values for
         each pixel associated with the models in this group. Each
         model is called individually and the results are added
         together in one larger image.
 
-        Args:
-          image (Optional["Model_Image"]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
+        **Args:**
+        -  `image` (Optional[ModelImage]): Image to sample on, overrides the windows for each sub model, they will all be evaluated over this entire image. If left as none then each sub model will be evaluated in its window.
 
         """
-        self._param_tuple = None
-        if image is None:
-            sample_window = True
-            image = self.make_model_image(window=window)
-        else:
-            sample_window = False
-        if window is None:
-            window = image.window
-        if parameters is None:
-            parameters = self.parameters
+        image = self.target.model_image(self.window)
 
-        working_image = image[window].blank_copy()
-
-        for model in self.models.values():
-            if window is not None and isinstance(window, Window_List):
-                indices = self.target.match_indices(model.target)
-                if isinstance(indices, (tuple, list)):
-                    use_window = Window_List(
-                        window_list=list(window.window_list[ind] for ind in indices)
-                    )
-                else:
-                    use_window = window.window_list[indices]
-            else:
-                use_window = window
-            if sample_window:
-                # Will sample the model fit window then add to the image
-                working_image += model(window=use_window, parameters=parameters[model.name])
-            else:
-                # Will sample the entire image
-                model(working_image, window=use_window, parameters=parameters[model.name])
-
-        image += working_image
+        for model in self.models:
+            model_image = model(_CD=_CD, _crtan=_crtan, _crpix=_crpix, _psf=_psf)
+            self._ensure_vmap_compatible(image, model_image)
+            image += model_image
 
         return image
 
-    @torch.no_grad()
     def jacobian(
         self,
-        parameters: Optional[torch.Tensor] = None,
-        as_representation: bool = False,
-        pass_jacobian: Optional[Jacobian_Image] = None,
-        window: Optional[Window] = None,
-        **kwargs,
-    ):
+        pass_jacobian: Optional[Union[JacobianImage, JacobianImageList]] = None,
+        params=None,
+    ) -> JacobianImage:
         """Compute the jacobian for this model. Done by first constructing a
         full jacobian (Npixels * Nparameters) of zeros then call the
         jacobian method of each sub model and add it in to the total.
 
-        Args:
-          parameters (Optional[torch.Tensor]): 1D parameter vector to overwrite current values
-          as_representation (bool): Indicates if the "parameters" argument is in the form of the real values, or as representations in the (-inf,inf) range. Default False
-          pass_jacobian (Optional["Jacobian_Image"]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+        **Args:**
+        -  `pass_jacobian` (Optional[JacobianImage]): A Jacobian image pre-constructed to be passed along instead of constructing new Jacobians
+        -  `window` (Optional[Window]): A window within which to evaluate the jacobian. If not provided, the model's window will be used.
+        -  `params` (Optional[Sequence[Param]]): Parameters to use for the jacobian. If not provided, the model's parameters will be used.
 
         """
-        if window is None:
-            window = self.window
-        self._param_tuple = None
 
-        if parameters is not None:
-            if as_representation:
-                self.parameters.vector_set_representation(parameters)
-            else:
-                self.parameters.vector_set_values(parameters)
+        if params is not None:
+            self.set_values(params)
 
         if pass_jacobian is None:
-            jac_img = self.target[window].jacobian_image(
-                parameters=self.parameters.vector_identities()
+            jac_img = self.target[self.window].jacobian_image(
+                parameters=self.build_params_array_identities()
             )
         else:
             jac_img = pass_jacobian
 
-        for model in self.models.values():
-            if isinstance(model, Group_Model):
-                model.jacobian(
-                    as_representation=as_representation,
-                    pass_jacobian=jac_img,
-                    window=window,
-                )
-            else:  # fixme, maybe make pass_jacobian be filled internally to each model
-                jac_img += model.jacobian(
-                    as_representation=as_representation,
-                    pass_jacobian=jac_img,
-                    window=window,
-                )
+        for model in self.models:
+            jac_img = model.jacobian(pass_jacobian=jac_img)
 
         return jac_img
 
     def __iter__(self):
-        return (mod for mod in self.models.values())
+        return (mod for mod in self.models)
 
     @property
-    def psf_mode(self):
-        return self._psf_mode
-
-    @psf_mode.setter
-    def psf_mode(self, value):
-        self._psf_mode = value
-        if hasattr(self, "models"):
-            for model in self.models.values():
-                model.psf_mode = value
-
-    @property
-    def target(self):
+    def target(self) -> Optional[Union[TargetImage, TargetImageList]]:
         try:
             return self._target
         except AttributeError:
             return None
 
     @target.setter
-    def target(self, tar):
-        if not (tar is None or isinstance(tar, Target_Image)):
+    def target(self, tar: Optional[Union[TargetImage, TargetImageList]]):
+        if not (tar is None or isinstance(tar, (TargetImage, TargetImageList))):
             raise InvalidTarget("Group_Model target must be a Target_Image instance.")
+        try:
+            del self._target  # Remove old target if it exists
+        except AttributeError:
+            pass
+
         self._target = tar
 
-        if hasattr(self, "models"):
-            if not isinstance(tar, Image_List):
-                for model in self.models.values():
-                    if model.target is None:
-                        model.target = tar
-                    elif (
-                        isinstance(model.target, Image_List)
-                        or model.target.identity != tar.identity
-                    ):
-                        AP_config.ap_logger.warning(
-                            f"Group_Model target does not match model {model.name} target. This may cause issues. Use the same Target_Image object for all relevant models."
-                        )
+    @property
+    def window(self) -> Optional[Union[Window, WindowList]]:
+        """The window defines a region on the sky in which this model will be
+        optimized and typically evaluated. Two models with
+        non-overlapping windows are in effect independent of each
+        other. If there is another model with a window that spans both
+        of them, then they are tenuously connected.
 
-    def get_state(self, save_params=True):
-        """Returns a dictionary with information about the state of the model
-        and its parameters.
+        If not provided, the model will assume a window equal to the
+        target it is fitting. Note that in this case the window is not
+        explicitly set to the target window, so if the model is moved
+        to another target then the fitting window will also change.
 
         """
-        state = super().get_state(save_params=save_params)
-        if save_params:
-            state["parameters"] = self.parameters.get_state()
-        if "models" not in state:
-            state["models"] = {}
-        for model in self.models.values():
-            state["models"][model.name] = model.get_state(save_params=False)
-        return state
-
-    def load(self, filename="AstroPhot.yaml", new_name=None):
-        """Loads an AstroPhot state file and updates this model with the
-        loaded parameters.
-
-        """
-        state = AstroPhot_Model.load(filename)
-
-        if new_name is None:
-            new_name = state["name"]
-        self.name = new_name
-
-        if isinstance(state["parameters"], Parameter_Node):
-            self.parameters = state["parameters"]
-        else:
-            self.parameters = Parameter_Node(self.name, state=state["parameters"])
-
-        for model in state["models"]:
-            state["models"][model]["parameters"] = self.parameters[model]
-            for own_model in self.models.values():
-                if model == own_model.name:
-                    own_model.load(state["models"][model])
-                    break
-            else:
-                self.add_model(
-                    AstroPhot_Model(name=model, filename=state["models"][model], target=self.target)
+        if self._window is None:
+            if self.target is None:
+                raise ValueError(
+                    "This model has no target or window, these must be provided by the user"
                 )
-        self.update_window()
+            return self.target.window
+        return self._window
+
+    @window.setter
+    def window(self, window):
+        if window is None:
+            self._window = None
+        elif isinstance(window, (Window, WindowList)):
+            self._window = window
+        elif len(window) in [2, 4]:
+            self._window = Window(window, image=self.target)
+        else:
+            raise InvalidWindow(f"Unrecognized window format: {str(window)}")
+
+    def segmentation_map(self) -> ArrayLike:
+        """Generate a segmentation map for this group model. Each pixel in the
+        segmentation map is assigned an integer value corresponding to the index
+        of the sub-model that corresponds to that pixel. The pixels are assigned
+        based on "relative importance", meaning that for each pixel, the
+        sub-model which contributes the largest fraction of its own total flux to that
+        pixel is assigned to it.
+
+        Returns:
+            ArrayLike: Segmentation map with the same shape as the target image as windowed by the group model window.
+
+        """
+        subtarget = self.target[self.window]
+        if isinstance(subtarget, ImageList):
+            raise NotImplementedError(
+                "Segmentation maps are not currently supported for ImageList targets. Please apply one target at a time."
+            )
+        else:
+            seg_map = backend.zeros_like(subtarget._data, dtype=backend.int32) - 1
+            max_flux_frac = (
+                0.0 * backend.ones_like(subtarget._data) / np.prod(subtarget._data.shape)
+            )
+            for idx, model in enumerate(self.models):
+                model_image = model()
+                model_flux_frac = backend.abs(model_image._data) / backend.sum(
+                    backend.abs(model_image._data)
+                )
+                indices = subtarget.get_indices(model.window)
+                model_flux_frac_full = backend.zeros_like(subtarget._data)
+                model_flux_frac_full = backend.fill_at_indices(
+                    model_flux_frac_full, indices, model_flux_frac
+                )
+                update_mask = model_flux_frac_full >= max_flux_frac
+                seg_map = backend.where(update_mask, idx, seg_map)
+                max_flux_frac = backend.where(update_mask, model_flux_frac_full, max_flux_frac)
+            return seg_map.T
+
+    def deblend(self) -> Sequence[TargetImage]:
+        """Generate deblended images for each sub-model in this group model.
+        Each deblended image contains for each pixel, the fraction of the total
+        flux at that pixel which is contributed by that sub-model.
+
+        Returns:
+            Sequence[TargetImage]: List of deblended TargetImage objects for each sub-model.
+
+        """
+        deblended_images = []
+        subtarget = self.target[self.window]
+        full_model = self()
+        if isinstance(subtarget, ImageList):
+            raise NotImplementedError(
+                "Deblending is not currently supported for ImageList targets. Please apply one target at a time."
+            )
+        else:
+            for model in self.models:
+                model_image = model()
+                subfull_model = full_model[model.window]
+                subsubtarget = subtarget[model.window].copy(
+                    name=f"deblend_{model.name}_{subtarget.name}"
+                )
+                deblend_data = subsubtarget.data * model_image.data / subfull_model.data
+                deblend_variance = subsubtarget.variance * model_image.data / subfull_model.data
+                subsubtarget.data = deblend_data
+                subsubtarget.variance = deblend_variance
+                deblended_images.append(subsubtarget)
+        return deblended_images

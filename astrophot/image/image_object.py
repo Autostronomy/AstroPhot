@@ -1,267 +1,338 @@
-from typing import Optional, Union, Any, Sequence, Tuple
+from typing import Optional, Tuple, Union
 
-import torch
-from torch.nn.functional import pad
 import numpy as np
-from astropy.io import fits
 from astropy.wcs import WCS as AstropyWCS
+from astropy.io import fits
 
-from .window_object import Window, Window_List
-from .image_header import Image_Header
-from .. import AP_config
-from ..errors import SpecificationConflict, ConflicingWCS, InvalidData, InvalidWindow
+from ..param import Module, Param, forward
+from .. import config
+from ..backend_obj import backend, ArrayLike
+from ..utils.conversions.units import deg_to_arcsec, arcsec_to_deg
+from .window import Window, WindowList, WindowBatch
+from ..errors import InvalidImage, SpecificationConflict
 
-__all__ = ["Image", "Image_List"]
+# from .base import BaseImage
+from . import func
+
+__all__ = ["Image", "ImageList"]
 
 
-class Image(object):
+class Image(Module):
     """Core class to represent images with pixel values, pixel scale,
-       and a window defining the spatial coordinates on the sky.
-       It supports arithmetic operations with other image objects while preserving logical image boundaries.
-       It also provides methods for determining the coordinate locations of pixels
+    and a window defining the spatial coordinates on the sky. It supports
+    arithmetic operations with other image objects while preserving logical
+    image boundaries. It also provides methods for determining the coordinate
+    locations of pixels
 
-    Parameters:
-        data: the matrix of pixel values for the image
-        pixelscale: the length of one side of a pixel in arcsec/pixel
-        window: an AstroPhot Window object which defines the spatial coordinates on the sky
-        filename: a filename from which to load the image.
-        zeropoint: photometric zero point for converting from pixel flux to magnitude
-        metadata: Any information the user wishes to associate with this image, stored in a python dictionary
-        origin: The origin of the image in the coordinate system.
+    **Args:**
+    -  `data`: The image data as a tensor of pixel values. If not provided, a tensor of zeros will be created.
+    -  `zeropoint`: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
+    -  `crpix`: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates.
+    -  `pixelscale`: The side length of a pixel, used to create a simple diagonal CD matrix.
+    -  `wcs`: An optional Astropy WCS object to initialize the image.
+    -  `filename`: The filename to load the image from. If provided, the image will be loaded from the file.
+    -  `hduext`: The HDU extension to load from the FITS file specified in `filename`.
+    -  `identity`: An optional identity string for the image.
+
+    these parameters are added to the optimization model:
+
+    **Parameters:**
+    -  `crval`: The reference coordinate of the image in degrees [RA, DEC].
+    -  `crtan`: The tangent plane coordinate of the image in arcseconds [x, y].
+    -  `CD`: The coordinate transformation matrix in arcseconds/pixel.
     """
+
+    expect_ctype = (("RA---TAN",), ("DEC--TAN",))
+    base_scale = 1.0
 
     def __init__(
         self,
         *,
-        data: Optional[torch.Tensor] = None,
-        header: Optional[Image_Header] = None,
+        data: Optional[ArrayLike] = None,
+        CD: Optional[Union[float, ArrayLike]] = None,
+        zeropoint: Optional[Union[float, ArrayLike]] = None,
+        crpix: Union[ArrayLike, tuple] = (0.0, 0.0),
+        crtan: Union[ArrayLike, tuple] = (0.0, 0.0),
+        crval: Union[ArrayLike, tuple] = (0.0, 0.0),
+        pixelscale: Optional[Union[ArrayLike, float]] = 1.0,
         wcs: Optional[AstropyWCS] = None,
-        pixelscale: Optional[Union[float, torch.Tensor]] = None,
-        window: Optional[Window] = None,
         filename: Optional[str] = None,
-        zeropoint: Optional[Union[float, torch.Tensor]] = None,
-        metadata: Optional[dict] = None,
-        origin: Optional[Sequence] = None,
-        center: Optional[Sequence] = None,
+        hduext: int = 0,
         identity: str = None,
-        state: Optional[dict] = None,
-        fits_state: Optional[dict] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Initialize an instance of the APImage class.
-
-        Parameters:
-        -----------
-        data : numpy.ndarray or None, optional
-            The image data. Default is None.
-        wcs : astropy.wcs.wcs.WCS or None, optional
-            A WCS object which defines a coordinate system for the image. Note that AstroPhot only handles basic WCS conventions. It will use the WCS object to get `wcs.pixel_to_world(-0.5, -0.5)` to determine the position of the origin in world coordinates. It will also extract the `pixel_scale_matrix` to index pixels going forward.
-        pixelscale : float or None, optional
-            The physical scale of the pixels in the image, in units of arcseconds. Default is None.
-        window : Window or None, optional
-            A Window object defining the area of the image to use. Default is None.
-        filename : str or None, optional
-            The name of a file containing the image data. Default is None.
-        zeropoint : float or None, optional
-            The image's zeropoint, used for flux calibration. Default is None.
-        metadata : dict or None, optional
-            Any information the user wishes to associate with this image, stored in a python dictionary. Default is None.
-        origin : numpy.ndarray or None, optional
-            The origin of the image in the coordinate system, as a 1D array of length 2. Default is None.
-        center : numpy.ndarray or None, optional
-            The center of the image in the coordinate system, as a 1D array of length 2. Default is None.
-
-        Returns:
-        --------
-        None
-        """
-        self._data = None
-
-        if state is not None:
-            self.header = Image_Header(state=state["header"])
-        elif fits_state is not None:
-            self.set_fits_state(fits_state)
-            return
-        elif header is None:
-            if data is None and window is None and filename is None:
-                raise InvalidData("Image must have either data or a window to construct itself.")
-            self.header = Image_Header(
-                data_shape=None if data is None else data.shape,
-                pixelscale=pixelscale,
-                wcs=wcs,
-                window=window,
-                filename=filename,
-                zeropoint=zeropoint,
-                metadata=metadata,
-                origin=origin,
-                center=center,
-                identity=identity,
-                **kwargs,
-            )
+        name: Optional[str] = None,
+        _data: Optional[ArrayLike] = None,
+    ):
+        super().__init__(name=name)
+        if _data is None:
+            self.data = data  # units: flux
         else:
-            self.header = header
+            self._data = _data
+        self.crtan = Param(
+            "crtan",
+            crtan,
+            shape=(2,),
+            units="arcsec",
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )
+        self.zeropoint = zeropoint
+
+        if identity is None:
+            self._identity = id(self)
+        else:
+            self._identity = identity
+
+        if wcs is not None:
+            if wcs.wcs.ctype[0] not in self.expect_ctype[0]:
+                config.logger.warning(
+                    "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
+                )
+            if wcs.wcs.ctype[1] not in self.expect_ctype[1]:
+                config.logger.warning(
+                    "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
+                )
+
+            crval = wcs.wcs.crval
+            crpix = np.array(wcs.wcs.crpix)[::-1] - 1  # handle FITS 1-indexing
+
+            if CD is not None:
+                config.logger.warning("WCS CD set with supplied WCS, ignoring user supplied CD!")
+            CD = deg_to_arcsec * wcs.pixel_scale_matrix
+
+        # set the data
+        self.crval = Param(
+            "crval", crval, shape=(2,), units="deg", dtype=config.DTYPE, device=config.DEVICE
+        )
+        self.crpix = crpix
+
+        if isinstance(CD, (float, int)):
+            CD = np.array([[CD, 0.0], [0.0, CD]], dtype=np.float64)
+        elif CD is None:
+            CD = np.array([[pixelscale, 0.0], [0.0, pixelscale]], dtype=np.float64)
+
+        self.CD = Param(
+            "CD",
+            CD,
+            shape=(2, 2),
+            units="arcsec/pixel",
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )
 
         if filename is not None:
-            self.load(filename)
-        elif state is not None:
-            self.set_state(state)
-        elif fits_state is not None:
-            self.data = fits_state[0]["DATA"]
-        else:
-            # set the data
-            if data is None:
-                self.data = torch.zeros(
-                    torch.flip(self.window.pixel_shape, (0,)).detach().cpu().tolist(),
-                    dtype=AP_config.ap_dtype,
-                    device=AP_config.ap_device,
-                )
-            else:
-                self.data = data
-
-            self.to()
-
-        # # Check that image data and header are in agreement (this requires talk back from GPU to CPU so is only used for testing)
-        # assert np.all(np.flip(np.array(self.data.shape)[:2]) == self.window.pixel_shape.numpy()), f"data shape {np.flip(np.array(self.data.shape)[:2])}, window shape {self.window.pixel_shape.numpy()}"
-
-    @property
-    def north(self):
-        return self.header.north
-
-    @property
-    def pixel_area(self):
-        return self.header.pixel_area
-
-    @property
-    def pixel_length(self):
-        return self.header.pixel_length
-
-    def world_to_plane(self, *args, **kwargs):
-        return self.window.world_to_plane(*args, **kwargs)
-
-    def plane_to_world(self, *args, **kwargs):
-        return self.window.plane_to_world(*args, **kwargs)
-
-    def plane_to_pixel(self, *args, **kwargs):
-        return self.window.plane_to_pixel(*args, **kwargs)
-
-    def pixel_to_plane(self, *args, **kwargs):
-        return self.window.pixel_to_plane(*args, **kwargs)
-
-    def plane_to_pixel_delta(self, *args, **kwargs):
-        return self.window.plane_to_pixel_delta(*args, **kwargs)
-
-    def pixel_to_plane_delta(self, *args, **kwargs):
-        return self.window.pixel_to_plane_delta(*args, **kwargs)
-
-    def world_to_pixel(self, *args, **kwargs):
-        return self.window.world_to_pixel(*args, **kwargs)
-
-    def pixel_to_world(self, *args, **kwargs):
-        return self.window.pixel_to_world(*args, **kwargs)
-
-    def get_coordinate_meshgrid(self):
-        return self.window.get_coordinate_meshgrid()
-
-    def get_coordinate_corner_meshgrid(self):
-        return self.window.get_coordinate_corner_meshgrid()
-
-    def get_coordinate_simps_meshgrid(self):
-        return self.window.get_coordinate_simps_meshgrid()
-
-    @property
-    def origin(self) -> torch.Tensor:
-        """
-        Returns the origin (bottom-left corner) of the image window.
-
-        Returns:
-            torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the origin.
-        """
-        return self.header.window.origin
-
-    @property
-    def shape(self) -> torch.Tensor:
-        """
-        Returns the shape (size) of the image window.
-
-        Returns:
-                torch.Tensor: A 1D tensor of shape (2,) containing the (width, height) of the window in pixels.
-        """
-        return self.header.window.shape
-
-    @property
-    def center(self) -> torch.Tensor:
-        """
-        Returns the center of the image window.
-
-        Returns:
-            torch.Tensor: A 1D tensor of shape (2,) containing the (x, y) coordinates of the center.
-        """
-        return self.header.window.center
-
-    @property
-    def size(self) -> torch.Tensor:
-        """
-        Returns the size of the image window, the number of pixels in the image.
-
-        Returns:
-            torch.Tensor: A 0D tensor containing the number of pixels.
-        """
-        return self.header.window.size
-
-    @property
-    def window(self):
-        return self.header.window
-
-    @property
-    def pixelscale(self):
-        return self.header.pixelscale
-
-    @property
-    def zeropoint(self):
-        return self.header.zeropoint
-
-    @property
-    def metadata(self):
-        return self.header.metadata
+            self.load(filename, hduext=hduext)
+            return
 
     @property
     def identity(self):
-        return self.header.identity
+        return self._identity
 
     @property
-    def data(self) -> torch.Tensor:
-        """
-        Returns the image data.
-        """
-        return self._data
+    def data(self):
+        """The image data, which is a tensor of pixel values."""
+        return backend.transpose(self._data, 1, 0)
 
     @data.setter
-    def data(self, data) -> None:
-        """Set the image data."""
-        self.set_data(data)
-
-    def set_data(self, data: Union[torch.Tensor, np.ndarray], require_shape: bool = True):
-        """
-        Set the image data.
-
-        Args:
-            data (torch.Tensor or numpy.ndarray): The image data.
-            require_shape (bool): Whether to check that the shape of the data is the same as the current data.
-
-        Raises:
-            SpecificationConflict: If `require_shape` is `True` and the shape of the data is different from the current data.
-        """
-        if self._data is not None and require_shape and data.shape != self._data.shape:
-            raise SpecificationConflict(
-                f"Attempting to change image data with tensor that has a different shape! ({data.shape} vs {self._data.shape}) Use 'require_shape = False' if this is desired behaviour."
+    def data(self, value: Optional[ArrayLike]):
+        """Set the image data. If value is None, the data is initialized to an empty tensor."""
+        if value is None:
+            self._data = backend.empty((0, 0), dtype=config.DTYPE, device=config.DEVICE)
+        else:
+            # Transpose since pytorch uses (j, i) indexing when (i, j) is more natural for coordinates
+            self._data = backend.transpose(
+                backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 1, 0
             )
 
-        if data is None:
-            self.data = torch.tensor((), dtype=AP_config.ap_dtype, device=AP_config.ap_device)
-        elif isinstance(data, torch.Tensor):
-            self._data = data.to(dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+    @property
+    def crpix(self) -> ArrayLike:
+        """The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates."""
+        return self._crpix
+
+    @crpix.setter
+    def crpix(self, value: Union[ArrayLike, tuple]):
+        self._crpix = np.array(value, dtype=np.float64)
+
+    @property
+    def zeropoint(self) -> ArrayLike:
+        """The zeropoint of the image, which is used to convert from pixel flux to magnitude."""
+        return self._zeropoint
+
+    @zeropoint.setter
+    def zeropoint(self, value):
+        """Set the zeropoint of the image."""
+        if value is None:
+            self._zeropoint = None
         else:
-            self._data = torch.as_tensor(data, dtype=AP_config.ap_dtype, device=AP_config.ap_device)
+            self._zeropoint = backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE)
+
+    @property
+    def window(self) -> Window:
+        return Window(window=((0, 0), self._data.shape[:2]), image=self)
+
+    @property
+    def center(self):
+        shape = backend.as_array(self._data.shape[:2], dtype=config.DTYPE, device=config.DEVICE)
+        return backend.stack(self.pixel_to_plane(*((shape - 1) / 2)))
+
+    # @property
+    # def shape(self):
+    #     """The shape of the image data."""
+    #     return self.data.shape
+
+    @property
+    @forward
+    def pixel_area(self, CD):
+        """The area inside a pixel in arcsec^2"""
+        return backend.abs(backend.linalg.det(CD))
+
+    @property
+    @forward
+    def pixelscale(self):
+        """The approximate side length of a pixel, which is just
+        sqrt(pixel_area). For square pixels this is the actual pixel
+        length, for rectangular pixels it is a kind of average.
+
+        The pixelscale is not used for exact calculations
+        and instead sets a size scale within an image.
+
+        """
+        return backend.sqrt(self.pixel_area)
+
+    @forward
+    def pixel_collecting_area(self, I_, J_, upsample, CD):
+        """The area of the sky that each pixel collects light from, in arcsec^2.
+        This is just the pixel area, but can be overridden for certain types of
+        images (e.g. SIP images) where the pixel collecting area is not the same
+        as the pixel area."""
+        return backend.abs(backend.linalg.det(CD)) / upsample**2
+
+    @property
+    def flip_ra_axis(self):
+        return np.linalg.det(self.CD.npvalue) < 0
+
+    @forward
+    def pixel_to_plane(
+        self,
+        i: ArrayLike,
+        j: ArrayLike,
+        crtan: ArrayLike,
+        CD: ArrayLike,
+        _crpix: Optional[ArrayLike] = None,
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        crpix = self.crpix if _crpix is None else _crpix
+        return func.pixel_to_plane_linear(i, j, *crpix, CD, *crtan)
+
+    @forward
+    def plane_to_pixel(
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        crtan: ArrayLike,
+        CD: ArrayLike,
+        _crpix: Optional[ArrayLike] = None,
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        crpix = self.crpix if _crpix is None else _crpix
+        return func.plane_to_pixel_linear(x, y, *crpix, CD, *crtan)
+
+    @forward
+    def plane_to_world(
+        self, x: ArrayLike, y: ArrayLike, crval: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        return func.plane_to_world_gnomonic(x, y, *crval)
+
+    @forward
+    def world_to_plane(
+        self, ra: ArrayLike, dec: ArrayLike, crval: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        return func.world_to_plane_gnomonic(ra, dec, *crval)
+
+    @forward
+    def world_to_pixel(self, ra: ArrayLike, dec: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        """A wrapper which applies :meth:`world_to_plane` then
+        :meth:`plane_to_pixel`, see those methods for further
+        information.
+
+        """
+        return self.plane_to_pixel(*self.world_to_plane(ra, dec))
+
+    @forward
+    def pixel_to_world(self, i: ArrayLike, j: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        """A wrapper which applies :meth:`pixel_to_plane` then
+        :meth:`plane_to_world`, see those methods for further
+        information.
+
+        """
+        return self.plane_to_world(*self.pixel_to_plane(i, j))
+
+    def pixel_center_meshgrid(self, window=None, pad=0, upsample=1) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, centered on the pixel grid."""
+        if window is None:
+            window = self.window
+        return func.pixel_center_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
+
+    def pixel_corner_meshgrid(self, window=None, pad=0, upsample=1) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, with corners at the pixel grid."""
+        if window is None:
+            window = self.window
+        return func.pixel_corner_meshgrid(window.extent, pad, upsample, config.DTYPE, config.DEVICE)
+
+    def pixel_simpsons_meshgrid(
+        self, window=None, pad=0, upsample=1
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, with Simpson's rule sampling."""
+        if window is None:
+            window = self.window
+        return func.pixel_simpsons_meshgrid(
+            window.extent, pad, upsample, config.DTYPE, config.DEVICE
+        )
+
+    def pixel_quad_meshgrid(
+        self, window=None, pad=0, upsample=1, order=3
+    ) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of pixel coordinates in the image, with quadrature sampling."""
+        if window is None:
+            window = self.window
+        return func.pixel_quad_meshgrid(
+            window.extent, pad, upsample, config.DTYPE, config.DEVICE, order=order
+        )
+
+    @forward
+    def coordinate_center_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of coordinate locations in the image, centered on the pixel grid."""
+        i, j = self.pixel_center_meshgrid()
+        return self.pixel_to_plane(i, j)
+
+    @forward
+    def coordinate_corner_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of coordinate locations in the image, with corners at the pixel grid."""
+        i, j = self.pixel_corner_meshgrid()
+        return self.pixel_to_plane(i, j)
+
+    @forward
+    def coordinate_simpsons_meshgrid(self) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of coordinate locations in the image, with Simpson's rule sampling."""
+        i, j = self.pixel_simpsons_meshgrid()
+        return self.pixel_to_plane(i, j)
+
+    @forward
+    def coordinate_quad_meshgrid(self, order=3) -> Tuple[ArrayLike, ArrayLike]:
+        """Get a meshgrid of coordinate locations in the image, with quadrature sampling."""
+        i, j, _ = self.pixel_quad_meshgrid(order=order)
+        return self.pixel_to_plane(i, j)
+
+    def copy_kwargs(self, **kwargs) -> dict:
+        kwargs = {
+            "_data": backend.copy(self._data),
+            "CD": self.CD.value,
+            "crpix": self.crpix,
+            "crval": self.crval.value,
+            "crtan": self.crtan.value,
+            "zeropoint": self.zeropoint,
+            "identity": self.identity,
+            "name": self.name,
+            **kwargs,
+        }
+        return kwargs
 
     def copy(self, **kwargs):
         """Produce a copy of this image with all of the same properties. This
@@ -269,81 +340,61 @@ class Image(object):
         an image and then will want the original again.
 
         """
-        return self.__class__(
-            data=torch.clone(self.data),
-            header=self.header.copy(**kwargs),
-            **kwargs,
-        )
+        return self.__class__(**self.copy_kwargs(**kwargs))
 
     def blank_copy(self, **kwargs):
         """Produces a blank copy of the image which has the same properties
         except that its data is now filled with zeros.
 
         """
-        return self.__class__(
-            data=torch.zeros_like(self.data),
-            header=self.header.copy(**kwargs),
+        kwargs = {
+            "_data": backend.zeros_like(self._data),
             **kwargs,
-        )
+        }
+        return self.copy(**kwargs)
 
-    def get_window(self, window, **kwargs):
-        """Get a sub-region of the image as defined by a window on the sky."""
-        return self.__class__(
-            data=self.data[self.window.get_self_indices(window)],
-            header=self.header.get_window(window, **kwargs),
-            **kwargs,
-        )
+    def crop(self, pixels: Union[int, Tuple[int, int], Tuple[int, int, int, int]], **kwargs):
+        """Crop the image by the number of pixels given. This will crop
+        the image in all four directions by the number of pixels given.
 
-    def to(self, dtype=None, device=None):
-        if dtype is None:
-            dtype = AP_config.ap_dtype
-        if device is None:
-            device = AP_config.ap_device
-        if self._data is not None:
-            self._data = self._data.to(dtype=dtype, device=device)
-        self.header.to(dtype=dtype, device=device)
-        return self
+        given data shape (N, M) the new shape will be:
 
-    def crop(self, pixels):
-        # does this show up?
-        if len(pixels) == 1:  # same crop in all dimension
-            self.set_data(
-                self.data[
-                    pixels[0].int() : (self.data.shape[0] - pixels[0]).int(),
-                    pixels[0].int() : (self.data.shape[1] - pixels[0]).int(),
-                ],
-                require_shape=False,
-            )
+        crop - int: crop the same number of pixels on all sides. new shape (N - 2*crop, M - 2*crop)
+        crop - (int, int): crop each dimension by the number of pixels given. new shape (N - 2*crop[1], M - 2*crop[0])
+        crop - (int, int, int, int): crop each side by the number of pixels given assuming (x low, x high, y low, y high). new shape (N - crop[2] - crop[3], M - crop[0] - crop[1])
+        """
+        if np.all(np.array(pixels) == 0):
+            return self
+        if isinstance(pixels, int):
+            data = self._data[
+                pixels : self._data.shape[0] - pixels,
+                pixels : self._data.shape[1] - pixels,
+            ]
+            crpix = self.crpix - pixels
+        elif len(pixels) == 1:  # same crop in all dimension
+            crop = pixels if isinstance(pixels, int) else pixels[0]
+            data = self._data[
+                crop : self._data.shape[0] - crop,
+                crop : self._data.shape[1] - crop,
+            ]
+            crpix = self.crpix - crop
         elif len(pixels) == 2:  # different crop in each dimension
-            self.set_data(
-                self.data[
-                    pixels[1].int() : (self.data.shape[0] - pixels[1]).int(),
-                    pixels[0].int() : (self.data.shape[1] - pixels[0]).int(),
-                ],
-                require_shape=False,
-            )
+            data = self._data[
+                pixels[0] : self._data.shape[0] - pixels[0],
+                pixels[1] : self._data.shape[1] - pixels[1],
+            ]
+            crpix = self.crpix - pixels
         elif len(pixels) == 4:  # different crop on all sides
-            self.set_data(
-                self.data[
-                    pixels[2].int() : (self.data.shape[0] - pixels[3]).int(),
-                    pixels[0].int() : (self.data.shape[1] - pixels[1]).int(),
-                ],
-                require_shape=False,
+            data = self._data[
+                pixels[0] : self._data.shape[0] - pixels[1],
+                pixels[2] : self._data.shape[1] - pixels[3],
+            ]
+            crpix = self.crpix - pixels[0::2]
+        else:
+            raise ValueError(
+                f"Invalid crop shape {pixels}, must be (int,), (int, int), or (int, int, int, int)!"
             )
-        self.header = self.header.crop(pixels)
-        return self
-
-    def flatten(self, attribute: str = "data") -> np.ndarray:
-        return getattr(self, attribute).reshape(-1)
-
-    def get_coordinate_meshgrid(self):
-        return self.header.get_coordinate_meshgrid()
-
-    def get_coordinate_corner_meshgrid(self):
-        return self.header.get_coordinate_corner_meshgrid()
-
-    def get_coordinate_simps_meshgrid(self):
-        return self.header.get_coordinate_simps_meshgrid()
+        return self.copy(_data=data, crpix=crpix, **kwargs)
 
     def reduce(self, scale: int, **kwargs):
         """This operation will downsample an image by the factor given. If
@@ -354,319 +405,442 @@ class Image(object):
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        Parameters:
-            scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
-
+        **Args:**
+        -  `scale` (int): The scale factor by which to reduce the image.
         """
         if not isinstance(scale, int) and not (
-            isinstance(scale, torch.Tensor) and scale.dtype is torch.int32
+            isinstance(scale, ArrayLike) and scale.dtype is backend.int32
         ):
             raise SpecificationConflict(f"Reduce scale must be an integer! not {type(scale)}")
         if scale == 1:
             return self
 
-        MS = self.data.shape[0] // scale
-        NS = self.data.shape[1] // scale
-        return self.__class__(
-            data=self.data[: MS * scale, : NS * scale]
-            .reshape(MS, scale, NS, scale)
-            .sum(axis=(1, 3)),
-            header=self.header.rescale_pixel(scale, **kwargs),
+        MS = self._data.shape[0] // scale
+        NS = self._data.shape[1] // scale
+
+        data = self._data[: MS * scale, : NS * scale].reshape(MS, scale, NS, scale).sum(axis=(1, 3))
+        CD = self.CD.value * scale
+        crpix = (self.crpix + 0.5) / scale - 0.5
+        return self.copy(
+            _data=data,
+            CD=CD,
+            crpix=crpix,
             **kwargs,
         )
 
-    def expand(self, padding: Tuple[float]) -> None:
+    def to(self, dtype=None, device=None):
+        if dtype is None:
+            dtype = config.DTYPE
+        if device is None:
+            device = config.DEVICE
+        super().to(dtype=dtype, device=device)
+        self._data = backend.to(self._data, dtype=dtype, device=device)
+        if self.zeropoint is not None:
+            self.zeropoint = backend.to(self.zeropoint, dtype=dtype, device=device)
+        return self
+
+    def flatten(self, attribute: str = "data") -> ArrayLike:
+        return backend.flatten(getattr(self, attribute))
+
+    def fits_info(self) -> dict:
+        return {
+            "CTYPE1": "RA---TAN",
+            "CTYPE2": "DEC--TAN",
+            "CRVAL1": self.crval.value[0].item(),
+            "CRVAL2": self.crval.value[1].item(),
+            "CRPIX1": self.crpix[0] + 1,
+            "CRPIX2": self.crpix[1] + 1,
+            "CRTAN1": self.crtan.value[0].item(),
+            "CRTAN2": self.crtan.value[1].item(),
+            "CD1_1": self.CD.value[0][0].item() * arcsec_to_deg,
+            "CD1_2": self.CD.value[0][1].item() * arcsec_to_deg,
+            "CD2_1": self.CD.value[1][0].item() * arcsec_to_deg,
+            "CD2_2": self.CD.value[1][1].item() * arcsec_to_deg,
+            "MAGZP": self.zeropoint.item() if self.zeropoint is not None else -999,
+            "IDNTY": self.identity,
+        }
+
+    def fits_images(self):
+        return [
+            fits.PrimaryHDU(
+                backend.to_numpy(backend.transpose(self._data, 1, 0)),
+                header=fits.Header(self.fits_info()),
+            )
+        ]
+
+    def get_astropywcs(self, **kwargs):
+        kwargs = {
+            "NAXIS": 2,
+            "NAXIS1": self.shape[0].item(),
+            "NAXIS2": self.shape[1].item(),
+            **self.fits_info(),
+            **kwargs,
+        }
+        return AstropyWCS(kwargs)
+
+    def save(self, filename: str):
+        hdulist = fits.HDUList(self.fits_images())
+        hdulist.writeto(filename, overwrite=True)
+
+    def load(self, filename: Union[str, fits.HDUList], hduext: int = 0):
+        """Load an image from a FITS file. This will load the primary HDU
+        and set the data, CD, crpix, crval, and crtan attributes
+        accordingly. If the WCS is not tangent plane, it will warn the user.
+
         """
-        Args:
-          padding tuple[float]: length 4 tuple with amounts to pad each dimension in physical units
+        if isinstance(filename, str):
+            hdulist = fits.open(filename)
+        else:
+            hdulist = filename
+        self.data = np.array(hdulist[hduext].data, dtype=np.float64)
+
+        self.CD = (
+            np.array(
+                (
+                    (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
+                    (hdulist[hduext].header["CD2_1"], hdulist[hduext].header["CD2_2"]),
+                ),
+                dtype=np.float64,
+            )
+            * deg_to_arcsec
+        )
+        self.crpix = (hdulist[hduext].header["CRPIX1"] - 1, hdulist[hduext].header["CRPIX2"] - 1)
+        self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
+        if "CRTAN1" in hdulist[hduext].header and "CRTAN2" in hdulist[hduext].header:
+            self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
+        if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:
+            self.zeropoint = hdulist[hduext].header["MAGZP"]
+        self._identity = hdulist[hduext].header.get("IDNTY", str(id(self)))
+        return hdulist
+
+    def corners(
+        self,
+    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
+        pixel_lowleft = backend.make_array((-0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE)
+        pixel_lowright = backend.make_array(
+            (self._data.shape[0] - 0.5, -0.5), dtype=config.DTYPE, device=config.DEVICE
+        )
+        pixel_upleft = backend.make_array(
+            (-0.5, self._data.shape[1] - 0.5), dtype=config.DTYPE, device=config.DEVICE
+        )
+        pixel_upright = backend.make_array(
+            (self._data.shape[0] - 0.5, self._data.shape[1] - 0.5),
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )
+        lowleft = self.pixel_to_plane(*pixel_lowleft)
+        lowright = self.pixel_to_plane(*pixel_lowright)
+        upleft = self.pixel_to_plane(*pixel_upleft)
+        upright = self.pixel_to_plane(*pixel_upright)
+        return (lowleft, lowright, upright, upleft)
+
+    def get_indices(self, other: Window):
+        if other.image is self:
+            return slice(max(0, other.i_low), min(self._data.shape[0], other.i_high)), slice(
+                max(0, other.j_low), min(self._data.shape[1], other.j_high)
+            )
+        if other.image.identity != self.identity:
+            config.logger.warning(
+                f"Attempting to match windows with different images! Window image: {other.image.name}, {other.image.identity}, self image: {self.name}, {self.identity}. This may fail unless you are sure the two images are on the same pixel grid."
+            )
+        shift = np.round(self.crpix - other.crpix).astype(int)
+        return slice(
+            min(max(0, other.i_low + shift[0]), self._data.shape[0]),
+            max(0, min(other.i_high + shift[0], self._data.shape[0])),
+        ), slice(
+            min(max(0, other.j_low + shift[1]), self._data.shape[1]),
+            max(0, min(other.j_high + shift[1], self._data.shape[1])),
+        )
+
+    def get_other_indices(self, other: Window):
+        if other.image == self:  # fixme check identity, or check "is"?
+            shape = other.shape
+            return slice(
+                max(0, -other.i_low), min(self._data.shape[0] - other.i_low, shape[0])
+            ), slice(max(0, -other.j_low), min(self._data.shape[1] - other.j_low, shape[1]))
+        raise ValueError()
+
+    def get_window(self, other: Union[Window, "Image"], indices=None, **kwargs):
+        """Get a new image object which is a window of this image
+        corresponding to the other image's window. This will return a
+        new image object with the same properties as this one, but with
+        the data cropped to the other image's window.
+
         """
-        padding = np.array(padding)
-        if np.any(padding < 0):
-            raise SpecificationConflict("negative padding not allowed in expand method")
-        pad_boundaries = tuple(np.int64(np.round(np.array(padding) / self.pixelscale)))
-        self.data = pad(self.data, pad=pad_boundaries, mode="constant", value=0)
-        self.header.expand(padding)
-
-    def get_state(self):
-        state = {}
-        state["type"] = self.__class__.__name__
-        state["data"] = self.data.detach().cpu().tolist()
-        state["header"] = self.header.get_state()
-        return state
-
-    def set_state(self, state):
-        self.set_data(state["data"], require_shape=False)
-        self.header.set_state(state["header"])
-
-    def get_fits_state(self):
-        states = [{}]
-        states[0]["DATA"] = self.data.detach().cpu().numpy()
-        states[0]["HEADER"] = self.header.get_fits_state()
-        states[0]["HEADER"]["IMAGE"] = "PRIMARY"
-        return states
-
-    def set_fits_state(self, states):
-        for state in states:
-            if state["HEADER"]["IMAGE"] == "PRIMARY":
-                self.set_data(np.array(state["DATA"], dtype=np.float64), require_shape=False)
-                self.header.set_fits_state(state["HEADER"])
-                break
-
-    def save(self, filename=None, overwrite=True):
-        states = self.get_fits_state()
-        img_list = [fits.PrimaryHDU(states[0]["DATA"], header=fits.Header(states[0]["HEADER"]))]
-        for state in states[1:]:
-            img_list.append(fits.ImageHDU(state["DATA"], header=fits.Header(state["HEADER"])))
-        hdul = fits.HDUList(img_list)
-        if filename is not None:
-            hdul.writeto(filename, overwrite=overwrite)
-        return hdul
-
-    def load(self, filename):
-        hdul = fits.open(filename)
-        states = list({"DATA": hdu.data, "HEADER": hdu.header} for hdu in hdul)
-        self.set_fits_state(states)
+        if indices is None:
+            indices = self.get_indices(other if isinstance(other, Window) else other.window)
+        new_img = self.copy(
+            _data=self._data[indices],
+            crpix=self.crpix - np.array((indices[0].start, indices[1].start)),
+            **kwargs,
+        )
+        return new_img
 
     def __sub__(self, other):
         if isinstance(other, Image):
-            new_img = self[other.window].copy()
-            new_img.data -= other.data[self.window.get_other_indices(other)]
+            new_img = self[other]
+            new_img._data = new_img._data - other[self]._data
             return new_img
         else:
             new_img = self.copy()
-            new_img.data -= other
+            new_img._data = new_img._data - other
             return new_img
 
     def __add__(self, other):
         if isinstance(other, Image):
-            new_img = self[other.window].copy()
-            new_img.data += other.data[self.window.get_other_indices(other)]
+            new_img = self[other]
+            new_img._data = new_img._data + other[self]._data
             return new_img
         else:
             new_img = self.copy()
-            new_img.data += other
+            new_img._data = new_img._data + other
             return new_img
 
     def __iadd__(self, other):
         if isinstance(other, Image):
-            self.data[other.window.get_other_indices(self)] += other.data[
-                self.window.get_other_indices(other)
-            ]
+            self._data = backend.add_at_indices(
+                self._data,
+                self.get_indices(other.window),
+                other._data[other.get_indices(self.window)],
+            )
         else:
-            self.data += other
+            self._data = self._data + other
         return self
 
     def __isub__(self, other):
         if isinstance(other, Image):
-            self.data[other.window.get_other_indices(self)] -= other.data[
-                self.window.get_other_indices(other)
-            ]
+            self._data = backend.add_at_indices(
+                self._data,
+                self.get_indices(other.window),
+                -other._data[other.get_indices(self.window)],
+            )
         else:
-            self.data -= other
+            self._data = self._data - other
         return self
 
     def __getitem__(self, *args):
-        if len(args) == 1 and isinstance(args[0], Window):
+        if len(args) == 1 and isinstance(args[0], (Image, Window)):
             return self.get_window(args[0])
-        if len(args) == 1 and isinstance(args[0], Image):
-            return self.get_window(args[0].window)
-        raise ValueError("Unrecognized Image getitem request!")
-
-    def __str__(self):
-        return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()}"
-
-    def __repr__(self):
-        return f"image pixelscale: {self.pixelscale.detach().cpu().numpy()} origin: {self.origin.detach().cpu().numpy()} shape: {self.shape.detach().cpu().numpy()} center: {self.center.detach().cpu().numpy()}\ndata: {self.data.detach().cpu().numpy()}"
+        return super().__getitem__(*args)
 
 
-class Image_List(Image):
-    def __init__(self, image_list, window=None):
-        self.image_list = list(image_list)
-        self.check_wcs()
-        self.window = window
-
-    def check_wcs(self):
-        """Ensure the WCS systems being used by all the windows in this list
-        are consistent with each other. They should all project world
-        coordinates onto the same tangent plane.
-
-        """
-        ref = torch.stack(tuple(I.window.reference_radec for I in self.image_list))
-        if not torch.allclose(ref, ref[0]):
-            raise ConflicingWCS(
-                "Reference (world) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means."
+# fixme, make image lists infinitely nestable, need to merge "index" and "match_indices" in some consistent way
+class ImageList(Module):
+    def __init__(self, images: list[Image], **kwargs):
+        super().__init__(**kwargs)
+        self.images = list(images)
+        if not all(isinstance(image, Image) for image in self.images):
+            raise InvalidImage(
+                f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.images)}"
             )
-        ref = torch.stack(tuple(I.window.reference_planexy for I in self.image_list))
-        if not torch.allclose(ref, ref[0]):
-            raise ConflicingWCS(
-                "Reference (tangent plane) coordinate mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means."
-            )
-
-        if len(set(I.window.projection for I in self.image_list)) > 1:
-            raise ConflicingWCS(
-                "Projection mismatch! All images in Image_List are not on the same tangent plane! Likely serious coordinate mismatch problems. See the coordinates page in the documentation for what this means."
-            )
-
-    @property
-    def window(self):
-        return Window_List(list(image.window for image in self.image_list))
-
-    @window.setter
-    def window(self, window):
-        if window is None:
-            return
-
-        if not isinstance(window, Window_List):
-            raise InvalidWindow("Target_List must take a Window_List object as its window")
-
-        for i in range(len(self.image_list)):
-            self.image_list[i] = self.image_list[i][window.window_list[i]]
-
-    @property
-    def pixelscale(self):
-        return tuple(image.pixelscale for image in self.image_list)
-
-    @property
-    def zeropoint(self):
-        return tuple(image.zeropoint for image in self.image_list)
 
     @property
     def data(self):
-        return tuple(image.data for image in self.image_list)
+        return tuple(image.data for image in self.images)
 
-    @data.setter
-    def data(self, data):
-        for image, dat in zip(self.image_list, data):
-            image.data = dat
+    @property
+    def _data(self):
+        return tuple(image._data for image in self.images)
+
+    @_data.setter
+    def _data(self, value):
+        if len(value) != len(self.images):
+            raise ValueError(
+                f"Expected an object of length {len(self.images)} for _data, but got {type(value)} of length {len(value)}"
+            )
+        for image, data in zip(self.images, value):
+            image._data = data
+
+    @property
+    def window(self):
+        return WindowList(tuple(image.window for image in self.images))
 
     def copy(self):
         return self.__class__(
-            tuple(image.copy() for image in self.image_list),
+            tuple(image.copy() for image in self.images),
         )
 
     def blank_copy(self):
         return self.__class__(
-            tuple(image.blank_copy() for image in self.image_list),
+            tuple(image.blank_copy() for image in self.images),
         )
 
-    def get_window(self, window):
+    def get_window(self, other: "ImageList"):
         return self.__class__(
-            tuple(image[win] for image, win in zip(self.image_list, window)),
+            tuple(image[win] for image, win in zip(self.images, other.images)),
         )
 
-    def index(self, other):
-        if isinstance(other, Image) and hasattr(other, "identity"):
-            for i, self_image in enumerate(self.image_list):
-                if other.identity == self_image.identity:
-                    return i
-            else:
-                raise ValueError("Could not find identity match between image list and input image")
-        raise NotImplementedError(f"Image_List cannot get index for {type(other)}")
+    def index(self, other: Image):
+        for i, image in enumerate(self.images):
+            if other.identity == image.identity:
+                return i
+        else:
+            raise IndexError(
+                f"Could not find identity match between image list {self.name} and input image {other.name}"
+            )
+
+    def match_indices(self, other: "ImageList"):
+        """Match the indices of the images in this list with those in another Image_List."""
+        indices = []
+        for other_image in other.images:
+            try:
+                i = self.index(other_image)
+            except IndexError:
+                continue
+            indices.append(i)
+        return indices
 
     def to(self, dtype=None, device=None):
         if dtype is not None:
-            dtype = AP_config.ap_dtype
+            dtype = config.DTYPE
         if device is not None:
-            device = AP_config.ap_device
-        for image in self.image_list:
-            image.to(dtype=dtype, device=device)
+            device = config.DEVICE
+        super().to(dtype=dtype, device=device)
         return self
 
-    def crop(self, *pixels):
-        raise NotImplementedError("Crop function not available for Image_List object")
-
-    def get_coordinate_meshgrid(self):
-        return tuple(image.get_coordinate_meshgrid() for image in self.image_list)
-
-    def get_coordinate_corner_meshgrid(self):
-        return tuple(image.get_coordinate_corner_meshgrid() for image in self.image_list)
-
-    def get_coordinate_simps_meshgrid(self):
-        return tuple(image.get_coordinate_simps_meshgrid() for image in self.image_list)
-
-    def flatten(self, attribute="data"):
-        return torch.cat(tuple(image.flatten(attribute) for image in self.image_list))
-
-    def reduce(self, scale):
-        if scale == 1:
-            return self
-
-        return self.__class__(
-            tuple(image.reduce(scale) for image in self.image_list),
-        )
+    def flatten(self, attribute: str = "data") -> ArrayLike:
+        return backend.concatenate(tuple(image.flatten(attribute) for image in self.images))
 
     def __sub__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             new_list = []
-            for self_image, other_image in zip(self.image_list, other.image_list):
+            for other_image in other.images:
+                i = self.index(other_image)
+                self_image = self.images[i]
                 new_list.append(self_image - other_image)
             return self.__class__(new_list)
         else:
-            new_list = []
-            for self_image, other_image in zip(self.image_list, other):
-                new_list.append(self_image - other_image)
-            return self.__class__(new_list)
+            raise ValueError("Subtraction of Image_List only works with another Image_List object!")
 
     def __add__(self, other):
-        if isinstance(other, Image_List):
+        if isinstance(other, ImageList):
             new_list = []
-            for self_image, other_image in zip(self.image_list, other.image_list):
+            for other_image in other.images:
+                try:
+                    i = self.index(other_image)
+                except IndexError:
+                    continue
+                self_image = self.images[i]
                 new_list.append(self_image + other_image)
             return self.__class__(new_list)
         else:
-            new_list = []
-            for self_image, other_image in zip(self.image_list, other):
-                new_list.append(self_image + other_image)
-            return self.__class__(new_list)
+            raise ValueError("Addition of Image_List only works with another Image_List object!")
 
     def __isub__(self, other):
-        if isinstance(other, Image_List):
-            for self_image, other_image in zip(self.image_list, other.image_list):
-                self_image -= other_image
+        if isinstance(other, ImageList):
+            for other_image in other.images:
+                try:
+                    i = self.index(other_image)
+                except IndexError:
+                    continue
+                self.images[i] -= other_image
+        elif isinstance(other, Image):
+            i = self.index(other)
+            self.images[i] -= other
         else:
-            for self_image, other_image in zip(self.image_list, other):
-                self_image -= other_image
+            raise ValueError("Subtraction of Image_List only works with another Image_List object!")
         return self
 
     def __iadd__(self, other):
-        if isinstance(other, Image_List):
-            for self_image, other_image in zip(self.image_list, other.image_list):
-                self_image += other_image
+        if isinstance(other, ImageList):
+            for other_image in other.images:
+                try:
+                    i = self.index(other_image)
+                except IndexError:
+                    continue
+                self.images[i] += other_image
+        elif isinstance(other, Image):
+            i = self.index(other)
+            self.images[i] += other
         else:
-            for self_image, other_image in zip(self.image_list, other):
-                self_image += other_image
+            raise ValueError("Addition of Image_List only works with another Image_List object!")
         return self
 
-    def save(self, filename=None, overwrite=True):
-        raise NotImplementedError("Save/load not yet available for image lists")
-
-    def load(self, filename):
-        raise NotImplementedError("Save/load not yet available for image lists")
-
     def __getitem__(self, *args):
-        if len(args) == 1 and isinstance(args[0], Window):
-            return self.get_window(args[0])
-        if len(args) == 1 and isinstance(args[0], Image):
-            return self.get_window(args[0].window)
-        if all(isinstance(arg, (int, slice)) for arg in args):
-            return self.image_list.__getitem__(*args)
-        raise ValueError("Unrecognized Image_List getitem request!")
-
-    def __str__(self):
-        return "image list of:\n" + "\n".join(image.__str__() for image in self.image_list)
-
-    def __repr__(self):
-        return "image list of:\n" + "\n".join(image.__repr__() for image in self.image_list)
+        if len(args) == 1:
+            if isinstance(args[0], ImageList):
+                new_list = []
+                for other_image in args[0].images:
+                    i = self.index(other_image)
+                    new_list.append(self.images[i].get_window(other_image))
+                return self.__class__(new_list)
+            elif isinstance(args[0], WindowList):
+                new_list = []
+                for other_window in args[0].windows:
+                    i = self.index(other_window.image)
+                    new_list.append(self.images[i].get_window(other_window))
+                return self.__class__(new_list)
+            elif isinstance(args[0], Image):
+                i = self.index(args[0])
+                return self.images[i].get_window(args[0])
+            elif isinstance(args[0], Window):
+                i = self.index(args[0].image)
+                return self.images[i].get_window(args[0])
+            elif isinstance(args[0], int):
+                return self.images[args[0]]
+        super().__getitem__(*args)
 
     def __iter__(self):
-        return (img for img in self.image_list)
+        return (img for img in self.images)
 
-    #     self._index = 0
-    #     return self
 
-    # def __next__(self):
-    #     if self._index >= len(self.image_list):
-    #         raise StopIteration
-    #     img = self.image_list[self._index]
-    #     self._index += 1
-    #     return img
+class ImageBatchMixin:
+    """Specialized ImageList type where the images are all the same size.
+
+    An ImageBatch has restrictions on the shape of the images it can hold, but
+    in exchange it allows vectorized operations over a batch of images.
+
+    Some notes to keep in mind:
+    - All the images must be the regular image type (i.e. not SIP or CMOS images yet).
+    - All the images must have the same shape, otherwise the batch operations will not work.
+    - The ImageBatch does not itself accelerate any operations, it facilitates the BatchSceneModel.
+    - Otherwise the ImageBatch behaves like a regular ImageList.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not all(isinstance(image, Image) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(isinstance(image, self.images[0].__class__) for image in self.images):
+            raise InvalidImage(
+                f"ImageBatch images must all be of the same type, not {tuple(type(image) for image in self.images)}"
+            )
+        if not all(image.data.shape == self.images[0].data.shape for image in self.images):
+            raise InvalidImage(
+                f"All images in an ImageBatch must have the same shape, but got shapes {tuple(image.data.shape for image in self.images)}"
+            )
+
+    @property
+    def data(self):
+        return backend.stack(tuple(image.data for image in self.images), dim=0)
+
+    @ImageList._data.getter
+    def _data(self):
+        return backend.stack(tuple(image._data for image in self.images), dim=0)
+
+    @property
+    def window(self):
+        return WindowBatch(tuple(image.window for image in self.images))
+
+    @property
+    def crval(self):
+        return backend.stack(tuple(image.crval.value for image in self.images), dim=0)
+
+    @property
+    def crtan(self):
+        return backend.stack(tuple(image.crtan.value for image in self.images), dim=0)
+
+    @property
+    def CD(self):
+        return backend.stack(tuple(image.CD.value for image in self.images), dim=0)
+
+    @property
+    def crpix(self):
+        return backend.as_array(
+            np.stack(tuple(image.crpix for image in self.images), axis=0),
+            dtype=config.DTYPE,
+            device=config.DEVICE,
+        )

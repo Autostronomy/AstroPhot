@@ -11,6 +11,8 @@ Installation is very easy for most users, simply call::
 
 If PyTorch gives you trouble, just follow the instructions on the `pytorch website <https://pytorch.org/>`_ which will provide a command to copy into the terminal for very easy setup.
 
+If you want to use AstroPhot with JAX, simply also install jax with ``pip install jax jaxlib`` and check out :doc:`tutorials/GettingStartedJAX`.
+
 Requirements
 ------------
 

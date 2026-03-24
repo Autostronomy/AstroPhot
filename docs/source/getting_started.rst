@@ -5,8 +5,8 @@ Getting Started
 First follow the installation instructions, then come here to learn how to use
 AstroPhot for the first time.
 
-Basic AstroPhot code philosophy
-------------------------------
+Basic AstroPhot code organization
+---------------------------------
 
 AstroPhot is a modular and object oriented astronomical image modelling package.
 Modularity means that it is relatively simple to change or replace one aspect of
@@ -22,14 +22,13 @@ would expect. This makes the experience more user friendly hopefully meaning
 that you can quickly take advantage of the powerful features available.
 
 One of the core components of AstroPhot is the model objects, these are
-organized in a class hierarchy with several layers of inheritance. While this is
-not considered best programming practice for many situations, in AstroPhot it is
-very intentional and we think helpful to users. With this hierarchy it is very
-easy to customize a model to suit your needs without needing to rewrite a great
-deal of code. Simply access the point in the hierarchy which most closely
-matches your desired result and make minor modifications. In the tutorials you
-can see how detailed models can be implemented with only a few lines of code
-even though the user has complete freedom to change any aspect of the model.
+organized in a class hierarchy with several layers of inheritance. With this
+hierarchy it is very easy to customize a model to suit your needs without
+needing to rewrite a great deal of code. Simply access the point in the
+hierarchy which most closely matches your desired result and make minor
+modifications. In the tutorials you can see how detailed models can be
+implemented with only a few lines of code even though the user has complete
+freedom to change any aspect of the model.
 
 Install
 -------
@@ -59,40 +58,15 @@ tutorials then run the::
 
 command to download the AstroPhot tutorials. If you run into difficulty with
 this, you can also access the tutorials directly at :doc:`tutorials` to download
-as PDFs. Once you have the tutorials, start a jupyter session and run through
-them. The recommended order is:
+as PDFs or jupyter notebooks. Once you have the tutorials, start a jupyter
+session and run through them.
 
-#. :doc:`tutorials/GettingStarted`
-#. :doc:`tutorials/GroupModels`
-#. :doc:`tutorials/ModelZoo`
-#. :doc:`tutorials/FittingMethods`
-#. :doc:`tutorials/BasicPSFModels`
-#. :doc:`tutorials/JointModels`
-#. :doc:`tutorials/AdvancedPSFModels`
-#. :doc:`tutorials/CustomModels`
+Model Zoo
+---------
 
-When downloading the tutorials, you will also get a file called
-``simple_config.py``, this is an example AstroPhot config file. Configuration
-files are an alternate interface to the AstroPhot functionality. They are
-somewhat more limited in capacity, but very easy to interface with. See the
-guide on configuration files here: :doc:`configfile_interface` .
-
-Model Org Chart
----------------
-
-As a quick reference for what kinds of models are available in AstroPhot, the
-org chart shows you the class hierarchy where the leaf nodes at the bottom are
-the models that can actually be used. Following different paths through the
-hierarchy gives models with different properties. Just use the second line at
-each step in the flow chart to construct the name. For example one could follow
-a fairly direct path to get a ``sersic galaxy model``, or a more complex path to
-get a ``nuker fourier warp galaxy model``. Note that the ``Component_Model``
-object doesn't have an identifier, it is really meant to hide in the background
-while its subclasses do the work.
-
-.. image:: https://github.com/Autostronomy/AstroPhot/blob/main/media/AstroPhotModelOrgchart.png?raw=true
-   :alt: AstroPhot Model Org Chart
-   :width: 100 %
+The best way to see what models are available in AstroPhot is to peruse the
+:doc:`tutorials/ModelZoo`. Here you can see the models evaluated on a regular
+grid, and play around with the values if you are running the tutorial locally.
 
 Detailed Documentation
 ----------------------
