@@ -15,7 +15,6 @@ from ..utils.conversions.units import flux_to_sb
 from ..utils.decorators import ignore_numpy_warnings
 from .visuals import *
 
-
 __all__ = ("target_image", "psf_image", "model_image", "residual_image", "model_window")
 
 

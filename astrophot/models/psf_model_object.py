@@ -1,12 +1,11 @@
-from typing import Optional, Tuple
+from typing import Tuple
 from caskade import forward
 
 from .base import Model
-from ..image import ModelImage, PSFImage, Window
+from ..image import PSFImage
 from ..errors import InvalidTarget
 from .mixins import SampleMixin, GradMixin
 from ..backend_obj import backend, ArrayLike
-from . import func
 
 __all__ = ("PSFModel",)
 

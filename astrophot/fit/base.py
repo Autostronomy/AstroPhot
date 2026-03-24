@@ -1,14 +1,10 @@
 from typing import Sequence, Optional
 
 import numpy as np
-from scipy.optimize import minimize
-from scipy.special import gammainc
 
 from .. import config
 from ..backend_obj import backend, ArrayLike
 from ..models import Model
-from ..image import Window
-
 
 __all__ = ("BaseOptimizer",)
 

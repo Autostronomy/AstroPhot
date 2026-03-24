@@ -2,8 +2,7 @@ from .model_object import ComponentModel
 from .mixins import InclinedMixin
 from ..utils.decorators import combine_docstrings
 
-
-__all__ = ["GalaxyModel"]
+__all__ = ("GalaxyModel",)
 
 
 @combine_docstrings
