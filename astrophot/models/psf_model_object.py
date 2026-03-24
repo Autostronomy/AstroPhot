@@ -85,7 +85,7 @@ class PSFModel(GradMixin, SampleMixin, Model):
         :param j: 2D array of y-coordinates of pixel centers (or pre-upsampled
           according to the ``sampling_mode``) in pixel units.
 
-        :returns: ``Z``: 2D array of flux values at each pixel center, representing the
+        :returns: 2D array (``Z``) of flux values at each pixel center, representing the
           PSF model evaluated at those coordinates.
         """
         Z = self.pixel_brightness(i, j)
