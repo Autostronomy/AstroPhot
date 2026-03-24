@@ -14,17 +14,26 @@ class PSFModel(GradMixin, SampleMixin, Model):
     """Prototype point source (typically a star) model, to be subclassed
     by other point source models which define specific behavior.
 
-    PSF_Models behave differently than component models. For starters,
-    their target image must be a PSF_Image object instead of a
-    Target_Image object. PSF_Models also don't define a "center"
-    variable since their center is always (0,0) just like a
-    PSF_Image. A PSF_Model will never be convolved with a PSF_Model
-    (that's it's job!), so a lot of the sampling method is simpler.
+    PSF models behave differently than component models. Their target image
+    must be a ``PSFImage`` object instead of a ``TargetImage`` object.
+    PSF models do not fit a free ``center`` parameter; their center is
+    always ``(0, 0)`` in pixel coordinates, matching the convention of a
+    ``PSFImage``. A PSF model is never convolved with another PSF model.
 
+    :param center: Center of the PSF in pixel coordinates ``[x, y]``.
+        Fixed at ``(0, 0)`` by default and not included in the fit.
+    :param normalize_psf: When ``True`` (default) the sampled PSF is
+        normalised so that its total flux within the fitting window equals 1.
     """
 
     _parameter_specs = {
-        "center": {"units": "pix", "value": (0.0, 0.0), "shape": (2,), "dynamic": False},
+        "center": {
+            "units": "pix",
+            "value": (0.0, 0.0),
+            "shape": (2,),
+            "dynamic": False,
+            "description": "center of the PSF in pixel coordinates [x, y], fixed at (0,0)",
+        },
     }
     _model_type = "psf"
     usable = False

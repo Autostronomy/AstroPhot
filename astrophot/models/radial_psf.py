@@ -27,7 +27,15 @@ radial_models = (
     SplinePSFMixin,
 )
 
-EllipseMixin = combine_docstrings(type("EllipseMixin", (InclinedMixin,), {"usable": False, "_model_type": "ellipse"}))
+EllipseMixin = type(
+    "EllipseMixin",
+    (InclinedMixin,),
+    {
+        "usable": False,
+        "_model_type": "ellipse",
+        "__doc__": "PSF model with elliptical isophotes defined by a position angle and axis ratio.",
+    },
+)
 __all__ = []
 for mixin in radial_models:
     # PSF Model

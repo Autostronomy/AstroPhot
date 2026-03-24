@@ -53,8 +53,9 @@ def _parse_docstring(doc):
     params = {}
 
     # --- RST-style :param name: desc (possibly multi-line) ---
+    # Split on ":param " boundaries so multi-line descriptions are captured correctly.
     for m in re.finditer(
-        r':param\s+(\w+):\s*(.*?)(?=\n:param\s|\n:type\s|\n\n|\Z)',
+        r':param\s+(\w+):\s*((?:(?!\n:(?:param|type)\s).)*)',
         doc,
         re.DOTALL,
     ):
@@ -73,8 +74,8 @@ def _parse_docstring(doc):
         ):
             params[item.group(1)] = item.group(2).strip()
 
-    # Strip :param/:type entries from body
-    body = re.sub(r'\n:(?:param|type)\s+\w+:.*?(?=\n:(?:param|type)\s|\n\n|\Z)', '', doc, flags=re.DOTALL)
+    # Strip :param/:type entries from body (handle multi-line descriptions)
+    body = re.sub(r':(?:param|type)\s+\w+:\s*(?:(?!\n:(?:param|type)\s).)*', '', doc, flags=re.DOTALL)
     # Strip markdown Parameters/Options sections from body
     body = re.sub(r'\*\*(?:Parameters|Options):\*\*\n(?:[ \t]*-[^\n]*\n?)+', '', body)
     body = body.strip()
