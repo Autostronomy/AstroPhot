@@ -24,7 +24,7 @@ class Image(Module):
     image boundaries. It also provides methods for determining the coordinate
     locations of pixels
 
-    :param data: The image data as a tensor of pixel values. If not provided, a tensor of zeros will be created.
+    :param data: The image data as a Array of pixel values. If not provided, a Array of zeros will be created.
     :param zeropoint: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
     :param crpix: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates.
     :param pixelscale: The side length of a pixel, used to create a simple diagonal CD matrix.
@@ -124,12 +124,12 @@ class Image(Module):
 
     @property
     def data(self):
-        """The image data, which is a tensor of pixel values."""
+        """The image data, which is a Array of pixel values."""
         return backend.transpose(self._data, 1, 0)
 
     @data.setter
     def data(self, value: Optional[ArrayLike]):
-        """Set the image data. If value is None, the data is initialized to an empty tensor."""
+        """Set the image data. If value is None, the data is initialized to an empty Array."""
         if value is None:
             self._data = backend.empty((0, 0), dtype=config.DTYPE, device=config.DEVICE)
         else:
@@ -395,13 +395,13 @@ class Image(Module):
         """This operation will downsample an image by the factor given. If
         scale = 2 then 2x2 blocks of pixels will be summed together to
         form individual larger pixels. A new image object will be
-        returned with the appropriate pixelscale and data tensor. Note
+        returned with the appropriate pixelscale and data Array. Note
         that the window does not change in this operation since the
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        Args:
-        -  `scale` (int): The scale factor by which to reduce the image.
+        :param scale: The scale factor by which to reduce the image.
+        :type scale: int
         """
         if not isinstance(scale, int) and not (
             isinstance(scale, ArrayLike) and scale.dtype is backend.int32

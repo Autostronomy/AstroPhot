@@ -13,14 +13,13 @@ class BaseOptimizer:
     """
     Base optimizer object that other optimizers inherit from. Ensures consistent signature for the classes.
 
-    Args:
-    -  `model`: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
-    -  `initial_state`: optional initialization for the parameters as a 1D tensor [tensor]
-    -  `relative_tolerance`: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]
-    -  `verbose`: verbosity level for the optimizer [int]
-    -  `max_iter`: maximum allowed number of iterations [int]
-    -  `save_steps`: optional string for path to save the model at each step (fitter dependent), e.g. "model_step_{step}.hdf5" [str]
-    -  `fit_valid`: whether to fit while forcing parameters into valid range, or allow any value for each parameter. Default True [bool]
+    :param model: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
+    :param initial_state: optional initialization for the parameters as a 1D Array [Array]
+    :param relative_tolerance: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]
+    :param verbose: verbosity level for the optimizer [int]
+    :param max_iter: maximum allowed number of iterations [int]
+    :param save_steps: optional string for path to save the model at each step (fitter dependent), e.g. "model_step_{step}.hdf5" [str]
+    :param fit_valid: whether to fit while forcing parameters into valid range, or allow any value for each parameter. Default True [bool]
 
     """
 

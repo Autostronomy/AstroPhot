@@ -31,11 +31,10 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
     """
     Sets up an initial mass matrix.
 
-    Args:
-    -  `mass_matrix_shape`: a dict that maps tuples of site names to the shape of
+    :param mass_matrix_shape: a dict that maps tuples of site names to the shape of
         the corresponding mass matrix. Each tuple of site names corresponds to a block.
-    -  `adapt_mass_matrix`: a flag to decide whether an adaptation scheme will be used.
-    -  `options`: tensor options to construct the initial mass matrix.
+    :param adapt_mass_matrix: a flag to decide whether an adaptation scheme will be used.
+    :param options: Array options to construct the initial mass matrix.
     """
     inverse_mass_matrix = {}
     for site_names, shape in mass_matrix_shape.items():
@@ -70,16 +69,24 @@ class HMC(BaseOptimizer):
     https://arxiv.org/abs/1701.02434, and
     http://www.mcmchandbook.net/HandbookChapter5.pdf
 
-    Args:
-    -  `max_iter` (int, optional): The number of sampling steps to perform. Defaults to 1000.
-    -  `epsilon` (float, optional): The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
-    -  `leapfrog_steps` (int, optional): Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 10.
-    -  `inv_mass` (float or array, optional): Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.
-    -  `progress_bar` (bool, optional): Whether to display a progress bar during sampling. Defaults to True.
-    -  `prior` (distribution, optional): Prior distribution for the parameters. Defaults to None.
-    -  `warmup` (int, optional): Number of warmup steps before actual sampling begins. Defaults to 100.
-    -  `hmc_kwargs` (dict, optional): Additional keyword arguments for the HMC sampler. Defaults to {}.
-    -  `mcmc_kwargs` (dict, optional): Additional keyword arguments for the MCMC process. Defaults to {}.
+    :param max_iter: The number of sampling steps to perform. Defaults to 1000.
+    :type max_iter: int, optional
+    :param epsilon: The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
+    :type epsilon: float, optional
+    :param leapfrog_steps: Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 10.
+    :type leapfrog_steps: int, optional
+    :param inv_mass: Inverse Mass matrix (covariance matrix) which can tune the behavior in each dimension to ensure better mixing when sampling. Defaults to the identity.
+    :type inv_mass: float or array, optional
+    :param progress_bar: Whether to display a progress bar during sampling. Defaults to True.
+    :type progress_bar: bool, optional
+    :param prior: Prior distribution for the parameters. Defaults to None.
+    :type prior: distribution, optional
+    :param warmup: Number of warmup steps before actual sampling begins. Defaults to 100.
+    :type warmup: int, optional
+    :param hmc_kwargs: Additional keyword arguments for the HMC sampler. Defaults to {}.
+    :type hmc_kwargs: dict, optional
+    :param mcmc_kwargs: Additional keyword arguments for the MCMC process. Defaults to {}.
+    :type mcmc_kwargs: dict, optional
 
     """
 
@@ -122,8 +129,8 @@ class HMC(BaseOptimizer):
 
         Records the chain for later examination.
 
-        Args:
-            state (torch.Tensor, optional): Model parameters as a 1D tensor.
+        :param state: Model parameters as a 1D Array.
+        :type state: Array, optional
 
         """
 

@@ -70,12 +70,12 @@ class PSFImage(DataMixin):
 
     @property
     def data(self):
-        """The image data, which is a tensor of pixel values."""
+        """The image data, which is a Array of pixel values."""
         return backend.transpose(self._data, 1, 0)
 
     @data.setter
     def data(self, value: Optional[ArrayLike]):
-        """Set the image data. If value is None, the data is initialized to an empty tensor."""
+        """Set the image data. If value is None, the data is initialized to an empty Array."""
         if value is None:
             self._data = backend.ones((1, 1), dtype=config.DTYPE, device=config.DEVICE)
         else:

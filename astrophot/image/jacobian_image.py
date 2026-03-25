@@ -13,7 +13,7 @@ class JacobianImage(Image):
 
     Image object which represents the evaluation of a jacobian on an
     image. It takes the form of a 3D (Image x Nparameters)
-    tensor. This object can be added other other Jacobian images to
+    Array. This object can be added other other Jacobian images to
     build up a full jacobian for a complex model.
 
     """

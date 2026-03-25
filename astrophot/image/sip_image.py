@@ -46,13 +46,12 @@ class SIPModelImage(SIPMixin, ModelImage):
         """This operation will downsample an image by the factor given. If
         scale = 2 then 2x2 blocks of pixels will be summed together to
         form individual larger pixels. A new image object will be
-        returned with the appropriate pixelscale and data tensor. Note
+        returned with the appropriate pixelscale and data Array. Note
         that the window does not change in this operation since the
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        Args:
-        -  `scale`: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
+        :param scale: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
 
         """
         if not isinstance(scale, int) and not (

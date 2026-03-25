@@ -19,11 +19,10 @@ class ScipyFit(BaseOptimizer):
     tasks. It supports a variety of methods, however only a subset allow users to
     define boundaries for the parameters. This wrapper is only for those methods.
 
-    Args:
-    -  `model`: The model to fit, which should be an instance of `Model`.
-    -  `initial_state`: Initial guess for the model parameters as a 1D tensor.
-    -  `method`: The optimization method to use. Default is "Nelder-Mead", but can be set to any of: "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", or "trust-constr".
-    -  `ndf`: Optional number of degrees of freedom for the fit. If not provided, it is calculated as the number of data points minus the number of parameters.
+    :param model: The model to fit, which should be an instance of `Model`.
+    :param initial_state: Initial guess for the model parameters as a 1D Array.
+    :param method: The optimization method to use. Default is "Nelder-Mead", but can be set to any of: "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", or "trust-constr".
+    :param ndf: Optional number of degrees of freedom for the fit. If not provided, it is calculated as the number of data points minus the number of parameters.
     """
 
     def __init__(
