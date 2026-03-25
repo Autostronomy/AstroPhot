@@ -13,22 +13,33 @@ __all__ = ["PlaneSky"]
 class PlaneSky(SkyModel):
     """Sky background model using a tilted plane for the sky flux. The brightness for each pixel is defined as:
 
-    $$I(X, Y) = I_0 + X*\\delta_x + Y*\\delta_y$$
+    .. math::
 
-    where $I(X,Y)$ is the brightness as a function of image position $X, Y$,
-    $I_0$ is the central sky brightness value, and $\\delta_x, \\delta_y$ are the slopes of
+       I(X, Y) = I_0 + X*\\delta_x + Y*\\delta_y
+
+    where :math:`I(X,Y)` is the brightness as a function of image position :math:`X, Y`,
+    :math:`I_0` is the central sky brightness value, and :math:`\\delta_x, \\delta_y` are the slopes of
     the sky brightness plane.
 
-    **Parameters:**
-    -    `I0`: central sky brightness value
-    -    `delta`: Tensor for slope of the sky brightness in each image dimension
+    :param I0: central sky brightness value
+    :param delta: Tensor for slope of the sky brightness in each image dimension
 
     """
 
     _model_type = "plane"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2", "shape": (), "dynamic": True},
-        "delta": {"units": "flux/arcsec", "shape": (2,), "dynamic": True},
+        "I0": {
+            "units": "flux/arcsec^2",
+            "shape": (),
+            "dynamic": True,
+            "description": "central sky brightness value",
+        },
+        "delta": {
+            "units": "flux/arcsec",
+            "shape": (2,),
+            "dynamic": True,
+            "description": "Tensor for slope of the sky brightness in each image dimension",
+        },
     }
     usable = True
 

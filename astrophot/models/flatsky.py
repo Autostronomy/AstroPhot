@@ -14,13 +14,19 @@ class FlatSky(SkyModel):
     """Model for the sky background in which all values across the image
     are the same.
 
-    **Parameters:**
-    -    `I0`: brightness for the sky, represented as the log of the brightness over pixel scale squared, this is proportional to a surface brightness
+    :param I0: brightness for the sky, represented as the log of the brightness over pixel scale squared, this is proportional to a surface brightness
 
     """
 
     _model_type = "flat"
-    _parameter_specs = {"I0": {"units": "flux/arcsec^2", "shape": (), "dynamic": True}}
+    _parameter_specs = {
+        "I0": {
+            "units": "flux/arcsec^2",
+            "shape": (),
+            "dynamic": True,
+            "description": "brightness for the sky, proportional to a surface brightness",
+        }
+    }
     usable = True
 
     @torch.no_grad()

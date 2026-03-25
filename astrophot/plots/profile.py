@@ -34,15 +34,20 @@ def radial_light_profile(
     """
     Used to plot the brightness profile as a function of radius for models which define a `radial_model`.
 
-    **Args:**
-    - `fig`: matplotlib figure object
-    - `ax`: matplotlib axis object
-    - `model` (Model): Model object from which to plot the radial profile.
-    - `rad_unit` (str): The name of the radius units to plot. If you select "pixel" then the plot will work in pixel units (physical radii divided by pixelscale) if you choose any other string then it will remain in the physical units of the image and the axis label will be whatever you set the value to. Default: "arcsec". Options: "arcsec", "pixel"
-    - `extend_profile` (float): The factor by which to extend the profile beyond the maximum radius of the model's window. Default: 1.0
-    - `R0` (float): The starting radius for the profile. Default: 0.0
-    - `resolution` (int): The number of points to use in the profile. Default: 1000
-    - `plot_kwargs` (dict): Additional keyword arguments to pass to the plot function, such as `linewidth`, `color`, etc.
+    :param fig: matplotlib figure object
+    :param ax: matplotlib axis object
+    :param model: Model object from which to plot the radial profile.
+    :type model: Model
+    :param rad_unit: The name of the radius units to plot. If you select "pixel" then the plot will work in pixel units (physical radii divided by pixelscale) if you choose any other string then it will remain in the physical units of the image and the axis label will be whatever you set the value to. Default: "arcsec". Options: "arcsec", "pixel"
+    :type rad_unit: str
+    :param extend_profile: The factor by which to extend the profile beyond the maximum radius of the model's window. Default: 1.0
+    :type extend_profile: float
+    :param R0: The starting radius for the profile. Default: 0.0
+    :type R0: float
+    :param resolution: The number of points to use in the profile. Default: 1000
+    :type resolution: int
+    :param plot_kwargs: Additional keyword arguments to pass to the plot function, such as `linewidth`, `color`, etc.
+    :type plot_kwargs: dict
     """
     xx = backend.linspace(
         R0,
@@ -98,14 +103,18 @@ def radial_median_profile(
     representation of the image data if one were to simply average the
     pixels along isophotes.
 
-    **Args:**
-    -  `fig`: matplotlib figure object
-    -  `ax`: matplotlib axis object
-    -  `model` (AstroPhot_Model): Model object from which to determine the radial binning. Also provides the target image to extract the data
-    -  `count_limit` (int): The limit of pixels in a bin, below which uncertainties are not computed. Default: 10
-    -  `return_profile` (bool): Instead of just returning the fig and ax object, will return the extracted profile formatted as: Rbins (the radial bin edges), medians (the median in each bin), scatter (the 16-84 quartile range / 2), count (the number of pixels in each bin). Default: False
-    -  `rad_unit` (str): The name of the radius units to plot. If you select "pixel" then the plot will work in pixel units (physical radii divided by pixelscale) if you choose any other string then it will remain in the physical units of the image and the axis label will be whatever you set the value to. Default: "arcsec". Options: "arcsec", "pixel"
-    -  `plot_kwargs` (dict): Additional keyword arguments to pass to the plot function, such as `linewidth`, `color`, etc.
+    :param fig: matplotlib figure object
+    :param ax: matplotlib axis object
+    :param model: Model object from which to determine the radial binning. Also provides the target image to extract the data
+    :type model: AstroPhot_Model
+    :param count_limit: The limit of pixels in a bin, below which uncertainties are not computed. Default: 10
+    :type count_limit: int
+    :param return_profile: Instead of just returning the fig and ax object, will return the extracted profile formatted as: Rbins (the radial bin edges), medians (the median in each bin), scatter (the 16-84 quartile range / 2), count (the number of pixels in each bin). Default: False
+    :type return_profile: bool
+    :param rad_unit: The name of the radius units to plot. If you select "pixel" then the plot will work in pixel units (physical radii divided by pixelscale) if you choose any other string then it will remain in the physical units of the image and the axis label will be whatever you set the value to. Default: "arcsec". Options: "arcsec", "pixel"
+    :type rad_unit: str
+    :param plot_kwargs: Additional keyword arguments to pass to the plot function, such as `linewidth`, `color`, etc.
+    :type plot_kwargs: dict
 
     """
 
@@ -195,13 +204,16 @@ def ray_light_profile(
     """
     Used for plotting ray (wedge) type models which define a `iradial_model` method. These have multiple radial profiles.
 
-    **Args:**
-    - `fig`: matplotlib figure object
-    - `ax`: matplotlib axis object
-    - `model` (Model): Model object from which to plot the radial profile.
-    - `rad_unit` (str): The name of the radius units to plot.
-    - `extend_profile` (float): The factor by which to extend the profile beyond the maximum radius of the model's window. Default: 1.0
-    - `resolution` (int): The number of points to use in the profile. Default: 1000
+    :param fig: matplotlib figure object
+    :param ax: matplotlib axis object
+    :param model: Model object from which to plot the radial profile.
+    :type model: Model
+    :param rad_unit: The name of the radius units to plot.
+    :type rad_unit: str
+    :param extend_profile: The factor by which to extend the profile beyond the maximum radius of the model's window. Default: 1.0
+    :type extend_profile: float
+    :param resolution: The number of points to use in the profile. Default: 1000
+    :type resolution: int
     """
     xx = backend.linspace(
         0,

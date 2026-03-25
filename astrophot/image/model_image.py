@@ -1,10 +1,12 @@
 from .image_object import Image, ImageList, ImageBatchMixin
 from ..errors import InvalidImage
+from ..utils.decorators import combine_docstrings
 
 __all__ = ["ModelImage", "ModelImageList"]
 
 
 ######################################################################
+@combine_docstrings
 class ModelImage(Image):
     """Image object which represents the sampling of a model at the given
     coordinates of the image. Extra arithmetic operations are
@@ -16,6 +18,7 @@ class ModelImage(Image):
 
 
 ######################################################################
+@combine_docstrings
 class ModelImageList(ImageList):
     """A list of ModelImage objects."""
 
@@ -27,5 +30,6 @@ class ModelImageList(ImageList):
             )
 
 
+@combine_docstrings
 class ModelImageBatch(ImageBatchMixin, ModelImageList):
     pass

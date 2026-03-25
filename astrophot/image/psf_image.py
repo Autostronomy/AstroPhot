@@ -9,10 +9,12 @@ from ..backend_obj import backend, ArrayLike
 from .mixins import DataMixin
 from .window import Window
 from . import func
+from ..utils.decorators import combine_docstrings
 
 __all__ = ("PSFImage",)
 
 
+@combine_docstrings
 class PSFImage(DataMixin):
     """Image object which represents a model of PSF (Point Spread Function).
 
@@ -70,12 +72,12 @@ class PSFImage(DataMixin):
 
     @property
     def data(self):
-        """The image data, which is a tensor of pixel values."""
+        """The image data, which is a Array of pixel values."""
         return backend.transpose(self._data, 1, 0)
 
     @data.setter
     def data(self, value: Optional[ArrayLike]):
-        """Set the image data. If value is None, the data is initialized to an empty tensor."""
+        """Set the image data. If value is None, the data is initialized to an empty Array."""
         if value is None:
             self._data = backend.ones((1, 1), dtype=config.DTYPE, device=config.DEVICE)
         else:

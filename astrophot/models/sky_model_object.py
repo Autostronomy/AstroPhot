@@ -6,15 +6,23 @@ __all__ = ["SkyModel"]
 
 @combine_docstrings
 class SkyModel(ComponentModel):
-    """prototype class for any sky background model. This simply imposes
-    that the center is a locked parameter, not involved in the
-    fit. Also, a sky model object has no psf mode or integration mode
-    by default since it is intended to change over much larger spatial
-    scales than the psf or pixel size.
+    """Prototype class for any sky background model.
+
+    This base class imposes that the ``center`` is a locked parameter not
+    involved in the fit. Sky models also have no PSF convolution or
+    integration mode by default, since sky backgrounds vary on spatial
+    scales much larger than the PSF or pixel size.
 
     """
 
-    _parameter_specs = {"center": {"units": "arcsec", "shape": (2,), "dynamic": False}}
+    _parameter_specs = {
+        "center": {
+            "units": "arcsec",
+            "shape": (2,),
+            "dynamic": False,
+            "description": "center of the sky model in arcsec [x, y], locked to the image center",
+        }
+    }
     _model_type = "sky"
     usable = False
 

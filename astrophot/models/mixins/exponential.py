@@ -18,20 +18,33 @@ class ExponentialMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)$$
+    .. math::
+
+       I(R) = I_e \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)
 
     Ie is the brightness at the effective radius, and Re is the effective
-    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
+    radius. :math:`b_1` is a constant that ensures :math:`I_e` is the brightness at :math:`R_e`.
 
-    **Parameters:**
-    -    `Re`: effective radius in arcseconds
-    -    `Ie`: effective surface density in flux/arcsec^2
+    :param Re: effective radius in arcseconds
+    :param Ie: effective surface density in flux/arcsec^2
     """
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
+        "Re": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "effective radius in arcseconds",
+        },
+        "Ie": {
+            "units": "flux/arcsec^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "effective surface density in flux/arcsec^2",
+        },
     }
 
     @torch.no_grad()
@@ -58,23 +71,36 @@ class iExponentialMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)$$
+    .. math::
 
-    $I_e$ is the brightness at the effective radius, and $R_e$ is the effective
-    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
+       I(R) = I_e \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)
 
-    `Re` and `Ie` are batched by their first dimension, allowing for multiple
+    :math:`I_e` is the brightness at the effective radius, and :math:`R_e` is the effective
+    radius. :math:`b_1` is a constant that ensures :math:`I_e` is the brightness at :math:`R_e`.
+
+    ``Re`` and ``Ie`` are batched by their first dimension, allowing for multiple
     exponential profiles to be defined at once.
 
-    **Parameters:**
-    -    `Re`: effective radius in arcseconds
-    -    `Ie`: effective surface density in flux/arcsec^2
+    :param Re: effective radius in arcseconds
+    :param Ie: effective surface density in flux/arcsec^2
     """
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
-        "Ie": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "Re": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "effective radius in arcseconds",
+        },
+        "Ie": {
+            "units": "flux/arcsec^2",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "effective surface density in flux/arcsec^2",
+        },
     }
 
     @torch.no_grad()
@@ -102,25 +128,33 @@ class ExponentialPSFMixin:
     An exponential is a classical radial model used in many contexts. The
     functional form of the exponential profile is defined as:
 
-    $$I(R) = I_e * \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)$$
+    .. math::
+
+       I(R) = I_e \\exp\\left(- b_1\\left(\\frac{R}{R_e} - 1\\right)\\right)
 
     Ie is the brightness at the effective radius, and Re is the effective
-    radius. $b_1$ is a constant that ensures $I_e$ is the brightness at $R_e$.
+    radius. :math:`b_1` is a constant that ensures :math:`I_e` is the brightness at :math:`R_e`.
 
-    **Parameters:**
-    -    `Re`: effective radius in pixels
-    -    `Ie`: effective surface density in flux/pix^2
+    :param Re: effective radius in pixels
+    :param Ie: effective surface density in flux/pix^2
     """
 
     _model_type = "exponential"
     _parameter_specs = {
-        "Re": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
+        "Re": {
+            "units": "pix",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "effective radius in pixels",
+        },
         "Ie": {
             "units": "flux/pix^2",
             "valid": (0, None),
             "shape": (),
             "dynamic": False,
             "value": 1.0,
+            "description": "effective surface density in flux/pix^2",
         },
     }
 

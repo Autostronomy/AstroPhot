@@ -26,13 +26,16 @@ def target_image(fig, ax, target, window=None, **kwargs):
     visibility of the image data for the faint areas of the image, while it uses
     log scale normalization for the bright areas.
 
-    **Args:**
-    - `fig` (matplotlib.figure.Figure): The figure object in which the target image will be displayed.
-    - `ax` (matplotlib.axes.Axes): The axes object on which the target image will be plotted.
-    - `target` (Image or Image_List): The image or list of images to be displayed.
-    - `window` (Window, optional): The window through which the image is viewed. If `None`, the window of the
-        provided `target` is used. Defaults to `None`.
-    - **kwargs: Arbitrary keyword arguments.
+    :param fig: The figure object in which the target image will be displayed.
+    :type fig: matplotlib.figure.Figure
+    :param ax: The axes object on which the target image will be plotted.
+    :type ax: matplotlib.axes.Axes
+    :param target: The image or list of images to be displayed.
+    :type target: Image or Image_List
+    :param window: The window through which the image is viewed. If `None`,
+      the window of the provided `target` is used. Defaults to `None`.
+    :type window: Window, optional
+    :param kwargs: Arbitrary keyword arguments.
 
     Note:
         If the `target` is an `Image_List`, this function will recursively call itself for each image in the list.
@@ -113,13 +116,18 @@ def psf_image(
 ):
     """For plotting PSF images, or the output of a PSF model.
 
-    **Args:**
-    - `fig` (matplotlib.figure.Figure): The figure object in which the PSF image will be displayed.
-    - `ax` (matplotlib.axes.Axes): The axes object on which the PSF image will be plotted.
-    - `psf` (PSFImage or PSFModel or PSFGroupModel): The PSF model or group model to be displayed.
-    - `cmap_levels` (int, optional): The number of discrete levels to convert the continuous color map to. If not `None`, the color map is converted to a ListedColormap with the specified number of levels. Defaults to `None`.
-    - `vmin` (float, optional): The minimum value for the color scale. Defaults to `None`.
-    - `vmax` (float, optional): The maximum value for the color scale. Defaults to `None`.
+    :param fig: The figure object in which the PSF image will be displayed.
+    :type fig: matplotlib.figure.Figure
+    :param ax: The axes object on which the PSF image will be plotted.
+    :type ax: matplotlib.axes.Axes
+    :param psf: The PSF model or group model to be displayed.
+    :type psf: PSFImage or PSFModel or PSFGroupModel
+    :param cmap_levels: The number of discrete levels to convert the continuous color map to. If not `None`, the color map is converted to a ListedColormap with the specified number of levels. Defaults to `None`.
+    :type cmap_levels: int, optional
+    :param vmin: The minimum value for the color scale. Defaults to `None`.
+    :type vmin: float, optional
+    :param vmax: The maximum value for the color scale. Defaults to `None`.
+    :type vmax: float, optional
     """
     if isinstance(psf, (PSFModel, PSFGroupModel)):
         psf = psf()
@@ -181,20 +189,31 @@ def model_image(
     """
     This function is used to generate a model image and display it using the provided figure and axes.
 
-    **Args:**
-    -  `fig` (matplotlib.figure.Figure): The figure object in which the image will be displayed.
-    -  `ax` (matplotlib.axes.Axes): The axes object on which the image will be plotted.
-    -  `model` (Model): The model object used to generate a model image if `sample_image` is not provided.
-    -  `sample_image` (Image or Image_List, optional): The image or list of images to be displayed. If `None`, a model image is generated using the provided `model`. Defaults to `None`.
-    -  `window` (Window, optional): The window through which the image is viewed. If `None`, the window of the provided `model` is used. Defaults to `None`.
-    -  `target` (Target, optional): The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
-    -  `showcbar` (bool, optional): Whether to show the color bar. Defaults to `True`.
-    -  `target_mask` (bool, optional): Whether to apply the mask of the target. If `True` and if the target has a mask, the mask is applied to the image. Defaults to `False`.
-    -  `cmap_levels` (int, optional): The number of discrete levels to convert the continuous color map to. If not `None`, the color map is converted to a ListedColormap with the specified number of levels. Defaults to `None`.
-    -  `magunits` (bool, optional): Whether to convert the image to surface brightness units. If `True`, the zeropoint of the target is used to convert the image to surface brightness units. Defaults to `True`.
-    -  `vmin` (float, optional): The minimum value for the color scale. Defaults to `None`.
-    -  `vmax` (float, optional): The maximum value for the color scale. Defaults to `None`.
-    -  **kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
+    :param fig: The figure object in which the image will be displayed.
+    :type fig: matplotlib.figure.Figure
+    :param ax: The axes object on which the image will be plotted.
+    :type ax: matplotlib.axes.Axes
+    :param model: The model object used to generate a model image if `sample_image` is not provided.
+    :type model: Model
+    :param sample_image: The image or list of images to be displayed. If `None`, a model image is generated using the provided `model`. Defaults to `None`.
+    :type sample_image: Image or Image_List, optional
+    :param window: The window through which the image is viewed. If `None`, the window of the provided `model` is used. Defaults to `None`.
+    :type window: Window, optional
+    :param target: The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
+    :type target: Target, optional
+    :param showcbar: Whether to show the color bar. Defaults to `True`.
+    :type showcbar: bool, optional
+    :param target_mask: Whether to apply the mask of the target. If `True` and if the target has a mask, the mask is applied to the image. Defaults to `False`.
+    :type target_mask: bool, optional
+    :param cmap_levels: The number of discrete levels to convert the continuous color map to. If not `None`, the color map is converted to a ListedColormap with the specified number of levels. Defaults to `None`.
+    :type cmap_levels: int, optional
+    :param magunits: Whether to convert the image to surface brightness units. If `True`, the zeropoint of the target is used to convert the image to surface brightness units. Defaults to `True`.
+    :type magunits: bool, optional
+    :param vmin: The minimum value for the color scale. Defaults to `None`.
+    :type vmin: float, optional
+    :param vmax: The maximum value for the color scale. Defaults to `None`.
+    :type vmax: float, optional
+    :param kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Note:
         If the `sample_image` is an `Image_List`, this function will recursively call itself for each image in the list,
@@ -311,18 +330,27 @@ def residual_image(
     This function is used to calculate and display the residuals of a model image with respect to a target image.
     The residuals are calculated as the difference between the target image and the sample image and may be normalized by the standard deviation.
 
-    **Args:**
-    - `fig` (matplotlib.figure.Figure): The figure object in which the residuals will be displayed.
-    - `ax` (matplotlib.axes.Axes): The axes object on which the residuals will be plotted.
-    - `model` (Model): The model object used to generate a model image if `sample_image` is not provided.
-    - `target` (Target or Image_List, optional): The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
-    - `sample_image` (Image or Image_List, optional): The image or list of images from which residuals will be calculated. If `None`, a model image is generated using the provided `model`. Defaults to `None`.
-    - `showcbar` (bool, optional): Whether to show the color bar. Defaults to `True`.
-    - `window` (Window or Window_List, optional): The window through which the image is viewed. If `None`, the window of the provided `model` is used. Defaults to `None`.
-    - `clb_label` (str, optional): The label for the colorbar. If `None`, a default label is used based on the normalization of the residuals. Defaults to `None`.
-    - `normalize_residuals` (bool, optional): Whether to normalize the residuals. If `True`, residuals are divided by the square root of the variance of the target. Defaults to `False`.
-    - `scaling` (str, optional): The scaling method for the residuals. Options are "arctan", "clip", or "none". arctan will show all residuals, though squish high values to make the fainter residuals more visible, clip will show the residuals in linear space but remove any values above/below 5 sigma, none does no scaling and simply shows the residuals in linear space. Defaults to "arctan".
-    - `**kwargs`: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
+    :param fig: The figure object in which the residuals will be displayed.
+    :type fig: matplotlib.figure.Figure
+    :param ax: The axes object on which the residuals will be plotted.
+    :type ax: matplotlib.axes.Axes
+    :param model: The model object used to generate a model image if `sample_image` is not provided.
+    :type model: Model
+    :param target: The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
+    :type target: Target or Image_List, optional
+    :param sample_image: The image or list of images from which residuals will be calculated. If `None`, a model image is generated using the provided `model`. Defaults to `None`.
+    :type sample_image: Image or Image_List, optional
+    :param showcbar: Whether to show the color bar. Defaults to `True`.
+    :type showcbar: bool, optional
+    :param window: The window through which the image is viewed. If `None`, the window of the provided `model` is used. Defaults to `None`.
+    :type window: Window or Window_List, optional
+    :param clb_label: The label for the colorbar. If `None`, a default label is used based on the normalization of the residuals. Defaults to `None`.
+    :type clb_label: str, optional
+    :param normalize_residuals: Whether to normalize the residuals. If `True`, residuals are divided by the square root of the variance of the target. Defaults to `False`.
+    :type normalize_residuals: bool, optional
+    :param scaling: The scaling method for the residuals. Options are "arctan", "clip", or "none". arctan will show all residuals, though squish high values to make the fainter residuals more visible, clip will show the residuals in linear space but remove any values above/below 5 sigma, none does no scaling and simply shows the residuals in linear space. Defaults to "arctan".
+    :type scaling: str, optional
+    :param kwargs: Arbitrary keyword arguments. These are used to override the default imshow_kwargs.
 
     Note:
         If the `window`, `target`, or `sample_image` are lists, this function will recursively call itself for each element in the list,
@@ -423,13 +451,17 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
     """Used for plotting the window(s) of a model on a target image. These
     windows bound the region that a model will be evaluated/fit to.
 
-    **Args:**
-    - `fig` (matplotlib.figure.Figure): The figure object in which the model window will be displayed.
-    - `ax` (matplotlib.axes.Axes): The axes object on which the model window will be plotted.
-    - `model` (Model): The model object whose window will be displayed.
-    - `target` (Target or Image_List, optional): The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
-    - `rectangle_linewidth` (int, optional): The linewidth of the rectangle drawn around the model window. Defaults to 2.
-    - **kwargs: Arbitrary keyword arguments. These are used to override the default rectangle properties.
+    :param fig: The figure object in which the model window will be displayed.
+    :type fig: matplotlib.figure.Figure
+    :param ax: The axes object on which the model window will be plotted.
+    :type ax: matplotlib.axes.Axes
+    :param model: The model object whose window will be displayed.
+    :type model: Model
+    :param target: The target or list of targets for the image or image list. If `None`, the target of the `model` is used. Defaults to `None`.
+    :type target: Target or Image_List, optional
+    :param rectangle_linewidth: The linewidth of the rectangle drawn around the model window. Defaults to 2.
+    :type rectangle_linewidth: int, optional
+    :param kwargs: Arbitrary keyword arguments. These are used to override the default rectangle properties.
     """
     if target is None:
         target = model.target

@@ -21,14 +21,20 @@ def covariance_matrix(
     """
     Create a covariance matrix plot. Creates a corner plot with ellipses representing the covariance between parameters.
 
-    **Args:**
-    - `covariance_matrix` (np.ndarray): Covariance matrix of shape (n_params, n_params).
-    - `mean` (np.ndarray): Mean values of the parameters, shape (n_params,).
-    - `labels` (list, optional): Labels for the parameters.
-    - `figsize` (tuple, optional): Size of the figure. Default is (10, 10).
-    - `reference_values` (np.ndarray, optional): Reference values for the parameters, used to draw vertical and horizontal lines. Typically these are the true values of the parameters.
-    - `ellipse_colors` (str or list, optional): Color for the ellipses. Default is `main_pallet["primary1"]`.
-    - `showticks` (bool, optional): Whether to show ticks on the axes. Default is True.
+    :param covariance_matrix: Covariance matrix of shape (n_params, n_params).
+    :type covariance_matrix: np.ndarray
+    :param mean: Mean values of the parameters, shape (n_params,).
+    :type mean: np.ndarray
+    :param labels: Labels for the parameters.
+    :type labels: list, optional
+    :param figsize: Size of the figure. Default is (10, 10).
+    :type figsize: tuple, optional
+    :param reference_values: Reference values for the parameters, used to draw vertical and horizontal lines. Typically these are the true values of the parameters.
+    :type reference_values: np.ndarray, optional
+    :param ellipse_colors: Color for the ellipses. Default is `main_pallet["primary1"]`.
+    :type ellipse_colors: str or list, optional
+    :param showticks: Whether to show ticks on the axes. Default is True.
+    :type showticks: bool, optional
 
     returns the fig and ax objects created to allow further customization by the user.
     """

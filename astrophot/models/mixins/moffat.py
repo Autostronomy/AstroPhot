@@ -19,21 +19,40 @@ class MoffatMixin:
     PSF functions for ground based data. It can also be used to fit extended
     objects. The functional form of the Moffat profile is defined as:
 
-    $$I(R) = \\frac{I_0}{(1 + (R/R_d)^2)^n}$$
+    .. math::
 
-    `n` is the concentration index which controls the shape of the profile.
+       I(R) = \\frac{I_0}{(1 + (R/R_d)^2)^n}
 
-    **Parameters:**
-    -    `n`: Concentration index which controls the shape of the brightness profile
-    -    `Rd`: Scale length radius
-    -    `I0`: Intensity at the center of the profile
+    ``n`` is the concentration index which controls the shape of the profile.
+
+    :param n: Concentration index which controls the shape of the brightness profile
+    :param Rd: Scale length radius
+    :param I0: Intensity at the center of the profile
     """
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10), "shape": (), "dynamic": True},
-        "Rd": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
+        "n": {
+            "units": "none",
+            "valid": (0.1, 10),
+            "shape": (),
+            "dynamic": True,
+            "description": "Concentration index which controls the shape of the brightness profile",
+        },
+        "Rd": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Scale length radius",
+        },
+        "I0": {
+            "units": "flux/arcsec^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Intensity at the center of the profile",
+        },
     }
 
     @torch.no_grad()
@@ -61,24 +80,43 @@ class iMoffatMixin:
     PSF functions for ground based data. It can also be used to fit extended
     objects. The functional form of the Moffat profile is defined as:
 
-    $$I(R) = \\frac{I_0}{(1 + (R/R_d)^2)^n}$$
+    .. math::
 
-    `n` is the concentration index which controls the shape of the profile.
+       I(R) = \\frac{I_0}{(1 + (R/R_d)^2)^n}
 
-    `n`, `Rd`, and `I0` are batched by their first dimension, allowing for
+    ``n`` is the concentration index which controls the shape of the profile.
+
+    ``n``, ``Rd``, and ``I0`` are batched by their first dimension, allowing for
     multiple Moffat profiles to be defined at once.
 
-    **Parameters:**
-    -    `n`: Concentration index which controls the shape of the brightness profile
-    -    `Rd`: Scale length radius
-    -    `I0`: Intensity at the center of the profile
+    :param n: Concentration index which controls the shape of the brightness profile
+    :param Rd: Scale length radius
+    :param I0: Intensity at the center of the profile
     """
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10), "shape": (None,), "dynamic": True},
-        "Rd": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "n": {
+            "units": "none",
+            "valid": (0.1, 10),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Concentration index which controls the shape of the brightness profile",
+        },
+        "Rd": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Scale length radius",
+        },
+        "I0": {
+            "units": "flux/arcsec^2",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Intensity at the center of the profile",
+        },
     }
 
     @torch.no_grad()
@@ -109,26 +147,40 @@ class MoffatPSFMixin:
     PSF functions for ground based data. It can also be used to fit extended
     objects. The functional form of the Moffat profile is defined as:
 
-    $$I(R) = \\frac{I_0}{(1 + (R/R_d)^2)^n}$$
+    .. math::
 
-    `n` is the concentration index which controls the shape of the profile.
+       I(R) = \\frac{I_0}{(1 + (R/R_d)^2)^n}
 
-    **Parameters:**
-    -    `n`: Concentration index which controls the shape of the brightness profile
-    -    `Rd`: Scale length radius [pix]
-    -    `I0`: Intensity at the center of the profile [flux/pix^2]
+    ``n`` is the concentration index which controls the shape of the profile.
+
+    :param n: Concentration index which controls the shape of the brightness profile
+    :param Rd: Scale length radius [pix]
+    :param I0: Intensity at the center of the profile [flux/pix^2]
     """
 
     _model_type = "moffat"
     _parameter_specs = {
-        "n": {"units": "none", "valid": (0.1, 10), "shape": (), "dynamic": True},
-        "Rd": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
+        "n": {
+            "units": "none",
+            "valid": (0.1, 10),
+            "shape": (),
+            "dynamic": True,
+            "description": "Concentration index which controls the shape of the brightness profile",
+        },
+        "Rd": {
+            "units": "pix",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Scale length radius [pix]",
+        },
         "I0": {
             "units": "flux/pix^2",
             "valid": (0, None),
             "shape": (),
             "dynamic": False,
             "value": 1.0,
+            "description": "Intensity at the center of the profile [flux/pix^2]",
         },
     }
 

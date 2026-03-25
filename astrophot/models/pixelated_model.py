@@ -25,18 +25,32 @@ class Pixelated(ComponentModel):
     The PA and scale are also parameters of this model, so one could alternately
     fix the pixels to some image and just fit the PA and scale.
 
-    **Parameters:**
-        - `I`: the total flux within each pixel, represented as the log of the flux.
-        - `PA`: the position angle of the model, in radians.
-        - `scale`: the scale of the model, in arcsec per grid unit.
+    :param I: the total flux within each pixel, represented as the log of the flux.
+    :param PA: the position angle of the model, in radians.
+    :param scale: the scale of the model, in arcsec per grid unit.
 
     """
 
     _model_type = "pixelated"
     _parameter_specs = {
-        "I": {"units": "flux/arcsec^2", "shape": (None, None), "dynamic": True},
-        "PA": {"units": "radians", "shape": (), "dynamic": False},
-        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": False},
+        "I": {
+            "units": "flux/arcsec^2",
+            "shape": (None, None),
+            "dynamic": True,
+            "description": "the total flux within each pixel, represented as the log of the flux",
+        },
+        "PA": {
+            "units": "radians",
+            "shape": (),
+            "dynamic": False,
+            "description": "the position angle of the model, in radians",
+        },
+        "scale": {
+            "units": "arcsec/grid-unit",
+            "shape": (),
+            "dynamic": False,
+            "description": "the scale of the model, in arcsec per grid unit",
+        },
     }
     usable = True
 

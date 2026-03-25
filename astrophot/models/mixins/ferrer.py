@@ -19,25 +19,50 @@ class FerrerMixin:
     is used in specialized circumstances such as fitting the bar of a galaxy.
     The functional form of the Modified Ferrer profile is defined as:
 
-    $$I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}$$
+    .. math::
 
-    where `rout` is the outer truncation radius, `alpha` controls the steepness
-    of the truncation, `beta` controls the shape, and `I0` is the intensity at
+       I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}
+
+    where ``rout`` is the outer truncation radius, ``alpha`` controls the steepness
+    of the truncation, ``beta`` controls the shape, and ``I0`` is the intensity at
     the center of the profile.
 
-    **Parameters:**
-    -    `rout`: Outer truncation radius in arcseconds.
-    -    `alpha`: Inner slope parameter.
-    -    `beta`: Outer slope parameter.
-    -    `I0`: Intensity at the center of the profile in flux/arcsec^2
+    :param rout: Outer truncation radius in arcseconds.
+    :param alpha: Inner slope parameter.
+    :param beta: Outer slope parameter.
+    :param I0: Intensity at the center of the profile in flux/arcsec^2
     """
 
     _model_type = "ferrer"
     _parameter_specs = {
-        "rout": {"units": "arcsec", "valid": (0.0, None), "shape": (), "dynamic": True},
-        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (), "dynamic": True},
-        "beta": {"units": "unitless", "valid": (0, 2), "shape": (), "dynamic": True},
-        "I0": {"units": "flux/arcsec^2", "valid": (0, None), "shape": (), "dynamic": True},
+        "rout": {
+            "units": "arcsec",
+            "valid": (0.0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Outer truncation radius in arcseconds.",
+        },
+        "alpha": {
+            "units": "unitless",
+            "valid": (0, 10),
+            "shape": (),
+            "dynamic": True,
+            "description": "Inner slope parameter.",
+        },
+        "beta": {
+            "units": "unitless",
+            "valid": (0, 2),
+            "shape": (),
+            "dynamic": True,
+            "description": "Outer slope parameter.",
+        },
+        "I0": {
+            "units": "flux/arcsec^2",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Intensity at the center of the profile in flux/arcsec^2",
+        },
     }
 
     @torch.no_grad()
@@ -67,28 +92,53 @@ class iFerrerMixin:
     is used in specialized circumstances such as fitting the bar of a galaxy.
     The functional form of the Modified Ferrer profile is defined as:
 
-    $$I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}$$
+    .. math::
 
-    where `rout` is the outer truncation radius, `alpha` controls the steepness
-    of the truncation, `beta` controls the shape, and `I0` is the intensity at
+       I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}
+
+    where ``rout`` is the outer truncation radius, ``alpha`` controls the steepness
+    of the truncation, ``beta`` controls the shape, and ``I0`` is the intensity at
     the center of the profile.
 
-    `rout`, `alpha`, `beta`, and `I0` are batched by their first dimension,
+    ``rout``, ``alpha``, ``beta``, and ``I0`` are batched by their first dimension,
     allowing for multiple Ferrer profiles to be defined at once.
 
-    **Parameters:**
-    -    `rout`: Outer truncation radius in arcseconds.
-    -    `alpha`: Inner slope parameter.
-    -    `beta`: Outer slope parameter.
-    -    `I0`: Intensity at the center of the profile in flux/arcsec^2
+    :param rout: Outer truncation radius in arcseconds.
+    :param alpha: Inner slope parameter.
+    :param beta: Outer slope parameter.
+    :param I0: Intensity at the center of the profile in flux/arcsec^2
     """
 
     _model_type = "ferrer"
     _parameter_specs = {
-        "rout": {"units": "arcsec", "valid": (0.0, None), "shape": (None,), "dynamic": True},
-        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (None,), "dynamic": True},
-        "beta": {"units": "unitless", "valid": (0, 2), "shape": (None,), "dynamic": True},
-        "I0": {"units": "flux/arcsec^2", "valid": (0.0, None), "shape": (None,), "dynamic": True},
+        "rout": {
+            "units": "arcsec",
+            "valid": (0.0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Outer truncation radius in arcseconds.",
+        },
+        "alpha": {
+            "units": "unitless",
+            "valid": (0, 10),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Inner slope parameter.",
+        },
+        "beta": {
+            "units": "unitless",
+            "valid": (0, 2),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Outer slope parameter.",
+        },
+        "I0": {
+            "units": "flux/arcsec^2",
+            "valid": (0.0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Intensity at the center of the profile in flux/arcsec^2",
+        },
     }
 
     @torch.no_grad()
@@ -125,30 +175,50 @@ class FerrerPSFMixin:
     is used in specialized circumstances such as fitting the bar of a galaxy.
     The functional form of the Modified Ferrer profile is defined as:
 
-    $$I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}$$
+    .. math::
 
-    where `rout` is the outer truncation radius, `alpha` controls the steepness
-    of the truncation, `beta` controls the shape, and `I0` is the intensity at
+       I(R) = I_0 \\left(1 - \\left(\\frac{R}{r_{\\rm out}}\\right)^{2-\\beta}\\right)^{\\alpha}
+
+    where ``rout`` is the outer truncation radius, ``alpha`` controls the steepness
+    of the truncation, ``beta`` controls the shape, and ``I0`` is the intensity at
     the center of the profile.
 
-    **Parameters:**
-    -    `rout`: Outer truncation radius in pixels.
-    -    `alpha`: Inner slope parameter.
-    -    `beta`: Outer slope parameter.
-    -    `I0`: Intensity at the center of the profile in flux/pix^2
+    :param rout: Outer truncation radius in pixels.
+    :param alpha: Inner slope parameter.
+    :param beta: Outer slope parameter.
+    :param I0: Intensity at the center of the profile in flux/pix^2
     """
 
     _model_type = "ferrer"
     _parameter_specs = {
-        "rout": {"units": "pix", "valid": (0.0, None), "shape": (), "dynamic": True},
-        "alpha": {"units": "unitless", "valid": (0, 10), "shape": (), "dynamic": True},
-        "beta": {"units": "unitless", "valid": (0, 2), "shape": (), "dynamic": True},
+        "rout": {
+            "units": "pix",
+            "valid": (0.0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Outer truncation radius in pixels.",
+        },
+        "alpha": {
+            "units": "unitless",
+            "valid": (0, 10),
+            "shape": (),
+            "dynamic": True,
+            "description": "Inner slope parameter.",
+        },
+        "beta": {
+            "units": "unitless",
+            "valid": (0, 2),
+            "shape": (),
+            "dynamic": True,
+            "description": "Outer slope parameter.",
+        },
         "I0": {
             "units": "flux/pix^2",
             "valid": (0, None),
             "shape": (),
             "dynamic": False,
             "value": 1.0,
+            "description": "Intensity at the center of the profile in flux/pix^2",
         },
     }
 

@@ -17,11 +17,10 @@ class DataMixin:
     This mixin provides functionality for handling variance and mask,
     as well as other ancillary data.
 
-    **Args:**
-    - `mask`: A boolean mask indicating which pixels to ignore.
-    - `std`: Standard deviation of the image pixels.
-    - `variance`: Variance of the image pixels.
-    - `weight`: Weights for the image pixels.
+    :param mask: A boolean mask indicating which pixels to ignore.
+    :param std: Standard deviation of the image pixels.
+    :param variance: Variance of the image pixels.
+    :param weight: Weights for the image pixels.
 
     Note that only one of `std`, `variance`, or `weight` should be
     provided at a time. If multiple are provided, an error will be raised.
@@ -67,7 +66,7 @@ class DataMixin:
         """Stores the standard deviation of the image pixels. This represents
         the uncertainty in each pixel value. It should always have the
         same shape as the image data. In the case where the standard
-        deviation is not known, a tensor of ones will be created to
+        deviation is not known, a Array of ones will be created to
         stand in as the standard deviation values.
 
         The standard deviation is not stored directly, instead it is
@@ -91,7 +90,7 @@ class DataMixin:
         """Stores the variance of the image pixels. This represents the
         uncertainty in each pixel value. It should always have the
         same shape as the image data. In the case where the variance
-        is not known, a tensor of ones will be created to stand in as
+        is not known, a Array of ones will be created to stand in as
         the variance values.
 
         The variance is not stored directly, instead it is
@@ -120,7 +119,7 @@ class DataMixin:
         """Stores the weight of the image pixels. This represents the
         uncertainty in each pixel value. It should always have the
         same shape as the image data. In the case where the weight
-        is not known, a tensor of ones will be created to stand in as
+        is not known, a Array of ones will be created to stand in as
         the weight values.
 
         The weights are used to proprtionately scale residuals in the
@@ -170,7 +169,7 @@ class DataMixin:
 
     @property
     def mask(self):
-        """The mask stores a tensor of boolean values which indicate any
+        """The mask stores a Array of boolean values which indicate any
         pixels to be ignored. These pixels will be skipped in
         likelihood evaluations and in parameter optimization. It is
         common practice to mask pixels with pathological values such
