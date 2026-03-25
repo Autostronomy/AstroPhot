@@ -9,10 +9,12 @@ from ..backend_obj import backend, ArrayLike
 from .mixins import DataMixin
 from .window import Window
 from . import func
+from ..utils.decorators import combine_docstrings
 
 __all__ = ("PSFImage",)
 
 
+@combine_docstrings
 class PSFImage(DataMixin):
     """Image object which represents a model of PSF (Point Spread Function).
 

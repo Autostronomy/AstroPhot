@@ -24,17 +24,17 @@ class Image(Module):
     image boundaries. It also provides methods for determining the coordinate
     locations of pixels
 
+    :param crval: The reference coordinate of the image in degrees [RA, DEC]. [model param]
+    :param crtan: The tangent plane coordinate of the image in arcseconds [x, y]. [model param]
+    :param CD: The coordinate transformation matrix in arcseconds/pixel. [model param]
+    :param crpix: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates. This is not a model param and is fixed for a given image.
     :param data: The image data as a Array of pixel values. If not provided, a Array of zeros will be created.
     :param zeropoint: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
-    :param crpix: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates.
     :param pixelscale: The side length of a pixel, used to create a simple diagonal CD matrix.
     :param wcs: An optional Astropy WCS object to initialize the image.
     :param filename: The filename to load the image from. If provided, the image will be loaded from the file.
     :param hduext: The HDU extension to load from the FITS file specified in `filename`.
-    :param identity: An optional identity string for the image.
-    :param crval: The reference coordinate of the image in degrees [RA, DEC].
-    :param crtan: The tangent plane coordinate of the image in arcseconds [x, y].
-    :param CD: The coordinate transformation matrix in arcseconds/pixel.
+    :param identity: An optional identity string for the image (mostly used internally).
     """
 
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
@@ -619,14 +619,23 @@ class Image(Module):
         return super().__getitem__(*args)
 
 
-# fixme, make image lists infinitely nestable, need to merge "index" and "match_indices" in some consistent way
 class ImageList(Module):
+    """A class to represent a list of images.
+
+    This is useful for operations that involve multiple images, mostly for joint
+    modelling. The ImageList class provides methods for matching images based on
+    their identity, and for applying operations to all images in the list while
+    preserving their individual properties. For certain applications (the
+    ``flatten`` method) you can use ImageList and Image objects
+    interchangably/agnostically.
+    """
+
     def __init__(self, images: list[Image], **kwargs):
         super().__init__(**kwargs)
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
             raise InvalidImage(
-                f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+                f"ImageList can only hold Image objects, not {tuple(type(image) for image in self.images)}"
             )
 
     @property
@@ -675,7 +684,7 @@ class ImageList(Module):
             )
 
     def match_indices(self, other: "ImageList"):
-        """Match the indices of the images in this list with those in another Image_List."""
+        """Match the indices of the images in this list with those in another ImageList."""
         indices = []
         for other_image in other.images:
             try:
@@ -705,7 +714,7 @@ class ImageList(Module):
                 new_list.append(self_image - other_image)
             return self.__class__(new_list)
         else:
-            raise ValueError("Subtraction of Image_List only works with another Image_List object!")
+            raise ValueError("Subtraction of ImageList only works with another ImageList object!")
 
     def __add__(self, other):
         if isinstance(other, ImageList):
@@ -719,7 +728,7 @@ class ImageList(Module):
                 new_list.append(self_image + other_image)
             return self.__class__(new_list)
         else:
-            raise ValueError("Addition of Image_List only works with another Image_List object!")
+            raise ValueError("Addition of ImageList only works with another ImageList object!")
 
     def __isub__(self, other):
         if isinstance(other, ImageList):
@@ -733,7 +742,7 @@ class ImageList(Module):
             i = self.index(other)
             self.images[i] -= other
         else:
-            raise ValueError("Subtraction of Image_List only works with another Image_List object!")
+            raise ValueError("Subtraction of ImageList only works with another ImageList object!")
         return self
 
     def __iadd__(self, other):
@@ -748,7 +757,7 @@ class ImageList(Module):
             i = self.index(other)
             self.images[i] += other
         else:
-            raise ValueError("Addition of Image_List only works with another Image_List object!")
+            raise ValueError("Addition of ImageList only works with another ImageList object!")
         return self
 
     def __getitem__(self, *args):

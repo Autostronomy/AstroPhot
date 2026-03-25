@@ -96,20 +96,13 @@ def combine_docstrings(cls):
     # Collect params from full MRO (base → derived so derived class wins)
     all_params = {}
     for klass in reversed(cls.__mro__):
-        if klass is object:
-            continue
-        if not klass.__doc__:
+        if klass is object or not klass.__doc__:
             continue
         _, klass_params = _parse_docstring(cleandoc(klass.__doc__))
         all_params.update(klass_params)
 
-    # Build combined body: cls body + direct-base bodies
-    try:
-        main_body, _ = _parse_docstring(cleandoc(cls.__doc__))
-    except (AttributeError, TypeError):
-        main_body = ""
-
-    for base in cls.__bases__:
+    main_body = ""
+    for base in cls.__mro__:
         if base is object or not base.__doc__:
             continue
         base_body, _ = _parse_docstring(cleandoc(base.__doc__))
@@ -128,7 +121,7 @@ def combine_docstrings(cls):
         options = {}
         for name, desc in list(all_params.items()):
             if name in model_params:
-                params[name] = f"{desc} [model param]"
+                params[name] = f"{desc}" + ("" if "[model param]" in desc else " [model param]")
             else:
                 options[name] = desc
         main_body += (

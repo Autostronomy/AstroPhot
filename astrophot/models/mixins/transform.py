@@ -104,7 +104,7 @@ class InclinedMixin:
 
 
 class SuperEllipseMixin:
-    """Generalizes the definition of radius and so modifies the evaluation of radial models.
+    """Uses a generalized definition of radius to make boxy/disky models.
 
     A superellipse transformation allows for the expression of "boxy" and
     "disky" modifications to traditional elliptical isophotes. This is a common

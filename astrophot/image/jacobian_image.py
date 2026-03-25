@@ -3,11 +3,13 @@ from typing import List, Union
 from .image_object import Image, ImageList, ImageBatchMixin
 from ..errors import SpecificationConflict, InvalidImage
 from ..backend_obj import backend
+from ..utils.decorators import combine_docstrings
 
 __all__ = ("JacobianImage", "JacobianImageList")
 
 
 ######################################################################
+@combine_docstrings
 class JacobianImage(Image):
     """Jacobian of a model evaluated in an image.
 

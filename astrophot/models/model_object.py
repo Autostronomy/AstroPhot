@@ -24,7 +24,7 @@ class ComponentModel(GradMixin, SampleMixin, Model):
     determined by ``center`` and may or may not be convolved with a PSF to represent some data.
 
     :param center: The center of the component in arcseconds [x, y] defined on the tangent plane.
-    :param psf_convolve: Whether to convolve the model with a PSF. (bool)
+    :param psf_convolve: Whether to convolve the model with a PSF. (bool, default True)
 
     """
 

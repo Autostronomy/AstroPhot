@@ -5,8 +5,10 @@ from .model_image import ModelImage
 from .mixins import SIPMixin
 from ..backend_obj import backend, ArrayLike
 from .. import config
+from ..utils.decorators import combine_docstrings
 
 
+@combine_docstrings
 class SIPModelImage(SIPMixin, ModelImage):
     """
     A ModelImage with SIP distortion coefficients."""
@@ -95,6 +97,7 @@ class SIPModelImage(SIPMixin, ModelImage):
         )
 
 
+@combine_docstrings
 class SIPTargetImage(SIPMixin, TargetImage):
     """
     A TargetImage with SIP distortion coefficients.
