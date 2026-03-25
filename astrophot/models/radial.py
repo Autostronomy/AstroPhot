@@ -40,18 +40,20 @@ radial_models = (
 __all__ = []
 for mixin in radial_models:
     # Galaxy Model
-    g_mixin = combine_docstrings(type(
-        mixin.__name__[:-5] + "Galaxy", (mixin, RadialMixin, GalaxyModel), {"usable": True}
-    ))
+    g_mixin = combine_docstrings(
+        type(mixin.__name__[:-5] + "Galaxy", (mixin, RadialMixin, GalaxyModel), {"usable": True})
+    )
     globals()[g_mixin.__name__] = g_mixin
     __all__.append(g_mixin.__name__)
 
     # Truncated Galaxy Model
-    t_mixin = combine_docstrings(type(
-        "T" + mixin.__name__[:-5] + "Galaxy",
-        (TruncationMixin, mixin, RadialMixin, GalaxyModel),
-        {"usable": True},
-    ))
+    t_mixin = combine_docstrings(
+        type(
+            "T" + mixin.__name__[:-5] + "Galaxy",
+            (TruncationMixin, mixin, RadialMixin, GalaxyModel),
+            {"usable": True},
+        )
+    )
     globals()[t_mixin.__name__] = t_mixin
     __all__.append(t_mixin.__name__)
 
@@ -60,18 +62,20 @@ for mixin in radial_models:
         (SuperEllipseMixin, FourierEllipseMixin, WarpMixin),
     ):
         # Galaxy Model with additional perturbation mixin
-        g_mixin = combine_docstrings(type(
-            mixin.__name__[:-5] + n, (mixin, RadialMixin, p, GalaxyModel), {"usable": True}
-        ))
+        g_mixin = combine_docstrings(
+            type(mixin.__name__[:-5] + n, (mixin, RadialMixin, p, GalaxyModel), {"usable": True})
+        )
         globals()[g_mixin.__name__] = g_mixin
         __all__.append(g_mixin.__name__)
 
         # Truncated Galaxy Model with additional perturbation mixin
-        t_mixin = combine_docstrings(type(
-            "T" + mixin.__name__[:-5] + n,
-            (TruncationMixin, mixin, RadialMixin, p, GalaxyModel),
-            {"usable": True},
-        ))
+        t_mixin = combine_docstrings(
+            type(
+                "T" + mixin.__name__[:-5] + n,
+                (TruncationMixin, mixin, RadialMixin, p, GalaxyModel),
+                {"usable": True},
+            )
+        )
         globals()[t_mixin.__name__] = t_mixin
         __all__.append(t_mixin.__name__)
 
@@ -88,15 +92,15 @@ iradial_models = (
 
 for mixin in iradial_models:
     # Ray Galaxy Model
-    r_mixin = combine_docstrings(type(
-        mixin.__name__[1:-5] + "Ray", (mixin, RayMixin, GalaxyModel), {"usable": True}
-    ))
+    r_mixin = combine_docstrings(
+        type(mixin.__name__[1:-5] + "Ray", (mixin, RayMixin, GalaxyModel), {"usable": True})
+    )
     globals()[r_mixin.__name__] = r_mixin
     __all__.append(r_mixin.__name__)
 
     # Wedge Galaxy Model
-    w_mixin = combine_docstrings(type(
-        mixin.__name__[1:-5] + "Wedge", (mixin, WedgeMixin, GalaxyModel), {"usable": True}
-    ))
+    w_mixin = combine_docstrings(
+        type(mixin.__name__[1:-5] + "Wedge", (mixin, WedgeMixin, GalaxyModel), {"usable": True})
+    )
     globals()[w_mixin.__name__] = w_mixin
     __all__.append(w_mixin.__name__)
