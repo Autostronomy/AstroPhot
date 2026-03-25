@@ -101,8 +101,12 @@ def combine_docstrings(cls):
         _, klass_params = _parse_docstring(cleandoc(klass.__doc__))
         all_params.update(klass_params)
 
-    main_body = ""
-    for base in cls.__mro__:
+    try:
+        main_body, _ = _parse_docstring(cleandoc(cls.__doc__))
+    except (AttributeError, TypeError):
+        main_body = ""
+
+    for base in cls.__bases__:
         if base is object or not base.__doc__:
             continue
         base_body, _ = _parse_docstring(cleandoc(base.__doc__))
