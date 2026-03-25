@@ -25,7 +25,7 @@ class Grad(BaseOptimizer):
     The optimizer is instantiated with a set of initial parameters and optimization options provided by the user.
     The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
-    **Args:**
+    Args:
     -  `likelihood` (str, optional): The likelihood function to use for the optimization. Defaults to "gaussian".
     -  `method` (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
     -  `optim_kwargs` (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
@@ -164,7 +164,7 @@ class Slalom(BaseOptimizer):
     gradient descent algorithms, Slalom slows down considerably when trying to
     achieve very high precision.
 
-    **Args:**
+    Args:
     -  `S` (float, optional): The initial step size for the Slalom optimizer. Defaults to 1e-4.
     -  `likelihood` (str, optional): The likelihood function to use for the optimization. Defaults to "gaussian".
     -  `report_freq` (int, optional): Frequency of reporting the optimization progress. Defaults to 10 steps.

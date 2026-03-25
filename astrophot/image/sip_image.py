@@ -51,7 +51,7 @@ class SIPModelImage(SIPMixin, ModelImage):
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        **Args:**
+        Args:
         -  `scale`: factor by which to condense the image pixels. Each scale X scale region will be summed [int]
 
         """

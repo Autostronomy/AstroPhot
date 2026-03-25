@@ -34,7 +34,7 @@ def radial_light_profile(
     """
     Used to plot the brightness profile as a function of radius for models which define a `radial_model`.
 
-    **Args:**
+    Args:
     - `fig`: matplotlib figure object
     - `ax`: matplotlib axis object
     - `model` (Model): Model object from which to plot the radial profile.
@@ -98,7 +98,7 @@ def radial_median_profile(
     representation of the image data if one were to simply average the
     pixels along isophotes.
 
-    **Args:**
+    Args:
     -  `fig`: matplotlib figure object
     -  `ax`: matplotlib axis object
     -  `model` (AstroPhot_Model): Model object from which to determine the radial binning. Also provides the target image to extract the data
@@ -195,7 +195,7 @@ def ray_light_profile(
     """
     Used for plotting ray (wedge) type models which define a `iradial_model` method. These have multiple radial profiles.
 
-    **Args:**
+    Args:
     - `fig`: matplotlib figure object
     - `ax`: matplotlib axis object
     - `model` (Model): Model object from which to plot the radial profile.

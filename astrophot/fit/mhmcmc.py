@@ -26,7 +26,7 @@ class MHMCMC(BaseOptimizer):
     number of parameters by default, but can be made higher (not lower) if desired.
     This is done by passing a 2D array of shape (nwalkers, ndim) to the `fit` method.
 
-    **Args:**
+    Args:
     -  `likelihood`: The likelihood function to use for the MCMC sampling. Can be "gaussian" or "poisson". Default is "gaussian".
     """
 

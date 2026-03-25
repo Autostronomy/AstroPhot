@@ -31,7 +31,7 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
     """
     Sets up an initial mass matrix.
 
-    **Args:**
+    Args:
     -  `mass_matrix_shape`: a dict that maps tuples of site names to the shape of
         the corresponding mass matrix. Each tuple of site names corresponds to a block.
     -  `adapt_mass_matrix`: a flag to decide whether an adaptation scheme will be used.
@@ -70,7 +70,7 @@ class HMC(BaseOptimizer):
     https://arxiv.org/abs/1701.02434, and
     http://www.mcmchandbook.net/HandbookChapter5.pdf
 
-    **Args:**
+    Args:
     -  `max_iter` (int, optional): The number of sampling steps to perform. Defaults to 1000.
     -  `epsilon` (float, optional): The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
     -  `leapfrog_steps` (int, optional): Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 10.
@@ -122,7 +122,7 @@ class HMC(BaseOptimizer):
 
         Records the chain for later examination.
 
-        **Args:**
+        Args:
             state (torch.Tensor, optional): Model parameters as a 1D tensor.
 
         """

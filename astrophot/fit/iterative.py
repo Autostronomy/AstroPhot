@@ -36,7 +36,7 @@ class Iter(BaseOptimizer):
     is not worthwhile for a single model to spend lots of time optimizing when
     its neighbors havent converged.
 
-    **Args:**
+    Args:
     -    `max_iter`: Maximum number of iterations, defaults to 100.
     -    `lm_kwargs`: Keyword arguments to pass to `LM` optimizer.
     """

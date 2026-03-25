@@ -26,7 +26,7 @@ def target_image(fig, ax, target, window=None, **kwargs):
     visibility of the image data for the faint areas of the image, while it uses
     log scale normalization for the bright areas.
 
-    **Args:**
+    Args:
     - `fig` (matplotlib.figure.Figure): The figure object in which the target image will be displayed.
     - `ax` (matplotlib.axes.Axes): The axes object on which the target image will be plotted.
     - `target` (Image or Image_List): The image or list of images to be displayed.
@@ -113,7 +113,7 @@ def psf_image(
 ):
     """For plotting PSF images, or the output of a PSF model.
 
-    **Args:**
+    Args:
     - `fig` (matplotlib.figure.Figure): The figure object in which the PSF image will be displayed.
     - `ax` (matplotlib.axes.Axes): The axes object on which the PSF image will be plotted.
     - `psf` (PSFImage or PSFModel or PSFGroupModel): The PSF model or group model to be displayed.
@@ -181,7 +181,7 @@ def model_image(
     """
     This function is used to generate a model image and display it using the provided figure and axes.
 
-    **Args:**
+    Args:
     -  `fig` (matplotlib.figure.Figure): The figure object in which the image will be displayed.
     -  `ax` (matplotlib.axes.Axes): The axes object on which the image will be plotted.
     -  `model` (Model): The model object used to generate a model image if `sample_image` is not provided.
@@ -311,7 +311,7 @@ def residual_image(
     This function is used to calculate and display the residuals of a model image with respect to a target image.
     The residuals are calculated as the difference between the target image and the sample image and may be normalized by the standard deviation.
 
-    **Args:**
+    Args:
     - `fig` (matplotlib.figure.Figure): The figure object in which the residuals will be displayed.
     - `ax` (matplotlib.axes.Axes): The axes object on which the residuals will be plotted.
     - `model` (Model): The model object used to generate a model image if `sample_image` is not provided.
@@ -423,7 +423,7 @@ def model_window(fig, ax, model, target=None, rectangle_linewidth=2, **kwargs):
     """Used for plotting the window(s) of a model on a target image. These
     windows bound the region that a model will be evaluated/fit to.
 
-    **Args:**
+    Args:
     - `fig` (matplotlib.figure.Figure): The figure object in which the model window will be displayed.
     - `ax` (matplotlib.axes.Axes): The axes object on which the model window will be plotted.
     - `model` (Model): The model object whose window will be displayed.

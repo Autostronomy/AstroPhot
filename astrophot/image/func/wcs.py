@@ -12,13 +12,13 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
     """
     Convert world coordinates (RA, Dec) to plane coordinates (x, y) using the gnomonic projection.
 
-    **Args:**
+    Args:
     - `ra`: (torch.Tensor) Right Ascension in degrees.
     - `dec`: (torch.Tensor) Declination in degrees.
     - `ra0`: (torch.Tensor) Reference Right Ascension in degrees.
     - `dec0`: (torch.Tensor) Reference Declination in degrees.
 
-    **Returns:**
+    Returns:
     - `x`: (torch.Tensor) x coordinate in arcseconds.
     - `y`: (torch.Tensor) y coordinate in arcseconds.
     """
@@ -44,14 +44,14 @@ def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-10):
     """
     Convert plane coordinates (x, y) to world coordinates (RA, Dec) using the gnomonic projection.
 
-    **Args:**
+    Args:
     - `x`: (Tensor) x coordinate in arcseconds.
     - `y`: (Tensor) y coordinate in arcseconds.
     - `ra0`: (Tensor) Reference Right Ascension in degrees.
     - `dec0`: (Tensor) Reference Declination in degrees.
     - `s`: (float) Small constant to avoid division by zero.
 
-    **Returns:**
+    Returns:
     - `ra`: (Tensor) Right Ascension in degrees.
     - `dec`: (Tensor) Declination in degrees.
     """
@@ -80,7 +80,7 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     Convert pixel coordinates to a tangent plane using the WCS information. This
     matches the FITS convention for linear transformations.
 
-    **Args:**
+    Args:
     -  `i` (Tensor): The first coordinate of the pixel in pixel units.
     -  `j` (Tensor): The second coordinate of the pixel in pixel units.
     -  `i0` (Tensor): The i reference pixel coordinate in pixel units.
@@ -90,7 +90,7 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     -  `x0` (float): The x reference coordinate in arcseconds.
     -  `y0` (float): The y reference coordinate in arcseconds.
 
-    **Returns:**
+    Returns:
     -  Tuple[Tensor, Tensor]: Tuple containing the x and y coordinates in arcseconds
     """
     uv = backend.stack((i.flatten() - i0, j.flatten() - j0), dim=0)
@@ -160,7 +160,7 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     Convert tangent plane coordinates to pixel coordinates using the WCS
     information. This matches the FITS convention for linear transformations.
 
-    **Args:**
+    Args:
     - `x`: (Tensor) The first coordinate of the pixel in arcsec.
     - `y`: (Tensor) The second coordinate of the pixel in arcsec.
     - `i0`: (Tensor) The i reference pixel coordinate in pixel units.
@@ -169,7 +169,7 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     - `x0`: (float) The x reference coordinate in arcsec.
     - `y0`: (float) The y reference coordinate in arcsec.
 
-    **Returns:**
+    Returns:
     -  Tuple[Tensor, Tensor]: Tuple containing the i and j pixel coordinates in pixel units.
     """
     xy = backend.stack((x.flatten() - x0, y.flatten() - y0), dim=0)

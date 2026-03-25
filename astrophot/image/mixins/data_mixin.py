@@ -17,7 +17,7 @@ class DataMixin:
     This mixin provides functionality for handling variance and mask,
     as well as other ancillary data.
 
-    **Args:**
+    Args:
     - `mask`: A boolean mask indicating which pixels to ignore.
     - `std`: Standard deviation of the image pixels.
     - `variance`: Variance of the image pixels.

@@ -33,7 +33,7 @@ class TargetImage(DataMixin, Image):
 
     Basic usage:
 
-    ```{python}
+    .. code-block:: python
     import astrophot as ap
 
     # Create target image
@@ -58,7 +58,7 @@ class TargetImage(DataMixin, Image):
 
     # Make low resolution version
     lowrez = image.reduce(2)
-    ```
+
 
     Some important information to keep in mind. First, providing an
     `astropy WCS` object is the best way to keep track of coordinates

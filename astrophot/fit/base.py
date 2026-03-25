@@ -13,7 +13,7 @@ class BaseOptimizer:
     """
     Base optimizer object that other optimizers inherit from. Ensures consistent signature for the classes.
 
-    **Args:**
+    Args:
     -  `model`: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
     -  `initial_state`: optional initialization for the parameters as a 1D tensor [tensor]
     -  `relative_tolerance`: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]

@@ -400,7 +400,7 @@ class Image(Module):
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        **Args:**
+        Args:
         -  `scale` (int): The scale factor by which to reduce the image.
         """
         if not isinstance(scale, int) and not (

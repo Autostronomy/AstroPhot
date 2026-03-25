@@ -21,7 +21,7 @@ def covariance_matrix(
     """
     Create a covariance matrix plot. Creates a corner plot with ellipses representing the covariance between parameters.
 
-    **Args:**
+    Args:
     - `covariance_matrix` (np.ndarray): Covariance matrix of shape (n_params, n_params).
     - `mean` (np.ndarray): Mean values of the parameters, shape (n_params,).
     - `labels` (list, optional): Labels for the parameters.
