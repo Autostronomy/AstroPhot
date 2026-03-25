@@ -39,16 +39,20 @@ EllipseMixin = type(
 __all__ = []
 for mixin in radial_models:
     # PSF Model
-    g_mixin = combine_docstrings(type(mixin.__name__[:-5], (mixin, RadialMixin, PSFModel), {"usable": True}))
+    g_mixin = combine_docstrings(
+        type(mixin.__name__[:-5], (mixin, RadialMixin, PSFModel), {"usable": True})
+    )
     globals()[g_mixin.__name__] = g_mixin
     __all__.append(g_mixin.__name__)
 
     # Ellipse PSF Model
-    g_mixin = combine_docstrings(type(
-        mixin.__name__[:-5] + "Ellipse",
-        (mixin, EllipseMixin, RadialMixin, PSFModel),
-        {"usable": True},
-    ))
+    g_mixin = combine_docstrings(
+        type(
+            mixin.__name__[:-5] + "Ellipse",
+            (mixin, EllipseMixin, RadialMixin, PSFModel),
+            {"usable": True},
+        )
+    )
     globals()[g_mixin.__name__] = g_mixin
     __all__.append(g_mixin.__name__)
 
@@ -57,10 +61,12 @@ for mixin in radial_models:
         (SuperEllipseMixin, FourierEllipseMixin, WarpMixin),
     ):
         # Galaxy Model with additional perturbation mixin
-        g_mixin = combine_docstrings(type(
-            mixin.__name__[:-5] + n,
-            (mixin, InclinedMixin, RadialMixin, p, PSFModel),
-            {"usable": True},
-        ))
+        g_mixin = combine_docstrings(
+            type(
+                mixin.__name__[:-5] + n,
+                (mixin, InclinedMixin, RadialMixin, p, PSFModel),
+                {"usable": True},
+            )
+        )
         globals()[g_mixin.__name__] = g_mixin
         __all__.append(g_mixin.__name__)
