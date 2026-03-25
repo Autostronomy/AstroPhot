@@ -13,21 +13,20 @@ from ...utils.integration import quad_table
 
 class SampleMixin:
     """
-    **Options:**
-    -    `sampling_mode`: The method used to sample the model in image pixels. Options are:
-            - `auto`: Automatically choose the sampling method based on the image size.
-            - `midpoint`: Use midpoint sampling, evaluate the brightness at the center of each pixel.
-            - `simpsons`: Use Simpson's rule for sampling integrating each pixel.
-            - `quad:x`: Use quadrature sampling with order x, where x is a positive integer to integrate each pixel.
-    -    `integrate_mode`: The method used to select pixels to integrate further where the model varies significantly. Options are:
-            - `none`: No extra integration is performed (beyond the sampling_mode).
-            - `bright`: Select the brightest pixels for further integration.
-            - `threshold`: Select pixels which show signs of significant higher order derivatives.
-    -    `integrate_tolerance`: The tolerance for selecting a pixel in the integration method. This is the total flux fraction that is integrated over the image.
-    -    `integrate_fraction`: The fraction of the pixels to super sample during integration.
-    -    `integrate_max_depth`: The maximum depth of the integration method.
-    -    `integrate_gridding`: The gridding used for the integration method to super-sample a pixel at each iteration.
-    -    `integrate_quad_order`: The order of the quadrature used for the integration method on the super sampled pixels.
+    :param sampling_mode: The method used to sample the model in image pixels. Options are:
+        * `auto`: Automatically choose the sampling method based on the image size.
+        * `midpoint`: Use midpoint sampling, evaluate the brightness at the center of each pixel.
+        * `simpsons`: Use Simpson's rule for sampling integrating each pixel.
+        * `quad:x`: Use quadrature sampling with order x, where x is a positive integer to integrate each pixel.
+    :param integrate_mode: The method used to select pixels to integrate further where the model varies significantly. Options are:
+        * `none`: No extra integration is performed (beyond the sampling_mode).
+        * `bright`: Select the brightest pixels for further integration.
+        * `threshold`: Select pixels which show signs of significant higher order derivatives.
+    :param integrate_tolerance: The tolerance for selecting a pixel in the integration method. This is the total flux fraction that is integrated over the image.
+    :param integrate_fraction: The fraction of the pixels to super sample during integration.
+    :param integrate_max_depth: The maximum depth of the integration method.
+    :param integrate_gridding: The gridding used for the integration method to super-sample a pixel at each iteration.
+    :param integrate_quad_order: The order of the quadrature used for the integration method on the super sampled pixels.
     """
 
     integrate_fraction = 0.05  # fraction of the pixels to super sample
@@ -190,8 +189,7 @@ class SampleMixin:
 
 class GradMixin:
     """
-    **Options:**
-    -    `jacobian_maxparams`: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to fit a model.
+    :param jacobian_maxparams: The maximum number of parameters before the Jacobian will be broken into smaller chunks. This is helpful for limiting the memory requirements to fit a model.
     """
 
     # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory

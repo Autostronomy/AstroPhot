@@ -27,10 +27,9 @@ class BasisModel(ComponentModel):
     range of sources, but depending on the number of basis elements it can become
     computationally expensive to optimize.
 
-    **Parameters:**
-        - `weights`: The weights of the basis set of images in units of flux.
-        - `PA`: the position angle of the model, in radians.
-        - `scale`: the scale of the model, in arcsec per grid unit.
+    :param weights: The weights of the basis set of images in units of flux.
+    :param PA: the position angle of the model, in radians.
+    :param scale: the scale of the model, in arcsec per grid unit.
     """
 
     _model_type = "basis"

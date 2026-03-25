@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union
 import torch
 import numpy as np
 
@@ -10,7 +10,6 @@ from ..backend_obj import backend, ArrayLike
 from ..errors import SpecificationConflict
 from ..param import forward
 from . import func
-from ..utils.initialize import polar_decomposition
 
 __all__ = ["PixelBasisPSF"]
 
@@ -25,8 +24,7 @@ class PixelBasisPSF(PSFModel):
     accurate for smooth models, so it is possible to do the expensive
     interpolation before optimization and save time.
 
-    **Parameters:**
-    -    `weights`: The weights of the basis set of images in units of flux.
+    :param weights: The weights of the basis set of images in units of flux.
     """
 
     _model_type = "basis"

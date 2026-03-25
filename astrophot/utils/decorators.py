@@ -55,7 +55,7 @@ def _parse_docstring(doc):
     # --- RST-style :param name: desc (possibly multi-line) ---
     # Split on ":param " boundaries so multi-line descriptions are captured correctly.
     for m in re.finditer(
-        r':param\s+(\w+):\s*((?:(?!\n:(?:param|type)\s).)*)',
+        r":param\s+(\w+):\s*((?:(?!\n:(?:param|type)\s).)*)",
         doc,
         re.DOTALL,
     ):
@@ -63,21 +63,23 @@ def _parse_docstring(doc):
 
     # --- Markdown-style **Parameters:** and **Options:** sections ---
     for section_match in re.finditer(
-        r'\*\*(?:Parameters|Options):\*\*\n((?:[ \t]*-[^\n]*\n?)+)',
+        r"\*\*(?:Parameters|Options):\*\*\n((?:[ \t]*-[^\n]*\n?)+)",
         doc,
         re.MULTILINE,
     ):
         for item in re.finditer(
-            r'^[ \t]*-\s+`(\w+)`\s*:\s*(.+?)(?=\n[ \t]*-|\Z)',
+            r"^[ \t]*-\s+`(\w+)`\s*:\s*(.+?)(?=\n[ \t]*-|\Z)",
             section_match.group(1),
             re.DOTALL | re.MULTILINE,
         ):
             params[item.group(1)] = item.group(2).strip()
 
     # Strip :param/:type entries from body (handle multi-line descriptions)
-    body = re.sub(r':(?:param|type)\s+\w+:\s*(?:(?!\n:(?:param|type)\s).)*', '', doc, flags=re.DOTALL)
+    body = re.sub(
+        r":(?:param|type)\s+\w+:\s*(?:(?!\n:(?:param|type)\s).)*", "", doc, flags=re.DOTALL
+    )
     # Strip markdown Parameters/Options sections from body
-    body = re.sub(r'\*\*(?:Parameters|Options):\*\*\n(?:[ \t]*-[^\n]*\n?)+', '', body)
+    body = re.sub(r"\*\*(?:Parameters|Options):\*\*\n(?:[ \t]*-[^\n]*\n?)+", "", body)
     body = body.strip()
 
     return body, params
@@ -121,11 +123,19 @@ def combine_docstrings(cls):
             model_params = set(cls.parameter_specs.keys())
         except Exception:
             model_params = set()
+
+        params = {}
+        options = {}
         for name, desc in list(all_params.items()):
-            if name in model_params and "[model param]" not in desc:
-                all_params[name] = f"{desc} [model param]"
-        main_body += "\n\n" + "\n".join(
-            f":param {name}: {desc}" for name, desc in all_params.items()
+            if name in model_params:
+                params[name] = f"{desc} [model param]"
+            else:
+                options[name] = desc
+        main_body += (
+            "\n\n"
+            + "\n".join(f":param {name}: {desc}" for name, desc in params.items())
+            + "\n"
+            + "\n".join(f":param {name}: {desc}" for name, desc in options.items())
         )
 
     cls.__doc__ = main_body.strip()

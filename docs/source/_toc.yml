@@ -10,10 +10,9 @@ chapters:
   - file: fastfit
   - file: tutorials/index
   - file: coordinates
+  - file: astrophotdocs/index
   - file: communitycontrib
   - file: troubleshooting
   - file: contributing
   - file: citation
   - file: license
-  - file: astrophotdocs/index
-  - file: modules

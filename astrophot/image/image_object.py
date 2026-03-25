@@ -24,22 +24,17 @@ class Image(Module):
     image boundaries. It also provides methods for determining the coordinate
     locations of pixels
 
-    **Args:**
-    -  `data`: The image data as a tensor of pixel values. If not provided, a tensor of zeros will be created.
-    -  `zeropoint`: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
-    -  `crpix`: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates.
-    -  `pixelscale`: The side length of a pixel, used to create a simple diagonal CD matrix.
-    -  `wcs`: An optional Astropy WCS object to initialize the image.
-    -  `filename`: The filename to load the image from. If provided, the image will be loaded from the file.
-    -  `hduext`: The HDU extension to load from the FITS file specified in `filename`.
-    -  `identity`: An optional identity string for the image.
-
-    these parameters are added to the optimization model:
-
-    **Parameters:**
-    -  `crval`: The reference coordinate of the image in degrees [RA, DEC].
-    -  `crtan`: The tangent plane coordinate of the image in arcseconds [x, y].
-    -  `CD`: The coordinate transformation matrix in arcseconds/pixel.
+    :param data: The image data as a tensor of pixel values. If not provided, a tensor of zeros will be created.
+    :param zeropoint: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
+    :param crpix: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates.
+    :param pixelscale: The side length of a pixel, used to create a simple diagonal CD matrix.
+    :param wcs: An optional Astropy WCS object to initialize the image.
+    :param filename: The filename to load the image from. If provided, the image will be loaded from the file.
+    :param hduext: The HDU extension to load from the FITS file specified in `filename`.
+    :param identity: An optional identity string for the image.
+    :param crval: The reference coordinate of the image in degrees [RA, DEC].
+    :param crtan: The tangent plane coordinate of the image in arcseconds [x, y].
+    :param CD: The coordinate transformation matrix in arcseconds/pixel.
     """
 
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
