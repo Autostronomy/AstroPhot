@@ -32,9 +32,9 @@ def target_image(fig, ax, target, window=None, **kwargs):
     :type ax: matplotlib.axes.Axes
     :param target: The image or list of images to be displayed.
     :type target: Image or Image_List
-    :param window: The window through which the image is viewed. If `None`, the window of the
+    :param window: The window through which the image is viewed. If `None`,
+      the window of the provided `target` is used. Defaults to `None`.
     :type window: Window, optional
-        provided `target` is used. Defaults to `None`.
     :param kwargs: Arbitrary keyword arguments.
 
     Note:

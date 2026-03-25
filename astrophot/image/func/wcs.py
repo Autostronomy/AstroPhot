@@ -20,11 +20,8 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
     :type ra0: Array
     :param dec0: Reference Declination in degrees.
     :type dec0: Array
-
-    :returns: ``x`` -- x coordinate in arcseconds.
-    :rtype: Array
-    :returns: ``y`` -- y coordinate in arcseconds.
-    :rtype: Array
+    :returns: Tuple containing ``x`` and ``y`` coordinates in arcseconds.
+    :rtype: tuple[Array, Array]
     """
     ra = ra * deg_to_rad
     dec = dec * deg_to_rad
@@ -58,11 +55,8 @@ def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-10):
     :type dec0: Array
     :param s: Small constant to avoid division by zero.
     :type s: float
-
-    :returns: ``ra`` -- Right Ascension in degrees.
-    :rtype: Array
-    :returns: ``dec`` -- Declination in degrees.
-    :rtype: Array
+    :returns: Tuple containing ``ra`` and ``dec`` in degrees.
+    :rtype: tuple[Array, Array]
     """
     x = (x - x0) * arcsec_to_rad
     y = (y - y0) * arcsec_to_rad
@@ -97,9 +91,9 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     :type i0: Array
     :param j0: The j reference pixel coordinate in pixel units.
     :type j0: Array
-    :param CD: The CD matrix in arcsec per pixel. This 2x2 matrix is used to convert
+    :param CD: The CD matrix in arcsec per pixel. This 2x2 matrix converts
+      from pixel to arcsec units and also handles rotation/skew.
     :type CD: Array
-       from pixel to arcsec units and also handles rotation/skew.
     :param x0: The x reference coordinate in arcseconds.
     :type x0: float
     :param y0: The y reference coordinate in arcseconds.
