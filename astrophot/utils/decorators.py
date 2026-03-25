@@ -116,6 +116,14 @@ def combine_docstrings(cls):
 
     # Append merged parameter list
     if all_params:
+        model_params = set()
+        try:
+            model_params = set(cls.parameter_specs.keys())
+        except Exception:
+            model_params = set()
+        for name, desc in list(all_params.items()):
+            if name in model_params and "[model param]" not in desc:
+                all_params[name] = f"{desc} [model param]"
         main_body += "\n\n" + "\n".join(
             f":param {name}: {desc}" for name, desc in all_params.items()
         )
