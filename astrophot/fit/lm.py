@@ -82,7 +82,7 @@ class LM(BaseOptimizer):
     by Henri Gavin on which much of the AstroPhot LM implementation is
     based::
 
-    .. code-block:: bibtex
+    .. code-block:: text
     @article{Gavin2019,
         title={The Levenberg-Marquardt algorithm for nonlinear least squares curve-fitting problems},
         author={Gavin, Henri P},
@@ -95,7 +95,7 @@ class LM(BaseOptimizer):
     as well as the paper on LM geodesic acceleration by Mark
     Transtrum::
 
-    .. code-block:: bibtex
+    .. code-block:: text
     @article{Tanstrum2012,
        author = {{Transtrum}, Mark K. and {Sethna}, James P.},
         title = "{Improvements to the Levenberg-Marquardt algorithm for nonlinear least-squares minimization}",
