@@ -38,28 +38,46 @@ class GaussianEllipsoid(ComponentModel):
         initialization for this model assumes exactly this interpretation with a
         disk thickness of sigma_c = 0.2 *sigma_a.
 
-    **Parameters:**
-    -    `sigma_a`: Standard deviation of the Gaussian along the alpha axis in arcseconds.
-    -    `sigma_b`: Standard deviation of the Gaussian along the beta axis in arcseconds.
-    -    `sigma_c`: Standard deviation of the Gaussian along the gamma axis in arcseconds.
-    -    `alpha`: Euler angle representing the rotation around the alpha axis in radians.
-    -    `beta`: Euler angle representing the rotation around the beta axis in radians.
-    -    `gamma`: Euler angle representing the rotation around the gamma axis in radians.
-    -    `flux`: Total flux of the galaxy in arbitrary units.
+    :param sigma_a: Standard deviation of the Gaussian along the alpha axis in arcseconds.
+    :param sigma_b: Standard deviation of the Gaussian along the beta axis in arcseconds.
+    :param sigma_c: Standard deviation of the Gaussian along the gamma axis in arcseconds.
+    :param alpha: Euler angle representing the rotation around the alpha axis in radians.
+    :param beta: Euler angle representing the rotation around the beta axis in radians.
+    :param gamma: Euler angle representing the rotation around the gamma axis in radians.
+    :param flux: Total flux of the galaxy in arbitrary units.
 
     """
 
     _model_type = "gaussianellipsoid"
     _parameter_specs = {
-        "sigma_a": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
-        "sigma_b": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
-        "sigma_c": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
+        "sigma_a": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Standard deviation of the Gaussian along the alpha axis in arcseconds.",
+        },
+        "sigma_b": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Standard deviation of the Gaussian along the beta axis in arcseconds.",
+        },
+        "sigma_c": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Standard deviation of the Gaussian along the gamma axis in arcseconds.",
+        },
         "alpha": {
             "units": "radians",
             "valid": (0, 2 * np.pi),
             "cyclic": True,
             "shape": (),
             "dynamic": True,
+            "description": "Euler angle representing the rotation around the alpha axis in radians.",
         },
         "beta": {
             "units": "radians",
@@ -67,6 +85,7 @@ class GaussianEllipsoid(ComponentModel):
             "cyclic": True,
             "shape": (),
             "dynamic": True,
+            "description": "Euler angle representing the rotation around the beta axis in radians.",
         },
         "gamma": {
             "units": "radians",
@@ -74,8 +93,14 @@ class GaussianEllipsoid(ComponentModel):
             "cyclic": True,
             "shape": (),
             "dynamic": True,
+            "description": "Euler angle representing the rotation around the gamma axis in radians.",
         },
-        "flux": {"units": "flux", "shape": (), "dynamic": True},
+        "flux": {
+            "units": "flux",
+            "shape": (),
+            "dynamic": True,
+            "description": "Total flux of the galaxy in arbitrary units.",
+        },
     }
     usable = True
 

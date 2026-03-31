@@ -25,12 +25,16 @@ class Grad(BaseOptimizer):
     The optimizer is instantiated with a set of initial parameters and optimization options provided by the user.
     The `fit` method performs the optimization, taking a series of gradient steps until a stopping criteria is met.
 
-    **Args:**
-    -  `likelihood` (str, optional): The likelihood function to use for the optimization. Defaults to "gaussian".
-    -  `method` (str, optional): the optimization method to use for the update step. Defaults to "NAdam".
-    -  `optim_kwargs` (dict, optional): a dictionary of keyword arguments to pass to the pytorch optimizer.
-    -  `patience` (int, optional): number of steps with no improvement before stopping the optimization. Defaults to 10.
-    -  `report_freq` (int, optional): frequency of reporting the optimization progress. Defaults to 10 steps.
+    :param likelihood: The likelihood function to use for the optimization. Defaults to "gaussian".
+    :type likelihood: str, optional
+    :param method: the optimization method to use for the update step. Defaults to "NAdam".
+    :type method: str, optional
+    :param optim_kwargs: a dictionary of keyword arguments to pass to the pytorch optimizer.
+    :type optim_kwargs: dict, optional
+    :param patience: number of steps with no improvement before stopping the optimization. Defaults to 10.
+    :type patience: int, optional
+    :param report_freq: frequency of reporting the optimization progress. Defaults to 10 steps.
+    :type report_freq: int, optional
     """
 
     def __init__(
@@ -164,13 +168,18 @@ class Slalom(BaseOptimizer):
     gradient descent algorithms, Slalom slows down considerably when trying to
     achieve very high precision.
 
-    **Args:**
-    -  `S` (float, optional): The initial step size for the Slalom optimizer. Defaults to 1e-4.
-    -  `likelihood` (str, optional): The likelihood function to use for the optimization. Defaults to "gaussian".
-    -  `report_freq` (int, optional): Frequency of reporting the optimization progress. Defaults to 10 steps.
-    -  `relative_tolerance` (float, optional): The relative tolerance for convergence. Defaults to 1e-4.
-    -  `momentum` (float, optional): The momentum factor for the Slalom optimizer. Defaults to 0.5.
-    -  `max_iter` (int, optional): The maximum number of iterations for the optimizer. Defaults to 1000.
+    :param S: The initial step size for the Slalom optimizer. Defaults to 1e-4.
+    :type S: float, optional
+    :param likelihood: The likelihood function to use for the optimization. Defaults to "gaussian".
+    :type likelihood: str, optional
+    :param report_freq: Frequency of reporting the optimization progress. Defaults to 10 steps.
+    :type report_freq: int, optional
+    :param relative_tolerance: The relative tolerance for convergence. Defaults to 1e-4.
+    :type relative_tolerance: float, optional
+    :param momentum: The momentum factor for the Slalom optimizer. Defaults to 0.5.
+    :type momentum: float, optional
+    :param max_iter: The maximum number of iterations for the optimizer. Defaults to 1000.
+    :type max_iter: int, optional
     """
 
     def __init__(

@@ -17,18 +17,32 @@ __all__ = ["BilinearSky"]
 class BilinearSky(SkyModel):
     """Sky background model using a coarse bilinear grid for the sky flux.
 
-    **Parameters:**
-    -    `I`: sky brightness grid
-    -    `PA`: position angle of the sky grid in radians.
-    -    `scale`: scale of the sky grid in arcseconds per grid unit.
+    :param I: sky brightness grid
+    :param PA: position angle of the sky grid in radians.
+    :param scale: scale of the sky grid in arcseconds per grid unit.
 
     """
 
     _model_type = "bilinear"
     _parameter_specs = {
-        "I": {"units": "flux/arcsec^2", "shape": (None, None), "dynamic": True},
-        "PA": {"units": "radians", "shape": (), "dynamic": True},
-        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": True},
+        "I": {
+            "units": "flux/arcsec^2",
+            "shape": (None, None),
+            "dynamic": True,
+            "description": "sky brightness grid",
+        },
+        "PA": {
+            "units": "radians",
+            "shape": (),
+            "dynamic": True,
+            "description": "position angle of the sky grid in radians",
+        },
+        "scale": {
+            "units": "arcsec/grid-unit",
+            "shape": (),
+            "dynamic": True,
+            "description": "scale of the sky grid in arcseconds per grid unit",
+        },
     }
     usable = True
 

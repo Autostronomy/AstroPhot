@@ -36,9 +36,8 @@ class Iter(BaseOptimizer):
     is not worthwhile for a single model to spend lots of time optimizing when
     its neighbors havent converged.
 
-    **Args:**
-    -    `max_iter`: Maximum number of iterations, defaults to 100.
-    -    `lm_kwargs`: Keyword arguments to pass to `LM` optimizer.
+    :param max_iter: Maximum number of iterations, defaults to 100.
+    :param lm_kwargs: Keyword arguments to pass to `LM` optimizer.
     """
 
     def __init__(
@@ -165,14 +164,15 @@ class IterParam(BaseOptimizer):
     likely better to optimize the full problem with LM as, when it works, LM is
     faster than the IterParam method.
 
-    Args:
-      chunks (Union[int, tuple]): Specify how to break down the model
-        parameters. If an integer, at each iteration the algorithm will break the
-        parameters into groups of that size. If a tuple, should be a tuple of
-        arrays of length num_dimensions which act as selectors for the parameters
-        to fit (1 to include, 0 to exclude). Default: 50
-      chunk_order (str): How to iterate through the chunks. Should be one of: random,
-        sequential. Default: sequential
+    :param chunks: Specify how to break down the model parameters. If an integer,
+      at each iteration the algorithm will break the parameters into groups of
+      that size. If a tuple, it should be a tuple of arrays of length
+      num_dimensions which act as selectors for the parameters to fit (1 to
+      include, 0 to exclude). Default: 50.
+    :type chunks: Union[int, tuple]
+    :param chunk_order: How to iterate through the chunks. Should be one of:
+      ``"random"``, ``"sequential"``. Default: ``"sequential"``.
+    :type chunk_order: str
     """
 
     def __init__(

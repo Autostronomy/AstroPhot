@@ -24,22 +24,17 @@ class Image(Module):
     image boundaries. It also provides methods for determining the coordinate
     locations of pixels
 
-    **Args:**
-    -  `data`: The image data as a tensor of pixel values. If not provided, a tensor of zeros will be created.
-    -  `zeropoint`: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
-    -  `crpix`: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates.
-    -  `pixelscale`: The side length of a pixel, used to create a simple diagonal CD matrix.
-    -  `wcs`: An optional Astropy WCS object to initialize the image.
-    -  `filename`: The filename to load the image from. If provided, the image will be loaded from the file.
-    -  `hduext`: The HDU extension to load from the FITS file specified in `filename`.
-    -  `identity`: An optional identity string for the image.
-
-    these parameters are added to the optimization model:
-
-    **Parameters:**
-    -  `crval`: The reference coordinate of the image in degrees [RA, DEC].
-    -  `crtan`: The tangent plane coordinate of the image in arcseconds [x, y].
-    -  `CD`: The coordinate transformation matrix in arcseconds/pixel.
+    :param crval: The reference coordinate of the image in degrees [RA, DEC]. [model param]
+    :param crtan: The tangent plane coordinate of the image in arcseconds [x, y]. [model param]
+    :param CD: The coordinate transformation matrix in arcseconds/pixel. [model param]
+    :param crpix: The reference pixel coordinates in the image, which is used to convert from pixel coordinates to tangent plane coordinates. This is not a model param and is fixed for a given image.
+    :param data: The image data as a Array of pixel values. If not provided, a Array of zeros will be created.
+    :param zeropoint: The zeropoint of the image, which is used to convert from pixel flux to magnitude.
+    :param pixelscale: The side length of a pixel, used to create a simple diagonal CD matrix.
+    :param wcs: An optional Astropy WCS object to initialize the image.
+    :param filename: The filename to load the image from. If provided, the image will be loaded from the file.
+    :param hduext: The HDU extension to load from the FITS file specified in `filename`.
+    :param identity: An optional identity string for the image (mostly used internally).
     """
 
     expect_ctype = (("RA---TAN",), ("DEC--TAN",))
@@ -129,12 +124,12 @@ class Image(Module):
 
     @property
     def data(self):
-        """The image data, which is a tensor of pixel values."""
+        """The image data, which is a Array of pixel values."""
         return backend.transpose(self._data, 1, 0)
 
     @data.setter
     def data(self, value: Optional[ArrayLike]):
-        """Set the image data. If value is None, the data is initialized to an empty tensor."""
+        """Set the image data. If value is None, the data is initialized to an empty Array."""
         if value is None:
             self._data = backend.empty((0, 0), dtype=config.DTYPE, device=config.DEVICE)
         else:
@@ -400,13 +395,13 @@ class Image(Module):
         """This operation will downsample an image by the factor given. If
         scale = 2 then 2x2 blocks of pixels will be summed together to
         form individual larger pixels. A new image object will be
-        returned with the appropriate pixelscale and data tensor. Note
+        returned with the appropriate pixelscale and data Array. Note
         that the window does not change in this operation since the
         pixels are condensed, but the pixel size is increased
         correspondingly.
 
-        **Args:**
-        -  `scale` (int): The scale factor by which to reduce the image.
+        :param scale: The scale factor by which to reduce the image.
+        :type scale: int
         """
         if not isinstance(scale, int) and not (
             isinstance(scale, ArrayLike) and scale.dtype is backend.int32
@@ -624,14 +619,23 @@ class Image(Module):
         return super().__getitem__(*args)
 
 
-# fixme, make image lists infinitely nestable, need to merge "index" and "match_indices" in some consistent way
 class ImageList(Module):
+    """A class to represent a list of images.
+
+    This is useful for operations that involve multiple images, mostly for joint
+    modelling. The ImageList class provides methods for matching images based on
+    their identity, and for applying operations to all images in the list while
+    preserving their individual properties. For certain applications (the
+    ``flatten`` method) you can use ImageList and Image objects
+    interchangably/agnostically.
+    """
+
     def __init__(self, images: list[Image], **kwargs):
         super().__init__(**kwargs)
         self.images = list(images)
         if not all(isinstance(image, Image) for image in self.images):
             raise InvalidImage(
-                f"Image_List can only hold Image objects, not {tuple(type(image) for image in self.images)}"
+                f"ImageList can only hold Image objects, not {tuple(type(image) for image in self.images)}"
             )
 
     @property
@@ -680,7 +684,7 @@ class ImageList(Module):
             )
 
     def match_indices(self, other: "ImageList"):
-        """Match the indices of the images in this list with those in another Image_List."""
+        """Match the indices of the images in this list with those in another ImageList."""
         indices = []
         for other_image in other.images:
             try:
@@ -710,7 +714,7 @@ class ImageList(Module):
                 new_list.append(self_image - other_image)
             return self.__class__(new_list)
         else:
-            raise ValueError("Subtraction of Image_List only works with another Image_List object!")
+            raise ValueError("Subtraction of ImageList only works with another ImageList object!")
 
     def __add__(self, other):
         if isinstance(other, ImageList):
@@ -724,7 +728,7 @@ class ImageList(Module):
                 new_list.append(self_image + other_image)
             return self.__class__(new_list)
         else:
-            raise ValueError("Addition of Image_List only works with another Image_List object!")
+            raise ValueError("Addition of ImageList only works with another ImageList object!")
 
     def __isub__(self, other):
         if isinstance(other, ImageList):
@@ -738,7 +742,7 @@ class ImageList(Module):
             i = self.index(other)
             self.images[i] -= other
         else:
-            raise ValueError("Subtraction of Image_List only works with another Image_List object!")
+            raise ValueError("Subtraction of ImageList only works with another ImageList object!")
         return self
 
     def __iadd__(self, other):
@@ -753,7 +757,7 @@ class ImageList(Module):
             i = self.index(other)
             self.images[i] += other
         else:
-            raise ValueError("Addition of Image_List only works with another Image_List object!")
+            raise ValueError("Addition of ImageList only works with another ImageList object!")
         return self
 
     def __getitem__(self, *args):

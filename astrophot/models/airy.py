@@ -19,34 +19,49 @@ class AiryPSF(RadialMixin, PSFModel):
     of the lens system under the assumption that all elements are
     perfect. This expression goes as:
 
-    $$I(\\theta) = I_0\\left[\\frac{2J_1(x)}{x}\\right]^2$$
-    $$x = ka\\sin(\\theta) = \\frac{2\\pi a r}{\\lambda R}$$
+    .. math::
 
-    where $I(\\theta)$ is the intensity as a function of the
+       I(\\theta) = I_0\\left[\\frac{2J_1(x)}{x}\\right]^2
+
+    .. math::
+
+       x = ka\\sin(\\theta) = \\frac{2\\pi a r}{\\lambda R}
+
+    where :math:`I(\\theta)` is the intensity as a function of the
     angular position within the diffraction system along its main
-    axis, $I_0$ is the central intensity of the airy disk,
-    $J_1$ is the Bessel function of the first kind of order one,
-    $k = \\frac{2\\pi}{\\lambda}$ is the wavenumber of the
-    light, $a$ is the aperture radius, $r$ is the radial
-    position from the center of the pattern, $R$ is the distance
+    axis, :math:`I_0` is the central intensity of the airy disk,
+    :math:`J_1` is the Bessel function of the first kind of order one,
+    :math:`k = \\frac{2\\pi}{\\lambda}` is the wavenumber of the
+    light, :math:`a` is the aperture radius, :math:`r` is the radial
+    position from the center of the pattern, :math:`R` is the distance
     from the circular aperture to the observation plane.
 
-    In the `Airy_PSF` class we combine the parameters
-    $a,R,\\lambda$ into a single ratio to be optimized (or fixed
+    In the ``Airy_PSF`` class we combine the parameters
+    :math:`a,R,\\lambda` into a single ratio to be optimized (or fixed
     by the optical configuration).
 
-    **Parameters:**
-    -    `I0`: The central intensity of the airy disk in flux/arcsec^2.
-    -    `aRL`: The ratio of the aperture radius to the
+    :param I0: The central intensity of the airy disk in flux/arcsec^2.
+    :param aRL: The ratio of the aperture radius to the
         product of the wavelength and the distance from the aperture to the
-        observation plane, $\\frac{a}{R \\lambda}$.
+        observation plane, :math:`\\frac{a}{R \\lambda}`.
 
     """
 
     _model_type = "airy"
     _parameter_specs = {
-        "I0": {"units": "flux/arcsec^2", "value": 1.0, "shape": (), "dynamic": False},
-        "aRL": {"units": "a/(R lambda)", "shape": (), "dynamic": True},
+        "I0": {
+            "units": "flux/arcsec^2",
+            "value": 1.0,
+            "shape": (),
+            "dynamic": False,
+            "description": "The central intensity of the airy disk in flux/arcsec^2.",
+        },
+        "aRL": {
+            "units": "a/(R lambda)",
+            "shape": (),
+            "dynamic": True,
+            "description": "The ratio of the aperture radius to the product of the wavelength and the distance from the aperture to the observation plane.",
+        },
     }
     usable = True
 

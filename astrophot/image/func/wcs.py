@@ -12,15 +12,16 @@ def world_to_plane_gnomonic(ra, dec, ra0, dec0, x0=0.0, y0=0.0):
     """
     Convert world coordinates (RA, Dec) to plane coordinates (x, y) using the gnomonic projection.
 
-    **Args:**
-    - `ra`: (torch.Tensor) Right Ascension in degrees.
-    - `dec`: (torch.Tensor) Declination in degrees.
-    - `ra0`: (torch.Tensor) Reference Right Ascension in degrees.
-    - `dec0`: (torch.Tensor) Reference Declination in degrees.
-
-    **Returns:**
-    - `x`: (torch.Tensor) x coordinate in arcseconds.
-    - `y`: (torch.Tensor) y coordinate in arcseconds.
+    :param ra: Right Ascension in degrees.
+    :type ra: Array
+    :param dec: Declination in degrees.
+    :type dec: Array
+    :param ra0: Reference Right Ascension in degrees.
+    :type ra0: Array
+    :param dec0: Reference Declination in degrees.
+    :type dec0: Array
+    :returns: Tuple containing ``x`` and ``y`` coordinates in arcseconds.
+    :rtype: tuple[Array, Array]
     """
     ra = ra * deg_to_rad
     dec = dec * deg_to_rad
@@ -44,16 +45,18 @@ def plane_to_world_gnomonic(x, y, ra0, dec0, x0=0.0, y0=0.0, s=1e-10):
     """
     Convert plane coordinates (x, y) to world coordinates (RA, Dec) using the gnomonic projection.
 
-    **Args:**
-    - `x`: (Tensor) x coordinate in arcseconds.
-    - `y`: (Tensor) y coordinate in arcseconds.
-    - `ra0`: (Tensor) Reference Right Ascension in degrees.
-    - `dec0`: (Tensor) Reference Declination in degrees.
-    - `s`: (float) Small constant to avoid division by zero.
-
-    **Returns:**
-    - `ra`: (Tensor) Right Ascension in degrees.
-    - `dec`: (Tensor) Declination in degrees.
+    :param x: x coordinate in arcseconds.
+    :type x: Array
+    :param y: y coordinate in arcseconds.
+    :type y: Array
+    :param ra0: Reference Right Ascension in degrees.
+    :type ra0: Array
+    :param dec0: Reference Declination in degrees.
+    :type dec0: Array
+    :param s: Small constant to avoid division by zero.
+    :type s: float
+    :returns: Tuple containing ``ra`` and ``dec`` in degrees.
+    :rtype: tuple[Array, Array]
     """
     x = (x - x0) * arcsec_to_rad
     y = (y - y0) * arcsec_to_rad
@@ -80,18 +83,24 @@ def pixel_to_plane_linear(i, j, i0, j0, CD, x0=0.0, y0=0.0):
     Convert pixel coordinates to a tangent plane using the WCS information. This
     matches the FITS convention for linear transformations.
 
-    **Args:**
-    -  `i` (Tensor): The first coordinate of the pixel in pixel units.
-    -  `j` (Tensor): The second coordinate of the pixel in pixel units.
-    -  `i0` (Tensor): The i reference pixel coordinate in pixel units.
-    -  `j0` (Tensor): The j reference pixel coordinate in pixel units.
-    -  `CD` (Tensor): The CD matrix in arcsec per pixel. This 2x2 matrix is used to convert
-       from pixel to arcsec units and also handles rotation/skew.
-    -  `x0` (float): The x reference coordinate in arcseconds.
-    -  `y0` (float): The y reference coordinate in arcseconds.
+    :param i: The first coordinate of the pixel in pixel units.
+    :type i: Array
+    :param j: The second coordinate of the pixel in pixel units.
+    :type j: Array
+    :param i0: The i reference pixel coordinate in pixel units.
+    :type i0: Array
+    :param j0: The j reference pixel coordinate in pixel units.
+    :type j0: Array
+    :param CD: The CD matrix in arcsec per pixel. This 2x2 matrix converts
+      from pixel to arcsec units and also handles rotation/skew.
+    :type CD: Array
+    :param x0: The x reference coordinate in arcseconds.
+    :type x0: float
+    :param y0: The y reference coordinate in arcseconds.
+    :type y0: float
 
-    **Returns:**
-    -  Tuple[Tensor, Tensor]: Tuple containing the x and y coordinates in arcseconds
+    :returns: Tuple containing the x and y coordinates in arcseconds
+    :rtype: tuple[Array, Array]
     """
     uv = backend.stack((i.flatten() - i0, j.flatten() - j0), dim=0)
     xy = CD @ uv
@@ -160,17 +169,23 @@ def plane_to_pixel_linear(x, y, i0, j0, CD, x0=0.0, y0=0.0):
     Convert tangent plane coordinates to pixel coordinates using the WCS
     information. This matches the FITS convention for linear transformations.
 
-    **Args:**
-    - `x`: (Tensor) The first coordinate of the pixel in arcsec.
-    - `y`: (Tensor) The second coordinate of the pixel in arcsec.
-    - `i0`: (Tensor) The i reference pixel coordinate in pixel units.
-    - `j0`: (Tensor) The j reference pixel coordinate in pixel units.
-    - `CD`: (Tensor) The CD matrix in arcsec per pixel.
-    - `x0`: (float) The x reference coordinate in arcsec.
-    - `y0`: (float) The y reference coordinate in arcsec.
+    :param x: The first coordinate of the pixel in arcsec.
+    :type x: Array
+    :param y: The second coordinate of the pixel in arcsec.
+    :type y: Array
+    :param i0: The i reference pixel coordinate in pixel units.
+    :type i0: Array
+    :param j0: The j reference pixel coordinate in pixel units.
+    :type j0: Array
+    :param CD: The CD matrix in arcsec per pixel.
+    :type CD: Array
+    :param x0: The x reference coordinate in arcsec.
+    :type x0: float
+    :param y0: The y reference coordinate in arcsec.
+    :type y0: float
 
-    **Returns:**
-    -  Tuple[Tensor, Tensor]: Tuple containing the i and j pixel coordinates in pixel units.
+    :returns: Tuple containing the i and j pixel coordinates in pixel units.
+    :rtype: tuple[Array, Array]
     """
     xy = backend.stack((x.flatten() - x0, y.flatten() - y0), dim=0)
     uv = backend.linalg.inv(CD) @ xy

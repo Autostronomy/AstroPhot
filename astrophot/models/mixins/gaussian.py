@@ -18,20 +18,33 @@ class GaussianMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
+    .. math::
 
-    where `I_0` is the intensity at the center of the profile and `sigma` is the
+       I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+
+    where ``I_0`` is the intensity at the center of the profile and ``sigma`` is the
     standard deviation which controls the width of the profile.
 
-    **Parameters:**
-    -    `sigma`: Standard deviation of the Gaussian profile in arcseconds.
-    -    `flux`: Total flux of the Gaussian profile.
+    :param sigma: Standard deviation of the Gaussian profile in arcseconds.
+    :param flux: Total flux of the Gaussian profile.
     """
 
     _model_type = "gaussian"
     _parameter_specs = {
-        "sigma": {"units": "arcsec", "valid": (0, None), "shape": (), "dynamic": True},
-        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": True},
+        "sigma": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Standard deviation of the Gaussian profile in arcseconds.",
+        },
+        "flux": {
+            "units": "flux",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Total flux of the Gaussian profile.",
+        },
     }
 
     @torch.no_grad()
@@ -58,24 +71,37 @@ class iGaussianMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
+    .. math::
 
-    where `sigma` is the standard deviation which controls the width of the
-    profile and `flux` gives the total flux of the profile (assuming no
+       I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+
+    where ``sigma`` is the standard deviation which controls the width of the
+    profile and ``flux`` gives the total flux of the profile (assuming no
     perturbations).
 
-    `sigma` and `flux` are batched by their first dimension, allowing for
+    ``sigma`` and ``flux`` are batched by their first dimension, allowing for
     multiple Gaussian profiles to be defined at once.
 
-    **Parameters:**
-    -    `sigma`: Standard deviation of the Gaussian profile in arcseconds.
-    -    `flux`: Total flux of the Gaussian profile.
+    :param sigma: Standard deviation of the Gaussian profile in arcseconds.
+    :param flux: Total flux of the Gaussian profile.
     """
 
     _model_type = "gaussian"
     _parameter_specs = {
-        "sigma": {"units": "arcsec", "valid": (0, None), "shape": (None,), "dynamic": True},
-        "flux": {"units": "flux", "valid": (0, None), "shape": (None,), "dynamic": True},
+        "sigma": {
+            "units": "arcsec",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Standard deviation of the Gaussian profile in arcseconds.",
+        },
+        "flux": {
+            "units": "flux",
+            "valid": (0, None),
+            "shape": (None,),
+            "dynamic": True,
+            "description": "Total flux of the Gaussian profile.",
+        },
     }
 
     @torch.no_grad()
@@ -103,20 +129,34 @@ class GaussianPSFMixin:
     The Gaussian profile is a simple and widely used model for extended objects.
     The functional form of the Gaussian profile is defined as:
 
-    $$I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))$$
+    .. math::
 
-    where `I_0` is the intensity at the center of the profile and `sigma` is the
+       I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+
+    where ``I_0`` is the intensity at the center of the profile and ``sigma`` is the
     standard deviation which controls the width of the profile.
 
-    **Parameters:**
-    -    `sigma`: Standard deviation of the Gaussian profile in pixels.
-    -    `flux`: Total flux of the Gaussian profile.
+    :param sigma: Standard deviation of the Gaussian profile in pixels.
+    :param flux: Total flux of the Gaussian profile.
     """
 
     _model_type = "gaussian"
     _parameter_specs = {
-        "sigma": {"units": "pix", "valid": (0, None), "shape": (), "dynamic": True},
-        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": False, "value": 1.0},
+        "sigma": {
+            "units": "pix",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "Standard deviation of the Gaussian profile in pixels.",
+        },
+        "flux": {
+            "units": "flux",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+            "description": "Total flux of the Gaussian profile.",
+        },
     }
 
     @torch.no_grad()

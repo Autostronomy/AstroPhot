@@ -14,6 +14,7 @@ from .mixins import (
     InclinedMixin,
 )
 from .psf_model_object import PSFModel
+from ..utils.decorators import combine_docstrings
 
 radial_models = (
     SersicPSFMixin,
@@ -26,19 +27,31 @@ radial_models = (
     SplinePSFMixin,
 )
 
-EllipseMixin = type("EllipseMixin", (InclinedMixin,), {"usable": False, "_model_type": "ellipse"})
+EllipseMixin = type(
+    "EllipseMixin",
+    (InclinedMixin,),
+    {
+        "usable": False,
+        "_model_type": "ellipse",
+        "__doc__": "PSF model with elliptical isophotes defined by a position angle and axis ratio.",
+    },
+)
 __all__ = []
 for mixin in radial_models:
     # PSF Model
-    g_mixin = type(mixin.__name__[:-5], (mixin, RadialMixin, PSFModel), {"usable": True})
+    g_mixin = combine_docstrings(
+        type(mixin.__name__[:-5], (mixin, RadialMixin, PSFModel), {"usable": True})
+    )
     globals()[g_mixin.__name__] = g_mixin
     __all__.append(g_mixin.__name__)
 
     # Ellipse PSF Model
-    g_mixin = type(
-        mixin.__name__[:-5] + "Ellipse",
-        (mixin, EllipseMixin, RadialMixin, PSFModel),
-        {"usable": True},
+    g_mixin = combine_docstrings(
+        type(
+            mixin.__name__[:-5] + "Ellipse",
+            (mixin, EllipseMixin, RadialMixin, PSFModel),
+            {"usable": True},
+        )
     )
     globals()[g_mixin.__name__] = g_mixin
     __all__.append(g_mixin.__name__)
@@ -48,10 +61,12 @@ for mixin in radial_models:
         (SuperEllipseMixin, FourierEllipseMixin, WarpMixin),
     ):
         # Galaxy Model with additional perturbation mixin
-        g_mixin = type(
-            mixin.__name__[:-5] + n,
-            (mixin, InclinedMixin, RadialMixin, p, PSFModel),
-            {"usable": True},
+        g_mixin = combine_docstrings(
+            type(
+                mixin.__name__[:-5] + n,
+                (mixin, InclinedMixin, RadialMixin, p, PSFModel),
+                {"usable": True},
+            )
         )
         globals()[g_mixin.__name__] = g_mixin
         __all__.append(g_mixin.__name__)

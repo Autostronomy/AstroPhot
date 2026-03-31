@@ -26,14 +26,19 @@ class PointSource(ComponentModel):
     other object which can essentially be entirely described by a
     position and total flux (no structure).
 
-    **Parameters:**
-    -    `flux`: The total flux of the point source
+    :param flux: The total flux of the point source
 
     """
 
     _model_type = "point"
     _parameter_specs = {
-        "flux": {"units": "flux", "valid": (0, None), "shape": (), "dynamic": True},
+        "flux": {
+            "units": "flux",
+            "valid": (0, None),
+            "shape": (),
+            "dynamic": True,
+            "description": "The total flux of the point source",
+        },
     }
     internal_psf = True
     usable = True

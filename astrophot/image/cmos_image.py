@@ -5,12 +5,17 @@ from .window import Window
 from .mixins import CMOSMixin
 from .model_image import ModelImage
 from ..backend_obj import backend
+from ..utils.decorators import combine_docstrings
+
+__all__ = ("CMOSModelImage", "CMOSTargetImage")
 
 
+@combine_docstrings
 class CMOSModelImage(CMOSMixin, ModelImage):
     """A ModelImage with CMOS-specific functionality."""
 
 
+@combine_docstrings
 class CMOSTargetImage(CMOSMixin, TargetImage):
     """
     A TargetImage with CMOS-specific functionality.

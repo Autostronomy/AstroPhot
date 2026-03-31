@@ -23,12 +23,11 @@ class MALA(BaseOptimizer):
     Which can be found fairly easily with the LM optimizer (see the fitting
     methods tutorial).
 
-    **Args:**
-    -  `chains`: The number of MCMC chains to run in parallel. Default is 4.
-    -  `epsilon`: The step size for the MALA sampler. Default is 1e-2.
-    -  `mass_matrix`: The mass matrix for the MALA sampler. If None, the identity matrix is used.
-    -  `progress_bar`: Whether to show a progress bar during sampling. Default is True.
-    -  `likelihood`: The likelihood function to use for the MCMC sampling. Can be "gaussian" or "poisson". Default is "gaussian".
+    :param chains: The number of MCMC chains to run in parallel. Default is 4.
+    :param epsilon: The step size for the MALA sampler. Default is 1e-2.
+    :param mass_matrix: The mass matrix for the MALA sampler. If None, the identity matrix is used.
+    :param progress_bar: Whether to show a progress bar during sampling. Default is True.
+    :param likelihood: The likelihood function to use for the MCMC sampling. Can be "gaussian" or "poisson". Default is "gaussian".
     """
 
     def __init__(

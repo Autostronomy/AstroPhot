@@ -33,32 +33,32 @@ class TargetImage(DataMixin, Image):
 
     Basic usage:
 
-    ```{python}
-    import astrophot as ap
+    .. code-block:: python
+        import astrophot as ap
 
-    # Create target image
-    image = ap.image.Target_Image(
-        data="pixel data",
-        wcs="astropy WCS object",
-        variance="pixel uncertainties",
-        psf="point spread function as PSF_Image object",
-        mask="True for pixels to ignore",
-    )
+        # Create target image
+        image = ap.image.Target_Image(
+            data="pixel data",
+            wcs="astropy WCS object",
+            variance="pixel uncertainties",
+            psf="point spread function as PSF_Image object",
+            mask="True for pixels to ignore",
+        )
 
-    # Display the data
-    fig, ax = plt.subplots()
-    ap.plots.target_image(fig, ax, image)
-    plt.show()
+        # Display the data
+        fig, ax = plt.subplots()
+        ap.plots.target_image(fig, ax, image)
+        plt.show()
 
-    # Save the image
-    image.save("mytarget.fits")
+        # Save the image
+        image.save("mytarget.fits")
 
-    # Load the image
-    image2 = ap.image.Target_Image(filename="mytarget.fits")
+        # Load the image
+        image2 = ap.image.Target_Image(filename="mytarget.fits")
 
-    # Make low resolution version
-    lowrez = image.reduce(2)
-    ```
+        # Make low resolution version
+        lowrez = image.reduce(2)
+
 
     Some important information to keep in mind. First, providing an
     `astropy WCS` object is the best way to keep track of coordinates
@@ -241,6 +241,7 @@ class TargetImage(DataMixin, Image):
         )
 
 
+@combine_docstrings
 class TargetImageList(ImageList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

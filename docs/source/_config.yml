@@ -39,13 +39,17 @@ sphinx:
     - "sphinx.ext.autodoc"
     - "sphinx.ext.autosummary"
     - "sphinx.ext.viewcode"
+    - "sphinx.ext.mathjax"
     # - "sphinx.ext.napoleon"
     # - "sphinx.ext.doctest"
     # - "sphinx.ext.coverage"
-    # - "sphinx.ext.mathjax"
     # - "sphinx.ext.ifconfig"
   config:
     html_theme_options:
       logo:
         image_light: ../../media/AP_logo.png
         image_dark: ../../media/AP_logo_white.png
+    autodoc_default_options:
+      members: true
+      undoc-members: true
+      show-inheritance: true
