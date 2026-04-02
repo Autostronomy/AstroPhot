@@ -1,5 +1,3 @@
-import torch
-
 from .psf_model_object import PSFModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
@@ -33,7 +31,7 @@ class PixelatedPSF(PSFModel):
     (essentially just divide the pixelscale by the upsampling factor
     you used).
 
-    :param pixels: the total flux within each pixel, represented as the log of the flux.
+    :param pixels: the total flux within each pixel, in units of flux/pix^2.
 
     """
 
@@ -43,12 +41,11 @@ class PixelatedPSF(PSFModel):
             "units": "flux/pix^2",
             "shape": (None, None),
             "dynamic": True,
-            "description": "the total flux within each pixel, represented as the log of the flux",
+            "description": "the total flux within each pixel, in units of flux/pix^2",
         }
     }
     usable = True
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

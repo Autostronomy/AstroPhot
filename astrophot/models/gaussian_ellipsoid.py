@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 from .model_object import ComponentModel
@@ -104,7 +103,6 @@ class GaussianEllipsoid(ComponentModel):
     }
     usable = True
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

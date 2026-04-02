@@ -1,7 +1,6 @@
 # Levenberg-Marquardt algorithm
 from typing import Sequence, Optional
 
-import torch
 import numpy as np
 
 from .base import BaseOptimizer
@@ -238,7 +237,6 @@ class LM(BaseOptimizer):
         M = self.forward(self.current_state)
         return 2 * backend.sum(M - self.Y * backend.log(M + 1e-10)) / self.ndf
 
-    @torch.no_grad()
     def fit(self, update_uncertainty=True) -> BaseOptimizer:
         """This performs the fitting operation. It iterates the LM step
         function until convergence is reached. Includes a message
@@ -366,7 +364,6 @@ class LM(BaseOptimizer):
         return False
 
     @property
-    @torch.no_grad()
     def covariance_matrix(self) -> ArrayLike:
         """The covariance matrix for the model at the current
         parameters. This can be used to construct a full Gaussian PDF for the
@@ -391,7 +388,6 @@ class LM(BaseOptimizer):
             self._covariance_matrix = backend.linalg.pinv(hess)
         return self._covariance_matrix
 
-    @torch.no_grad()
     def update_uncertainty(self) -> None:
         """Call this function after optimization to set the uncertainties for
         the parameters. This will use the diagonal of the covariance

@@ -1,7 +1,7 @@
 from .model_object import ComponentModel
 from ..utils.decorators import combine_docstrings
 
-__all__ = ["SkyModel"]
+__all__ = ("SkyModel",)
 
 
 @combine_docstrings

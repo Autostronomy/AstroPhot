@@ -1,14 +1,10 @@
-from typing import Optional
-
-import torch
 import numpy as np
 
 from .base import Model
 from .model_object import ComponentModel
-from ..image import ModelImage
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..utils.interpolate import interp2d
-from ..image import Window, PSFImage
+from ..image import PSFImage
 from ..errors import SpecificationConflict
 from ..param import forward
 from ..backend_obj import backend, ArrayLike
@@ -21,10 +17,9 @@ __all__ = ("PointSource",)
 @combine_docstrings
 class PointSource(ComponentModel):
     """Describes a point source in the image, this is a delta function at
-    some position in the sky. This is typically used to describe
-    stars, supernovae, very small galaxies, quasars, asteroids or any
-    other object which can essentially be entirely described by a
-    position and total flux (no structure).
+    some position in the sky. This is typically used to describe stars,
+    supernovae, quasars, asteroids or any other object which can essentially be
+    entirely described by a position and total flux (no structure).
 
     :param flux: The total flux of the point source
 
@@ -46,7 +41,6 @@ class PointSource(ComponentModel):
     def __init__(self, *args, integrate_mode="none", **kwargs):
         super().__init__(*args, integrate_mode=integrate_mode, **kwargs)
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
