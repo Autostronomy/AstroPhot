@@ -11,9 +11,9 @@ import pytest
 
 @pytest.mark.parametrize("model_type", ap.models.PSFModel.List_Models(usable=True, types=True))
 def test_all_psfmodel_sample(model_type):
-    if model_type == "airy psf model":
-        pytest.skip("Skipping airy psf model, unable to optimize, gradients are wrong.")
-    if any(t in model_type for t in ["warp", "fourier"]):
+    if model_type == "airy psf model" and ap.backend.backend == "jax":
+        pytest.skip("Skipping airy psf model, JAX can't use airy.")
+    if any(t in model_type for t in ["warp", "fourier"]) and not "gaussian" in model_type:
         pytest.skip("Skipping warp and fourier psf models, which are slow")
 
     target = make_basic_gaussian_psf(pixelscale=0.8)
@@ -47,6 +47,8 @@ def test_all_psfmodel_sample(model_type):
 
     res = ap.fit.LM(MODEL, max_iter=5).fit()
 
+    if model_type == "airy psf model":
+        return  # Airy gradients dont work, so just run the code to make sure no crashes
     assert len(res.loss_history) >= 2, "Optimizer must be able to find steps to improve the model"
 
     if res.message == "success" or model_type in ["nuker psf model"]:

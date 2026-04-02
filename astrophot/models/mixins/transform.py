@@ -361,7 +361,10 @@ class TruncationMixin:
         super().initialize()
         if not self.Rt.initialized:
             prof = default_prof(self.window.shape, self.target.pixelscale, 2, 0.2)
-            self.Rt.value = prof[len(prof) // 2]
+            if self.outer_truncation:
+                self.Rt.value = prof[-1]
+            else:
+                self.Rt.value = prof[0]
 
     @forward
     def radial_model(self, R: ArrayLike, Rt: ArrayLike, St: ArrayLike) -> ArrayLike:
