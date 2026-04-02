@@ -23,15 +23,17 @@ def test_all_psfmodel_sample(model_type):
         name="test_model",
         model_type=model_type,
         target=target,
-        normalize_psf=False,
     )
-    for p in MODEL.all_params:
-        if p.units in ["flux", "flux/pix^2"]:
-            p.to_dynamic(None)
+    if model_type in ["pixelated psf model"]:
+        for p in MODEL.all_params:
+            if p.units in ["flux", "flux/pix^2"]:
+                p.to_dynamic(None)
     MODEL.initialize()
+    if model_type in ["pixelated psf model"]:
+        for p in MODEL.all_params:
+            if p.units in ["flux", "flux/pix^2"]:
+                p.to_dynamic(p.value * 1.5)
     for p in MODEL.all_params:
-        if p.units in ["flux", "flux/pix^2"]:
-            p.to_dynamic(p.value * 1.5)
         if p.units == "pix" and not p.name == "center":
             p.to_dynamic(p.value + 0.5)
     print(MODEL)
