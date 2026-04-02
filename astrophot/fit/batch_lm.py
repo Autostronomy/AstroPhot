@@ -1,9 +1,10 @@
+import numpy as np
 from ..models import Model
 from ..image import TargetImageBatch, WindowBatch
 from .base import BaseOptimizer
-from ..backend_obj import backend
+from ..backend_obj import backend, ArrayLike
 from .. import config
-from ..errors import OptimizeStopFail, OptimizeStopSuccess
+from ..errors import OptimizeStopSuccess
 from ..param import ValidContext
 from . import func
 
@@ -20,7 +21,7 @@ class BatchLM(BaseOptimizer):
         Lup=11.0,
         Ldn=9.0,
         L0=1.0,
-        max_step_iter: int = 10,
+        max_step_iter: int = 3,
         likelihood="gaussian",
         **kwargs,
     ):
@@ -32,6 +33,8 @@ class BatchLM(BaseOptimizer):
             relative_tolerance=relative_tolerance,
             **kwargs,
         )
+
+        self.max_step_iter = max_step_iter
 
         # Likelihood
         self.likelihood = likelihood
@@ -84,7 +87,7 @@ class BatchLM(BaseOptimizer):
         self.jacobian = lambda x: vjac(CD, crtan, crpix, psf, x)
 
         # ndf
-        self.ndf = backend.sum(self.mask, axis=1) - self.current_state.shape[1]
+        self.ndf = backend.sum(self.mask, dim=1) - self.current_state.shape[1]
 
         # LM parmeters
         self.Lup = Lup
@@ -97,7 +100,7 @@ class BatchLM(BaseOptimizer):
         return (
             backend.sum(
                 self.weight * self.mask * (self.data - self.forward(self.current_state)) ** 2,
-                axis=1,
+                dim=1,
             )
             / self.ndf
         )
@@ -105,7 +108,7 @@ class BatchLM(BaseOptimizer):
     def poisson_2nll_ndf(self):
         M = self.forward(self.current_state)
         return (
-            2 * backend.sum((M - self.data * backend.log(M + 1e-10)) * self.mask, axis=1) / self.ndf
+            2 * backend.sum((M - self.data * backend.log(M + 1e-10)) * self.mask, dim=1) / self.ndf
         )
 
     def fit(self, update_uncertainty=True):
@@ -133,25 +136,10 @@ class BatchLM(BaseOptimizer):
             if self.verbose > 0:
                 config.logger.info(f"{quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}")
 
-            try:
-                if self.fit_valid:
-                    with ValidContext(self.model):
-                        res = func.batch_lm_step(
-                            x=self.model.to_valid(self.current_state),
-                            data=self.data,
-                            model=self.forward,
-                            weight=self.weight,
-                            mask=self.mask,
-                            jacobian=self.jacobian,
-                            L=self.L,
-                            Lup=self.Lup,
-                            Ldn=self.Ldn,
-                            likelihood=self.likelihood,
-                        )
-                    self.current_state = self.model.from_valid(backend.copy(res["x"]))
-                else:
+            if self.fit_valid:
+                with ValidContext(self.model):
                     res = func.batch_lm_step(
-                        x=self.current_state,
+                        x=self.model.to_valid(self.current_state),
                         data=self.data,
                         model=self.forward,
                         weight=self.weight,
@@ -161,18 +149,113 @@ class BatchLM(BaseOptimizer):
                         Lup=self.Lup,
                         Ldn=self.Ldn,
                         likelihood=self.likelihood,
+                        max_step_iter=self.max_step_iter,
                     )
-                    self.current_state = backend.copy(res["x"])
-            except OptimizeStopFail:
-                if self.verbose > 0:
-                    config.logger.warning("Could not find step to improve Chi^2, stopping")
-                self.message = (
-                    self.message
-                    + "success by immobility. Could not find step to improve Chi^2. Convergence not guaranteed"
+                self.current_state = self.model.from_valid(backend.copy(res["x"]))
+            else:
+                res = func.batch_lm_step(
+                    x=self.current_state,
+                    data=self.data,
+                    model=self.forward,
+                    weight=self.weight,
+                    mask=self.mask,
+                    jacobian=self.jacobian,
+                    L=self.L,
+                    Lup=self.Lup,
+                    Ldn=self.Ldn,
+                    likelihood=self.likelihood,
+                    max_step_iter=self.max_step_iter,
                 )
+                self.current_state = backend.copy(res["x"])
+
+            self.L = np.clip(res["L"], 1e-9, 1e9)
+            self.L_history.append(res["L"])
+            self.loss_history.append(2 * res["nll"] / backend.to_numpy(self.ndf))
+            self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+
+            if self.check_convergence():
                 break
-            except OptimizeStopSuccess as e:
-                if self.verbose > 0:
-                    config.logger.info(f"Optimization converged successfully: {e}")
-                self.message = self.message + "success"
-                break
+        else:
+            self.message = self.message + "fail. Maximum iterations"
+
+        if self.verbose > 0:
+            config.logger.info(
+                f"Final {quantity}: {np.nanmin(self.loss_history, axis=0)}, L: {self.L_history[np.nanargmin(self.loss_history, axis=0)]}. Converged: {self.message}"
+            )
+
+        self.model.set_values(self.current_state)
+        if update_uncertainty:
+            self.update_uncertainty()
+
+        return self
+
+    def check_convergence(self) -> bool:
+        """Check if the optimization has converged based on the last
+        iteration's chi^2 and the relative tolerance.
+        """
+        if len(self.loss_history) < 3:
+            return False
+        if np.all(
+            (self.loss_history[-2] - self.loss_history[-1]) / self.loss_history[-1]
+            < self.relative_tolerance
+        ) and np.all(self.L < 0.1):
+            self.message = self.message + "success"
+            return True
+        if len(self.loss_history) < 10:
+            return False
+        if np.all(
+            (self.loss_history[-10] - self.loss_history[-1]) / self.loss_history[-1]
+            < self.relative_tolerance
+        ):
+            self.message = self.message + "success by immobility. Convergence not guaranteed"
+            return True
+        return False
+
+    @property
+    def covariance_matrix(self) -> ArrayLike:
+        """The covariance matrix for the model at the current
+        parameters. This can be used to construct a full Gaussian PDF for the
+        parameters using: $\\mathcal{N}(\\mu,\\Sigma)$ where $\\mu$ is the
+        optimized parameters and $\\Sigma$ is the covariance matrix.
+
+        """
+
+        if self._covariance_matrix is not None:
+            return self._covariance_matrix
+        J = self.jacobian(self.current_state)
+        if self.likelihood == "gaussian":
+            hess = backend.vmap(func.hessian)(J, self.weight)
+        elif self.likelihood == "poisson":
+            hess = backend.vmap(func.hessian_poisson)(
+                J, self.data, self.forward(self.current_state)
+            )
+        try:
+            self._covariance_matrix = backend.vmap(backend.linalg.inv)(hess)
+        except:
+            config.logger.warning(
+                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
+            )
+            self._covariance_matrix = backend.vmap(backend.linalg.pinv)(hess)
+        return self._covariance_matrix
+
+    def update_uncertainty(self) -> None:
+        """Call this function after optimization to set the uncertainties for
+        the parameters. This will use the diagonal of the covariance
+        matrix to update the uncertainties. See the covariance_matrix
+        function for the full representation of the uncertainties.
+
+        """
+        # set the uncertainty for each parameter
+        cov = self.covariance_matrix
+        if backend.all(backend.isfinite(cov)):
+            try:
+                self.model.set_values(
+                    backend.sqrt(backend.abs(backend.vmap(backend.diag)(cov))),
+                    attribute="uncertainty",
+                )
+            except RuntimeError as e:
+                config.logger.warning(f"Unable to update uncertainty due to: {e}")
+        else:
+            config.logger.warning(
+                "Unable to update uncertainty due to non finite covariance matrix"
+            )

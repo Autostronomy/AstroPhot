@@ -12,7 +12,7 @@ def nll(D, M, W):
     M: model prediction
     W: weights
     """
-    return 0.5 * backend.sum(W * (D - M) ** 2)
+    return 0.5 * backend.sum(W * (D - M) ** 2, dim=-1)
 
 
 def nll_poisson(D, M):
@@ -21,29 +21,33 @@ def nll_poisson(D, M):
     D: data
     M: model prediction
     """
-    return backend.sum(M - D * backend.log(M + 1e-10))  # Adding small value to avoid log(0)
+    return backend.sum(M - D * backend.log(M + 1e-10), dim=-1)  # Adding small value to avoid log(0)
 
 
 def gradient(J, W, D, M):
-    return J.T @ (W * (D - M))[:, None]
+    return J.T @ (W * (D - M)).reshape(D.shape + (1,))
 
 
 def gradient_poisson(J, D, M):
-    return J.T @ (D / M - 1)[:, None]
+    return J.T @ (D / M - 1).reshape(D.shape + (1,))
 
 
 def hessian(J, W):
-    return J.T @ (W[:, None] * J)
+    return J.T @ (W.reshape(W.shape + (1,)) * J)
 
 
 def hessian_poisson(J, D, M):
-    return J.T @ ((D / (M**2 + 1e-10))[:, None] * J)
+    return J.T @ ((D / (M**2 + 1e-10)).reshape(D.shape + (1,)) * J)
 
 
 def damp_hessian(hess, L):
     I = backend.eye(len(hess), dtype=config.DTYPE, device=config.DEVICE)
     D = backend.ones_like(hess) - I
     return hess * (I + D / (1 + L)) + L * I * backend.diag(hess)
+
+
+def rho(nll0, nll1, h, hessD, grad):
+    return (nll0 - nll1) / backend.abs(h.T @ hessD @ h - 2 * grad.T @ h)
 
 
 def solve(hess, grad, L):
@@ -116,15 +120,15 @@ def lm_step(
             break
 
         # actual nll improvement vs expected from linearization
-        rho = (nll0 - nll1) / backend.abs(h.T @ hessD @ h - 2 * grad.T @ h).item()
+        _rho = rho(nll0, nll1, h, hessD, grad).item()
 
-        if (nll1 < (nll0 + tolerance) and abs(rho - 1) < abs(scary["rho"] - 1)) or (
-            nll1 < scary["nll"] and rho > -10
+        if (nll1 < (nll0 + tolerance) and abs(_rho - 1) < abs(scary["rho"] - 1)) or (
+            nll1 < scary["nll"] and _rho > -10
         ):
-            scary = {"x": x + h.squeeze(1), "nll": nll1, "L": L0, "rho": rho}
+            scary = {"x": x + h.squeeze(1), "nll": nll1, "L": L0, "rho": _rho}
 
         # Avoid highly non-linear regions
-        if rho < 0.1 or rho > 2:
+        if _rho < 0.1 or _rho > 2:
             L *= Lup
             if improving is True:
                 break
@@ -156,3 +160,61 @@ def lm_step(
         raise OptimizeStopFail("Could not find step to improve chi^2")
 
     return best
+
+
+def batch_lm_step(
+    x,
+    data,
+    model,
+    weight,
+    mask,
+    jacobian,
+    L=1.0,
+    Lup=9.0,
+    Ldn=11.0,
+    tolerance=1e-4,
+    likelihood="gaussian",
+    max_step_iter=3,
+):
+    L0 = L  # (D,)
+    M0 = backend.detach(model(x))  # (D, M)
+    J = backend.detach(jacobian(x))  # (D, M, N)
+    data = data * mask
+    M0 = M0 * mask
+    weight = weight * mask
+    J = J * mask.reshape(mask.shape + (1,))
+
+    if likelihood == "gaussian":
+        nll0 = nll(data, M0, weight)  # (D,)
+        grad = backend.vmap(gradient)(J, weight, data, M0)  # (D, N, 1)
+        hess = backend.vmap(hessian)(J, weight)  # (D, N, N)
+    elif likelihood == "poisson":
+        nll0 = nll_poisson(data, M0)  # (D,)
+        grad = backend.vmap(gradient_poisson)(J, data, M0)  # (D, N, 1)
+        hess = backend.vmap(hessian_poisson)(J, data, M0)  # (D, N, N)
+    else:
+        raise ValueError(f"Unsupported likelihood: {likelihood}")
+
+    del J
+
+    new_x = backend.copy(x)
+    new_nll = backend.copy(nll0)
+    new_L = backend.copy(L)
+
+    for _ in range(max_step_iter):
+        hessD, h = backend.vmap(solve)(hess, grad, new_L)  # (D, N, N), (D, N, 1)
+        M1 = model(x + h.squeeze(2))  # (D, M)
+        if likelihood == "gaussian":
+            nll1 = nll(data, M1, weight)  # (D,)
+        elif likelihood == "poisson":
+            nll1 = nll_poisson(data, M1)  # (D,)
+
+        # actual nll improvement vs expected from linearization
+        _rho = backend.vmap(rho)(nll0, nll1, h, hessD, grad)  # (D,)
+
+        good = backend.isfinite(nll1) & (nll1 < new_nll) & (_rho > 0.1) & (_rho < 2)
+        new_x = backend.where(good[:, None], x + h.squeeze(2), new_x)
+        new_nll = backend.where(good, nll1, new_nll)
+        new_L = backend.where(good, new_L / Ldn, new_L * Lup)
+
+    return {"x": new_x, "nll": backend.to_numpy(new_nll), "L": backend.to_numpy(new_L)}
