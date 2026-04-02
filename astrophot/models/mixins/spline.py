@@ -17,7 +17,7 @@ class SplineMixin:
     that contains the radial profile of the brightness in units of
     flux/arcsec^2. The radius of each node is determined from ``I_R.prof``.
 
-    :param I_R: Tensor of radial brightness values in units of flux/arcsec^2.
+    :param I_R: Array of radial brightness values in units of flux/arcsec^2.
     """
 
     _model_type = "spline"
@@ -27,7 +27,7 @@ class SplineMixin:
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "Tensor of radial brightness values in units of flux/arcsec^2.",
+            "description": "Array of radial brightness values in units of flux/arcsec^2.",
         }
     }
 
@@ -74,7 +74,7 @@ class iSplineMixin:
     multiple spline profiles to be defined at once. Each individual spline model
     is then ``I_R[i]`` and ``I_R.prof[i]`` where ``i`` indexes the profiles.
 
-    :param I_R: Tensor of radial brightness values in units of flux/arcsec^2.
+    :param I_R: Array of radial brightness values in units of flux/arcsec^2.
     """
 
     _model_type = "spline"
@@ -84,7 +84,7 @@ class iSplineMixin:
             "valid": (0, None),
             "shape": (None, None),
             "dynamic": True,
-            "description": "Tensor of radial brightness values in units of flux/arcsec^2.",
+            "description": "Array of radial brightness values in units of flux/arcsec^2.",
         }
     }
 
@@ -138,7 +138,7 @@ class SplinePSFMixin:
     that contains the radial profile of the brightness in units of
     flux/pix^2. The radius of each node is determined from ``I_R.prof``.
 
-    :param I_R: Tensor of radial brightness values in units of flux/pix^2.
+    :param I_R: Array of radial brightness values in units of flux/pix^2.
     """
 
     _model_type = "spline"
@@ -148,7 +148,7 @@ class SplinePSFMixin:
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "Tensor of radial brightness values in units of flux/pix^2.",
+            "description": "Array of radial brightness values in units of flux/pix^2.",
         }
     }
 

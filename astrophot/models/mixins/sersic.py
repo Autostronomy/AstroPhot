@@ -29,7 +29,7 @@ class SersicMixin:
     ``n=0.5`` being a Gaussian profile.
 
     :param n: Sersic index which controls the shape of the brightness profile
-    :param Re: half light radius [arcsec]
+    :param Re: half light radius, also called effective radius [arcsec]
     :param Ie: intensity at the half light radius [flux/arcsec^2]
     """
 
@@ -47,7 +47,7 @@ class SersicMixin:
             "valid": (0, None),
             "shape": (),
             "dynamic": True,
-            "description": "half light radius [arcsec]",
+            "description": "half light radius, also called effective radius [arcsec]",
         },
         "Ie": {
             "units": "flux/arcsec^2",
@@ -92,7 +92,7 @@ class iSersicMixin:
     multiple Sersic profiles to be defined at once.
 
     :param n: Sersic index which controls the shape of the brightness profile
-    :param Re: half light radius [arcsec]
+    :param Re: half light radius, also called effective radius [arcsec]
     :param Ie: intensity at the half light radius [flux/arcsec^2]
     """
 
@@ -110,14 +110,14 @@ class iSersicMixin:
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "half light radius [arcsec]",
+            "description": "half light radius, also called effective radius",
         },
         "Ie": {
             "units": "flux/arcsec^2",
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "intensity at the half light radius [flux/arcsec^2]",
+            "description": "intensity at the half light radius, also called effective intensity",
         },
     }
 
@@ -160,8 +160,8 @@ class SersicPSFMixin:
     ``n=0.5`` being a Gaussian profile.
 
     :param n: Sersic index which controls the shape of the brightness profile
-    :param Re: half light radius [pix]
-    :param Ie: intensity at the half light radius [flux/pix^2]
+    :param Re: half light radius, also called effective radius [pix]
+    :param Ie: intensity at the half light radius, also called effective intensity [flux/pix^2]
     """
 
     _model_type = "sersic"
@@ -178,7 +178,7 @@ class SersicPSFMixin:
             "valid": (0, None),
             "shape": (),
             "dynamic": True,
-            "description": "half light radius [pix]",
+            "description": "half light radius, also called effective radius",
         },
         "Ie": {
             "units": "flux/pix^2",
@@ -186,7 +186,7 @@ class SersicPSFMixin:
             "shape": (),
             "dynamic": False,
             "value": 1.0,
-            "description": "intensity at the half light radius [flux/pix^2]",
+            "description": "intensity at the half light radius, also called effective intensity",
         },
     }
 

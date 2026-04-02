@@ -142,9 +142,9 @@ def test_all_model_sample(model_type):
     ):
         pytest.skip("JAX version doesnt support these models yet, difficulty with gradients")
 
-    if any(t in model_type for t in ["warp", "fourier"]):
+    if any(t in model_type for t in ["warp", "fourier"]) and "gaussian" not in model_type:
         pytest.skip("Warp and Fourier models are complex and slow to fit, skipping for now")
-    if model_type.startswith("truncated"):
+    if model_type.startswith("truncated") and "gaussian" not in model_type:
         pytest.skip("Testing truncated models is redundant")
 
     target = make_basic_sersic()

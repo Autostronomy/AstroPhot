@@ -19,9 +19,17 @@ class BatchModel(GradMixin, SampleMixin, Model):
     model). If you want to model the same object in multiple images, see the
     BatchSceneModel instead.
 
+    Once placed in a BatchModel, parameters for the base Model may now be given
+    values with an extra dimension. This extra dimension is the batch dimension
+    that will be vectorized over. For example, with a Gaussian Model, the
+    `sigma` parameter is normally a single value scalar. You may now set it with
+    a vector of values, and the length of that vector determines how many
+    Gaussians the BatchModel will generate. Of course, every dynamic parameter
+    that is batched must have the same size for its batch dimension.
+
     **Note:** any model parameters that you wish to batch over must be set to
-        dynamic=True. See [caskade hierarchical
-        models](https://caskade.readthedocs.io/en/latest/notebooks/HierarchicalModels.html)
+        dynamic=True. See `caskade hierarchical models
+        <https://caskade.readthedocs.io/en/latest/notebooks/HierarchicalModels.html>`_
         for more details.
     """
 
@@ -168,12 +176,12 @@ class BatchSceneModel(GradMixin, Model):
     @forward
     def __call__(self, model_params=None, model_dims=None, **kwargs):
         working_image = self.target.model_image(self.window)
-        crtan = self.target.crtan
+        crtan = working_image.crtan
         shift = backend.as_array(
             self.window.origin_shifter(self.model.window), dtype=config.DTYPE, device=config.DEVICE
         )
-        crpix = self.target.crpix + shift
-        CD = self.target.CD
+        crpix = working_image.crpix + shift
+        CD = working_image.CD
         psf = self.target.psf_stack
         psf_batch = None if psf is None else 0
         working_image._data = backend.vmap(
