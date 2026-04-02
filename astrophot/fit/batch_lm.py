@@ -168,8 +168,8 @@ class BatchLM(BaseOptimizer):
                 )
                 self.current_state = backend.copy(res["x"])
 
-            self.L = np.clip(res["L"], 1e-9, 1e9)
-            self.L_history.append(res["L"])
+            self.L = backend.clamp(res["L"], backend.as_array(1e-9), backend.as_array(1e9))
+            self.L_history.append(backend.to_numpy(self.L))
             self.loss_history.append(2 * res["nll"] / backend.to_numpy(self.ndf))
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
 
@@ -180,7 +180,7 @@ class BatchLM(BaseOptimizer):
 
         if self.verbose > 0:
             config.logger.info(
-                f"Final {quantity}: {np.nanmin(self.loss_history, axis=0)}, L: {self.L_history[np.nanargmin(self.loss_history, axis=0)]}. Converged: {self.message}"
+                f"Final {quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
             )
 
         self.model.set_values(self.current_state)
@@ -198,7 +198,7 @@ class BatchLM(BaseOptimizer):
         if np.all(
             (self.loss_history[-2] - self.loss_history[-1]) / self.loss_history[-1]
             < self.relative_tolerance
-        ) and np.all(self.L < 0.1):
+        ) and np.all(backend.to_numpy(self.L) < 0.1):
             self.message = self.message + "success"
             return True
         if len(self.loss_history) < 10:

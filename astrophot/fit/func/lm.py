@@ -210,11 +210,11 @@ def batch_lm_step(
             nll1 = nll_poisson(data, M1)  # (D,)
 
         # actual nll improvement vs expected from linearization
-        _rho = backend.vmap(rho)(nll0, nll1, h, hessD, grad)  # (D,)
+        _rho = backend.vmap(rho)(nll0, nll1, h, hessD, grad).reshape(-1)  # (D,)
 
         good = backend.isfinite(nll1) & (nll1 < new_nll) & (_rho > 0.1) & (_rho < 2)
         new_x = backend.where(good[:, None], x + h.squeeze(2), new_x)
         new_nll = backend.where(good, nll1, new_nll)
         new_L = backend.where(good, new_L / Ldn, new_L * Lup)
 
-    return {"x": new_x, "nll": backend.to_numpy(new_nll), "L": backend.to_numpy(new_L)}
+    return {"x": new_x, "nll": backend.to_numpy(new_nll), "L": new_L}
