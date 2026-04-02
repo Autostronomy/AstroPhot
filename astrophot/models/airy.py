@@ -1,6 +1,3 @@
-import torch
-import numpy as np
-
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .psf_model_object import PSFModel
 from .mixins import RadialMixin
@@ -14,6 +11,10 @@ __all__ = ("AiryPSF",)
 class AiryPSF(RadialMixin, PSFModel):
     """The Airy disk is an analytic description of the diffraction pattern
     for a circular aperture.
+
+    WARNING: This model does not work in JAX (it doesn't have the required Bessel function implemented)
+
+    WARNING: PyTorch appears to have an issue with gradients wrt the R1 parameter. Optimization doesn't seem to work for this model (maybe try scipy optimize?).
 
     The diffraction pattern is described exactly by the configuration of the
     lens system under the assumption that all elements are perfect. This
@@ -62,7 +63,6 @@ class AiryPSF(RadialMixin, PSFModel):
     }
     usable = True
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
