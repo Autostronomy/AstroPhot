@@ -159,8 +159,6 @@ class LM(BaseOptimizer):
             relative_tolerance=relative_tolerance,
             **kwargs,
         )
-        # Maximum number of iterations of the algorithm
-        self.max_iter = max_iter
         # Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation
         self.max_step_iter = max_step_iter
         self.Lup = Lup
