@@ -180,7 +180,7 @@ class FourierEllipseMixin:
             of each mode.
     :param phim: Array of phases for the Fourier modes, adjusts the
             orientation of the mode perturbation relative to the major axis. It
-            is cyclically defined in the range [0,2pi/m)
+            is cyclically defined in the range [0,2pi)
     :param modes: Tuple of integers indicating which Fourier modes to use.
     """
 
@@ -230,7 +230,6 @@ class FourierEllipseMixin:
             self.am.value = np.zeros(len(self.modes)) + 0.0001
         if not self.phim.initialized:
             self.phim.value = np.zeros(len(self.modes)) + 0.0001
-            self.phim.valid = (np.zeros(len(self.modes)), 2 * np.pi / backend.to_numpy(self.modes))
 
 
 class WarpMixin:

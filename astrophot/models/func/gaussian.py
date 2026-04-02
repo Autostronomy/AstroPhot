@@ -3,11 +3,10 @@ import numpy as np
 
 
 def gaussian(R: ArrayLike, sigma: ArrayLike, flux: ArrayLike) -> ArrayLike:
-    """Gaussian 1d profile function, specifically designed for pytorch
-    operations.
+    """Gaussian 2d profile function.
 
     **Args:**
-    -  `R`: Radii tensor at which to evaluate the gaussian function
+    -  `R`: Radii array at which to evaluate the gaussian function
     -  `sigma`: Standard deviation of the gaussian in the same units as R
     -  `flux`: Total flux of the Gaussian
     """
