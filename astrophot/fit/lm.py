@@ -166,7 +166,9 @@ class LM(BaseOptimizer):
         self.L = L0
         self.likelihood = likelihood
         if self.likelihood not in ["gaussian", "poisson"]:
-            raise ValueError(f"Unsupported likelihood: {self.likelihood}")
+            raise ValueError(
+                f"Unsupported likelihood: {self.likelihood}, should be one of: 'gaussian' or 'poisson'"
+            )
         self.constraint = constraint
 
         # mask
