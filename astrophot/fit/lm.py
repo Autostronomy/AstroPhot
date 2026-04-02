@@ -158,8 +158,6 @@ class LM(BaseOptimizer):
             relative_tolerance=relative_tolerance,
             **kwargs,
         )
-        # Maximum number of iterations of the algorithm
-        self.max_iter = max_iter
         # Maximum number of steps while searching for chi^2 improvement on a single jacobian evaluation
         self.max_step_iter = max_step_iter
         self.Lup = Lup
@@ -167,7 +165,9 @@ class LM(BaseOptimizer):
         self.L = L0
         self.likelihood = likelihood
         if self.likelihood not in ["gaussian", "poisson"]:
-            raise ValueError(f"Unsupported likelihood: {self.likelihood}")
+            raise ValueError(
+                f"Unsupported likelihood: {self.likelihood}, should be one of: 'gaussian' or 'poisson'"
+            )
         self.constraint = constraint
 
         # mask
