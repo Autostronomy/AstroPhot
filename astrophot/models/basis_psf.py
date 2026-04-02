@@ -16,13 +16,19 @@ __all__ = ["PixelBasisPSF"]
 
 @combine_docstrings
 class PixelBasisPSF(PSFModel):
-    """point source model which uses multiple images as a basis for the
-    PSF as its representation for point sources. Using bilinear interpolation it
-    will shift the PSF within a pixel to accurately represent the center
-    location of a point source. There is no functional form for this object type
-    as any image can be supplied. Bilinear interpolation is very fast and
-    accurate for smooth models, so it is possible to do the expensive
-    interpolation before optimization and save time.
+    """A point source defined by a linear combination of basis images.
+
+    Point source model which uses multiple images as a basis for the PSF as its
+    representation for point sources. Using bilinear interpolation it will shift
+    the PSF within a pixel to accurately represent the center location of a
+    point source. There is no functional form for this object type as any image
+    can be supplied. Bilinear interpolation is very fast and accurate for smooth
+    models, so it is possible to do the expensive interpolation before
+    optimization and save time.
+
+    The initialization of the weights is currently done by setting random
+    values. This almost certainly produces a bad initial model. You may either
+    set weights manually, or use a fitting step to get good starting weights.
 
     Note: The resulting PSF from the combined basis set will be normalized
         before being used as a PSF model, so the sum of the `weights` does not
@@ -76,9 +82,15 @@ class PixelBasisPSF(PSFModel):
             self.basis = func.zernike_basis(order, N) / self.target.pixel_area
 
         if not self.weights.initialized:
-            w = np.zeros(self.basis.shape[0])
-            w[0] = 1.0
-            self.weights.value = w
+            w = backend.as_array(
+                np.random.normal(size=self.basis.shape[0]) / np.arange(1, self.basis.shape[0] + 1),
+                dtype=config.DTYPE,
+                device=config.DEVICE,
+            )
+            scale = backend.mean(self.target[self.window].data) / backend.mean(
+                backend.sum(w[:, None, None] * self.basis, dim=0)
+            )
+            self.weights.value = w * scale
 
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
