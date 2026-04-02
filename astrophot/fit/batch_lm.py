@@ -4,6 +4,8 @@ from .base import BaseOptimizer
 from ..backend_obj import backend
 from .. import config
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
+from ..param import ValidContext
+from . import func
 
 
 class BatchLM(BaseOptimizer):
@@ -20,7 +22,6 @@ class BatchLM(BaseOptimizer):
         L0=1.0,
         max_step_iter: int = 10,
         likelihood="gaussian",
-        constraint: Optional[LMConstraint] = None,
         **kwargs,
     ):
 
@@ -32,10 +33,7 @@ class BatchLM(BaseOptimizer):
             **kwargs,
         )
 
-        self.Lup = Lup
-        self.Ldn = Ldn
-        self.L = L0
-
+        # Likelihood
         self.likelihood = likelihood
         if self.likelihood not in ["gaussian", "poisson"]:
             raise ValueError(
@@ -88,6 +86,13 @@ class BatchLM(BaseOptimizer):
         # ndf
         self.ndf = backend.sum(self.mask, axis=1) - self.current_state.shape[1]
 
+        # LM parmeters
+        self.Lup = Lup
+        self.Ldn = Ldn
+        self.L = L0 * backend.ones(
+            self.current_state.shape[0], dtype=config.DTYPE, device=config.DEVICE
+        )
+
     def chi2_ndf(self):
         return (
             backend.sum(
@@ -109,3 +114,65 @@ class BatchLM(BaseOptimizer):
                 config.logger.warning("No parameters to optimize. Exiting fit")
             self.message = "No parameters to optimize. Exiting fit"
             return self
+
+        if self.likelihood == "gaussian":
+            quantity = "Chi^2/DoF"
+            self.loss_history = [backend.to_numpy(self.chi2_ndf())]
+        elif self.likelihood == "poisson":
+            quantity = "2NLL/DoF"
+            self.loss_history = [backend.to_numpy(self.poisson_2nll_ndf())]
+        self._covariance_matrix = None
+        self.L_history = [backend.to_numpy(self.L)]
+        self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
+        if self.verbose > 0:
+            config.logger.info(
+                f"==Starting LM fit for '{self.model.name}' with batch of {self.current_state.shape[0]} images with {self.current_state.shape[1]} dynamic parameters and {self.data.shape[1]} pixels=="
+            )
+
+        for _ in range(self.max_iter):
+            if self.verbose > 0:
+                config.logger.info(f"{quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}")
+
+            try:
+                if self.fit_valid:
+                    with ValidContext(self.model):
+                        res = func.batch_lm_step(
+                            x=self.model.to_valid(self.current_state),
+                            data=self.data,
+                            model=self.forward,
+                            weight=self.weight,
+                            mask=self.mask,
+                            jacobian=self.jacobian,
+                            L=self.L,
+                            Lup=self.Lup,
+                            Ldn=self.Ldn,
+                            likelihood=self.likelihood,
+                        )
+                    self.current_state = self.model.from_valid(backend.copy(res["x"]))
+                else:
+                    res = func.batch_lm_step(
+                        x=self.current_state,
+                        data=self.data,
+                        model=self.forward,
+                        weight=self.weight,
+                        mask=self.mask,
+                        jacobian=self.jacobian,
+                        L=self.L,
+                        Lup=self.Lup,
+                        Ldn=self.Ldn,
+                        likelihood=self.likelihood,
+                    )
+                    self.current_state = backend.copy(res["x"])
+            except OptimizeStopFail:
+                if self.verbose > 0:
+                    config.logger.warning("Could not find step to improve Chi^2, stopping")
+                self.message = (
+                    self.message
+                    + "success by immobility. Could not find step to improve Chi^2. Convergence not guaranteed"
+                )
+                break
+            except OptimizeStopSuccess as e:
+                if self.verbose > 0:
+                    config.logger.info(f"Optimization converged successfully: {e}")
+                self.message = self.message + "success"
+                break
