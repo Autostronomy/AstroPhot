@@ -83,7 +83,7 @@ class PixelBasisPSF(PSFModel):
 
         if not self.weights.initialized:
             w = backend.as_array(
-                np.random.normal(size=self.basis.shape[0]) / np.arange(1, self.basis.shape[0] + 1),
+                1 / np.arange(1, self.basis.shape[0] + 1),
                 dtype=config.DTYPE,
                 device=config.DEVICE,
             )

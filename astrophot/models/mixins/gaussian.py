@@ -20,7 +20,7 @@ class GaussianMixin:
 
     .. math::
 
-       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma^2} \\exp(-R^2 / (2 \\sigma^2))
 
     where ``flux`` is the total flux of the profile and ``sigma`` is the
     standard deviation which controls the width of the profile.
@@ -73,7 +73,7 @@ class iGaussianMixin:
 
     .. math::
 
-       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma^2} \\exp(-R^2 / (2 \\sigma^2))
 
     where ``sigma`` is the standard deviation which controls the width of the
     profile and ``flux`` gives the total flux of the profile (assuming no
@@ -131,7 +131,7 @@ class GaussianPSFMixin:
 
     .. math::
 
-       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma^2} \\exp(-R^2 / (2 \\sigma^2))
 
     where ``flux`` is the total flux of the profile and ``sigma`` is the
     standard deviation which controls the width of the profile.

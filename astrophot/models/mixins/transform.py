@@ -230,7 +230,7 @@ class FourierEllipseMixin:
             self.am.value = np.zeros(len(self.modes)) + 0.0001
         if not self.phim.initialized:
             self.phim.value = np.zeros(len(self.modes)) + 0.0001
-            self.phim.valid = (np.zeros(len(self.modes)), 2 * np.pi / np.array(self.modes))
+            self.phim.valid = (np.zeros(len(self.modes)), 2 * np.pi / backend.to_numpy(self.modes))
 
 
 class WarpMixin:
