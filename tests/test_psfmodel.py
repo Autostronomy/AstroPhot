@@ -44,8 +44,6 @@ def test_all_psfmodel_sample(model_type):
     assert ap.backend.all(
         ap.backend.isfinite(MODEL.jacobian().data)
     ), "Model should evaluate a real number for the jacobian"
-    print(ap.backend.max(ap.backend.abs(MODEL.jacobian().data)))
-    print(MODEL.gradient())
 
     res = ap.fit.LM(MODEL, max_iter=5).fit()
 
