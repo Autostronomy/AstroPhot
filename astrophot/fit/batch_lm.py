@@ -87,9 +87,11 @@ class BatchLM(BaseOptimizer):
         self.jacobian = lambda x: vjac(CD, crtan, crpix, psf, x)
 
         # ndf
-        self.ndf = backend.sum(self.mask, dim=1) - self.current_state.shape[1]
+        self.ndf = backend.clamp(
+            backend.sum(self.mask, dim=1) - self.current_state.shape[1], backend.as_array(1), None
+        )
 
-        # LM parmeters
+        # LM parameters
         self.Lup = Lup
         self.Ldn = Ldn
         self.L = L0 * backend.ones(
@@ -222,12 +224,12 @@ class BatchLM(BaseOptimizer):
 
         if self._covariance_matrix is not None:
             return self._covariance_matrix
-        J = self.jacobian(self.current_state)
+        J = self.jacobian(self.current_state) * self.mask.reshape(self.mask.shape + (1,))
         if self.likelihood == "gaussian":
-            hess = backend.vmap(func.hessian)(J, self.weight)
+            hess = backend.vmap(func.hessian)(J, self.weight * self.mask)
         elif self.likelihood == "poisson":
             hess = backend.vmap(func.hessian_poisson)(
-                J, self.data, self.forward(self.current_state)
+                J, self.data * self.mask, self.forward(self.current_state) * self.mask
             )
         try:
             self._covariance_matrix = backend.vmap(backend.linalg.inv)(hess)
