@@ -168,12 +168,12 @@ class BatchSceneModel(GradMixin, Model):
     @forward
     def __call__(self, model_params=None, model_dims=None, **kwargs):
         working_image = self.target.model_image(self.window)
-        crtan = self.target.crtan
+        crtan = working_image.crtan
         shift = backend.as_array(
             self.window.origin_shifter(self.model.window), dtype=config.DTYPE, device=config.DEVICE
         )
-        crpix = self.target.crpix + shift
-        CD = self.target.CD
+        crpix = working_image.crpix + shift
+        CD = working_image.CD
         psf = self.target.psf_stack
         psf_batch = None if psf is None else 0
         working_image._data = backend.vmap(
