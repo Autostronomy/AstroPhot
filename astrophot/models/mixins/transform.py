@@ -176,11 +176,11 @@ class FourierEllipseMixin:
     should consider carefully why the Fourier modes are being used for the
     science case at hand.
 
-    :param am: Tensor of amplitudes for the Fourier modes, indicates the strength
+    :param am: Array of amplitudes for the Fourier modes, indicates the strength
             of each mode.
-    :param phim: Tensor of phases for the Fourier modes, adjusts the
+    :param phim: Array of phases for the Fourier modes, adjusts the
             orientation of the mode perturbation relative to the major axis. It
-            is cyclically defined in the range [0,2pi)
+            is cyclically defined in the range [0,2pi/m)
     :param modes: Tuple of integers indicating which Fourier modes to use.
     """
 
@@ -190,7 +190,7 @@ class FourierEllipseMixin:
             "units": "none",
             "shape": (None,),
             "dynamic": True,
-            "description": "Tensor of amplitudes for the Fourier modes, indicates the strength of each mode.",
+            "description": "Array of amplitudes for the Fourier modes, indicates the strength of each mode.",
         },
         "phim": {
             "units": "radians",
@@ -198,7 +198,7 @@ class FourierEllipseMixin:
             "cyclic": True,
             "shape": (None,),
             "dynamic": False,
-            "description": "Tensor of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis.",
+            "description": "Array of phases for the Fourier modes, adjusts the orientation of the mode perturbation relative to the major axis.",
         },
     }
     _options = ("modes",)
@@ -230,6 +230,7 @@ class FourierEllipseMixin:
             self.am.value = np.zeros(len(self.modes)) + 0.0001
         if not self.phim.initialized:
             self.phim.value = np.zeros(len(self.modes)) + 0.0001
+            self.phim.valid = (np.zeros(len(self.modes)), 2 * np.pi / np.array(self.modes))
 
 
 class WarpMixin:
@@ -258,8 +259,8 @@ class WarpMixin:
     original coordinates X, Y. This is achieved by making PA and q a spline
     profile.
 
-    :param q_R: Tensor of axis ratio values for axis ratio spline
-    :param PA_R: Tensor of position angle values as input to the spline
+    :param q_R: Array of axis ratio values for axis ratio spline
+    :param PA_R: Array of position angle values as input to the spline
 
     """
 
@@ -270,7 +271,7 @@ class WarpMixin:
             "valid": (0, 1),
             "shape": (None,),
             "dynamic": True,
-            "description": "Tensor of axis ratio values for axis ratio spline",
+            "description": "Array of axis ratio values for axis ratio spline",
         },
         "PA_R": {
             "units": "radians",
@@ -278,7 +279,7 @@ class WarpMixin:
             "cyclic": True,
             "shape": (None,),
             "dynamic": True,
-            "description": "Tensor of position angle values as input to the spline",
+            "description": "Array of position angle values as input to the spline",
         },
     }
 

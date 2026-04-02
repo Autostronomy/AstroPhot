@@ -25,8 +25,8 @@ class ExponentialMixin:
     Ie is the brightness at the effective radius, and Re is the effective
     radius. :math:`b_1` is a constant that ensures :math:`I_e` is the brightness at :math:`R_e`.
 
-    :param Re: effective radius in arcseconds
-    :param Ie: effective surface density in flux/arcsec^2
+    :param Re: effective radius, radius enclosing half the total light
+    :param Ie: effective surface density, brightness at the effective radius
     """
 
     _model_type = "exponential"
@@ -36,14 +36,14 @@ class ExponentialMixin:
             "valid": (0, None),
             "shape": (),
             "dynamic": True,
-            "description": "effective radius in arcseconds",
+            "description": "effective radius, radius enclosing half the total light",
         },
         "Ie": {
             "units": "flux/arcsec^2",
             "valid": (0, None),
             "shape": (),
             "dynamic": True,
-            "description": "effective surface density in flux/arcsec^2",
+            "description": "effective surface density, brightness at the effective radius",
         },
     }
 
@@ -81,8 +81,8 @@ class iExponentialMixin:
     ``Re`` and ``Ie`` are batched by their first dimension, allowing for multiple
     exponential profiles to be defined at once.
 
-    :param Re: effective radius in arcseconds
-    :param Ie: effective surface density in flux/arcsec^2
+    :param Re: effective radius, radius enclosing half the total light
+    :param Ie: effective surface density, brightness at the effective radius
     """
 
     _model_type = "exponential"
@@ -92,14 +92,14 @@ class iExponentialMixin:
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "effective radius in arcseconds",
+            "description": "effective radius, radius enclosing half the total light",
         },
         "Ie": {
             "units": "flux/arcsec^2",
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "effective surface density in flux/arcsec^2",
+            "description": "effective surface density, brightness at the effective radius",
         },
     }
 
@@ -135,8 +135,8 @@ class ExponentialPSFMixin:
     Ie is the brightness at the effective radius, and Re is the effective
     radius. :math:`b_1` is a constant that ensures :math:`I_e` is the brightness at :math:`R_e`.
 
-    :param Re: effective radius in pixels
-    :param Ie: effective surface density in flux/pix^2
+    :param Re: effective radius, radius enclosing half the total light
+    :param Ie: effective surface density, brightness at the effective radius
     """
 
     _model_type = "exponential"
@@ -146,7 +146,7 @@ class ExponentialPSFMixin:
             "valid": (0, None),
             "shape": (),
             "dynamic": True,
-            "description": "effective radius in pixels",
+            "description": "effective radius, radius enclosing half the total light",
         },
         "Ie": {
             "units": "flux/pix^2",
@@ -154,7 +154,7 @@ class ExponentialPSFMixin:
             "shape": (),
             "dynamic": False,
             "value": 1.0,
-            "description": "effective surface density in flux/pix^2",
+            "description": "effective surface density, brightness at the effective radius",
         },
     }
 

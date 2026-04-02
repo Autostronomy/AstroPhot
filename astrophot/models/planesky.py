@@ -1,28 +1,28 @@
 import numpy as np
-import torch
 
 from .sky_model_object import SkyModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from ..param import forward
 from ..backend_obj import backend, ArrayLike
 
-__all__ = ["PlaneSky"]
+__all__ = ("PlaneSky",)
 
 
 @combine_docstrings
 class PlaneSky(SkyModel):
-    """Sky background model using a tilted plane for the sky flux. The brightness for each pixel is defined as:
+    """Sky background model using a tilted plane for the sky flux. The
+    brightness for each pixel is defined as:
 
     .. math::
 
        I(X, Y) = I_0 + X*\\delta_x + Y*\\delta_y
 
-    where :math:`I(X,Y)` is the brightness as a function of image position :math:`X, Y`,
-    :math:`I_0` is the central sky brightness value, and :math:`\\delta_x, \\delta_y` are the slopes of
-    the sky brightness plane.
+    where :math:`I(X,Y)` is the brightness as a function of image position
+    :math:`X, Y`, :math:`I_0` is the central sky brightness value, and
+    :math:`\\delta_x, \\delta_y` are the slopes of the sky brightness plane.
 
     :param I0: central sky brightness value
-    :param delta: Tensor for slope of the sky brightness in each image dimension
+    :param delta: An array for slope of the sky brightness in each image dimension
 
     """
 
@@ -38,12 +38,11 @@ class PlaneSky(SkyModel):
             "units": "flux/arcsec",
             "shape": (2,),
             "dynamic": True,
-            "description": "Tensor for slope of the sky brightness in each image dimension",
+            "description": "An array for slope of the sky brightness in each image dimension",
         },
     }
     usable = True
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

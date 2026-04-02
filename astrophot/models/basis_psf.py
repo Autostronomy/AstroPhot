@@ -24,6 +24,15 @@ class PixelBasisPSF(PSFModel):
     accurate for smooth models, so it is possible to do the expensive
     interpolation before optimization and save time.
 
+    Note: The resulting PSF from the combined basis set will be normalized
+        before being used as a PSF model, so the sum of the `weights` does not
+        need to be restricted to any particular value.
+
+    Note: It is possible for the basis elements to combine to give a PSF model
+        that is negative in some areas. This is likely not desired, if this is a
+        concern then use a non-negative basis and set the valid range of the
+        weights to be `(0, None)`.
+
     :param weights: The weights of the basis set of images in units of flux.
     """
 

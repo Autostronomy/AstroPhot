@@ -20,13 +20,13 @@ class GaussianMixin:
 
     .. math::
 
-       I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma} \\exp(-R^2 / (2 \\sigma^2))
 
-    where ``I_0`` is the intensity at the center of the profile and ``sigma`` is the
+    where ``flux`` is the total flux of the profile and ``sigma`` is the
     standard deviation which controls the width of the profile.
 
     :param sigma: Standard deviation of the Gaussian profile in arcseconds.
-    :param flux: Total flux of the Gaussian profile.
+    :param flux: Total flux of an unperturbed Gaussian profile (use model.total_flux() for general results).
     """
 
     _model_type = "gaussian"
@@ -43,7 +43,7 @@ class GaussianMixin:
             "valid": (0, None),
             "shape": (),
             "dynamic": True,
-            "description": "Total flux of the Gaussian profile.",
+            "description": "Total flux of an unperturbed Gaussian profile (use model.total_flux() for general results).",
         },
     }
 
@@ -73,7 +73,7 @@ class iGaussianMixin:
 
     .. math::
 
-       I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma} \\exp(-R^2 / (2 \\sigma^2))
 
     where ``sigma`` is the standard deviation which controls the width of the
     profile and ``flux`` gives the total flux of the profile (assuming no
@@ -83,7 +83,7 @@ class iGaussianMixin:
     multiple Gaussian profiles to be defined at once.
 
     :param sigma: Standard deviation of the Gaussian profile in arcseconds.
-    :param flux: Total flux of the Gaussian profile.
+    :param flux: Total flux of an unperturbed Gaussian profile (use model.total_flux() for general results).
     """
 
     _model_type = "gaussian"
@@ -100,7 +100,7 @@ class iGaussianMixin:
             "valid": (0, None),
             "shape": (None,),
             "dynamic": True,
-            "description": "Total flux of the Gaussian profile.",
+            "description": "Total flux of an unperturbed Gaussian profile (use model.total_flux() for general results).",
         },
     }
 
@@ -131,13 +131,13 @@ class GaussianPSFMixin:
 
     .. math::
 
-       I(R) = \\frac{{\\rm flux}}{\\sqrt{2\\pi}\\sigma} \\exp(-R^2 / (2 \\sigma^2))
+       I(R) = \\frac{{\\rm flux}}{2\\pi\\sigma} \\exp(-R^2 / (2 \\sigma^2))
 
-    where ``I_0`` is the intensity at the center of the profile and ``sigma`` is the
+    where ``flux`` is the total flux of the profile and ``sigma`` is the
     standard deviation which controls the width of the profile.
 
     :param sigma: Standard deviation of the Gaussian profile in pixels.
-    :param flux: Total flux of the Gaussian profile.
+    :param flux: Total flux of an unperturbed Gaussian profile (use model.total_flux() for general results).
     """
 
     _model_type = "gaussian"
@@ -155,7 +155,7 @@ class GaussianPSFMixin:
             "shape": (),
             "dynamic": False,
             "value": 1.0,
-            "description": "Total flux of the Gaussian profile.",
+            "description": "Total flux of an unperturbed Gaussian profile (use model.total_flux() for general results).",
         },
     }
 

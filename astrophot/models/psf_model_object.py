@@ -11,19 +11,25 @@ __all__ = ("PSFModel",)
 
 
 class PSFModel(GradMixin, SampleMixin, Model):
-    """Prototype point source (typically a star) model, to be subclassed
+    """Prototype point source (e.g., a star) model, to be subclassed
     by other point source models which define specific behavior.
 
-    PSF models behave differently than component models. Their target image
-    must be a ``PSFImage`` object instead of a ``TargetImage`` object.
-    PSF models do not fit a free ``center`` parameter; their center is
-    always ``(0, 0)`` in pixel coordinates, matching the convention of a
-    ``PSFImage``. A PSF model is never convolved with another PSF model.
+    PSF models behave differently than component models. Their target image must
+    be a ``PSFImage`` object instead of a ``TargetImage`` object. PSF models do
+    not fit a free ``center`` parameter; their center is always ``(0, 0)`` in
+    pixel coordinates, matching the convention of a ``PSFImage``. A PSF model is
+    never convolved with another PSF model.
 
-    :param center: Center of the PSF in pixel coordinates ``[x, y]``.
-        Fixed at ``(0, 0)`` by default and not included in the fit.
-    :param normalize_psf: When ``True`` (default) the sampled PSF is
-        normalised so that its total flux within the fitting window equals 1.
+    Instead of units of arcsec for most length scales, PSFModel objects use
+    `pix` units. This corresponds to the width of a pixel in the data target
+    image; so if the PSFModel has an upsample factor of 2 then `1 pix`
+    corresponds to two pixels in the image that the PSFModel outputs. This way,
+    two PSFModels with different upsample factors, but applied to the same data
+    target image, should still have the same parameter values for their shape
+    parameters.
+
+    :param center: Center of the PSF in pixel coordinates ``[x, y]``. Fixed at
+        ``(0, 0)`` by default and not included in the fit.
     """
 
     _parameter_specs = {
@@ -37,12 +43,6 @@ class PSFModel(GradMixin, SampleMixin, Model):
     }
     _model_type = "psf"
     usable = False
-
-    # The sampled PSF will be normalized to a total flux of 1 within the window
-    normalize_psf = True
-
-    # Parameters which are treated specially by the model object and should not be updated directly when initializing
-    _options = ("normalize_psf",)
 
     def initialize(self):
         pass
@@ -124,10 +124,10 @@ class PSFModel(GradMixin, SampleMixin, Model):
         self._target = target
 
     @forward
-    def __call__(self) -> PSFImage:
+    def __call__(self, normalize_psf=True) -> PSFImage:
         working_image = self.target.model_image(self.window)
         i, j = self._pixel_meshgridder(self.target, self.window, 0, 1)
         working_image._data = self.sample(i, j)
-        if self.normalize_psf:
-            working_image._data = working_image._data / backend.sum(working_image._data)
+        if normalize_psf:
+            working_image.normalize()
         return working_image
