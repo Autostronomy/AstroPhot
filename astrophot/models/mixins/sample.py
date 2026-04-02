@@ -13,12 +13,65 @@ from ...utils.integration import quad_table
 
 class SampleMixin:
     """
-    :param sampling_mode: The method used to sample the model in image pixels. Options are: `auto`: Automatically choose the sampling method based on the image size (default). `midpoint`: Use midpoint sampling, evaluate the brightness at the center of each pixel. `simpsons`: Use Simpson's rule for sampling integrating each pixel. `upsample:x` upsample the pixel in a regular grid of size x (odd positive integer), generally less accurate than quad:x. `quad:x`: Use quadrature sampling with order x, where x is an odd positive integer to integrate each pixel.
-    :param integrate_mode: The method used to select pixels to integrate further where the model varies significantly. Options are: `none`: No extra integration is performed (beyond the sampling_mode). `bright`: Select the brightest pixels for further integration (default). `threshold`: Select pixels which show signs of significant higher order derivatives.
-    :param integrate_fraction: The fraction of the pixels to super sample during integration (default: 0.05).
-    :param integrate_max_depth: The maximum depth of the integration method (default: 2).
-    :param integrate_gridding: The gridding used for the integration method to super-sample a pixel at each iteration (default: 5).
-    :param integrate_quad_order: The order of the quadrature used for the integration method on the super sampled pixels (default: 3).
+    Methods for integrating the model from a smooth model defined in the tangent
+    plane into individual pixel fluxes. This is done in a two step process.
+    First the model is sampled at a set of points within each pixel, and then an
+    adaptive integration method is used to further integrate pixels where it has
+    identified the need for additional accuracy.
+
+    The `sampling_mode` option controls this first step. It determines at what
+    level of depth every pixel is integrated. The midpoint option is the least
+    accurate (and fastest) which just samples the center of each pixel. After
+    that, each method trades more compute for more accuracy. The `quad:x` method
+    is the most accurate, which uses Gaussian quadrature integration with x
+    points per pixel. Note that `quad:5` means that each pixel will be sampled
+    at 25 points (5^2) to determine the flux in that pixel. `simpsons` is often
+    a good middle ground. Note that for models over a small number of pixels you
+    will likely not notice the runtime difference between midpoint and some
+    higher accuracy method, since other aspects of the fitting process also take
+    up some time.
+
+    The `integrate_mode` option controls the second step, which is an adaptive
+    integration method that identifies and integrates pixels where the model
+    needs extra accuracy. The default method is `bright`, which identifies the
+    brightest pixels and then uses quadrature integration to further integrate
+    those pixels. The default parameters are to recursively integrate the
+    brightest 5% of pixels up to a maximum depth of 2 recursive levels. Each
+    level does a 5x upsampling and then uses 3rd order quadrature to integrate
+    the super sampled pixels. This means that the most highly integrated pixels
+    will be 5x upsampled twice and the 3x sampled for the quadrature,
+    effectively like upsampling 75 times the starting resolution for those
+    pixels, but only for 0.25% of the pixels. Doing this roughly doubles the
+    amount of compute needed to sample an image relative to midpoint sampling,
+    but gives a massive boost in accuracy for models which change rapidly across
+    a pixel.
+
+    Note: JAX does not play nicely with the adaptive integration methods, so it
+        massively slows down the jit compilation and the final sampling speed.
+        With JAX it is generally better to set `integrate_mode` to `none` and use
+        a higher accuracy `sampling_mode` such as `quad:5`.
+
+    :param sampling_mode: The method used to sample the model in image pixels.
+        Options are: `auto`: Automatically choose the sampling method based on
+        the image size (default). `midpoint`: Use midpoint sampling, evaluate
+        the brightness at the center of each pixel. `simpsons`: Use Simpson's
+        rule for sampling integrating each pixel. `upsample:x` upsample the
+        pixel in a regular grid of size x (odd positive integer), generally less
+        accurate than quad:x. `quad:x`: Use quadrature sampling with order x,
+        where x is an odd positive integer to integrate each pixel.
+    :param integrate_mode: The method used to select pixels to integrate further
+        where the model varies significantly. Options are: `none`: No extra
+        integration is performed (beyond the sampling_mode). `bright`: Select
+        the brightest pixels for further integration (default). `curvature`:
+        Select pixels which show signs of significant higher order derivatives.
+    :param integrate_fraction: The fraction of the pixels to super sample during
+        integration (default: 0.05).
+    :param integrate_max_depth: The maximum depth of the integration method
+        (default: 2).
+    :param integrate_gridding: The gridding used for the integration method to
+        super-sample a pixel at each iteration (default: 5).
+    :param integrate_quad_order: The order of the quadrature used for the
+        integration method on the super sampled pixels (default: 3).
     """
 
     integrate_fraction = 0.05  # fraction of the pixels to super sample

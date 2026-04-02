@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 from .model_object import ComponentModel
@@ -25,7 +24,7 @@ class Pixelated(ComponentModel):
     The PA and scale are also parameters of this model, so one could alternately
     fix the pixels to some image and just fit the PA and scale.
 
-    :param I: the total flux within each pixel, represented as the log of the flux.
+    :param I: the total flux within each pixel, in units of flux/arcsec^2.
     :param PA: the position angle of the model, in radians.
     :param scale: the scale of the model, in arcsec per grid unit.
 
@@ -37,7 +36,7 @@ class Pixelated(ComponentModel):
             "units": "flux/arcsec^2",
             "shape": (None, None),
             "dynamic": True,
-            "description": "the total flux within each pixel, represented as the log of the flux",
+            "description": "the total flux within each pixel, in units of flux/arcsec^2",
         },
         "PA": {
             "units": "radians",
@@ -62,7 +61,6 @@ class Pixelated(ComponentModel):
         )
         self.scale = scale
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

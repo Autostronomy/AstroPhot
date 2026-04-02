@@ -8,14 +8,23 @@ __all__ = ["PSFGroupModel"]
 
 class PSFGroupModel(GroupModel):
     """
-    A group of PSF models. Behaves similarly to a `GroupModel`, but specifically designed for PSF models.
+    A group of PSF models. Behaves similarly to a `GroupModel`, but specifically
+    designed for PSF models. Note that there is no concept of a PSFImageList, so
+    they always represent a single PSF model.
+
+    When sampling, a PSFGroupModel tells each sub-PSFModel (including nested
+    sub-PSFGroupModels) to sample without normalization. This way they can fit
+    with relative strengths. The final top-level PSFGroupModel will normalize
+    the resulting PSF, so that the image that gets passed to the regular model
+    objects for the purpose of convolution is always normalized. This means that
+    the sub-PSFModels in a PSFGroupModel should have their brightness parameters
+    (i.e., `I0` for the MoffatPSF) set to dynamic so they can participate in the
+    fit. Though this is not strictly a requirement (say you already know the
+    relative brightnesses).
     """
 
     _model_type = "psf"
     usable = True
-    normalize_psf = True
-
-    _options = ("normalize_psf",)
 
     @property
     def target(self):
@@ -36,15 +45,23 @@ class PSFGroupModel(GroupModel):
         self._target = target
 
     @forward
-    def sample(self, *args, **kwargs):
+    def sample(self, normalize_psf=True) -> PSFImage:
         """Sample the PSF group model on the target image."""
         image = self.target.model_image(self.window)
 
         for model in self.models:
-            model_image = model()
+            model_image = model(normalize_psf=False)
             self._ensure_vmap_compatible(image, model_image)
             image += model_image
 
-        if self.normalize_psf:
+        if normalize_psf:
             image.normalize()
         return image
+
+    @forward
+    def __call__(
+        self,
+        normalize_psf=True,
+    ) -> PSFImage:
+
+        return self.sample(normalize_psf=normalize_psf)

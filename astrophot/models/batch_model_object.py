@@ -19,9 +19,17 @@ class BatchModel(GradMixin, SampleMixin, Model):
     model). If you want to model the same object in multiple images, see the
     BatchSceneModel instead.
 
+    Once placed in a BatchModel, parameters for the base Model may now be given
+    values with an extra dimension. This extra dimension is the batch dimension
+    that will be vectorized over. For example, with a Gaussian Model, the
+    `sigma` parameter is normally a single value scalar. You may now set it with
+    a vector of values, and the length of that vector determines how many
+    Gaussians the BatchModel will generate. Of course, every dynamic parameter
+    that is batched must have the same size for its batch dimension.
+
     **Note:** any model parameters that you wish to batch over must be set to
-        dynamic=True. See [caskade hierarchical
-        models](https://caskade.readthedocs.io/en/latest/notebooks/HierarchicalModels.html)
+        dynamic=True. See `caskade hierarchical models
+        <https://caskade.readthedocs.io/en/latest/notebooks/HierarchicalModels.html>`_
         for more details.
     """
 

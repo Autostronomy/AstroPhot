@@ -1,6 +1,5 @@
 from typing import Tuple
 import numpy as np
-import torch
 
 from .sky_model_object import SkyModel
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
@@ -10,12 +9,18 @@ from ..backend_obj import backend, ArrayLike
 from . import func
 from ..utils.initialize import polar_decomposition
 
-__all__ = ["BilinearSky"]
+__all__ = ("BilinearSky",)
 
 
 @combine_docstrings
 class BilinearSky(SkyModel):
     """Sky background model using a coarse bilinear grid for the sky flux.
+
+    This allows for modelling more complex sky surfaces, such as dust or
+    galactic cirrus, without needing to specify a functional form. It is
+    possible to specify a position angle and grid scale to control how it is
+    oriented relative to the model target. By default it will just align with
+    the image.
 
     :param I: sky brightness grid
     :param PA: position angle of the sky grid in radians.
@@ -34,13 +39,13 @@ class BilinearSky(SkyModel):
         "PA": {
             "units": "radians",
             "shape": (),
-            "dynamic": True,
+            "dynamic": False,
             "description": "position angle of the sky grid in radians",
         },
         "scale": {
             "units": "arcsec/grid-unit",
             "shape": (),
-            "dynamic": True,
+            "dynamic": False,
             "description": "scale of the sky grid in arcseconds per grid unit",
         },
     }
@@ -51,7 +56,6 @@ class BilinearSky(SkyModel):
         super().__init__(*args, **kwargs)
         self.nodes = nodes
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -59,20 +63,20 @@ class BilinearSky(SkyModel):
         if self.I.initialized:
             self.nodes = tuple(self.I.value.shape)
 
+        target_area = self.target[self.window]
         if not self.PA.initialized:
             R, _ = polar_decomposition(self.target.CD.npvalue)
             self.PA.value = np.arccos(np.abs(R[0, 0]))
         if not self.scale.initialized:
             self.scale.value = (
-                self.target.pixelscale.item() * self.target._data.shape[0] / self.nodes[0]
+                self.target.pixelscale.item() * target_area._data.shape[0] / self.nodes[0]
             )
 
         if self.I.initialized:
             return
 
-        target_dat = self.target[self.window]
-        dat = backend.to_numpy(target_dat._data).copy()
-        mask = backend.to_numpy(target_dat._mask).copy()
+        dat = backend.to_numpy(target_area._data).copy()
+        mask = backend.to_numpy(target_area._mask).copy()
         dat[mask] = np.nanmedian(dat)
         iS = dat.shape[0] // self.nodes[0]
         jS = dat.shape[1] // self.nodes[1]
