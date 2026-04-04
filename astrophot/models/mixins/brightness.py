@@ -68,6 +68,8 @@ class WedgeMixin:
         v = w * np.arange(self.segments)
         for s in range(self.segments):
             indices = (angles >= v[s]) & (angles < (v[s] + w))
+            # iradial_model is evaluated for all R (not just indices) to keep static
+            # tensor shapes compatible with vmap+jacfwd used in BatchLM.
             model = model + backend.where(indices, self.iradial_model(s, R), backend.zeros_like(R))
         return model
 
@@ -116,6 +118,8 @@ class RayMixin:
         for s in range(self.segments):
             angles = (T + cycle / 2 - v[s]) % cycle - cycle / 2
             indices = (angles >= -w) & (angles < w)
+            # Weights and iradial_model are evaluated for all pixels (not just indices)
+            # to keep static tensor shapes compatible with vmap+jacfwd used in BatchLM.
             weights = backend.where(
                 indices,
                 (backend.cos(angles * self.segments) + 1) / 2,
