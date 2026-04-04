@@ -367,24 +367,35 @@ class Backend:
         return self.jax.vmap(*args, in_axes=in_dims, **kwargs)
 
     def _fill_at_indices_torch(self, array, indices, values):
-        array[indices] = values
-        return array
+        if isinstance(indices, self.module.Tensor) and indices.dtype != self.module.bool:
+            # Long (integer) tensor indices: use index_put for vmap+jacfwd compatibility
+            return self.module.index_put(array, (indices,), values)
+        # Bool tensor or tuple/slice indices: use clone + in-place
+        result = array.clone()
+        result[indices] = values
+        return result
 
     def _fill_at_indices_jax(self, array, indices, values):
         array = array.at[indices].set(values)
         return array
 
     def _add_at_indices_torch(self, array, indices, values):
-        array[indices] += values
-        return array
+        if isinstance(indices, self.module.Tensor) and indices.dtype != self.module.bool:
+            # Long (integer) tensor indices: use index_put for vmap+jacfwd compatibility
+            return self.module.index_put(array, (indices,), values, accumulate=True)
+        # Bool tensor or tuple/slice indices: use clone + in-place
+        result = array.clone()
+        result[indices] += values
+        return result
 
     def _add_at_indices_jax(self, array, indices, values):
         array = array.at[indices].add(values)
         return array
 
     def _and_at_indices_torch(self, array, indices, values):
-        array[indices] &= values
-        return array
+        result = array.clone()
+        result[indices] &= values
+        return result
 
     def _and_at_indices_jax(self, array, indices, values):
         array = array.at[indices].set(array[indices] & values)
