@@ -9,7 +9,9 @@ import pytest
 ######################################################################
 
 
-def _make_batch_lm_setup(integrate_mode="none", sampling_mode="quad:3", n_images=3, pixelscale=1.0, cd_angles=None):
+def _make_batch_lm_setup(
+    integrate_mode="none", sampling_mode="quad:3", n_images=3, pixelscale=1.0, cd_angles=None
+):
     """Helper to create a BatchLM fitting setup with the given parameters."""
     np.random.seed(42)
     if cd_angles is None:
@@ -37,8 +39,7 @@ def _make_batch_lm_setup(integrate_mode="none", sampling_mode="quad:3", n_images
         model_gen.center = true_centers[k % len(true_centers)]
         kwargs = dict(
             name=f"target{k}",
-            data=ap.backend.to_numpy(model_gen().data)
-            + np.random.normal(scale=0.5, size=(64, 64)),
+            data=ap.backend.to_numpy(model_gen().data) + np.random.normal(scale=0.5, size=(64, 64)),
             pixelscale=pixelscale,
         )
         if cd_angles is not None:

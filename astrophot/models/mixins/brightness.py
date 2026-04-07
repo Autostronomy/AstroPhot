@@ -68,8 +68,6 @@ class WedgeMixin:
         v = w * np.arange(self.segments)
         for s in range(self.segments):
             indices = (angles >= v[s]) & (angles < (v[s] + w))
-            # iradial_model is evaluated for all R (not just indices) to keep static
-            # tensor shapes compatible with vmap+jacfwd used in BatchLM.
             model = model + backend.where(indices, self.iradial_model(s, R), backend.zeros_like(R))
         return model
 
