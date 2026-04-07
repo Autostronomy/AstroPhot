@@ -90,7 +90,6 @@ class Backend:
         self.detach = lambda x: x.detach()
         self.fill_at_indices = self._fill_at_indices_torch
         self.add_at_indices = self._add_at_indices_torch
-        self.and_at_indices = self._and_at_indices_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
@@ -135,7 +134,6 @@ class Backend:
         self.detach = lambda x: x
         self.fill_at_indices = self._fill_at_indices_jax
         self.add_at_indices = self._add_at_indices_jax
-        self.and_at_indices = self._and_at_indices_jax
 
     @property
     def array_type(self):
