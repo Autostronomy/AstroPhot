@@ -90,7 +90,6 @@ class Backend:
         self.detach = lambda x: x.detach()
         self.fill_at_indices = self._fill_at_indices_torch
         self.add_at_indices = self._add_at_indices_torch
-        self.and_at_indices = self._and_at_indices_torch
 
     def setup_jax(self):
         self.jax = importlib.import_module("jax")
@@ -135,7 +134,6 @@ class Backend:
         self.detach = lambda x: x
         self.fill_at_indices = self._fill_at_indices_jax
         self.add_at_indices = self._add_at_indices_jax
-        self.and_at_indices = self._and_at_indices_jax
 
     @property
     def array_type(self):
@@ -367,28 +365,28 @@ class Backend:
         return self.jax.vmap(*args, in_axes=in_dims, **kwargs)
 
     def _fill_at_indices_torch(self, array, indices, values):
+        if isinstance(indices, self.module.Tensor) and indices.dtype != self.module.bool:
+            # Long (integer) tensor indices: use index_put for vmap+jacfwd compatibility
+            return array.index_put((indices,), values)
+        # Bool tensor or tuple/slice indices: use clone + in-place
+        array = array.clone()
         array[indices] = values
         return array
 
     def _fill_at_indices_jax(self, array, indices, values):
-        array = array.at[indices].set(values)
-        return array
+        return array.at[indices].set(values)
 
     def _add_at_indices_torch(self, array, indices, values):
+        if isinstance(indices, self.module.Tensor) and indices.dtype != self.module.bool:
+            # Long (integer) tensor indices: use index_put for vmap+jacfwd compatibility
+            return array.index_put((indices,), values, accumulate=True)
+        # Bool tensor or tuple/slice indices: use clone + in-place
+        array = array.clone()
         array[indices] += values
         return array
 
     def _add_at_indices_jax(self, array, indices, values):
-        array = array.at[indices].add(values)
-        return array
-
-    def _and_at_indices_torch(self, array, indices, values):
-        array[indices] &= values
-        return array
-
-    def _and_at_indices_jax(self, array, indices, values):
-        array = array.at[indices].set(array[indices] & values)
-        return array
+        return array.at[indices].add(values)
 
     def _flatten_torch(self, array, start_dim=0, end_dim=-1):
         return array.flatten(start_dim, end_dim)
