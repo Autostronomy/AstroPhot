@@ -15,7 +15,7 @@ def _make_batch_lm_setup(
     """Helper to create a BatchLM fitting setup with the given parameters."""
     np.random.seed(42)
     if cd_angles is None:
-        cd_angles = [np.pi / 3, np.pi / 6, np.pi / 16]
+        cd_angles = [np.pi / 3, np.pi / 3, np.pi / 3]
 
     true_centers = [(32, 40), (15, 15), (45, 20)]
     base_target = ap.TargetImage(data=np.zeros((64, 64)), pixelscale=pixelscale)
