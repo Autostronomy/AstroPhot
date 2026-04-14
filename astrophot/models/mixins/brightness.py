@@ -68,7 +68,7 @@ class WedgeMixin:
         v = w * np.arange(self.segments)
         for s in range(self.segments):
             indices = (angles >= v[s]) & (angles < (v[s] + w))
-            model = backend.add_at_indices(model, indices, self.iradial_model(s, R[indices]))
+            model = model + backend.where(indices, self.iradial_model(s, R), backend.zeros_like(R))
         return model
 
     def brightness(self, x: Tensor, y: Tensor) -> Tensor:
@@ -116,11 +116,15 @@ class RayMixin:
         for s in range(self.segments):
             angles = (T + cycle / 2 - v[s]) % cycle - cycle / 2
             indices = (angles >= -w) & (angles < w)
-            weights = (backend.cos(angles[indices] * self.segments) + 1) / 2
-            model = backend.add_at_indices(
-                model, indices, weights * self.iradial_model(s, R[indices])
+            # Weights and iradial_model are evaluated for all pixels (not just indices)
+            # to keep static tensor shapes compatible with vmap+jacfwd used in BatchLM.
+            weights = backend.where(
+                indices,
+                (backend.cos(angles * self.segments) + 1) / 2,
+                backend.zeros_like(angles),
             )
-            weight = backend.add_at_indices(weight, indices, weights)
+            model = model + weights * self.iradial_model(s, R)
+            weight = weight + weights
         return model / weight
 
     def brightness(self, x: ArrayLike, y: ArrayLike) -> ArrayLike:

@@ -59,9 +59,9 @@ def spline(R: ArrayLike, profR: ArrayLike, profI: ArrayLike, extend: str = "zero
     """
     I = cubic_spline_torch(profR, profI, R.flatten()).reshape(*R.shape)
     if extend == "zeros":
-        backend.fill_at_indices(I, R > profR[-1], 0)
+        I = backend.where(R > profR[-1], backend.zeros_like(I), I)
     elif extend == "const":
-        backend.fill_at_indices(I, R > profR[-1], profI[-1])
+        I = backend.where(R > profR[-1], profI[-1] * backend.ones_like(I), I)
     else:
         raise ValueError(f"Unknown extend option: {extend}. Use 'zeros' or 'const'.")
     return I

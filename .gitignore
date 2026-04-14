@@ -9,6 +9,7 @@ astrophot.egg-info
 **.hdf5
 **.coverage
 **.xml
+**._version.py
 tests/*.fits
 tests/*.yaml
 docs/source/tutorials/*.fits
