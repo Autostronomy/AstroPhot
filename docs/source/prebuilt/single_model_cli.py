@@ -280,7 +280,7 @@ def main():
     }
 
     with open(f"{args.name}_parameters.yaml", "w", encoding="utf-8") as output_file:
-        output_file.write(yaml.dump(output_summary))
+        yaml.dump(output_summary, output_file, default_flow_style=False)
 
     if args.save_images:
         model().save(f"{args.name}_model_image.fits")
