@@ -15,6 +15,7 @@
 import astrophot as ap
 import numpy as np
 from astropy.io import fits
+from astropy.io.misc import yaml
 import argparse
 import ast
 
@@ -49,6 +50,28 @@ def parse_arbitrary_args(unknown_args):
             params[key] = val
         i += 1
     return params
+
+
+def to_serializable(value):
+    if value is None:
+        return None
+    if hasattr(value, "detach"):
+        value = value.detach().cpu().numpy()
+    if isinstance(value, np.ndarray):
+        return value.item() if value.shape == () else value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def collect_model_parameters(model):
+    names = model.build_params_array_names()
+    values = np.atleast_1d(model.get_values().detach().cpu().numpy())
+    uncertainties = np.atleast_1d(model.build_params_array_uncertainty().detach().cpu().numpy())
+    return {
+        name: {"value": to_serializable(val), "uncertainty": to_serializable(unc)}
+        for name, val, unc in zip(names, values, uncertainties)
+    }
 
 
 def main():
@@ -229,7 +252,36 @@ def main():
 
     # Save Results
     # ----------------------------------------------------------------------
-    model.save_state(f"{args.name}_parameters.hdf5")
+    total_flux = to_serializable(model_object.total_flux())
+    total_flux_uncertainty = to_serializable(model_object.total_flux_uncertainty())
+    total_magnitude = None
+    total_magnitude_uncertainty = None
+    if args.zeropoint is not None:
+        total_magnitude = to_serializable(model_object.total_magnitude())
+        total_magnitude_uncertainty = to_serializable(model_object.total_magnitude_uncertainty())
+
+    output_summary = {
+        "main_model": {
+            "name": model_object.name,
+            "model_type": model_object.model_type,
+            "parameters": collect_model_parameters(model_object),
+        },
+        "sky_model": {
+            "name": model_sky.name,
+            "model_type": model_sky.model_type,
+            "parameters": collect_model_parameters(model_sky),
+        },
+        "photometry": {
+            "total_flux": total_flux,
+            "total_flux_uncertainty": total_flux_uncertainty,
+            "total_magnitude": total_magnitude,
+            "total_magnitude_uncertainty": total_magnitude_uncertainty,
+        },
+    }
+
+    with open(f"{args.name}_parameters.yaml", "w", encoding="utf-8") as output_file:
+        output_file.write(yaml.dump(output_summary))
+
     if args.save_images:
         model().save(f"{args.name}_model_image.fits")
         (target[model.window] - model()).save(f"{args.name}_residual_image.fits")
