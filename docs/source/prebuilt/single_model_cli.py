@@ -9,7 +9,7 @@
 # a more complex analysis.
 #
 # Run this script with:
-# >>> python single_model_fit.py --target_file <required>.fits [OPTIONS]
+# >>> python single_model_cli.py target_image.fits [OPTIONS]
 # =============================================================================
 
 import astrophot as ap
@@ -58,7 +58,7 @@ def main():
     parser.add_argument("target_file", type=str, help="Path to the target FITS file")
     parser.add_argument(
         "--window",
-        type=str,
+        type=int,
         default=None,
         nargs=4,
         metavar=("XMIN", "XMAX", "YMIN", "YMAX"),
