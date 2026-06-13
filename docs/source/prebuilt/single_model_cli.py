@@ -15,9 +15,13 @@
 import astrophot as ap
 import numpy as np
 from astropy.io import fits
-from astropy.io.misc import yaml
 import argparse
 import ast
+
+try:
+    import yaml
+except ImportError:
+    from astropy.io.misc import yaml
 
 
 def parse_arbitrary_args(unknown_args):
