@@ -196,8 +196,10 @@ def main():
 
     # Make Target
     # ---------------------------------------------------------------------
+    target_wcs = WCS(fits.getheader(args.target_file, args.target_hdu))
     target = ap.TargetImage(
         data=target_data,
+        wcs=target_wcs,
         zeropoint=args.zeropoint,
         variance=variance_data,
         mask=mask_data,
