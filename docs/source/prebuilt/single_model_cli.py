@@ -15,6 +15,7 @@
 import astrophot as ap
 import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS
 import argparse
 import ast
 
@@ -61,19 +62,17 @@ def to_serializable(value):
         return None
     if hasattr(value, "detach"):
         value = value.detach().cpu().numpy()
-    if isinstance(value, np.ndarray):
-        return value.item() if value.shape == () else value.tolist()
-    if isinstance(value, np.generic):
-        return value.item()
-    return value
+    value = np.array(value)
+    return value.item() if value.shape == () else value.tolist()
 
 
 def collect_model_parameters(model):
-    names = model.build_params_array_names()
-    values = np.atleast_1d(model.get_values().detach().cpu().numpy())
-    uncertainties = np.atleast_1d(model.build_params_array_uncertainty().detach().cpu().numpy())
+    params = model.dynamic_params
+    names = tuple(param.name for param in params)
+    values = tuple(to_serializable(param.npvalue) for param in params)
+    uncertainties = tuple(to_serializable(param.uncertainty) for param in params)
     return {
-        name: {"value": to_serializable(val), "uncertainty": to_serializable(unc)}
+        name: {"value": val, "uncertainty": unc}
         for name, val, unc in zip(names, values, uncertainties)
     }
 
@@ -245,19 +244,6 @@ def main():
 
     # Report Total Magnitude or Flux
     # ----------------------------------------------------------------------
-    if args.verbose > 0:
-        print(model)
-        if args.zeropoint is not None:
-            totmag = model_object.total_magnitude().detach().cpu().numpy()
-            totmag_err = model_object.total_magnitude_uncertainty().detach().cpu().numpy()
-            print(f"Total Magnitude: {totmag} +- {totmag_err}")
-        else:
-            totflux = model_object.total_flux().detach().cpu().numpy()
-            totflux_err = model_object.total_flux_uncertainty().detach().cpu().numpy()
-            print(f"Total Flux: {totflux} +- {totflux_err}")
-
-    # Save Results
-    # ----------------------------------------------------------------------
     total_flux = to_serializable(model_object.total_flux())
     total_flux_uncertainty = to_serializable(model_object.total_flux_uncertainty())
     total_magnitude = None
@@ -265,25 +251,33 @@ def main():
     if args.zeropoint is not None:
         total_magnitude = to_serializable(model_object.total_magnitude())
         total_magnitude_uncertainty = to_serializable(model_object.total_magnitude_uncertainty())
+    if args.verbose > 0:
+        print(model)
+        if args.zeropoint is not None:
+            print(f"Total Magnitude: {total_magnitude} +- {total_magnitude_uncertainty}")
+        else:
+            print(f"Total Flux: {total_flux} +- {total_flux_uncertainty}")
 
+    # Save Results
+    # ----------------------------------------------------------------------
     output_summary = {
-        "main_model": {
-            "name": model_object.name,
+        model_object.name: {
             "model_type": model_object.model_type,
             "parameters": collect_model_parameters(model_object),
-        },
-        "sky_model": {
-            "name": model_sky.name,
-            "model_type": model_sky.model_type,
-            "parameters": collect_model_parameters(model_sky),
-        },
-        "photometry": {
             "total_flux": total_flux,
             "total_flux_uncertainty": total_flux_uncertainty,
             "total_magnitude": total_magnitude,
             "total_magnitude_uncertainty": total_magnitude_uncertainty,
         },
+        "sky_model": {
+            "model_type": model_sky.model_type,
+            "parameters": collect_model_parameters(model_sky),
+        },
     }
+    if len(model_object.static_params) > 0:
+        output_summary[model_object.name]["static_parameters"] = [
+            param.name for param in model_object.static_params
+        ]
 
     with open(f"{args.name}_parameters.yaml", "w", encoding="utf-8") as output_file:
         yaml.dump(output_summary, output_file, default_flow_style=False)
