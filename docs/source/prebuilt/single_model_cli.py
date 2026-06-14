@@ -131,7 +131,7 @@ def main():
         "--no_save_images",
         action="store_false",
         dest="save_images",
-        help="Disable saving the model image",
+        help="Disable saving the model and residual images",
     )
     parser.add_argument(
         "--no_save_cov",
