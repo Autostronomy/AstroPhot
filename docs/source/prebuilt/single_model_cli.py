@@ -288,9 +288,10 @@ def main():
         (target[model.window] - model()).save(f"{args.name}_residual_image.fits")
 
     if args.save_covariance_matrix:
-        np.save(
-            f"{args.name}_covariance_matrix.npy", result.covariance_matrix.detach().cpu().numpy()
-        )
+        cov = result.covariance_matrix
+        if hasattr(cov, "detach"):
+            cov = cov.detach().cpu().numpy()
+        np.save(f"{args.name}_covariance_matrix.npy", np.array(cov))
 
 
 if __name__ == "__main__":
