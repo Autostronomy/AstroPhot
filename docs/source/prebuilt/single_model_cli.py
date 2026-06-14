@@ -87,8 +87,8 @@ def main():
         type=int,
         default=None,
         nargs=4,
-        metavar=("XMIN", "XMAX", "YMIN", "YMAX"),
-        help="Window border for the fit in pixel coordinates, given as: --window xmin xmax ymin ymax",
+        metavar=("IMIN", "IMAX", "JMIN", "JMAX"),
+        help="Window border for the fit in pixel coordinates, given as: --window imin imax jmin jmax",
     )
     parser.add_argument(
         "--name", type=str, default="object_name", help="Name used for saving files"
@@ -268,6 +268,7 @@ def main():
             "total_flux_uncertainty": total_flux_uncertainty,
             "total_magnitude": total_magnitude,
             "total_magnitude_uncertainty": total_magnitude_uncertainty,
+            "note": "Total flux/mag is within the fitting window, not extended to infinity",
         },
         "sky_model": {
             "model_type": model_sky.model_type,
