@@ -9,7 +9,7 @@
 # a more complex analysis.
 #
 # Run this script with:
-# >>> python single_model_cli.py target_image.fits [OPTIONS]
+# >>> python single_astrophot_model.py target_image.fits [OPTIONS]
 # =============================================================================
 
 import astrophot as ap

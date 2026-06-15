@@ -68,6 +68,7 @@ dev = [
 
 [project.scripts]
 astrophot_single = "astrophot.cli.cli_single:main"
+astrophot_segmap = "astrophot.cli.cli_segmap:main"
 
 [tool.hatch.version]
 source = "vcs"
