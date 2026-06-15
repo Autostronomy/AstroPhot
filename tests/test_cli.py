@@ -5,15 +5,6 @@ import subprocess
 
 def test_cli():
 
-    # Path to CLI script
-    cli_script_src = os.path.join(
-        os.path.split(os.path.dirname(__file__))[0],
-        "docs",
-        "source",
-        "prebuilt",
-        "single_model_cli.py",
-    )
-
     # Target image for testing
     target_image_src = os.path.join(
         os.path.split(os.path.dirname(__file__))[0],
@@ -24,27 +15,25 @@ def test_cli():
     )
 
     # Copy them to current working directory (which is where pytest runs, usually root or tests/)
-    cli_script = "single_model_cli.py"
     target_image = "target_image.fits"
 
-    shutil.copy(cli_script_src, cli_script)
     shutil.copy(target_image_src, target_image)
 
     try:
         # Run the CLI script
         subprocess.run(
             [
-                "python",
-                cli_script,
+                "astrophot_single",
                 target_image,
                 "--name",
                 "test_cli_output",
                 "--verbose",
-                "0",
+                "1",
                 "--model_type",
                 "sersic_galaxy_model",
                 "--zeropoint",
                 "25.0",
+                "--dump",
             ],
             check=True,
         )
@@ -54,16 +43,17 @@ def test_cli():
         assert os.path.exists("test_cli_output_model_image.fits")
         assert os.path.exists("test_cli_output_residual_image.fits")
         assert os.path.exists("test_cli_output_covariance_matrix.npy")
+        assert os.path.exists("single_astrophot_model.py")
 
     finally:
         # Cleanup
         for file in [
-            cli_script,
             target_image,
             "test_cli_output_parameters.yaml",
             "test_cli_output_model_image.fits",
             "test_cli_output_residual_image.fits",
             "test_cli_output_covariance_matrix.npy",
+            "single_astrophot_model.py",
         ]:
             if os.path.exists(file):
                 os.remove(file)

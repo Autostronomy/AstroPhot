@@ -66,6 +66,9 @@ dev = [
         "pyvo"
 ]
 
+[project.scripts]
+astrophot_single = "astrophot.cli.cli_single:main"
+
 [tool.hatch.version]
 source = "vcs"
 
