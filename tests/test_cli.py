@@ -78,8 +78,8 @@ def test_segmap_cli():
 
     shutil.copy(target_image_src, target_image)
 
-    hdu = fits.open("group_target_image.fits")
-    target_data = np.array(hdu[0].data, dtype=np.float64)
+    with fits.open(target_image) as hdu:
+        target_data = np.array(hdu[0].data, dtype=np.float64)
     initsegmap = detect_sources(target_data, threshold=0.02, npixels=6)
     segmap = deblend_sources(target_data, initsegmap, npixels=5).data
     fits.writeto("group_segmap.fits", segmap, overwrite=True)
