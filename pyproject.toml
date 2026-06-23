@@ -12,7 +12,7 @@ authors = [
 ]
 description = "A fast, flexible, automated, and differentiable astronomical image 2D forward modelling tool for precise parallel multi-wavelength photometry."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 keywords = [
         "astrophot",
