@@ -2,6 +2,7 @@ import numpy as np
 from scipy.special import gamma
 import astrophot as ap
 from utils import make_basic_sersic, make_basic_gaussian
+import pytest
 
 ######################################################################
 # Util functions
@@ -152,3 +153,23 @@ def test_conversion_functions():
         ap.backend.as_array([[1.0 - (1.0 / sersic_n) * np.log(1.0)]]),
         rtol=1e-7,
     ), "Error computing inverse sersic function (torch)"
+
+
+def test_interp2d():
+    target = make_basic_gaussian()
+
+    I, J = np.meshgrid(
+        np.arange(target.data.shape[0]), np.arange(target.data.shape[1]), indexing="ij"
+    )
+    interp_data = ap.utils.interpolate.interp2d(
+        target.data, ap.backend.as_array(I), ap.backend.as_array(J)
+    )
+
+    assert ap.backend.allclose(
+        interp_data, target.data, rtol=1e-7
+    ), "Interpolated data should be close to original data"
+
+    with pytest.raises(ValueError):
+        ap.utils.interpolate.interp2d(
+            target.data, ap.backend.as_array(I), ap.backend.as_array(J), padding_mode="invalid"
+        )

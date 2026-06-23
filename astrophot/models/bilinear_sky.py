@@ -40,13 +40,16 @@ class BilinearSky(SkyModel):
             "units": "radians",
             "shape": (),
             "dynamic": False,
-            "description": "position angle of the sky grid in radians",
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
+            "description": "the position angle of the model, in radians",
         },
-        "scale": {
+        "pixelscale": {
             "units": "arcsec/grid-unit",
             "shape": (),
+            "valid": (0, None),
             "dynamic": False,
-            "description": "scale of the sky grid in arcseconds per grid unit",
+            "description": "the pixel scale of the sky model, in arcsec per grid unit",
         },
     }
     usable = True
@@ -67,8 +70,8 @@ class BilinearSky(SkyModel):
         if not self.PA.initialized:
             R, _ = polar_decomposition(self.target.CD.npvalue)
             self.PA.value = np.arccos(np.abs(R[0, 0]))
-        if not self.scale.initialized:
-            self.scale.value = (
+        if not self.pixelscale.initialized:
+            self.pixelscale.value = (
                 self.target.pixelscale.item() * target_area._data.shape[0] / self.nodes[0]
             )
 
@@ -88,19 +91,19 @@ class BilinearSky(SkyModel):
                 ),
                 axis=(0, 2),
             )
-            / self.target.pixel_area.item()
+            / self.pixelscale.value**2
         )
 
     @forward
     def transform_coordinates(
-        self, x: ArrayLike, y: ArrayLike, I: ArrayLike, PA: ArrayLike, scale: ArrayLike
-    ) -> Tuple[ArrayLike, ArrayLike]:
+        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, pixelscale: ArrayLike
+    ) -> tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
-        i, j = func.rotate(-PA, x, y)
-        pixel_center = (I.shape[0] - 1) / 2, (I.shape[1] - 1) / 2
-        return i / scale + pixel_center[0], j / scale + pixel_center[1]
+        x, y = func.rotate(-PA, x, y)
+        return x / pixelscale, y / pixelscale
 
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, I: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        return interp2d(I, x, y)
+        pixel_center = (I.shape[0] - 1) / 2, (I.shape[1] - 1) / 2
+        return interp2d(I, y + pixel_center[0], x + pixel_center[1])
