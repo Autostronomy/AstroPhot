@@ -21,12 +21,13 @@ class Pixelated(ComponentModel):
     represent any source, but it is also computationally expensive to optimize
     the large number of free parameters.
 
-    The PA and scale are also parameters of this model, so one could alternately
-    fix the pixels to some image and just fit the PA and scale.
+    The PA and pixelscale are also parameters of this model, so one could alternately
+    fix the pixels to some image and just fit the PA and pixelscale.
 
-    :param I: the total flux within each pixel, in units of flux/arcsec^2.
+    :param I: the flux density at the center of each pixel, in units of flux/arcsec^2.
     :param PA: the position angle of the model, in radians.
-    :param scale: the scale of the model, in arcsec per grid unit.
+    :param pixelscale: the pixel scale of the pixelated model, in arcsec per grid unit.
+    :param scale: A scale factor to multiply the pixel values by. This times the pixel values in 'I' gives the total flux density in units of flux/arcsec^2.
 
     """
 
@@ -36,42 +37,51 @@ class Pixelated(ComponentModel):
             "units": "flux/arcsec^2",
             "shape": (None, None),
             "dynamic": True,
-            "description": "the total flux within each pixel, in units of flux/arcsec^2",
+            "description": "the flux density at the center of each pixel, in units of flux/arcsec^2",
         },
         "PA": {
             "units": "radians",
             "shape": (),
             "dynamic": False,
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
             "description": "the position angle of the model, in radians",
         },
-        "scale": {
+        "pixelscale": {
             "units": "arcsec/grid-unit",
             "shape": (),
+            "valid": (0, None),
             "dynamic": False,
-            "description": "the scale of the model, in arcsec per grid unit",
+            "description": "the pixel scale of the pixelated model, in arcsec per grid unit",
+        },
+        "scale": {
+            "units": "unitless",
+            "shape": (),
+            "dynamic": False,
+            "value": 1.0,
+            "valid": (0, None),
+            "description": "A scale factor to multiply the pixel values by. This times the pixel values in 'I' gives the total flux density in units of flux/arcsec^2",
         },
     }
     usable = True
 
-    def __init__(
-        self, *args, scale=None, sampling_mode="upsample:3", integrate_mode="none", **kwargs
-    ):
+    def __init__(self, *args, sampling_mode="upsample:3", integrate_mode="none", **kwargs):
         super().__init__(
             *args, sampling_mode=sampling_mode, integrate_mode=integrate_mode, **kwargs
         )
-        self.scale = scale
 
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
+        if not self.pixelscale.initialized:
+            self.pixelscale = self.target.pixelscale.item()
+
         if not self.scale.initialized:
-            self.scale = 2 * self.target.pixelscale.item()
+            self.scale = 1.0
 
         if not self.I.initialized:
             target_area = self.target[self.window]
-            self.I.value = func.downsample(backend.copy(target_area.data), 2) / (
-                target_area.pixel_area * 4
-            )
+            self.I.value = backend.copy(target_area.data) / target_area.pixel_area
 
         if not self.PA.initialized:
             R, _ = polar_decomposition(self.target.CD.npvalue)
@@ -79,14 +89,14 @@ class Pixelated(ComponentModel):
 
     @forward
     def transform_coordinates(
-        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
+        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, pixelscale: ArrayLike
     ) -> tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
-        x, y = func.rotate(-PA + np.pi / 2, x, y)
-        return x / scale, y / scale
+        x, y = func.rotate(-PA, x, y)
+        return x / pixelscale, y / pixelscale
 
     @forward
-    def brightness(self, x: ArrayLike, y: ArrayLike, I: ArrayLike) -> ArrayLike:
+    def brightness(self, x: ArrayLike, y: ArrayLike, I: ArrayLike, scale: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
         pixel_center = (I.shape[0] - 1) / 2, (I.shape[1] - 1) / 2
-        return interp2d(I, x + pixel_center[0], y + pixel_center[1])
+        return interp2d(I, y + pixel_center[0], x + pixel_center[1]) * scale

@@ -90,11 +90,11 @@ class BasisModel(ComponentModel):
         self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
     ) -> tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
-        x, y = func.rotate(-PA + np.pi / 2, x, y)
+        x, y = func.rotate(-PA, x, y)
         return x / scale, y / scale
 
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
         wB = backend.sum(weights[:, None, None] * self.basis, dim=0)
-        return interp2d(wB, x + wB.shape[0] // 2, y + wB.shape[1] // 2)
+        return interp2d(wB, y + wB.shape[0] // 2, x + wB.shape[1] // 2)
