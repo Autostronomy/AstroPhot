@@ -32,10 +32,10 @@ classifiers=[
 ]
 dependencies=[
         "astropy>=5.3",
-        "caskade~=1.0.0",
+        "caskade~=1.1.0",
         "h5py>=3.8.0",
         "matplotlib>=3.7",
-        "numpy>=1.24.0,<2.0.0",
+        "numpy>=2.0.0,<3",
         "scipy>=1.10.0",
         "torch>=2.0.0",
         "tqdm>=4.65.0",
@@ -58,11 +58,11 @@ dev = [
         "matplotlib",
         "photutils",
         "scikit-image",
-        "caustics",
+        "caustics>=1.6.0",
         "pyro-ppl>=1.8.0",
         "emcee",
         "corner",
-        "jax<=0.7.0",
+        "jax>=0.8.0",
         "pyvo"
 ]
 
