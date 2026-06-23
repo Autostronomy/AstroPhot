@@ -98,5 +98,6 @@ class Pixelated(ComponentModel):
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, I: ArrayLike, scale: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
+        I = I.T  # Transpose so I can use i,j indexing instead of j,i
         pixel_center = (I.shape[0] - 1) / 2, (I.shape[1] - 1) / 2
-        return interp2d(I, y + pixel_center[0], x + pixel_center[1]) * scale
+        return interp2d(I, x + pixel_center[0], y + pixel_center[1]) * scale
