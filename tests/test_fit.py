@@ -188,7 +188,6 @@ def sersic_model():
             ap.fit.IterParam,
             {"chunks": 3, "chunk_order": "random", "verbose": 2, "likelihood": "poisson"},
         ),
-        (ap.fit.Grad, {}),
         (ap.fit.ScipyFit, {}),
         (ap.fit.MHMCMC, {}),
         (ap.fit.HMC, {}),

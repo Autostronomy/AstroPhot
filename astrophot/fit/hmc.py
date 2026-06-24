@@ -42,7 +42,7 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
         inverse_mass_matrix[site_names] = (
             backend.ones(shape, **options) * self._init_scale
             if diagonal
-            else backend.eye(*shape, **options) * self._init_scale
+            else backend.eye(shape[0], **options) * self._init_scale
         )
         if adapt_mass_matrix:
             adapt_scheme = WelfordCovariance(diagonal=diagonal)
