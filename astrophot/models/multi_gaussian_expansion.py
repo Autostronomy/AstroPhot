@@ -117,9 +117,9 @@ class MultiGaussianExpansion(ComponentModel):
                 self.PA.value = ones * (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
         if not self.q.initialized:
             l = np.sort(np.linalg.eigvals(M))
-            if np.any(np.iscomplex(l)) or np.any(~np.isfinite(l)):
+            if np.any(~np.isfinite(l)):
                 l = (0.7, 1.0)
-            self.q.value = ones * np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
+            self.q.value = ones * np.clip(np.sqrt(np.abs(l[0] / l[1])), 0.1, 0.9)
 
     @forward
     def transform_coordinates(
