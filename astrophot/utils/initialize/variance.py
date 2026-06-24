@@ -1,11 +1,10 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.stats import binned_statistic
-import torch
 from ...backend_obj import backend, ArrayLike
 
 
-def auto_variance(data, mask=None):
+def auto_variance(data: ArrayLike, mask=None):
 
     if isinstance(data, backend.array_type):
         data = backend.to_numpy(data)

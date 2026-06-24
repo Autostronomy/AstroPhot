@@ -1,5 +1,4 @@
 from typing import Union
-import torch
 import numpy as np
 
 from .psf_model_object import PSFModel
@@ -71,7 +70,6 @@ class PixelBasisPSF(PSFModel):
                 backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 2, 1
             )
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

@@ -1,6 +1,5 @@
 from typing import Literal, Optional, Union
 import numpy as np
-import torch
 
 from astropy.visualization import HistEqStretch, ImageNormalize
 from matplotlib.patches import Polygon
@@ -103,7 +102,6 @@ def target_image(fig, ax, target, window=None, **kwargs):
     return fig, ax
 
 
-@torch.no_grad()
 @ignore_numpy_warnings
 def psf_image(
     fig,
@@ -169,7 +167,6 @@ def psf_image(
     return fig, ax
 
 
-@torch.no_grad()
 @ignore_numpy_warnings
 def model_image(
     fig,
@@ -311,7 +308,6 @@ def model_image(
     return fig, ax
 
 
-@torch.no_grad()
 @ignore_numpy_warnings
 def residual_image(
     fig,

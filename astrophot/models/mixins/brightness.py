@@ -1,4 +1,3 @@
-from torch import Tensor
 from ...backend_obj import backend, ArrayLike
 import numpy as np
 
@@ -71,7 +70,7 @@ class WedgeMixin:
             model = model + backend.where(indices, self.iradial_model(s, R), backend.zeros_like(R))
         return model
 
-    def brightness(self, x: Tensor, y: Tensor) -> Tensor:
+    def brightness(self, x: ArrayLike, y: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
         return self.polar_model(self.radius_metric(x, y), self.angular_metric(x, y))
 

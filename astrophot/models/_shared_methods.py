@@ -1,6 +1,5 @@
 from scipy.stats import binned_statistic, iqr
 import numpy as np
-import torch
 from scipy.optimize import minimize
 
 from ..utils.decorators import ignore_numpy_warnings
@@ -80,7 +79,6 @@ def _sample_image(
 
 # General parametric
 ######################################################################
-@torch.no_grad()
 @ignore_numpy_warnings
 def parametric_initialize(model, target, prof_func, params, x0_func):
     if all(list(model[param].initialized for param in params)):
@@ -110,7 +108,6 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
             model[param].value = x0x
 
 
-@torch.no_grad()
 @ignore_numpy_warnings
 def parametric_segment_initialize(
     model=None,

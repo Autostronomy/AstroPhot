@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from ..utils.decorators import ignore_numpy_warnings, combine_docstrings
 from .sky_model_object import SkyModel
@@ -29,7 +28,6 @@ class FlatSky(SkyModel):
     }
     usable = True
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

@@ -1,5 +1,3 @@
-import torch
-
 from ...param import forward
 from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
@@ -71,7 +69,6 @@ class NukerMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -159,7 +156,6 @@ class iNukerMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -247,7 +243,6 @@ class NukerPSFMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

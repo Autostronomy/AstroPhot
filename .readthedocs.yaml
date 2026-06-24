@@ -32,6 +32,8 @@ build:
       - 'python -c "import matplotlib.pyplot as plt"'
       # Get the API documentation dynamically
       - "sphinx-apidoc -f -o docs/source/ astrophot/"
+      # Install with no deps because caustics thinks numpy 2 is bad
+      - "pip install caustics --no-deps"
 
 python:
   install:
