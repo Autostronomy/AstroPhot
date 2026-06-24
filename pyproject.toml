@@ -31,7 +31,7 @@ classifiers=[
         "Programming Language :: Python :: 3"
 ]
 dependencies=[
-        "astropy>=6.0",
+        "astropy>=7.0",
         "caskade>=0.15.0,<1.2.0",
         "h5py>=3.8.0",
         "matplotlib>=3.7",
