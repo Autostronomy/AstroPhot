@@ -58,7 +58,7 @@ dev = [
         "matplotlib",
         "photutils",
         "scikit-image",
-        "caustics>=1.6.0",
+        # "caustics>=1.6.0",
         "pyro-ppl>=1.8.0",
         "emcee",
         "corner",
