@@ -34,8 +34,21 @@ class BasisModel(ComponentModel):
     _model_type = "basis"
     _parameter_specs = {
         "weights": {"units": "unitless", "shape": (None,), "dynamic": True},
-        "PA": {"units": "radians", "shape": (), "dynamic": False},
-        "scale": {"units": "arcsec/grid-unit", "shape": (), "dynamic": False},
+        "PA": {
+            "units": "radians",
+            "shape": (),
+            "dynamic": False,
+            "valid": (0, 2 * np.pi),
+            "cyclic": True,
+            "description": "the position angle of the model, in radians",
+        },
+        "pixelscale": {
+            "units": "arcsec/grid-unit",
+            "shape": (),
+            "valid": (0, None),
+            "dynamic": False,
+            "description": "the pixel scale of the basis model pixels, in arcsec per grid unit",
+        },
     }
     usable = True
 
@@ -80,16 +93,16 @@ class BasisModel(ComponentModel):
             R, _ = polar_decomposition(self.target.CD.npvalue)
             self.PA.value = np.arccos(np.abs(R[0, 0]))
 
-        if not self.scale.initialized:
-            self.scale = self.target.pixelscale.item()
+        if not self.pixelscale.initialized:
+            self.pixelscale = self.target.pixelscale.item()
 
     @forward
     def transform_coordinates(
-        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, scale: ArrayLike
+        self, x: ArrayLike, y: ArrayLike, PA: ArrayLike, pixelscale: ArrayLike
     ) -> tuple[ArrayLike, ArrayLike]:
         x, y = super().transform_coordinates(x, y)
-        x, y = func.rotate(-PA + np.pi / 2, x, y)
-        return x / scale, y / scale
+        x, y = func.rotate(-PA, x, y)
+        return x / pixelscale, y / pixelscale
 
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, weights: ArrayLike) -> ArrayLike:
