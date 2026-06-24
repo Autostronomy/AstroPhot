@@ -7,7 +7,7 @@ import caskade as ck
 
 from . import config
 
-ArrayLike: TypeAlias = ck.backend.ArrayLike
+ArrayLike: TypeAlias = ck.ArrayLike
 
 
 class Backend:
