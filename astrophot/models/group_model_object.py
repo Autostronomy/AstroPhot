@@ -1,6 +1,5 @@
 from typing import Optional, Sequence, Union
 
-import torch
 import numpy as np
 from caskade import forward
 

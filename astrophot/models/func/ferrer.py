@@ -1,4 +1,3 @@
-import torch
 from ...backend_obj import backend, ArrayLike
 
 

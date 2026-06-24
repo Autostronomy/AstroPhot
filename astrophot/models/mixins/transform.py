@@ -1,6 +1,5 @@
 from typing import Tuple
 import numpy as np
-import torch
 
 from ...utils.decorators import ignore_numpy_warnings
 from ...utils.interpolate import default_prof
@@ -59,7 +58,6 @@ class InclinedMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -221,7 +219,6 @@ class FourierEllipseMixin:
             ).reshape(x.shape)
         )
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -282,7 +279,6 @@ class WarpMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -354,7 +350,6 @@ class TruncationMixin:
         super().__init__(*args, **kwargs)
         self.outer_truncation = outer_truncation
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

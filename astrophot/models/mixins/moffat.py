@@ -1,5 +1,3 @@
-import torch
-
 from ...param import forward
 from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
@@ -55,7 +53,6 @@ class MoffatMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -119,7 +116,6 @@ class iMoffatMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -184,7 +180,6 @@ class MoffatPSFMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

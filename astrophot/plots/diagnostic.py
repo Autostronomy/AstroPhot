@@ -62,14 +62,14 @@ def covariance_matrix(
                     ax.axvline(reference_values[i], color=main_pallet["pop"], linestyle="-", lw=1)
             elif j < i:
                 cov = covariance_matrix[np.ix_([j, i], [j, i])]
-                lambda_, v = np.linalg.eig(cov)
+                lambda_, v = np.linalg.eigh(cov)
                 lambda_ = np.sqrt(lambda_)
-                angle = np.rad2deg(np.arctan2(v[1, 0], v[0, 0]))
+                angle = np.rad2deg(np.arctan2(v[1, 1], v[0, 1]))
                 for k in [1, 2]:
                     ellipse = Ellipse(
                         xy=(mean[j], mean[i]),
-                        width=lambda_[0] * k * 2,
-                        height=lambda_[1] * k * 2,
+                        width=lambda_[1] * k * 2,
+                        height=lambda_[0] * k * 2,
                         angle=angle,
                         edgecolor=ellipse_colors,
                         facecolor="none",
