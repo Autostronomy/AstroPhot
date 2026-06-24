@@ -4,13 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "astrophot"
-dynamic = [
-        "version"
-]
+dynamic = ["version"]
 authors = [
   { name="Connor Stone", email="connorstone628@gmail.com" },
 ]
-description = "A fast, flexible, automated, and differentiable astronomical image 2D forward modelling tool for precise parallel multi-wavelength photometry."
+description = "A fast, flexible, full featured, and differentiable astronomical image 2D forward modelling tool for precise parallel multi-wavelength photometry."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
@@ -21,7 +19,9 @@ keywords = [
         "scientific computing",
         "astrophysics",
         "differentiable programming",
-        "pytorch"
+        "pytorch",
+        "jax",
+        "bayesian inference",
 ]
 classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -35,7 +35,7 @@ dependencies=[
         "caskade~=1.1.0",
         "h5py>=3.8.0",
         "matplotlib>=3.7",
-        "numpy>=2.0.0,<3",
+        "numpy>=1.24.0,<3",
         "scipy>=1.10.0",
         "torch>=2.0.0",
         "tqdm>=4.65.0",
@@ -58,7 +58,7 @@ dev = [
         "matplotlib",
         "photutils",
         "scikit-image",
-        # "caustics>=1.6.0",
+        "caustics>=1.6.0",
         "pyro-ppl>=1.8.0",
         "emcee",
         "corner",
