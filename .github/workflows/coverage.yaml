@@ -52,14 +52,14 @@ jobs:
         shell: bash
       - name: Test with pytest [torch]
         run: |
-          coverage run --source=${{ env.PROJECT_NAME }} -m pytest tests/
+          coverage run --source=${{ env.PROJECT_NAME }} -m pytest -v tests/
         shell: bash
         env:
           CASKADE_BACKEND: torch
       - name: Extra coverage report for jax checks
         run: |
           echo "Running extra coverage report for jax checks"
-          coverage run --append --source=${{ env.PROJECT_NAME }} -m pytest tests/
+          coverage run --append --source=${{ env.PROJECT_NAME }} -m pytest -v tests/
         shell: bash
         env:
           JAX_ENABLE_X64: True
