@@ -190,7 +190,7 @@ class Slalom(BaseOptimizer):
         likelihood: str = "gaussian",
         report_freq: int = 10,
         relative_tolerance: float = 1e-4,
-        momentum: float = 0.5,
+        momentum: float = 0.9,
         max_iter: int = 1000,
         **kwargs,
     ) -> None:
@@ -201,6 +201,7 @@ class Slalom(BaseOptimizer):
         self.likelihood = likelihood
         self.S = S
         self.report_freq = report_freq
+        assert 0 <= momentum < 1, "Momentum must be in the range [0, 1)."
         self.momentum = momentum
 
     def density(self, state: ArrayLike) -> ArrayLike:
@@ -236,7 +237,7 @@ class Slalom(BaseOptimizer):
                 self.current_state = self.model.from_valid(
                     vstate - self.S * (grad + momentum) / backend.linalg.norm(grad + momentum)
                 )
-                momentum = self.momentum * (momentum + grad)
+                momentum = self.momentum * momentum + (1 - self.momentum) * grad
             except OptimizeStopSuccess as e:
                 self.message = self.message + str(e)
                 break
