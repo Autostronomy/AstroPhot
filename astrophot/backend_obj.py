@@ -1,26 +1,13 @@
 import os
 import importlib
-from typing import Annotated
+from typing import TypeAlias
 
-from torch import Tensor, dtype, device
-import torch
 import numpy as np
 import caskade as ck
 
 from . import config
 
-ArrayLike = Annotated[
-    Tensor,
-    "One of: torch.Tensor or jax.numpy.ndarray depending on the chosen backend.",
-]
-dtypeLike = Annotated[
-    dtype,
-    "One of: torch.dtype or jax.numpy.dtype depending on the chosen backend.",
-]
-deviceLike = Annotated[
-    device,
-    "One of: torch.device or jax.DeviceArray depending on the chosen backend.",
-]
+ArrayLike: TypeAlias = ck.ArrayLike
 
 
 class Backend:
@@ -34,7 +21,7 @@ class Backend:
     @backend.setter
     def backend(self, backend):
         if backend is None:
-            backend = os.getenv("CASKADE_BACKEND", "torch")
+            backend = os.getenv("CASKADE_BACKEND", ck.backend.backend)
         ck.backend.backend = backend
         self._load_backend(backend)
         self._backend = backend
@@ -50,8 +37,8 @@ class Backend:
             raise ValueError(f"Unsupported backend: {backend}")
 
     def setup_torch(self):
-        config.DTYPE = torch.float64
-        config.DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+        config.DTYPE = self.module.float64
+        config.DEVICE = "cuda:0" if self.module.cuda.is_available() else "cpu"
         self.make_array = self._make_array_torch
         self._array_type = self._array_type_torch
         self.concatenate = self._concatenate_torch

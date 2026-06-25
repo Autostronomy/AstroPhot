@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 from ..backend_obj import backend, ArrayLike

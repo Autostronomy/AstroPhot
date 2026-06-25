@@ -138,13 +138,13 @@ class GaussianEllipsoid(ComponentModel):
         mu02 = np.median(dat * np.abs(y))
         mu11 = np.median(dat * x * y / np.sqrt(np.abs(x * y) + self.softening**2))
         M = np.array([[mu20, mu11], [mu11, mu02]])
-        if np.any(np.iscomplex(M)) or np.any(~np.isfinite(M)):
+        if np.any(~np.isfinite(M)):
             PA = np.pi / 2
             l = (0.7, 1.0)
         else:
             PA = (0.5 * np.arctan2(2 * mu11, mu20 - mu02) - np.pi / 2) % np.pi
             l = np.sort(np.linalg.eigvals(M))
-        q = np.clip(np.sqrt(l[0] / l[1]), 0.1, 0.9)
+        q = np.clip(np.sqrt(np.abs(l[0] / l[1])), 0.1, 0.9)
         self.beta.value = np.arccos(q)
         self.gamma.value = PA
         self.flux.value = np.sum(dat)

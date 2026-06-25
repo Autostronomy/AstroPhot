@@ -5,7 +5,7 @@ import numpy as np
 
 from .base import BaseOptimizer
 from .. import config
-from ..backend_obj import backend
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ("ScipyFit",)
 
@@ -21,7 +21,7 @@ class ScipyFit(BaseOptimizer):
 
     :param model: The model to fit, which should be an instance of `Model`.
     :param initial_state: Initial guess for the model parameters as a 1D Array.
-    :param method: The optimization method to use. Default is "Nelder-Mead", but can be set to any of: "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", or "trust-constr".
+    :param method: The optimization method to use. Default is "L-BFGS-B", but can be set to any of: "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", or "trust-constr".
     :param ndf: Optional number of degrees of freedom for the fit. If not provided, it is calculated as the number of data points minus the number of parameters.
     """
 
@@ -31,7 +31,7 @@ class ScipyFit(BaseOptimizer):
         initial_state: Sequence = None,
         method: Literal[
             "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", "trust-constr"
-        ] = "Nelder-Mead",
+        ] = "L-BFGS-B",
         likelihood: Literal["gaussian", "poisson"] = "gaussian",
         ndf=None,
         **kwargs,
@@ -73,23 +73,25 @@ class ScipyFit(BaseOptimizer):
                     bounds.append(tuple(bound))
         return bounds
 
-    def density(self, state: Sequence) -> float:
+    def density(self, state: ArrayLike) -> float:
         if self.likelihood == "gaussian":
-            return -self.model.gaussian_log_likelihood(
-                backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
-            ).item()
+            return -self.model.gaussian_log_likelihood(state)
         elif self.likelihood == "poisson":
-            return -self.model.poisson_log_likelihood(
-                backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
-            ).item()
+            return -self.model.poisson_log_likelihood(state)
         else:
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
 
     def fit(self):
 
+        density_grad = backend.grad(self.density)
         res = minimize(
-            lambda x: self.density(x),
+            lambda x: self.density(
+                backend.as_array(x, dtype=config.DTYPE, device=config.DEVICE)
+            ).item(),
             self.current_state,
+            jac=lambda x: backend.to_numpy(
+                density_grad(backend.as_array(x, dtype=config.DTYPE, device=config.DEVICE))
+            ),
             method=self.method,
             bounds=self.numpy_bounds(),
             options={
@@ -101,7 +103,7 @@ class ScipyFit(BaseOptimizer):
         self.current_state = backend.as_array(res.x, dtype=config.DTYPE, device=config.DEVICE)
         if self.verbose > 0:
             config.logger.info(
-                f"Final 2NLL/DoF: {2*self.density(res.x)/self.ndf:.6g}. Converged: {self.message}"
+                f"Final 2NLL/DoF: {2*self.density(self.current_state)/self.ndf:.6g}. Converged: {self.message}"
             )
         self.model.set_values(self.current_state)
 

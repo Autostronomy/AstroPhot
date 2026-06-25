@@ -1,11 +1,10 @@
 import sys
 import logging
-import torch
 
 __all__ = ["DTYPE", "DEVICE", "logger", "set_logging_output"]
 
-DTYPE = torch.float64
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+DTYPE = None
+DEVICE = None
 
 logging.basicConfig(
     filename="AstroPhot.log",

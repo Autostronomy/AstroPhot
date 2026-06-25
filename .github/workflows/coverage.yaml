@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
+          python-version: "3.13"
       - name: Record State
         run: |
           pwd
@@ -37,7 +37,6 @@ jobs:
           pip install pytest
           pip install pytest-cov
           pip install wheel
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         shell: bash
       - name: Install error reporter
         run: |
@@ -47,23 +46,27 @@ jobs:
           pip install -e ".[dev]"
           pip show ${{ env.PROJECT_NAME }}
         shell: bash
+      - name: Install caustics manually
+        run: |
+          pip install caustics --no-deps
+        shell: bash
       - name: Test with pytest [torch]
         run: |
-          coverage run --source=${{ env.PROJECT_NAME }} -m pytest tests/
+          coverage run --source=${{ env.PROJECT_NAME }} -m pytest -v tests/
         shell: bash
         env:
           CASKADE_BACKEND: torch
       - name: Extra coverage report for jax checks
         run: |
           echo "Running extra coverage report for jax checks"
-          coverage run --append --source=${{ env.PROJECT_NAME }} -m pytest tests/
+          coverage run --append --source=${{ env.PROJECT_NAME }} -m pytest -v tests/
         shell: bash
         env:
           JAX_ENABLE_X64: True
           CASKADE_BACKEND: jax
 
       - name: Upload coverage reports to Codecov with GitHub Action
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:

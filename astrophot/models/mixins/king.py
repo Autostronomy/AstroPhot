@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 from ...param import forward
@@ -67,7 +66,6 @@ class KingMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -143,7 +141,6 @@ class iKingMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -222,7 +219,6 @@ class KingPSFMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

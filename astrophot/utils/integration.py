@@ -10,16 +10,12 @@ def quad_table(order, dtype, device):
 
     Parameters
     ----------
-    n : int
+    order : int
         The number of quadrature points in each dimension.
-    dtype : torch.dtype
-        The desired data type of the tensor.
-    device : torch.device
-        The device on which to create the tensor.
 
     Returns
     -------
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[ArrayLike, ArrayLike, ArrayLike]
         The generated meshgrid as a tuple of Tensors.
     """
     abscissa, weights = roots_legendre(order)

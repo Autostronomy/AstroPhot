@@ -1,3 +1,4 @@
+import importlib.util
 import platform
 import glob
 import pytest
@@ -50,8 +51,10 @@ def cleanup_py_scripts(nbpath):
 
 @pytest.mark.parametrize("nb_path", notebooks)
 def test_notebook(nb_path):
-    if ap.backend.backend == "jax":
+    if ap.backend.backend != "torch":
         pytest.skip("Requires torch backend")
+    if importlib.util.find_spec("caustics") is None and "GravitationalLensing" in nb_path:
+        pytest.skip("This tutorial requires caustics")
     convert_notebook_to_py(nb_path)
     try:
         for targ in glob.glob(os.path.join(os.path.dirname(nb_path), "*target_image*.fits")):
