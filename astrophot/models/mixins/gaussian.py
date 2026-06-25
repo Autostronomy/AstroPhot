@@ -1,5 +1,3 @@
-import torch
-
 from ...param import forward
 from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
@@ -47,7 +45,6 @@ class GaussianMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -104,7 +101,6 @@ class iGaussianMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -159,7 +155,6 @@ class GaussianPSFMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

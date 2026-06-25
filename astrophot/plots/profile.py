@@ -1,8 +1,6 @@
 from functools import partial
-from typing import Literal
 
 import numpy as np
-import torch
 from scipy.stats import binned_statistic, iqr
 
 from .. import config
@@ -126,12 +124,11 @@ def radial_median_profile(
         Rbins.append(Rbins[-1] + max(2 * model.target.pixelscale.item(), Rbins[-1] * 0.1))
     Rbins = np.array(Rbins)
 
-    with torch.no_grad():
-        image = model.target[model.window]
-        x, y = image.coordinate_center_meshgrid()
-        x, y = model.transform_coordinates(x, y, params=())
-        R = backend.sqrt(x**2 + y**2)
-        R = backend.to_numpy(R)
+    image = model.target[model.window]
+    x, y = image.coordinate_center_meshgrid()
+    x, y = model.transform_coordinates(x, y, params=())
+    R = backend.sqrt(x**2 + y**2)
+    R = backend.to_numpy(R)
 
     dat = backend.to_numpy(image._data)
     # remove masked pixels
@@ -227,14 +224,13 @@ def ray_light_profile(
             col = main_pallet[f"primary{r+1}"]
         else:
             col = cmap_grad(r / model.segments)
-        with torch.no_grad():
-            ax.plot(
-                backend.to_numpy(xx),
-                np.log10(backend.to_numpy(model.iradial_model(r, xx, params=()))),
-                linewidth=2,
-                color=col,
-                label=f"{model.name} profile {r}",
-            )
+        ax.plot(
+            backend.to_numpy(xx),
+            np.log10(backend.to_numpy(model.iradial_model(r, xx, params=()))),
+            linewidth=2,
+            color=col,
+            label=f"{model.name} profile {r}",
+        )
     ax.set_ylabel("log$_{10}$(flux)")
     ax.set_xlabel(f"Radius [{rad_unit}]")
 

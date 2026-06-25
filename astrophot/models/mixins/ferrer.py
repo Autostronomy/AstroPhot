@@ -1,5 +1,3 @@
-import torch
-
 from ...param import forward
 from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
@@ -65,7 +63,6 @@ class FerrerMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -141,7 +138,6 @@ class iFerrerMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -222,7 +218,6 @@ class FerrerPSFMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

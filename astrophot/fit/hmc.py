@@ -1,8 +1,6 @@
 # Hamiltonian Monte-Carlo
 from typing import Optional, Sequence
 
-import torch
-
 try:
     import pyro
     import pyro.distributions as dist
@@ -18,6 +16,7 @@ except ImportError:
 from .base import BaseOptimizer
 from ..models import Model
 from .. import config
+from ..backend_obj import backend, ArrayLike
 
 __all__ = ("HMC",)
 
@@ -41,9 +40,9 @@ def new_configure(self, mass_matrix_shape, adapt_mass_matrix=True, options={}):
         self._mass_matrix_size[site_names] = shape[0]
         diagonal = len(shape) == 1
         inverse_mass_matrix[site_names] = (
-            torch.full(shape, self._init_scale, **options)
+            backend.ones(shape, **options) * self._init_scale
             if diagonal
-            else torch.eye(*shape, **options) * self._init_scale
+            else backend.eye(shape[0], **options) * self._init_scale
         )
         if adapt_mass_matrix:
             adapt_scheme = WelfordCovariance(diagonal=diagonal)
@@ -95,7 +94,7 @@ class HMC(BaseOptimizer):
         model: Model,
         initial_state: Optional[Sequence] = None,
         max_iter: int = 1000,
-        inv_mass: Optional[torch.Tensor] = None,
+        inv_mass: Optional[ArrayLike] = None,
         epsilon: float = 1e-4,
         leapfrog_steps: int = 10,
         progress_bar: bool = True,
@@ -123,7 +122,7 @@ class HMC(BaseOptimizer):
 
     def fit(
         self,
-        state: Optional[torch.Tensor] = None,
+        state: Optional[ArrayLike] = None,
     ):
         """Performs MCMC sampling using Hamiltonian Monte-Carlo step.
 
@@ -149,7 +148,7 @@ class HMC(BaseOptimizer):
         if self.prior is None:
             self.prior = dist.Normal(
                 self.current_state,
-                torch.ones_like(self.current_state) * 1e2 + torch.abs(self.current_state) * 1e2,
+                backend.ones_like(self.current_state) * 1e2 + backend.abs(self.current_state) * 1e2,
             )
 
         # Set up the HMC sampler
@@ -188,6 +187,6 @@ class HMC(BaseOptimizer):
 
         self.chain = chain
         self.model.set_values(
-            torch.as_tensor(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
+            backend.as_array(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
         )
         return self

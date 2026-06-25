@@ -1,5 +1,3 @@
-import torch
-
 from ...param import forward
 from ...backend_obj import ArrayLike
 from ...utils.decorators import ignore_numpy_warnings
@@ -47,7 +45,6 @@ class ExponentialMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -103,7 +100,6 @@ class iExponentialMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -158,7 +154,6 @@ class ExponentialPSFMixin:
         },
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
