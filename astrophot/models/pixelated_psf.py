@@ -31,7 +31,7 @@ class PixelatedPSF(PSFModel):
     (essentially just divide the pixelscale by the upsampling factor
     you used).
 
-    :param pixels: the total flux within each pixel, in units of flux/pix^2.
+    :param pixels: the flux density at the center of each PSF pixel, in units of flux/pix^2.
 
     """
 
@@ -41,7 +41,7 @@ class PixelatedPSF(PSFModel):
             "units": "flux/pix^2",
             "shape": (None, None),
             "dynamic": True,
-            "description": "the total flux within each pixel, in units of flux/pix^2",
+            "description": "the flux density at the center of each PSF pixel, in units of flux/pix^2",
         }
     }
     usable = True
@@ -57,8 +57,5 @@ class PixelatedPSF(PSFModel):
     @forward
     def brightness(self, x: ArrayLike, y: ArrayLike, pixels: ArrayLike) -> ArrayLike:
         x, y = self.transform_coordinates(x, y)
-        return interp2d(
-            pixels,
-            x * self.target.upsample + pixels.shape[0] // 2,
-            y * self.target.upsample + pixels.shape[1] // 2,
-        )
+        u = self.target.upsample
+        return interp2d(pixels, x * u + pixels.shape[0] // 2, y * u + pixels.shape[1] // 2)

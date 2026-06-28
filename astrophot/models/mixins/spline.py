@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 from ...param import forward
@@ -31,7 +30,6 @@ class SplineMixin:
         }
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -88,7 +86,6 @@ class iSplineMixin:
         }
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -152,7 +149,6 @@ class SplinePSFMixin:
         }
     }
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

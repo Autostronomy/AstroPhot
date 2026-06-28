@@ -1,5 +1,4 @@
 from typing import Union
-import torch
 import numpy as np
 
 from .psf_model_object import PSFModel
@@ -71,7 +70,6 @@ class PixelBasisPSF(PSFModel):
                 backend.as_array(value, dtype=config.DTYPE, device=config.DEVICE), 2, 1
             )
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -82,14 +80,12 @@ class PixelBasisPSF(PSFModel):
             self.basis = func.zernike_basis(order, N) / self.target.pixel_area
 
         if not self.weights.initialized:
-            w = backend.as_array(
-                1 / np.arange(1, self.basis.shape[0] + 1),
-                dtype=config.DTYPE,
-                device=config.DEVICE,
-            )
-            scale = backend.mean(self.target[self.window].data) / backend.mean(
-                backend.sum(w[:, None, None] * self.basis, dim=0)
-            )
+            target_dat = backend.to_numpy(self.target[self.window].data).copy()
+            mask = backend.to_numpy(self.target[self.window].mask)
+            target_dat[mask] = np.nanmedian(target_dat)
+            basis = backend.to_numpy(self.basis)
+            w = 1 / np.arange(1, self.basis.shape[0] + 1)
+            scale = np.mean(target_dat) / np.mean(np.sum(w[:, None, None] * basis, axis=0))
             self.weights.value = w * scale
 
     @forward

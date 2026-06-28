@@ -1,5 +1,4 @@
 from typing import Tuple
-import torch
 import numpy as np
 
 from .model_object import ComponentModel
@@ -34,7 +33,6 @@ class EdgeonModel(ComponentModel):
     }
     usable = False
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -95,7 +93,6 @@ class EdgeonSech(EdgeonModel):
     }
     usable = False
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()
@@ -139,7 +136,6 @@ class EdgeonIsothermal(EdgeonSech):
     }
     usable = True
 
-    @torch.no_grad()
     @ignore_numpy_warnings
     def initialize(self):
         super().initialize()

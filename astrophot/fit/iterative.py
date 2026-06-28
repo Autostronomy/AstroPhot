@@ -5,7 +5,6 @@ from functools import partial
 
 from caskade import ValidContext
 import numpy as np
-import torch
 
 from .base import BaseOptimizer
 from ..models import Model
@@ -92,14 +91,13 @@ class Iter(BaseOptimizer):
         self.current_state = self.model.get_values()
 
         # Update the loss value
-        with torch.no_grad():
-            if self.verbose > 0:
-                config.logger.info("Update Chi^2 with new parameters")
-            self.Y = self.model(params=self.current_state)
-            D = self.model.target[self.model.window].flatten("data")
-            V = self.model.target[self.model.window].flatten("variance")
-            M = self.model.target[self.model.window].flatten("mask")
-            loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
+        if self.verbose > 0:
+            config.logger.info("Update Chi^2 with new parameters")
+        self.Y = self.model(params=self.current_state)
+        D = self.model.target[self.model.window].flatten("data")
+        V = self.model.target[self.model.window].flatten("variance")
+        M = self.model.target[self.model.window].flatten("mask")
+        loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
         if self.verbose > 0:
             config.logger.info(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy(backend.to_numpy(self.current_state)))
@@ -290,7 +288,6 @@ class IterParam(BaseOptimizer):
         M = self.full_forward(self.current_state)
         return 2 * backend.sum(M - self.Y * backend.log(M + 1e-10)) / self.ndf
 
-    @torch.no_grad()
     def fit(self, update_uncertainty=True) -> BaseOptimizer:
         """This performs the fitting operation. It iterates the LM step
         function until convergence is reached. Includes a message
@@ -426,7 +423,6 @@ class IterParam(BaseOptimizer):
         return False
 
     @property
-    @torch.no_grad()
     def covariance_matrix(self):
         """The covariance matrix for the model at the current
         parameters. This can be used to construct a full Gaussian PDF for the
@@ -464,7 +460,6 @@ class IterParam(BaseOptimizer):
             )
         return self._covariance_matrix
 
-    @torch.no_grad()
     def update_uncertainty(self) -> None:
         """Call this function after optimization to set the uncertainties for
         the parameters. This will use the diagonal of the covariance
