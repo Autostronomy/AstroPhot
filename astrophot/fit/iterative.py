@@ -93,7 +93,7 @@ class Iter(BaseOptimizer):
         # Update the loss value
         if self.verbose > 0:
             config.logger.info("Update Chi^2 with new parameters")
-        self.Y = self.model(params=self.current_state)
+        self.Y = self.model()
         D = self.model.target[self.model.window].flatten("data")
         V = self.model.target[self.model.window].flatten("variance")
         M = self.model.target[self.model.window].flatten("mask")
@@ -120,7 +120,8 @@ class Iter(BaseOptimizer):
         Perform the iterative fitting process until convergence or maximum iterations reached.
         """
         self.iteration = 0
-        self.Y = self.model(params=self.current_state)
+        self.model.set_values(self.current_state)
+        self.Y = self.model()
         start_fit = time()
         try:
             while True:

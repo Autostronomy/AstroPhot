@@ -49,7 +49,7 @@ class FerrerMixin:
         },
         "beta": {
             "units": "unitless",
-            "valid": (0, 2),
+            "valid": (0, 1.9),
             "shape": (),
             "dynamic": True,
             "description": "Outer slope parameter.",
@@ -124,7 +124,7 @@ class iFerrerMixin:
         },
         "beta": {
             "units": "unitless",
-            "valid": (0, 2),
+            "valid": (0, 1.9),
             "shape": (None,),
             "dynamic": True,
             "description": "Outer slope parameter.",
@@ -203,7 +203,7 @@ class FerrerPSFMixin:
         },
         "beta": {
             "units": "unitless",
-            "valid": (0, 2),
+            "valid": (0, 1.9),
             "shape": (),
             "dynamic": True,
             "description": "Outer slope parameter.",

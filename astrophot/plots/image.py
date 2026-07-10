@@ -52,13 +52,22 @@ def target_image(fig, ax, target, window=None, **kwargs):
 
     dat = np.copy(backend.to_numpy(target_area._data))
     dat[backend.to_numpy(target_area._mask)] = np.nan
+    dat[~np.isfinite(dat)] = np.nan  # change inf to NaN for simplicity
+    if np.sum(np.isfinite(dat)) < 5:
+        config.logger.warning(
+            f"< 5 plottable pixels in target image: {target.name}. Skipping plot."
+        )
+        return fig, ax
     X, Y = target_area.coordinate_corner_meshgrid()
     X = backend.to_numpy(X)
     Y = backend.to_numpy(Y)
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)], rng=(16, 84)) / 2
-    if noise == 0:
-        noise = np.nanstd(dat)
+    if noise == 0 and not kwargs.get("linear", False):
+        config.logger.warning(
+            f"Target image: {target.name} data likely (nearly) constant value. Forcing simple linear scale."
+        )
+        kwargs["linear"] = True
 
     if kwargs.get("linear", False):
         im = ax.pcolormesh(
@@ -68,29 +77,34 @@ def target_image(fig, ax, target, window=None, **kwargs):
             cmap=cmap_grad,
         )
     else:
+        pickhist = dat <= (sky + 3 * noise)
+        if np.sum(~pickhist[np.isfinite(dat)]) > 50:  # only draw log if multiple pixels above noise
+            vmin = np.nanmin(dat)
+            vmax = sky + 3 * noise
+        else:
+            vmin = np.nanmin(dat)
+            vmax = np.nanmax(dat)
+
         im = ax.pcolormesh(
             X,
             Y,
             dat,
             cmap="gray_r",
             norm=ImageNormalize(
-                stretch=HistEqStretch(
-                    dat[np.logical_and(dat <= (sky + 3 * noise), np.isfinite(dat))]
-                ),
+                stretch=HistEqStretch(dat[np.logical_and(dat <= vmax, np.isfinite(dat))]),
                 clip=False,
-                vmax=sky + 3 * noise,
-                vmin=np.nanmin(dat),
+                vmin=vmin,
+                vmax=vmax,
             ),
         )
-        pickhist = dat < (sky + 3 * noise)
-        if np.sum(~pickhist) > 5:  # only draw log if multiple pixels above noise
+        if np.sum(~pickhist[np.isfinite(dat)]) > 50:  # only draw log if multiple pixels above noise
             im = ax.pcolormesh(
                 X,
                 Y,
                 np.ma.masked_where(pickhist, dat),
                 cmap=cmap_grad,
                 norm=matplotlib.colors.LogNorm(),
-                clim=[sky + 3 * noise, None],
+                clim=[sky + 3 * noise, np.nanmax(dat)],
             )
 
     if np.linalg.det(target.CD.npvalue) < 0:
