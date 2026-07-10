@@ -264,7 +264,7 @@ class WarpMixin:
     _parameter_specs = {
         "q_R": {
             "units": "b/a",
-            "valid": (0, 1),
+            "valid": (0.1, 1),
             "shape": (None,),
             "dynamic": True,
             "description": "Array of axis ratio values for axis ratio spline",

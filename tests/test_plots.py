@@ -19,6 +19,21 @@ def test_target_image():
     ap.plots.target_image(fig, ax, target)
     plt.close()
 
+    # Constant target does not raise
+    fig, ax = plt.subplots()
+    target = ap.TargetImage(data=np.zeros((10, 10)), name="pathological_test_target")
+    ap.plots.target_image(fig, ax, target)
+    plt.close()
+
+    # Target of non-finite values does not raise
+    fig, ax = plt.subplots()
+    data = np.full((10, 10), np.nan)
+    data[0, 0] = 1.0
+    data[5, 5] = 2.0
+    target = ap.TargetImage(data=data, name="pathological_test_target")
+    ap.plots.target_image(fig, ax, target)
+    plt.close()
+
 
 def test_psf_image():
     target = make_basic_gaussian_psf()

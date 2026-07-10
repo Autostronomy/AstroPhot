@@ -54,14 +54,16 @@ def target_image(fig, ax, target, window=None, **kwargs):
     dat[backend.to_numpy(target_area._mask)] = np.nan
     dat[~np.isfinite(dat)] = np.nan  # change inf to NaN for simplicity
     if np.sum(np.isfinite(dat)) < 5:
-        config.logger.warning(f"< 5 plotable pixels in target image: {target.name}. Skipping plot.")
+        config.logger.warning(
+            f"< 5 plottable pixels in target image: {target.name}. Skipping plot."
+        )
         return fig, ax
     X, Y = target_area.coordinate_corner_meshgrid()
     X = backend.to_numpy(X)
     Y = backend.to_numpy(Y)
     sky = np.nanmedian(dat)
     noise = iqr(dat[np.isfinite(dat)], rng=(16, 84)) / 2
-    if noise == 0 and kwargs.get("linear", False):
+    if noise == 0 and not kwargs.get("linear", False):
         config.logger.warning(
             f"Target image: {target.name} data likely (nearly) constant value. Forcing simple linear scale."
         )
