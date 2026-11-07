@@ -50,6 +50,8 @@ class GroupModel(Model):
         **kwargs,
     ):
         super().__init__(**kwargs)
+        if models is None:
+            models = []
         for model in models:
             if not isinstance(model, Model):
                 raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
