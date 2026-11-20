@@ -1,6 +1,5 @@
 from typing import Union
 import numpy as np
-from scipy.special import gamma
 from ...backend_obj import backend, ArrayLike
 
 __all__ = (
@@ -17,6 +16,13 @@ __all__ = (
     "sersic_inv_torch",
     "moffat_I0_to_flux",
 )
+
+
+def gamma(x):
+    # scipy is imported here to keep `import astrophot` fast
+    from scipy.special import gamma as scipy_gamma
+
+    return scipy_gamma(x)
 
 
 def sersic_n_to_b(

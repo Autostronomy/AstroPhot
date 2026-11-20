@@ -1,18 +1,19 @@
-import numpy as np
-from scipy.special import gamma
+"""The helper functions of astrophot/utils: unit conversions, Sersic conversions
+and interpolation.
+
+The segmentation map helpers in astrophot/utils/initialize are exercised
+through `astrophot segmap` in test_cli.py.
+"""
+
 import astrophot as ap
-from utils import make_basic_sersic, make_basic_gaussian
+import numpy as np
 import pytest
-
-######################################################################
-# Util functions
-######################################################################
+from scipy.special import gamma
 
 
-def test_make_psf():
-
-    target = make_basic_gaussian(x=10, y=10)
-    target += make_basic_gaussian(x=30, y=30, rand=54321)
+def test_target_addition(gaussian_target_factory):
+    target = gaussian_target_factory(x=10, y=10)
+    target += gaussian_target_factory(x=30, y=30, rand=54321)
 
     assert np.all(
         np.isfinite(ap.backend.to_numpy(target.data))
@@ -21,7 +22,6 @@ def test_make_psf():
 
 def test_conversions_units():
 
-    # flux to sb
     # flux to sb
     assert (
         ap.utils.conversions.units.flux_to_sb(1.0, 1.0, 0.0) == 0
@@ -155,8 +155,8 @@ def test_conversion_functions():
     ), "Error computing inverse sersic function (torch)"
 
 
-def test_interp2d():
-    target = make_basic_gaussian()
+def test_interp2d(gaussian_target_factory):
+    target = gaussian_target_factory()
 
     I, J = np.meshgrid(
         np.arange(target.data.shape[0]), np.arange(target.data.shape[1]), indexing="ij"

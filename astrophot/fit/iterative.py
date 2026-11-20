@@ -442,13 +442,11 @@ class IterParam(BaseOptimizer):
                 hess = func.hessian(J, self.W)
             elif self.likelihood == "poisson":
                 hess = func.hessian_poisson(J, self.Y, self.full_forward(self.current_state))
-            try:
-                sub_covariance_matrix = backend.linalg.inv(hess)
-            except:
+            sub_covariance_matrix, singular = func.invert_hessian(hess)
+            if singular:
                 config.logger.warning(
-                    "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
+                    "Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
                 )
-                sub_covariance_matrix = backend.linalg.pinv(hess)
 
             ids = backend.meshgrid(
                 backend.as_array(np.arange(N)[self.chunks[c]], dtype=int, device=config.DEVICE),

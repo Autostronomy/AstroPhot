@@ -1,72 +1,59 @@
+"""Image, TargetImage, PSFImage and JacobianImage (astrophot/image).
+
+Coordinates are tested against astropy in test_image_wcs.py.
+"""
+
 import astrophot as ap
 import numpy as np
-
-from utils import make_basic_sersic, get_astropy_wcs
 import pytest
 
 ######################################################################
-# Image Objects
+# Image
 ######################################################################
 
 
-@pytest.fixture()
-def base_image():
-    arr = np.zeros((10, 15))
-    return ap.Image(
-        data=arr,
-        pixelscale=1.0,
-        zeropoint=1.0,
-    )
+def test_image_creation(image):
+    image.to()
+    assert image.pixelscale == 1.0, "image should track pixelscale"
+    assert image.zeropoint == 1.0, "image should track zeropoint"
+    assert image.crpix[0] == 0, "image should track crpix"
+    assert image.crpix[1] == 0, "image should track crpix"
 
-
-def test_image_creation(base_image):
-    base_image.to()
-    assert base_image.pixelscale == 1.0, "image should track pixelscale"
-    assert base_image.zeropoint == 1.0, "image should track zeropoint"
-    assert base_image.crpix[0] == 0, "image should track crpix"
-    assert base_image.crpix[1] == 0, "image should track crpix"
-
-    base_image.to(dtype=ap.backend.float64)
-    slicer = ap.Window((7, 13, 4, 7), base_image)
-    sliced_image = base_image[slicer]
+    image.to(dtype=ap.backend.float64)
+    slicer = ap.Window((7, 13, 4, 7), image)
+    sliced_image = image[slicer]
     assert sliced_image.crpix[0] == -7, "crpix of subimage should give relative position"
     assert sliced_image.crpix[1] == -4, "crpix of subimage should give relative position"
     assert sliced_image._data.shape == (6, 3), "sliced image should have correct shape"
 
 
-def test_copy(base_image):
-    copy_image = base_image.copy()
-    assert (
-        base_image.pixelscale == copy_image.pixelscale
-    ), "copied image should have same pixelscale"
-    assert base_image.zeropoint == copy_image.zeropoint, "copied image should have same zeropoint"
-    assert (
-        base_image.window.extent == copy_image.window.extent
-    ), "copied image should have same window"
+def test_copy(image):
+    copy_image = image.copy()
+    assert image.pixelscale == copy_image.pixelscale, "copied image should have same pixelscale"
+    assert image.zeropoint == copy_image.zeropoint, "copied image should have same zeropoint"
+    assert image.window.extent == copy_image.window.extent, "copied image should have same window"
     copy_image += 1
-    assert base_image._data[0][0] == 0.0, "copied image should not share data with original"
+    assert image._data[0][0] == 0.0, "copied image should not share data with original"
 
-    blank_copy_image = base_image.blank_copy()
+    blank_copy_image = image.blank_copy()
     assert (
-        base_image.pixelscale == blank_copy_image.pixelscale
+        image.pixelscale == blank_copy_image.pixelscale
     ), "copied image should have same pixelscale"
+    assert image.zeropoint == blank_copy_image.zeropoint, "copied image should have same zeropoint"
     assert (
-        base_image.zeropoint == blank_copy_image.zeropoint
-    ), "copied image should have same zeropoint"
-    assert (
-        base_image.window.extent == blank_copy_image.window.extent
+        image.window.extent == blank_copy_image.window.extent
     ), "copied image should have same window"
     blank_copy_image += 1
-    assert base_image._data[0][0] == 0.0, "copied image should not share data with original"
+    assert image._data[0][0] == 0.0, "copied image should not share data with original"
 
 
-def test_image_arithmetic(base_image):
-    slicer = ap.Window((-1, 5, 6, 15), base_image)
-    sliced_image = base_image[slicer]
+def test_image_arithmetic(image):
+    slicer = ap.Window((-1, 5, 6, 15), image)
+    sliced_image = image[slicer]
     sliced_image += 1
 
-    assert base_image._data[1][8] == 0, "slice should not update base image"
-    assert base_image._data[5][5] == 0, "slice should not update base image"
+    assert image._data[1][8] == 0, "slice should not update base image"
+    assert image._data[5][5] == 0, "slice should not update base image"
 
     second_image = ap.Image(
         data=np.ones((5, 5)),
@@ -76,16 +63,16 @@ def test_image_arithmetic(base_image):
     )
 
     # Test iadd
-    base_image += second_image
-    assert base_image._data[0][0] == 0, "image addition should only update its region"
-    assert base_image._data[3][3] == 1, "image addition should update its region"
-    assert base_image._data[3][4] == 0, "image addition should only update its region"
-    assert base_image._data[5][3] == 1, "image addition should update its region"
+    image += second_image
+    assert image._data[0][0] == 0, "image addition should only update its region"
+    assert image._data[3][3] == 1, "image addition should update its region"
+    assert image._data[3][4] == 0, "image addition should only update its region"
+    assert image._data[5][3] == 1, "image addition should update its region"
 
     # Test isubtract
-    base_image -= second_image
+    image -= second_image
     assert ap.backend.allclose(
-        base_image.data, ap.backend.zeros_like(base_image.data)
+        image.data, ap.backend.zeros_like(image.data)
     ), "image subtraction should only update its region"
 
 
@@ -116,7 +103,7 @@ def test_image_manipulation():
     ), "crop should have cut 3 pixels from left, 2 from right, 1 from top, and 0 from bottom"
 
 
-def test_image_save_load():
+def test_image_save_load(tmp_path):
     new_image = ap.Image(
         data=np.ones((16, 32)),
         pixelscale=0.76,
@@ -126,9 +113,9 @@ def test_image_save_load():
         crval=(100.0, -32.1),
     )
 
-    new_image.save("Test_AstroPhot.fits")
+    new_image.save(tmp_path / "image.fits")
 
-    loaded_image = ap.Image(filename="Test_AstroPhot.fits")
+    loaded_image = ap.Image(filename=tmp_path / "image.fits")
 
     assert ap.backend.allclose(
         new_image.data, loaded_image.data
@@ -151,33 +138,9 @@ def test_image_save_load():
     assert new_image.zeropoint == loaded_image.zeropoint, "Loaded image should have same zeropoint"
 
 
-def test_image_wcs_roundtrip():
-    # Minimal input
-    I = ap.Image(
-        data=np.zeros((21, 21)),
-        zeropoint=22.5,
-        crpix=(10, 10),
-        crtan=(1.0, -10.0),
-        crval=(160.0, 45.0),
-        CD=0.05
-        * np.array(
-            [[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]]
-        ),
-    )
-
-    assert ap.backend.allclose(
-        ap.backend.stack(I.world_to_plane(*I.plane_to_world(*I.center))),
-        I.center,
-    ), "WCS world/plane roundtrip should return input value"
-    assert ap.backend.allclose(
-        ap.backend.stack(I.pixel_to_plane(*I.plane_to_pixel(*I.center))),
-        I.center,
-    ), "WCS pixel/plane roundtrip should return input value"
-    assert ap.backend.allclose(
-        ap.backend.stack(I.world_to_pixel(*I.pixel_to_world(*ap.backend.zeros_like(I.center)))),
-        ap.backend.zeros_like(I.center),
-        atol=1e-6,
-    ), "WCS world/pixel roundtrip should return input value"
+######################################################################
+# TargetImage
+######################################################################
 
 
 def test_target_image_variance():
@@ -257,7 +220,7 @@ def test_target_image_reduce():
     assert tuple(smaller_image._data.shape) == (12, 10), "reduction should decrease image size"
 
 
-def test_target_image_save_load():
+def test_target_image_save_load(tmp_path):
     new_image = ap.TargetImage(
         data=np.ones((16, 32)),
         variance=np.ones((16, 32)),
@@ -267,9 +230,9 @@ def test_target_image_save_load():
         zeropoint=1.0,
     )
 
-    new_image.save("Test_target_AstroPhot.fits")
+    new_image.save(tmp_path / "target.fits")
 
-    loaded_image = ap.TargetImage(filename="Test_target_AstroPhot.fits")
+    loaded_image = ap.TargetImage(filename=tmp_path / "target.fits")
 
     assert ap.backend.allclose(
         new_image.data, loaded_image.data
@@ -288,9 +251,12 @@ def test_target_image_save_load():
     ), "Loaded image should have same pixel scale"
 
 
-def test_target_image_auto_var():
-    target = make_basic_sersic()
-    target.variance = "auto"
+def test_target_image_auto_var(sersic_target):
+    sersic_target.variance = "auto"
+    variance = ap.backend.to_numpy(sersic_target.variance)
+    good = ~ap.backend.to_numpy(sersic_target.mask)
+    assert np.all(np.isfinite(variance[good])), "auto variance should be finite"
+    assert np.all(variance[good] > 0), "auto variance should be positive"
 
 
 def test_target_image_errors():
@@ -307,6 +273,11 @@ def test_target_image_errors():
     # bad mask
     with pytest.raises(ap.errors.SpecificationConflict):
         new_image.mask = np.zeros((5, 5))
+
+
+######################################################################
+# PSFImage and JacobianImage
+######################################################################
 
 
 def test_psf_image_copying():
@@ -344,22 +315,3 @@ def test_jacobian_add():
     ), "Jacobian should flatten to Npix*Nparams tensor"
     assert new_image._data[0, 0, 0].item() == 1, "Jacobian addition should not change original data"
     assert new_image._data[0, 0, 1].item() == 6, " Jacobian addition should add correctly"
-
-
-def test_image_with_wcs():
-    WCS = get_astropy_wcs()
-    image = ap.TargetImage(
-        data=np.ones((170, 180)),
-        wcs=WCS,
-    )
-    assert image._data.shape[0] == WCS.pixel_shape[0], "Image should have correct shape from WCS"
-    assert image._data.shape[1] == WCS.pixel_shape[1], "Image should have correct shape from WCS"
-    assert np.allclose(
-        image.CD.value * ap.utils.conversions.units.arcsec_to_deg, WCS.pixel_scale_matrix
-    ), "Image should have correct CD from WCS"
-    assert np.allclose(
-        image.crpix, WCS.wcs.crpix[::-1] - 1
-    ), "Image should have correct CRPIX from WCS"
-    assert np.allclose(
-        image.crval.npvalue, WCS.wcs.crval
-    ), "Image should have correct CRVAL from WCS"

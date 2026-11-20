@@ -36,6 +36,7 @@ dependencies=[
         "h5py>=3.8.0",
         "matplotlib>=3.7",
         "numpy>=1.24.0,<3",
+        "pyyaml>=6.0",
         "scipy>=1.10.0",
         "torch>=2.0.0",
         "tqdm>=4.65.0",
@@ -67,8 +68,13 @@ dev = [
 ]
 
 [project.scripts]
-astrophot_single = "astrophot.cli.cli_single:main"
-astrophot_segmap = "astrophot.cli.cli_segmap:main"
+astrophot = "astrophot.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+        "notebooks: runs a tutorial notebook from start to end, slow (leave out with -m 'not notebooks')",
+]
 
 [tool.hatch.version]
 source = "vcs"

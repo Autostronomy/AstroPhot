@@ -379,13 +379,11 @@ class LM(BaseOptimizer):
             hess = func.hessian(J, self.W)
         elif self.likelihood == "poisson":
             hess = func.hessian_poisson(J, self.Y, self.forward(self.current_state))
-        try:
-            self._covariance_matrix = backend.linalg.inv(hess)
-        except:
+        self._covariance_matrix, singular = func.invert_hessian(hess)
+        if singular:
             config.logger.warning(
-                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
+                "Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
             )
-            self._covariance_matrix = backend.linalg.pinv(hess)
         return self._covariance_matrix
 
     def update_uncertainty(self) -> None:

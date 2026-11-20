@@ -3,12 +3,6 @@ import warnings
 from astropy.utils.data import download_file
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
-from numpy.core.defchararray import startswith
-
-try:
-    from pyvo.dal import sia
-except:
-    sia = None
 import os
 
 # Suppress common Astropy warnings that can clutter CI logs
@@ -53,7 +47,10 @@ def ls_open(ra, dec, size_arcsec, band="r", release="ls_dr9"):
         astropy.io.fits.HDUList: The opened FITS file object.
     """
 
-    if sia is None:
+    # imported here to keep `import astrophot` fast
+    try:
+        from pyvo.dal import sia
+    except ImportError:
         raise ImportError(
             "Cannot use ls_open without pyvo. Please install pyvo (pip install pyvo) before continuing."
         )
@@ -78,7 +75,7 @@ def ls_open(ra, dec, size_arcsec, band="r", release="ls_dr9"):
     sel = (
         (imgTable["proctype"] == "Stack")
         & (imgTable["prodtype"] == "image")
-        & (startswith(imgTable["obs_bandpass"].astype(str), target_band))
+        & (np.char.startswith(imgTable["obs_bandpass"].astype(str), target_band))
     )
 
     Table = imgTable[sel]

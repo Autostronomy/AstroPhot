@@ -143,8 +143,8 @@ def sip_backward_transform(u, v, U, V, A_ORDER, B_ORDER):
 
 def sip_delta(u, v, sipA=(), sipB=()):
     """
-    u = j - j0
-    v = i - i0
+    u = i - i0
+    v = j - j0
     sipA = dict(tuple(int,int), float)
         The SIP coefficients, where the keys are tuples of powers (i, j) and the values are the coefficients.
         For example, {(1, 2): 0.1} means delta_u = 0.1 * (u * v^2).

@@ -39,7 +39,7 @@ To install AstroPhot, use pip:
 
     pip install astrophot
 
-To just get started on a fit, download a quick-start file from: :doc:`fastfit`.
+To just get started on a fit, use the command line interface: :doc:`fastfit`.
 
 Check out the tutorials to learn how to use AstroPhot in detail: :doc:`tutorials/index`.
 

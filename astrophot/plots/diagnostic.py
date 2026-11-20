@@ -36,7 +36,7 @@ def covariance_matrix(
     :param showticks: Whether to show ticks on the axes. Default is True.
     :type showticks: bool, optional
 
-    returns the fig and ax objects created to allow further customization by the user.
+    returns the figure and the (n_params, n_params) array of axes, to allow further customization by the user.
     """
     num_params = covariance_matrix.shape[0]
     fig, axes = plt.subplots(num_params, num_params, figsize=figsize)
@@ -111,7 +111,7 @@ def covariance_matrix(
             if not showticks:
                 ax.xaxis.set_major_locator(plt.NullLocator())
 
-    return fig, ax
+    return fig, axes
 
 
 if __name__ == "__main__":

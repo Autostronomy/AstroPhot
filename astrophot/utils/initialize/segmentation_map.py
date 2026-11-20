@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
@@ -18,11 +19,12 @@ __all__ = (
 
 
 def _select_img(img, hduli):
-    if isinstance(img, str):
-        if img.endswith(".fits"):
+    if isinstance(img, (str, Path)):
+        img = Path(img)
+        if img.suffix == ".fits":
             hdul = fits.open(img)
             img = hdul[hduli].data
-        elif img.endswith(".npy"):
+        elif img.suffix == ".npy":
             img = np.load(img)
         else:
             raise ValueError(f"unrecognized file type, should be one of: fits, npy\n{img}")
@@ -197,8 +199,8 @@ def windows_from_segmentation_map(seg_map, hdul_index=0, skip_index=(0,)):
         if index is None or index in skip_index:
             continue
         Iid, Jid = np.where(seg_map == index)
-        # Get window from segmap
-        windows[index] = [[np.min(Iid), np.min(Jid)], [np.max(Iid), np.max(Jid)]]
+        # Get window from segmap, the upper limits are exclusive
+        windows[index] = [[np.min(Iid), np.min(Jid)], [np.max(Iid) + 1, np.max(Jid) + 1]]
 
     return windows
 

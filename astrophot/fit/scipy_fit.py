@@ -1,6 +1,5 @@
 from typing import Sequence, Literal
 
-from scipy.optimize import minimize
 import numpy as np
 
 from .base import BaseOptimizer
@@ -82,6 +81,7 @@ class ScipyFit(BaseOptimizer):
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
 
     def fit(self):
+        from scipy.optimize import minimize  # here to keep `import astrophot` fast
 
         density_grad = backend.grad(self.density)
         res = minimize(
