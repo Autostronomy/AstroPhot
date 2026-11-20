@@ -181,7 +181,13 @@ def main(argv=None, prog=None):
         default="sersic_galaxy_model",
         help="Type of AstroPhot model to fit. Replace spaces with underscores, e.g. 'sersic_galaxy_model' or 'exponential_galaxy_model'",
     )
-    parser.add_argument("--verbose", type=int, default=1, help="Verbosity level for fitting output")
+    parser.add_argument(
+        "--verbose",
+        type=int,
+        default=1,
+        help="Amount of printed output: 0 for none, 1 for the progress of the fit, "
+        "2 to add debugging messages",
+    )
     parser.add_argument(
         "--log",
         type=Path,
@@ -278,12 +284,14 @@ def main(argv=None, prog=None):
             "and not start with a digit."
         )
 
-    ap.set_logger(filename=args.log, stdout=args.verbose > 0)
+    # The messages go to the screen unless --verbose is 0, and to the --log file if there is one
+    ap.set_logger(
+        filename=args.log, stdout=args.verbose > 0, level="DEBUG" if args.verbose > 1 else "INFO"
+    )
 
     # Load Target Data
     # ---------------------------------------------------------------------
-    if args.verbose > 0:
-        print("Loading target image...")
+    ap.config.logger.info("Loading target image...")
     target_data, target_header = read_image(
         args.target_file, args.target_hdu, np.float64, "--target"
     )
@@ -295,8 +303,7 @@ def main(argv=None, prog=None):
     if args.variance == "auto":
         variance_data = "auto"
     elif args.variance is not None:
-        if args.verbose > 0:
-            print("Loading variance image...")
+        ap.config.logger.info("Loading variance image...")
         variance_data, _ = read_image(args.variance, args.variance_hdu, np.float64, "--variance")
         if variance_data.shape != target_data.shape:
             sys.exit(
@@ -311,8 +318,7 @@ def main(argv=None, prog=None):
     # ---------------------------------------------------------------------
     mask_data = None
     if args.mask is not None:
-        if args.verbose > 0:
-            print("Loading mask image...")
+        ap.config.logger.info("Loading mask image...")
         mask_data, _ = read_image(args.mask, args.mask_hdu, bool, "--mask")
         if mask_data.shape != target_data.shape:
             sys.exit(
@@ -320,8 +326,9 @@ def main(argv=None, prog=None):
                 f"target shape {target_data.shape}"
             )
     if bad_variance is not None and bad_variance.any():
-        if args.verbose > 0:
-            print(f"Masking {bad_variance.sum()} pixels with zero, negative or NaN variance")
+        ap.config.logger.info(
+            f"Masking {bad_variance.sum()} pixels with zero, negative or NaN variance"
+        )
         mask_data = bad_variance if mask_data is None else mask_data | bad_variance
 
     # Check the fitting window
@@ -344,8 +351,7 @@ def main(argv=None, prog=None):
     # ---------------------------------------------------------------------
     psf_data = None
     if args.psf is not None:
-        if args.verbose > 0:
-            print("Loading PSF...")
+        ap.config.logger.info("Loading PSF...")
         psf_data, _ = read_image(args.psf, args.psf_hdu, np.float64, "--psf")
         if psf_data.shape[0] % 2 == 0 or psf_data.shape[1] % 2 == 0:
             sys.exit(
@@ -362,8 +368,9 @@ def main(argv=None, prog=None):
     elif target_wcs.has_celestial:
         coordinates = {"wcs": target_wcs}
     else:
-        if args.verbose > 0:
-            print("No WCS in the target header, using a pixelscale of 1 (see --pixelscale)")
+        ap.config.logger.info(
+            "No WCS in the target header, using a pixelscale of 1 (see --pixelscale)"
+        )
         coordinates = {"pixelscale": 1.0}
     target = ap.TargetImage(
         data=target_data,
@@ -404,12 +411,10 @@ def main(argv=None, prog=None):
 
     # Fit the model
     # ---------------------------------------------------------------------
-    if args.verbose > 0:
-        print("Initializing model...")
+    ap.config.logger.info("Initializing model...")
     model.initialize()
-    if args.verbose > 0:
-        print("Fitting model...")
-    result = ap.fit.LM(model, verbose=args.verbose, max_iter=args.max_iter).fit()
+    ap.config.logger.info("Fitting model...")
+    result = ap.fit.LM(model, max_iter=args.max_iter).fit()
 
     # Report Total Magnitude or Flux
     # ----------------------------------------------------------------------
@@ -420,12 +425,13 @@ def main(argv=None, prog=None):
     if args.zeropoint is not None:
         total_magnitude = to_serializable(model_object.total_magnitude())
         total_magnitude_uncertainty = to_serializable(model_object.total_magnitude_uncertainty())
-    if args.verbose > 0:
-        print(model)
-        if args.zeropoint is not None:
-            print(f"Total Magnitude: {total_magnitude} +- {total_magnitude_uncertainty}")
-        else:
-            print(f"Total Flux: {total_flux} +- {total_flux_uncertainty}")
+    ap.config.logger.info(str(model))
+    if args.zeropoint is not None:
+        ap.config.logger.info(
+            f"Total Magnitude: {total_magnitude} +- {total_magnitude_uncertainty}"
+        )
+    else:
+        ap.config.logger.info(f"Total Flux: {total_flux} +- {total_flux_uncertainty}")
 
     # Save Results
     # ----------------------------------------------------------------------

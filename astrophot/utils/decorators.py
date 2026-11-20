@@ -29,16 +29,12 @@ def ignore_numpy_warnings(func):
 
     @wraps(func)
     def wrapped(*args, **kwargs):
-        old_settings = np.seterr(all="ignore")
-        warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        warnings.filterwarnings("ignore", category=ck.InvalidValueWarning)
-        result = func(*args, **kwargs)
-        np.seterr(**old_settings)
-        warnings.filterwarnings("default", category=np.exceptions.VisibleDeprecationWarning)
-        warnings.filterwarnings("default", category=DeprecationWarning)
-        warnings.filterwarnings("default", category=ck.InvalidValueWarning)
-        return result
+        # only for the length of the call, the settings of the user come back after it
+        with np.errstate(all="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=np.exceptions.VisibleDeprecationWarning)
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.simplefilter("ignore", category=ck.InvalidValueWarning)
+            return func(*args, **kwargs)
 
     return wrapped
 

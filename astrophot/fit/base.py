@@ -1,3 +1,4 @@
+import logging
 from typing import Sequence, Optional
 
 import numpy as np
@@ -16,7 +17,7 @@ class BaseOptimizer:
     :param model: an AstroPhot_Model object that will have its (unlocked) parameters optimized [AstroPhot_Model]
     :param initial_state: optional initialization for the parameters as a 1D Array [Array]
     :param relative_tolerance: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]
-    :param verbose: verbosity level for the optimizer [int]
+    :param verbose: how much the optimizer reports while it runs. With None, the default, this is left to the AstroPhot logger: progress is logged at the INFO level and extra detail at DEBUG, see ``ap.set_logger``. A number sets it for this optimizer alone: 0 for no progress, 1 for progress, 2 to add the extra detail [int]
     :param max_iter: maximum allowed number of iterations [int]
     :param save_steps: optional string for path to save the model at each step (fitter dependent), e.g. "model_step_{step}.hdf5" [str]
     :param fit_valid: whether to fit while forcing parameters into valid range, or allow any value for each parameter. Default True [bool]
@@ -28,7 +29,7 @@ class BaseOptimizer:
         model: Model,
         initial_state: Sequence = None,
         relative_tolerance: float = 1e-3,
-        verbose: int = 1,
+        verbose: Optional[int] = None,
         max_iter: int = None,
         save_steps: Optional[str] = None,
         fit_valid: bool = True,
@@ -53,6 +54,20 @@ class BaseOptimizer:
         self.lambda_history = []
         self.loss_history = []
         self.message = ""
+
+    def report(self, message: str, detail: int = 1, level: int = logging.INFO) -> None:
+        """Send a message about the fit to the AstroPhot logger.
+
+        `detail` is 1 for the progress of the fit and 2 for extra detail. By
+        default the level of the logger chooses what is shown, with extra detail
+        logged at DEBUG. If `verbose` was given to the optimizer it chooses
+        instead, messages up to that `detail` are logged at `level` and the
+        rest are dropped.
+        """
+        if self.verbose is None:
+            config.logger.log(level if detail <= 1 else logging.DEBUG, message)
+        elif self.verbose >= detail:
+            config.logger.log(level, message)
 
     def fit(self) -> "BaseOptimizer":
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")

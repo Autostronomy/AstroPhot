@@ -52,6 +52,19 @@ def _formatter(fmt, default):
     return fmt if isinstance(fmt, logging.Formatter) else logging.Formatter(fmt)
 
 
+def _header():
+    """What was running when a log file was started, for its first line."""
+    from importlib.metadata import version
+
+    from . import __version__
+    from .backend_obj import backend
+
+    header = f"AstroPhot {__version__}, {backend.backend} {version(backend.backend)} backend"
+    if DTYPE is not None:
+        header += f", dtype {DTYPE}, device {DEVICE}"
+    return header
+
+
 def set_logger(
     filename="AstroPhot.log",
     stdout=True,
@@ -72,6 +85,9 @@ def set_logger(
     before it, so ``ap.set_logger(filename=None)`` goes back to the screen
     alone and ``ap.set_logger(filename=None, stdout=False)`` is silent.
 
+    A log file starts with a line giving the version of AstroPhot, the backend
+    and, with PyTorch, the dtype and device in use.
+
     Only the "astrophot" logger is changed, and only the handlers that this
     function made. Logging set up by your own program, by other packages, or
     handlers that you added to ``ap.config.logger`` yourself are left alone.
@@ -82,7 +98,9 @@ def set_logger(
         stdout (bool): Print the messages to the screen. Default is True.
         level (str or int): Messages below this level are dropped, one of
             "DEBUG", "INFO", "WARNING", "ERROR" or the matching constant of
-            the `logging` module. Default is "INFO".
+            the `logging` module. The fitters report their progress at "INFO"
+            and extra detail at "DEBUG", so "WARNING" hides the progress of
+            every fit and "DEBUG" shows the most. Default is "INFO".
         stdout_level (str or int): Level for the screen alone, it can not be
             lower than `level`. Default is the same as `level`.
         file_level (str or int): Level for the file alone, it can not be lower
@@ -124,6 +142,9 @@ def set_logger(
     for handler in handlers:
         handler._astrophot_owned = True
         logger.addHandler(handler)
+        if isinstance(handler, logging.FileHandler):
+            # written whatever the level of the file
+            handler.emit(logger.makeRecord(logger.name, logging.INFO, "", 0, _header(), (), None))
     return logger
 
 

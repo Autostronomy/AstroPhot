@@ -321,17 +321,18 @@ directory the files are written to, which is created if it does not exist:
 writes ``results/ngc1234/ngc1234_r_parameters.yaml`` and so on. Existing files
 with the same names are overwritten.
 
-``--verbose 0`` runs silently, and ``--verbose 2`` or higher prints more detail
-from the fitter. To keep a record of the messages from the fitter, including
-its warnings, give a file with ``--log``:
+``--verbose 0`` runs silently, and ``--verbose 2`` also prints debugging
+messages. To keep a record of the run give a file with ``--log``:
 
 .. code:: bash
 
     ~$ astrophot single ngc1234_r.fits --log ngc1234_r.log
 
-New messages are added to the end of the file, so one log can be shared by many
-runs. The file holds the messages that ``--verbose`` asks the fitter for, with
-the time of each one, so with ``--verbose 0`` only warnings are recorded.
+The log has the messages that ``--verbose 1`` prints, or more with a higher
+``--verbose``, each with its time. It is also written with ``--verbose 0``, when
+nothing is printed. Each run starts with a line giving the version of AstroPhot
+and the backend that was used, and is added to the end of the file, so one log
+can be shared by many runs.
 
 All options of ``astrophot single``
 -----------------------------------
@@ -401,10 +402,11 @@ All options of ``astrophot single``
       - Do not write the covariance matrix
     * - ``--verbose LEVEL``
       - 1
-      - Amount of printed output, 0 for none
+      - Amount of printed output: 0 for none, 1 for the progress of the fit, 2
+        to add debugging messages
     * - ``--log FILE``
       - none
-      - Also write the messages of AstroPhot to this file
+      - Also write the messages to this file
     * - ``--dump``
       - off
       - Write the script to ``single_astrophot_model.py``

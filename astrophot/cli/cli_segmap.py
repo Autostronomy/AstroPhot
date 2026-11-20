@@ -146,7 +146,13 @@ def main(argv=None, prog=None):
         default="sersic_galaxy_model",
         help="Type of AstroPhot model to fit. Replace spaces with underscores, e.g. 'sersic_galaxy_model' or 'exponential_galaxy_model'",
     )
-    parser.add_argument("--verbose", type=int, default=1, help="Verbosity level for fitting output")
+    parser.add_argument(
+        "--verbose",
+        type=int,
+        default=1,
+        help="Amount of printed output: 0 for none, 1 to name each object as it is fit, "
+        "2 to add the progress of every fit",
+    )
     parser.add_argument(
         "--log",
         type=Path,
@@ -272,12 +278,12 @@ def main(argv=None, prog=None):
             "and not start with a digit."
         )
 
+    # The messages go to the screen unless --verbose is 0, and to the --log file if there is one
     ap.set_logger(filename=args.log, stdout=args.verbose > 0)
 
     # Load Target Data
     # ---------------------------------------------------------------------
-    if args.verbose > 0:
-        print("Loading target image...")
+    ap.config.logger.info("Loading target image...")
     target_data, target_header = read_image(
         args.target_file, args.target_hdu, np.float64, "--target"
     )
@@ -289,8 +295,7 @@ def main(argv=None, prog=None):
     if args.variance == "auto":
         variance_data = "auto"
     elif args.variance is not None:
-        if args.verbose > 0:
-            print("Loading variance image...")
+        ap.config.logger.info("Loading variance image...")
         variance_data, _ = read_image(args.variance, args.variance_hdu, np.float64, "--variance")
         if variance_data.shape != target_data.shape:
             sys.exit(
@@ -305,8 +310,7 @@ def main(argv=None, prog=None):
     # ---------------------------------------------------------------------
     mask_data = None
     if args.mask is not None:
-        if args.verbose > 0:
-            print("Loading mask image...")
+        ap.config.logger.info("Loading mask image...")
         mask_data, _ = read_image(args.mask, args.mask_hdu, bool, "--mask")
         if mask_data.shape != target_data.shape:
             sys.exit(
@@ -314,14 +318,14 @@ def main(argv=None, prog=None):
                 f"target shape {target_data.shape}"
             )
     if bad_variance is not None and bad_variance.any():
-        if args.verbose > 0:
-            print(f"Masking {bad_variance.sum()} pixels with zero, negative or NaN variance")
+        ap.config.logger.info(
+            f"Masking {bad_variance.sum()} pixels with zero, negative or NaN variance"
+        )
         mask_data = bad_variance if mask_data is None else mask_data | bad_variance
 
     # Load Segmentation Map
     # ---------------------------------------------------------------------
-    if args.verbose > 0:
-        print("Loading segmentation map...")
+    ap.config.logger.info("Loading segmentation map...")
     segmap_data, _ = read_image(args.segmap_file, args.segmap_hdu, np.int64, "--segmap")
     if segmap_data.shape != target_data.shape:
         sys.exit(
@@ -333,8 +337,7 @@ def main(argv=None, prog=None):
     # ---------------------------------------------------------------------
     override_init_params = {}
     if args.cat is not None:
-        if args.verbose > 0:
-            print("Loading catalogue of initial parameters...")
+        ap.config.logger.info("Loading catalogue of initial parameters...")
         if not args.cat.is_file():
             sys.exit(f"error: --cat file '{args.cat}' does not exist")
         with open(args.cat, "r", encoding="utf-8") as cat_file:
@@ -351,8 +354,7 @@ def main(argv=None, prog=None):
     # ---------------------------------------------------------------------
     psf_data = None
     if args.psf is not None:
-        if args.verbose > 0:
-            print("Loading PSF...")
+        ap.config.logger.info("Loading PSF...")
         psf_data, _ = read_image(args.psf, args.psf_hdu, np.float64, "--psf")
         if psf_data.shape[0] % 2 == 0 or psf_data.shape[1] % 2 == 0:
             sys.exit(
@@ -369,8 +371,9 @@ def main(argv=None, prog=None):
     elif target_wcs.has_celestial:
         coordinates = {"wcs": target_wcs}
     else:
-        if args.verbose > 0:
-            print("No WCS in the target header, using a pixelscale of 1 (see --pixelscale)")
+        ap.config.logger.info(
+            "No WCS in the target header, using a pixelscale of 1 (see --pixelscale)"
+        )
         coordinates = {"pixelscale": 1.0}
     target = ap.TargetImage(
         data=target_data,
@@ -383,8 +386,7 @@ def main(argv=None, prog=None):
 
     # Initialization from segmap
     # ---------------------------------------------------------------------
-    if args.verbose > 0:
-        print("Parsing segmentation map")
+    ap.config.logger.info("Parsing segmentation map")
     skip_ids = (0, *args.filter_ids)
     windows = ap.utils.initialize.windows_from_segmentation_map(segmap_data, skip_index=skip_ids)
 
@@ -403,11 +405,10 @@ def main(argv=None, prog=None):
     if len(windows) == 0:
         sys.exit("error: no objects to fit in the segmentation map")
     unused = sorted(set(override_init_params) - set(windows))
-    if unused and args.verbose > 0:
-        if len(unused) <= 10:
-            print(f"Note: catalogue ids {unused} are not among the objects being fit")
-        else:
-            print(f"Note: {len(unused)} catalogue ids are not being fit")
+    if unused and len(unused) <= 10:
+        ap.config.logger.info(f"Note: catalogue ids {unused} are not among the objects being fit")
+    elif unused:
+        ap.config.logger.info(f"Note: {len(unused)} catalogue ids are not being fit")
 
     centers = ap.utils.initialize.centroids_from_segmentation_map(
         segmap_data, target, skip_index=skip_ids
@@ -439,8 +440,7 @@ def main(argv=None, prog=None):
     cov_matrices = {}
     for window in windows:
         name = f"{args.name}_{window}"
-        if args.verbose > 0:
-            print(f"Fitting model for window {window}...")
+        ap.config.logger.info(f"Fitting model for window {window}...")
         try:
             W = ap.Window(windows[window], target)
             indices = target.get_indices(W)
@@ -510,8 +510,9 @@ def main(argv=None, prog=None):
                 )
         except Exception as error:  # one bad object should not stop the rest
             results[name] = {"message": f"fit failed, {type(error).__name__}: {error}"}
-            if args.verbose > 0:
-                print(f"Fit failed for window {window}, {type(error).__name__}: {error}")
+            ap.config.logger.warning(
+                f"Fit failed for window {window}, {type(error).__name__}: {error}"
+            )
 
     # Save outputs
     # ---------------------------------------------------------------------

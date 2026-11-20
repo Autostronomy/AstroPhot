@@ -1,3 +1,5 @@
+import logging
+
 # Levenberg-Marquardt algorithm
 from typing import Sequence, Optional
 
@@ -248,8 +250,7 @@ class LM(BaseOptimizer):
         """
 
         if len(self.current_state) == 0:
-            if self.verbose > 0:
-                config.logger.warning("No parameters to optimize. Exiting fit")
+            self.report("No parameters to optimize. Exiting fit", level=logging.WARNING)
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -262,14 +263,12 @@ class LM(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [self.L]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
-        if self.verbose > 0:
-            config.logger.info(
-                f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
-            )
+        self.report(
+            f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
+        )
 
         for _ in range(self.max_iter):
-            if self.verbose > 0:
-                config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+            self.report(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
                     with ValidContext(self.model), ValidContext(self.constraint):
@@ -299,16 +298,17 @@ class LM(BaseOptimizer):
                     )
                     self.current_state = backend.copy(res["x"])
             except OptimizeStopFail:
-                if self.verbose > 0:
-                    config.logger.warning("Could not find step to improve Chi^2, stopping")
+                self.report(
+                    "Could not find step to improve Chi^2, stopping",
+                    level=logging.WARNING,
+                )
                 self.message = (
                     self.message
                     + "success by immobility. Could not find step to improve Chi^2. Convergence not guaranteed"
                 )
                 break
             except OptimizeStopSuccess as e:
-                if self.verbose > 0:
-                    config.logger.info(f"Optimization converged successfully: {e}")
+                self.report(f"Optimization converged successfully: {e}")
                 self.message = self.message + "success"
                 break
 
@@ -323,10 +323,9 @@ class LM(BaseOptimizer):
         else:
             self.message = self.message + "fail. Maximum iterations"
 
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
+        )
 
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)

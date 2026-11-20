@@ -11,11 +11,13 @@ import astrophot as ap
 import pytest
 
 
-def test_import_leaves_logging_alone(tmp_path):
-    """Importing prints to the screen only, and does not touch the logging of anyone else."""
+def test_import_leaves_logging_and_warnings_alone(tmp_path):
+    """Importing prints to the screen only, and does not touch the settings of anyone else."""
     code = """
-import logging, os
+import logging, os, warnings
 import astrophot as ap
+from astropy.utils.exceptions import AstropyWarning
+assert not [f for f in warnings.filters if f[2] is AstropyWarning], "warning filters were changed"
 root = logging.getLogger()
 assert root.handlers == [] and root.level == logging.WARNING, "root logger was changed"
 assert ap.config.logger is logging.getLogger("astrophot")
@@ -41,7 +43,10 @@ def test_set_logger_file_and_screen(tmp_path, capsys):
     logger.warning("careful")
     assert capsys.readouterr().out == "to both\nWARNING: careful\n"
     log = (tmp_path / "AstroPhot.log").read_text().splitlines()
-    assert len(log) == 2 and log[0].endswith(":INFO: to both"), "file has the time and level"
+    assert (
+        f"AstroPhot {ap.__version__}, {ap.backend.backend} " in log[0]
+    ), "file starts with a header"
+    assert len(log) == 3 and log[1].endswith(":INFO: to both"), "file has the time and level"
 
     # every call replaces the outputs of the call before it
     ap.set_logger("other.log", stdout=False)
@@ -54,7 +59,7 @@ def test_set_logger_file_and_screen(tmp_path, capsys):
     ap.set_logger(filename=None)
     ap.set_logger("other.log", stdout=False, mode="w", file_format="%(levelname)s|%(message)s")
     logger.info("fresh")
-    assert (tmp_path / "other.log").read_text() == "INFO|fresh\n"
+    assert (tmp_path / "other.log").read_text().splitlines()[1:] == ["INFO|fresh"]
 
 
 def test_set_logger_silent(capsys):
@@ -70,13 +75,13 @@ def test_set_logger_levels(tmp_path, capsys):
     logger.info("progress")
     logger.warning("careful")
     assert capsys.readouterr().out == "WARNING: careful\n"
-    assert len((tmp_path / "all.log").read_text().splitlines()) == 3
+    assert len((tmp_path / "all.log").read_text().splitlines()) == 1 + 3, "header and messages"
 
     with pytest.raises(ValueError):
         ap.set_logger(tmp_path / "bad.log", level="LOUD")
     logger.warning("still set up")
     assert capsys.readouterr().out == "WARNING: still set up\n", "a bad call changes nothing"
-    assert len((tmp_path / "all.log").read_text().splitlines()) == 4
+    assert len((tmp_path / "all.log").read_text().splitlines()) == 1 + 4
 
 
 class Recorder(logging.Handler):

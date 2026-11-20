@@ -2,10 +2,11 @@
 
 Most tests call the `main` functions in this process, which is quick. The
 installed command is started once per sub-command to check that it is wired
-up. `astrophot segmap` is also the test of the segmentation map helpers in
-astrophot/utils/initialize/segmentation_map.py.
+up. The segmentation map helpers that `astrophot segmap` is built on have their
+own tests in test_utils.py.
 """
 
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -158,6 +159,20 @@ def test_cli_dispatch(cutout, capsys):
     assert "usage: astrophot segmap" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("script", [cli_single, cli_segmap], ids=["single", "segmap"])
+def test_cli_script_runs_alone(script, monkeypatch, tmp_path):
+    """Each file is a complete script, which is how the copy written by --dump is used."""
+    monkeypatch.setattr(sys, "argv", [script.__file__, "--dump"])
+    runpy.run_path(script.__file__, run_name="__main__")
+    assert len(list(tmp_path.glob("*_astrophot_model.py"))) == 1
+
+    # values are written to the yaml file as plain python numbers and lists
+    assert script.to_serializable(None) is None
+    assert script.to_serializable(np.float32(1.5)) == 1.5
+    array = ap.backend.as_array([1.0, 2.0], dtype=ap.config.DTYPE, device=ap.config.DEVICE)
+    assert script.to_serializable(array) == [1.0, 2.0]
+
+
 def test_import_is_light():
     """The commands wait for `import astrophot`, so slow packages are only loaded when used."""
     heavy = ("scipy", "matplotlib", "pyvo", "emcee")
@@ -217,7 +232,9 @@ def test_single_cli_model_params(cutout, tmp_path):
     with fits.open(outdir / "gal_model_image.fits") as hdul:
         assert hdul[0].data.shape == (200, 150)
     assert np.load(outdir / "gal_covariance_matrix.npy").shape == (7, 7)
-    assert "Final Chi^2/DoF" in (tmp_path / "fit.log").read_text(), "--log keeps the messages"
+    log = (tmp_path / "fit.log").read_text()
+    for message in ("Loading target image...", "Final Chi^2/DoF", "Total Magnitude"):
+        assert message in log, "--log keeps the messages of the command and of the fitter"
 
 
 def test_single_cli_inputs(cutout, tmp_path):
@@ -306,10 +323,12 @@ def test_single_cli_without_wcs(cutout, tmp_path):
         ["TARGET", "--variance", "small.fits"],
         ["TARGET", "--psf", "small.fits"],  # even number of pixels
         ["TARGET", "--mask", "missing.fits"],
+        ["TARGET", "--variance", "cube.fits"],  # not a 2D image
     ],
 )
 def test_single_cli_bad_arguments(cutout, tmp_path, bad_args):
     fits.writeto("small.fits", np.ones((10, 10)))
+    fits.writeto("cube.fits", np.ones((2, 200, 150)))
     with pytest.raises(SystemExit) as error:
         cli_single.main([str(cutout) if arg == "TARGET" else arg for arg in bad_args])
     assert error.value.code not in (0, None), "should exit with an error"
@@ -460,8 +479,67 @@ def test_segmap_cli_masks_interlopers(blended_pair, tmp_path):
         assert hdul[1].header["CRPIX1"] < 0, "window should start right of the image origin"
 
 
+def test_segmap_cli_inputs(blended_pair, tmp_path):
+    """Mask, variance, PSF, catalogue and target read from typical FITS files."""
+    target, segmap = blended_pair
+    data = fits.getdata(target)
+    # Bright defects inside the window of segment 1, each has to be masked for a good fit
+    data[20:23, 75:78] = 5.0
+    data[28, 88] = 5.0
+    data[30, 80] = 5.0
+    # multi extension files with an empty primary HDU
+    fits.HDUList([fits.PrimaryHDU(), fits.ImageHDU(data, name="SCI")]).writeto("mef.fits")
+    fits.HDUList([fits.PrimaryHDU(), fits.ImageHDU(fits.getdata(segmap))]).writeto("segmap.fits")
+    # integer mask, FITS stores it big endian
+    mask = np.zeros(data.shape, dtype=np.int16)
+    mask[20:23, 75:78] = 1
+    fits.writeto("mask.fits", mask)
+    # variance with unusable pixels, these are masked as well
+    variance = np.full(data.shape, 1e-6, dtype=np.float32)
+    variance[28, 88] = 0.0
+    variance[30, 80] = np.nan
+    fits.writeto("variance.fits", variance)
+    fits.writeto("psf.fits", ap.utils.initialize.gaussian_psf(1.5, 11, 1.0))
+    with open("catalogue.yaml", "w", encoding="utf-8") as f:
+        yaml.dump({i: {"q": 0.9} for i in range(100, 111)}, f)  # none of these are in the map
+    inputs = ["mef.fits", "segmap.fits", "--target_hdu", "SCI", "--segmap_hdu", "1"]
+    common = ["--outdir", str(tmp_path), "--no_save_images", "--no_save_cov"]
+
+    cli_segmap.main(
+        inputs
+        + ["--mask", "mask.fits", "--mask_hdu", "0", "--variance", "variance.fits"]
+        + ["--psf", "psf.fits", "--pixelscale", "0.5", "--cat", "catalogue.yaml"]
+        + ["--model_type", "gaussian_galaxy_model", "--filter_ids", "2", "--initial_sky", "0"]
+        + ["--sky_locked", "--window_expand_border", "6", "--log", "fit.log", "--verbose", "0"]
+        + common
+    )
+    params = load_yaml(tmp_path / "astrophot_model_parameters.yaml")["astrophot_model_1"]
+    params = params["parameters"]
+    # with the defects masked the centre is found, in units of the 0.5 arcsec pixels
+    assert np.allclose(params["center"]["value"], 0.5 * np.array(PAIR_TARGET_XY), atol=0.05)
+    # the Gaussian has a sigma of 4 pixels, of which 1.5 is the PSF
+    assert np.isclose(params["sigma"]["value"], 0.5 * np.sqrt(4.0**2 - 1.5**2), atol=0.05)
+    log = Path("fit.log").read_text()
+    assert "Masking 2 pixels with zero, negative or NaN variance" in log
+    assert "11 catalogue ids are not being fit" in log
+
+    # a model which is not a galaxy has no shape to initialize, here a star with the shape of the PSF
+    fits.writeto("psf_neighbour.fits", ap.utils.initialize.gaussian_psf(2.0, 15, 1.0))
+    cli_segmap.main(
+        [str(target), str(segmap), "--name", "star", "--model_type", "point_model"]
+        + ["--psf", "psf_neighbour.fits", "--variance", "auto", "--filter_ids", "1"]
+        + ["--initial_sky", "0", "--sky_locked", "--verbose", "0"]
+        + common
+    )
+    star = load_yaml(tmp_path / "star_parameters.yaml")["star_2"]
+    assert np.allclose(star["parameters"]["center"]["value"], PAIR_NEIGHBOUR_XY, atol=0.1)
+    assert np.isclose(star["total_flux"], 500.0, rtol=0.05)
+
+
 def test_segmap_cli_bad_arguments():
     fits.writeto("target.fits", np.ones((20, 30)))
+    fits.writeto("cube.fits", np.ones((2, 20, 30)))
+    fits.writeto("even_psf.fits", np.ones((10, 10)))
     fits.writeto("empty_segmap.fits", np.zeros((20, 30), dtype=np.int32))
     fits.writeto("wrong_shape.fits", np.zeros((30, 20), dtype=np.int32))
     Path("list.yaml").write_text("- 1\n- 2\n")
@@ -472,6 +550,13 @@ def test_segmap_cli_bad_arguments():
         ["target.fits", "empty_segmap.fits"],
         ["target.fits", "empty_segmap.fits", "--cat", "list.yaml"],
         ["target.fits", "empty_segmap.fits", "--name", "a/b"],
+        ["target.fits", "empty_segmap.fits", "--cat", "missing.yaml"],
+        ["target.fits", "empty_segmap.fits", "--target_hdu", "3"],
+        ["target.fits", "empty_segmap.fits", "--segmap_hdu", "SEG"],
+        ["target.fits", "cube.fits"],  # not a 2D image
+        ["target.fits", "empty_segmap.fits", "--variance", "wrong_shape.fits"],
+        ["target.fits", "empty_segmap.fits", "--mask", "wrong_shape.fits"],
+        ["target.fits", "empty_segmap.fits", "--psf", "even_psf.fits"],
     ):
         with pytest.raises(SystemExit) as error:
             cli_segmap.main(bad_args)

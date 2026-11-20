@@ -1,3 +1,5 @@
+import logging
+
 # Apply a different optimizer iteratively
 from typing import Dict, Any, Union, Sequence, Literal
 from time import time
@@ -71,35 +73,30 @@ class Iter(BaseOptimizer):
         model.target = model.target - self.Y
         res = LM(model, **self.lm_kwargs).fit(update_uncertainty=update_uncertainty)
         self.Y += model()
-        if self.verbose > 1:
-            config.logger.info(res.message)
+        self.report(res.message, detail=2)
         model.target = initial_values
 
     def step(self):
         """
         Perform a single iteration of optimization.
         """
-        if self.verbose > 0:
-            config.logger.info("--------iter-------")
+        self.report("--------iter-------")
 
         # Fit each model individually
         for model in self.model.models:
-            if self.verbose > 0:
-                config.logger.info(model.name)
+            self.report(model.name)
             self.sub_step(model)
         # Update the current state
         self.current_state = self.model.get_values()
 
         # Update the loss value
-        if self.verbose > 0:
-            config.logger.info("Update Chi^2 with new parameters")
+        self.report("Update Chi^2 with new parameters")
         self.Y = self.model(params=self.current_state)
         D = self.model.target[self.model.window].flatten("data")
         V = self.model.target[self.model.window].flatten("variance")
         M = self.model.target[self.model.window].flatten("mask")
         loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
-        if self.verbose > 0:
-            config.logger.info(f"Loss: {loss.item()}")
+        self.report(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy(backend.to_numpy(self.current_state)))
         self.loss_history.append(loss.item())
 
@@ -138,10 +135,10 @@ class Iter(BaseOptimizer):
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
-        if self.verbose > 1:
-            config.logger.info(
-                f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
-            )
+        self.report(
+            f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}",
+            detail=2,
+        )
 
         return self
 
@@ -299,8 +296,7 @@ class IterParam(BaseOptimizer):
         """
 
         if len(self.current_state) == 0:
-            if self.verbose > 0:
-                config.logger.warning("No parameters to optimize. Exiting fit")
+            self.report("No parameters to optimize. Exiting fit", level=logging.WARNING)
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -313,15 +309,13 @@ class IterParam(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [self.L]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
-        if self.verbose > 0:
-            config.logger.info(
-                f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
-            )
+        self.report(
+            f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
+        )
 
         for _ in range(self.max_iter):
             # Report status
-            if self.verbose > 0:
-                config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+            self.report(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
 
             # Perform fitting
             chunk_L = []
@@ -362,10 +356,10 @@ class IterParam(BaseOptimizer):
                             self.current_state, self.chunks[c], backend.copy(res["x"])
                         )
                 except OptimizeStopFail:
-                    if self.verbose > 0:
-                        config.logger.warning(
-                            f"Could not find step to improve Chi^2 on chunk {c}, moving to next chunk"
-                        )
+                    self.report(
+                        f"Could not find step to improve Chi^2 on chunk {c}, moving to next chunk",
+                        level=logging.WARNING,
+                    )
                     continue
                 except OptimizeStopSuccess as e:
                     continue  # success on individual chunk is not enough to stop overall fit
@@ -382,10 +376,9 @@ class IterParam(BaseOptimizer):
         else:
             self.message = self.message + "fail. Maximum iterations"
 
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
+        )
 
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)

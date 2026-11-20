@@ -117,10 +117,8 @@ class Slalom(BaseOptimizer):
             self.loss_history.append(loss)
             self.lambda_history.append(backend.to_numpy(self.current_state))
 
-            if self.verbose > 0 and (i % int(self.report_freq) == 0 or i == self.max_iter - 1):
-                config.logger.info(
-                    f"iter: {i}, step size: {self.S:.6e}, posterior density: {loss:.6e}"
-                )
+            if i % int(self.report_freq) == 0 or i == self.max_iter - 1:
+                self.report(f"iter: {i}, step size: {self.S:.6e}, posterior density: {loss:.6e}")
 
             if len(self.loss_history) >= 5:
                 relative_loss = (self.loss_history[-5] - self.loss_history[-1]) / self.loss_history[
@@ -136,8 +134,7 @@ class Slalom(BaseOptimizer):
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
-        if self.verbose > 0:
-            config.logger.info(
-                f"Slalom Fitting complete in {time() - self.start_fit} sec with message: {self.message}"
-            )
+        self.report(
+            f"Slalom Fitting complete in {time() - self.start_fit} sec with message: {self.message}"
+        )
         return self

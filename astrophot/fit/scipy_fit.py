@@ -101,10 +101,9 @@ class ScipyFit(BaseOptimizer):
         self.scipy_res = res
         self.message = self.message + f"success: {res.success}, message: {res.message}"
         self.current_state = backend.as_array(res.x, dtype=config.DTYPE, device=config.DEVICE)
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final 2NLL/DoF: {2*self.density(self.current_state)/self.ndf:.6g}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final 2NLL/DoF: {2*self.density(self.current_state)/self.ndf:.6g}. Converged: {self.message}"
+        )
         self.model.set_values(self.current_state)
 
         return self

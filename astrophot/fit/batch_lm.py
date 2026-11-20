@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from ..models import Model
 from ..image import TargetImageBatch, WindowBatch
@@ -115,8 +116,7 @@ class BatchLM(BaseOptimizer):
 
     def fit(self, update_uncertainty=True):
         if self.current_state.shape[1] == 0:
-            if self.verbose > 0:
-                config.logger.warning("No parameters to optimize. Exiting fit")
+            self.report("No parameters to optimize. Exiting fit", level=logging.WARNING)
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -129,14 +129,12 @@ class BatchLM(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [backend.to_numpy(self.L)]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
-        if self.verbose > 0:
-            config.logger.info(
-                f"==Starting LM fit for '{self.model.name}' with batch of {self.current_state.shape[0]} images with {self.current_state.shape[1]} dynamic parameters and {self.data.shape[1]} pixels=="
-            )
+        self.report(
+            f"==Starting LM fit for '{self.model.name}' with batch of {self.current_state.shape[0]} images with {self.current_state.shape[1]} dynamic parameters and {self.data.shape[1]} pixels=="
+        )
 
         for _ in range(self.max_iter):
-            if self.verbose > 0:
-                config.logger.info(f"{quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}")
+            self.report(f"{quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}")
 
             if self.fit_valid:
                 with ValidContext(self.model):
@@ -180,10 +178,9 @@ class BatchLM(BaseOptimizer):
         else:
             self.message = self.message + "fail. Maximum iterations"
 
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final {quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final {quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
+        )
 
         self.model.set_values(self.current_state)
         if update_uncertainty:
