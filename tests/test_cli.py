@@ -173,6 +173,49 @@ def test_cli_script_runs_alone(script, monkeypatch, tmp_path):
     assert script.to_serializable(array) == [1.0, 2.0]
 
 
+@pytest.mark.parametrize("script", [cli_single, cli_segmap], ids=["single", "segmap"])
+def test_cli_dump_to_new_directory(script, tmp_path):
+    """--outdir is made if needed, also when only the script is written."""
+    outdir = tmp_path / "new" / "directory"
+    script.main(["--dump", "--outdir", str(outdir)])
+    assert len(list(outdir.glob("*_astrophot_model.py"))) == 1
+
+
+@pytest.mark.parametrize("script", [cli_single, cli_segmap], ids=["single", "segmap"])
+def test_cli_keeps_crtan(script, cutout, tmp_path, monkeypatch):
+    """An image saved by AstroPhot can be shifted on the tangent plane, which astropy does not read."""
+    saved = ap.TargetImage(filename=cutout)
+    saved.crtan = (5.0, -3.0)
+    saved.save(tmp_path / "shifted.fits")
+    fits.writeto(tmp_path / "segmap.fits", np.ones(fits.getdata(cutout).shape, dtype=np.int32))
+    files = [str(tmp_path / "shifted.fits")]
+    if script is cli_segmap:
+        files.append(str(tmp_path / "segmap.fits"))
+
+    class TargetMade(Exception):
+        pass
+
+    def target_image(**kwargs):  # stop there, no need for the fit
+        raise TargetMade(make_target(**kwargs))
+
+    make_target = ap.TargetImage
+    monkeypatch.setattr(ap, "TargetImage", target_image)
+    with pytest.raises(TargetMade) as made:
+        script.main([*files, "--outdir", str(tmp_path)])
+    target = made.value.args[0]
+    assert np.allclose(target.crtan.npvalue, (5.0, -3.0))
+    corner = ap.backend.as_array([0.0, 149.0], dtype=ap.config.DTYPE, device=ap.config.DEVICE)
+    for mine, theirs in zip(
+        target.pixel_to_plane(corner, corner), saved.pixel_to_plane(corner, corner)
+    ):
+        assert ap.backend.allclose(mine, theirs), "same coordinates as the saved image"
+
+    # --pixelscale replaces the coordinates of the header altogether
+    with pytest.raises(TargetMade) as made:
+        script.main([*files, "--outdir", str(tmp_path), "--pixelscale", "0.5"])
+    assert np.allclose(made.value.args[0].crtan.npvalue, 0.0)
+
+
 def test_import_is_light():
     """The commands wait for `import astrophot`, so slow packages are only loaded when used."""
     heavy = ("scipy", "matplotlib", "pyvo", "emcee")
@@ -316,6 +359,7 @@ def test_single_cli_without_wcs(cutout, tmp_path):
         ["missing.fits"],
         ["--Re", "10", "TARGET"],  # target must come first
         ["TARGET", "--name", "my-galaxy"],
+        ["TARGET", "--name", "sky_model"],  # the key of the sky in the parameters file
         ["TARGET", "--target_hdu", "3"],
         ["TARGET", "--target_hdu", "SCI"],
         ["TARGET", "--window", "500", "600", "0", "10"],

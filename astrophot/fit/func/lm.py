@@ -50,30 +50,40 @@ def rho(nll0, nll1, h, hessD, grad):
     return (nll0 - nll1) / backend.abs(h.T @ hessD @ h - 2 * grad.T @ h)
 
 
-def solve(hess, grad, L, check_finite=True):
+def solve(hess, grad, L, check_finite=True, max_tries=50):
     """Solve the damped system for the step, adding to the diagonal until it can be solved.
 
     A singular matrix raises an error with torch but silently gives nan or inf
     with jax. With `check_finite` both count as a failure, so that the two
     backends take the same steps. It must be turned off under vmap, where the
     values can not be inspected.
+
+    What is added to the diagonal starts at `L` and doubles on every try. It
+    is never less than a small fraction of the diagonal, so that there is
+    something to add when `L` is zero. `OptimizeStopFail` is raised when
+    `max_tries` additions were not enough, or the system is not finite.
     """
     hessD = damp_hessian(hess, L)  # (N, N)
-    check_finite = (
-        check_finite
-        and bool(backend.all(backend.isfinite(hessD)))
-        and bool(backend.all(backend.isfinite(grad)))
-    )
-    while True:
+    if check_finite and not (
+        bool(backend.all(backend.isfinite(hessD))) and bool(backend.all(backend.isfinite(grad)))
+    ):
+        raise OptimizeStopFail("The Hessian or gradient is not finite, there is no step to take")
+    eye = backend.eye(len(hessD), dtype=config.DTYPE, device=config.DEVICE)
+    # 1e-30 is for a hessian of zeros, where there is no scale to go by
+    floor = 1e-8 * backend.sum(backend.abs(backend.diag(hess))) / len(hess) + 1e-30
+    add = backend.maximum(L + backend.zeros_like(floor), floor)
+    for _ in range(max_tries):
         try:
             h = backend.linalg.solve(hessD, grad)
             if not check_finite or bool(backend.all(backend.isfinite(h))):
-                break
+                return hessD, h
         except backend.LinAlgErr:
             pass
-        hessD = hessD + L * backend.eye(len(hessD), dtype=config.DTYPE, device=config.DEVICE)
-        L = L * 2
-    return hessD, h
+        hessD = hessD + add * eye
+        add = add * 2
+    raise OptimizeStopFail(
+        f"The Hessian is still singular after adding to its diagonal {max_tries} times"
+    )
 
 
 def solve_vmap(hess, grad, L):

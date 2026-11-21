@@ -52,6 +52,16 @@ def _formatter(fmt, default):
     return fmt if isinstance(fmt, logging.Formatter) else logging.Formatter(fmt)
 
 
+def _level(level):
+    """The number of a logging level, given as that number or as its name."""
+    if isinstance(level, int):
+        return level
+    names = logging.getLevelNamesMapping()
+    if level not in names:
+        raise ValueError(f"Unknown level: {level!r}")
+    return names[level]
+
+
 def _header():
     """What was running when a log file was started, for its first line."""
     from importlib.metadata import version
@@ -120,18 +130,26 @@ def set_logger(
     Returns:
         The "astrophot" logger, which is also ``ap.config.logger``.
     """
-    # make the new handlers first, so that a bad argument leaves the logger as it was
+    # Check every argument before anything is opened or changed, so that a bad
+    # one leaves the logger and an existing log file as they were
+    level = _level(level)
+    stdout_level = level if stdout_level is None else _level(stdout_level)
+    file_level = level if file_level is None else _level(file_level)
+    stdout_format = _formatter(stdout_format, _ScreenFormatter(STDOUT_FORMAT))
+    file_format = _formatter(file_format, logging.Formatter(FILE_FORMAT))
+
     handlers = []
+    if filename is not None:
+        # the one step that can still fail, so it comes before the other handler
+        handler = logging.FileHandler(Path(filename).expanduser(), mode=mode, encoding="utf-8")
+        handler.setFormatter(file_format)
+        handler.setLevel(file_level)
+        handlers.append(handler)
     if stdout:
         handler = _StdoutHandler()
-        handler.setFormatter(_formatter(stdout_format, _ScreenFormatter(STDOUT_FORMAT)))
-        handler.setLevel(level if stdout_level is None else stdout_level)
-        handlers.append(handler)
-    if filename is not None:
-        handler = logging.FileHandler(Path(filename).expanduser(), mode=mode, encoding="utf-8")
-        handler.setFormatter(_formatter(file_format, logging.Formatter(FILE_FORMAT)))
-        handler.setLevel(level if file_level is None else file_level)
-        handlers.append(handler)
+        handler.setFormatter(stdout_format)
+        handler.setLevel(stdout_level)
+        handlers.insert(0, handler)
     logger.setLevel(level)
     logger.propagate = propagate
 

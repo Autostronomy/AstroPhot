@@ -141,6 +141,16 @@ def test_lm_singular_hessian():
     assert np.all(h[:2] != 0) and h[2] == 0, "only the constrained parameters should move"
     assert np.allclose(ap.backend.to_numpy(hessD) @ h, ap.backend.to_numpy(grad).ravel())
 
+    # without damping there is still something to add to the diagonal
+    hessD, h = lm.solve(hess, grad, L=0.0)
+    h = ap.backend.to_numpy(h).ravel()
+    assert np.allclose(h, [5 / 7, -6 / 7, 0]), "the step of the two constrained parameters"
+    # and a system that can never be solved ends, rather than being tried forever
+    with pytest.raises(ap.errors.OptimizeStopFail, match="not finite"):
+        lm.solve(hess * np.nan, grad, L=1.0)
+    with pytest.raises(ap.errors.OptimizeStopFail, match="still singular"):
+        lm.solve(array([[1e-300]]), array([[1e300]]), L=0.0)  # the step overflows
+
     covariance, singular = lm.invert_hessian(hess)
     assert singular, "the pseudo-inverse should be used"
     covariance = ap.backend.to_numpy(covariance)

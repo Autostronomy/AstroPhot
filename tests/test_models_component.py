@@ -26,9 +26,14 @@ MODEST_IMPROVEMENT = (
 )
 
 
+# Not `np.random`, which the `seed` fixture sets back to the same state before every
+# test: that would make the same choice for every model
+JAX_SUBSET = np.random.default_rng()
+
+
 def skip_reason(model_type):
     jax = ap.backend.backend == "jax"
-    if jax and np.random.randint(0, 3) > 0:
+    if jax and JAX_SUBSET.integers(0, 3) > 0:
         return "JAX is very slow, randomly reducing the number of tests"
     if jax and model_type == "isothermal sech2 edgeon model":
         return "JAX doesnt have bessel function k1 yet"

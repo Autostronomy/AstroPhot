@@ -208,6 +208,82 @@ def test_wcs_load_fits_not_written_by_astrophot(astropy_wcs, tmp_path):
     assert_same_sky(loaded, astropy_wcs, *sample_pixels())
 
 
+@pytest.mark.parametrize(
+    "ctype",
+    [
+        ("RA---CAR", "DEC--CAR"),
+        ("RA---SIN", "DEC--SIN"),
+        ("GLON-TAN", "GLAT-TAN"),
+        ("GLON-CAR", "GLAT-CAR"),
+        ("DEC--TAN", "RA---TAN"),
+    ],
+)
+@pytest.mark.parametrize("from_file", [False, True], ids=["wcs", "file"])
+def test_wcs_not_tangent_plane(ctype, from_file, tmp_path, caplog):
+    """Another projection or celestial frame is replaced by its tangent plane approximation."""
+    # The image is 40 degrees from the reference point of the WCS, as in a cutout of a
+    # map of the sky. Close to the reference point every projection is a tangent plane
+    header = make_header("cdelt_pc")
+    header.update(CRVAL1=150.1, CRVAL2=0.0, CRPIX2=9.5 - 20 / SCALE)
+    if ctype[0].startswith("DEC"):
+        header.update(CRVAL1=0.0, CRVAL2=150.1)
+    header["CTYPE1"], header["CTYPE2"] = ctype
+    wcs = WCS(header)
+    if from_file:
+        fits.PrimaryHDU(np.zeros((NY, NX)), header=wcs.to_header()).writeto(tmp_path / "other.fits")
+        image = ap.Image(filename=tmp_path / "other.fits")
+    else:
+        image = ap.TargetImage(data=np.zeros((NY, NX)), wcs=wcs)
+    assert "tangent plane approximation about the centre of the image" in caplog.text
+
+    def separation(image, x, y):
+        reference = wcs.pixel_to_world(x, y).icrs
+        ra, dec = image_pixel_to_world(image, x, y)
+        return separation_arcsec(ra, dec, reference.ra.deg, reference.dec.deg)
+
+    assert np.allclose(image.crpix, ((NX - 1) / 2, (NY - 1) / 2)), "tangent point at the centre"
+    assert separation(image, *image.crpix[:, None])[0] < 1e-8, "exact at the tangent point"
+    sep = separation(image, *sample_pixels())
+    assert np.all(sep < 1e-2), f"AstroPhot is up to {sep.max():.3g} arcsec from astropy"
+    max_offset = ap.image.func.tangent_plane_wcs(wcs, (NX, NY))["max_offset"]
+    assert 0.5 * sep.max() < max_offset < 2 * sep.max(), "the offset given in the warning"
+
+    # the reference values of the WCS mean something else, read as they are they would be far off
+    as_given = ap.Image(
+        data=np.zeros((NY, NX)),
+        crval=wcs.wcs.crval,
+        crpix=wcs.wcs.crpix - 1,
+        CD=3600 * wcs.pixel_scale_matrix,
+    )
+    assert separation(as_given, *sample_pixels()).max() > 1
+
+
+def test_wcs_tangent_plane_without_shape(caplog):
+    """With no pixels to find the centre of, the tangent point is the reference pixel."""
+    header = make_header("cdelt_pc")
+    header["CTYPE1"], header["CTYPE2"] = "GLON-CAR", "GLAT-CAR"
+    wcs = WCS(header)
+    image = ap.Image(wcs=wcs)
+    assert "approximation about its reference pixel" in caplog.text
+    assert np.allclose(image.crpix, wcs.wcs.crpix - 1)
+    reference = wcs.pixel_to_world(*image.crpix).icrs
+    assert np.allclose(image.crval.npvalue, (reference.ra.deg, reference.dec.deg))
+
+
+def test_wcs_unknown_frame_and_distortion(caplog):
+    """Where there is nothing better to do the reference values are used, with a warning."""
+    for ctype in (("HPLN-TAN", "HPLT-TAN"), ("RA---TAN-SIP", "DEC--TAN-SIP")):
+        header = make_header("offcentre")
+        header["CTYPE1"], header["CTYPE2"] = ctype
+        wcs = WCS(header)
+        caplog.clear()
+        image = ap.TargetImage(data=np.zeros((NY, NX)), wcs=wcs)
+        assert "using its reference values as they are" in caplog.text
+        assert np.allclose(image.crpix, wcs.wcs.crpix - 1)
+        assert np.allclose(image.crval.npvalue, wcs.wcs.crval)
+        assert np.allclose(image.CD.npvalue, 3600 * wcs.pixel_scale_matrix)
+
+
 def test_get_astropywcs(astropy_wcs):
     image = ap.TargetImage(data=np.zeros((NY, NX)), wcs=astropy_wcs)
     wcs = image.get_astropywcs()

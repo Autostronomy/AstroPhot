@@ -311,8 +311,10 @@ Naming and placing the output
 -----------------------------
 
 ``--name`` sets the name of the model and the start of every output file name.
-It may only contain letters, digits and underscores. ``--outdir`` sets the
-directory the files are written to, which is created if it does not exist:
+It may only contain letters, digits and underscores, and can not be
+``sky_model``, which is what the sky is called in the parameters file.
+``--outdir`` sets the directory the files are written to, which is created if
+it does not exist:
 
 .. code:: bash
 

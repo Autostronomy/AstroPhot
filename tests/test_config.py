@@ -82,6 +82,35 @@ def test_set_logger_levels(tmp_path, capsys):
     logger.warning("still set up")
     assert capsys.readouterr().out == "WARNING: still set up\n", "a bad call changes nothing"
     assert len((tmp_path / "all.log").read_text().splitlines()) == 1 + 4
+    assert not (tmp_path / "bad.log").exists(), "no file is made by a bad call"
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"level": "LOUD"},
+        {"file_level": "LOUD"},
+        {"stdout_level": "LOUD"},
+        {"file_format": "%(nothing"},
+        {"stdout_format": "%(nothing"},
+        {"mode": "z"},
+    ],
+    ids=lambda bad: next(iter(bad)),
+)
+def test_set_logger_bad_argument_keeps_log_file(bad, tmp_path, capsys):
+    """Nothing is opened, and so emptied by mode "w", until every argument is checked."""
+    log = tmp_path / "kept.log"
+    logger = ap.set_logger(log)
+    logger.info("worth keeping")
+    before = log.read_text()
+    handlers = list(logger.handlers)
+
+    with pytest.raises(ValueError):
+        ap.set_logger(log, **{"stdout": True, "mode": "w", **bad})
+    assert log.read_text() == before
+    assert logger.handlers == handlers, "the outputs are the ones from before"
+    logger.info("still set up")
+    assert log.read_text().splitlines()[-1].endswith("still set up")
 
 
 class Recorder(logging.Handler):

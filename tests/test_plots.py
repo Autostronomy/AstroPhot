@@ -6,6 +6,7 @@ something on the axis.
 
 import astrophot as ap
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pytest
 
@@ -79,13 +80,21 @@ def test_covariance_matrix():
     assert ax[1, 0].get_xlabel() == "x" and ax[1, 0].get_ylabel() == "y"
 
 
-def test_corner_plot():
+def test_corner_plot(monkeypatch):
     rng = np.random.default_rng(1)
     chain = rng.multivariate_normal([0, 5, -2], np.diag([1, 4, 0.25]), size=(100, 2))
+    # Keep what Axes.contour returns. Looking the contours up in the axes afterwards
+    # depends on the version of matplotlib
+    contours = []
+    contour = Axes.contour
+    monkeypatch.setattr(
+        Axes, "contour", lambda *args, **kwargs: contours.append(contour(*args, **kwargs))
+    )
     fig, ax = ap.plots.corner_plot(chain, labels=["x", "y", "z"], reference_values=[0, 5, -2])
     assert ax.shape == (3, 3), "one panel per pair of parameters, chains are joined"
     assert ax[2, 0].get_xlabel() == "x" and ax[2, 0].get_ylabel() == "z"
     assert ax[2, 1].get_xlim() == (chain[..., 1].min(), chain[..., 1].max())
-    assert len(ax[1, 0].collections[0].levels) == 2, "1 and 2 sigma contours"
+    assert len(contours) == 3, "a panel for each pair of parameters"
+    assert all(len(c.levels) == 2 for c in contours), "1 and 2 sigma contours"
     assert not ax[0, 1].axison, "nothing above the diagonal"
     plt.close(fig)
