@@ -6,6 +6,9 @@ own file: test_models_component.py, test_models_psf.py, test_models_group.py
 and test_models_batch.py.
 """
 
+import importlib.util
+from pathlib import Path
+
 import astrophot as ap
 import numpy as np
 import pytest
@@ -86,6 +89,43 @@ def test_model_errors(sersic_target):
     # model that doesn't exist
     with pytest.raises(ap.errors.UnrecognizedModel):
         ap.Model(name="test_model", model_type="sersic gaaxy model", target=sersic_target)
+
+
+def test_generated_model_classes():
+    """radial.py and radial_psf.py are written by tools/generate_model_classes.py."""
+    script = Path(__file__).resolve().parent.parent / "tools" / "generate_model_classes.py"
+    if not script.is_file():
+        pytest.skip("needs the AstroPhot repository, the script is not part of the package")
+    spec = importlib.util.spec_from_file_location("generate_model_classes", script)
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+
+    for path, text in generator.generated_files().items():
+        assert path.read_text(encoding="utf-8") == text, (
+            f"{path.name} is out of date or was edited by hand, "
+            "run: python tools/generate_model_classes.py"
+        )
+
+    # every radial profile of astrophot/models/mixins is given its models
+    mixins = set(ap.models.mixins.__all__)
+    profiles = {name[1:-5] for name in mixins if name.startswith("i") and name.endswith("Mixin")}
+    profiles |= {name[:-8] for name in mixins if name.endswith("PSFMixin")}
+    assert profiles == set(generator.PROFILES), "add the profile to PROFILES in the script"
+    for profile in generator.PROFILES:
+        assert {f"{profile}Mixin", f"i{profile}Mixin", f"{profile}PSFMixin"} <= mixins
+
+    # and each generated class is a model that can be asked for by its type
+    types = ap.Model.List_Models(usable=True, types=True)
+    for module, models in (
+        (ap.models.radial, generator.galaxy_models()),
+        (ap.models.radial_psf, generator.psf_models()),
+    ):
+        assert [name for name, _ in models] == list(module.__all__)
+        for name, bases in models:
+            model = getattr(module, name)
+            assert [base.__name__ for base in model.__bases__] == list(bases)
+            assert model.model_type in types
+            assert getattr(ap.models, name) is model and name in ap.models.__all__
 
 
 def test_model_save_load_state(sersic_model, tmp_path):

@@ -101,6 +101,13 @@ class InclinedMixin:
         return x, y / q
 
 
+class EllipseMixin(InclinedMixin):
+    """PSF model with elliptical isophotes defined by a position angle and axis ratio."""
+
+    usable = False
+    _model_type = "ellipse"
+
+
 class SuperEllipseMixin:
     """Uses a generalized definition of radius to make boxy/disky models.
 

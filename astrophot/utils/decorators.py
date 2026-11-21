@@ -2,11 +2,14 @@ from functools import wraps
 import re
 import warnings
 from inspect import cleandoc
+from typing import TypeVar
 import caskade as ck
 
 import numpy as np
 
 __all__ = ("classproperty", "ignore_numpy_warnings", "combine_docstrings")
+
+T = TypeVar("T", bound=type)
 
 
 class classproperty:
@@ -81,7 +84,7 @@ def _parse_docstring(doc):
     return body, params
 
 
-def combine_docstrings(cls):
+def combine_docstrings(cls: T) -> T:
     """Combine docstrings from a class and all of its base classes.
 
     Finds all ``:param`` entries and markdown ``**Parameters:**`` /
