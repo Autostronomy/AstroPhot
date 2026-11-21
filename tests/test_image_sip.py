@@ -1,11 +1,11 @@
+"""SIPTargetImage and SIPModelImage, images with SIP distortion (astrophot/image/sip_image.py).
+
+The distortion is compared with astropy in test_image_wcs.py.
+"""
+
 import astrophot as ap
 import numpy as np
-
 import pytest
-
-######################################################################
-# Image Objects
-######################################################################
 
 
 @pytest.fixture()
@@ -104,15 +104,15 @@ def test_sip_image_wcs_roundtrip(sip_target):
     assert ap.backend.allclose(j, j2, atol=0.05), "j coordinates should match after WCS roundtrip"
 
 
-def test_sip_image_save_load(sip_target):
+def test_sip_image_save_load(sip_target, tmp_path):
     """
     Test that SIP images can be saved and loaded correctly.
     """
     # Save the SIP image to a file
-    sip_target.save("test_sip_image.fits")
+    sip_target.save(tmp_path / "sip_image.fits")
 
     # Load the SIP image from the file
-    loaded_image = ap.SIPTargetImage(filename="test_sip_image.fits")
+    loaded_image = ap.SIPTargetImage(filename=tmp_path / "sip_image.fits")
 
     # Check that the loaded image matches the original
     assert ap.backend.allclose(
@@ -124,7 +124,6 @@ def test_sip_image_save_load(sip_target):
     assert ap.backend.allclose(
         sip_target.zeropoint, loaded_image.zeropoint
     ), "Loaded image zeropoint should match original"
-    print(loaded_image.sipA)
     assert all(
         np.allclose(sip_target.sipA[key], loaded_image.sipA[key]) for key in sip_target.sipA
     ), "Loaded image sipA should match original"

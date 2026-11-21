@@ -1,5 +1,7 @@
+import logging
+
 # Apply a different optimizer iteratively
-from typing import Dict, Any, Union, Sequence, Literal
+from typing import Dict, Any, Optional, Union, Sequence, Literal
 from time import time
 from functools import partial
 
@@ -30,13 +32,14 @@ class Iter(BaseOptimizer):
     models, then they will be optimized as a whole. This gives some flexibility
     to structure the models in a useful way.
 
-    If not given, the `lm_kwargs` will be set to a relative tolerance of 1e-3
-    and a maximum of 15 iterations. This is to allow for faster convergence, it
-    is not worthwhile for a single model to spend lots of time optimizing when
-    its neighbors havent converged.
+    The fit of each model reports nothing, and stops at a relative tolerance of
+    1e-3 or after 15 iterations. This is to allow for faster convergence, it is
+    not worthwhile for a single model to spend lots of time optimizing when its
+    neighbors havent converged. Each of these can be changed with `lm_kwargs`.
 
+    :param initial_state: Values for the parameters of the group model to start from, the models are set to these before fitting.
     :param max_iter: Maximum number of iterations, defaults to 100.
-    :param lm_kwargs: Keyword arguments to pass to `LM` optimizer.
+    :param lm_kwargs: Keyword arguments to pass to the `LM` optimizer of each model. These are added to the defaults ``{"verbose": 0, "relative_tolerance": 1e-3, "max_iter": 15}``, so only the options that are given change.
     """
 
     def __init__(
@@ -44,17 +47,17 @@ class Iter(BaseOptimizer):
         model: Model,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
-        lm_kwargs: Dict[str, Any] = {"verbose": 0},
+        lm_kwargs: Optional[Dict[str, Any]] = None,
         **kwargs: Dict[str, Any],
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.current_state = model.get_values()
-        self.lm_kwargs = lm_kwargs
-        if "relative_tolerance" not in lm_kwargs:
-            # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
-            self.lm_kwargs["relative_tolerance"] = 1e-3
-            self.lm_kwargs["max_iter"] = 15
+        if initial_state is not None:
+            # each model is fit from its own values, so that is where the start has to go
+            model.set_values(self.current_state)
+        # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
+        self.lm_kwargs = {"verbose": 0, "relative_tolerance": 1e-3, "max_iter": 15}
+        self.lm_kwargs.update(lm_kwargs or {})
         #          # pixels      # parameters
         self.ndf = self.model.target[self.model.window].flatten("data").shape[0] - len(
             self.current_state
@@ -71,35 +74,30 @@ class Iter(BaseOptimizer):
         model.target = model.target - self.Y
         res = LM(model, **self.lm_kwargs).fit(update_uncertainty=update_uncertainty)
         self.Y += model()
-        if self.verbose > 1:
-            config.logger.info(res.message)
+        self.report(res.message, detail=2)
         model.target = initial_values
 
     def step(self):
         """
         Perform a single iteration of optimization.
         """
-        if self.verbose > 0:
-            config.logger.info("--------iter-------")
+        self.report("--------iter-------")
 
         # Fit each model individually
         for model in self.model.models:
-            if self.verbose > 0:
-                config.logger.info(model.name)
+            self.report(model.name)
             self.sub_step(model)
         # Update the current state
         self.current_state = self.model.get_values()
 
         # Update the loss value
-        if self.verbose > 0:
-            config.logger.info("Update Chi^2 with new parameters")
+        self.report("Update Chi^2 with new parameters")
         self.Y = self.model(params=self.current_state)
         D = self.model.target[self.model.window].flatten("data")
         V = self.model.target[self.model.window].flatten("variance")
         M = self.model.target[self.model.window].flatten("mask")
         loss = backend.sum((((D - self.Y.flatten("data")) ** 2) / V)[~M]) / self.ndf
-        if self.verbose > 0:
-            config.logger.info(f"Loss: {loss.item()}")
+        self.report(f"Loss: {loss.item()}")
         self.lambda_history.append(np.copy(backend.to_numpy(self.current_state)))
         self.loss_history.append(loss.item())
 
@@ -113,7 +111,7 @@ class Iter(BaseOptimizer):
         else:
             self._count_finish = 0
 
-        self.iteration += 1
+        self.save_step()
 
     def fit(self) -> BaseOptimizer:
         """
@@ -138,10 +136,10 @@ class Iter(BaseOptimizer):
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
         )
-        if self.verbose > 1:
-            config.logger.info(
-                f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}"
-            )
+        self.report(
+            f"Iter Fitting complete in {time() - start_fit} sec with message: {self.message}",
+            detail=2,
+        )
 
         return self
 
@@ -171,6 +169,10 @@ class IterParam(BaseOptimizer):
     :param chunk_order: How to iterate through the chunks. Should be one of:
       ``"random"``, ``"sequential"``. Default: ``"sequential"``.
     :type chunk_order: str
+    :param max_step_iter: The most values of the damping factor to try for a
+      chunk in one iteration, each of which costs an evaluation of the model.
+      Default: 10.
+    :type max_step_iter: int
     """
 
     def __init__(
@@ -265,7 +267,8 @@ class IterParam(BaseOptimizer):
                 chunk[i : i + chunks] = True
                 new_chunks.append(chunk)
             chunks = new_chunks
-        return chunks
+        # as boolean masks, so that a selector given as 1 and 0 is not read as a list of indices
+        return [np.asarray(chunk, dtype=bool) for chunk in chunks]
 
     def iter_chunks(self):
         if self.chunk_order == "random":
@@ -299,8 +302,7 @@ class IterParam(BaseOptimizer):
         """
 
         if len(self.current_state) == 0:
-            if self.verbose > 0:
-                config.logger.warning("No parameters to optimize. Exiting fit")
+            self.report("No parameters to optimize. Exiting fit", level=logging.WARNING)
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -313,15 +315,14 @@ class IterParam(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [self.L]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
-        if self.verbose > 0:
-            config.logger.info(
-                f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
-            )
+        self.iteration = 0
+        self.report(
+            f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
+        )
 
         for _ in range(self.max_iter):
             # Report status
-            if self.verbose > 0:
-                config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+            self.report(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
 
             # Perform fitting
             chunk_L = []
@@ -340,6 +341,7 @@ class IterParam(BaseOptimizer):
                                 Lup=self.Lup,
                                 Ldn=self.Ldn,
                                 likelihood=self.likelihood,
+                                max_step_iter=self.max_step_iter,
                             )
                         self.current_state = self.model.from_valid(
                             backend.fill_at_indices(
@@ -357,15 +359,16 @@ class IterParam(BaseOptimizer):
                             Lup=self.Lup,
                             Ldn=self.Ldn,
                             likelihood=self.likelihood,
+                            max_step_iter=self.max_step_iter,
                         )
                         self.current_state = backend.fill_at_indices(
                             self.current_state, self.chunks[c], backend.copy(res["x"])
                         )
                 except OptimizeStopFail:
-                    if self.verbose > 0:
-                        config.logger.warning(
-                            f"Could not find step to improve Chi^2 on chunk {c}, moving to next chunk"
-                        )
+                    self.report(
+                        f"Could not find step to improve Chi^2 on chunk {c}, moving to next chunk",
+                        level=logging.WARNING,
+                    )
                     continue
                 except OptimizeStopSuccess as e:
                     continue  # success on individual chunk is not enough to stop overall fit
@@ -376,16 +379,16 @@ class IterParam(BaseOptimizer):
             self.L_history.append(self.L)
             self.loss_history.append(2 * res["nll"] / self.ndf)
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+            self.save_step()
             if self.check_convergence():
                 break
 
         else:
             self.message = self.message + "fail. Maximum iterations"
 
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
+        )
 
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
@@ -442,13 +445,11 @@ class IterParam(BaseOptimizer):
                 hess = func.hessian(J, self.W)
             elif self.likelihood == "poisson":
                 hess = func.hessian_poisson(J, self.Y, self.full_forward(self.current_state))
-            try:
-                sub_covariance_matrix = backend.linalg.inv(hess)
-            except:
+            sub_covariance_matrix, singular = func.invert_hessian(hess)
+            if singular:
                 config.logger.warning(
-                    "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
+                    "Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
                 )
-                sub_covariance_matrix = backend.linalg.pinv(hess)
 
             ids = backend.meshgrid(
                 backend.as_array(np.arange(N)[self.chunks[c]], dtype=int, device=config.DEVICE),

@@ -1,6 +1,4 @@
-from scipy.stats import binned_statistic, iqr
 import numpy as np
-from scipy.optimize import minimize
 
 from ..utils.decorators import ignore_numpy_warnings
 from .. import config
@@ -42,6 +40,9 @@ def _sample_image(
         )
     else:
         rad_bins = np.array(rad_bins)
+    # imported here to keep `import astrophot` fast
+    from scipy.stats import binned_statistic, iqr
+
     I = (
         binned_statistic(R, raveldat, statistic="median", bins=rad_bins)[0]
     ) / image.pixel_area.item()
@@ -95,6 +96,8 @@ def parametric_initialize(model, target, prof_func, params, x0_func):
         N = np.argsort(residual)
         return np.mean(residual[N][:-2])
 
+    from scipy.optimize import minimize  # here to keep `import astrophot` fast
+
     res = minimize(optim, x0=x0, args=(R, I, S), method="Nelder-Mead")
 
     if res.success:
@@ -119,6 +122,8 @@ def parametric_segment_initialize(
 ):
     if all(list(model[param].initialized for param in params)):
         return
+
+    from scipy.optimize import minimize  # here to keep `import astrophot` fast
 
     cycle = np.pi if model.symmetric else 2 * np.pi
     w = cycle / segments
