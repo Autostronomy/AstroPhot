@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from ..models import Model
 from ..image import TargetImageBatch, WindowBatch
@@ -115,8 +116,7 @@ class BatchLM(BaseOptimizer):
 
     def fit(self, update_uncertainty=True):
         if self.current_state.shape[1] == 0:
-            if self.verbose > 0:
-                config.logger.warning("No parameters to optimize. Exiting fit")
+            self.report("No parameters to optimize. Exiting fit", level=logging.WARNING)
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -129,14 +129,13 @@ class BatchLM(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [backend.to_numpy(self.L)]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
-        if self.verbose > 0:
-            config.logger.info(
-                f"==Starting LM fit for '{self.model.name}' with batch of {self.current_state.shape[0]} images with {self.current_state.shape[1]} dynamic parameters and {self.data.shape[1]} pixels=="
-            )
+        self.iteration = 0
+        self.report(
+            f"==Starting LM fit for '{self.model.name}' with batch of {self.current_state.shape[0]} images with {self.current_state.shape[1]} dynamic parameters and {self.data.shape[1]} pixels=="
+        )
 
         for _ in range(self.max_iter):
-            if self.verbose > 0:
-                config.logger.info(f"{quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}")
+            self.report(f"{quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}")
 
             if self.fit_valid:
                 with ValidContext(self.model):
@@ -174,16 +173,16 @@ class BatchLM(BaseOptimizer):
             self.L_history.append(backend.to_numpy(self.L))
             self.loss_history.append(2 * res["nll"] / backend.to_numpy(self.ndf))
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+            self.save_step()
 
             if self.check_convergence():
                 break
         else:
             self.message = self.message + "fail. Maximum iterations"
 
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final {quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final {quantity}: {self.loss_history[-1]}, L: {self.L_history[-1]}. Converged: {self.message}"
+        )
 
         self.model.set_values(self.current_state)
         if update_uncertainty:
@@ -231,13 +230,11 @@ class BatchLM(BaseOptimizer):
             hess = backend.vmap(func.hessian_poisson)(
                 J, self.data * self.mask, self.forward(self.current_state) * self.mask
             )
-        try:
-            self._covariance_matrix = backend.vmap(backend.linalg.inv)(hess)
-        except:
+        self._covariance_matrix, singular = func.invert_hessian(hess, batched=True)
+        if singular:
             config.logger.warning(
-                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
+                "Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
             )
-            self._covariance_matrix = backend.vmap(backend.linalg.pinv)(hess)
         return self._covariance_matrix
 
     def update_uncertainty(self) -> None:

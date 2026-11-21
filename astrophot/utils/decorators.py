@@ -2,11 +2,14 @@ from functools import wraps
 import re
 import warnings
 from inspect import cleandoc
+from typing import TypeVar
 import caskade as ck
 
 import numpy as np
 
 __all__ = ("classproperty", "ignore_numpy_warnings", "combine_docstrings")
+
+T = TypeVar("T", bound=type)
 
 
 class classproperty:
@@ -29,16 +32,12 @@ def ignore_numpy_warnings(func):
 
     @wraps(func)
     def wrapped(*args, **kwargs):
-        old_settings = np.seterr(all="ignore")
-        warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        warnings.filterwarnings("ignore", category=ck.InvalidValueWarning)
-        result = func(*args, **kwargs)
-        np.seterr(**old_settings)
-        warnings.filterwarnings("default", category=np.exceptions.VisibleDeprecationWarning)
-        warnings.filterwarnings("default", category=DeprecationWarning)
-        warnings.filterwarnings("default", category=ck.InvalidValueWarning)
-        return result
+        # only for the length of the call, the settings of the user come back after it
+        with np.errstate(all="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=np.exceptions.VisibleDeprecationWarning)
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.simplefilter("ignore", category=ck.InvalidValueWarning)
+            return func(*args, **kwargs)
 
     return wrapped
 
@@ -85,7 +84,7 @@ def _parse_docstring(doc):
     return body, params
 
 
-def combine_docstrings(cls):
+def combine_docstrings(cls: T) -> T:
     """Combine docstrings from a class and all of its base classes.
 
     Finds all ``:param`` entries and markdown ``**Parameters:**`` /

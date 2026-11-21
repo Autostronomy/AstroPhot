@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import numpy as np
@@ -88,7 +89,9 @@ class Image(Module):
                 )
 
             crval = wcs.wcs.crval
-            crpix = np.array(wcs.wcs.crpix)[::-1] - 1  # handle FITS 1-indexing
+            # FITS axis 1 is the i axis and FITS axis 2 is the j axis of the image,
+            # so the order is kept. Only the FITS 1-indexing is removed.
+            crpix = np.array(wcs.wcs.crpix) - 1
 
             if CD is not None:
                 config.logger.warning("WCS CD set with supplied WCS, ignoring user supplied CD!")
@@ -464,11 +467,17 @@ class Image(Module):
         ]
 
     def get_astropywcs(self, **kwargs):
+        """An astropy WCS which maps pixels to the same world coordinates as
+        this image. FITS has no equivalent of ``crtan``, so a non-zero ``crtan``
+        is expressed by moving the reference pixel."""
+        crpix = self.crpix - np.linalg.inv(self.CD.npvalue) @ self.crtan.npvalue
         kwargs = {
             "NAXIS": 2,
-            "NAXIS1": self.shape[0].item(),
-            "NAXIS2": self.shape[1].item(),
+            "NAXIS1": self._data.shape[0],
+            "NAXIS2": self._data.shape[1],
             **self.fits_info(),
+            "CRPIX1": crpix[0] + 1,
+            "CRPIX2": crpix[1] + 1,
             **kwargs,
         }
         return AstropyWCS(kwargs)
@@ -477,30 +486,40 @@ class Image(Module):
         hdulist = fits.HDUList(self.fits_images())
         hdulist.writeto(filename, overwrite=True)
 
-    def load(self, filename: Union[str, fits.HDUList], hduext: int = 0):
+    def load(self, filename: Union[str, Path, fits.HDUList], hduext: int = 0):
         """Load an image from a FITS file. This will load the primary HDU
         and set the data, CD, crpix, crval, and crtan attributes
         accordingly. If the WCS is not tangent plane, it will warn the user.
 
         """
-        if isinstance(filename, str):
+        if isinstance(filename, (str, Path)):
             hdulist = fits.open(filename)
         else:
             hdulist = filename
         self.data = np.array(hdulist[hduext].data, dtype=np.float64)
 
-        self.CD = (
-            np.array(
-                (
-                    (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
-                    (hdulist[hduext].header["CD2_1"], hdulist[hduext].header["CD2_2"]),
-                ),
-                dtype=np.float64,
+        if "CD1_1" in hdulist[hduext].header:  # as written by AstroPhot
+            self.CD = (
+                np.array(
+                    (
+                        (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
+                        (hdulist[hduext].header["CD2_1"], hdulist[hduext].header["CD2_2"]),
+                    ),
+                    dtype=np.float64,
+                )
+                * deg_to_arcsec
             )
-            * deg_to_arcsec
-        )
-        self.crpix = (hdulist[hduext].header["CRPIX1"] - 1, hdulist[hduext].header["CRPIX2"] - 1)
-        self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
+            self.crpix = (
+                hdulist[hduext].header["CRPIX1"] - 1,
+                hdulist[hduext].header["CRPIX2"] - 1,
+            )
+            self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
+        else:  # other FITS conventions (CDELT, PC, CROTA) are read by astropy
+            wcs = AstropyWCS(hdulist[hduext].header)
+            if wcs.has_celestial:
+                self.CD = deg_to_arcsec * wcs.pixel_scale_matrix
+                self.crpix = np.array(wcs.wcs.crpix) - 1
+                self.crval = wcs.wcs.crval
         if "CRTAN1" in hdulist[hduext].header and "CRTAN2" in hdulist[hduext].header:
             self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
         if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:

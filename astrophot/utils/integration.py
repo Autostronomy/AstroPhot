@@ -1,4 +1,3 @@
-from scipy.special import roots_legendre
 from ..backend_obj import backend
 
 __all__ = ("quad_table",)
@@ -18,6 +17,8 @@ def quad_table(order, dtype, device):
     Tuple[ArrayLike, ArrayLike, ArrayLike]
         The generated meshgrid as a tuple of Tensors.
     """
+    from scipy.special import roots_legendre  # here to keep `import astrophot` fast
+
     abscissa, weights = roots_legendre(order)
 
     w = backend.as_array(weights, dtype=dtype, device=device)

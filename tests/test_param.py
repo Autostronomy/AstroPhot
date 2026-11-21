@@ -1,9 +1,7 @@
-import pytest
+"""Param and Module, the AstroPhot versions of the caskade objects (astrophot/param)."""
 
 import astrophot as ap
 from astrophot.param import Param
-
-from utils import make_basic_sersic
 
 
 def test_param():
@@ -32,9 +30,8 @@ def test_param():
     assert c.uncertainty is None
 
 
-def test_module():
-
-    target = make_basic_sersic()
+def test_module(sersic_target):
+    target = sersic_target
     model1 = ap.Model(name="test_model_1", model_type="sersic galaxy model", target=target)
     model2 = ap.Model(name="test_model_2", model_type="sersic galaxy model", target=target)
     model = ap.Model(name="test", model_type="group model", target=target, models=[model1, model2])
