@@ -113,6 +113,7 @@ def lm_step(
     Ldn=11.0,
     tolerance=1e-4,
     likelihood="gaussian",
+    max_step_iter=10,
 ):
     L0 = L
     M0 = backend.detach(model(x))  # (M,)
@@ -138,7 +139,7 @@ def lm_step(
     scary = {"x": None, "nll": np.inf, "L": None, "rho": np.inf}
     nostep = True
     improving = None
-    for i in range(10):
+    for i in range(max_step_iter):
         hessD, h = solve(hess, grad, L)  # (N, N), (N, 1)
         M1 = model(x + h.squeeze(1))  # (M,)
         if likelihood == "gaussian":

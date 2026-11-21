@@ -70,7 +70,7 @@ class HMC(BaseOptimizer):
 
     :param max_iter: The number of sampling steps to perform. Defaults to 1000.
     :type max_iter: int, optional
-    :param epsilon: The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-5.
+    :param epsilon: The length of the integration step to perform for each leapfrog iteration. The momentum update will be of order epsilon * score. Defaults to 1e-4.
     :type epsilon: float, optional
     :param leapfrog_steps: Number of steps to perform with leapfrog integrator per sample of the HMC. Defaults to 10.
     :type leapfrog_steps: int, optional
@@ -128,10 +128,14 @@ class HMC(BaseOptimizer):
 
         Records the chain for later examination.
 
-        :param state: Model parameters as a 1D Array.
+        :param state: Model parameters to start from as a 1D Array. Defaults to
+            the `initial_state` given to the sampler, or the end of the chain
+            if this is not the first call.
         :type state: Array, optional
 
         """
+        if state is not None:
+            self.current_state = backend.as_array(state, dtype=config.DTYPE, device=config.DEVICE)
 
         def step(model, prior):
             x = pyro.sample("x", prior)
@@ -167,7 +171,7 @@ class HMC(BaseOptimizer):
             hmc_kernel.mass_matrix_adapter.inverse_mass_matrix = {("x",): self.inv_mass}
 
         # Provide an initial guess for the parameters
-        init_params = {"x": self.model.get_values()}
+        init_params = {"x": self.current_state}
 
         # Run MCMC with the HMC sampler and the initial guess
         mcmc_kwargs = {
@@ -186,6 +190,7 @@ class HMC(BaseOptimizer):
         chain = mcmc.get_samples()["x"]
 
         self.chain = chain
+        self.current_state = self.chain[-1]
         self.model.set_values(
             backend.as_array(self.chain[-1], dtype=config.DTYPE, device=config.DEVICE)
         )

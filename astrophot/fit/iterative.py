@@ -1,7 +1,7 @@
 import logging
 
 # Apply a different optimizer iteratively
-from typing import Dict, Any, Union, Sequence, Literal
+from typing import Dict, Any, Optional, Union, Sequence, Literal
 from time import time
 from functools import partial
 
@@ -32,13 +32,14 @@ class Iter(BaseOptimizer):
     models, then they will be optimized as a whole. This gives some flexibility
     to structure the models in a useful way.
 
-    If not given, the `lm_kwargs` will be set to a relative tolerance of 1e-3
-    and a maximum of 15 iterations. This is to allow for faster convergence, it
-    is not worthwhile for a single model to spend lots of time optimizing when
-    its neighbors havent converged.
+    The fit of each model reports nothing, and stops at a relative tolerance of
+    1e-3 or after 15 iterations. This is to allow for faster convergence, it is
+    not worthwhile for a single model to spend lots of time optimizing when its
+    neighbors havent converged. Each of these can be changed with `lm_kwargs`.
 
+    :param initial_state: Values for the parameters of the group model to start from, the models are set to these before fitting.
     :param max_iter: Maximum number of iterations, defaults to 100.
-    :param lm_kwargs: Keyword arguments to pass to `LM` optimizer.
+    :param lm_kwargs: Keyword arguments to pass to the `LM` optimizer of each model. These are added to the defaults ``{"verbose": 0, "relative_tolerance": 1e-3, "max_iter": 15}``, so only the options that are given change.
     """
 
     def __init__(
@@ -46,17 +47,17 @@ class Iter(BaseOptimizer):
         model: Model,
         initial_state: np.ndarray = None,
         max_iter: int = 100,
-        lm_kwargs: Dict[str, Any] = {"verbose": 0},
+        lm_kwargs: Optional[Dict[str, Any]] = None,
         **kwargs: Dict[str, Any],
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        self.current_state = model.get_values()
-        self.lm_kwargs = lm_kwargs
-        if "relative_tolerance" not in lm_kwargs:
-            # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
-            self.lm_kwargs["relative_tolerance"] = 1e-3
-            self.lm_kwargs["max_iter"] = 15
+        if initial_state is not None:
+            # each model is fit from its own values, so that is where the start has to go
+            model.set_values(self.current_state)
+        # Lower tolerance since it's not worth fine tuning a model when its neighbors will be shifting soon anyway
+        self.lm_kwargs = {"verbose": 0, "relative_tolerance": 1e-3, "max_iter": 15}
+        self.lm_kwargs.update(lm_kwargs or {})
         #          # pixels      # parameters
         self.ndf = self.model.target[self.model.window].flatten("data").shape[0] - len(
             self.current_state
@@ -110,7 +111,7 @@ class Iter(BaseOptimizer):
         else:
             self._count_finish = 0
 
-        self.iteration += 1
+        self.save_step()
 
     def fit(self) -> BaseOptimizer:
         """
@@ -168,6 +169,10 @@ class IterParam(BaseOptimizer):
     :param chunk_order: How to iterate through the chunks. Should be one of:
       ``"random"``, ``"sequential"``. Default: ``"sequential"``.
     :type chunk_order: str
+    :param max_step_iter: The most values of the damping factor to try for a
+      chunk in one iteration, each of which costs an evaluation of the model.
+      Default: 10.
+    :type max_step_iter: int
     """
 
     def __init__(
@@ -262,7 +267,8 @@ class IterParam(BaseOptimizer):
                 chunk[i : i + chunks] = True
                 new_chunks.append(chunk)
             chunks = new_chunks
-        return chunks
+        # as boolean masks, so that a selector given as 1 and 0 is not read as a list of indices
+        return [np.asarray(chunk, dtype=bool) for chunk in chunks]
 
     def iter_chunks(self):
         if self.chunk_order == "random":
@@ -309,6 +315,7 @@ class IterParam(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [self.L]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
+        self.iteration = 0
         self.report(
             f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
         )
@@ -334,6 +341,7 @@ class IterParam(BaseOptimizer):
                                 Lup=self.Lup,
                                 Ldn=self.Ldn,
                                 likelihood=self.likelihood,
+                                max_step_iter=self.max_step_iter,
                             )
                         self.current_state = self.model.from_valid(
                             backend.fill_at_indices(
@@ -351,6 +359,7 @@ class IterParam(BaseOptimizer):
                             Lup=self.Lup,
                             Ldn=self.Ldn,
                             likelihood=self.likelihood,
+                            max_step_iter=self.max_step_iter,
                         )
                         self.current_state = backend.fill_at_indices(
                             self.current_state, self.chunks[c], backend.copy(res["x"])
@@ -370,6 +379,7 @@ class IterParam(BaseOptimizer):
             self.L_history.append(self.L)
             self.loss_history.append(2 * res["nll"] / self.ndf)
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+            self.save_step()
             if self.check_convergence():
                 break
 

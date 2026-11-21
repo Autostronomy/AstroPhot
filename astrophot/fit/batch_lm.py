@@ -129,6 +129,7 @@ class BatchLM(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [backend.to_numpy(self.L)]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
+        self.iteration = 0
         self.report(
             f"==Starting LM fit for '{self.model.name}' with batch of {self.current_state.shape[0]} images with {self.current_state.shape[1]} dynamic parameters and {self.data.shape[1]} pixels=="
         )
@@ -172,6 +173,7 @@ class BatchLM(BaseOptimizer):
             self.L_history.append(backend.to_numpy(self.L))
             self.loss_history.append(2 * res["nll"] / backend.to_numpy(self.ndf))
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+            self.save_step()
 
             if self.check_convergence():
                 break

@@ -77,3 +77,15 @@ def test_covariance_matrix():
     fig, ax = ap.plots.covariance_matrix(covariance_matrix, mean, labels=["x", "y"])
     assert ax.shape == (2, 2), "one panel per pair of parameters"
     assert ax[1, 0].get_xlabel() == "x" and ax[1, 0].get_ylabel() == "y"
+
+
+def test_corner_plot():
+    rng = np.random.default_rng(1)
+    chain = rng.multivariate_normal([0, 5, -2], np.diag([1, 4, 0.25]), size=(100, 2))
+    fig, ax = ap.plots.corner_plot(chain, labels=["x", "y", "z"], reference_values=[0, 5, -2])
+    assert ax.shape == (3, 3), "one panel per pair of parameters, chains are joined"
+    assert ax[2, 0].get_xlabel() == "x" and ax[2, 0].get_ylabel() == "z"
+    assert ax[2, 1].get_xlim() == (chain[..., 1].min(), chain[..., 1].max())
+    assert len(ax[1, 0].collections[0].levels) == 2, "1 and 2 sigma contours"
+    assert not ax[0, 1].axison, "nothing above the diagonal"
+    plt.close(fig)

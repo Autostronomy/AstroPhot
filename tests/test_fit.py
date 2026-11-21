@@ -5,6 +5,8 @@ BatchLM is in test_fit_batch.py. The derivatives the fitters rely on
 """
 
 import logging
+import warnings
+from pathlib import Path
 
 import astrophot as ap
 import numpy as np
@@ -95,7 +97,8 @@ def test_fitters_iter(sersic_target):
     model.initialize()
     ll_init = model.gaussian_log_likelihood()
     pll_init = model.poisson_log_likelihood()
-    ap.fit.Iter(model, max_iter=2).fit()
+    ap.fit.Iter(model, max_iter=2, save_steps="cycle_{step}.hdf5").fit()
+    assert Path("cycle_1.hdf5").is_file() and Path("cycle_2.hdf5").is_file()
     ll_final = model.gaussian_log_likelihood()
     pll_final = model.poisson_log_likelihood()
     assert ll_final > ll_init, "Iter should improve the log likelihood"
@@ -106,6 +109,17 @@ def test_fitters_iter(sersic_target):
         assert ap.backend.all(
             ap.backend.isfinite(model.hessian(likelihood=likelihood))
         ), f"Hessian should be finite for {likelihood} likelihood"
+
+    # options for the fit of each model are added to the defaults
+    defaults = {"verbose": 0, "relative_tolerance": 1e-3, "max_iter": 15}
+    assert ap.fit.Iter(model, lm_kwargs={"max_iter": 3}).lm_kwargs == {**defaults, "max_iter": 3}
+    assert ap.fit.Iter(model).lm_kwargs == defaults, "the defaults should not have been changed"
+
+    # the models are fit from their own values, so that is where a start goes
+    start = ap.backend.to_numpy(model.get_values()).copy()
+    start[0] += 0.5
+    ap.fit.Iter(model, initial_state=start)
+    assert np.allclose(ap.backend.to_numpy(model.get_values()), start)
 
 
 def test_lm_singular_hessian():
@@ -192,6 +206,67 @@ def test_lm_step_stops_trying():
         )
 
 
+def test_max_step_iter(sersic_model, monkeypatch):
+    """`max_step_iter` is the most values of the damping that one LM step tries."""
+    from astrophot.fit.func import lm
+
+    problem = linear_problem([1.0, 1.0], 1.0, [5.0, -1.0])
+    inside, calls = problem["model"], []
+    problem["model"] = lambda x: calls.append(1) or inside(x)
+    lm.lm_step(**problem, L=1.0, max_step_iter=1)
+    assert len(calls) == 2, "one evaluation at the start, and one for the damping tried"
+    calls.clear()
+    lm.lm_step(**problem, L=1.0)
+    assert len(calls) > 2, "by default the search goes on while the fit improves"
+
+    # the fitters pass their option on to the step
+    given = []
+    monkeypatch.setattr(
+        ap.fit.func,
+        "lm_step",
+        lambda **kwargs: given.append(kwargs["max_step_iter"]) or lm.lm_step(**kwargs),
+    )
+    ap.fit.LM(sersic_model, max_iter=1, max_step_iter=2).fit()
+    ap.fit.IterParam(sersic_model, max_iter=1, max_step_iter=3).fit()
+    assert set(given) == {2, 3}
+
+
+@pytest.mark.parametrize("name", ["LM", "IterParam", "Slalom"])
+def test_save_steps(name, sersic_model):
+    """`save_steps` writes the model after every iteration, to a file that can be loaded."""
+    fitter = getattr(ap.fit, name)(sersic_model, max_iter=3, save_steps="step_{step}.hdf5")
+    fitter.fit()
+    assert fitter.iteration > 0
+    saved = sorted(path.name for path in Path.cwd().glob("step_*.hdf5"))
+    assert saved == [f"step_{i + 1}.hdf5" for i in range(fitter.iteration)]
+    sersic_model.load_state(saved[-1])
+    assert np.allclose(ap.backend.to_numpy(sersic_model.get_values()), fitter.lambda_history[-1])
+
+
+def test_hmc_start(sersic_model):
+    """HMC starts from the state it is given, the model is only the default."""
+    if ap.backend.backend == "jax":
+        pytest.skip("HMC not implemented for JAX backend")
+    start = ap.backend.to_numpy(sersic_model.get_values()).copy()
+    start[0] += 0.5
+    # with steps this short the chain stays where it began
+    options = {"max_iter": 2, "warmup": 5, "epsilon": 1e-8, "progress_bar": False}
+    sampler = ap.fit.HMC(sersic_model, initial_state=start, **options).fit()
+    assert np.allclose(ap.backend.to_numpy(sampler.chain[0]), start)
+    start[0] += 0.5
+    sampler.fit(state=start)
+    assert np.allclose(ap.backend.to_numpy(sampler.chain[0]), start)
+
+
+def test_scipy_tnc_max_iter(sersic_model):
+    """TNC has no limit on its iterations, `max_iter` limits its evaluations instead."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        res = ap.fit.ScipyFit(sersic_model, method="TNC", max_iter=5).fit()
+    assert not [w for w in caught if "Unknown solver options" in str(w.message)]
+    assert res.scipy_res.nfev <= 5
+
+
 def test_fitter_verbose(sersic_model, capsys):
     """The level of the logger chooses what fitters report, unless they are given `verbose`."""
 
@@ -219,8 +294,24 @@ def test_fitter_verbose(sersic_model, capsys):
     assert capsys.readouterr().out == ""
 
 
+def test_iterparam_chosen_chunks(sersic_model):
+    """Chunks given as 1 and 0 choose the parameters, they are not read as indices."""
+    chunks = ([1, 1, 0, 0, 0, 0, 0], [0, 0, 1, 1, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1])
+    start = ap.backend.to_numpy(sersic_model.get_values()).copy()
+    res = ap.fit.IterParam(sersic_model, chunks=chunks, max_iter=2).fit()
+    assert [int(np.sum(chunk)) for chunk in res.chunks] == [2, 2, 3]
+    moved = ap.backend.to_numpy(sersic_model.get_values()) != start
+    assert np.all(moved), "every parameter is in a chunk, so every one should be fit"
+    covariance = ap.backend.to_numpy(res.covariance_matrix)
+    assert covariance[0, 1] != 0 and covariance[0, 2] == 0, "only known inside a chunk"
+
+
 def test_fitter_options(sersic_model):
     model = sersic_model
+
+    # weights given to the fitter are used in place of those of the target
+    weighted = ap.fit.LM(model, W=4 * model.target.weight).chi2_ndf().item()
+    assert np.isclose(weighted, 4 * ap.fit.LM(model).chi2_ndf().item())
 
     with pytest.raises(ValueError):
         ap.fit.LM(model, likelihood="unknown")

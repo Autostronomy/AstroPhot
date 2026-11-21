@@ -19,7 +19,7 @@ class BaseOptimizer:
     :param relative_tolerance: tolerance for counting success steps as: $0 < (\\chi_2^2 - \\chi_1^2)/\\chi_1^2 < \\text{tol}$ [float]
     :param verbose: how much the optimizer reports while it runs. With None, the default, this is left to the AstroPhot logger: progress is logged at the INFO level and extra detail at DEBUG, see ``ap.set_logger``. A number sets it for this optimizer alone: 0 for no progress, 1 for progress, 2 to add the extra detail [int]
     :param max_iter: maximum allowed number of iterations [int]
-    :param save_steps: optional string for path to save the model at each step (fitter dependent), e.g. "model_step_{step}.hdf5" [str]
+    :param save_steps: optional path at which to save the state of the model after every iteration, as an HDF5 file that ``model.load_state`` can read. Put ``{step}`` in the name for one file per iteration, e.g. "model_step_{step}.hdf5", without it the file always holds the latest iteration. Used by the optimizers that iterate in AstroPhot: LM, BatchLM, Iter, IterParam and Slalom [str]
     :param fit_valid: whether to fit while forcing parameters into valid range, or allow any value for each parameter. Default True [bool]
 
     """
@@ -68,6 +68,13 @@ class BaseOptimizer:
             config.logger.log(level if detail <= 1 else logging.DEBUG, message)
         elif self.verbose >= detail:
             config.logger.log(level, message)
+
+    def save_step(self) -> None:
+        """Count an iteration, and save the model as it now is when `save_steps` was given."""
+        self.iteration += 1
+        if self.save_steps is not None:
+            self.model.set_values(self.current_state)
+            self.model.save_state(self.save_steps.format(step=self.iteration))
 
     def fit(self) -> "BaseOptimizer":
         raise NotImplementedError("Please use a subclass of BaseOptimizer for optimization")

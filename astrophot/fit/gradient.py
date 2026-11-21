@@ -10,7 +10,7 @@ from ..models import Model
 from ..errors import OptimizeStopFail, OptimizeStopSuccess
 from . import func
 
-__all__ = ["Grad"]
+__all__ = ("Slalom",)
 
 
 class Slalom(BaseOptimizer):
@@ -41,7 +41,7 @@ class Slalom(BaseOptimizer):
     :type report_freq: int, optional
     :param relative_tolerance: The relative tolerance for convergence. Defaults to 1e-4.
     :type relative_tolerance: float, optional
-    :param momentum: The momentum factor for the Slalom optimizer. Defaults to 0.5.
+    :param momentum: The momentum factor for the Slalom optimizer. Defaults to 0.9.
     :type momentum: float, optional
     :param max_iter: The maximum number of iterations for the optimizer. Defaults to 1000.
     :type max_iter: int, optional
@@ -88,6 +88,7 @@ class Slalom(BaseOptimizer):
         self.S_history = [self.S]
         self.loss_history = [self.density(self.current_state).item()]
         self.lambda_history = [backend.to_numpy(self.current_state)]
+        self.iteration = 0
         self.start_fit = time()
 
         for i in range(self.max_iter):
@@ -116,6 +117,7 @@ class Slalom(BaseOptimizer):
             self.S_history.append(self.S)
             self.loss_history.append(loss)
             self.lambda_history.append(backend.to_numpy(self.current_state))
+            self.save_step()
 
             if i % int(self.report_freq) == 0 or i == self.max_iter - 1:
                 self.report(f"iter: {i}, step size: {self.S:.6e}, posterior density: {loss:.6e}")

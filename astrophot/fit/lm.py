@@ -133,6 +133,17 @@ class LM(BaseOptimizer):
     state, and various other optional parameters as inputs and seeks
     to find the parameters that minimize the cost function.
 
+    :param L0: The damping factor to start with. Defaults to 1.
+    :param Lup: Factor by which the damping is increased after a rejected step. Defaults to 11.
+    :param Ldn: Factor by which the damping is decreased after a good step. Defaults to 9.
+    :param max_step_iter: The most values of the damping factor to try in one iteration, each of which costs an evaluation of the model. Defaults to 10.
+    :param ndf: Degrees of freedom for the reported loss. Defaults to the number of unmasked pixels minus the number of parameters.
+    :param W: Weights to use in place of those of the target image, as an array like ``target.weight``.
+    :param likelihood: "gaussian" or "poisson". Defaults to "gaussian".
+    :param constraint: An `LMConstraint` to add priors or constraints to the fit.
+    :param forward: Function to use in place of the model, from the vector of parameters to the flattened image.
+    :param jacobian: Function to use in place of the jacobian of the model, from the vector of parameters to the jacobian of the flattened image.
+
     """
 
     def __init__(
@@ -146,6 +157,7 @@ class LM(BaseOptimizer):
         L0=1.0,
         max_step_iter: int = 10,
         ndf=None,
+        W=None,
         likelihood="gaussian",
         constraint: Optional[LMConstraint] = None,
         forward=None,
@@ -182,9 +194,8 @@ class LM(BaseOptimizer):
         self.Y = self.model.target[self.model.window].flatten("data")[self.mask]
 
         # 1 / (sigma^2)
-        kW = kwargs.get("W", None)
-        if kW is not None:
-            self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
+        if W is not None:
+            self.W = backend.as_array(W, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
         else:
@@ -263,6 +274,7 @@ class LM(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [self.L]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
+        self.iteration = 0
         self.report(
             f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
         )
@@ -282,6 +294,7 @@ class LM(BaseOptimizer):
                             Lup=self.Lup,
                             Ldn=self.Ldn,
                             likelihood=self.likelihood,
+                            max_step_iter=self.max_step_iter,
                         )
                     self.current_state = self.model.from_valid(backend.copy(res["x"]))
                 else:
@@ -295,6 +308,7 @@ class LM(BaseOptimizer):
                         Lup=self.Lup,
                         Ldn=self.Ldn,
                         likelihood=self.likelihood,
+                        max_step_iter=self.max_step_iter,
                     )
                     self.current_state = backend.copy(res["x"])
             except OptimizeStopFail:
@@ -316,6 +330,7 @@ class LM(BaseOptimizer):
             self.L_history.append(res["L"])
             self.loss_history.append(2 * res["nll"] / self.ndf)
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+            self.save_step()
 
             if self.check_convergence():
                 break
