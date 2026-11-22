@@ -118,7 +118,8 @@ class Iter(BaseOptimizer):
         Perform the iterative fitting process until convergence or maximum iterations reached.
         """
         self.iteration = 0
-        self.Y = self.model(params=self.current_state)
+        self.model.set_values(self.current_state)
+        self.Y = self.model()
         start_fit = time()
         try:
             while True:

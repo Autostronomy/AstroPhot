@@ -262,7 +262,7 @@ class WarpMixin:
     original coordinates X, Y. This is achieved by making PA and q a spline
     profile.
 
-    :param q_R: Array of axis ratio values for axis ratio spline
+    :param q_R: Array of axis ratio values for axis ratio spline. Default range (0.1, 1)
     :param PA_R: Array of position angle values as input to the spline
 
     """
@@ -271,7 +271,7 @@ class WarpMixin:
     _parameter_specs = {
         "q_R": {
             "units": "b/a",
-            "valid": (0.01, 1),
+            "valid": (0.1, 1),
             "shape": (None,),
             "dynamic": True,
             "description": "Array of axis ratio values for axis ratio spline",

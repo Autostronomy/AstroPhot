@@ -35,6 +35,21 @@ def test_target_image_list(sersic_target_factory):
     ap.plots.target_image(fig, ax, target)
     assert all(a.has_data() for a in ax)
 
+    # Constant target does not raise
+    fig, ax = plt.subplots()
+    target = ap.TargetImage(data=np.zeros((10, 10)), name="pathological_test_target")
+    ap.plots.target_image(fig, ax, target)
+    plt.close()
+
+    # Target of non-finite values does not raise
+    fig, ax = plt.subplots()
+    data = np.full((10, 10), np.nan)
+    data[0, 0] = 1.0
+    data[5, 5] = 2.0
+    target = ap.TargetImage(data=data, name="pathological_test_target")
+    ap.plots.target_image(fig, ax, target)
+    plt.close()
+
 
 @pytest.mark.parametrize("plot", [ap.plots.model_image, ap.plots.residual_image])
 def test_model_image(plot, fig_ax, sersic_model):
