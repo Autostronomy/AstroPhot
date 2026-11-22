@@ -1,9 +1,10 @@
-from scipy.linalg import sqrtm
 import numpy as np
 
 
 def polar_decomposition(A):
     # Step 1: Compute symmetric positive-definite matrix P
+    from scipy.linalg import sqrtm  # here to keep `import astrophot` fast
+
     M = A.T @ A
     P = sqrtm(M)  # Principal square root of A^T A
 

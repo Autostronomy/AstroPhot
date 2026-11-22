@@ -45,6 +45,8 @@ class PixelatedPSF(PSFModel):
         }
     }
     usable = True
+    # one parameter per pixel, so larger chunks of the jacobian to keep the number of passes down
+    jacobian_maxparams = 128
 
     @ignore_numpy_warnings
     def initialize(self):

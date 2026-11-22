@@ -1,4 +1,12 @@
-from .lm import lm_step, hessian, gradient, hessian_poisson, gradient_poisson, batch_lm_step
+from .lm import (
+    lm_step,
+    hessian,
+    gradient,
+    hessian_poisson,
+    gradient_poisson,
+    batch_lm_step,
+    invert_hessian,
+)
 from .slalom import slalom_step
 from .mala import mala
 
@@ -10,5 +18,6 @@ __all__ = [
     "slalom_step",
     "hessian_poisson",
     "gradient_poisson",
+    "invert_hessian",
     "mala",
 ]
