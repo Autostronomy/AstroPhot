@@ -1,10 +1,11 @@
 from functools import lru_cache
-from scipy.special import binom
 import numpy as np
 
 
 @lru_cache(maxsize=1024)
 def coefficients(n: int, m: int) -> list[tuple[int, float]]:
+    from scipy.special import binom  # here to keep `import astrophot` fast
+
     C = []
     for k in range(int((n - abs(m)) / 2) + 1):
         C.append(

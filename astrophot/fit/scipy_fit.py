@@ -1,6 +1,5 @@
 from typing import Sequence, Literal
 
-from scipy.optimize import minimize
 import numpy as np
 
 from .base import BaseOptimizer
@@ -22,6 +21,7 @@ class ScipyFit(BaseOptimizer):
     :param model: The model to fit, which should be an instance of `Model`.
     :param initial_state: Initial guess for the model parameters as a 1D Array.
     :param method: The optimization method to use. Default is "L-BFGS-B", but can be set to any of: "Nelder-Mead", "L-BFGS-B", "TNC", "SLSQP", "Powell", or "trust-constr".
+    :param max_iter: Maximum number of iterations, given to scipy as its ``maxiter`` option. The "TNC" method has no such option, for it this is the maximum number of evaluations of the likelihood (``maxfun``). Default is 100 per parameter.
     :param ndf: Optional number of degrees of freedom for the fit. If not provided, it is calculated as the number of data points minus the number of parameters.
     """
 
@@ -82,6 +82,7 @@ class ScipyFit(BaseOptimizer):
             raise ValueError(f"Unknown likelihood type: {self.likelihood}")
 
     def fit(self):
+        from scipy.optimize import minimize  # here to keep `import astrophot` fast
 
         density_grad = backend.grad(self.density)
         res = minimize(
@@ -94,17 +95,15 @@ class ScipyFit(BaseOptimizer):
             ),
             method=self.method,
             bounds=self.numpy_bounds(),
-            options={
-                "maxiter": self.max_iter,
-            },
+            # TNC is the one method without a limit on its iterations
+            options={"maxfun" if self.method == "TNC" else "maxiter": self.max_iter},
         )
         self.scipy_res = res
         self.message = self.message + f"success: {res.success}, message: {res.message}"
         self.current_state = backend.as_array(res.x, dtype=config.DTYPE, device=config.DEVICE)
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final 2NLL/DoF: {2*self.density(self.current_state)/self.ndf:.6g}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final 2NLL/DoF: {2*self.density(self.current_state)/self.ndf:.6g}. Converged: {self.message}"
+        )
         self.model.set_values(self.current_state)
 
         return self

@@ -83,6 +83,15 @@ repos:
 
   - repo: local
     hooks:
+      # Rewrites astrophot/models/radial.py and radial_psf.py from the lists in the
+      # script. A commit stops if that changed them, add the files and commit again.
+      - id: generate-model-classes
+        name: Generate the radial model classes
+        language: python
+        entry: python tools/generate_model_classes.py
+        pass_filenames: false
+        files: ^(tools/generate_model_classes\.py|astrophot/models/radial(_psf)?\.py)$
+
       - id: disallow-caps
         name: Disallow improper capitalization
         language: pygrep
