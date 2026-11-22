@@ -1,7 +1,7 @@
 from typing import Optional, Sequence, Union
 
 import numpy as np
-from caskade import forward
+from caskade import forward, NodeList
 
 from .base import Model
 from ..image import (
@@ -51,7 +51,7 @@ class GroupModel(Model):
     ):
         super().__init__(**kwargs)
         if models is None:
-            models = []
+            models = NodeList([])
         for model in models:
             if not isinstance(model, Model):
                 raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
