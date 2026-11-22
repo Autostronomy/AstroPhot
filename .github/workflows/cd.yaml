@@ -45,7 +45,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: "3.13"
