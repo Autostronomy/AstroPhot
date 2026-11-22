@@ -1,12 +1,8 @@
+"""CMOSTargetImage and CMOSModelImage, pixels with a sensitive sub-region (astrophot/image/cmos_image.py)."""
+
 import astrophot as ap
-import torch
 import numpy as np
-
 import pytest
-
-######################################################################
-# Image Objects
-######################################################################
 
 
 @pytest.fixture()
@@ -32,7 +28,6 @@ def test_cmos_image_creation(cmos_target):
     assert cmos_copy.subpixel_loc == (-0.25, -0.25), "image should track subpixel location"
     assert cmos_copy.subpixel_scale == 0.5, "image should track subpixel scale"
 
-    print(cmos_target.data.shape)
     i, j = cmos_target.pixel_center_meshgrid()
     assert i.shape == (15, 10), "meshgrid should have correct shape"
     assert j.shape == (15, 10), "meshgrid should have correct shape"
@@ -67,12 +62,12 @@ def test_cmos_model_sample(cmos_target):
     ), "sampled image should have the same subpixel location"
 
 
-def test_cmos_image_save_load(cmos_target):
+def test_cmos_image_save_load(cmos_target, tmp_path):
     # Save the image
-    cmos_target.save("cmos_image.fits")
+    cmos_target.save(tmp_path / "cmos_image.fits")
 
     # Load the image
-    loaded_image = ap.CMOSTargetImage(filename="cmos_image.fits")
+    loaded_image = ap.CMOSTargetImage(filename=tmp_path / "cmos_image.fits")
 
     # Check if the loaded image matches the original
     assert ap.backend.allclose(

@@ -1,10 +1,11 @@
 import numpy as np
-from scipy.ndimage import gaussian_filter
-from scipy.stats import binned_statistic
 from ...backend_obj import backend, ArrayLike
 
 
 def auto_variance(data: ArrayLike, mask=None):
+    # imported here to keep `import astrophot` fast
+    from scipy.ndimage import gaussian_filter
+    from scipy.stats import binned_statistic
 
     if isinstance(data, backend.array_type):
         data = backend.to_numpy(data)

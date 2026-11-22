@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import numpy as np
@@ -78,21 +79,9 @@ class Image(Module):
             self._identity = identity
 
         if wcs is not None:
-            if wcs.wcs.ctype[0] not in self.expect_ctype[0]:
-                config.logger.warning(
-                    "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
-                )
-            if wcs.wcs.ctype[1] not in self.expect_ctype[1]:
-                config.logger.warning(
-                    "Astropy WCS not tangent plane coordinate system! May not be compatible with AstroPhot."
-                )
-
-            crval = wcs.wcs.crval
-            crpix = np.array(wcs.wcs.crpix)[::-1] - 1  # handle FITS 1-indexing
-
             if CD is not None:
                 config.logger.warning("WCS CD set with supplied WCS, ignoring user supplied CD!")
-            CD = deg_to_arcsec * wcs.pixel_scale_matrix
+            crval, crpix, CD = self._wcs_values(wcs)
 
         # set the data
         self.crval = Param(
@@ -117,6 +106,43 @@ class Image(Module):
         if filename is not None:
             self.load(filename, hduext=hduext)
             return
+
+    def _wcs_values(self, wcs: AstropyWCS) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """The crval (deg), crpix (0-indexed) and CD (arcsec/pixel) for an astropy WCS.
+
+        AstroPhot works on a tangent plane of RA and Dec. A WCS with another
+        projection (``RA---CAR``, ...) or another celestial frame (galactic,
+        ...) does not mean the same thing by these values, so its tangent plane
+        approximation about the centre of the image is used instead.
+        """
+        ctype = tuple(wcs.wcs.ctype)
+        tangent = ctype[0].startswith("RA---TAN") and ctype[1].startswith("DEC--TAN")
+        if wcs.has_celestial and not tangent:
+            try:
+                approx = func.tangent_plane_wcs(wcs, tuple(self._data.shape[:2]))
+            except ValueError:  # a celestial frame that astropy has no conversion for
+                approx = None
+            if approx is not None:
+                where = "its reference pixel"
+                if approx["max_offset"] is not None:
+                    where = (
+                        "the centre of the image, which is off by up to "
+                        f"{approx['max_offset']:.2g} arcsec at the corners"
+                    )
+                config.logger.warning(
+                    f"WCS with CTYPE {ctype} is not the tangent plane of RA and Dec that "
+                    f"AstroPhot works in. Using a tangent plane approximation about {where}."
+                )
+                return approx["crval"], approx["crpix"], approx["CD"]
+        if ctype[0] not in self.expect_ctype[0] or ctype[1] not in self.expect_ctype[1]:
+            config.logger.warning(
+                f"WCS has CTYPE {ctype} where {type(self).__name__} expects "
+                f"{(self.expect_ctype[0][0], self.expect_ctype[1][0])}, using its "
+                "reference values as they are. May not be compatible with AstroPhot."
+            )
+        # FITS axis 1 is the i axis and FITS axis 2 is the j axis of the image,
+        # so the order is kept. Only the FITS 1-indexing is removed.
+        return wcs.wcs.crval, np.array(wcs.wcs.crpix) - 1, deg_to_arcsec * wcs.pixel_scale_matrix
 
     @property
     def identity(self):
@@ -464,11 +490,17 @@ class Image(Module):
         ]
 
     def get_astropywcs(self, **kwargs):
+        """An astropy WCS which maps pixels to the same world coordinates as
+        this image. FITS has no equivalent of ``crtan``, so a non-zero ``crtan``
+        is expressed by moving the reference pixel."""
+        crpix = self.crpix - np.linalg.inv(self.CD.npvalue) @ self.crtan.npvalue
         kwargs = {
             "NAXIS": 2,
-            "NAXIS1": self.shape[0].item(),
-            "NAXIS2": self.shape[1].item(),
+            "NAXIS1": self._data.shape[0],
+            "NAXIS2": self._data.shape[1],
             **self.fits_info(),
+            "CRPIX1": crpix[0] + 1,
+            "CRPIX2": crpix[1] + 1,
             **kwargs,
         }
         return AstropyWCS(kwargs)
@@ -477,30 +509,40 @@ class Image(Module):
         hdulist = fits.HDUList(self.fits_images())
         hdulist.writeto(filename, overwrite=True)
 
-    def load(self, filename: Union[str, fits.HDUList], hduext: int = 0):
+    def load(self, filename: Union[str, Path, fits.HDUList], hduext: int = 0):
         """Load an image from a FITS file. This will load the primary HDU
         and set the data, CD, crpix, crval, and crtan attributes
-        accordingly. If the WCS is not tangent plane, it will warn the user.
+        accordingly. A header without a CD matrix is read by astropy, and if
+        its WCS is not a tangent plane of RA and Dec then the tangent plane
+        approximation of it is used, with a warning.
 
         """
-        if isinstance(filename, str):
+        if isinstance(filename, (str, Path)):
             hdulist = fits.open(filename)
         else:
             hdulist = filename
         self.data = np.array(hdulist[hduext].data, dtype=np.float64)
 
-        self.CD = (
-            np.array(
-                (
-                    (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
-                    (hdulist[hduext].header["CD2_1"], hdulist[hduext].header["CD2_2"]),
-                ),
-                dtype=np.float64,
+        if "CD1_1" in hdulist[hduext].header:  # as written by AstroPhot
+            self.CD = (
+                np.array(
+                    (
+                        (hdulist[hduext].header["CD1_1"], hdulist[hduext].header["CD1_2"]),
+                        (hdulist[hduext].header["CD2_1"], hdulist[hduext].header["CD2_2"]),
+                    ),
+                    dtype=np.float64,
+                )
+                * deg_to_arcsec
             )
-            * deg_to_arcsec
-        )
-        self.crpix = (hdulist[hduext].header["CRPIX1"] - 1, hdulist[hduext].header["CRPIX2"] - 1)
-        self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
+            self.crpix = (
+                hdulist[hduext].header["CRPIX1"] - 1,
+                hdulist[hduext].header["CRPIX2"] - 1,
+            )
+            self.crval = (hdulist[hduext].header["CRVAL1"], hdulist[hduext].header["CRVAL2"])
+        else:  # other FITS conventions (CDELT, PC, CROTA) are read by astropy
+            wcs = AstropyWCS(hdulist[hduext].header)
+            if wcs.has_celestial:
+                self.crval, self.crpix, self.CD = self._wcs_values(wcs)
         if "CRTAN1" in hdulist[hduext].header and "CRTAN2" in hdulist[hduext].header:
             self.crtan = (hdulist[hduext].header["CRTAN1"], hdulist[hduext].header["CRTAN2"])
         if "MAGZP" in hdulist[hduext].header and hdulist[hduext].header["MAGZP"] > -998:

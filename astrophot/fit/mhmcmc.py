@@ -3,11 +3,6 @@ from typing import Optional, Sequence
 
 import numpy as np
 
-try:
-    import emcee
-except ImportError:
-    emcee = None
-
 from .base import BaseOptimizer
 from ..models import Model
 from .. import config
@@ -39,7 +34,10 @@ class MHMCMC(BaseOptimizer):
     ):
         super().__init__(model, initial_state, max_iter=max_iter, **kwargs)
 
-        if emcee is None:
+        # emcee is imported where it is used to keep `import astrophot` fast
+        try:
+            import emcee  # noqa: F401
+        except ImportError:
             raise ImportError(
                 "The emcee package is required for MHMCMC sampling. Please install it with `pip install emcee` or the like."
             )
@@ -89,6 +87,8 @@ class MHMCMC(BaseOptimizer):
         else:
             nwalkers = state.shape[0]
         ndim = state.shape[1]
+        import emcee
+
         sampler = emcee.EnsembleSampler(nwalkers, ndim, self.density(), vectorize=True)
         state = sampler.run_mcmc(state, nsamples, skip_initial_state_check=skip_initial_state_check)
         if restart_chain:

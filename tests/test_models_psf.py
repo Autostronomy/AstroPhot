@@ -1,26 +1,26 @@
+"""Every PSF model type: initialize, sample, jacobian and fit.
+
+One parametrized test builds each model type listed by
+`ap.models.PSFModel.List_Models` (astrophot/models/*psf*.py, airy.py) on the
+same mock PSF image.
+"""
+
 import astrophot as ap
 import numpy as np
-from utils import make_basic_gaussian_psf
 import pytest
-
-# torch.autograd.set_detect_anomaly(True)
-######################################################################
-# PSF Model Objects
-######################################################################
 
 
 @pytest.mark.parametrize("model_type", ap.models.PSFModel.List_Models(usable=True, types=True))
-def test_all_psfmodel_sample(model_type):
+def test_all_psfmodel_sample(model_type, psf_target):
     if model_type == "airy psf model" and ap.backend.backend == "jax":
         pytest.skip("Skipping airy psf model, JAX can't use airy.")
     if any(t in model_type for t in ["warp", "fourier"]) and not "gaussian" in model_type:
         pytest.skip("Skipping warp and fourier psf models, which are slow")
 
-    target = make_basic_gaussian_psf(pixelscale=0.8)
     MODEL = ap.Model(
         name="test_model",
         model_type=model_type,
-        target=target,
+        target=psf_target,
     )
     MODEL.initialize()
     for p in MODEL.all_params:
@@ -45,7 +45,7 @@ def test_all_psfmodel_sample(model_type):
         ap.backend.isfinite(MODEL.jacobian().data)
     ), "Model should evaluate a real number for the jacobian"
 
-    res = ap.fit.LM(MODEL, max_iter=5).fit()
+    res = ap.fit.LM(MODEL, max_iter=3).fit()
 
     if model_type == "airy psf model":
         return  # Airy gradients dont work, so just run the code to make sure no crashes

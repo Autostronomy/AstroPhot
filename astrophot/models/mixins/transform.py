@@ -101,6 +101,13 @@ class InclinedMixin:
         return x, y / q
 
 
+class EllipseMixin(InclinedMixin):
+    """PSF model with elliptical isophotes defined by a position angle and axis ratio."""
+
+    usable = False
+    _model_type = "ellipse"
+
+
 class SuperEllipseMixin:
     """Uses a generalized definition of radius to make boxy/disky models.
 
@@ -255,7 +262,7 @@ class WarpMixin:
     original coordinates X, Y. This is achieved by making PA and q a spline
     profile.
 
-    :param q_R: Array of axis ratio values for axis ratio spline
+    :param q_R: Array of axis ratio values for axis ratio spline. Default range (0.1, 1)
     :param PA_R: Array of position angle values as input to the spline
 
     """

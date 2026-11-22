@@ -1,12 +1,11 @@
+"""Group models: several models added together, on one image or jointly on
+several (astrophot/models/group_model_object.py, group_psf_model.py)."""
+
 import astrophot as ap
 import numpy as np
 
-import astrophot as ap
-from utils import make_basic_sersic, make_basic_gaussian_psf
-
 
 def test_jointmodel_creation():
-    np.random.seed(12345)
     shape = (10, 15)
     tar1 = ap.TargetImage(
         name="target1",
@@ -46,8 +45,8 @@ def test_jointmodel_creation():
     ).item(), "model_image should be real"
 
 
-def test_psfgroupmodel_creation():
-    tar = make_basic_gaussian_psf()
+def test_psfgroupmodel_creation(psf_target):
+    tar = psf_target
 
     mod1 = ap.Model(
         name="base_model_1",
@@ -75,11 +74,11 @@ def test_psfgroupmodel_creation():
     ), "PSF group sample should be greater than or equal to zero"
 
 
-def test_joint_multi_band_multi_object():
-    target1 = make_basic_sersic(52, 53, name="target1")
-    target2 = make_basic_sersic(48, 65, name="target2")
-    target3 = make_basic_sersic(60, 49, name="target3")
-    target4 = make_basic_sersic(60, 49, name="target4")
+def test_joint_multi_band_multi_object(sersic_target_factory):
+    target1 = sersic_target_factory(52, 53, name="target1")
+    target2 = sersic_target_factory(48, 65, name="target2")
+    target3 = sersic_target_factory(60, 49, name="target3")
+    target4 = sersic_target_factory(60, 49, name="target4")
 
     # fmt: off
     model11 = ap.Model(name="model11", model_type="sersic galaxy model", window=(0, 50, 5, 52), target=target1)

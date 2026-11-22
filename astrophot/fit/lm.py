@@ -1,3 +1,5 @@
+import logging
+
 # Levenberg-Marquardt algorithm
 from typing import Sequence, Optional
 
@@ -131,6 +133,17 @@ class LM(BaseOptimizer):
     state, and various other optional parameters as inputs and seeks
     to find the parameters that minimize the cost function.
 
+    :param L0: The damping factor to start with. Defaults to 1.
+    :param Lup: Factor by which the damping is increased after a rejected step. Defaults to 11.
+    :param Ldn: Factor by which the damping is decreased after a good step. Defaults to 9.
+    :param max_step_iter: The most values of the damping factor to try in one iteration, each of which costs an evaluation of the model. Defaults to 10.
+    :param ndf: Degrees of freedom for the reported loss. Defaults to the number of unmasked pixels minus the number of parameters.
+    :param W: Weights to use in place of those of the target image, as an array like ``target.weight``.
+    :param likelihood: "gaussian" or "poisson". Defaults to "gaussian".
+    :param constraint: An `LMConstraint` to add priors or constraints to the fit.
+    :param forward: Function to use in place of the model, from the vector of parameters to the flattened image.
+    :param jacobian: Function to use in place of the jacobian of the model, from the vector of parameters to the jacobian of the flattened image.
+
     """
 
     def __init__(
@@ -144,6 +157,7 @@ class LM(BaseOptimizer):
         L0=1.0,
         max_step_iter: int = 10,
         ndf=None,
+        W=None,
         likelihood="gaussian",
         constraint: Optional[LMConstraint] = None,
         forward=None,
@@ -180,9 +194,8 @@ class LM(BaseOptimizer):
         self.Y = self.model.target[self.model.window].flatten("data")[self.mask]
 
         # 1 / (sigma^2)
-        kW = kwargs.get("W", None)
-        if kW is not None:
-            self.W = backend.as_array(kW, dtype=config.DTYPE, device=config.DEVICE).flatten()[
+        if W is not None:
+            self.W = backend.as_array(W, dtype=config.DTYPE, device=config.DEVICE).flatten()[
                 self.mask
             ]
         else:
@@ -248,8 +261,7 @@ class LM(BaseOptimizer):
         """
 
         if len(self.current_state) == 0:
-            if self.verbose > 0:
-                config.logger.warning("No parameters to optimize. Exiting fit")
+            self.report("No parameters to optimize. Exiting fit", level=logging.WARNING)
             self.message = "No parameters to optimize. Exiting fit"
             return self
 
@@ -262,14 +274,13 @@ class LM(BaseOptimizer):
         self._covariance_matrix = None
         self.L_history = [self.L]
         self.lambda_history = [backend.to_numpy(backend.copy(self.current_state))]
-        if self.verbose > 0:
-            config.logger.info(
-                f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
-            )
+        self.iteration = 0
+        self.report(
+            f"==Starting LM fit for '{self.model.name}' with {len(self.current_state)} dynamic parameters and {len(self.Y)} pixels=="
+        )
 
         for _ in range(self.max_iter):
-            if self.verbose > 0:
-                config.logger.info(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
+            self.report(f"{quantity}: {self.loss_history[-1]:.6g}, L: {self.L:.3g}")
             try:
                 if self.fit_valid:
                     with ValidContext(self.model), ValidContext(self.constraint):
@@ -283,6 +294,7 @@ class LM(BaseOptimizer):
                             Lup=self.Lup,
                             Ldn=self.Ldn,
                             likelihood=self.likelihood,
+                            max_step_iter=self.max_step_iter,
                         )
                     self.current_state = self.model.from_valid(backend.copy(res["x"]))
                 else:
@@ -296,19 +308,21 @@ class LM(BaseOptimizer):
                         Lup=self.Lup,
                         Ldn=self.Ldn,
                         likelihood=self.likelihood,
+                        max_step_iter=self.max_step_iter,
                     )
                     self.current_state = backend.copy(res["x"])
             except OptimizeStopFail:
-                if self.verbose > 0:
-                    config.logger.warning("Could not find step to improve Chi^2, stopping")
+                self.report(
+                    "Could not find step to improve Chi^2, stopping",
+                    level=logging.WARNING,
+                )
                 self.message = (
                     self.message
                     + "success by immobility. Could not find step to improve Chi^2. Convergence not guaranteed"
                 )
                 break
             except OptimizeStopSuccess as e:
-                if self.verbose > 0:
-                    config.logger.info(f"Optimization converged successfully: {e}")
+                self.report(f"Optimization converged successfully: {e}")
                 self.message = self.message + "success"
                 break
 
@@ -316,6 +330,7 @@ class LM(BaseOptimizer):
             self.L_history.append(res["L"])
             self.loss_history.append(2 * res["nll"] / self.ndf)
             self.lambda_history.append(backend.to_numpy(backend.copy(self.current_state)))
+            self.save_step()
 
             if self.check_convergence():
                 break
@@ -323,10 +338,9 @@ class LM(BaseOptimizer):
         else:
             self.message = self.message + "fail. Maximum iterations"
 
-        if self.verbose > 0:
-            config.logger.info(
-                f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
-            )
+        self.report(
+            f"Final {quantity}: {np.nanmin(self.loss_history):.6g}, L: {self.L_history[np.nanargmin(self.loss_history)]:.3g}. Converged: {self.message}"
+        )
 
         self.model.set_values(
             backend.as_array(self.res(), dtype=config.DTYPE, device=config.DEVICE)
@@ -379,13 +393,11 @@ class LM(BaseOptimizer):
             hess = func.hessian(J, self.W)
         elif self.likelihood == "poisson":
             hess = func.hessian_poisson(J, self.Y, self.forward(self.current_state))
-        try:
-            self._covariance_matrix = backend.linalg.inv(hess)
-        except:
+        self._covariance_matrix, singular = func.invert_hessian(hess)
+        if singular:
             config.logger.warning(
-                "WARNING: Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
+                "Hessian is singular, likely at least one parameter is non-physical. Will use pseudo-inverse of Hessian to continue but results should be inspected."
             )
-            self._covariance_matrix = backend.linalg.pinv(hess)
         return self._covariance_matrix
 
     def update_uncertainty(self) -> None:

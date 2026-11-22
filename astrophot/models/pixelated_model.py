@@ -64,6 +64,8 @@ class Pixelated(ComponentModel):
         },
     }
     usable = True
+    # one parameter per pixel, so larger chunks of the jacobian to keep the number of passes down
+    jacobian_maxparams = 128
 
     def __init__(self, *args, sampling_mode="upsample:3", integrate_mode="none", **kwargs):
         super().__init__(
