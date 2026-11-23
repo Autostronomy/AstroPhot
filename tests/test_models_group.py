@@ -118,3 +118,19 @@ def test_joint_multi_band_multi_object(sersic_target_factory):
 
     window = model.window
     assert isinstance(window, ap.WindowList), "Window should be a WindowList"
+
+
+def test_empty_group_model(sersic_model):
+    target = sersic_model.target
+    empty_group = ap.Model(name="empty_group", model_type="group model", target=target)
+    empty_group.models.append(sersic_model)
+    empty_group.initialize()
+    sample = empty_group()
+    assert isinstance(sample, ap.ModelImage), "Sample should be a ModelImage"
+    assert (
+        sample.data.T.shape == sersic_model.window.shape
+    ), "Sample image shape should match the model window shape"
+
+    assert len(empty_group.models) == 1, "Empty group should have one model after appending"
+    assert empty_group.models[0] is sersic_model
+    assert empty_group.models.test_sersic is sersic_model
