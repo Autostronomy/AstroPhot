@@ -1,4 +1,5 @@
-from . import config, models, plots, utils, fit, image, errors
+from . import config, models, utils, fit, image, errors
+from .config import set_logger
 from .param import forward, Param, Module
 
 from .image import (
@@ -30,9 +31,18 @@ try:
     from ._version import version as VERSION  # noqa
 except ModuleNotFoundError:
     VERSION = "0.0.0"
-    print(
-        "WARNING: AstroPhot version number not found. This is likely because you are running AstroPhot from a source directory."
+    config.logger.warning(
+        "AstroPhot version number not found. This is likely because you are running AstroPhot from a source directory."
     )
+
+
+def __getattr__(name):
+    # matplotlib is slow to import, so ``astrophot.plots`` is loaded on first use
+    if name == "plots":
+        from importlib import import_module
+
+        return import_module(".plots", __name__)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # meta data
@@ -72,6 +82,7 @@ __all__ = (
     "errors",
     "Module",
     "config",
+    "set_logger",
     "backend",
     "ArrayLike",
     "__version__",

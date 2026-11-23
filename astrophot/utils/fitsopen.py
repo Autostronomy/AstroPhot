@@ -3,21 +3,14 @@ import warnings
 from astropy.utils.data import download_file
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
-from numpy.core.defchararray import startswith
-
-try:
-    from pyvo.dal import sia
-except:
-    sia = None
 import os
-
-# Suppress common Astropy warnings that can clutter CI logs
-warnings.simplefilter("ignore", category=AstropyWarning)
 
 
 def flip_hdu(hdu):
     """
-    Flips the image data in the FITS HDU on the RA axis to match the expected orientation.
+    Mirrors the image in the FITS HDU along its first axis, so that an image
+    stored with east to the right has east to the left. The WCS is updated to
+    match, every pixel keeps its position on the sky.
 
     Args:
         hdu (astropy.io.fits.HDUList): The FITS HDU to be flipped.
@@ -32,8 +25,9 @@ def flip_hdu(hdu):
     hdu[0].data = hdu[0].data[:, ::-1].copy()
     hdu[0].header["CD1_1"] = -hdu[0].header["CD1_1"]
     hdu[0].header["CD2_1"] = -hdu[0].header["CD2_1"]
-    hdu[0].header["CRPIX1"] = int(hdu[0].header["NAXIS1"] / 2) + 1
-    hdu[0].header["CRPIX2"] = int(hdu[0].header["NAXIS2"] / 2) + 1
+    # FITS pixels count from 1, so pixel i moves to NAXIS1 + 1 - i. The reference
+    # pixel moves with the rest, it is often far outside of a cutout.
+    hdu[0].header["CRPIX1"] = hdu[0].header["NAXIS1"] + 1 - hdu[0].header["CRPIX1"]
     return hdu
 
 
@@ -53,7 +47,10 @@ def ls_open(ra, dec, size_arcsec, band="r", release="ls_dr9"):
         astropy.io.fits.HDUList: The opened FITS file object.
     """
 
-    if sia is None:
+    # imported here to keep `import astrophot` fast
+    try:
+        from pyvo.dal import sia
+    except ImportError:
         raise ImportError(
             "Cannot use ls_open without pyvo. Please install pyvo (pip install pyvo) before continuing."
         )
@@ -78,7 +75,7 @@ def ls_open(ra, dec, size_arcsec, band="r", release="ls_dr9"):
     sel = (
         (imgTable["proctype"] == "Stack")
         & (imgTable["prodtype"] == "image")
-        & (startswith(imgTable["obs_bandpass"].astype(str), target_band))
+        & (np.char.startswith(imgTable["obs_bandpass"].astype(str), target_band))
     )
 
     Table = imgTable[sel]
@@ -100,8 +97,10 @@ def ls_open(ra, dec, size_arcsec, band="r", release="ls_dr9"):
     # and automatically uses a long timeout (120s in the notebook example)
     filename = download_file(url, cache=False, show_progress=False, timeout=120)
 
-    # Open the downloaded FITS file
-    hdu = fits.open(filename)
+    # Open the downloaded FITS file, without the astropy warnings on its header
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=AstropyWarning)
+        hdu = fits.open(filename)
 
     try:
         hdu = flip_hdu(hdu)

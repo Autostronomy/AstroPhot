@@ -1,7 +1,7 @@
 from typing import Optional, Sequence, Union
 
 import numpy as np
-from caskade import forward
+from caskade import forward, NodeList
 
 from .base import Model
 from ..image import (
@@ -50,6 +50,8 @@ class GroupModel(Model):
         **kwargs,
     ):
         super().__init__(**kwargs)
+        if models is None or len(models) == 0:
+            models = NodeList([])
         for model in models:
             if not isinstance(model, Model):
                 raise TypeError(f"Expected a Model instance in 'models', got {type(model)}")
@@ -104,6 +106,7 @@ class GroupModel(Model):
         """
         Initialize each model in this group. Does this by iteratively initializing a model then subtracting it from a copy of the target.
         """
+        self._update_window()
         for model in self.models:
             config.logger.info(f"Initializing model {model.name}")
             model.initialize()

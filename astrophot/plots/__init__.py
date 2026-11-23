@@ -6,7 +6,7 @@ from .profile import (
 )
 from .image import target_image, model_image, residual_image, model_window, psf_image
 from .visuals import main_pallet, cmap_div, cmap_grad
-from .diagnostic import covariance_matrix
+from .diagnostic import covariance_matrix, corner_plot
 
 __all__ = (
     "radial_light_profile",
@@ -22,4 +22,5 @@ __all__ = (
     "cmap_div",
     "cmap_grad",
     "covariance_matrix",
+    "corner_plot",
 )

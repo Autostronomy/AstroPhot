@@ -234,11 +234,13 @@ class SampleMixin:
 
 class GradMixin:
     """
-    :param jacobian_maxparams: The maximum number of parameters before the Jacobian will be broken into smaller chunks to reduce memory consumption (int, default: 10).
+    :param jacobian_maxparams: The maximum number of parameters in one pass of the Jacobian. A model with more parameters has its Jacobian computed in chunks of this many parameters to reduce memory consumption (int, default: 32).
     """
 
-    # Maximum size of parameter list before jacobian will be broken into smaller chunks, this is helpful for limiting the memory requirements to build a model, lower jacobian_chunksize is slower but uses less memory
-    jacobian_maxparams = 10
+    # Largest number of parameters differentiated in one pass. With more
+    # parameters than this the jacobian is built in chunks of this size, which
+    # limits the memory needed. A lower value is slower but uses less memory.
+    jacobian_maxparams = 32
 
     _options = ("jacobian_maxparams",)
 
@@ -283,7 +285,7 @@ class GradMixin:
 
         target = self.target[self.window]
         if len(params) > self.jacobian_maxparams:  # handle large number of parameters
-            chunksize = len(params) // self.jacobian_maxparams + 1
+            chunksize = max(1, int(self.jacobian_maxparams))
             for i in range(0, len(params), chunksize):
                 params_pre = params[:i]
                 params_chunk = params[i : i + chunksize]

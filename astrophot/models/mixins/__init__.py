@@ -1,6 +1,7 @@
 from .brightness import RadialMixin, WedgeMixin, RayMixin
 from .transform import (
     InclinedMixin,
+    EllipseMixin,
     SuperEllipseMixin,
     FourierEllipseMixin,
     WarpMixin,
@@ -25,6 +26,7 @@ __all__ = (
     "WarpMixin",
     "TruncationMixin",
     "InclinedMixin",
+    "EllipseMixin",
     "SersicMixin",
     "iSersicMixin",
     "SersicPSFMixin",
